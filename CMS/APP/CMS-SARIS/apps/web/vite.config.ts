@@ -51,6 +51,9 @@ export default defineConfig(({ mode }) => {
           // App shell : tout le bundle est pré-caché → l'application se charge
           // intégralement même sans réseau.
           globPatterns: ["**/*.{js,css,html,svg,woff,woff2,ttf,png,ico}"],
+          // Précache des gros assets offline-first : sprite emoji Apple (~4,4 Mo) +
+          // bundle applicatif (~3 Mo). Défaut workbox = 2 Mio → build en échec sinon.
+          maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
           cleanupOutdatedCaches: true,
           clientsClaim: true,
           // SPA : toute navigation inconnue retombe sur index.html (déjà pré-caché).
