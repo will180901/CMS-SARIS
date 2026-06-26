@@ -24,7 +24,9 @@ services:
     # --prod=false : garde les devDeps (nest CLI, tsc) nécessaires au build même si NODE_ENV=production.
     buildCommand: npm install -g pnpm@9.15.9 && pnpm install --frozen-lockfile --prod=false && pnpm --filter @cms-saris/db exec prisma generate && pnpm --filter api build
     # Les migrations sont appliquées à chaque déploiement (idempotent) puis l'API démarre.
-    startCommand: pnpm --filter @cms-saris/db exec prisma migrate deploy && node apps/api/dist/main.js
+    # --experimental-require-module : Node 20.18 refuse require() d'un module ESM
+    # (@scure/base via otplib) ; le flag (dispo dès Node 20.17) l'autorise. Même fix que le desktop.
+    startCommand: pnpm --filter @cms-saris/db exec prisma migrate deploy && node --experimental-require-module apps/api/dist/main.js
     healthCheckPath: /health
     envVars:
       - key: NODE_VERSION
