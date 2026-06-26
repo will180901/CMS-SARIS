@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CG-02 · Typographie — Charte Graphique CMS SARIS Congo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+
+    /* ═══════════════════════════════════════════════════════════════
+       TOKENS PARTAGÉS (copie de CG-01 — même base dans tous les modules)
+    ═══════════════════════════════════════════════════════════════ */
+    :root, [data-theme="light"] {
+      --fond-page:       #F4F6F8;
+      --fond-surface:    #FFFFFF;
+      --fond-surface-2:  #F0F2F5;
+      --fond-input:      #EAECF0;
+      --texte-primaire:   #0F172A;
+      --texte-secondaire: #475569;
+      --texte-tertiaire:  #94A3B8;
+      --bordure-legere: rgba(15,23,42,0.08);
+      --bordure-normale: rgba(15,23,42,0.14);
+      --bordure-forte:  rgba(15,23,42,0.28);
+      --ap-50:  #D6E8EF; --ap-100: #A8CCDA; --ap-200: #79AFBF;
+      --ap-300: #5B9BB0; --ap-400: #4E8BA4; --ap-500: #3D7A92;
+      --ap-600: #366680; --ap-700: #2A5269; --ap-800: #214A5E; --ap-900: #0F2F3D;
+      --as-400: #C99A2E; --as-50: #F6EBD2; --as-900: #4D3A08;
+      --succes-fond: #EAF3EC; --succes-texte: #2D6A3F; --succes-accent: #3D7A5E; --succes-bordure: rgba(45,106,63,0.2);
+      --erreur-fond: #F5EAEA; --erreur-texte: #7A2E2E; --erreur-accent: #9B4444; --erreur-bordure: rgba(122,46,46,0.2);
+      --avert-fond: #F5EEDF; --avert-texte: #6B4D1A; --avert-accent: #8A6A2A;
+      --info-fond: #E6EFF5; --info-texte: #2A4F6B; --info-accent: #3A6080;
+      --couleur-accent: var(--ap-400);
+      --couleur-accent-fond: var(--ap-50);
+      --couleur-accent-hover: var(--ap-500);
+      --couleur-accent-texte: #FFFFFF;
+      --radius-xs: 4px; --radius-sm: 6px; --radius-md: 8px; --radius-lg: 10px;
+    }
+    [data-theme="dark"] {
+      --fond-page:       #0D1117;
+      --fond-surface:    #161B22;
+      --fond-surface-2:  #1C2333;
+      --fond-input:      #21262D;
+      --texte-primaire:   #E6EDF3;
+      --texte-secondaire: #8B949E;
+      --texte-tertiaire:  #484F58;
+      --bordure-legere: rgba(230,237,243,0.08);
+      --bordure-normale: rgba(230,237,243,0.14);
+      --bordure-forte:  rgba(230,237,243,0.28);
+      --ap-50:  #0F2F3D; --ap-100: #214A5E; --ap-200: #2A5269;
+      --ap-300: #366680; --ap-400: #4E8BA4; --ap-500: #5B9BB0;
+      --ap-600: #79AFBF; --ap-700: #A8CCDA; --ap-800: #C8E0E9; --ap-900: #D6E8EF;
+      --as-400: #C99A2E; --as-50: #4D3A08; --as-900: #F6EBD2;
+      --succes-fond: #1A2E20; --succes-texte: #7EE2A0; --succes-accent: #56C47A; --succes-bordure: rgba(126,226,160,0.15);
+      --erreur-fond: #2E1A1A; --erreur-texte: #E2857E; --erreur-accent: #CC6060; --erreur-bordure: rgba(226,133,126,0.15);
+      --avert-fond: #2E2410; --avert-texte: #E2C07E; --avert-accent: #C9A23A;
+      --info-fond: #0F2030; --info-texte: #7EB5D6; --info-accent: #5E9FC0;
+      --couleur-accent: var(--ap-400);
+      --couleur-accent-fond: var(--ap-50);
+      --couleur-accent-hover: var(--ap-500);
+      --couleur-accent-texte: #FFFFFF;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       BASE
+    ═══════════════════════════════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 14px; line-height: 1.6;
+      background: var(--fond-page); color: var(--texte-primaire);
+      transition: background 0.22s ease, color 0.22s ease;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       HEADER + NAV
+    ═══════════════════════════════════════════════════════════════ */
+    .page-header {
+      position: sticky; top: 0; z-index: 100;
+      border-bottom: 1px solid var(--bordure-legere);
+      padding: 0 40px;
+    }
+    [data-theme="light"] .page-header { background: rgba(255,255,255,0.88); backdrop-filter: blur(14px); }
+    [data-theme="dark"]  .page-header { background: rgba(22,27,34,0.88);  backdrop-filter: blur(14px); }
+    .page-header-inner {
+      max-width: 1100px; margin: 0 auto; height: 54px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .header-left { display: flex; align-items: center; gap: 10px; }
+    .module-badge {
+      font-size: 10px; font-weight: 600; padding: 3px 9px;
+      border-radius: var(--radius-xs);
+      background: var(--couleur-accent-fond); color: var(--ap-800);
+      letter-spacing: 0.06em; text-transform: uppercase;
+    }
+    [data-theme="dark"] .module-badge { background: var(--ap-100); color: var(--ap-700); }
+    .header-title-text { font-size: 13px; font-weight: 500; color: var(--texte-primaire); }
+    .header-sep { width: 1px; height: 16px; background: var(--bordure-normale); }
+    .header-sub { font-size: 12px; color: var(--texte-tertiaire); }
+    .toggle-btn {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--fond-surface-2); border: 1px solid var(--bordure-normale);
+      border-radius: var(--radius-sm); padding: 5px 12px; cursor: pointer;
+      font-family: 'Inter', sans-serif; font-size: 12px; color: var(--texte-secondaire);
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    .toggle-btn:hover { background: var(--fond-input); color: var(--texte-primaire); }
+
+    /* Nav modules */
+    .modules-nav {
+      background: var(--fond-surface);
+      border-bottom: 1px solid var(--bordure-legere);
+      padding: 0 40px; overflow-x: auto; scrollbar-width: none;
+    }
+    .modules-nav::-webkit-scrollbar { display: none; }
+    .modules-nav-inner {
+      max-width: 1100px; margin: 0 auto;
+      display: flex; align-items: center; gap: 2px; height: 40px;
+    }
+    .nav-link {
+      display: flex; align-items: center; gap: 5px;
+      padding: 4px 10px; border-radius: var(--radius-xs);
+      font-size: 11px; font-weight: 500; color: var(--texte-tertiaire);
+      text-decoration: none; white-space: nowrap;
+      transition: background 0.13s ease, color 0.13s ease;
+      border: 1px solid transparent;
+    }
+    .nav-link:hover { background: var(--fond-surface-2); color: var(--texte-secondaire); }
+    .nav-link.active { background: var(--couleur-accent-fond); color: var(--ap-700); border-color: var(--ap-200); }
+    [data-theme="dark"] .nav-link.active { background: var(--ap-100); color: var(--ap-600); border-color: var(--ap-300); }
+    .nav-num { font-size: 9px; font-weight: 700; opacity: 0.6; letter-spacing: 0.04em; }
+    .nav-sep { width: 1px; height: 14px; background: var(--bordure-legere); margin: 0 4px; flex-shrink: 0; }
+
+    /* ═══════════════════════════════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════════════════════════════ */
+    .main { max-width: 1100px; margin: 0 auto; padding: 48px 40px 96px; }
+
+    .module-hero {
+      background: var(--fond-surface);
+      border: 1px solid var(--bordure-legere);
+      border-radius: var(--radius-lg);
+      padding: 32px 36px; margin-bottom: 52px;
+      display: grid; grid-template-columns: 1fr 1px 1fr 1px 1fr; gap: 0;
+    }
+    .hero-col { padding: 0 28px; }
+    .hero-col:first-child { padding-left: 0; }
+    .hero-col:last-child  { padding-right: 0; }
+    .hero-divider { background: var(--bordure-legere); }
+    .hero-label { font-size: 10px; font-weight: 600; color: var(--ap-400); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
+    .hero-title { font-size: 14px; font-weight: 500; color: var(--texte-primaire); margin-bottom: 6px; }
+    .hero-body  { font-size: 12px; color: var(--texte-secondaire); line-height: 1.65; }
+
+    .section { margin-bottom: 60px; }
+    .section-header { margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--bordure-legere); }
+    .section-num { font-size: 10px; font-weight: 600; color: var(--ap-400); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 5px; }
+    .section-title { font-size: 17px; font-weight: 500; color: var(--texte-primaire); margin-bottom: 6px; }
+    .section-desc  { font-size: 13px; color: var(--texte-secondaire); line-height: 1.65; max-width: 700px; }
+
+    .card {
+      background: var(--fond-surface);
+      border: 1px solid var(--bordure-legere);
+      border-radius: var(--radius-lg); overflow: hidden;
+    }
+    .card-pad { padding: 20px 24px; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .three-col { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
+    .note {
+      font-size: 11px; color: var(--texte-tertiaire);
+      padding: 8px 12px; background: var(--fond-surface-2);
+      border-radius: var(--radius-xs); border-left: 2px solid var(--ap-300); margin-top: 10px;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       SCALE TYPOGRAPHIQUE
+    ═══════════════════════════════════════════════════════════════ */
+    .scale-table { width: 100%; border-collapse: collapse; }
+    .scale-table th {
+      text-align: left; padding: 9px 16px;
+      font-size: 10px; font-weight: 600; color: var(--texte-tertiaire);
+      text-transform: uppercase; letter-spacing: 0.09em;
+      border-bottom: 1px solid var(--bordure-legere);
+      background: var(--fond-surface-2);
+    }
+    .scale-table td {
+      padding: 0; border-bottom: 1px solid var(--bordure-legere);
+      vertical-align: middle;
+    }
+    .scale-table tr:last-child td { border-bottom: none; }
+    .scale-table tr:hover td { background: var(--fond-surface-2); }
+    .scale-table tr.hl td { background: var(--fond-surface-2); }
+    .td-demo { padding: 18px 16px; }
+    .td-spec  { padding: 10px 16px; vertical-align: middle; font-size: 11px; color: var(--texte-secondaire); border-left: 1px solid var(--bordure-legere); min-width: 100px; }
+    .td-token { padding: 10px 16px; font-family: 'Courier New', monospace; font-size: 10px; color: var(--ap-400); border-left: 1px solid var(--bordure-legere); min-width: 180px; }
+    .td-use   { padding: 10px 16px; font-size: 11px; color: var(--texte-secondaire); border-left: 1px solid var(--bordure-legere); }
+
+    /* Tailles de démo */
+    .t-display  { font-size: 28px; font-weight: 500; color: var(--texte-primaire); line-height: 1.25; letter-spacing: -0.01em; }
+    .t-h1       { font-size: 22px; font-weight: 500; color: var(--texte-primaire); line-height: 1.3; }
+    .t-h2       { font-size: 18px; font-weight: 500; color: var(--texte-primaire); line-height: 1.35; }
+    .t-h3       { font-size: 16px; font-weight: 500; color: var(--texte-primaire); line-height: 1.4; }
+    .t-h4       { font-size: 14px; font-weight: 500; color: var(--texte-primaire); line-height: 1.45; }
+    .t-body-lg  { font-size: 15px; font-weight: 400; color: var(--texte-primaire); line-height: 1.65; }
+    .t-body     { font-size: 14px; font-weight: 400; color: var(--texte-primaire); line-height: 1.6; }
+    .t-body-sm  { font-size: 13px; font-weight: 400; color: var(--texte-secondaire); line-height: 1.6; }
+    .t-label    { font-size: 12px; font-weight: 500; color: var(--texte-secondaire); line-height: 1.4; letter-spacing: 0.01em; }
+    .t-caption  { font-size: 11px; font-weight: 400; color: var(--texte-tertiaire); line-height: 1.45; }
+    .t-overline { font-size: 10px; font-weight: 600; color: var(--texte-tertiaire); line-height: 1.4; text-transform: uppercase; letter-spacing: 0.09em; }
+    .t-mono     { font-size: 12px; font-weight: 400; color: var(--ap-400); line-height: 1.5; font-family: 'Courier New', monospace; }
+
+    /* ═══════════════════════════════════════════════════════════════
+       GRAISSES
+    ═══════════════════════════════════════════════════════════════ */
+    .weight-demo {
+      display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-end;
+      padding: 24px; background: var(--fond-surface);
+      border: 1px solid var(--bordure-legere); border-radius: var(--radius-lg);
+    }
+    .weight-item { text-align: center; }
+    .weight-char { font-size: 52px; line-height: 1; color: var(--texte-primaire); }
+    .weight-info { font-size: 10px; color: var(--texte-tertiaire); margin-top: 6px; line-height: 1.5; }
+    .weight-tag  { display: inline-block; font-size: 9px; font-weight: 600; padding: 2px 6px; border-radius: 3px; background: var(--couleur-accent-fond); color: var(--ap-700); margin-top: 4px; }
+    [data-theme="dark"] .weight-tag { background: var(--ap-100); color: var(--ap-600); }
+
+    /* ═══════════════════════════════════════════════════════════════
+       HIÉRARCHIE VISUELLE
+    ═══════════════════════════════════════════════════════════════ */
+    .hierarchy-demo {
+      background: var(--fond-surface);
+      border: 1px solid var(--bordure-legere);
+      border-radius: var(--radius-lg);
+      padding: 32px 36px;
+    }
+    .h-overline { font-size: 10px; font-weight: 600; color: var(--ap-400); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
+    .h-title    { font-size: 22px; font-weight: 500; color: var(--texte-primaire); margin-bottom: 4px; line-height: 1.3; }
+    .h-subtitle { font-size: 14px; font-weight: 400; color: var(--texte-secondaire); margin-bottom: 20px; line-height: 1.5; }
+    .h-divider  { height: 1px; background: var(--bordure-legere); margin-bottom: 20px; }
+    .h-section  { font-size: 13px; font-weight: 500; color: var(--texte-primaire); margin-bottom: 8px; letter-spacing: 0.01em; }
+    .h-body     { font-size: 14px; font-weight: 400; color: var(--texte-secondaire); line-height: 1.65; margin-bottom: 16px; }
+    .h-label    { font-size: 11px; font-weight: 500; color: var(--texte-tertiaire); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+    .h-value    { font-size: 14px; font-weight: 500; color: var(--texte-primaire); }
+    .h-caption  { font-size: 11px; color: var(--texte-tertiaire); margin-top: 3px; }
+    .h-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
+
+    /* ═══════════════════════════════════════════════════════════════
+       COMBINAISONS CONTEXTUELLES
+    ═══════════════════════════════════════════════════════════════ */
+    .combo-card {
+      background: var(--fond-surface);
+      border: 1px solid var(--bordure-legere);
+      border-radius: var(--radius-lg);
+      padding: 20px 22px;
+    }
+    .combo-label {
+      font-size: 10px; font-weight: 600; color: var(--texte-tertiaire);
+      text-transform: uppercase; letter-spacing: 0.09em; margin-bottom: 14px;
+    }
+
+    /* Tableau patient */
+    .mini-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .mini-table th {
+      text-align: left; padding: 7px 10px;
+      font-size: 10px; font-weight: 600; color: var(--texte-tertiaire);
+      text-transform: uppercase; letter-spacing: 0.08em;
+      border-bottom: 1px solid var(--bordure-legere);
+    }
+    .mini-table td { padding: 8px 10px; border-bottom: 1px solid var(--bordure-legere); color: var(--texte-primaire); }
+    .mini-table tr:last-child td { border-bottom: none; }
+    .mini-table tr:hover td { background: var(--fond-surface-2); }
+    .td-muted { color: var(--texte-secondaire) !important; font-size: 11px; }
+    .td-accent { color: var(--ap-400) !important; font-size: 11px; font-weight: 500; }
+
+    /* Règles absolues */
+    .rules-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .rule-box { background: var(--fond-surface); border: 1px solid var(--bordure-legere); border-radius: var(--radius-lg); padding: 20px 22px; }
+    .rule-box-title { font-size: 13px; font-weight: 500; margin-bottom: 14px; }
+    .rule-item { display: flex; gap: 10px; align-items: flex-start; padding: 7px 0; border-bottom: 1px solid var(--bordure-legere); font-size: 12px; color: var(--texte-secondaire); line-height: 1.55; }
+    .rule-item:last-child { border-bottom: none; }
+    .ri { flex-shrink: 0; width: 16px; font-size: 12px; margin-top: 1px; }
+    .ri.ok { color: var(--succes-accent); }
+    .ri.no { color: var(--erreur-accent); }
+
+    /* Token table */
+    .token-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .token-table th { text-align: left; padding: 9px 14px; font-size: 10px; font-weight: 600; color: var(--texte-tertiaire); text-transform: uppercase; letter-spacing: 0.09em; border-bottom: 1px solid var(--bordure-legere); background: var(--fond-surface-2); }
+    .token-table td { padding: 10px 14px; border-bottom: 1px solid var(--bordure-legere); vertical-align: middle; }
+    .token-table tr:last-child td { border-bottom: none; }
+    .token-table tr:hover td { background: var(--fond-surface-2); }
+    .t-name { font-family: 'Courier New', monospace; font-size: 11px; color: var(--ap-400); font-weight: 600; }
+    .t-val  { font-family: 'Courier New', monospace; font-size: 11px; color: var(--texte-primaire); }
+    .t-use  { font-size: 11px; color: var(--texte-secondaire); }
+
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     HEADER
+══════════════════════════════════════════════════════════════════ -->
+<header class="page-header">
+  <div class="page-header-inner">
+    <div class="header-left">
+      <span class="module-badge">CG-02</span>
+      <span class="header-title-text">Typographie</span>
+      <span class="header-sep"></span>
+      <span class="header-sub">Charte Graphique · CMS SARIS Congo</span>
+    </div>
+    <button class="toggle-btn" onclick="toggleTheme()" id="toggleBtn">
+      <span id="themeIcon">☾</span>
+      <span id="themeLabel">Mode sombre</span>
+    </button>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     NAVIGATION ENTRE MODULES
+══════════════════════════════════════════════════════════════════ -->
+<nav class="modules-nav" aria-label="Navigation modules charte graphique">
+  <div class="modules-nav-inner">
+    <a href="CG-01_Couleurs_et_Tokens.html"        class="nav-link"><span class="nav-num">01</span> Couleurs &amp; Tokens</a>
+    <div class="nav-sep"></div>
+    <a href="CG-02_Typographie.html"                class="nav-link active"><span class="nav-num">02</span> Typographie</a>
+    <div class="nav-sep"></div>
+    <a href="CG-03_Espacements_et_Grilles.html"     class="nav-link"><span class="nav-num">03</span> Espacements &amp; Grilles</a>
+    <div class="nav-sep"></div>
+    <a href="CG-04_Effets_de_Surface.html"          class="nav-link"><span class="nav-num">04</span> Effets de Surface</a>
+    <div class="nav-sep"></div>
+    <a href="CG-05_Composants_Fondamentaux.html"    class="nav-link"><span class="nav-num">05</span> Composants Fondamentaux</a>
+    <div class="nav-sep"></div>
+    <a href="CG-06_Navigation_et_Structure.html"    class="nav-link"><span class="nav-num">06</span> Navigation &amp; Structure</a>
+    <div class="nav-sep"></div>
+    <a href="CG-07_Donnees_et_Contenu.html"         class="nav-link"><span class="nav-num">07</span> Données &amp; Contenu</a>
+    <div class="nav-sep"></div>
+    <a href="CG-08_Feedback_et_Communication.html"  class="nav-link"><span class="nav-num">08</span> Feedback &amp; Communication</a>
+    <div class="nav-sep"></div>
+    <a href="CG-09_Animations_et_Transitions.html"  class="nav-link"><span class="nav-num">09</span> Animations</a>
+    <div class="nav-sep"></div>
+    <a href="CG-10_Iconographie_et_Assets.html"     class="nav-link"><span class="nav-num">10</span> Iconographie</a>
+    <div class="nav-sep"></div>
+    <a href="CG-11_Etats_et_Accessibilite.html"     class="nav-link"><span class="nav-num">11</span> États &amp; Accessibilité</a>
+    <div class="nav-sep"></div>
+    <a href="CG-12_Recapitulatif_et_Regles.html"    class="nav-link"><span class="nav-num">12</span> Récapitulatif</a>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     CONTENU PRINCIPAL
+══════════════════════════════════════════════════════════════════ -->
+<main class="main">
+
+  <!-- HERO -->
+  <div class="module-hero">
+    <div class="hero-col">
+      <p class="hero-label">Pourquoi</p>
+      <p class="hero-title">Une typographie au service de la lisibilité médicale</p>
+      <p class="hero-body">Dans un CMS médico-social, la typographie n'est pas décorative — elle porte des données critiques (noms de patients, dosages, dates de permutation). Elle doit être parfaitement lisible à toutes les tailles, sur tous les écrans, sans jamais fatiguer l'œil.</p>
+    </div>
+    <div class="hero-divider"></div>
+    <div class="hero-col">
+      <p class="hero-label">Quoi</p>
+      <p class="hero-title">Inter · Humaniste · Deux graisses · Onze niveaux</p>
+      <p class="hero-body">La police Inter (Rasmus Andersson) est la référence de Linear, GitHub et Vercel. Humaniste et optimisée pour les écrans, elle offre une lisibilité exceptionnelle à 11px comme à 28px. Le système utilise uniquement deux graisses : 400 (régulier) et 500 (medium). Onze niveaux de taille couvrent tous les contextes.</p>
+    </div>
+    <div class="hero-divider"></div>
+    <div class="hero-col">
+      <p class="hero-label">Comment</p>
+      <p class="hero-title">Tokens nommés · échelle proportionnelle · interlignage contextuel</p>
+      <p class="hero-body">Chaque niveau est un token CSS (--typo-display, --typo-h1…). La taille de base est 14px. L'interlignage varie selon le niveau : plus le texte est grand, plus l'interlignage est serré. Aucun texte ne descend en dessous de 11px. Aucun titre n'est surdimensionné.</p>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SECTION 01 · FAMILLE DE POLICE
+  ══════════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <p class="section-num">Section 01</p>
+      <h2 class="section-title">Famille de police — Inter</h2>
+      <p class="section-desc">Inter est chargée depuis Google Fonts avec les graisses 400 et 500 uniquement. La graisse 600 est autorisée uniquement pour les numéros de badge et labels de navigation — elle doit rester exceptionnelle. Aucune autre famille de police n'est utilisée dans l'interface (à l'exception du monospace pour les tokens et codes).</p>
+    </div>
+
+    <div class="weight-demo">
+      <div class="weight-item">
+        <div class="weight-char" style="font-weight:400;">Ag</div>
+        <div class="weight-info">Inter Regular<br>font-weight: 400</div>
+        <span class="weight-tag">Corps · descriptions · valeurs</span>
+      </div>
+      <div style="width:1px; background:var(--bordure-legere); height:80px; align-self:center;"></div>
+      <div class="weight-item">
+        <div class="weight-char" style="font-weight:500;">Ag</div>
+        <div class="weight-info">Inter Medium<br>font-weight: 500</div>
+        <span class="weight-tag">Titres · labels · boutons · emphase</span>
+      </div>
+      <div style="width:1px; background:var(--bordure-legere); height:80px; align-self:center;"></div>
+      <div style="flex:1; padding-left:16px;">
+        <p style="font-size:11px; font-weight:600; color:var(--texte-tertiaire); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:10px;">Alphabet complet — Regular 400</p>
+        <p style="font-size:16px; font-weight:400; color:var(--texte-primaire); line-height:1.6; letter-spacing:0.01em;">A B C D E F G H I J K L M N O P Q R S T U V W X Y Z</p>
+        <p style="font-size:16px; font-weight:400; color:var(--texte-primaire); line-height:1.6; letter-spacing:0.01em;">a b c d e f g h i j k l m n o p q r s t u v w x y z</p>
+        <p style="font-size:16px; font-weight:400; color:var(--texte-secondaire); line-height:1.6;">0 1 2 3 4 5 6 7 8 9 · , . ; : ! ? @ # % &amp; / ( ) - + = &lt; &gt;</p>
+      </div>
+      <div style="width:1px; background:var(--bordure-legere); height:80px; align-self:center;"></div>
+      <div style="padding-left:16px;">
+        <p style="font-size:11px; font-weight:600; color:var(--texte-tertiaire); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:10px;">Chargement CSS</p>
+        <div style="background:var(--fond-surface-2); border:1px solid var(--bordure-legere); border-radius:var(--radius-sm); padding:10px 14px;">
+          <p style="font-family:'Courier New',monospace; font-size:11px; color:var(--ap-400); line-height:1.7;">@import url(<br>&nbsp;&nbsp;'fonts.googleapis.com/<br>&nbsp;&nbsp;css2?family=Inter:<br>&nbsp;&nbsp;wght@400;500&amp;display=swap'<br>);</p>
+        </div>
+        <p style="font-size:10px; color:var(--texte-tertiaire); margin-top:6px;">Stack de repli : -apple-system, BlinkMacSystemFont, sans-serif</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SECTION 02 · ÉCHELLE TYPOGRAPHIQUE
+  ══════════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <p class="section-num">Section 02</p>
+      <h2 class="section-title">Échelle typographique — 11 niveaux</h2>
+      <p class="section-desc">Chaque niveau a une taille, une graisse, un interlignage et un espacement de lettres précis. Les niveaux sont conçus pour créer une hiérarchie claire sans jamais utiliser de grands titres imposants. La taille maximale (display) est 28px — réservée aux métriques de tableau de bord.</p>
+    </div>
+
+    <div class="card">
+      <table class="scale-table">
+        <thead>
+          <tr>
+            <th style="width:40%;">Rendu visuel</th>
+            <th>Spécifications</th>
+            <th>Token CSS</th>
+            <th>Usage dans le CMS SARIS</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="td-demo"><span class="t-display">28 · Nombre de consultations</span></td>
+            <td class="td-spec">28px · 500 · lh 1.25<br>ls -0.01em</td>
+            <td class="td-token">--typo-display</td>
+            <td class="td-use">Valeurs de KPI sur tableau de bord · métriques critiques · jamais pour les titres de page</td>
+          </tr>
+          <tr class="hl">
+            <td class="td-demo"><span class="t-h1">Dossier patient — Loubaki Jean-Pierre</span></td>
+            <td class="td-spec">22px · 500 · lh 1.3</td>
+            <td class="td-token">--typo-h1</td>
+            <td class="td-use">Titre principal de page · en-tête de module · une seule occurrence par écran</td>
+          </tr>
+          <tr>
+            <td class="td-demo"><span class="t-h2">Consultations du mois de mai 2026</span></td>
+            <td class="td-spec">18px · 500 · lh 1.35</td>
+            <td class="td-token">--typo-h2</td>
+            <td class="td-use">Titre de section majeure · titre de panneau latéral</td>
+          </tr>
+          <tr class="hl">
+            <td class="td-demo"><span class="t-h3">Prescriptions en cours — CMS Moutela</span></td>
+            <td class="td-spec">16px · 500 · lh 1.4</td>
+            <td class="td-token">--typo-h3</td>
+            <td class="td-use">Titre de sous-section · en-tête de carte · titre de groupe de formulaire</td>
+          </tr>
+          <tr>
+            <td class="td-demo"><span class="t-h4">Informations administratives du patient</span></td>
+            <td class="td-spec">14px · 500 · lh 1.45</td>
+            <td class="td-token">--typo-h4</td>
+            <td class="td-use">Label de groupe · titre de bloc dans un formulaire · en-tête de tableau</td>
+          </tr>
+          <tr class="hl">
+            <td class="td-demo"><span class="t-body-lg">Le patient a été orienté vers le CMS de Nkayi pour le suivi post-consultation du 14 mai.</span></td>
+            <td class="td-spec">15px · 400 · lh 1.65</td>
+            <td class="td-token">--typo-body-lg</td>
+            <td class="td-use">Corps de texte long · notes cliniques · rapports médicaux · contenu éditorial</td>
+          </tr>
+          <tr>
+            <td class="td-demo"><span class="t-body">Paracétamol 500mg — 2 comprimés matin et soir pendant 5 jours.</span></td>
+            <td class="td-spec">14px · 400 · lh 1.6</td>
+            <td class="td-token">--typo-body</td>
+            <td class="td-use">Corps de texte standard · valeurs de tableau · contenu de formulaire · texte principal partout</td>
+          </tr>
+          <tr class="hl">
+            <td class="td-demo"><span class="t-body-sm">Dernière mise à jour : 15 mai 2026 à 09h14 par Dr. Mbemba</span></td>
+            <td class="td-spec">13px · 400 · lh 1.6</td>
+            <td class="td-token">--typo-body-sm</td>
+            <td class="td-use">Métadonnées · textes secondaires dans les cartes · descriptions d'aide</td>
+          </tr>
+          <tr>
+            <td class="td-demo"><span class="t-label">Site de consultation</span></td>
+            <td class="td-spec">12px · 500 · lh 1.4<br>ls 0.01em</td>
+            <td class="td-token">--typo-label</td>
+            <td class="td-use">Labels de champs de formulaire · étiquettes de colonnes de tableau · libellés de badge</td>
+          </tr>
+          <tr class="hl">
+            <td class="td-demo"><span class="t-caption">Consulté le 15 mai 2026 · Médecin : Dr. Loubaki · Durée : 18 min</span></td>
+            <td class="td-spec">11px · 400 · lh 1.45</td>
+            <td class="td-token">--typo-caption</td>
+            <td class="td-use">Captions sous les champs · textes d'aide · horodatages · notes de bas de tableau</td>
+          </tr>
+          <tr>
+            <td class="td-demo"><span class="t-overline">Historique des consultations</span></td>
+            <td class="td-spec">10px · 600 · lh 1.4<br>uppercase · ls 0.09em</td>
+            <td class="td-token">--typo-overline</td>
+            <td class="td-use">Labels de section dans la sidebar · en-têtes de groupe de navigation · séparateurs de catégorie</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note">Taille minimale absolue : 11px (--typo-caption). Aucun texte fonctionnel ne peut être plus petit. Le monospace (Courier New / system-mono) est réservé aux tokens CSS, codes de dossier, numéros de bon de pharmacie.</div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SECTION 03 · GRAISSES ET INTERLIGNAGE
+  ══════════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <p class="section-num">Section 03</p>
+      <h2 class="section-title">Graisses &amp; Interlignage — Règles précises</h2>
+      <p class="section-desc">Deux graisses uniquement. L'interlignage est contextuel : serré pour les grands titres (où l'œil parcourt peu de lignes), généreux pour le corps de texte (où l'œil suit plusieurs lignes). Ces valeurs sont optimisées pour Inter sur écran.</p>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <table class="token-table">
+          <thead><tr><th>Niveau</th><th>Graisse</th><th>Interlignage</th><th>Esp. lettres</th></tr></thead>
+          <tbody>
+            <tr><td class="t-use">Display</td><td class="t-val">500</td><td class="t-val">1.25</td><td class="t-val">-0.01em</td></tr>
+            <tr><td class="t-use">H1</td><td class="t-val">500</td><td class="t-val">1.30</td><td class="t-val">0</td></tr>
+            <tr><td class="t-use">H2</td><td class="t-val">500</td><td class="t-val">1.35</td><td class="t-val">0</td></tr>
+            <tr><td class="t-use">H3</td><td class="t-val">500</td><td class="t-val">1.40</td><td class="t-val">0</td></tr>
+            <tr><td class="t-use">H4</td><td class="t-val">500</td><td class="t-val">1.45</td><td class="t-val">0</td></tr>
+            <tr><td class="t-use">Body-lg</td><td class="t-val">400</td><td class="t-val">1.65</td><td class="t-val">0</td></tr>
+            <tr><td class="t-use">Body</td><td class="t-val">400</td><td class="t-val">1.60</td><td class="t-val">0</td></tr>
+            <tr><td class="t-use">Body-sm</td><td class="t-val">400</td><td class="t-val">1.60</td><td class="t-val">0</td></tr>
+            <tr><td class="t-use">Label</td><td class="t-val">500</td><td class="t-val">1.40</td><td class="t-val">0.01em</td></tr>
+            <tr><td class="t-use">Caption</td><td class="t-val">400</td><td class="t-val">1.45</td><td class="t-val">0</td></tr>
+            <tr><td class="t-use">Overline</td><td class="t-val">600</td><td class="t-val">1.40</td><td class="t-val">0.09em</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card card-pad">
+        <p style="font-size:11px; font-weight:600; color:var(--texte-tertiaire); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:16px;">Tokens CSS — Variables à utiliser dans le code</p>
+        <table class="token-table">
+          <thead><tr><th>Token</th><th>Valeur</th></tr></thead>
+          <tbody>
+            <tr><td class="t-name">--typo-display</td><td class="t-val">28px / 500 / lh 1.25</td></tr>
+            <tr><td class="t-name">--typo-h1</td><td class="t-val">22px / 500 / lh 1.30</td></tr>
+            <tr><td class="t-name">--typo-h2</td><td class="t-val">18px / 500 / lh 1.35</td></tr>
+            <tr><td class="t-name">--typo-h3</td><td class="t-val">16px / 500 / lh 1.40</td></tr>
+            <tr><td class="t-name">--typo-h4</td><td class="t-val">14px / 500 / lh 1.45</td></tr>
+            <tr><td class="t-name">--typo-body-lg</td><td class="t-val">15px / 400 / lh 1.65</td></tr>
+            <tr><td class="t-name">--typo-body</td><td class="t-val">14px / 400 / lh 1.60</td></tr>
+            <tr><td class="t-name">--typo-body-sm</td><td class="t-val">13px / 400 / lh 1.60</td></tr>
+            <tr><td class="t-name">--typo-label</td><td class="t-val">12px / 500 / lh 1.40</td></tr>
+            <tr><td class="t-name">--typo-caption</td><td class="t-val">11px / 400 / lh 1.45</td></tr>
+            <tr><td class="t-name">--typo-overline</td><td class="t-val">10px / 600 / lh 1.40 / uppercase</td></tr>
+            <tr><td class="t-name">--typo-mono</td><td class="t-val">12px / 400 / Courier New</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SECTION 04 · COULEURS TYPOGRAPHIQUES
+  ══════════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <p class="section-num">Section 04</p>
+      <h2 class="section-title">Couleurs typographiques — Hiérarchie par couleur</h2>
+      <p class="section-desc">La couleur renforce la hiérarchie. Trois niveaux de gris + une couleur d'accent couvrent tous les contextes. La couleur sémantique s'ajoute pour les états d'erreur, succès et avertissement dans les labels de formulaire.</p>
+    </div>
+
+    <div class="card card-pad">
+      <div style="display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; align-items:center; gap:16px; padding:12px 16px; background:var(--fond-surface-2); border-radius:var(--radius-sm);">
+          <div style="width:40px; height:40px; border-radius:50%; background:var(--texte-primaire); flex-shrink:0;"></div>
+          <div style="flex:1;">
+            <p style="font-size:14px; font-weight:500; color:var(--texte-primaire);">Texte primaire — --texte-primaire</p>
+            <p style="font-size:12px; color:var(--texte-secondaire);">Valeurs, titres, noms de patients, données critiques, contenu principal de tableau</p>
+          </div>
+          <div style="font-family:monospace; font-size:11px; color:var(--texte-tertiaire);">Clair : #0F172A · Sombre : #E6EDF3</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:16px; padding:12px 16px; background:var(--fond-surface-2); border-radius:var(--radius-sm);">
+          <div style="width:40px; height:40px; border-radius:50%; background:var(--texte-secondaire); flex-shrink:0;"></div>
+          <div style="flex:1;">
+            <p style="font-size:14px; font-weight:500; color:var(--texte-primaire);">Texte secondaire — --texte-secondaire</p>
+            <p style="font-size:12px; color:var(--texte-secondaire);">Descriptions, sous-titres, métadonnées, textes d'accompagnement, valeurs moins critiques</p>
+          </div>
+          <div style="font-family:monospace; font-size:11px; color:var(--texte-tertiaire);">Clair : #475569 · Sombre : #8B949E</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:16px; padding:12px 16px; background:var(--fond-surface-2); border-radius:var(--radius-sm);">
+          <div style="width:40px; height:40px; border-radius:50%; background:var(--texte-tertiaire); flex-shrink:0;"></div>
+          <div style="flex:1;">
+            <p style="font-size:14px; font-weight:500; color:var(--texte-primaire);">Texte tertiaire — --texte-tertiaire</p>
+            <p style="font-size:12px; color:var(--texte-secondaire);">Captions, placeholders, labels discrets, horodatages, overlines de navigation</p>
+          </div>
+          <div style="font-family:monospace; font-size:11px; color:var(--texte-tertiaire);">Clair : #94A3B8 · Sombre : #484F58</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:16px; padding:12px 16px; background:var(--fond-surface-2); border-radius:var(--radius-sm);">
+          <div style="width:40px; height:40px; border-radius:50%; background:var(--ap-400); flex-shrink:0;"></div>
+          <div style="flex:1;">
+            <p style="font-size:14px; font-weight:500; color:var(--texte-primaire);">Texte accent — --couleur-accent</p>
+            <p style="font-size:12px; color:var(--texte-secondaire);">Liens actifs, actions cliquables, valeurs d'accent dans les tableaux, texte de badge primaire</p>
+          </div>
+          <div style="font-family:monospace; font-size:11px; color:var(--texte-tertiaire);">Identique : #4E8BA4 dans les deux modes</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:16px; padding:12px 16px; background:var(--fond-surface-2); border-radius:var(--radius-sm);">
+          <div style="width:40px; height:40px; border-radius:50%; background:var(--erreur-accent); flex-shrink:0;"></div>
+          <div style="flex:1;">
+            <p style="font-size:14px; font-weight:500; color:var(--texte-primaire);">Texte sémantique — ex. --erreur-texte</p>
+            <p style="font-size:12px; color:var(--texte-secondaire);">Labels de champs en erreur · messages de validation · titres d'alertes inline. Utiliser la couleur sémantique du contexte (succes / erreur / avert / info).</p>
+          </div>
+          <div style="font-family:monospace; font-size:11px; color:var(--texte-tertiaire);">Voir module CG-01 · Section 05</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SECTION 05 · HIÉRARCHIE EN SITUATION RÉELLE
+  ══════════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <p class="section-num">Section 05</p>
+      <h2 class="section-title">Hiérarchie visuelle — Démonstration en contexte CMS SARIS</h2>
+      <p class="section-desc">Exemple complet d'une page de dossier patient utilisant l'intégralité de l'échelle typographique. Tous les niveaux sont visibles dans un seul contexte cohérent.</p>
+    </div>
+
+    <div class="hierarchy-demo">
+      <p class="h-overline">Module · Dossier Patient</p>
+      <h1 class="h-title">Loubaki Jean-Pierre</h1>
+      <p class="h-subtitle">Dossier n° MTLA-2026-0031 · CMS de Moutela · Ouvert le 3 janvier 2026</p>
+      <div class="h-divider"></div>
+
+      <div class="h-grid" style="margin-bottom:24px;">
+        <div>
+          <p class="h-label">Date de naissance</p>
+          <p class="h-value">18 septembre 1984</p>
+          <p class="h-caption">41 ans · Signe Vierge</p>
+        </div>
+        <div>
+          <p class="h-label">Groupe sanguin</p>
+          <p class="h-value">O positif</p>
+          <p class="h-caption">Vérifié le 12 mars 2025</p>
+        </div>
+        <div>
+          <p class="h-label">Médecin référent</p>
+          <p class="h-value" style="color:var(--ap-400);">Dr. Mbemba Alain</p>
+          <p class="h-caption">Actuellement en service · Nkayi</p>
+        </div>
+      </div>
+
+      <div class="h-divider"></div>
+      <h2 class="h-section">Consultation du 15 mai 2026</h2>
+      <p class="h-body">Le patient consulte pour des douleurs lombaires persistantes depuis 10 jours. L'examen clinique ne révèle pas de signe neurologique. Une prescription d'anti-inflammatoires et de repos est établie. Un suivi dans 7 jours est recommandé.</p>
+
+      <div style="margin-bottom:20px;">
+        <p class="h-label" style="margin-bottom:8px;">Prescription émise</p>
+        <table class="mini-table">
+          <thead>
+            <tr>
+              <th>Médicament</th>
+              <th>Dosage</th>
+              <th>Durée</th>
+              <th>Bon n°</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Ibuprofène</td>
+              <td class="td-muted">400mg · 3x/jour après repas</td>
+              <td class="td-muted">7 jours</td>
+              <td class="td-accent">BPH-2026-0847</td>
+            </tr>
+            <tr>
+              <td>Paracétamol</td>
+              <td class="td-muted">500mg · 2x/jour si douleur</td>
+              <td class="td-muted">7 jours</td>
+              <td class="td-accent">BPH-2026-0848</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="h-caption" style="color:var(--texte-tertiaire);">Consultation enregistrée le 15 mai 2026 à 10h32 · Médecin : Dr. Mbemba Alain · Durée : 22 minutes · Site : CMS Moutela</p>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SECTION 06 · COMBINAISONS CONTEXTUELLES
+  ══════════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <p class="section-num">Section 06</p>
+      <h2 class="section-title">Combinaisons typographiques — 4 contextes d'usage</h2>
+      <p class="section-desc">Chaque contexte du CMS SARIS mobilise des combinaisons spécifiques de niveaux typographiques. Ces combinaisons sont référentes — tout écran doit s'y conformer.</p>
+    </div>
+
+    <div class="two-col" style="gap:12px;">
+      <!-- Carte de stat -->
+      <div class="combo-card">
+        <p class="combo-label">Carte de statistique (tableau de bord)</p>
+        <div style="background:var(--fond-surface-2); border-radius:var(--radius-md); padding:18px 20px;">
+          <p style="font-size:10px; font-weight:600; color:var(--texte-tertiaire); text-transform:uppercase; letter-spacing:0.09em; margin-bottom:4px;">Consultations ce mois</p>
+          <p style="font-size:28px; font-weight:500; color:var(--texte-primaire); line-height:1.2; margin-bottom:4px;">147</p>
+          <p style="font-size:12px; font-weight:500; color:var(--succes-accent);">+12% vs mois précédent</p>
+          <p style="font-size:11px; color:var(--texte-tertiaire); margin-top:4px;">Dernière mise à jour : aujourd'hui 08h00</p>
+        </div>
+        <p class="note" style="margin-top:10px;">Overline 10px → Display 28px → Caption 12px (sémantique) → Caption 11px (tertiaire)</p>
+      </div>
+
+      <!-- Formulaire -->
+      <div class="combo-card">
+        <p class="combo-label">Groupe de formulaire</p>
+        <div style="background:var(--fond-surface-2); border-radius:var(--radius-md); padding:18px 20px; display:flex; flex-direction:column; gap:12px;">
+          <p style="font-size:16px; font-weight:500; color:var(--texte-primaire);">Informations du patient</p>
+          <div>
+            <label style="display:block; font-size:12px; font-weight:500; color:var(--texte-secondaire); margin-bottom:4px;">Nom complet <span style="color:var(--erreur-accent);">*</span></label>
+            <input type="text" value="Loubaki Jean-Pierre" style="width:100%; padding:7px 11px; border-radius:var(--radius-sm); border:1px solid var(--bordure-normale); background:var(--fond-input); color:var(--texte-primaire); font-family:'Inter',sans-serif; font-size:14px; outline:none;">
+          </div>
+          <div>
+            <label style="display:block; font-size:12px; font-weight:500; color:var(--erreur-texte); margin-bottom:4px;">Numéro de dossier</label>
+            <input type="text" value="MTLA-2026-???" style="width:100%; padding:7px 11px; border-radius:var(--radius-sm); border:1px solid var(--erreur-accent); background:var(--fond-input); color:var(--texte-primaire); font-family:'Inter',sans-serif; font-size:14px; outline:none;">
+            <p style="font-size:11px; color:var(--erreur-texte); margin-top:3px;">Format attendu : MTLA-AAAA-NNNN</p>
+          </div>
+        </div>
+        <p class="note" style="margin-top:10px;">H3 16px → Label 12px · Body 14px (input) → Caption 11px (message)</p>
+      </div>
+
+      <!-- Navigation sidebar -->
+      <div class="combo-card">
+        <p class="combo-label">Entrée de navigation (sidebar)</p>
+        <div style="background:var(--fond-surface-2); border-radius:var(--radius-md); padding:14px 16px; display:flex; flex-direction:column; gap:2px;">
+          <p style="font-size:10px; font-weight:600; color:var(--texte-tertiaire); text-transform:uppercase; letter-spacing:0.09em; padding:6px 8px 4px;">Modules principaux</p>
+          <div style="display:flex; align-items:center; gap:8px; padding:7px 10px; border-radius:var(--radius-xs); background:var(--couleur-accent-fond); border:1px solid var(--ap-200);">
+            <div style="width:14px; height:14px; border-radius:3px; background:var(--ap-400); flex-shrink:0;"></div>
+            <span style="font-size:13px; font-weight:500; color:var(--ap-700);">Dossier Patient</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px; padding:7px 10px; border-radius:var(--radius-xs);">
+            <div style="width:14px; height:14px; border-radius:3px; background:var(--texte-tertiaire); flex-shrink:0;"></div>
+            <span style="font-size:13px; font-weight:400; color:var(--texte-secondaire);">Pharmacie</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px; padding:7px 10px; border-radius:var(--radius-xs);">
+            <div style="width:14px; height:14px; border-radius:3px; background:var(--texte-tertiaire); flex-shrink:0;"></div>
+            <span style="font-size:13px; font-weight:400; color:var(--texte-secondaire);">Personnel &amp; Planning</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px; padding:7px 10px; border-radius:var(--radius-xs);">
+            <div style="width:14px; height:14px; border-radius:3px; background:var(--texte-tertiaire); flex-shrink:0;"></div>
+            <span style="font-size:13px; font-weight:400; color:var(--texte-secondaire);">Rapports &amp; Statistiques</span>
+          </div>
+        </div>
+        <p class="note" style="margin-top:10px;">Overline 10px (groupe) → Body-sm 13px (item inactif) · Label 13px 500 (item actif)</p>
+      </div>
+
+      <!-- Tableau de données -->
+      <div class="combo-card">
+        <p class="combo-label">Tableau de données médicales</p>
+        <div style="background:var(--fond-surface-2); border-radius:var(--radius-md); overflow:hidden;">
+          <table class="mini-table">
+            <thead>
+              <tr>
+                <th>Patient</th>
+                <th>Date</th>
+                <th>Médecin</th>
+                <th>Statut</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="font-size:13px; font-weight:500; color:var(--texte-primaire);">Mbemba Céline</td>
+                <td class="td-muted">15 mai 2026</td>
+                <td class="td-muted">Dr. Loubaki</td>
+                <td><span style="font-size:10px; font-weight:500; padding:2px 7px; border-radius:3px; background:var(--succes-fond); color:var(--succes-texte);">Terminé</span></td>
+              </tr>
+              <tr>
+                <td style="font-size:13px; font-weight:500; color:var(--texte-primaire);">Ngoma Pierre</td>
+                <td class="td-muted">15 mai 2026</td>
+                <td class="td-muted">Dr. Mbemba</td>
+                <td><span style="font-size:10px; font-weight:500; padding:2px 7px; border-radius:3px; background:var(--avert-fond); color:var(--avert-texte);">En cours</span></td>
+              </tr>
+              <tr>
+                <td style="font-size:13px; font-weight:500; color:var(--texte-primaire);">Bazolo Marie</td>
+                <td class="td-muted">14 mai 2026</td>
+                <td class="td-muted">Dr. Loubaki</td>
+                <td><span style="font-size:10px; font-weight:500; padding:2px 7px; border-radius:3px; background:var(--info-fond); color:var(--info-texte);">Suivi requis</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="note" style="margin-top:10px;">En-tête overline 10px → Nom Body-sm 13px 500 → Valeurs Caption 11px → Badge label 10px</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SECTION 07 · RÈGLES ABSOLUES
+  ══════════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <p class="section-num">Section 07</p>
+      <h2 class="section-title">Règles absolues — Obligations &amp; Interdictions typographiques</h2>
+      <p class="section-desc">Ces règles s'appliquent à tous les textes de l'interface CMS SARIS Congo, sans exception.</p>
+    </div>
+
+    <div class="rules-grid">
+      <div class="rule-box">
+        <p class="rule-box-title" style="color:var(--succes-accent);">Obligations</p>
+        <div class="rule-item"><span class="ri ok">✓</span><span>Toujours utiliser Inter — jamais d'autre police dans l'interface fonctionnelle.</span></div>
+        <div class="rule-item"><span class="ri ok">✓</span><span>Uniquement les graisses 400 et 500 dans le corps de l'interface. 600 uniquement pour les overlines et badges de navigation.</span></div>
+        <div class="rule-item"><span class="ri ok">✓</span><span>Taille minimale : 11px pour tout texte fonctionnel visible et interactif.</span></div>
+        <div class="rule-item"><span class="ri ok">✓</span><span>Taille maximale : 28px (display) — uniquement pour les valeurs de KPI.</span></div>
+        <div class="rule-item"><span class="ri ok">✓</span><span>Le monospace (Courier New) est réservé aux tokens, codes de dossier, numéros de bon de pharmacie, et identifiants techniques.</span></div>
+        <div class="rule-item"><span class="ri ok">✓</span><span>L'overline (10px, uppercase, letter-spacing) est toujours utilisée pour les titres de groupe dans la sidebar — jamais pour du contenu.</span></div>
+        <div class="rule-item"><span class="ri ok">✓</span><span>Appliquer le rendu antialiased : -webkit-font-smoothing: antialiased sur le body.</span></div>
+      </div>
+      <div class="rule-box">
+        <p class="rule-box-title" style="color:var(--erreur-accent);">Interdictions</p>
+        <div class="rule-item"><span class="ri no">✗</span><span>Aucun texte en dessous de 11px — même pour les footnotes ou annotations techniques.</span></div>
+        <div class="rule-item"><span class="ri no">✗</span><span>Aucune graisse 700 (bold) dans l'interface — elle casse la cohérence visuelle d'Inter.</span></div>
+        <div class="rule-item"><span class="ri no">✗</span><span>Aucun texte en MAJUSCULES dans le corps (corps de tableau, descriptions, noms) — uniquement autorisé pour les overlines de navigation.</span></div>
+        <div class="rule-item"><span class="ri no">✗</span><span>Aucun titre de page supérieur à 22px — pas de grands titres imposants style "hero".</span></div>
+        <div class="rule-item"><span class="ri no">✗</span><span>Aucun espacement de lettres (letter-spacing) sur le corps de texte et les titres H1–H4 — uniquement sur overlines et labels.</span></div>
+        <div class="rule-item"><span class="ri no">✗</span><span>Aucune italique dans les tableaux de données ou formulaires — l'italique est réservé aux citations et notes cliniques longues.</span></div>
+        <div class="rule-item"><span class="ri no">✗</span><span>Ne jamais justifier le texte (text-align: justify) — toujours left-aligned ou start.</span></div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  function toggleTheme() {
+    const html = document.documentElement;
+    const isDark = html.getAttribute('data-theme') === 'dark';
+    html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+    document.getElementById('themeLabel').textContent = isDark ? 'Mode sombre' : 'Mode clair';
+    document.getElementById('themeIcon').textContent  = isDark ? '☾' : '☀';
+  }
+</script>
+</body>
+</html>

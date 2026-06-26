@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CG-07 · Données & Contenu — Charte Graphique CMS SARIS Congo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* ═══════════════════════════════════════════════════════════════
+       TOKENS
+    ═══════════════════════════════════════════════════════════════ */
+    :root, [data-theme="light"] {
+      --fond-page:#F4F6F8; --fond-surface:#FFFFFF; --fond-surface-2:#F0F2F5; --fond-input:#EAECF0;
+      --texte-primaire:#0F172A; --texte-secondaire:#475569; --texte-tertiaire:#94A3B8;
+      --bordure-legere:rgba(15,23,42,0.08); --bordure-normale:rgba(15,23,42,0.14); --bordure-forte:rgba(15,23,42,0.28);
+      --ap-50:#D6E8EF; --ap-100:#A8CCDA; --ap-200:#79AFBF; --ap-300:#5B9BB0;
+      --ap-400:#4E8BA4; --ap-500:#3D7A92; --ap-600:#366680; --ap-700:#2A5269; --ap-800:#214A5E; --ap-900:#0F2F3D;
+      --as-50:#F6EBD2; --as-100:#EBCF87; --as-200:#D9AD4A; --as-300:#D0A030;
+      --as-400:#C99A2E; --as-500:#B88A25; --as-600:#A07A1E; --as-700:#8A6A15; --as-800:#765A12; --as-900:#4D3A08;
+      --succes-fond:#EAF3EC; --succes-texte:#2D6A3F; --succes-accent:#3D7A5E; --succes-bordure:rgba(45,106,63,0.2);
+      --erreur-fond:#F5EAEA; --erreur-texte:#7A2E2E; --erreur-accent:#9B4444; --erreur-bordure:rgba(122,46,46,0.2);
+      --avert-fond:#F5EEDF;  --avert-texte:#6B4D1A;  --avert-accent:#8A6A2A;  --avert-bordure:rgba(107,77,26,0.2);
+      --info-fond:#E6EFF5;   --info-texte:#2A4F6B;   --info-accent:#3A6080;   --info-bordure:rgba(42,79,107,0.2);
+      --couleur-accent:var(--ap-400); --couleur-accent-fond:var(--ap-50); --couleur-accent-hover:var(--ap-500); --couleur-accent-texte:#FFFFFF;
+      --radius-xs:4px; --radius-sm:6px; --radius-md:8px; --radius-lg:10px;
+      --ombre-1:0 1px 2px rgba(15,23,42,0.06),0 0 0 1px rgba(15,23,42,0.04);
+      --ombre-2:0 2px 6px rgba(15,23,42,0.08),0 1px 2px rgba(15,23,42,0.06);
+      --ombre-3:0 4px 14px rgba(15,23,42,0.10),0 2px 4px rgba(15,23,42,0.06);
+    }
+    [data-theme="dark"] {
+      --fond-page:#0D1117; --fond-surface:#161B22; --fond-surface-2:#1C2333; --fond-input:#21262D;
+      --texte-primaire:#E6EDF3; --texte-secondaire:#8B949E; --texte-tertiaire:#484F58;
+      --bordure-legere:rgba(230,237,243,0.08); --bordure-normale:rgba(230,237,243,0.14); --bordure-forte:rgba(230,237,243,0.28);
+      --ap-50:#0F2F3D; --ap-100:#214A5E; --ap-200:#2A5269; --ap-300:#366680;
+      --ap-400:#4E8BA4; --ap-500:#5B9BB0; --ap-600:#79AFBF; --ap-700:#A8CCDA; --ap-800:#C8E0E9; --ap-900:#D6E8EF;
+      --as-50:#4D3A08; --as-100:#765A12; --as-200:#8A6A15; --as-300:#A07A1E;
+      --as-400:#C99A2E; --as-500:#D0A030; --as-600:#D9AD4A; --as-700:#EBCF87; --as-800:#F2DFA8; --as-900:#F6EBD2;
+      --succes-fond:#1A2E20; --succes-texte:#7EE2A0; --succes-accent:#56C47A; --succes-bordure:rgba(126,226,160,0.15);
+      --erreur-fond:#2E1A1A; --erreur-texte:#E2857E; --erreur-accent:#CC6060; --erreur-bordure:rgba(226,133,126,0.15);
+      --avert-fond:#2E2410;  --avert-texte:#E2C07E;  --avert-accent:#C9A23A;  --avert-bordure:rgba(226,192,126,0.15);
+      --info-fond:#0F2030;   --info-texte:#7EB5D6;   --info-accent:#5E9FC0;   --info-bordure:rgba(126,181,214,0.15);
+      --couleur-accent:var(--ap-400); --couleur-accent-fond:var(--ap-50); --couleur-accent-hover:var(--ap-500); --couleur-accent-texte:#FFFFFF;
+      --ombre-1:none; --ombre-2:none; --ombre-3:none;
+    }
+
+    /* BASE */
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;font-size:14px;line-height:1.6;background:var(--fond-page);color:var(--texte-primaire);transition:background .22s ease,color .22s ease;-webkit-font-smoothing:antialiased;}
+
+    /* HEADER */
+    .page-header{position:sticky;top:0;z-index:100;border-bottom:1px solid var(--bordure-legere);padding:0 40px;}
+    [data-theme="light"] .page-header{background:rgba(255,255,255,0.88);backdrop-filter:blur(14px);}
+    [data-theme="dark"]  .page-header{background:rgba(22,27,34,0.88);backdrop-filter:blur(14px);}
+    .page-header-inner{max-width:1100px;margin:0 auto;height:54px;display:flex;align-items:center;justify-content:space-between;}
+    .header-left{display:flex;align-items:center;gap:10px;}
+    .module-badge{font-size:10px;font-weight:600;padding:3px 9px;border-radius:var(--radius-xs);background:var(--couleur-accent-fond);color:var(--ap-800);letter-spacing:.06em;text-transform:uppercase;}
+    [data-theme="dark"] .module-badge{background:var(--ap-100);color:var(--ap-700);}
+    .header-title-text{font-size:13px;font-weight:500;color:var(--texte-primaire);}
+    .header-sep{width:1px;height:16px;background:var(--bordure-normale);}
+    .header-sub{font-size:12px;color:var(--texte-tertiaire);}
+    .toggle-btn{display:flex;align-items:center;gap:6px;background:var(--fond-surface-2);border:1px solid var(--bordure-normale);border-radius:var(--radius-sm);padding:5px 12px;cursor:pointer;font-family:'Inter',sans-serif;font-size:12px;color:var(--texte-secondaire);transition:background .15s,color .15s;}
+    .toggle-btn:hover{background:var(--fond-input);color:var(--texte-primaire);}
+
+    /* NAV MODULES */
+    .modules-nav{background:var(--fond-surface);border-bottom:1px solid var(--bordure-legere);padding:0 40px;overflow-x:auto;scrollbar-width:none;}
+    .modules-nav::-webkit-scrollbar{display:none;}
+    .modules-nav-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:2px;height:40px;}
+    .nav-link{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:var(--radius-xs);font-size:11px;font-weight:500;color:var(--texte-tertiaire);text-decoration:none;white-space:nowrap;transition:background .13s,color .13s;border:1px solid transparent;}
+    .nav-link:hover{background:var(--fond-surface-2);color:var(--texte-secondaire);}
+    .nav-link.active{background:var(--couleur-accent-fond);color:var(--ap-700);border-color:var(--ap-200);}
+    [data-theme="dark"] .nav-link.active{background:var(--ap-100);color:var(--ap-600);border-color:var(--ap-300);}
+    .nav-num{font-size:9px;font-weight:700;opacity:.6;letter-spacing:.04em;}
+    .nav-sep{width:1px;height:14px;background:var(--bordure-legere);margin:0 4px;flex-shrink:0;}
+
+    /* LAYOUT */
+    .main{max-width:1100px;margin:0 auto;padding:48px 40px 96px;}
+
+    /* HERO */
+    .module-hero{background:var(--fond-surface);border:1px solid var(--bordure-legere);border-radius:var(--radius-lg);padding:32px 36px;margin-bottom:52px;display:grid;grid-template-columns:1fr 1px 1fr 1px 1fr;}
+    .hero-col{padding:0 28px;}
+    .hero-col:first-child{padding-left:0;}
+    .hero-col:last-child{padding-right:0;}
+    .hero-divider{background:var(--bordure-legere);}
+    .hero-label{font-size:10px;font-weight:600;color:var(--ap-400);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;}
+    .hero-title{font-size:14px;font-weight:500;color:var(--texte-primaire);margin-bottom:6px;}
+    .hero-body{font-size:12px;color:var(--texte-secondaire);line-height:1.65;}
+
+    /* SECTIONS */
+    .section{margin-bottom:64px;}
+    .section-header{margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid var(--bordure-legere);}
+    .section-num{font-size:10px;font-weight:600;color:var(--ap-400);text-transform:uppercase;letter-spacing:.12em;margin-bottom:5px;}
+    .section-title{font-size:17px;font-weight:500;color:var(--texte-primaire);margin-bottom:6px;}
+    .section-desc{font-size:13px;color:var(--texte-secondaire);line-height:1.65;max-width:700px;}
+    .subsection{margin-bottom:32px;}
+    .subsection-title{font-size:11px;font-weight:600;color:var(--texte-tertiaire);text-transform:uppercase;letter-spacing:.10em;margin-bottom:16px;padding-bottom:8px;border-bottom:1px dashed var(--bordure-legere);}
+    .demo-box{background:var(--fond-surface);border:1px solid var(--bordure-legere);border-radius:var(--radius-md);padding:24px 28px;}
+    .code{font-family:'Courier New',monospace;font-size:11px;color:var(--ap-500);}
+
+    /* ═══════════════════════════════════════════════════════════════
+       §1 — TABLEAUX DE DONNÉES
+    ═══════════════════════════════════════════════════════════════ */
+    .data-table{width:100%;border-collapse:collapse;font-size:13px;}
+    .data-table thead th{
+      text-align:left;padding:10px 14px;
+      background:var(--fond-surface-2);color:var(--texte-tertiaire);
+      font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;
+      border-bottom:1px solid var(--bordure-normale);
+      user-select:none;white-space:nowrap;
+    }
+    .data-table thead th:first-child{border-radius:var(--radius-sm) 0 0 0;}
+    .data-table thead th:last-child{border-radius:0 var(--radius-sm) 0 0;}
+    .th-sort{display:inline-flex;align-items:center;gap:5px;cursor:pointer;transition:color .13s;}
+    .th-sort:hover{color:var(--texte-secondaire);}
+    .th-sort.asc .sort-icon, .th-sort.desc .sort-icon{color:var(--ap-400);}
+    .sort-icon{opacity:.5;font-size:10px;}
+    .data-table tbody tr{transition:background .12s;}
+    .data-table tbody tr:hover{background:var(--fond-surface-2);}
+    .data-table tbody tr.selected{background:var(--ap-50);}
+    [data-theme="dark"] .data-table tbody tr.selected{background:var(--ap-50);}
+    .data-table td{padding:11px 14px;border-bottom:1px solid var(--bordure-legere);color:var(--texte-secondaire);vertical-align:middle;}
+    .data-table tbody tr:last-child td{border-bottom:none;}
+    /* colonne fixe actions */
+    .td-actions{display:flex;gap:6px;align-items:center;}
+    .row-btn{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:var(--radius-xs);border:1px solid transparent;background:transparent;cursor:pointer;color:var(--texte-tertiaire);transition:background .12s,color .12s;}
+    .row-btn:hover{background:var(--fond-input);border-color:var(--bordure-normale);color:var(--texte-secondaire);}
+    .row-btn.danger:hover{background:var(--erreur-fond);color:var(--erreur-accent);}
+    /* checkbox de ligne */
+    .row-check{width:16px;height:16px;border-radius:3px;border:1.5px solid var(--bordure-forte);background:var(--fond-input);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .13s,border-color .13s;}
+    .row-check.checked{background:var(--ap-400);border-color:var(--ap-400);}
+    /* badges inline */
+    .badge-inline{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:var(--radius-xs);font-size:11px;font-weight:600;border:1px solid transparent;}
+    .bi-success{background:var(--succes-fond);color:var(--succes-texte);border-color:var(--succes-bordure);}
+    .bi-error  {background:var(--erreur-fond);color:var(--erreur-texte);border-color:var(--erreur-bordure);}
+    .bi-warning{background:var(--avert-fond); color:var(--avert-texte); border-color:var(--avert-bordure);}
+    .bi-info   {background:var(--info-fond);  color:var(--info-texte);  border-color:var(--info-bordure);}
+    .bi-primary{background:var(--couleur-accent-fond);color:var(--ap-700);border-color:var(--ap-200);}
+    .dot-status{width:6px;height:6px;border-radius:50%;}
+
+    /* Toolbar tableau */
+    .table-toolbar{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--fond-surface-2);border-radius:var(--radius-sm) var(--radius-sm) 0 0;border:1px solid var(--bordure-legere);border-bottom:none;}
+    .table-search{display:flex;align-items:center;gap:8px;background:var(--fond-surface);border:1px solid var(--bordure-normale);border-radius:var(--radius-xs);padding:6px 10px;flex:1;max-width:280px;}
+    .table-search input{border:none;outline:none;background:transparent;font-family:'Inter',sans-serif;font-size:12px;color:var(--texte-primaire);width:100%;}
+    .table-search input::placeholder{color:var(--texte-tertiaire);}
+    .tb-filter-btn{display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:var(--radius-xs);border:1px solid var(--bordure-normale);background:var(--fond-surface);font-size:12px;color:var(--texte-secondaire);cursor:pointer;font-family:'Inter',sans-serif;transition:background .12s;}
+    .tb-filter-btn:hover{background:var(--fond-input);}
+    .tb-spacer{flex:1;}
+    .selected-info{font-size:11px;color:var(--ap-500);font-weight:500;}
+
+    /* ═══════════════════════════════════════════════════════════════
+       §2 — CARTES
+    ═══════════════════════════════════════════════════════════════ */
+    .cards-grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+    .cards-grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+    .cards-grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;}
+
+    .kpi-card{background:var(--fond-surface);border:1px solid var(--bordure-legere);border-radius:var(--radius-md);padding:16px 18px;box-shadow:var(--ombre-1);transition:box-shadow .15s,transform .15s;}
+    .kpi-card:hover{box-shadow:var(--ombre-2);transform:translateY(-1px);}
+    .kpi-label{font-size:11px;color:var(--texte-tertiaire);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+    .kpi-icon{width:28px;height:28px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .kpi-value{font-size:26px;font-weight:600;color:var(--texte-primaire);line-height:1.1;margin-bottom:6px;}
+    .kpi-trend{font-size:11px;display:flex;align-items:center;gap:4px;}
+    .kpi-bar{height:3px;border-radius:2px;margin-top:10px;background:var(--fond-surface-2);}
+    .kpi-bar-fill{height:100%;border-radius:2px;background:var(--ap-400);transition:width .4s ease;}
+
+    .content-card{background:var(--fond-surface);border:1px solid var(--bordure-legere);border-radius:var(--radius-md);overflow:hidden;box-shadow:var(--ombre-1);transition:box-shadow .15s,transform .15s;}
+    .content-card:hover{box-shadow:var(--ombre-2);transform:translateY(-1px);}
+    .card-header{padding:14px 16px;border-bottom:1px solid var(--bordure-legere);display:flex;align-items:center;justify-content:space-between;}
+    .card-title{font-size:13px;font-weight:500;color:var(--texte-primaire);}
+    .card-body{padding:14px 16px;}
+    .card-footer{padding:10px 16px;border-top:1px solid var(--bordure-legere);background:var(--fond-surface-2);display:flex;justify-content:space-between;align-items:center;}
+
+    /* Patient card */
+    .patient-card{background:var(--fond-surface);border:1px solid var(--bordure-legere);border-radius:var(--radius-md);padding:16px;display:flex;gap:12px;align-items:flex-start;box-shadow:var(--ombre-1);transition:box-shadow .15s;}
+    .patient-card:hover{box-shadow:var(--ombre-2);}
+    .p-avatar{width:40px;height:40px;border-radius:50%;background:var(--ap-100);color:var(--ap-700);font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .p-name{font-size:13px;font-weight:500;color:var(--texte-primaire);margin-bottom:2px;}
+    .p-meta{font-size:11px;color:var(--texte-tertiaire);margin-bottom:6px;}
+    .p-tags{display:flex;gap:5px;flex-wrap:wrap;}
+
+    /* ═══════════════════════════════════════════════════════════════
+       §3 — LISTES
+    ═══════════════════════════════════════════════════════════════ */
+    .list-item{display:flex;align-items:center;gap:12px;padding:11px 14px;border-bottom:1px solid var(--bordure-legere);transition:background .12s;cursor:pointer;}
+    .list-item:last-child{border-bottom:none;}
+    .list-item:hover{background:var(--fond-surface-2);}
+    .list-item-icon{width:32px;height:32px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--ap-400);}
+    .list-item-main{flex:1;}
+    .li-title{font-size:13px;font-weight:500;color:var(--texte-primaire);margin-bottom:2px;}
+    .li-sub{font-size:11px;color:var(--texte-tertiaire);}
+    .li-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
+    .li-time{font-size:10px;color:var(--texte-tertiaire);}
+
+    /* ═══════════════════════════════════════════════════════════════
+       §4 — ACCORDÉONS
+    ═══════════════════════════════════════════════════════════════ */
+    .accordion{border:1px solid var(--bordure-legere);border-radius:var(--radius-md);overflow:hidden;}
+    .acc-item{border-bottom:1px solid var(--bordure-legere);}
+    .acc-item:last-child{border-bottom:none;}
+    .acc-trigger{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;cursor:pointer;background:var(--fond-surface);transition:background .12s;gap:12px;}
+    .acc-trigger:hover{background:var(--fond-surface-2);}
+    .acc-trigger-left{display:flex;align-items:center;gap:10px;}
+    .acc-icon{width:28px;height:28px;border-radius:var(--radius-xs);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .acc-title{font-size:13px;font-weight:500;color:var(--texte-primaire);}
+    .acc-badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:var(--radius-xs);}
+    .acc-chevron{color:var(--texte-tertiaire);transition:transform .18s cubic-bezier(.34,1.56,.64,1);flex-shrink:0;}
+    .acc-item.open .acc-chevron{transform:rotate(180deg);}
+    .acc-body{background:var(--fond-surface);overflow:hidden;max-height:0;transition:max-height .22s ease;}
+    .acc-item.open .acc-body{max-height:300px;}
+    .acc-content{padding:4px 16px 16px 54px;font-size:12px;color:var(--texte-secondaire);line-height:1.7;}
+
+    /* ═══════════════════════════════════════════════════════════════
+       §5 — GRAPHIQUES (5 types, SVG pur)
+    ═══════════════════════════════════════════════════════════════ */
+    .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+    .chart-card{background:var(--fond-surface);border:1px solid var(--bordure-legere);border-radius:var(--radius-md);padding:20px 22px;box-shadow:var(--ombre-1);}
+    .chart-title{font-size:13px;font-weight:500;color:var(--texte-primaire);margin-bottom:2px;}
+    .chart-sub{font-size:11px;color:var(--texte-tertiaire);margin-bottom:16px;}
+    .chart-svg{width:100%;}
+    .chart-legend{display:flex;gap:14px;margin-top:12px;flex-wrap:wrap;}
+    .legend-item{display:flex;align-items:center;gap:5px;}
+    .legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+    .legend-line{width:20px;height:3px;border-radius:2px;flex-shrink:0;}
+    .legend-text{font-size:11px;color:var(--texte-secondaire);}
+
+    /* grille de fond commune aux graphiques */
+    .chart-grid-line{stroke:currentColor;stroke-opacity:.07;stroke-width:1;}
+    .chart-axis-text{fill:currentColor;opacity:.45;font-family:'Inter',sans-serif;}
+
+    /* Graphique pleine largeur */
+    .chart-full{grid-column:1/-1;}
+
+    /* RÈGLES ABSOLUES */
+    .rules-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+    .rules-card{border-radius:var(--radius-md);padding:20px 22px;border:1px solid;}
+    .rules-card.ok{background:var(--succes-fond);border-color:var(--succes-bordure);}
+    .rules-card.no{background:var(--erreur-fond);border-color:var(--erreur-bordure);}
+    .rules-card-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.10em;margin-bottom:14px;display:flex;align-items:center;gap:7px;}
+    .rules-card.ok .rules-card-title{color:var(--succes-texte);}
+    .rules-card.no .rules-card-title{color:var(--erreur-texte);}
+    .rule-item{display:flex;gap:8px;margin-bottom:10px;font-size:12px;line-height:1.55;}
+    .rule-item:last-child{margin-bottom:0;}
+    .rules-card.ok .rule-item{color:var(--succes-texte);}
+    .rules-card.no .rule-item{color:var(--erreur-texte);}
+
+    @media(max-width:800px){
+      .module-hero{grid-template-columns:1fr;} .hero-divider{display:none;}
+      .cards-grid-4,.cards-grid-3,.cards-grid-2,.charts-grid,.rules-grid{grid-template-columns:1fr;}
+      .chart-full{grid-column:1;}
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="page-header">
+    <div class="page-header-inner">
+      <div class="header-left">
+        <span class="module-badge">CG-07</span>
+        <span class="header-title-text">Données &amp; Contenu</span>
+        <span class="header-sep"></span>
+        <span class="header-sub">Tableaux · Cartes · Listes · Accordéons · 5 types de graphiques</span>
+      </div>
+      <button class="toggle-btn" onclick="toggleTheme()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+        <span id="toggle-label">Mode sombre</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- NAV -->
+  <nav class="modules-nav">
+    <div class="modules-nav-inner">
+      <a href="CG-01_Couleurs_et_Tokens.html"       class="nav-link"><span class="nav-num">01</span> Couleurs &amp; Tokens</a><div class="nav-sep"></div>
+      <a href="CG-02_Typographie.html"               class="nav-link"><span class="nav-num">02</span> Typographie</a><div class="nav-sep"></div>
+      <a href="CG-03_Espacements_et_Grilles.html"    class="nav-link"><span class="nav-num">03</span> Espacements &amp; Grilles</a><div class="nav-sep"></div>
+      <a href="CG-04_Effets_de_Surface.html"         class="nav-link"><span class="nav-num">04</span> Effets de Surface</a><div class="nav-sep"></div>
+      <a href="CG-05_Composants_Fondamentaux.html"   class="nav-link"><span class="nav-num">05</span> Composants Fondamentaux</a><div class="nav-sep"></div>
+      <a href="CG-06_Navigation_et_Structure.html"   class="nav-link"><span class="nav-num">06</span> Navigation &amp; Structure</a><div class="nav-sep"></div>
+      <a href="CG-07_Donnees_et_Contenu.html"        class="nav-link active"><span class="nav-num">07</span> Données &amp; Contenu</a><div class="nav-sep"></div>
+      <a href="CG-08_Feedback_et_Communication.html" class="nav-link"><span class="nav-num">08</span> Feedback &amp; Communication</a><div class="nav-sep"></div>
+      <a href="CG-09_Animations_et_Transitions.html" class="nav-link"><span class="nav-num">09</span> Animations &amp; Transitions</a><div class="nav-sep"></div>
+      <a href="CG-10_Iconographie_et_Assets.html"    class="nav-link"><span class="nav-num">10</span> Iconographie &amp; Assets</a><div class="nav-sep"></div>
+      <a href="CG-11_Etats_et_Accessibilite.html"    class="nav-link"><span class="nav-num">11</span> États &amp; Accessibilité</a><div class="nav-sep"></div>
+      <a href="CG-12_Recapitulatif_et_Regles.html"   class="nav-link"><span class="nav-num">12</span> Récapitulatif &amp; Règles</a>
+    </div>
+  </nav>
+
+  <main class="main">
+
+    <!-- HERO -->
+    <div class="module-hero">
+      <div class="hero-col">
+        <div class="hero-label">Pourquoi</div>
+        <div class="hero-title">Le cœur informationnel du CMS</div>
+        <div class="hero-body">CMS SARIS Congo est avant tout un système d'information médico-social. La majorité des écrans présentent des données — listes de patients, tableaux de consultations, statistiques d'activité. Ces composants doivent être denses, lisibles, et visuellement cohérents en toutes conditions d'éclairage.</div>
+      </div>
+      <div class="hero-divider"></div>
+      <div class="hero-col">
+        <div class="hero-label">Quoi</div>
+        <div class="hero-title">4 conteneurs + 5 graphiques exclusifs</div>
+        <div class="hero-body">Tableau de données (tri, sélection, actions inline) · Cartes KPI et cartes patient · Listes groupées · Accordéons sectionnés · Graphiques : barres groupées, courbe+dégradé, radar araignée, donut anneau, Gantt personnel — tous en SVG pur, couleurs via tokens.</div>
+      </div>
+      <div class="hero-divider"></div>
+      <div class="hero-col">
+        <div class="hero-label">Comment</div>
+        <div class="hero-title">Tokens + SVG natif + règles strictes</div>
+        <div class="hero-body">Aucune bibliothèque graphique externe dans la charte. Tous les graphiques sont en SVG avec couleurs CSS custom properties. Les dégradés de remplissage sous les courbes respectent la règle : chaque courbe = son propre dégradé vertical, opacité max 0.35, jamais diagonal.</div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         §1 — TABLEAU DE DONNÉES
+    ═══════════════════════════════════════════════════════════════ -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-num">Section 01</div>
+        <div class="section-title">Tableau de données</div>
+        <div class="section-desc">Structure standard : toolbar (recherche + filtres + actions groupées) + en-tête triable + lignes avec sélection checkbox + actions inline par ligne. Lignes zébrées légèrement au hover (<span class="code">--fond-surface-2</span>). Lignes sélectionnées en <span class="code">--ap-50</span>.</div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Tableau patients — Moutela · consultations du jour</div>
+        <!-- Toolbar -->
+        <div class="table-toolbar">
+          <div class="table-search">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--texte-tertiaire);flex-shrink:0;"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            <input type="text" placeholder="Rechercher un patient…">
+          </div>
+          <button class="tb-filter-btn">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+            Filtres
+          </button>
+          <button class="tb-filter-btn">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/></svg>
+            Exporter
+          </button>
+          <div class="tb-spacer"></div>
+          <span class="selected-info" id="sel-info" style="display:none;">2 sélectionnés</span>
+          <button class="tb-filter-btn" style="border-color:var(--ap-400);color:var(--ap-400);">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Nouveau patient
+          </button>
+        </div>
+        <!-- Table -->
+        <div style="overflow:hidden;border-radius:0 0 var(--radius-md) var(--radius-md);border:1px solid var(--bordure-legere);border-top:none;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width:36px;"><div onclick="toggleAll(this)" style="cursor:pointer;" title="Tout sélectionner"><div class="row-check" id="check-all"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" style="display:none;"><polyline points="20 6 9 17 4 12"/></svg></div></div></th>
+                <th><span class="th-sort asc" onclick="sortTable(this)">Patient <span class="sort-icon">↑</span></span></th>
+                <th><span class="th-sort" onclick="sortTable(this)">Dossier <span class="sort-icon">↕</span></span></th>
+                <th><span class="th-sort" onclick="sortTable(this)">Statut <span class="sort-icon">↕</span></span></th>
+                <th><span class="th-sort" onclick="sortTable(this)">Site <span class="sort-icon">↕</span></span></th>
+                <th><span class="th-sort" onclick="sortTable(this)">RDV <span class="sort-icon">↕</span></span></th>
+                <th style="width:90px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="table-body">
+              <tr onclick="toggleRow(this)">
+                <td><div class="row-check checked"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div></td>
+                <td><div style="display:flex;align-items:center;gap:9px;"><div class="p-avatar" style="width:32px;height:32px;font-size:11px;">MK</div><div><div style="font-size:13px;font-weight:500;color:var(--texte-primaire);">Moukouri Jean-Baptiste</div><div style="font-size:11px;color:var(--texte-tertiaire);">42 ans · H</div></div></div></td>
+                <td class="code">SARIS-2023-00124</td>
+                <td><span class="badge-inline bi-info"><span class="dot-status" style="background:var(--info-accent);"></span>En consultation</span></td>
+                <td style="font-size:12px;">Moutela</td>
+                <td style="font-size:12px;">09h00</td>
+                <td><div class="td-actions"><button class="row-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button><button class="row-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="row-btn danger"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></button></div></td>
+              </tr>
+              <tr onclick="toggleRow(this)">
+                <td><div class="row-check"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div></td>
+                <td><div style="display:flex;align-items:center;gap:9px;"><div class="p-avatar" style="width:32px;height:32px;font-size:11px;background:var(--as-100);color:var(--as-800);">ON</div><div><div style="font-size:13px;font-weight:500;color:var(--texte-primaire);">Obilé Nadège</div><div style="font-size:11px;color:var(--texte-tertiaire);">31 ans · F</div></div></div></td>
+                <td class="code">SARIS-2024-00087</td>
+                <td><span class="badge-inline bi-warning"><span class="dot-status" style="background:var(--avert-accent);"></span>En attente</span></td>
+                <td style="font-size:12px;">Moutela</td>
+                <td style="font-size:12px;">10h30</td>
+                <td><div class="td-actions"><button class="row-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button><button class="row-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="row-btn danger"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></button></div></td>
+              </tr>
+              <tr onclick="toggleRow(this)" class="selected">
+                <td><div class="row-check checked"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div></td>
+                <td><div style="display:flex;align-items:center;gap:9px;"><div class="p-avatar" style="width:32px;height:32px;font-size:11px;background:var(--erreur-fond);color:var(--erreur-accent);">PL</div><div><div style="font-size:13px;font-weight:500;color:var(--texte-primaire);">Poaty Léonard</div><div style="font-size:11px;color:var(--texte-tertiaire);">67 ans · H</div></div></div></td>
+                <td class="code">SARIS-2022-00341</td>
+                <td><span class="badge-inline bi-error"><span class="dot-status" style="background:var(--erreur-accent);"></span>Urgence</span></td>
+                <td style="font-size:12px;">Moutela</td>
+                <td style="font-size:12px;">08h15</td>
+                <td><div class="td-actions"><button class="row-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button><button class="row-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="row-btn danger"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></button></div></td>
+              </tr>
+              <tr onclick="toggleRow(this)">
+                <td><div class="row-check"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div></td>
+                <td><div style="display:flex;align-items:center;gap:9px;"><div class="p-avatar" style="width:32px;height:32px;font-size:11px;background:var(--succes-fond);color:var(--succes-accent);">NK</div><div><div style="font-size:13px;font-weight:500;color:var(--texte-primaire);">Nganga Katy</div><div style="font-size:11px;color:var(--texte-tertiaire);">28 ans · F</div></div></div></td>
+                <td class="code">SARIS-2025-00519</td>
+                <td><span class="badge-inline bi-success"><span class="dot-status" style="background:var(--succes-accent);"></span>Sorti — guéri</span></td>
+                <td style="font-size:12px;">Nkayi</td>
+                <td style="font-size:12px;">—</td>
+                <td><div class="td-actions"><button class="row-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button><button class="row-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="row-btn danger"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></button></div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         §2 — CARTES
+    ═══════════════════════════════════════════════════════════════ -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-num">Section 02</div>
+        <div class="section-title">Cartes — KPI, contenu &amp; patient</div>
+        <div class="section-desc">3 formats de cartes : <strong style="font-weight:500;">KPI</strong> (chiffre clé + tendance + barre de progression) · <strong style="font-weight:500;">Contenu</strong> (header + body + footer) · <strong style="font-weight:500;">Patient</strong> (avatar + métadonnées + tags). Shadow Z1 au repos, Z2 au hover avec léger translateY(-1px).</div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Cartes KPI — tableau de bord Moutela + Nkayi</div>
+        <div class="cards-grid-4">
+          <div class="kpi-card">
+            <div class="kpi-label">
+              <div class="kpi-icon" style="background:var(--ap-50);">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ap-400)" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+              </div>
+              Patients actifs
+            </div>
+            <div class="kpi-value">1 284</div>
+            <div class="kpi-trend" style="color:var(--succes-accent);">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+              +23 cette semaine
+            </div>
+            <div class="kpi-bar"><div class="kpi-bar-fill" style="width:72%;"></div></div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">
+              <div class="kpi-icon" style="background:var(--as-50);">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--as-400)" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              </div>
+              Consultations (mois)
+            </div>
+            <div class="kpi-value">387</div>
+            <div class="kpi-trend" style="color:var(--succes-accent);">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+              +8% vs mai 2025
+            </div>
+            <div class="kpi-bar"><div class="kpi-bar-fill" style="width:58%;background:var(--as-400);"></div></div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">
+              <div class="kpi-icon" style="background:var(--erreur-fond);">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--erreur-accent)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              </div>
+              Urgences (semaine)
+            </div>
+            <div class="kpi-value" style="color:var(--erreur-accent);">14</div>
+            <div class="kpi-trend" style="color:var(--erreur-accent);">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 9 12 15 6 9"/></svg>
+              +3 vs semaine passée
+            </div>
+            <div class="kpi-bar"><div class="kpi-bar-fill" style="width:35%;background:var(--erreur-accent);"></div></div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">
+              <div class="kpi-icon" style="background:var(--succes-fond);">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--succes-accent)" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              </div>
+              Taux guérison
+            </div>
+            <div class="kpi-value" style="color:var(--succes-accent);">94%</div>
+            <div class="kpi-trend" style="color:var(--succes-accent);">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+              Objectif : 90%
+            </div>
+            <div class="kpi-bar"><div class="kpi-bar-fill" style="width:94%;background:var(--succes-accent);"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Cartes patient — liste compacte</div>
+        <div class="cards-grid-2">
+          <div class="patient-card">
+            <div class="p-avatar">MK</div>
+            <div style="flex:1;">
+              <div class="p-name">Moukouri Jean-Baptiste</div>
+              <div class="p-meta">42 ans · H · SARIS-2023-00124 · Moutela</div>
+              <div class="p-tags">
+                <span class="badge-inline bi-info">En consultation</span>
+                <span class="badge-inline bi-primary">Paludisme</span>
+              </div>
+            </div>
+            <div style="font-size:11px;color:var(--texte-tertiaire);white-space:nowrap;">09h00</div>
+          </div>
+          <div class="patient-card">
+            <div class="p-avatar" style="background:var(--erreur-fond);color:var(--erreur-accent);">PL</div>
+            <div style="flex:1;">
+              <div class="p-name">Poaty Léonard</div>
+              <div class="p-meta">67 ans · H · SARIS-2022-00341 · Moutela</div>
+              <div class="p-tags">
+                <span class="badge-inline bi-error">Urgence</span>
+                <span class="badge-inline bi-warning">Cardio</span>
+              </div>
+            </div>
+            <div style="font-size:11px;color:var(--erreur-accent);white-space:nowrap;font-weight:600;">08h15 !</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Carte contenu — résumé d'activité site</div>
+        <div class="cards-grid-2">
+          <div class="content-card">
+            <div class="card-header">
+              <div class="card-title">Activité — Site Moutela</div>
+              <span class="badge-inline bi-success">En ligne</span>
+            </div>
+            <div class="card-body" style="display:flex;flex-direction:column;gap:10px;">
+              <div style="display:flex;justify-content:space-between;font-size:12px;">
+                <span style="color:var(--texte-tertiaire);">Médecins de garde</span>
+                <span style="font-weight:500;color:var(--texte-primaire);">3 / 3</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;">
+                <span style="color:var(--texte-tertiaire);">Lits occupés</span>
+                <span style="font-weight:500;color:var(--texte-primaire);">18 / 24</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;">
+                <span style="color:var(--texte-tertiaire);">Stock médicaments</span>
+                <span style="font-weight:500;color:var(--avert-accent);">Faible (14 jours)</span>
+              </div>
+            </div>
+            <div class="card-footer">
+              <span style="font-size:11px;color:var(--texte-tertiaire);">Mis à jour il y a 3 min</span>
+              <button style="font-size:11px;color:var(--ap-400);background:none;border:none;cursor:pointer;font-family:'Inter',sans-serif;">Voir détails →</button>
+            </div>
+          </div>
+          <div class="content-card">
+            <div class="card-header">
+              <div class="card-title">Activité — Site Nkayi</div>
+              <span class="badge-inline bi-warning">Partiel</span>
+            </div>
+            <div class="card-body" style="display:flex;flex-direction:column;gap:10px;">
+              <div style="display:flex;justify-content:space-between;font-size:12px;">
+                <span style="color:var(--texte-tertiaire);">Médecins de garde</span>
+                <span style="font-weight:500;color:var(--avert-accent);">1 / 2</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;">
+                <span style="color:var(--texte-tertiaire);">Lits occupés</span>
+                <span style="font-weight:500;color:var(--texte-primaire);">6 / 12</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;">
+                <span style="color:var(--texte-tertiaire);">Stock médicaments</span>
+                <span style="font-weight:500;color:var(--succes-accent);">Normal (38 jours)</span>
+              </div>
+            </div>
+            <div class="card-footer">
+              <span style="font-size:11px;color:var(--texte-tertiaire);">Mis à jour il y a 12 min</span>
+              <button style="font-size:11px;color:var(--ap-400);background:none;border:none;cursor:pointer;font-family:'Inter',sans-serif;">Voir détails →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         §3 — LISTES
+    ═══════════════════════════════════════════════════════════════ -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-num">Section 03</div>
+        <div class="section-title">Listes groupées</div>
+        <div class="section-desc">Utilisées pour les flux d'activité, les alertes, les rendez-vous du jour. Chaque item : icône gauche + titre + sous-titre + méta droite (badge ou heure). Séparateur <span class="code">--bordure-legere</span> entre items.</div>
+      </div>
+      <div class="demo-box" style="padding:0;">
+        <div style="padding:12px 14px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--texte-tertiaire);border-bottom:1px solid var(--bordure-legere);">Activité récente</div>
+        <div class="list-item">
+          <div class="list-item-icon" style="background:var(--info-fond);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--info-accent)" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+          <div class="list-item-main"><div class="li-title">Nouveau patient enregistré</div><div class="li-sub">Moukouri Jean-Baptiste — Dossier SARIS-2026-00712</div></div>
+          <div class="li-right"><div class="li-time">09h14</div><span class="badge-inline bi-info">Nouveau</span></div>
+        </div>
+        <div class="list-item">
+          <div class="list-item-icon" style="background:var(--succes-fond);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--succes-accent)" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="list-item-main"><div class="li-title">Ordonnance validée</div><div class="li-sub">Artéméther-Luméfantrine · Dr. Moussavou</div></div>
+          <div class="li-right"><div class="li-time">08h52</div><span class="badge-inline bi-success">Validée</span></div>
+        </div>
+        <div class="list-item">
+          <div class="list-item-icon" style="background:var(--erreur-fond);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--erreur-accent)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/></svg></div>
+          <div class="list-item-main"><div class="li-title">Alerte stock critique</div><div class="li-sub">Quinine injectable — Quantité : 8 unités restantes</div></div>
+          <div class="li-right"><div class="li-time">08h31</div><span class="badge-inline bi-error">Critique</span></div>
+        </div>
+        <div class="list-item">
+          <div class="list-item-icon" style="background:var(--avert-fond);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--avert-accent)" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+          <div class="list-item-main"><div class="li-title">RDV manqué</div><div class="li-sub">Ngamba Céleste — Rendez-vous 08h00 non honoré</div></div>
+          <div class="li-right"><div class="li-time">08h05</div><span class="badge-inline bi-warning">Manqué</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         §4 — ACCORDÉONS
+    ═══════════════════════════════════════════════════════════════ -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-num">Section 04</div>
+        <div class="section-title">Accordéons</div>
+        <div class="section-desc">Utilisés dans les fiches patient (antécédents, allergies, historique) et les formulaires longs. Animation max-height 220ms ease. Un seul accordéon peut être ouvert à la fois (mode exclusif) ou tous indépendants selon le contexte.</div>
+      </div>
+      <div class="accordion">
+        <div class="acc-item open">
+          <div class="acc-trigger" onclick="toggleAcc(this)">
+            <div class="acc-trigger-left">
+              <div class="acc-icon" style="background:var(--ap-50);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ap-400)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+              <span class="acc-title">Antécédents médicaux</span>
+              <span class="acc-badge" style="background:var(--ap-50);color:var(--ap-600);">3</span>
+            </div>
+            <svg class="acc-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="acc-body"><div class="acc-content">Diabète de type 2 diagnostiqué en 2019 (Hba1c 7.8%) · Hypertension artérielle depuis 2021 (traitement en cours) · Appendicectomie en 2015 à l'Hôpital Général de Brazzaville. Aucune complication post-opératoire.</div></div>
+        </div>
+        <div class="acc-item">
+          <div class="acc-trigger" onclick="toggleAcc(this)">
+            <div class="acc-trigger-left">
+              <div class="acc-icon" style="background:var(--erreur-fond);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--erreur-accent)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/></svg></div>
+              <span class="acc-title">Allergies connues</span>
+              <span class="acc-badge" style="background:var(--erreur-fond);color:var(--erreur-texte);">2</span>
+            </div>
+            <svg class="acc-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="acc-body"><div class="acc-content">Pénicilline (réaction sévère — urticaire généralisée, 2018) · Aspirine (intolérance — troubles gastriques). Informé le personnel soignant. Carte d'allergie en dossier physique.</div></div>
+        </div>
+        <div class="acc-item">
+          <div class="acc-trigger" onclick="toggleAcc(this)">
+            <div class="acc-trigger-left">
+              <div class="acc-icon" style="background:var(--as-50);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--as-400)" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+              <span class="acc-title">Historique des consultations</span>
+              <span class="acc-badge" style="background:var(--as-50);color:var(--as-700);">24</span>
+            </div>
+            <svg class="acc-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="acc-body"><div class="acc-content">24 consultations enregistrées depuis janvier 2023 · Dernière : 08/05/2026 — Paludisme simple, Dr. Moussavou · Avant-dernière : 14/03/2026 — Contrôle tension artérielle · Fréquence moyenne : 1 consultation / 6 semaines.</div></div>
+        </div>
+        <div class="acc-item">
+          <div class="acc-trigger" onclick="toggleAcc(this)">
+            <div class="acc-trigger-left">
+              <div class="acc-icon" style="background:var(--succes-fond);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--succes-accent)" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+              <span class="acc-title">Examens &amp; résultats biologiques</span>
+              <span class="acc-badge" style="background:var(--succes-fond);color:var(--succes-texte);">12</span>
+            </div>
+            <svg class="acc-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="acc-body"><div class="acc-content">NFS (05/05/2026) : Hb 12.4 g/dL, Plaquettes 198 000/µL, GB 7 200/µL · Glycémie à jeun (05/05/2026) : 7.4 mmol/L · Frottis paludisme (08/05/2026) : positif Plasmodium falciparum faible densité.</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         §5 — GRAPHIQUES (5 types)
+    ═══════════════════════════════════════════════════════════════ -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-num">Section 05</div>
+        <div class="section-title">Graphiques — 5 types exclusifs CMS SARIS Congo</div>
+        <div class="section-desc">Tous en SVG pur — aucune bibliothèque externe. Couleurs via tokens CSS. Règle dégradé : chaque courbe reçoit un dégradé vertical de sa couleur, opacité max 0.35, transparent en bas. Grille en <span class="code">currentColor</span> opacity 0.07 pour s'adapter aux deux modes.</div>
+      </div>
+
+      <div class="charts-grid">
+
+        <!-- GRAPHIQUE 1 — BARRES GROUPÉES -->
+        <div class="chart-card">
+          <div class="chart-title">Type 1 · Barres groupées</div>
+          <div class="chart-sub">Consultations mensuelles — Moutela vs Nkayi (6 mois)</div>
+          <svg class="chart-svg" viewBox="0 0 460 220" xmlns="http://www.w3.org/2000/svg">
+            <!-- Grille -->
+            <line x1="40" y1="20" x2="450" y2="20" class="chart-grid-line"/>
+            <line x1="40" y1="60" x2="450" y2="60" class="chart-grid-line"/>
+            <line x1="40" y1="100" x2="450" y2="100" class="chart-grid-line"/>
+            <line x1="40" y1="140" x2="450" y2="140" class="chart-grid-line"/>
+            <line x1="40" y1="180" x2="450" y2="180" class="chart-grid-line"/>
+            <!-- Labels Y -->
+            <text x="32" y="24"  class="chart-axis-text" font-size="9" text-anchor="end">400</text>
+            <text x="32" y="64"  class="chart-axis-text" font-size="9" text-anchor="end">300</text>
+            <text x="32" y="104" class="chart-axis-text" font-size="9" text-anchor="end">200</text>
+            <text x="32" y="144" class="chart-axis-text" font-size="9" text-anchor="end">100</text>
+            <text x="32" y="184" class="chart-axis-text" font-size="9" text-anchor="end">0</text>
+            <!-- Données : Déc=220/130, Jan=310/155, Fév=280/140, Mar=370/195, Avr=340/180, Mai=387/210 -->
+            <!-- Déc -->
+            <rect x="50"  y="125" width="22" height="55"  rx="3" fill="#4E8BA4" opacity=".88"/>
+            <rect x="74"  y="147" width="22" height="33"  rx="3" fill="#C99A2E" opacity=".88"/>
+            <!-- Jan -->
+            <rect x="120" y="103" width="22" height="77"  rx="3" fill="#4E8BA4" opacity=".88"/>
+            <rect x="144" y="141" width="22" height="39"  rx="3" fill="#C99A2E" opacity=".88"/>
+            <!-- Fév -->
+            <rect x="190" y="110" width="22" height="70"  rx="3" fill="#4E8BA4" opacity=".88"/>
+            <rect x="214" y="145" width="22" height="35"  rx="3" fill="#C99A2E" opacity=".88"/>
+            <!-- Mar -->
+            <rect x="260" y="87"  width="22" height="93"  rx="3" fill="#4E8BA4" opacity=".88"/>
+            <rect x="284" y="131" width="22" height="49"  rx="3" fill="#C99A2E" opacity=".88"/>
+            <!-- Avr -->
+            <rect x="330" y="94"  width="22" height="86"  rx="3" fill="#4E8BA4" opacity=".88"/>
+            <rect x="354" y="135" width="22" height="45"  rx="3" fill="#C99A2E" opacity=".88"/>
+            <!-- Mai -->
+            <rect x="400" y="83"  width="22" height="97"  rx="3" fill="#4E8BA4" opacity=".88"/>
+            <rect x="424" y="127" width="22" height="53"  rx="3" fill="#C99A2E" opacity=".88"/>
+            <!-- Labels X -->
+            <text x="72"  y="198" class="chart-axis-text" font-size="9" text-anchor="middle">Déc</text>
+            <text x="142" y="198" class="chart-axis-text" font-size="9" text-anchor="middle">Jan</text>
+            <text x="212" y="198" class="chart-axis-text" font-size="9" text-anchor="middle">Fév</text>
+            <text x="282" y="198" class="chart-axis-text" font-size="9" text-anchor="middle">Mar</text>
+            <text x="352" y="198" class="chart-axis-text" font-size="9" text-anchor="middle">Avr</text>
+            <text x="422" y="198" class="chart-axis-text" font-size="9" text-anchor="middle">Mai</text>
+            <!-- Ligne de base -->
+            <line x1="40" y1="180" x2="450" y2="180" stroke="currentColor" stroke-opacity=".18" stroke-width="1"/>
+          </svg>
+          <div class="chart-legend">
+            <div class="legend-item"><div class="legend-dot" style="background:#4E8BA4;"></div><span class="legend-text">Moutela</span></div>
+            <div class="legend-item"><div class="legend-dot" style="background:#C99A2E;"></div><span class="legend-text">Nkayi</span></div>
+          </div>
+        </div>
+
+        <!-- GRAPHIQUE 2 — COURBE + DÉGRADÉ -->
+        <div class="chart-card">
+          <div class="chart-title">Type 2 · Courbe + dégradé</div>
+          <div class="chart-sub">Évolution patients actifs — Moutela &amp; Nkayi</div>
+          <svg class="chart-svg" viewBox="0 0 460 220" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="g-ap" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#4E8BA4" stop-opacity="0.35"/>
+                <stop offset="100%" stop-color="#4E8BA4" stop-opacity="0"/>
+              </linearGradient>
+              <linearGradient id="g-as" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#C99A2E" stop-opacity="0.30"/>
+                <stop offset="100%" stop-color="#C99A2E" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <!-- Grille -->
+            <line x1="40" y1="20"  x2="450" y2="20"  class="chart-grid-line"/>
+            <line x1="40" y1="60"  x2="450" y2="60"  class="chart-grid-line"/>
+            <line x1="40" y1="100" x2="450" y2="100" class="chart-grid-line"/>
+            <line x1="40" y1="140" x2="450" y2="140" class="chart-grid-line"/>
+            <line x1="40" y1="180" x2="450" y2="180" class="chart-grid-line"/>
+            <!-- Labels Y -->
+            <text x="32" y="24"  class="chart-axis-text" font-size="9" text-anchor="end">1400</text>
+            <text x="32" y="64"  class="chart-axis-text" font-size="9" text-anchor="end">1050</text>
+            <text x="32" y="104" class="chart-axis-text" font-size="9" text-anchor="end">700</text>
+            <text x="32" y="144" class="chart-axis-text" font-size="9" text-anchor="end">350</text>
+            <text x="32" y="184" class="chart-axis-text" font-size="9" text-anchor="end">0</text>
+            <!-- Zone remplie ap (Moutela : 980,1050,1080,1200,1250,1284) -->
+            <path d="M50,99 C115,91 165,87 213,73 C261,59 310,52 360,44 C390,40 420,37 450,36 L450,180 L50,180 Z" fill="url(#g-ap)"/>
+            <path d="M50,99 C115,91 165,87 213,73 C261,59 310,52 360,44 C390,40 420,37 450,36" fill="none" stroke="#4E8BA4" stroke-width="2.5" stroke-linecap="round"/>
+            <circle cx="50"  cy="99" r="3.5" fill="#4E8BA4"/>
+            <circle cx="130" cy="89" r="3.5" fill="#4E8BA4"/>
+            <circle cx="210" cy="75" r="3.5" fill="#4E8BA4"/>
+            <circle cx="290" cy="59" r="3.5" fill="#4E8BA4"/>
+            <circle cx="370" cy="45" r="3.5" fill="#4E8BA4"/>
+            <circle cx="450" cy="36" r="3.5" fill="#4E8BA4"/>
+            <!-- Zone remplie as (Nkayi : 420,490,510,570,590,620) -->
+            <path d="M50,149 C115,143 165,140 213,133 C261,126 310,123 360,118 C390,115 420,112 450,110 L450,180 L50,180 Z" fill="url(#g-as)"/>
+            <path d="M50,149 C115,143 165,140 213,133 C261,126 310,123 360,118 C390,115 420,112 450,110" fill="none" stroke="#C99A2E" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="0"/>
+            <circle cx="50"  cy="149" r="3.5" fill="#C99A2E"/>
+            <circle cx="130" cy="143" r="3.5" fill="#C99A2E"/>
+            <circle cx="210" cy="135" r="3.5" fill="#C99A2E"/>
+            <circle cx="290" cy="127" r="3.5" fill="#C99A2E"/>
+            <circle cx="370" cy="119" r="3.5" fill="#C99A2E"/>
+            <circle cx="450" cy="110" r="3.5" fill="#C99A2E"/>
+            <!-- Labels X -->
+            <text x="50"  y="198" class="chart-axis-text" font-size="9" text-anchor="middle">Déc</text>
+            <text x="130" y="198" class="chart-axis-text" font-size="9" text-anchor="middle">Jan</text>
+            <text x="210" y="198" class="chart-axis-text" font-size="9" text-anchor="middle">Fév</text>
+            <text x="290" y="198" class="chart-axis-text" font-size="9" text-anchor="middle">Mar</text>
+            <text x="370" y="198" class="chart-axis-text" font-size="9" text-anchor="middle">Avr</text>
+            <text x="450" y="198" class="chart-axis-text" font-size="9" text-anchor="middle">Mai</text>
+          </svg>
+          <div class="chart-legend">
+            <div class="legend-item"><div class="legend-line" style="background:#4E8BA4;"></div><span class="legend-text">Moutela — dégradé ap-400</span></div>
+            <div class="legend-item"><div class="legend-line" style="background:#C99A2E;"></div><span class="legend-text">Nkayi — dégradé as-400</span></div>
+          </div>
+        </div>
+
+        <!-- GRAPHIQUE 3 — RADAR / ARAIGNÉE -->
+        <div class="chart-card">
+          <div class="chart-title">Type 3 · Radar araignée</div>
+          <div class="chart-sub">Indicateurs qualité de soins — Moutela vs Nkayi</div>
+          <svg class="chart-svg" viewBox="0 0 460 260" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <style>.radar-label{font-family:'Inter',sans-serif;font-size:10px;}</style>
+            </defs>
+            <!-- Centre -->
+            <g transform="translate(230,135)">
+              <!-- Toiles de fond (5 niveaux) -->
+              <polygon points="0,-90  85.5,-27.75  52.9,72.75  -52.9,72.75  -85.5,-27.75" fill="none" stroke="currentColor" stroke-opacity=".10" stroke-width="1"/>
+              <polygon points="0,-72  68.4,-22.2   42.3,58.2   -42.3,58.2   -68.4,-22.2"  fill="none" stroke="currentColor" stroke-opacity=".10" stroke-width="1"/>
+              <polygon points="0,-54  51.3,-16.65  31.7,43.65  -31.7,43.65  -51.3,-16.65" fill="none" stroke="currentColor" stroke-opacity=".10" stroke-width="1"/>
+              <polygon points="0,-36  34.2,-11.1   21.2,29.1   -21.2,29.1   -34.2,-11.1"  fill="none" stroke="currentColor" stroke-opacity=".10" stroke-width="1"/>
+              <polygon points="0,-18  17.1,-5.55   10.6,14.55  -10.6,14.55  -17.1,-5.55"  fill="none" stroke="currentColor" stroke-opacity=".10" stroke-width="1"/>
+              <!-- Axes -->
+              <line x1="0" y1="0" x2="0"    y2="-90"   stroke="currentColor" stroke-opacity=".12" stroke-width="1"/>
+              <line x1="0" y1="0" x2="85.5"  y2="-27.75" stroke="currentColor" stroke-opacity=".12" stroke-width="1"/>
+              <line x1="0" y1="0" x2="52.9"  y2="72.75"  stroke="currentColor" stroke-opacity=".12" stroke-width="1"/>
+              <line x1="0" y1="0" x2="-52.9" y2="72.75"  stroke="currentColor" stroke-opacity=".12" stroke-width="1"/>
+              <line x1="0" y1="0" x2="-85.5" y2="-27.75" stroke="currentColor" stroke-opacity=".12" stroke-width="1"/>
+              <!-- Données Moutela (94%, 88%, 91%, 82%, 97%) -->
+              <!-- Pts = r*valeur sur chaque axe: axe 0=haut, 1=bas-droit, 2=bas-droit bas, etc. -->
+              <polygon
+                points="0,-84.6   75.3,-24.4  48.1,66.2  -42.6,66.2  -82.9,-26.9"
+                fill="#4E8BA4" fill-opacity=".18" stroke="#4E8BA4" stroke-width="2"/>
+              <!-- Données Nkayi (78%, 72%, 85%, 90%, 80%) -->
+              <polygon
+                points="0,-70.2   61.6,-20.0  45.0,61.8  -47.6,65.5  -68.4,-22.2"
+                fill="#C99A2E" fill-opacity=".15" stroke="#C99A2E" stroke-width="2" stroke-dasharray="5,3"/>
+              <!-- Points Moutela -->
+              <circle cx="0"    cy="-84.6" r="4" fill="#4E8BA4"/>
+              <circle cx="75.3" cy="-24.4" r="4" fill="#4E8BA4"/>
+              <circle cx="48.1" cy="66.2"  r="4" fill="#4E8BA4"/>
+              <circle cx="-42.6" cy="66.2" r="4" fill="#4E8BA4"/>
+              <circle cx="-82.9" cy="-26.9" r="4" fill="#4E8BA4"/>
+              <!-- Labels axes -->
+              <text x="0"     y="-97"  class="radar-label chart-axis-text" text-anchor="middle">Guérison 94%</text>
+              <text x="95"    y="-30"  class="radar-label chart-axis-text" text-anchor="start">Délai 88%</text>
+              <text x="60"    y="85"   class="radar-label chart-axis-text" text-anchor="middle">Suivi 91%</text>
+              <text x="-60"   y="85"   class="radar-label chart-axis-text" text-anchor="middle">Stock 82%</text>
+              <text x="-95"   y="-30"  class="radar-label chart-axis-text" text-anchor="end">Personnel 97%</text>
+            </g>
+          </svg>
+          <div class="chart-legend">
+            <div class="legend-item"><div class="legend-line" style="background:#4E8BA4;"></div><span class="legend-text">Moutela (solide)</span></div>
+            <div class="legend-item"><div class="legend-line" style="background:#C99A2E;height:2px;background:repeating-linear-gradient(90deg,#C99A2E 0,#C99A2E 5px,transparent 5px,transparent 8px);"></div><span class="legend-text">Nkayi (tirets)</span></div>
+          </div>
+        </div>
+
+        <!-- GRAPHIQUE 4 — DONUT / ANNEAU -->
+        <div class="chart-card">
+          <div class="chart-title">Type 4 · Donut anneau</div>
+          <div class="chart-sub">Répartition des patients par pathologie — Mai 2026</div>
+          <svg class="chart-svg" viewBox="0 0 460 260" xmlns="http://www.w3.org/2000/svg">
+            <g transform="translate(170,130)">
+              <!-- Donut : r_ext=95, r_int=55 — arcs SVG -->
+              <!-- Paludisme 38% — ap-400 -->
+              <path d="M0,-95 A95,95 0 0,1 90.2,-30.9 L52.5,-18.0 A55,55 0 0,0 0,-55 Z" fill="#4E8BA4"/>
+              <!-- Hypertension 22% — as-400 -->
+              <path d="M90.2,-30.9 A95,95 0 0,1 58.7,75.8 L34.1,44.0 A55,55 0 0,0 52.5,-18.0 Z" fill="#C99A2E"/>
+              <!-- Diabète 18% — succes -->
+              <path d="M58.7,75.8 A95,95 0 0,1 -58.7,75.8 L-34.1,44.0 A55,55 0 0,0 34.1,44.0 Z" fill="#3D7A5E"/>
+              <!-- Respiratoire 13% — info -->
+              <path d="M-58.7,75.8 A95,95 0 0,1 -90.2,-30.9 L-52.5,-18.0 A55,55 0 0,0 -34.1,44.0 Z" fill="#3A6080"/>
+              <!-- Autres 9% — gris -->
+              <path d="M-90.2,-30.9 A95,95 0 0,1 0,-95 L0,-55 A55,55 0 0,0 -52.5,-18.0 Z" fill="#8892A4"/>
+              <!-- Centre -->
+              <circle cx="0" cy="0" r="42" fill="var(--fond-surface)"/>
+              <text x="0" y="-6" text-anchor="middle" font-family="'Inter',sans-serif" font-size="18" font-weight="600" fill="currentColor">1 284</text>
+              <text x="0" y="10" text-anchor="middle" font-family="'Inter',sans-serif" font-size="9" fill="currentColor" opacity=".5">patients</text>
+            </g>
+            <!-- Légende droite -->
+            <g transform="translate(285,70)">
+              <rect x="0" y="0"  width="12" height="12" rx="2" fill="#4E8BA4"/>
+              <text x="18" y="10" font-family="'Inter',sans-serif" font-size="11" fill="currentColor" opacity=".7">Paludisme — 38%</text>
+              <rect x="0" y="22" width="12" height="12" rx="2" fill="#C99A2E"/>
+              <text x="18" y="32" font-family="'Inter',sans-serif" font-size="11" fill="currentColor" opacity=".7">Hypertension — 22%</text>
+              <rect x="0" y="44" width="12" height="12" rx="2" fill="#3D7A5E"/>
+              <text x="18" y="54" font-family="'Inter',sans-serif" font-size="11" fill="currentColor" opacity=".7">Diabète — 18%</text>
+              <rect x="0" y="66" width="12" height="12" rx="2" fill="#3A6080"/>
+              <text x="18" y="76" font-family="'Inter',sans-serif" font-size="11" fill="currentColor" opacity=".7">Respiratoire — 13%</text>
+              <rect x="0" y="88" width="12" height="12" rx="2" fill="#8892A4"/>
+              <text x="18" y="98" font-family="'Inter',sans-serif" font-size="11" fill="currentColor" opacity=".7">Autres — 9%</text>
+            </g>
+          </svg>
+        </div>
+
+        <!-- GRAPHIQUE 5 — GANTT PERSONNEL (pleine largeur) -->
+        <div class="chart-card chart-full">
+          <div class="chart-title">Type 5 · Gantt personnel — Planning de rotation</div>
+          <div class="chart-sub">Affectations du personnel soignant — Semaine S-20 (12–16 mai 2026) · Moutela &amp; Nkayi</div>
+          <svg class="chart-svg" viewBox="0 0 1020 240" xmlns="http://www.w3.org/2000/svg">
+            <!-- Colonnes jours -->
+            <defs>
+              <style>.gantt-lbl{font-family:'Inter',sans-serif;font-size:10px;}</style>
+            </defs>
+            <!-- En-tête jours -->
+            <rect x="0" y="0" width="1020" height="28" fill="var(--fond-surface-2)" opacity=".6"/>
+            <text x="180" y="4" class="gantt-lbl chart-axis-text" font-size="9" text-anchor="middle" dy="12">NOM</text>
+            <text x="220" y="4" class="gantt-lbl chart-axis-text" font-size="9" text-anchor="start" dy="12">RÔLE</text>
+            <!-- Séparateur vertical en-tête/données -->
+            <line x1="160" y1="0" x2="160" y2="240" stroke="currentColor" stroke-opacity=".10" stroke-width="1"/>
+            <line x1="310" y1="0" x2="310" y2="240" stroke="currentColor" stroke-opacity=".10" stroke-width="1"/>
+            <!-- Jours (5 jours = 710px / 5 = 142px chacun) -->
+            <text x="381"  y="16" class="gantt-lbl chart-axis-text" font-size="10" text-anchor="middle">Lun 12</text>
+            <text x="523"  y="16" class="gantt-lbl chart-axis-text" font-size="10" text-anchor="middle">Mar 13</text>
+            <text x="665"  y="16" class="gantt-lbl chart-axis-text" font-size="10" text-anchor="middle">Mer 14</text>
+            <text x="807"  y="16" class="gantt-lbl chart-axis-text" font-size="10" text-anchor="middle">Jeu 15</text>
+            <text x="949"  y="16" class="gantt-lbl chart-axis-text" font-size="10" text-anchor="middle">Ven 16</text>
+            <!-- Séparateurs jours -->
+            <line x1="452" y1="28" x2="452" y2="240" stroke="currentColor" stroke-opacity=".07" stroke-width="1"/>
+            <line x1="594" y1="28" x2="594" y2="240" stroke="currentColor" stroke-opacity=".07" stroke-width="1"/>
+            <line x1="736" y1="28" x2="736" y2="240" stroke="currentColor" stroke-opacity=".07" stroke-width="1"/>
+            <line x1="878" y1="28" x2="878" y2="240" stroke="currentColor" stroke-opacity=".07" stroke-width="1"/>
+
+            <!-- Lignes personnel — hauteur 30px chacune, départ y=36 -->
+
+            <!-- Ligne 1 — Dr. Moussavou -->
+            <rect x="0" y="36" width="1020" height="30" fill="var(--fond-surface-2)" opacity=".3"/>
+            <text x="10"  y="56" class="gantt-lbl" font-size="10" fill="currentColor" opacity=".8">Dr. Moussavou</text>
+            <text x="165" y="56" class="gantt-lbl" font-size="9"  fill="currentColor" opacity=".5">Médecin chef</text>
+            <!-- Moutela lun-ven complète -->
+            <rect x="315" y="40" width="700" height="22" rx="4" fill="#4E8BA4" opacity=".82"/>
+            <text x="665" y="55" class="gantt-lbl" font-size="9" fill="white" text-anchor="middle" opacity=".95">Moutela — 08h–16h</text>
+
+            <!-- Ligne 2 — Dr. Ngoma -->
+            <text x="10"  y="86" class="gantt-lbl" font-size="10" fill="currentColor" opacity=".8">Dr. Ngoma</text>
+            <text x="165" y="86" class="gantt-lbl" font-size="9"  fill="currentColor" opacity=".5">Généraliste</text>
+            <!-- Nkayi lun-mer, Moutela jeu-ven -->
+            <rect x="315" y="70" width="426" height="22" rx="4" fill="#C99A2E" opacity=".82"/>
+            <text x="528" y="85" class="gantt-lbl" font-size="9" fill="white" text-anchor="middle" opacity=".95">Nkayi — 08h–16h</text>
+            <rect x="741" y="70" width="289" height="22" rx="4" fill="#4E8BA4" opacity=".82"/>
+            <text x="885" y="85" class="gantt-lbl" font-size="9" fill="white" text-anchor="middle" opacity=".95">Moutela — 08h–16h</text>
+
+            <!-- Ligne 3 — Inf. Bouanga -->
+            <rect x="0" y="96" width="1020" height="30" fill="var(--fond-surface-2)" opacity=".3"/>
+            <text x="10"  y="116" class="gantt-lbl" font-size="10" fill="currentColor" opacity=".8">Inf. Bouanga</text>
+            <text x="165" y="116" class="gantt-lbl" font-size="9"  fill="currentColor" opacity=".5">Infirmier</text>
+            <!-- Garde nuit lun-mar, repos mer, matin jeu-ven -->
+            <rect x="315" y="100" width="284" height="22" rx="4" fill="#3A6080" opacity=".82"/>
+            <text x="457" y="115" class="gantt-lbl" font-size="9" fill="white" text-anchor="middle" opacity=".95">Garde nuit — 20h–08h</text>
+            <rect x="599" y="100" width="140" height="22" rx="4" fill="#8892A4" opacity=".4"/>
+            <text x="669" y="115" class="gantt-lbl" font-size="9" fill="currentColor" text-anchor="middle" opacity=".6">Repos</text>
+            <rect x="739" y="100" width="281" height="22" rx="4" fill="#4E8BA4" opacity=".82"/>
+            <text x="879" y="115" class="gantt-lbl" font-size="9" fill="white" text-anchor="middle" opacity=".95">Moutela — 08h–14h</text>
+
+            <!-- Ligne 4 — Inf. Mavoungou -->
+            <text x="10"  y="146" class="gantt-lbl" font-size="10" fill="currentColor" opacity=".8">Inf. Mavoungou</text>
+            <text x="165" y="146" class="gantt-lbl" font-size="9"  fill="currentColor" opacity=".5">Infirmière</text>
+            <!-- Nkayi sem complète -->
+            <rect x="315" y="130" width="700" height="22" rx="4" fill="#C99A2E" opacity=".82"/>
+            <text x="665" y="145" class="gantt-lbl" font-size="9" fill="white" text-anchor="middle" opacity=".95">Nkayi — 07h–15h</text>
+
+            <!-- Ligne 5 — Lab. Mpassi -->
+            <rect x="0" y="156" width="1020" height="30" fill="var(--fond-surface-2)" opacity=".3"/>
+            <text x="10"  y="176" class="gantt-lbl" font-size="10" fill="currentColor" opacity=".8">Lab. Mpassi</text>
+            <text x="165" y="176" class="gantt-lbl" font-size="9"  fill="currentColor" opacity=".5">Laborantin</text>
+            <!-- Moutela lun, Nkayi mar-jeu, Moutela ven -->
+            <rect x="315" y="160" width="137" height="22" rx="4" fill="#4E8BA4" opacity=".82"/>
+            <text x="383" y="175" class="gantt-lbl" font-size="9" fill="white" text-anchor="middle" opacity=".95">Moutela</text>
+            <rect x="452" y="160" width="427" height="22" rx="4" fill="#C99A2E" opacity=".82"/>
+            <text x="665" y="175" class="gantt-lbl" font-size="9" fill="white" text-anchor="middle" opacity=".95">Nkayi — 08h–14h</text>
+            <rect x="879" y="160" width="136" height="22" rx="4" fill="#4E8BA4" opacity=".82"/>
+            <text x="947" y="175" class="gantt-lbl" font-size="9" fill="white" text-anchor="middle" opacity=".95">Moutela</text>
+
+            <!-- Ligne 6 — Sec. Loubaki -->
+            <text x="10"  y="206" class="gantt-lbl" font-size="10" fill="currentColor" opacity=".8">Sec. Loubaki</text>
+            <text x="165" y="206" class="gantt-lbl" font-size="9"  fill="currentColor" opacity=".5">Secrétariat</text>
+            <!-- Moutela lun-ven -->
+            <rect x="315" y="190" width="700" height="22" rx="4" fill="#3D7A5E" opacity=".82"/>
+            <text x="665" y="205" class="gantt-lbl" font-size="9" fill="white" text-anchor="middle" opacity=".95">Moutela — Accueil &amp; Administratif</text>
+
+            <!-- Ligne de base -->
+            <line x1="310" y1="28" x2="310" y2="228" stroke="currentColor" stroke-opacity=".12" stroke-width="1.5"/>
+          </svg>
+          <div class="chart-legend" style="margin-top:14px;">
+            <div class="legend-item"><div class="legend-dot" style="background:#4E8BA4;"></div><span class="legend-text">Moutela</span></div>
+            <div class="legend-item"><div class="legend-dot" style="background:#C99A2E;"></div><span class="legend-text">Nkayi</span></div>
+            <div class="legend-item"><div class="legend-dot" style="background:#3A6080;"></div><span class="legend-text">Garde nuit</span></div>
+            <div class="legend-item"><div class="legend-dot" style="background:#3D7A5E;"></div><span class="legend-text">Administratif</span></div>
+            <div class="legend-item"><div class="legend-dot" style="background:#8892A4;opacity:.6;"></div><span class="legend-text">Repos</span></div>
+          </div>
+        </div>
+
+      </div><!-- fin charts-grid -->
+    </section>
+
+    <!-- RÈGLES ABSOLUES -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-num">Règles absolues</div>
+        <div class="section-title">Obligations &amp; Interdictions — Données &amp; Contenu</div>
+      </div>
+      <div class="rules-grid">
+        <div class="rules-card ok">
+          <div class="rules-card-title">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Obligations
+          </div>
+          <div class="rule-item"><span>✓</span><span>Tableaux avec tri par colonne obligatoire sur toutes les colonnes numériques ou de date. Indicateur visuel de tri (↑↓) sur la colonne active.</span></div>
+          <div class="rule-item"><span>✓</span><span>Les lignes sélectionnées passent en fond <span class="code" style="background:var(--succes-fond);color:var(--succes-accent);">--ap-50</span>. La sélection est toujours indiquée visuellement par la couleur ET le checkbox.</span></div>
+          <div class="rule-item"><span>✓</span><span>Cartes KPI : ombre Z1 au repos, Z2 au hover avec translateY(-1px). Transition 150ms ease.</span></div>
+          <div class="rule-item"><span>✓</span><span>Les 5 graphiques sont en SVG pur. Les couleurs utilisent uniquement les tokens de la palette (ap-400, as-400, succes-accent, erreur-accent, info-accent).</span></div>
+          <div class="rule-item"><span>✓</span><span>Graphique courbe : dégradé vertical obligatoire sous chaque courbe. Une couleur = un dégradé. Opacité max 0.35 en haut, 0 en bas.</span></div>
+          <div class="rule-item"><span>✓</span><span>Accordéons : animation max-height 220ms ease. Le chevron pivote 180° à l'ouverture avec transition spring.</span></div>
+        </div>
+        <div class="rules-card no">
+          <div class="rules-card-title">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            Interdictions absolues
+          </div>
+          <div class="rule-item"><span>✗</span><span>Aucune bibliothèque graphique externe (Chart.js, D3, Recharts…) pour le rendu des graphiques dans l'application. SVG pur obligatoire.</span></div>
+          <div class="rule-item"><span>✗</span><span>Pas de couleurs hardcodées dans les SVG. Toujours via tokens CSS ou références directes aux valeurs de la palette officielle.</span></div>
+          <div class="rule-item"><span>✗</span><span>Pas de dégradé diagonal ou radial sous les courbes. Le dégradé de remplissage est strictement vertical (top → bottom).</span></div>
+          <div class="rule-item"><span>✗</span><span>Pas de cartes sans ombre (même légère). Z1 minimum pour tout composant card, afin de le distinguer du fond de page.</span></div>
+          <div class="rule-item"><span>✗</span><span>Pas de tableau sans toolbar (même minimaliste). Un champ de recherche est toujours présent dès qu'une liste dépasse 10 entrées.</span></div>
+          <div class="rule-item"><span>✗</span><span>Les accordéons ne peuvent pas tous être fermés simultanément si l'un d'eux contient des informations critiques (allergies, urgences). Un accordéon reste ouvert par défaut.</span></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    function toggleTheme() {
+      const html = document.documentElement;
+      const isDark = html.getAttribute('data-theme') === 'dark';
+      html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+      document.getElementById('toggle-label').textContent = isDark ? 'Mode sombre' : 'Mode clair';
+    }
+
+    /* Sélection de lignes tableau */
+    function toggleRow(tr) {
+      const check = tr.querySelector('.row-check');
+      check.classList.toggle('checked');
+      const svg = check.querySelector('svg');
+      svg.style.display = check.classList.contains('checked') ? 'block' : 'none';
+      tr.classList.toggle('selected', check.classList.contains('checked'));
+      updateSelInfo();
+    }
+    function toggleAll(el) {
+      const check = el.querySelector('.row-check') || el;
+      const allChecks = document.querySelectorAll('#table-body .row-check');
+      const isChecked = !check.classList.contains('checked');
+      check.classList.toggle('checked', isChecked);
+      check.querySelector('svg').style.display = isChecked ? 'block' : 'none';
+      allChecks.forEach(c => {
+        c.classList.toggle('checked', isChecked);
+        c.querySelector('svg').style.display = isChecked ? 'block' : 'none';
+        c.closest('tr').classList.toggle('selected', isChecked);
+      });
+      updateSelInfo();
+    }
+    function updateSelInfo() {
+      const n = document.querySelectorAll('#table-body .row-check.checked').length;
+      const info = document.getElementById('sel-info');
+      info.style.display = n > 0 ? 'inline' : 'none';
+      info.textContent = n + ' sélectionné' + (n > 1 ? 's' : '');
+    }
+
+    /* Tri colonne (visuel) */
+    function sortTable(el) {
+      document.querySelectorAll('.th-sort').forEach(t => { t.classList.remove('asc','desc'); t.querySelector('.sort-icon').textContent = '↕'; });
+      el.classList.add('asc');
+      el.querySelector('.sort-icon').textContent = '↑';
+    }
+
+    /* Accordéons */
+    function toggleAcc(trigger) {
+      const item = trigger.closest('.acc-item');
+      const isOpen = item.classList.contains('open');
+      item.classList.toggle('open', !isOpen);
+    }
+
+    /* Init : afficher svg des checkboxes déjà cochées */
+    document.querySelectorAll('.row-check.checked svg').forEach(s => s.style.display = 'block');
+  </script>
+</body>
+</html>

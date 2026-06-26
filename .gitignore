@@ -1,0 +1,38 @@
+# Fichiers de configuration locale Claude Code
+.claude/
+
+# Dépendances Node (au cas où elles seraient présentes à ce niveau)
+node_modules/
+.pnp
+.pnp.js
+
+# Fichiers env locaux (uniquement les .env.example sont versionnés)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Builds & sorties
+dist/
+build/
+coverage/
+.turbo/
+.vercel/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Éditeurs
+.vscode/
+.idea/
+*.swp
+*.swo

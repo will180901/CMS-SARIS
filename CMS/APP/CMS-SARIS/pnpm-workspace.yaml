@@ -1,0 +1,14 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+  # Hygiène : ignorer tout package apparaissant sous un dossier de build/packaging.
+  # electron-builder recopie le package « api » (mêmes name/scripts) dans
+  # apps/desktop/build/api-runtime/ et apps/desktop/release/.../resources/api/.
+  # ⚠️ Ces exclusions ne s'appliquent QUE si pnpm est lancé depuis CETTE racine de
+  # workspace. Lancé depuis le git root externe (sans pnpm-workspace.yaml), pnpm fait
+  # un scan récursif qui ramasse quand même ces copies → `--filter api` matche 3 projets
+  # et les copies (sans `nest`) échouent. RÈGLE : lancer pnpm depuis CMS/APP/CMS-SARIS.
+  - "!**/build/**"
+  - "!**/release/**"
+  - "!**/dist-electron/**"
+  - "!**/win-unpacked/**"

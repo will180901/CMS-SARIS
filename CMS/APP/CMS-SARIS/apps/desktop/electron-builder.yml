@@ -1,0 +1,120 @@
+appId: cg.sariscongo.cms
+productName: CMS SARIS
+copyright: © 2026 Déo Cherel BOUWAYI MIKOUYA — SARIS-CONGO
+
+# Aucune dépendance native (electron-log/updater = JS pur) → on évite l'étape
+# @electron/rebuild qui échoue sur la structure node_modules de pnpm.
+npmRebuild: false
+buildDependenciesFromSource: false
+
+directories:
+  output: release
+  buildResources: build
+
+# Contenu embarqué dans l'installeur (frontend + main compilé).
+files:
+  - dist-electron/**/*
+  - app/**/*
+  - package.json
+
+# ──────────────────────────────────────────────────────────────────────────────
+# MODE LOCAL (offline-first : backend NestJS embarqué + SQLite) — PACKAGING.
+# Le mode par DEFAUT est 'remote' (client du serveur distant) : les cles ci-dessous
+# sont COMMENTEES pour ne PAS casser le build distant (api/dist et build/seed.db
+# n'existent pas tant qu'on n'a pas prepare le mode local — un asarUnpack/extraResources
+# pointant vers un chemin absent ferait echouer electron-builder).
+#
+# Pour ACTIVER le mode local, AVANT de decommenter :
+#   1. pnpm --filter api build                     -> genere ../api/dist/main.js (bootstrap)
+#   2. pnpm --filter api db:sqlite:gen             -> client Prisma SQLite
+#   3. pnpm --filter api db:sqlite:migrate         -> genere build/seed.db (base PRE-MIGREE)
+#      (seed.db est INDISPENSABLE : db-init.ts le copie au 1er lancement ; sans lui,
+#       aucune table -> l'app local ne demarre pas. Voir README « Mode local … packaging ».)
+#   4. Decommenter les deux blocs ci-dessous, puis electron-builder.
+#
+# asarUnpack : les moteurs natifs Prisma (.node) DOIVENT etre hors de l'archive asar
+# (un binaire natif ne peut pas etre charge depuis l'asar virtuel).
+# asarUnpack:
+#   - "**/node_modules/.prisma/**"
+#   - "**/node_modules/@prisma/engines/**"
+#   - "**/*.node"
+#
+# extraResources : place l'API compilee + la base modele dans resources/ (resolus a
+# l'execution via process.resourcesPath dans main.ts -> initBackend).
+# extraResources:
+#   - from: "../api/dist"
+#     to: "api/dist"          # API NestJS compilee (backend embarque)
+#   - from: "build/seed.db"
+#     to: "seed.db"           # base SQLite pre-migree (copiee au 1er run par db-init.ts)
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Installation par utilisateur (sans droits administrateur), conventions Windows.
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: build/icon.png
+  artifactName: ${productName}-Setup-${version}.${ext}
+  # ──────────────────────────────────────────────────────────────────────────────
+  # SIGNATURE DE CODE (Authenticode) — INDISPENSABLE en production medicale.
+  # Sans signature : Windows SmartScreen affiche « Editeur inconnu » et bloque,
+  # les antivirus mettent l'.exe en quarantaine, et l'auto-update electron-updater
+  # peut refuser un binaire non signe. Voir README, section « Signature de code ».
+  # Decommentez l'UNE des options ci-dessous selon votre certificat :
+  #
+  # Option A — Certificat OV/EV sur fichier .pfx (le mot de passe via la variable
+  #            d'env CSC_KEY_PASSWORD, JAMAIS en clair dans ce fichier versionne) :
+  # certificateFile: "C:/chemin/vers/cms-saris-ov.pfx"
+  # certificatePassword: ""   # NE PAS renseigner ici → utiliser $env:CSC_KEY_PASSWORD
+  #
+  # Option B — Variables d'environnement (recommande en CI ; rien dans le repo) :
+  #   $env:CSC_LINK = "C:/chemin/cms-saris.pfx"   (ou base64 du .pfx)
+  #   $env:CSC_KEY_PASSWORD = "<mot de passe>"
+  #   electron-builder les lit automatiquement (aucune cle YAML necessaire).
+  #
+  # Option C — Certificat EV sur token materiel (HSM/USB) ou Azure Trusted Signing :
+  #   signtool/Azure gere la cle ; renseigner le sujet du certificat :
+  # certificateSubjectName: "SARIS-CONGO"
+  #   (ou utiliser azureSignOptions / un script de signature externe `sign`).
+  #
+  # Empreintes recommandees (Authenticode moderne) :
+  # signingHashAlgorithms:
+  #   - sha256
+  # Horodatage RFC 3161 (OBLIGATOIRE : la signature reste valide apres expiration
+  # du certificat) :
+  # rfc3161TimeStampServer: "http://timestamp.digicert.com"
+  # ──────────────────────────────────────────────────────────────────────────────
+
+nsis:
+  # Installeur 2-en-1 (assisté) : au lancement, s'il est déjà installé, propose
+  # Désinstaller (proprement) ou Réinstaller ; sinon installe. Voir build/installer.nsh.
+  # Par utilisateur (sans UAC/admin), crée les raccourcis + entrée « Apps & fonctionnalités ».
+  oneClick: false
+  perMachine: false
+  allowElevation: false
+  # L'utilisateur choisit le dossier d'installation (étape dédiée de l'assistant).
+  allowToChangeInstallationDirectory: true
+  runAfterFinish: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: CMS SARIS
+  uninstallDisplayName: CMS SARIS ${version}
+  # Désinstallation PROPRE : retire aussi les données de l'app (%APPDATA%) → aucune trace.
+  deleteAppDataOnUninstall: true
+  # Branding « 2 zones » de l'assistant (charte SARIS, généré par scripts/gen-installer-assets.mjs) :
+  # zone GAUCHE = illustration/branding (pages Bienvenue & Fin), en-tête = pages internes.
+  installerSidebar: build/installerSidebar.bmp
+  uninstallerSidebar: build/uninstallerSidebar.bmp
+  installerHeader: build/installerHeader.bmp
+  # Script NSIS custom : 2-en-1 (installer/désinstaller) + affichage détaillé de l'installation.
+  include: build/installer.nsh
+
+# Mise à jour automatique via GitHub Releases : à chaque release publiée sur le dépôt,
+# electron-builder génère `latest.yml` + l'installeur ; téléverser les deux dans la
+# Release GitHub. Les clients détectent la nouvelle version et la proposent (voir
+# electron/updater.ts + la bulle de l'interface). Voir README (« Mise à jour automatique »).
+publish:
+  - provider: github
+    owner: will180901
+    repo: CMS-SARIS-CONGO

@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CG-09 · Animations & Transitions — Charte Graphique CMS SARIS Congo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* ═══════════════════════════════════════════════════════════════
+       TOKENS
+    ═══════════════════════════════════════════════════════════════ */
+    :root, [data-theme="light"] {
+      --fond-page:#F4F6F8; --fond-surface:#FFFFFF; --fond-surface-2:#F0F2F5; --fond-input:#EAECF0;
+      --texte-primaire:#0F172A; --texte-secondaire:#475569; --texte-tertiaire:#94A3B8;
+      --bordure-legere:rgba(15,23,42,0.08); --bordure-normale:rgba(15,23,42,0.14); --bordure-forte:rgba(15,23,42,0.28);
+      --ap-50:#D6E8EF; --ap-100:#A8CCDA; --ap-200:#79AFBF; --ap-300:#5B9BB0;
+      --ap-400:#4E8BA4; --ap-500:#3D7A92; --ap-600:#366680; --ap-700:#2A5269; --ap-800:#214A5E; --ap-900:#0F2F3D;
+      --as-50:#F6EBD2; --as-100:#EBCF87; --as-200:#D9AD4A; --as-300:#D0A030;
+      --as-400:#C99A2E; --as-500:#B88A25; --as-600:#A07A1E; --as-700:#8A6A15; --as-800:#765A12; --as-900:#4D3A08;
+      --succes-fond:#EAF3EC; --succes-texte:#2D6A3F; --succes-accent:#3D7A5E; --succes-bordure:rgba(45,106,63,0.2);
+      --erreur-fond:#F5EAEA; --erreur-texte:#7A2E2E; --erreur-accent:#9B4444; --erreur-bordure:rgba(122,46,46,0.2);
+      --avert-fond:#F5EEDF;  --avert-texte:#6B4D1A;  --avert-accent:#8A6A2A;  --avert-bordure:rgba(107,77,26,0.2);
+      --info-fond:#E6EFF5;   --info-texte:#2A4F6B;   --info-accent:#3A6080;   --info-bordure:rgba(42,79,107,0.2);
+      --couleur-accent:var(--ap-400); --couleur-accent-fond:var(--ap-50); --couleur-accent-hover:var(--ap-500); --couleur-accent-texte:#FFFFFF;
+      --radius-xs:4px; --radius-sm:6px; --radius-md:8px; --radius-lg:10px;
+      --ombre-1:0 1px 2px rgba(15,23,42,0.06),0 0 0 1px rgba(15,23,42,0.04);
+      --ombre-2:0 2px 6px rgba(15,23,42,0.08),0 1px 2px rgba(15,23,42,0.06);
+      --ombre-3:0 4px 14px rgba(15,23,42,0.10),0 2px 4px rgba(15,23,42,0.06);
+      --ombre-4:0 8px 28px rgba(15,23,42,0.13),0 3px 8px rgba(15,23,42,0.07);
+      /* ─ Courbes canoniques ─ */
+      --ease-standard:cubic-bezier(0.4,0,0.2,1);
+      --ease-decelerate:cubic-bezier(0,0,0.2,1);
+      --ease-accelerate:cubic-bezier(0.4,0,1,1);
+      --ease-spring:cubic-bezier(0.34,1.56,0.64,1);
+      --ease-spring-soft:cubic-bezier(0.34,1.20,0.64,1);
+      /* ─ Durées ─ */
+      --dur-instant:80ms;
+      --dur-rapide:150ms;
+      --dur-normal:200ms;
+      --dur-lent:280ms;
+      --dur-tres-lent:400ms;
+      /* ─ Grain ─ */
+      --grain-url:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='130' height='130'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='130' height='130' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+    }
+    [data-theme="dark"] {
+      --fond-page:#0D1117; --fond-surface:#161B22; --fond-surface-2:#1C2333; --fond-input:#21262D;
+      --texte-primaire:#E6EDF3; --texte-secondaire:#8B949E; --texte-tertiaire:#484F58;
+      --bordure-legere:rgba(230,237,243,0.08); --bordure-normale:rgba(230,237,243,0.14); --bordure-forte:rgba(230,237,243,0.28);
+      --ap-50:#0F2F3D; --ap-100:#214A5E; --ap-200:#2A5269; --ap-300:#366680;
+      --ap-400:#4E8BA4; --ap-500:#5B9BB0; --ap-600:#79AFBF; --ap-700:#A8CCDA; --ap-800:#C8E0E9; --ap-900:#D6E8EF;
+      --as-50:#4D3A08; --as-100:#765A12; --as-200:#8A6A15; --as-300:#A07A1E;
+      --as-400:#C99A2E; --as-500:#D0A030; --as-600:#D9AD4A; --as-700:#EBCF87; --as-800:#F2DFA8; --as-900:#F6EBD2;
+      --succes-fond:#1A2E20; --succes-texte:#7EE2A0; --succes-accent:#56C47A; --succes-bordure:rgba(126,226,160,0.15);
+      --erreur-fond:#2E1A1A; --erreur-texte:#E2857E; --erreur-accent:#CC6060; --erreur-bordure:rgba(226,133,126,0.15);
+      --avert-fond:#2E2410;  --avert-texte:#E2C07E;  --avert-accent:#C9A23A;  --avert-bordure:rgba(226,192,126,0.15);
+      --info-fond:#0F2030;   --info-texte:#7EB5D6;   --info-accent:#5E9FC0;   --info-bordure:rgba(126,181,214,0.15);
+      --couleur-accent:var(--ap-400); --couleur-accent-fond:var(--ap-50); --couleur-accent-hover:var(--ap-500); --couleur-accent-texte:#FFFFFF;
+      --ombre-1:none; --ombre-2:none; --ombre-3:none; --ombre-4:none;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       BASE
+    ═══════════════════════════════════════════════════════════════ */
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html{scroll-behavior:smooth;}
+    body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;font-size:14px;line-height:1.6;background:var(--fond-page);color:var(--texte-primaire);transition:background .22s ease,color .22s ease;-webkit-font-smoothing:antialiased;}
+
+    /* ═══════════════════════════════════════════════════════════════
+       HEADER STICKY
+    ═══════════════════════════════════════════════════════════════ */
+    .page-header{position:sticky;top:0;z-index:100;border-bottom:1px solid var(--bordure-legere);padding:0 40px;}
+    [data-theme="light"] .page-header{background:rgba(255,255,255,0.88);backdrop-filter:blur(14px);}
+    [data-theme="dark"]  .page-header{background:rgba(22,27,34,0.88);backdrop-filter:blur(14px);}
+    .page-header-inner{max-width:1100px;margin:0 auto;height:54px;display:flex;align-items:center;justify-content:space-between;}
+    .header-left{display:flex;align-items:center;gap:10px;}
+    .module-badge{font-size:10px;font-weight:600;padding:3px 9px;border-radius:var(--radius-xs);background:var(--couleur-accent-fond);color:var(--ap-800);letter-spacing:.06em;text-transform:uppercase;}
+    [data-theme="dark"] .module-badge{background:var(--ap-100);color:var(--ap-700);}
+    .header-title-text{font-size:13px;font-weight:500;color:var(--texte-primaire);}
+    .header-sep{width:1px;height:16px;background:var(--bordure-normale);}
+    .header-sub{font-size:12px;color:var(--texte-tertiaire);}
+    .toggle-btn{display:flex;align-items:center;gap:6px;background:var(--fond-surface-2);border:1px solid var(--bordure-normale);border-radius:var(--radius-sm);padding:5px 12px;cursor:pointer;font-family:'Inter',sans-serif;font-size:12px;color:var(--texte-secondaire);transition:background .15s,color .15s;}
+    .toggle-btn:hover{background:var(--fond-input);color:var(--texte-primaire);}
+
+    /* ═══════════════════════════════════════════════════════════════
+       NAV MODULES
+    ═══════════════════════════════════════════════════════════════ */
+    .modules-nav{background:var(--fond-surface);border-bottom:1px solid var(--bordure-legere);padding:0 40px;overflow-x:auto;scrollbar-width:none;}
+    .modules-nav::-webkit-scrollbar{display:none;}
+    .modules-nav-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:2px;height:40px;}
+    .nav-link{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:var(--radius-xs);font-size:11px;font-weight:500;color:var(--texte-tertiaire);text-decoration:none;white-space:nowrap;transition:background .13s,color .13s;border:1px solid transparent;}
+    .nav-link:hover{background:var(--fond-surface-2);color:var(--texte-secondaire);}
+    .nav-link.active{background:var(--couleur-accent-fond);color:var(--ap-700);border-color:var(--ap-200);}
+    [data-theme="dark"] .nav-link.active{background:var(--ap-100);color:var(--ap-600);border-color:var(--ap-300);}
+    .nav-num{font-size:9px;font-weight:700;opacity:.6;letter-spacing:.04em;}
+    .nav-sep{width:1px;height:14px;background:var(--bordure-legere);margin:0 4px;flex-shrink:0;}
+
+    /* ═══════════════════════════════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════════════════════════════ */
+    .main{max-width:1100px;margin:0 auto;padding:48px 40px 96px;}
+
+    /* ═══════════════════════════════════════════════════════════════
+       HERO MODULE
+    ═══════════════════════════════════════════════════════════════ */
+    .module-hero{background:var(--fond-surface);border:1px solid var(--bordure-legere);border-radius:var(--radius-lg);padding:32px 36px;margin-bottom:52px;display:grid;grid-template-columns:1fr 1px 1fr 1px 1fr;}
+    .hero-col{padding:0 28px;}
+    .hero-col:first-child{padding-left:0;}
+    .hero-col:last-child{padding-right:0;}
+    .hero-divider{background:var(--bordure-legere);}
+    .hero-label{font-size:10px;font-weight:600;color:var(--ap-400);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;}
+    .hero-title{font-size:14px;font-weight:500;color:var(--texte-primaire);margin-bottom:6px;}
+    .hero-body{font-size:12px;color:var(--texte-secondaire);line-height:1.65;}
+
+    /* ═══════════════════════════════════════════════════════════════
+       SECTIONS
+    ═══════════════════════════════════════════════════════════════ */
+    .section{margin-bottom:64px;}
+    .section-header{margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid var(--bordure-legere);}
+    .section-num{font-size:10px;font-weight:600;color:var(--ap-400);text-transform:uppercase;letter-spacing:.12em;margin-bottom:5px;}
+    .section-title{font-size:17px;font-weight:500;color:var(--texte-primaire);margin-bottom:6px;}
+    .section-desc{font-size:13px;color:var(--texte-secondaire);line-height:1.65;max-width:700px;}
+    .subsection{margin-bottom:32px;}
+    .subsection-title{font-size:11px;font-weight:600;color:var(--texte-tertiaire);text-transform:uppercase;letter-spacing:.10em;margin-bottom:16px;padding-bottom:8px;border-bottom:1px dashed var(--bordure-legere);}
+    .demo-box{background:var(--fond-surface);border:1px solid var(--bordure-legere);border-radius:var(--radius-md);padding:24px 28px;}
+    .demo-label{font-size:11px;font-weight:600;color:var(--texte-tertiaire);text-transform:uppercase;letter-spacing:.06em;margin-bottom:16px;}
+
+    /* ═══════════════════════════════════════════════════════════════
+       TABLES
+    ═══════════════════════════════════════════════════════════════ */
+    .spec-table{width:100%;border-collapse:collapse;font-size:13px;}
+    .spec-table th{padding:9px 14px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--texte-tertiaire);background:var(--fond-surface-2);border-bottom:1px solid var(--bordure-normale);}
+    .spec-table td{padding:10px 14px;border-bottom:1px solid var(--bordure-legere);color:var(--texte-secondaire);font-size:12.5px;}
+    .spec-table td:first-child{font-weight:500;color:var(--texte-primaire);}
+    .spec-table tr:last-child td{border-bottom:none;}
+    .spec-table code{font-family:'Courier New',monospace;font-size:11px;background:var(--fond-surface-2);padding:1px 5px;border-radius:3px;color:var(--ap-500);}
+
+    /* ═══════════════════════════════════════════════════════════════
+       GRILLES HELPERS
+    ═══════════════════════════════════════════════════════════════ */
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+    .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+    .inline-flex{display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap;}
+
+    /* ═══════════════════════════════════════════════════════════════
+       TOKENS DISPLAY
+    ═══════════════════════════════════════════════════════════════ */
+    .token-card{background:var(--fond-surface-2);border:1px solid var(--bordure-legere);border-radius:var(--radius-md);padding:16px 18px;}
+    .token-name{font-family:'Courier New',monospace;font-size:11.5px;color:var(--ap-500);font-weight:600;margin-bottom:4px;}
+    .token-value{font-size:13px;font-weight:500;color:var(--texte-primaire);margin-bottom:4px;}
+    .token-note{font-size:11.5px;color:var(--texte-tertiaire);line-height:1.5;}
+
+    /* ═══════════════════════════════════════════════════════════════
+       §01 — COURBES D'ACCÉLÉRATION
+    ═══════════════════════════════════════════════════════════════ */
+    .ball-track{height:52px;background:var(--fond-page);border-radius:var(--radius-sm);position:relative;overflow:hidden;border:1px solid var(--bordure-legere);margin-top:8px;}
+    .ball{width:18px;height:18px;border-radius:50%;background:var(--ap-400);position:absolute;left:6px;top:50%;transform:translateY(-50%);transition:left var(--dur-normal);}
+    .ball-track:hover .ball{left:calc(100% - 24px);}
+    .ball-spring{background:var(--as-400);transition-timing-function:var(--ease-spring);}
+    .ball-decel{transition-timing-function:var(--ease-decelerate);}
+    .ball-accel{transition-timing-function:var(--ease-accelerate);}
+    .ball-std{transition-timing-function:var(--ease-standard);}
+    .ball-soft{background:#7B6EA0;transition-timing-function:var(--ease-spring-soft);}
+    .ball-row{margin-bottom:12px;}
+    .ball-row:last-child{margin-bottom:0;}
+    .ball-meta{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px;}
+    .ball-name{font-size:12px;font-weight:600;color:var(--texte-primaire);}
+    .ball-bezier{font-family:'Courier New',monospace;font-size:10px;color:var(--texte-tertiaire);}
+
+    /* Courbes SVG */
+    .curve-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:20px;}
+    .curve-card{background:var(--fond-surface-2);border:1px solid var(--bordure-legere);border-radius:var(--radius-md);padding:14px;text-align:center;cursor:pointer;transition:border-color var(--dur-rapide) var(--ease-standard);}
+    .curve-card:hover{border-color:var(--ap-400);}
+    .curve-card svg{display:block;margin:0 auto 10px;}
+    .curve-name{font-size:12px;font-weight:600;color:var(--texte-primaire);margin-bottom:3px;}
+    .curve-token{font-family:'Courier New',monospace;font-size:10px;color:var(--ap-400);margin-bottom:4px;}
+    .curve-use{font-size:11px;color:var(--texte-tertiaire);line-height:1.4;}
+
+    /* ═══════════════════════════════════════════════════════════════
+       §02 — DURÉES
+    ═══════════════════════════════════════════════════════════════ */
+    .dur-row{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+    .dur-row:last-child{margin-bottom:0;}
+    .dur-label{font-family:'Courier New',monospace;font-size:11px;color:var(--ap-500);width:130px;flex-shrink:0;}
+    .dur-track{flex:1;height:6px;background:var(--fond-input);border-radius:3px;}
+    .dur-fill{height:6px;border-radius:3px;background:var(--ap-400);}
+    .dur-val{font-size:11px;font-weight:600;color:var(--texte-secondaire);width:40px;text-align:right;flex-shrink:0;}
+    .dur-ctx{font-size:11px;color:var(--texte-tertiaire);margin-left:6px;flex:1;}
+
+    /* ═══════════════════════════════════════════════════════════════
+       §03 — MICRO-INTERACTIONS
+    ═══════════════════════════════════════════════════════════════ */
+    /* Boutons animés */
+    .btn-anim{display:inline-flex;align-items:center;gap:7px;padding:8px 18px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;border:none;position:relative;overflow:hidden;font-family:'Inter',sans-serif;transition:all var(--dur-rapide) var(--ease-standard);}
+    .btn-anim::after{content:'';position:absolute;inset:0;background-image:var(--grain-url);background-size:130px 130px;opacity:.30;mix-blend-mode:overlay;pointer-events:none;}
+    .btn-primary-a{background:var(--ap-400);color:#fff;}
+    .btn-primary-a:hover{background:var(--ap-500);transform:translateY(-1px);box-shadow:var(--ombre-3);}
+    .btn-primary-a:active{transform:translateY(0) scale(.98);box-shadow:var(--ombre-1);transition-duration:var(--dur-instant);}
+    .btn-secondary-a{background:var(--fond-surface);color:var(--texte-primaire);border:1px solid var(--bordure-normale);}
+    .btn-secondary-a:hover{background:var(--fond-surface-2);border-color:var(--bordure-forte);transform:translateY(-1px);box-shadow:var(--ombre-2);}
+    .btn-secondary-a:active{transform:translateY(0) scale(.98);transition-duration:var(--dur-instant);}
+    .btn-danger-a{background:var(--erreur-accent);color:#fff;}
+    .btn-danger-a:hover{opacity:.88;transform:translateY(-1px);box-shadow:var(--ombre-3);}
+    .btn-danger-a:active{transform:translateY(0) scale(.98);transition-duration:var(--dur-instant);}
+
+    /* Ripple */
+    .ripple-btn{position:relative;overflow:hidden;display:inline-flex;align-items:center;gap:7px;padding:8px 18px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;background:var(--ap-400);color:#fff;border:none;font-family:'Inter',sans-serif;transition:all var(--dur-rapide) var(--ease-standard);}
+    .ripple-btn::after{content:'';position:absolute;inset:0;background-image:var(--grain-url);background-size:130px 130px;opacity:.30;mix-blend-mode:overlay;pointer-events:none;}
+    .ripple-circle{position:absolute;border-radius:50%;background:rgba(255,255,255,.35);transform:scale(0);animation:rippleAnim .5s var(--ease-standard) forwards;pointer-events:none;}
+    @keyframes rippleAnim{to{transform:scale(4);opacity:0;}}
+
+    /* Input focus ring */
+    .input-anim{padding:8px 11px;border-radius:var(--radius-sm);border:1px solid var(--bordure-normale);background:var(--fond-input);color:var(--texte-primaire);font-size:13px;font-family:'Inter',sans-serif;outline:none;width:100%;transition:border-color var(--dur-instant) var(--ease-standard),box-shadow var(--dur-instant) var(--ease-standard);}
+    .input-anim:hover{border-color:var(--bordure-forte);}
+    .input-anim:focus{border-color:var(--ap-400);box-shadow:0 0 0 3px rgba(78,139,164,.18);}
+
+    /* Toggle */
+    .toggle-wrap{display:flex;align-items:center;gap:10px;cursor:pointer;}
+    .toggle-track{width:40px;height:22px;border-radius:11px;background:var(--bordure-forte);position:relative;transition:background var(--dur-rapide) var(--ease-standard);}
+    .toggle-track.on{background:var(--ap-400);}
+    .toggle-thumb{width:16px;height:16px;border-radius:50%;background:#fff;position:absolute;top:3px;left:3px;transition:left var(--dur-rapide) var(--ease-spring),box-shadow var(--dur-rapide) var(--ease-standard);box-shadow:0 1px 3px rgba(0,0,0,.2);}
+    .toggle-track.on .toggle-thumb{left:21px;}
+    .toggle-label{font-size:13px;color:var(--texte-secondaire);}
+
+    /* Checkbox */
+    .checkbox-wrap{display:flex;align-items:center;gap:9px;cursor:pointer;}
+    .checkbox-box{width:17px;height:17px;border-radius:var(--radius-xs);border:1.5px solid var(--bordure-forte);background:var(--fond-input);position:relative;transition:background var(--dur-instant) var(--ease-standard),border-color var(--dur-instant) var(--ease-standard);flex-shrink:0;}
+    .checkbox-box.checked{background:var(--ap-400);border-color:var(--ap-400);}
+    .checkbox-check{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;transform:scale(.5);transition:opacity var(--dur-instant) var(--ease-spring),transform var(--dur-rapide) var(--ease-spring);}
+    .checkbox-box.checked .checkbox-check{opacity:1;transform:scale(1);}
+    .checkbox-label{font-size:13px;color:var(--texte-secondaire);}
+
+    /* Card hover lift */
+    .card-hover{background:var(--fond-surface);border:1px solid var(--bordure-normale);border-radius:var(--radius-md);padding:16px;cursor:pointer;transition:transform var(--dur-normal) var(--ease-standard),box-shadow var(--dur-normal) var(--ease-standard),border-color var(--dur-normal) var(--ease-standard);box-shadow:var(--ombre-1);}
+    .card-hover:hover{transform:translateY(-3px);box-shadow:var(--ombre-4);border-color:var(--ap-400);}
+    .card-hover:active{transform:translateY(-1px);box-shadow:var(--ombre-2);transition-duration:var(--dur-instant);}
+
+    /* Nav indicator */
+    .nav-item-demo{display:flex;align-items:center;gap:9px;padding:8px 12px;border-radius:var(--radius-sm);cursor:pointer;color:var(--texte-secondaire);font-size:13px;font-weight:500;position:relative;transition:background var(--dur-rapide) var(--ease-standard),color var(--dur-rapide) var(--ease-standard);}
+    .nav-item-demo:hover{background:var(--fond-surface-2);color:var(--texte-primaire);}
+    .nav-item-demo.nav-active{background:var(--couleur-accent-fond);color:var(--ap-400);}
+    .nav-indicator{position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:0;border-radius:0 2px 2px 0;background:var(--ap-400);transition:height var(--dur-normal) var(--ease-spring);}
+    .nav-item-demo.nav-active .nav-indicator{height:22px;}
+
+    /* Badge pop */
+    @keyframes badgePop{0%{transform:scale(0.4);}60%{transform:scale(1.25);}100%{transform:scale(1);}}
+    .badge-anim{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--erreur-accent);color:#fff;font-size:10px;font-weight:700;animation:badgePop var(--dur-normal) var(--ease-spring) both;}
+
+    /* ═══════════════════════════════════════════════════════════════
+       §04 — TRANSITIONS DE COMPOSANTS
+    ═══════════════════════════════════════════════════════════════ */
+    /* Tooltip */
+    .tip-wrap{position:relative;display:inline-flex;}
+    .tip-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--radius-sm);background:var(--fond-surface-2);border:1px solid var(--bordure-normale);font-size:13px;cursor:pointer;color:var(--texte-secondaire);font-family:'Inter',sans-serif;transition:all var(--dur-rapide) var(--ease-standard);}
+    .tip-btn:hover{background:var(--fond-surface);color:var(--texte-primaire);}
+    .tip-bubble{position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%) translateY(4px) scale(.96);background:#0F172A;color:#fff;font-size:11.5px;white-space:nowrap;padding:5px 9px;border-radius:var(--radius-sm);pointer-events:none;opacity:0;transition:opacity var(--dur-normal) var(--ease-standard),transform var(--dur-normal) var(--ease-standard);}
+    [data-theme="dark"] .tip-bubble{background:var(--fond-surface-2);border:1px solid var(--bordure-normale);}
+    .tip-wrap:hover .tip-bubble{opacity:1;transform:translateX(-50%) translateY(0) scale(1);}
+    .tip-caret{position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#0F172A;}
+    [data-theme="dark"] .tip-caret{border-top-color:var(--fond-surface-2);}
+
+    /* Dropdown */
+    .menu-wrap{position:relative;display:inline-block;}
+    .menu-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--radius-sm);background:var(--fond-surface);border:1px solid var(--bordure-normale);font-size:13px;cursor:pointer;color:var(--texte-primaire);font-family:'Inter',sans-serif;transition:all var(--dur-rapide) var(--ease-standard);}
+    .menu-btn:hover{background:var(--fond-surface-2);}
+    .dropdown-anim{position:absolute;top:calc(100% + 5px);left:0;background:var(--fond-surface);border:1px solid var(--bordure-normale);border-radius:var(--radius-md);box-shadow:var(--ombre-4);min-width:160px;padding:4px;z-index:100;transform-origin:top left;transform:scale(.96) translateY(-6px);opacity:0;pointer-events:none;transition:opacity var(--dur-normal) var(--ease-decelerate),transform var(--dur-normal) var(--ease-spring-soft);}
+    .dropdown-anim.open{opacity:1;transform:scale(1) translateY(0);pointer-events:all;}
+    .drop-item{padding:7px 10px;border-radius:var(--radius-sm);font-size:13px;color:var(--texte-secondaire);cursor:pointer;display:flex;align-items:center;gap:8px;transition:background var(--dur-instant) var(--ease-standard),color var(--dur-instant) var(--ease-standard);}
+    .drop-item:hover{background:var(--fond-surface-2);color:var(--texte-primaire);}
+    .drop-sep{height:1px;background:var(--bordure-legere);margin:4px 0;}
+
+    /* Accordéon */
+    .acc-item{border:1px solid var(--bordure-normale);border-radius:var(--radius-md);margin-bottom:8px;overflow:hidden;}
+    .acc-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;cursor:pointer;font-size:13px;font-weight:500;background:var(--fond-surface);transition:background var(--dur-instant) var(--ease-standard);}
+    .acc-head:hover{background:var(--fond-surface-2);}
+    .acc-chevron{transition:transform var(--dur-normal) var(--ease-standard);color:var(--texte-tertiaire);}
+    .acc-item.open .acc-chevron{transform:rotate(180deg);}
+    .acc-body{max-height:0;overflow:hidden;transition:max-height var(--dur-tres-lent) var(--ease-decelerate);}
+    .acc-item.open .acc-body{max-height:200px;}
+    .acc-inner{padding:0 14px 14px;font-size:13px;color:var(--texte-secondaire);line-height:1.6;}
+
+    /* Tabs ink */
+    .tabs-anim{display:flex;border-bottom:1px solid var(--bordure-normale);position:relative;margin-bottom:16px;}
+    .tab-btn{padding:9px 16px;font-size:13px;font-weight:500;cursor:pointer;color:var(--texte-tertiaire);border:none;background:none;font-family:'Inter',sans-serif;position:relative;transition:color var(--dur-rapide) var(--ease-standard);}
+    .tab-btn.active{color:var(--ap-400);}
+    .tab-ink{position:absolute;bottom:-1px;height:2px;background:var(--ap-400);border-radius:1px 1px 0 0;transition:left var(--dur-normal) var(--ease-spring-soft),width var(--dur-normal) var(--ease-spring-soft);}
+    .tab-panel{font-size:13px;color:var(--texte-secondaire);line-height:1.6;min-height:40px;}
+
+    /* Skeleton shimmer */
+    @keyframes shimmerAnim{0%{background-position:-400px 0;}100%{background-position:400px 0;}}
+    .sk{height:12px;border-radius:4px;background:linear-gradient(90deg,var(--fond-surface-2) 25%,var(--fond-input) 50%,var(--fond-surface-2) 75%);background-size:800px 100%;animation:shimmerAnim 1.4s ease-in-out infinite;margin-bottom:8px;}
+
+    /* ═══════════════════════════════════════════════════════════════
+       §05 — RÈGLES ABSOLUES (DO / DON'T)
+    ═══════════════════════════════════════════════════════════════ */
+    .rules-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
+    .rules-card{border-radius:var(--radius-md);padding:16px 18px;}
+    .rules-card.ok{background:var(--succes-fond);border:1px solid var(--succes-bordure);}
+    .rules-card.no{background:var(--erreur-fond);border:1px solid var(--erreur-bordure);}
+    .rules-tag{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;}
+    .rules-card.ok .rules-tag{color:var(--succes-texte);}
+    .rules-card.no .rules-tag{color:var(--erreur-texte);}
+    .rules-body{font-size:12.5px;line-height:1.55;}
+    .rules-card.ok .rules-body{color:var(--succes-texte);}
+    .rules-card.no .rules-body{color:var(--erreur-texte);}
+    .rule-abs{background:var(--fond-surface);border:1px solid var(--bordure-legere);border-radius:var(--radius-md);padding:16px 18px;margin-bottom:10px;}
+    .rule-head{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+    .rule-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+    .rule-dot-ok{background:var(--succes-accent);}
+    .rule-dot-no{background:var(--erreur-accent);}
+    .rule-dot-warn{background:var(--avert-accent);}
+    .rule-title{font-size:13px;font-weight:600;color:var(--texte-primaire);}
+    .rule-body{font-size:12.5px;color:var(--texte-secondaire);line-height:1.55;padding-left:16px;}
+    .rule-code{font-family:'Courier New',monospace;font-size:11px;background:var(--fond-surface-2);border:1px solid var(--bordure-legere);border-radius:var(--radius-xs);padding:8px 12px;margin-top:8px;color:var(--ap-500);line-height:1.6;display:block;}
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     HEADER STICKY
+═══════════════════════════════════════════════════════════════ -->
+<header class="page-header">
+  <div class="page-header-inner">
+    <div class="header-left">
+      <span class="module-badge">Module 09 / 12</span>
+      <span class="header-sep"></span>
+      <span class="header-title-text">Animations &amp; Transitions</span>
+      <span class="header-sep"></span>
+      <span class="header-sub">Cinq courbes · Six durées · Micro-interactions · Règles absolues</span>
+    </div>
+    <button class="toggle-btn" onclick="toggleTheme()">
+      <svg id="theme-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      <span id="theme-label">Mode sombre</span>
+    </button>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     NAVIGATION MODULES
+═══════════════════════════════════════════════════════════════ -->
+<nav class="modules-nav">
+  <div class="modules-nav-inner">
+    <a href="CG-01_Couleurs_et_Tokens.html" class="nav-link"><span class="nav-num">01</span>Couleurs &amp; Tokens</a>
+    <div class="nav-sep"></div>
+    <a href="CG-02_Typographie.html" class="nav-link"><span class="nav-num">02</span>Typographie</a>
+    <div class="nav-sep"></div>
+    <a href="CG-03_Espacements_et_Grilles.html" class="nav-link"><span class="nav-num">03</span>Espacements &amp; Grilles</a>
+    <div class="nav-sep"></div>
+    <a href="CG-04_Effets_de_Surface.html" class="nav-link"><span class="nav-num">04</span>Effets de Surface</a>
+    <div class="nav-sep"></div>
+    <a href="CG-05_Composants_Fondamentaux.html" class="nav-link"><span class="nav-num">05</span>Composants Fondamentaux</a>
+    <div class="nav-sep"></div>
+    <a href="CG-06_Navigation_et_Structure.html" class="nav-link"><span class="nav-num">06</span>Navigation &amp; Structure</a>
+    <div class="nav-sep"></div>
+    <a href="CG-07_Donnees_et_Contenu.html" class="nav-link"><span class="nav-num">07</span>Données &amp; Contenu</a>
+    <div class="nav-sep"></div>
+    <a href="CG-08_Feedback_et_Communication.html" class="nav-link"><span class="nav-num">08</span>Feedback &amp; Communication</a>
+    <div class="nav-sep"></div>
+    <a href="CG-09_Animations_et_Transitions.html" class="nav-link active"><span class="nav-num">09</span>Animations &amp; Transitions</a>
+    <div class="nav-sep"></div>
+    <a href="CG-10_Iconographie_et_Assets.html" class="nav-link"><span class="nav-num">10</span>Iconographie &amp; Assets</a>
+    <div class="nav-sep"></div>
+    <a href="CG-11_Etats_et_Accessibilite.html" class="nav-link"><span class="nav-num">11</span>États &amp; Accessibilité</a>
+    <div class="nav-sep"></div>
+    <a href="CG-12_Recapitulatif_et_Regles.html" class="nav-link"><span class="nav-num">12</span>Récapitulatif &amp; Règles</a>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     CONTENU PRINCIPAL
+═══════════════════════════════════════════════════════════════ -->
+<main class="main">
+
+  <!-- HERO -->
+  <div class="module-hero">
+    <div class="hero-col">
+      <div class="hero-label">Pourquoi</div>
+      <div class="hero-title">Mouvement qui rassure</div>
+      <div class="hero-body">Dans un CMS médical, chaque geste de l'utilisateur doit recevoir une confirmation immédiate. Une animation bien calibrée réduit l'anxiété de l'utilisateur face à une action critique — suppression d'un dossier, envoi d'une ordonnance, synchronisation entre Moutela et Nkayi.</div>
+    </div>
+    <div class="hero-divider"></div>
+    <div class="hero-col">
+      <div class="hero-label">Quoi</div>
+      <div class="hero-title">5 courbes · 6 durées · Micro-interactions</div>
+      <div class="hero-body">Cinq fonctions de timing couvrent tous les cas (standard, decelerate, accelerate, spring, spring-soft). Six paliers de durée de 80 ms à 400 ms. Un catalogue complet des micro-interactions et des transitions par composant.</div>
+    </div>
+    <div class="hero-divider"></div>
+    <div class="hero-col">
+      <div class="hero-label">Comment</div>
+      <div class="hero-title">Tokens uniquement, jamais de valeurs brutes</div>
+      <div class="hero-body">Toutes les animations utilisent les tokens <code style="font-size:11px;font-family:'Courier New',monospace;color:var(--ap-500)">--ease-*</code> et <code style="font-size:11px;font-family:'Courier New',monospace;color:var(--ap-500)">--dur-*</code>. Jamais de <code style="font-size:11px;font-family:'Courier New',monospace;color:var(--erreur-accent)">0.3s ease</code> hardcodé. La règle absolue : aucune animation ne dure plus de 400 ms et toutes respectent <code style="font-size:11px;font-family:'Courier New',monospace;color:var(--ap-500)">prefers-reduced-motion</code>.</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       §1 — COURBES D'ACCÉLÉRATION
+  ═══════════════════════════════════════════════════════════════ -->
+  <section class="section" id="s01">
+    <div class="section-header">
+      <div class="section-num">Section 01</div>
+      <h2 class="section-title">Courbes d'accélération</h2>
+      <p class="section-desc">Cinq fonctions de timing couvrent tous les cas d'usage SARIS. Survolez chaque piste pour voir la balle se déplacer selon la courbe correspondante.</p>
+    </div>
+
+    <!-- Tokens -->
+    <div class="subsection">
+      <div class="subsection-title">Tokens des cinq courbes</div>
+      <div class="grid-2" style="margin-bottom:16px;">
+        <div class="token-card">
+          <div class="token-name">--ease-standard</div>
+          <div class="token-value">cubic-bezier(0.4, 0, 0.2, 1)</div>
+          <div class="token-note">Transition générale — entrée ET sortie. La plus utilisée.</div>
+        </div>
+        <div class="token-card">
+          <div class="token-name">--ease-decelerate</div>
+          <div class="token-value">cubic-bezier(0, 0, 0.2, 1)</div>
+          <div class="token-note">Éléments entrant dans l'écran — arrivée rapide, arrêt doux.</div>
+        </div>
+        <div class="token-card">
+          <div class="token-name">--ease-accelerate</div>
+          <div class="token-value">cubic-bezier(0.4, 0, 1, 1)</div>
+          <div class="token-note">Éléments quittant l'écran — départ doux, sortie franche.</div>
+        </div>
+        <div class="token-card">
+          <div class="token-name">--ease-spring</div>
+          <div class="token-value">cubic-bezier(0.34, 1.56, 0.64, 1)</div>
+          <div class="token-note">Ressort élastique — modales, toasts, badges, checkboxes.</div>
+        </div>
+        <div class="token-card" style="grid-column:1/-1;">
+          <div class="token-name">--ease-spring-soft</div>
+          <div class="token-value">cubic-bezier(0.34, 1.20, 0.64, 1)</div>
+          <div class="token-note">Ressort doux — drawers, menus, indicateur de tab. Dépassement discret.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Démo interactive -->
+    <div class="subsection">
+      <div class="subsection-title">Démo interactive — survolez chaque piste</div>
+      <div class="demo-box">
+        <div class="demo-label">Balle animée — chaque piste utilise sa courbe propre</div>
+
+        <div class="ball-row">
+          <div class="ball-meta">
+            <span class="ball-name">standard</span>
+            <span class="ball-bezier">cubic-bezier(0.4, 0, 0.2, 1)</span>
+          </div>
+          <div class="ball-track"><div class="ball ball-std"></div></div>
+        </div>
+
+        <div class="ball-row">
+          <div class="ball-meta">
+            <span class="ball-name">decelerate — entrée dans l'écran</span>
+            <span class="ball-bezier">cubic-bezier(0, 0, 0.2, 1)</span>
+          </div>
+          <div class="ball-track"><div class="ball ball-decel"></div></div>
+        </div>
+
+        <div class="ball-row">
+          <div class="ball-meta">
+            <span class="ball-name">accelerate — sortie de l'écran</span>
+            <span class="ball-bezier">cubic-bezier(0.4, 0, 1, 1)</span>
+          </div>
+          <div class="ball-track"><div class="ball ball-accel"></div></div>
+        </div>
+
+        <div class="ball-row">
+          <div class="ball-meta">
+            <span class="ball-name">spring — ressort élastique</span>
+            <span class="ball-bezier">cubic-bezier(0.34, 1.56, 0.64, 1)</span>
+          </div>
+          <div class="ball-track"><div class="ball ball-spring"></div></div>
+        </div>
+
+        <div class="ball-row">
+          <div class="ball-meta">
+            <span class="ball-name">spring-soft — ressort doux</span>
+            <span class="ball-bezier">cubic-bezier(0.34, 1.20, 0.64, 1)</span>
+          </div>
+          <div class="ball-track"><div class="ball ball-soft"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Visualisation courbes SVG -->
+    <div class="subsection">
+      <div class="subsection-title">Visualisation des courbes de Bézier</div>
+      <div class="curve-grid">
+        <div class="curve-card">
+          <svg width="64" height="64" viewBox="0 0 64 64">
+            <line x1="4" y1="60" x2="60" y2="4" stroke="var(--bordure-normale)" stroke-width="1" stroke-dasharray="4,3"/>
+            <path d="M4 60 C29.6 60 51.2 4 60 4" stroke="var(--ap-400)" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <circle cx="4" cy="60" r="3" fill="var(--ap-400)"/>
+            <circle cx="60" cy="4" r="3" fill="var(--ap-400)"/>
+          </svg>
+          <div class="curve-name">standard</div>
+          <div class="curve-token">--ease-standard</div>
+          <div class="curve-use">Boutons, inputs, cards, couleurs, opacité</div>
+        </div>
+        <div class="curve-card">
+          <svg width="64" height="64" viewBox="0 0 64 64">
+            <line x1="4" y1="60" x2="60" y2="4" stroke="var(--bordure-normale)" stroke-width="1" stroke-dasharray="4,3"/>
+            <path d="M4 60 C4 60 51.2 4 60 4" stroke="var(--ap-400)" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <circle cx="4" cy="60" r="3" fill="var(--ap-400)"/>
+            <circle cx="60" cy="4" r="3" fill="var(--ap-400)"/>
+          </svg>
+          <div class="curve-name">decelerate</div>
+          <div class="curve-token">--ease-decelerate</div>
+          <div class="curve-use">Entrée modales, menus, toasts, drawers</div>
+        </div>
+        <div class="curve-card">
+          <svg width="64" height="64" viewBox="0 0 64 64">
+            <line x1="4" y1="60" x2="60" y2="4" stroke="var(--bordure-normale)" stroke-width="1" stroke-dasharray="4,3"/>
+            <path d="M4 60 C29.6 60 60 4 60 4" stroke="var(--ap-400)" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <circle cx="4" cy="60" r="3" fill="var(--ap-400)"/>
+            <circle cx="60" cy="4" r="3" fill="var(--ap-400)"/>
+          </svg>
+          <div class="curve-name">accelerate</div>
+          <div class="curve-token">--ease-accelerate</div>
+          <div class="curve-use">Sortie modales, dismiss, fade-out</div>
+        </div>
+        <div class="curve-card">
+          <svg width="64" height="64" viewBox="0 0 64 64">
+            <line x1="4" y1="60" x2="60" y2="4" stroke="var(--bordure-normale)" stroke-width="1" stroke-dasharray="4,3"/>
+            <path d="M4 60 C25.2 60 41.6 -8 60 4" stroke="var(--as-400)" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <circle cx="4" cy="60" r="3" fill="var(--as-400)"/>
+            <circle cx="60" cy="4" r="3" fill="var(--as-400)"/>
+          </svg>
+          <div class="curve-name">spring</div>
+          <div class="curve-token">--ease-spring</div>
+          <div class="curve-use">Badges pop, checkbox, toggle, modale</div>
+        </div>
+        <div class="curve-card">
+          <svg width="64" height="64" viewBox="0 0 64 64">
+            <line x1="4" y1="60" x2="60" y2="4" stroke="var(--bordure-normale)" stroke-width="1" stroke-dasharray="4,3"/>
+            <path d="M4 60 C25.2 60 41.6 0 60 4" stroke="#7B6EA0" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <circle cx="4" cy="60" r="3" fill="#7B6EA0"/>
+            <circle cx="60" cy="4" r="3" fill="#7B6EA0"/>
+          </svg>
+          <div class="curve-name">spring-soft</div>
+          <div class="curve-token">--ease-spring-soft</div>
+          <div class="curve-use">Drawers, dropdowns, tab indicator</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       §2 — PALIERS DE DURÉE
+  ═══════════════════════════════════════════════════════════════ -->
+  <section class="section" id="s02">
+    <div class="section-header">
+      <div class="section-num">Section 02</div>
+      <h2 class="section-title">Paliers de durée</h2>
+      <p class="section-desc">Six valeurs couvrent tout le spectre. Chaque durée correspond à une famille d'interactions précise — du hover imperceptible à la transition de page.</p>
+    </div>
+
+    <!-- Barres visuelles -->
+    <div class="subsection">
+      <div class="subsection-title">Échelle des durées</div>
+      <div class="demo-box">
+        <div class="dur-row">
+          <span class="dur-label">--dur-instant</span>
+          <div class="dur-track"><div class="dur-fill" style="width:4%;"></div></div>
+          <span class="dur-val">80 ms</span>
+          <span class="dur-ctx">Hover color, focus ring, active press</span>
+        </div>
+        <div class="dur-row">
+          <span class="dur-label">--dur-rapide</span>
+          <div class="dur-track"><div class="dur-fill" style="width:12%;"></div></div>
+          <span class="dur-val">150 ms</span>
+          <span class="dur-ctx">Boutons, toggles, badges, checkboxes</span>
+        </div>
+        <div class="dur-row">
+          <span class="dur-label">--dur-normal</span>
+          <div class="dur-track"><div class="dur-fill" style="width:20%;"></div></div>
+          <span class="dur-val">200 ms</span>
+          <span class="dur-ctx">Menus, tooltips, dropdowns, tabs</span>
+        </div>
+        <div class="dur-row">
+          <span class="dur-label">--dur-lent</span>
+          <div class="dur-track"><div class="dur-fill" style="width:35%;"></div></div>
+          <span class="dur-val">280 ms</span>
+          <span class="dur-ctx">Modales, drawers, panels latéraux</span>
+        </div>
+        <div class="dur-row">
+          <span class="dur-label">--dur-tres-lent</span>
+          <div class="dur-track"><div class="dur-fill" style="width:60%;"></div></div>
+          <span class="dur-val">400 ms</span>
+          <span class="dur-ctx">Accordéons, transitions de page, onboarding</span>
+        </div>
+        <div class="dur-row">
+          <span class="dur-label" style="color:var(--texte-tertiaire);">pas d'animation</span>
+          <div class="dur-track"><div class="dur-fill" style="width:0%;background:var(--texte-tertiaire);"></div></div>
+          <span class="dur-val" style="color:var(--texte-tertiaire);">0 ms</span>
+          <span class="dur-ctx">Chargements &lt; 200 ms, changements de valeur pure</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table de référence -->
+    <div class="subsection">
+      <div class="subsection-title">Table de référence durées × courbes</div>
+      <table class="spec-table">
+        <thead>
+          <tr><th>Token</th><th>Valeur</th><th>Courbe associée</th><th>Composants types</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>--dur-instant</code></td><td>80 ms</td><td><code>--ease-standard</code></td><td>Hover bg, focus-ring, active press, icône color</td></tr>
+          <tr><td><code>--dur-rapide</code></td><td>150 ms</td><td><code>--ease-standard</code> / <code>spring</code></td><td>Bouton, toggle, badge pop, checkbox tick</td></tr>
+          <tr><td><code>--dur-normal</code></td><td>200 ms</td><td><code>--ease-decelerate</code> / <code>spring-soft</code></td><td>Tooltip, dropdown, tab ink, nav indicator</td></tr>
+          <tr><td><code>--dur-lent</code></td><td>280 ms</td><td>Entrée <code>decel</code> · Sortie <code>accel</code></td><td>Modale, drawer, sidebar collapse</td></tr>
+          <tr><td><code>--dur-tres-lent</code></td><td>400 ms</td><td><code>--ease-decelerate</code></td><td>Accordéon, skeleton→content, page enter</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       §3 — MICRO-INTERACTIONS
+  ═══════════════════════════════════════════════════════════════ -->
+  <section class="section" id="s03">
+    <div class="section-header">
+      <div class="section-num">Section 03</div>
+      <h2 class="section-title">Micro-interactions</h2>
+      <p class="section-desc">Interactions immédiates qui confirment chaque geste utilisateur. Tous les exemples sont interactifs — survolez, cliquez, activez.</p>
+    </div>
+
+    <!-- Boutons -->
+    <div class="subsection">
+      <div class="subsection-title">Boutons — hover lift + active press + ripple</div>
+      <div class="demo-box">
+        <div class="inline-flex" style="margin-bottom:12px;">
+          <button class="btn-anim btn-primary-a">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            Enregistrer
+          </button>
+          <button class="btn-anim btn-secondary-a">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            Annuler
+          </button>
+          <button class="btn-anim btn-danger-a">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="m19 6-.867 12.142A2 2 0 0 1 16.138 20H7.862a2 2 0 0 1-1.995-1.858L5 6"/></svg>
+            Supprimer
+          </button>
+          <button class="ripple-btn" onclick="addRipple(event,this)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+            Ripple (cliquer)
+          </button>
+        </div>
+        <div style="font-size:12px;color:var(--texte-tertiaire);">
+          Hover : <code style="font-family:monospace;font-size:11px;background:var(--fond-surface-2);padding:1px 5px;border-radius:3px;color:var(--ap-500);">translateY(-1px)</code> + ombre renforcée ·
+          Active : <code style="font-family:monospace;font-size:11px;background:var(--fond-surface-2);padding:1px 5px;border-radius:3px;color:var(--ap-500);">translateY(0) scale(.98)</code> en 80 ms ·
+          Ripple : cercle blanc opacity .35
+        </div>
+      </div>
+    </div>
+
+    <!-- Inputs & Contrôles -->
+    <div class="subsection">
+      <div class="subsection-title">Inputs, toggles &amp; checkboxes</div>
+      <div class="grid-2">
+        <div class="demo-box">
+          <div class="demo-label">Input — focus ring animé</div>
+          <input class="input-anim" type="text" placeholder="Cliquer pour voir le focus ring…"/>
+          <input class="input-anim" type="text" placeholder="Deuxième champ…" style="margin-top:8px;"/>
+          <div style="margin-top:10px;font-size:12px;color:var(--texte-tertiaire);">
+            border-color + box-shadow <code style="font-family:monospace;font-size:10.5px;background:var(--fond-surface-2);padding:1px 4px;border-radius:3px;color:var(--ap-500);">0 0 0 3px rgba(78,139,164,.18)</code> en 80 ms
+          </div>
+        </div>
+        <div class="demo-box">
+          <div class="demo-label">Toggles &amp; checkboxes — spring élastique</div>
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            <div class="toggle-wrap" onclick="toggleSwitch(this)">
+              <div class="toggle-track on"><div class="toggle-thumb"></div></div>
+              <span class="toggle-label">Notifications activées</span>
+            </div>
+            <div class="toggle-wrap" onclick="toggleSwitch(this)">
+              <div class="toggle-track"><div class="toggle-thumb"></div></div>
+              <span class="toggle-label">Mode maintenance</span>
+            </div>
+            <div class="checkbox-wrap" onclick="toggleCheck(this)">
+              <div class="checkbox-box checked">
+                <div class="checkbox-check"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+              </div>
+              <span class="checkbox-label">Partager avec site Nkayi</span>
+            </div>
+            <div class="checkbox-wrap" onclick="toggleCheck(this)">
+              <div class="checkbox-box">
+                <div class="checkbox-check"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+              </div>
+              <span class="checkbox-label">Envoyer SMS au patient</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cards & Nav -->
+    <div class="subsection">
+      <div class="subsection-title">Card hover lift · Nav indicator animé</div>
+      <div class="grid-2">
+        <div class="demo-box">
+          <div class="demo-label">Card — hover lift</div>
+          <div class="card-hover">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+              <div style="width:32px;height:32px;border-radius:var(--radius-sm);background:var(--ap-50);display:flex;align-items:center;justify-content:center;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ap-400)" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+              </div>
+              <div>
+                <div style="font-size:13px;font-weight:600;">1 284 patients actifs</div>
+                <div style="font-size:11px;color:var(--texte-tertiaire);">Moutela · mai 2026</div>
+              </div>
+            </div>
+            <div style="font-size:12px;color:var(--texte-secondaire);">Survolez pour voir le <strong>lift</strong> : translateY(-3px) + ombre renforcée en 200 ms.</div>
+          </div>
+        </div>
+        <div class="demo-box">
+          <div class="demo-label">Nav item — indicateur bar animé (spring)</div>
+          <div style="display:flex;flex-direction:column;gap:2px;">
+            <div class="nav-item-demo nav-active" onclick="setActiveNav(this)">
+              <div class="nav-indicator"></div>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+              Tableau de bord
+            </div>
+            <div class="nav-item-demo" onclick="setActiveNav(this)">
+              <div class="nav-indicator"></div>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+              Patients
+            </div>
+            <div class="nav-item-demo" onclick="setActiveNav(this)">
+              <div class="nav-indicator"></div>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              Consultations
+            </div>
+            <div class="nav-item-demo" onclick="setActiveNav(this)">
+              <div class="nav-indicator"></div>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m19 21-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+              Pharmacie
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Badge pop -->
+    <div class="subsection">
+      <div class="subsection-title">Badge — animation pop spring à l'apparition</div>
+      <div class="demo-box">
+        <div class="inline-flex" style="align-items:center;">
+          <button class="btn-anim btn-secondary-a" style="position:relative;" onclick="popBadge(this)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            Notifications
+            <span id="notif-badge" class="badge-anim" style="position:absolute;top:-6px;right:-6px;display:none;">3</span>
+          </button>
+          <span style="font-size:12px;color:var(--texte-tertiaire);">← Cliquer pour déclencher le pop du badge</span>
+        </div>
+        <div style="margin-top:10px;font-size:12px;color:var(--texte-tertiaire);">
+          Animation : <code style="font-family:monospace;font-size:10.5px;background:var(--fond-surface-2);padding:1px 4px;border-radius:3px;color:var(--ap-500);">scale(0.4) → scale(1.25) → scale(1)</code> sur 200 ms avec <code style="font-family:monospace;font-size:10.5px;background:var(--fond-surface-2);padding:1px 4px;border-radius:3px;color:var(--ap-500);">--ease-spring</code>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       §4 — TRANSITIONS DE COMPOSANTS
+  ═══════════════════════════════════════════════════════════════ -->
+  <section class="section" id="s04">
+    <div class="section-header">
+      <div class="section-num">Section 04</div>
+      <h2 class="section-title">Transitions de composants</h2>
+      <p class="section-desc">Détail des transitions d'entrée et de sortie pour chaque famille de composants. Tous les exemples sont interactifs.</p>
+    </div>
+
+    <!-- Tooltip & Dropdown -->
+    <div class="subsection">
+      <div class="subsection-title">Tooltip · Dropdown</div>
+      <div class="grid-2">
+        <div class="demo-box">
+          <div class="demo-label">Tooltip — fade + translateY</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <div class="tip-wrap">
+              <button class="tip-btn">Voir le dossier
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              </button>
+              <div class="tip-bubble">Ouvrir la fiche complète du patient<div class="tip-caret"></div></div>
+            </div>
+            <div class="tip-wrap">
+              <button class="tip-btn">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="m19 6-.867 12.142A2 2 0 0 1 16.138 20H7.862a2 2 0 0 1-1.995-1.858L5 6"/></svg>
+                Supprimer
+              </button>
+              <div class="tip-bubble">Action irréversible — demande confirmation<div class="tip-caret"></div></div>
+            </div>
+          </div>
+          <div style="margin-top:12px;font-size:12px;color:var(--texte-tertiaire);">
+            Entrée : opacity 0→1 + translateY(4px→0) + scale(.96→1) en 200 ms decelerate
+          </div>
+        </div>
+        <div class="demo-box">
+          <div class="demo-label">Dropdown — scale + translateY depuis le coin</div>
+          <div class="menu-wrap">
+            <button class="menu-btn" onclick="toggleMenu('m1')">
+              Actions patient
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div class="dropdown-anim" id="m1">
+              <div class="drop-item"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Modifier</div>
+              <div class="drop-item"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Imprimer</div>
+              <div class="drop-item"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>Partager</div>
+              <div class="drop-sep"></div>
+              <div class="drop-item" style="color:var(--erreur-accent);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="m19 6-.867 12.142A2 2 0 0 1 16.138 20H7.862a2 2 0 0 1-1.995-1.858L5 6"/></svg>Supprimer</div>
+            </div>
+          </div>
+          <div style="margin-top:12px;font-size:12px;color:var(--texte-tertiaire);">
+            Entrée : scale(.96)→1 + translateY(-6px)→0 en 200 ms spring-soft. Origine : top left
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Accordéon & Tabs -->
+    <div class="subsection">
+      <div class="subsection-title">Accordéon · Tabs ink glissant</div>
+      <div class="grid-2">
+        <div class="demo-box">
+          <div class="demo-label">Accordéon — max-height + chevron rotate</div>
+          <div class="acc-item open">
+            <div class="acc-head" onclick="toggleAcc(this.parentElement)">
+              <span>Antécédents médicaux</span>
+              <svg class="acc-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+            <div class="acc-body"><div class="acc-inner">Hypertension artérielle depuis 2019. Traitement : Amlodipine 5 mg/j. Allergie pénicilline documentée. Pas d'antécédents chirurgicaux.</div></div>
+          </div>
+          <div class="acc-item">
+            <div class="acc-head" onclick="toggleAcc(this.parentElement)">
+              <span>Historique consultations</span>
+              <svg class="acc-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+            <div class="acc-body"><div class="acc-inner">14 consultations depuis janvier 2024. Dernière visite : 14 mai 2026. Prochaine visite programmée : 21 mai 2026.</div></div>
+          </div>
+          <div class="acc-item">
+            <div class="acc-head" onclick="toggleAcc(this.parentElement)">
+              <span>Examens biologiques</span>
+              <svg class="acc-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+            <div class="acc-body"><div class="acc-inner">TDR paludisme positif (14/05/2026). Hémoglobine 10.2 g/dL — légère anémie. Glycémie à jeun 1.02 g/L normale.</div></div>
+          </div>
+        </div>
+        <div class="demo-box">
+          <div class="demo-label">Tabs — indicateur glissant spring-soft</div>
+          <div class="tabs-anim" id="tabsDemo">
+            <button class="tab-btn active" onclick="switchTab(this,0)">Dossier patient</button>
+            <button class="tab-btn" onclick="switchTab(this,1)">Ordonnances</button>
+            <button class="tab-btn" onclick="switchTab(this,2)">Examens</button>
+            <div class="tab-ink" id="tabInk"></div>
+          </div>
+          <div class="tab-panel" id="tabContent">
+            Dossier complet de Kabibi Ondongo · Ouvert le 12 janvier 2024 · Site Moutela. Groupe sanguin O+, allergies documentées, antécédents chroniques.
+          </div>
+          <div style="margin-top:12px;font-size:12px;color:var(--texte-tertiaire);">
+            Indicateur : <code style="font-family:monospace;font-size:10.5px;background:var(--fond-surface-2);padding:1px 4px;border-radius:3px;color:var(--ap-500);">left</code> + <code style="font-family:monospace;font-size:10.5px;background:var(--fond-surface-2);padding:1px 4px;border-radius:3px;color:var(--ap-500);">width</code> animés en 200 ms spring-soft. Jamais de reflow.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Skeleton → Contenu -->
+    <div class="subsection">
+      <div class="subsection-title">Skeleton → Contenu réel — fondu croisé</div>
+      <div class="demo-box">
+        <div class="demo-label">Transition skeleton → données chargées (cliquer pour rejouer)</div>
+        <div style="position:relative;">
+          <div id="skelLayer" style="display:flex;gap:12px;align-items:flex-start;">
+            <div style="width:40px;height:40px;border-radius:var(--radius-md);flex-shrink:0;background:linear-gradient(90deg,var(--fond-surface-2) 25%,var(--fond-input) 50%,var(--fond-surface-2) 75%);background-size:800px 100%;animation:shimmerAnim 1.4s ease-in-out infinite;"></div>
+            <div style="flex:1;">
+              <div class="sk" style="width:55%;"></div>
+              <div class="sk" style="width:80%;"></div>
+              <div class="sk" style="width:40%;"></div>
+            </div>
+          </div>
+          <div id="contentLayer" style="display:none;gap:12px;align-items:flex-start;">
+            <div style="width:40px;height:40px;border-radius:var(--radius-md);background:var(--ap-50);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;font-weight:600;color:var(--ap-400);">KO</div>
+            <div>
+              <div style="font-size:14px;font-weight:600;margin-bottom:3px;">Kabibi Ondongo</div>
+              <div style="font-size:12px;color:var(--texte-secondaire);margin-bottom:3px;">N° MOU-2024-0891 · 34 ans · Féminin</div>
+              <div style="font-size:12px;color:var(--texte-tertiaire);">Moungali, Brazzaville · +242 06 458 12 33</div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:14px;display:flex;align-items:center;gap:12px;">
+          <button class="btn-anim btn-secondary-a" style="font-size:12px;padding:6px 12px;" onclick="replaySkeletonDemo()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            Rejouer
+          </button>
+          <span style="font-size:12px;color:var(--texte-tertiaire);">Fondu croisé opacity 0→1 / 1→0 en 200 ms standard</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       §5 — RÈGLES ABSOLUES
+  ═══════════════════════════════════════════════════════════════ -->
+  <section class="section" id="s05">
+    <div class="section-header">
+      <div class="section-num">Section 05</div>
+      <h2 class="section-title">Règles absolues d'animation</h2>
+      <p class="section-desc">Six règles non négociables qui garantissent une interface qui répond sans jamais distraire l'utilisateur soignant.</p>
+    </div>
+
+    <div class="subsection">
+      <div class="subsection-title">Interdictions absolues</div>
+      <div class="rules-grid">
+        <div class="rules-card no">
+          <div class="rules-tag">❌ Interdit</div>
+          <div class="rules-body"><strong>Jamais de valeur de durée brute.</strong> Ne pas écrire <code style="font-family:monospace;font-size:10.5px;">0.3s ease</code> ou <code style="font-family:monospace;font-size:10.5px;">300ms linear</code>. Toujours utiliser les tokens <code style="font-family:monospace;font-size:10.5px;">--dur-*</code> et <code style="font-family:monospace;font-size:10.5px;">--ease-*</code>.</div>
+        </div>
+        <div class="rules-card ok">
+          <div class="rules-tag">✓ Correct</div>
+          <div class="rules-body"><code style="font-family:monospace;font-size:10.5px;">transition: all var(--dur-rapide) var(--ease-standard);</code> — maintenable, modifiable globalement depuis les tokens.</div>
+        </div>
+        <div class="rules-card no">
+          <div class="rules-tag">❌ Interdit</div>
+          <div class="rules-body"><strong>Jamais d'animation &gt; 400 ms.</strong> Au-delà, l'interface paraît lente. Même les transitions de page restent en deçà de 400 ms.</div>
+        </div>
+        <div class="rules-card ok">
+          <div class="rules-tag">✓ Correct</div>
+          <div class="rules-body">La durée maximale est <code style="font-family:monospace;font-size:10.5px;">--dur-tres-lent: 400ms</code> — réservée aux accordéons et transitions de page uniquement.</div>
+        </div>
+        <div class="rules-card no">
+          <div class="rules-tag">❌ Interdit</div>
+          <div class="rules-body"><strong>Jamais d'animation sur tous les éléments à la fois.</strong> <code style="font-family:monospace;font-size:10.5px;">* { transition: all 0.3s }</code> génère des transitions indésirables (scroll, resize, focus).</div>
+        </div>
+        <div class="rules-card ok">
+          <div class="rules-tag">✓ Correct</div>
+          <div class="rules-body">Cibler uniquement les propriétés concernées : <code style="font-family:monospace;font-size:10.5px;">transition: background var(--dur-instant), border-color var(--dur-instant);</code></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="subsection">
+      <div class="subsection-title">Règles de performance &amp; accessibilité</div>
+      <div class="rule-abs">
+        <div class="rule-head">
+          <div class="rule-dot rule-dot-warn"></div>
+          <div class="rule-title">Respecter prefers-reduced-motion</div>
+        </div>
+        <div class="rule-body">
+          Toujours inclure une media query qui désactive les animations pour les utilisateurs qui la demandent. Les effets de fondu (opacity) peuvent rester, pas les translations ni les transformations complexes.
+          <span class="rule-code">@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }</span>
+        </div>
+      </div>
+      <div class="rule-abs">
+        <div class="rule-head">
+          <div class="rule-dot rule-dot-ok"></div>
+          <div class="rule-title">Animer uniquement transform et opacity</div>
+        </div>
+        <div class="rule-body">
+          Ces deux propriétés sont composited par le GPU — aucun reflow, aucun repaint. Éviter d'animer <code style="font-family:monospace;font-size:10.5px;background:var(--fond-surface-2);padding:1px 4px;border-radius:3px;color:var(--ap-500);">width</code>, <code style="font-family:monospace;font-size:10.5px;background:var(--fond-surface-2);padding:1px 4px;border-radius:3px;color:var(--ap-500);">height</code>, <code style="font-family:monospace;font-size:10.5px;background:var(--fond-surface-2);padding:1px 4px;border-radius:3px;color:var(--ap-500);">top</code>, <code style="font-family:monospace;font-size:10.5px;background:var(--fond-surface-2);padding:1px 4px;border-radius:3px;color:var(--ap-500);">margin</code> sauf si absolument nécessaire (accordéons).
+        </div>
+      </div>
+      <div class="rule-abs">
+        <div class="rule-head">
+          <div class="rule-dot rule-dot-ok"></div>
+          <div class="rule-title">Entrée ≠ Sortie</div>
+        </div>
+        <div class="rule-body">
+          Les modales et drawers entrent en <code style="font-family:monospace;font-size:10.5px;background:var(--fond-surface-2);padding:1px 4px;border-radius:3px;color:var(--ap-500);">--ease-decelerate</code> (arrivée rapide, arrêt doux) et sortent en <code style="font-family:monospace;font-size:10.5px;background:var(--fond-surface-2);padding:1px 4px;border-radius:3px;color:var(--ap-500);">--ease-accelerate</code> (sortie franche). La même courbe dans les deux sens brise le sentiment de profondeur.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       §6 — TABLEAU DE RÉFÉRENCE COMPLET
+  ═══════════════════════════════════════════════════════════════ -->
+  <section class="section" id="s06">
+    <div class="section-header">
+      <div class="section-num">Section 06</div>
+      <h2 class="section-title">Tableau de référence complet</h2>
+      <p class="section-desc">Association durée × courbe × composant pour chaque interaction de SARIS Congo. Source unique de vérité pour l'implémentation.</p>
+    </div>
+
+    <div class="subsection">
+      <div class="subsection-title">Référence par composant</div>
+      <table class="spec-table">
+        <thead>
+          <tr><th>Composant</th><th>Action</th><th>Durée</th><th>Courbe</th><th>Propriétés</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Bouton primaire</td><td>Hover</td><td>150 ms</td><td>standard</td><td>background, transform, box-shadow</td></tr>
+          <tr><td>Bouton primaire</td><td>Active press</td><td>80 ms</td><td>standard</td><td>transform scale(.98)</td></tr>
+          <tr><td>Input / champ</td><td>Focus</td><td>80 ms</td><td>standard</td><td>border-color, box-shadow</td></tr>
+          <tr><td>Toggle</td><td>Basculer</td><td>150 ms</td><td>spring (thumb) / standard (track)</td><td>left, background</td></tr>
+          <tr><td>Checkbox</td><td>Cocher</td><td>80 ms / 150 ms</td><td>spring</td><td>background, opacity, transform</td></tr>
+          <tr><td>Card</td><td>Hover lift</td><td>200 ms</td><td>standard</td><td>transform, box-shadow, border-color</td></tr>
+          <tr><td>Nav item</td><td>Activer</td><td>200 ms</td><td>spring</td><td>height (barre indicateur)</td></tr>
+          <tr><td>Badge</td><td>Apparition</td><td>200 ms</td><td>spring</td><td>transform scale</td></tr>
+          <tr><td>Tooltip</td><td>Entrée</td><td>200 ms</td><td>decelerate</td><td>opacity, transform translateY + scale</td></tr>
+          <tr><td>Dropdown menu</td><td>Ouverture</td><td>200 ms</td><td>spring-soft</td><td>opacity, transform scale + translateY</td></tr>
+          <tr><td>Accordéon</td><td>Ouvrir</td><td>400 ms</td><td>decelerate</td><td>max-height</td></tr>
+          <tr><td>Onglets (tabs)</td><td>Changer</td><td>200 ms</td><td>spring-soft</td><td>left, width (tab ink)</td></tr>
+          <tr><td>Modale</td><td>Entrée</td><td>280 ms</td><td>decelerate + spring</td><td>opacity, transform scale + translateY</td></tr>
+          <tr><td>Modale</td><td>Sortie</td><td>200 ms</td><td>accelerate</td><td>opacity, transform</td></tr>
+          <tr><td>Drawer</td><td>Entrée</td><td>280 ms</td><td>decelerate</td><td>transform translateX</td></tr>
+          <tr><td>Drawer</td><td>Sortie</td><td>200 ms</td><td>accelerate</td><td>transform translateX</td></tr>
+          <tr><td>Toast</td><td>Apparition</td><td>280 ms</td><td>spring</td><td>opacity, transform translateY + scale</td></tr>
+          <tr><td>Toast</td><td>Disparition</td><td>200 ms</td><td>accelerate</td><td>opacity, transform</td></tr>
+          <tr><td>Skeleton</td><td>Shimmer</td><td>1400 ms</td><td>ease-in-out (infini)</td><td>background-position</td></tr>
+          <tr><td>Skeleton → Contenu</td><td>Chargé</td><td>200 ms</td><td>standard</td><td>opacity (fondu croisé)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<script>
+  /* ─── THEME TOGGLE ──────────────────────────────────────────── */
+  function toggleTheme() {
+    const html = document.documentElement;
+    const isDark = html.getAttribute('data-theme') === 'dark';
+    html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+    document.getElementById('theme-label').textContent = isDark ? 'Mode sombre' : 'Mode clair';
+    const icon = document.getElementById('theme-icon');
+    if (isDark) {
+      icon.innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+    } else {
+      icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+    }
+  }
+
+  /* ─── TOGGLE SWITCH ─────────────────────────────────────────── */
+  function toggleSwitch(wrap) {
+    const track = wrap.querySelector('.toggle-track');
+    track.classList.toggle('on');
+  }
+
+  /* ─── CHECKBOX ──────────────────────────────────────────────── */
+  function toggleCheck(wrap) {
+    const box = wrap.querySelector('.checkbox-box');
+    box.classList.toggle('checked');
+  }
+
+  /* ─── NAV ACTIVE ────────────────────────────────────────────── */
+  function setActiveNav(item) {
+    item.closest('div').querySelectorAll('.nav-item-demo').forEach(el => el.classList.remove('nav-active'));
+    item.classList.add('nav-active');
+  }
+
+  /* ─── BADGE POP ─────────────────────────────────────────────── */
+  function popBadge(btn) {
+    const badge = document.getElementById('notif-badge');
+    badge.style.display = 'none';
+    void badge.offsetWidth;
+    badge.style.display = 'inline-flex';
+    badge.style.animation = 'none';
+    void badge.offsetWidth;
+    badge.style.animation = 'badgePop var(--dur-normal) var(--ease-spring) both';
+  }
+
+  /* ─── RIPPLE ────────────────────────────────────────────────── */
+  function addRipple(e, btn) {
+    const rect = btn.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height) * 2;
+    const x = e.clientX - rect.left - size / 2;
+    const y = e.clientY - rect.top - size / 2;
+    const ripple = document.createElement('span');
+    ripple.className = 'ripple-circle';
+    ripple.style.cssText = `width:${size}px;height:${size}px;left:${x}px;top:${y}px;`;
+    btn.appendChild(ripple);
+    ripple.addEventListener('animationend', () => ripple.remove());
+  }
+
+  /* ─── DROPDOWN ──────────────────────────────────────────────── */
+  function toggleMenu(id) {
+    const el = document.getElementById(id);
+    el.classList.toggle('open');
+    const handler = (e) => {
+      if (!el.contains(e.target) && !e.target.closest('.menu-btn')) {
+        el.classList.remove('open');
+        document.removeEventListener('click', handler);
+      }
+    };
+    if (el.classList.contains('open')) {
+      setTimeout(() => document.addEventListener('click', handler), 10);
+    }
+  }
+
+  /* ─── ACCORDION ─────────────────────────────────────────────── */
+  function toggleAcc(item) {
+    item.classList.toggle('open');
+  }
+
+  /* ─── TABS ──────────────────────────────────────────────────── */
+  const tabContents = [
+    'Dossier complet de Kabibi Ondongo · Ouvert le 12 janvier 2024 · Site Moutela. Groupe sanguin O+, allergies documentées, antécédents chroniques.',
+    'Ordonnance du 14/05/2026 · Artéméther-Luméfantrine 20/120 mg · 6 comprimés sur 3 jours. Prescripteur : Dr. Nsimba. Statut : délivrée.',
+    'TDR paludisme positif (14/05/2026). Hémoglobine 10.2 g/dL. Glycémie 1.02 g/L. Prochains examens programmés : 21/05/2026.'
+  ];
+
+  function switchTab(btn, index) {
+    const container = btn.closest('.tabs-anim');
+    container.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const ink = document.getElementById('tabInk');
+    ink.style.left = btn.offsetLeft + 'px';
+    ink.style.width = btn.offsetWidth + 'px';
+    document.getElementById('tabContent').textContent = tabContents[index];
+  }
+
+  /* ─── INIT TABS ─────────────────────────────────────────────── */
+  window.addEventListener('load', () => {
+    const activeTab = document.querySelector('.tab-btn.active');
+    if (activeTab) {
+      const ink = document.getElementById('tabInk');
+      ink.style.transition = 'none';
+      ink.style.left = activeTab.offsetLeft + 'px';
+      ink.style.width = activeTab.offsetWidth + 'px';
+      requestAnimationFrame(() => { ink.style.transition = ''; });
+    }
+  });
+
+  /* ─── SKELETON DEMO ─────────────────────────────────────────── */
+  function replaySkeletonDemo() {
+    const skel = document.getElementById('skelLayer');
+    const content = document.getElementById('contentLayer');
+    skel.style.display = 'flex';
+    skel.style.opacity = '1';
+    content.style.display = 'none';
+    content.style.opacity = '0';
+    setTimeout(() => {
+      skel.style.transition = 'opacity 200ms';
+      skel.style.opacity = '0';
+      setTimeout(() => {
+        skel.style.display = 'none';
+        content.style.display = 'flex';
+        content.style.transition = 'opacity 200ms';
+        requestAnimationFrame(() => { content.style.opacity = '1'; });
+      }, 200);
+    }, 1200);
+  }
+
+  /* Auto-run skeleton once on load */
+  window.addEventListener('load', () => { setTimeout(replaySkeletonDemo, 600); });
+
+  /* ─── prefers-reduced-motion ────────────────────────────────── */
+  const style = document.createElement('style');
+  style.textContent = '@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }';
+  document.head.appendChild(style);
+</script>
+</body>
+</html>

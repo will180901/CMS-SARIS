@@ -1,0 +1,1372 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CG-05 · Composants Fondamentaux — Charte Graphique CMS SARIS Congo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+
+    /* ═══════════════════════════════════════════════════════════════
+       TOKENS — MODE CLAIR
+    ═══════════════════════════════════════════════════════════════ */
+    :root, [data-theme="light"] {
+      --fond-page:       #F4F6F8;
+      --fond-surface:    #FFFFFF;
+      --fond-surface-2:  #F0F2F5;
+      --fond-input:      #EAECF0;
+
+      --texte-primaire:   #0F172A;
+      --texte-secondaire: #475569;
+      --texte-tertiaire:  #94A3B8;
+
+      --bordure-legere: rgba(15,23,42,0.08);
+      --bordure-normale: rgba(15,23,42,0.14);
+      --bordure-forte:  rgba(15,23,42,0.28);
+
+      --ap-50:  #D6E8EF; --ap-100: #A8CCDA; --ap-200: #79AFBF;
+      --ap-300: #5B9BB0; --ap-400: #4E8BA4; --ap-500: #3D7A92;
+      --ap-600: #366680; --ap-700: #2A5269; --ap-800: #214A5E; --ap-900: #0F2F3D;
+
+      --as-50:  #F6EBD2; --as-100: #EBCF87; --as-200: #D9AD4A;
+      --as-300: #D0A030; --as-400: #C99A2E; --as-500: #B88A25;
+      --as-600: #A07A1E; --as-700: #8A6A15; --as-800: #765A12; --as-900: #4D3A08;
+
+      --g-0:#FFFFFF; --g-50:#F4F6F8; --g-100:#EAECF0; --g-200:#D0D5DD;
+      --g-300:#B5BCC8; --g-400:#8892A4; --g-500:#64748B; --g-600:#475569;
+      --g-700:#334155; --g-800:#1E293B; --g-900:#0F172A; --g-950:#060D18;
+
+      --succes-fond:#EAF3EC; --succes-texte:#2D6A3F; --succes-accent:#3D7A5E; --succes-bordure:rgba(45,106,63,0.2);
+      --erreur-fond:#F5EAEA; --erreur-texte:#7A2E2E; --erreur-accent:#9B4444; --erreur-bordure:rgba(122,46,46,0.2);
+      --avert-fond: #F5EEDF; --avert-texte: #6B4D1A; --avert-accent: #8A6A2A; --avert-bordure: rgba(107,77,26,0.2);
+      --info-fond:  #E6EFF5; --info-texte:  #2A4F6B; --info-accent:  #3A6080; --info-bordure:  rgba(42,79,107,0.2);
+
+      --couleur-accent:            var(--ap-400);
+      --couleur-accent-fond:       var(--ap-50);
+      --couleur-accent-hover:      var(--ap-500);
+      --couleur-accent-texte:      #FFFFFF;
+      --couleur-accent-secondaire: var(--as-400);
+
+      --radius-xs: 4px; --radius-sm: 6px; --radius-md: 8px; --radius-lg: 10px;
+
+      --ombre-1: 0 1px 2px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.04);
+      --ombre-2: 0 2px 6px rgba(15,23,42,0.08), 0 1px 2px rgba(15,23,42,0.06);
+      --ombre-3: 0 4px 14px rgba(15,23,42,0.10), 0 2px 4px rgba(15,23,42,0.06);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       TOKENS — MODE SOMBRE
+    ═══════════════════════════════════════════════════════════════ */
+    [data-theme="dark"] {
+      --fond-page:       #0D1117;
+      --fond-surface:    #161B22;
+      --fond-surface-2:  #1C2333;
+      --fond-input:      #21262D;
+
+      --texte-primaire:   #E6EDF3;
+      --texte-secondaire: #8B949E;
+      --texte-tertiaire:  #484F58;
+
+      --bordure-legere: rgba(230,237,243,0.08);
+      --bordure-normale: rgba(230,237,243,0.14);
+      --bordure-forte:  rgba(230,237,243,0.28);
+
+      --ap-50:#0F2F3D; --ap-100:#214A5E; --ap-200:#2A5269;
+      --ap-300:#366680; --ap-400:#4E8BA4; --ap-500:#5B9BB0;
+      --ap-600:#79AFBF; --ap-700:#A8CCDA; --ap-800:#C8E0E9; --ap-900:#D6E8EF;
+
+      --as-50:#4D3A08; --as-100:#765A12; --as-200:#8A6A15;
+      --as-300:#A07A1E; --as-400:#C99A2E; --as-500:#D0A030;
+      --as-600:#D9AD4A; --as-700:#EBCF87; --as-800:#F2DFA8; --as-900:#F6EBD2;
+
+      --g-0:#060D18; --g-50:#0D1117; --g-100:#161B22; --g-200:#21262D;
+      --g-300:#30363D; --g-400:#484F58; --g-500:#6E7681; --g-600:#8B949E;
+      --g-700:#B1BAC4; --g-800:#C9D1D9; --g-900:#E6EDF3; --g-950:#F0F6FC;
+
+      --succes-fond:#1A2E20; --succes-texte:#7EE2A0; --succes-accent:#56C47A; --succes-bordure:rgba(126,226,160,0.15);
+      --erreur-fond:#2E1A1A; --erreur-texte:#E2857E; --erreur-accent:#CC6060; --erreur-bordure:rgba(226,133,126,0.15);
+      --avert-fond: #2E2410; --avert-texte: #E2C07E; --avert-accent: #C9A23A; --avert-bordure: rgba(226,192,126,0.15);
+      --info-fond:  #0F2030; --info-texte:  #7EB5D6; --info-accent:  #5E9FC0; --info-bordure:  rgba(126,181,214,0.15);
+
+      --couleur-accent:            var(--ap-400);
+      --couleur-accent-fond:       var(--ap-50);
+      --couleur-accent-hover:      var(--ap-500);
+      --couleur-accent-texte:      #FFFFFF;
+      --couleur-accent-secondaire: var(--as-400);
+
+      --ombre-1: none;
+      --ombre-2: none;
+      --ombre-3: none;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       BASE
+    ═══════════════════════════════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 14px; line-height: 1.6;
+      background: var(--fond-page);
+      color: var(--texte-primaire);
+      transition: background 0.22s ease, color 0.22s ease;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       HEADER
+    ═══════════════════════════════════════════════════════════════ */
+    .page-header {
+      position: sticky; top: 0; z-index: 100;
+      border-bottom: 1px solid var(--bordure-legere);
+      padding: 0 40px;
+    }
+    [data-theme="light"] .page-header { background: rgba(255,255,255,0.88); backdrop-filter: blur(14px); }
+    [data-theme="dark"]  .page-header { background: rgba(22,27,34,0.88);   backdrop-filter: blur(14px); }
+    .page-header-inner {
+      max-width: 1100px; margin: 0 auto; height: 54px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .header-left { display: flex; align-items: center; gap: 10px; }
+    .module-badge {
+      font-size: 10px; font-weight: 600; padding: 3px 9px;
+      border-radius: var(--radius-xs);
+      background: var(--couleur-accent-fond); color: var(--ap-800);
+      letter-spacing: 0.06em; text-transform: uppercase;
+    }
+    [data-theme="dark"] .module-badge { background: var(--ap-100); color: var(--ap-700); }
+    .header-title-text { font-size: 13px; font-weight: 500; color: var(--texte-primaire); }
+    .header-sep { width: 1px; height: 16px; background: var(--bordure-normale); }
+    .header-sub { font-size: 12px; color: var(--texte-tertiaire); }
+    .toggle-btn {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--fond-surface-2); border: 1px solid var(--bordure-normale);
+      border-radius: var(--radius-sm); padding: 5px 12px; cursor: pointer;
+      font-family: 'Inter', sans-serif; font-size: 12px; color: var(--texte-secondaire);
+      transition: background 0.15s, color 0.15s;
+    }
+    .toggle-btn:hover { background: var(--fond-input); color: var(--texte-primaire); }
+
+    /* ═══════════════════════════════════════════════════════════════
+       NAVIGATION MODULES
+    ═══════════════════════════════════════════════════════════════ */
+    .modules-nav {
+      background: var(--fond-surface); border-bottom: 1px solid var(--bordure-legere);
+      padding: 0 40px; overflow-x: auto; scrollbar-width: none;
+    }
+    .modules-nav::-webkit-scrollbar { display: none; }
+    .modules-nav-inner {
+      max-width: 1100px; margin: 0 auto;
+      display: flex; align-items: center; gap: 2px; height: 40px;
+    }
+    .nav-link {
+      display: flex; align-items: center; gap: 5px;
+      padding: 4px 10px; border-radius: var(--radius-xs);
+      font-size: 11px; font-weight: 500; color: var(--texte-tertiaire);
+      text-decoration: none; white-space: nowrap;
+      transition: background 0.13s, color 0.13s;
+      border: 1px solid transparent;
+    }
+    .nav-link:hover { background: var(--fond-surface-2); color: var(--texte-secondaire); }
+    .nav-link.active { background: var(--couleur-accent-fond); color: var(--ap-700); border-color: var(--ap-200); }
+    [data-theme="dark"] .nav-link.active { background: var(--ap-100); color: var(--ap-600); border-color: var(--ap-300); }
+    .nav-num { font-size: 9px; font-weight: 700; opacity: 0.6; letter-spacing: 0.04em; }
+    .nav-sep { width: 1px; height: 14px; background: var(--bordure-legere); margin: 0 4px; flex-shrink: 0; }
+
+    /* ═══════════════════════════════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════════════════════════════ */
+    .main { max-width: 1100px; margin: 0 auto; padding: 48px 40px 96px; }
+
+    /* ═══════════════════════════════════════════════════════════════
+       HERO
+    ═══════════════════════════════════════════════════════════════ */
+    .module-hero {
+      background: var(--fond-surface); border: 1px solid var(--bordure-legere);
+      border-radius: var(--radius-lg); padding: 32px 36px; margin-bottom: 52px;
+      display: grid; grid-template-columns: 1fr 1px 1fr 1px 1fr;
+    }
+    .hero-col { padding: 0 28px; }
+    .hero-col:first-child { padding-left: 0; }
+    .hero-col:last-child  { padding-right: 0; }
+    .hero-divider { background: var(--bordure-legere); }
+    .hero-label { font-size: 10px; font-weight: 600; color: var(--ap-400); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
+    .hero-title { font-size: 14px; font-weight: 500; color: var(--texte-primaire); margin-bottom: 6px; }
+    .hero-body  { font-size: 12px; color: var(--texte-secondaire); line-height: 1.65; }
+
+    /* ═══════════════════════════════════════════════════════════════
+       SECTIONS
+    ═══════════════════════════════════════════════════════════════ */
+    .section { margin-bottom: 64px; }
+    .section-header { margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--bordure-legere); }
+    .section-num   { font-size: 10px; font-weight: 600; color: var(--ap-400); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 5px; }
+    .section-title { font-size: 17px; font-weight: 500; color: var(--texte-primaire); margin-bottom: 6px; }
+    .section-desc  { font-size: 13px; color: var(--texte-secondaire); line-height: 1.65; max-width: 700px; }
+
+    .subsection { margin-bottom: 36px; }
+    .subsection-title {
+      font-size: 11px; font-weight: 600; color: var(--texte-tertiaire);
+      text-transform: uppercase; letter-spacing: 0.10em;
+      margin-bottom: 16px; padding-bottom: 8px;
+      border-bottom: 1px dashed var(--bordure-legere);
+    }
+
+    /* zone de démo encadrée */
+    .demo-box {
+      background: var(--fond-surface); border: 1px solid var(--bordure-legere);
+      border-radius: var(--radius-md); padding: 24px 28px;
+    }
+    .demo-box + .demo-box { margin-top: 12px; }
+
+    /* label d'état */
+    .state-label {
+      font-size: 9px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.10em; color: var(--texte-tertiaire);
+      margin-bottom: 10px; display: block;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       §1 — BOUTONS
+    ═══════════════════════════════════════════════════════════════ */
+    /* grain SVG partagé */
+    .btn {
+      position: relative; overflow: hidden;
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 8px 18px; border-radius: var(--radius-xs);
+      font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 500;
+      border: none; cursor: pointer;
+      transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.10s ease, opacity 0.15s ease;
+      text-decoration: none;
+    }
+    .btn::after {
+      content: '';
+      position: absolute; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='130' height='130'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='130' height='130' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+      background-size: 130px 130px;
+      opacity: 0.38;
+      mix-blend-mode: overlay;
+      pointer-events: none;
+      border-radius: inherit;
+    }
+
+    /* Primary */
+    .btn-primary { background: var(--ap-400); color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: var(--ap-500); box-shadow: var(--ombre-2); }
+    .btn-primary:active:not(:disabled) { transform: scale(0.975); background: var(--ap-600); }
+    .btn-primary:focus-visible { outline: 2px solid var(--ap-400); outline-offset: 3px; }
+
+    /* Secondary */
+    .btn-secondary { background: var(--as-400); color: #fff; }
+    .btn-secondary:hover:not(:disabled) { background: var(--as-500); box-shadow: var(--ombre-2); }
+    .btn-secondary:active:not(:disabled) { transform: scale(0.975); }
+    .btn-secondary:focus-visible { outline: 2px solid var(--as-400); outline-offset: 3px; }
+
+    /* Danger */
+    .btn-danger { background: var(--erreur-accent); color: #fff; }
+    .btn-danger:hover:not(:disabled) { background: #7A2E2E; box-shadow: var(--ombre-2); }
+    .btn-danger:active:not(:disabled) { transform: scale(0.975); }
+
+    /* Outline */
+    .btn-outline {
+      background: transparent; color: var(--ap-400);
+      border: 1.5px solid var(--ap-400);
+    }
+    .btn-outline::after { opacity: 0.18; }
+    .btn-outline:hover:not(:disabled) { background: var(--ap-50); }
+    .btn-outline:active:not(:disabled) { transform: scale(0.975); }
+
+    /* Ghost */
+    .btn-ghost {
+      background: var(--fond-surface-2); color: var(--texte-secondaire);
+      border: 1px solid var(--bordure-normale);
+    }
+    .btn-ghost::after { opacity: 0.14; }
+    .btn-ghost:hover:not(:disabled) { background: var(--fond-input); color: var(--texte-primaire); }
+    .btn-ghost:active:not(:disabled) { transform: scale(0.975); }
+
+    /* Sizes */
+    .btn-sm { padding: 5px 13px; font-size: 12px; }
+    .btn-lg { padding: 11px 24px; font-size: 14px; }
+
+    /* States */
+    .btn:disabled {
+      opacity: 0.40; cursor: not-allowed; pointer-events: none;
+    }
+    .btn-loading {
+      cursor: default; pointer-events: none;
+    }
+    .btn-loading .btn-spinner {
+      width: 13px; height: 13px;
+      border: 2px solid rgba(255,255,255,0.35);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.65s linear infinite;
+    }
+    .btn-ghost .btn-spinner, .btn-outline .btn-spinner {
+      border-color: rgba(78,139,164,0.25);
+      border-top-color: var(--ap-400);
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Boutons row */
+    .btn-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+
+    /* Tableau des propriétés */
+    .prop-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 16px; }
+    .prop-table th {
+      text-align: left; padding: 7px 12px;
+      background: var(--fond-surface-2); color: var(--texte-tertiaire);
+      font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;
+      border-bottom: 1px solid var(--bordure-normale);
+    }
+    .prop-table td {
+      padding: 8px 12px; border-bottom: 1px solid var(--bordure-legere);
+      color: var(--texte-secondaire); vertical-align: middle;
+    }
+    .prop-table tr:last-child td { border-bottom: none; }
+    .prop-table tr:hover td { background: var(--fond-surface-2); }
+    .code { font-family: 'Courier New', monospace; font-size: 11px; color: var(--ap-500); }
+
+    /* ═══════════════════════════════════════════════════════════════
+       §2 — FORMULAIRES
+    ═══════════════════════════════════════════════════════════════ */
+    .field-group { display: flex; flex-direction: column; gap: 5px; }
+    .field-label {
+      font-size: 12px; font-weight: 500; color: var(--texte-secondaire);
+    }
+    .field-label .required { color: var(--erreur-accent); margin-left: 2px; }
+    .field-hint { font-size: 11px; color: var(--texte-tertiaire); }
+
+    .field-wrap { position: relative; }
+    .field-icon-left {
+      position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+      color: var(--texte-tertiaire); pointer-events: none; display: flex;
+    }
+    .field-icon-right {
+      position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+      color: var(--texte-tertiaire); cursor: pointer; display: flex;
+    }
+
+    .input {
+      width: 100%;
+      background: var(--fond-input);
+      border: 1.5px solid var(--bordure-normale);
+      border-radius: var(--radius-xs);
+      padding: 8px 12px;
+      font-family: 'Inter', sans-serif; font-size: 13px;
+      color: var(--texte-primaire);
+      transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+      outline: none;
+    }
+    .input::placeholder { color: var(--texte-tertiaire); }
+    .input:hover:not(:disabled):not(.input-error):not(.input-success) { border-color: var(--bordure-forte); }
+    .input:focus:not(.input-error):not(.input-success) {
+      border-color: var(--ap-400);
+      box-shadow: 0 0 0 3px rgba(78,139,164,0.18);
+      background: var(--fond-surface);
+    }
+    .input:disabled { opacity: 0.50; cursor: not-allowed; }
+    .input-icon-l { padding-left: 36px; }
+    .input-icon-r { padding-right: 36px; }
+    .input-error  { border-color: var(--erreur-accent) !important; }
+    .input-error:focus { box-shadow: 0 0 0 3px rgba(155,68,68,0.18) !important; }
+    .input-success { border-color: var(--succes-accent) !important; }
+    .input-success:focus { box-shadow: 0 0 0 3px rgba(61,122,94,0.18) !important; }
+
+    .field-message { font-size: 11px; display: flex; align-items: center; gap: 5px; }
+    .field-message.error   { color: var(--erreur-accent); }
+    .field-message.success { color: var(--succes-accent); }
+
+    /* Textarea */
+    textarea.input { resize: vertical; min-height: 80px; line-height: 1.55; }
+
+    /* Select */
+    select.input { appearance: none; cursor: pointer; padding-right: 32px; }
+
+    /* Checkbox / Radio */
+    .check-group { display: flex; flex-direction: column; gap: 10px; }
+    .check-item  { display: flex; align-items: center; gap: 9px; cursor: pointer; }
+    .check-box {
+      width: 17px; height: 17px; flex-shrink: 0;
+      border-radius: var(--radius-xs);
+      border: 1.5px solid var(--bordure-forte);
+      background: var(--fond-input);
+      transition: border-color 0.15s, background 0.15s;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .check-item.checked .check-box {
+      background: var(--ap-400); border-color: var(--ap-400);
+    }
+    .check-item.checked .check-box svg { display: block; }
+    .check-box svg { display: none; }
+
+    .radio-box {
+      width: 17px; height: 17px; flex-shrink: 0;
+      border-radius: 50%;
+      border: 1.5px solid var(--bordure-forte);
+      background: var(--fond-input);
+      transition: border-color 0.15s, background 0.15s;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .check-item.checked .radio-box { border-color: var(--ap-400); }
+    .radio-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--ap-400); opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .check-item.checked .radio-dot { opacity: 1; }
+
+    .check-label { font-size: 13px; color: var(--texte-primaire); }
+    .check-desc  { font-size: 11px; color: var(--texte-tertiaire); }
+
+    /* Toggle switch */
+    .toggle-wrap { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+    .toggle-track {
+      width: 38px; height: 22px; border-radius: 11px;
+      background: var(--bordure-forte);
+      position: relative; transition: background 0.18s ease;
+      flex-shrink: 0;
+    }
+    .toggle-track.on { background: var(--ap-400); }
+    .toggle-thumb {
+      width: 16px; height: 16px; border-radius: 50%;
+      background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      position: absolute; top: 3px; left: 3px;
+      transition: transform 0.18s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .toggle-track.on .toggle-thumb { transform: translateX(16px); }
+    .toggle-lbl { font-size: 13px; color: var(--texte-primaire); }
+
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+    /* ═══════════════════════════════════════════════════════════════
+       §3 — BADGES
+    ═══════════════════════════════════════════════════════════════ */
+    .badge-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .badge {
+      position: relative; overflow: hidden;
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 9px; border-radius: var(--radius-xs);
+      font-size: 11px; font-weight: 600; letter-spacing: 0.03em;
+      border: 1px solid transparent;
+    }
+    /* Variantes couleur */
+    .badge-primary  { background: var(--couleur-accent-fond); color: var(--ap-700); border-color: var(--ap-200); }
+    .badge-secondary{ background: var(--as-50);  color: var(--as-800); border-color: var(--as-200); }
+    .badge-success  { background: var(--succes-fond);  color: var(--succes-texte);  border-color: var(--succes-bordure); }
+    .badge-error    { background: var(--erreur-fond);  color: var(--erreur-texte);  border-color: var(--erreur-bordure); }
+    .badge-warning  { background: var(--avert-fond);   color: var(--avert-texte);   border-color: var(--avert-bordure); }
+    .badge-info     { background: var(--info-fond);    color: var(--info-texte);    border-color: var(--info-bordure); }
+    .badge-neutral  { background: var(--fond-surface-2); color: var(--texte-secondaire); border-color: var(--bordure-normale); }
+
+    /* grain discret sur badges colorés */
+    .badge-primary::after, .badge-secondary::after,
+    .badge-success::after, .badge-error::after,
+    .badge-warning::after, .badge-info::after {
+      content: '';
+      position: absolute; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='130' height='130'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='130' height='130' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+      background-size: 130px 130px;
+      opacity: 0.18;
+      mix-blend-mode: overlay;
+      pointer-events: none;
+      border-radius: inherit;
+    }
+
+    /* Badge dot indicateur */
+    .badge-dot {
+      width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+    }
+    .badge-dot-success { background: var(--succes-accent); }
+    .badge-dot-error   { background: var(--erreur-accent); }
+    .badge-dot-warning { background: var(--avert-accent); }
+    .badge-dot-info    { background: var(--info-accent); }
+    .badge-dot-neutral { background: var(--texte-tertiaire); }
+
+    /* Tags */
+    .tag {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 10px; border-radius: var(--radius-xs);
+      background: var(--fond-surface-2);
+      border: 1px solid var(--bordure-normale);
+      font-size: 12px; color: var(--texte-secondaire);
+      cursor: default;
+    }
+    .tag-remove {
+      display: flex; align-items: center; cursor: pointer;
+      color: var(--texte-tertiaire); transition: color 0.12s;
+    }
+    .tag-remove:hover { color: var(--erreur-accent); }
+
+    /* ═══════════════════════════════════════════════════════════════
+       §4 — AVATARS
+    ═══════════════════════════════════════════════════════════════ */
+    .avatar-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .avatar {
+      border-radius: 50%; overflow: hidden; flex-shrink: 0;
+      background: var(--ap-100); border: 2px solid var(--fond-surface);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 600; color: var(--ap-700);
+    }
+    .avatar-xs  { width: 24px; height: 24px; font-size: 9px; }
+    .avatar-sm  { width: 32px; height: 32px; font-size: 11px; }
+    .avatar-md  { width: 40px; height: 40px; font-size: 13px; }
+    .avatar-lg  { width: 52px; height: 52px; font-size: 16px; }
+    .avatar-xl  { width: 64px; height: 64px; font-size: 20px; }
+
+    /* Couleurs variantes avatar */
+    .avatar-gold { background: var(--as-100); color: var(--as-800); }
+    .avatar-success { background: var(--succes-fond); color: var(--succes-accent); }
+    .avatar-error   { background: var(--erreur-fond); color: var(--erreur-accent); }
+
+    /* Stack d'avatars */
+    .avatar-stack { display: flex; }
+    .avatar-stack .avatar { margin-left: -10px; box-shadow: 0 0 0 2px var(--fond-surface); }
+    .avatar-stack .avatar:first-child { margin-left: 0; }
+    .avatar-more {
+      background: var(--fond-surface-2); color: var(--texte-secondaire);
+      border: 1.5px solid var(--bordure-normale); font-size: 10px;
+    }
+
+    /* Indicateur présence */
+    .avatar-wrap { position: relative; display: inline-flex; }
+    .presence {
+      position: absolute; bottom: 0; right: 0;
+      width: 10px; height: 10px; border-radius: 50%;
+      border: 2px solid var(--fond-surface);
+    }
+    .presence-online  { background: var(--succes-accent); }
+    .presence-away    { background: var(--avert-accent); }
+    .presence-offline { background: var(--texte-tertiaire); }
+
+    /* ═══════════════════════════════════════════════════════════════
+       §5 — SÉPARATEURS
+    ═══════════════════════════════════════════════════════════════ */
+    .sep { border: none; border-top: 1px solid var(--bordure-legere); margin: 0; }
+    .sep-normale { border-color: var(--bordure-normale); }
+    .sep-forte   { border-color: var(--bordure-forte); }
+
+    .sep-label-wrap {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .sep-label-wrap::before, .sep-label-wrap::after {
+      content: ''; flex: 1; height: 1px; background: var(--bordure-legere);
+    }
+    .sep-label {
+      font-size: 11px; font-weight: 500; color: var(--texte-tertiaire);
+      white-space: nowrap;
+    }
+
+    .sep-vertical {
+      width: 1px; background: var(--bordure-legere); align-self: stretch;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       §6 — TOOLTIPS
+    ═══════════════════════════════════════════════════════════════ */
+    .tooltip-demo-zone {
+      display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start;
+    }
+    .tooltip-anchor {
+      position: relative; display: inline-flex;
+    }
+    .tooltip-trigger {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 13px; border-radius: var(--radius-xs);
+      background: var(--fond-surface-2); border: 1px solid var(--bordure-normale);
+      font-size: 12px; color: var(--texte-secondaire); cursor: default;
+    }
+    .tooltip-box {
+      position: absolute; z-index: 50;
+      padding: 7px 11px; border-radius: var(--radius-sm);
+      font-size: 11px; line-height: 1.5; white-space: nowrap;
+      pointer-events: none;
+    }
+    [data-theme="light"] .tooltip-box {
+      background: var(--g-900); color: var(--g-50);
+      box-shadow: 0 4px 14px rgba(15,23,42,0.18);
+    }
+    [data-theme="dark"] .tooltip-box {
+      background: var(--g-800); color: var(--g-950);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.40);
+      border: 1px solid var(--bordure-normale);
+    }
+    /* positions */
+    .tooltip-top    { bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); }
+    .tooltip-bottom { top: calc(100% + 8px);    left: 50%; transform: translateX(-50%); }
+    .tooltip-left   { right: calc(100% + 8px);  top: 50%;  transform: translateY(-50%); }
+    .tooltip-right  { left: calc(100% + 8px);   top: 50%;  transform: translateY(-50%); }
+    /* caret */
+    .tooltip-box::after {
+      content: ''; position: absolute; border: 5px solid transparent;
+    }
+    .tooltip-top::after    { top: 100%; left: 50%; transform: translateX(-50%); }
+    .tooltip-bottom::after { bottom: 100%; left: 50%; transform: translateX(-50%); }
+    .tooltip-left::after   { left: 100%; top: 50%; transform: translateY(-50%); }
+    .tooltip-right::after  { right: 100%; top: 50%; transform: translateY(-50%); }
+
+    [data-theme="light"] .tooltip-top::after    { border-top-color:    var(--g-900); }
+    [data-theme="light"] .tooltip-bottom::after { border-bottom-color: var(--g-900); }
+    [data-theme="light"] .tooltip-left::after   { border-left-color:   var(--g-900); }
+    [data-theme="light"] .tooltip-right::after  { border-right-color:  var(--g-900); }
+    [data-theme="dark"]  .tooltip-top::after    { border-top-color:    var(--g-800); }
+    [data-theme="dark"]  .tooltip-bottom::after { border-bottom-color: var(--g-800); }
+    [data-theme="dark"]  .tooltip-left::after   { border-left-color:   var(--g-800); }
+    [data-theme="dark"]  .tooltip-right::after  { border-right-color:  var(--g-800); }
+
+    /* ═══════════════════════════════════════════════════════════════
+       RÈGLES ABSOLUES
+    ═══════════════════════════════════════════════════════════════ */
+    .rules-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .rules-card { border-radius: var(--radius-md); padding: 20px 22px; border: 1px solid; }
+    .rules-card.ok { background: var(--succes-fond); border-color: var(--succes-bordure); }
+    .rules-card.no { background: var(--erreur-fond); border-color: var(--erreur-bordure); }
+    .rules-card-title {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.10em; margin-bottom: 14px;
+      display: flex; align-items: center; gap: 7px;
+    }
+    .rules-card.ok .rules-card-title { color: var(--succes-texte); }
+    .rules-card.no .rules-card-title { color: var(--erreur-texte); }
+    .rule-item { display: flex; gap: 8px; margin-bottom: 10px; font-size: 12px; line-height: 1.55; }
+    .rule-item:last-child { margin-bottom: 0; }
+    .rules-card.ok .rule-item { color: var(--succes-texte); }
+    .rules-card.no .rule-item { color: var(--erreur-texte); }
+
+    @media (max-width: 800px) {
+      .module-hero { grid-template-columns: 1fr; }
+      .hero-divider { display: none; }
+      .form-grid, .rules-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="page-header">
+    <div class="page-header-inner">
+      <div class="header-left">
+        <span class="module-badge">CG-05</span>
+        <span class="header-title-text">Composants Fondamentaux</span>
+        <span class="header-sep"></span>
+        <span class="header-sub">Boutons · Formulaires · Badges · Avatars · Séparateurs · Tooltips</span>
+      </div>
+      <button class="toggle-btn" onclick="toggleTheme()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="4"/>
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+        </svg>
+        <span id="toggle-label">Mode sombre</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- NAV MODULES -->
+  <nav class="modules-nav">
+    <div class="modules-nav-inner">
+      <a href="CG-01_Couleurs_et_Tokens.html"       class="nav-link"><span class="nav-num">01</span> Couleurs &amp; Tokens</a>
+      <div class="nav-sep"></div>
+      <a href="CG-02_Typographie.html"               class="nav-link"><span class="nav-num">02</span> Typographie</a>
+      <div class="nav-sep"></div>
+      <a href="CG-03_Espacements_et_Grilles.html"    class="nav-link"><span class="nav-num">03</span> Espacements &amp; Grilles</a>
+      <div class="nav-sep"></div>
+      <a href="CG-04_Effets_de_Surface.html"         class="nav-link"><span class="nav-num">04</span> Effets de Surface</a>
+      <div class="nav-sep"></div>
+      <a href="CG-05_Composants_Fondamentaux.html"   class="nav-link active"><span class="nav-num">05</span> Composants Fondamentaux</a>
+      <div class="nav-sep"></div>
+      <a href="CG-06_Navigation_et_Structure.html"   class="nav-link"><span class="nav-num">06</span> Navigation &amp; Structure</a>
+      <div class="nav-sep"></div>
+      <a href="CG-07_Donnees_et_Contenu.html"        class="nav-link"><span class="nav-num">07</span> Données &amp; Contenu</a>
+      <div class="nav-sep"></div>
+      <a href="CG-08_Feedback_et_Communication.html" class="nav-link"><span class="nav-num">08</span> Feedback &amp; Communication</a>
+      <div class="nav-sep"></div>
+      <a href="CG-09_Animations_et_Transitions.html" class="nav-link"><span class="nav-num">09</span> Animations &amp; Transitions</a>
+      <div class="nav-sep"></div>
+      <a href="CG-10_Iconographie_et_Assets.html"    class="nav-link"><span class="nav-num">10</span> Iconographie &amp; Assets</a>
+      <div class="nav-sep"></div>
+      <a href="CG-11_Etats_et_Accessibilite.html"    class="nav-link"><span class="nav-num">11</span> États &amp; Accessibilité</a>
+      <div class="nav-sep"></div>
+      <a href="CG-12_Recapitulatif_et_Regles.html"   class="nav-link"><span class="nav-num">12</span> Récapitulatif &amp; Règles</a>
+    </div>
+  </nav>
+
+  <main class="main">
+
+    <!-- HERO -->
+    <div class="module-hero">
+      <div class="hero-col">
+        <div class="hero-label">Pourquoi</div>
+        <div class="hero-title">L'alphabet visuel de l'interface</div>
+        <div class="hero-body">Boutons, champs, badges, avatars — ce sont les atomes que chaque page de CMS SARIS Congo assemble. Leur cohérence rigoureuse garantit que les soignants reconnaissent instantanément l'action à effectuer, l'état du système, et l'identité de chaque personne dans un dossier patient.</div>
+      </div>
+      <div class="hero-divider"></div>
+      <div class="hero-col">
+        <div class="hero-label">Quoi</div>
+        <div class="hero-title">6 familles de composants atomiques</div>
+        <div class="hero-body">Boutons (5 variants × 3 tailles × 5 états) · Champs de formulaire (input, textarea, select, checkbox, radio, toggle) · Badges &amp; tags sémantiques · Avatars avec indicateurs de présence · Séparateurs horizontaux/verticaux/étiquetés · Tooltips (4 positions).</div>
+      </div>
+      <div class="hero-divider"></div>
+      <div class="hero-col">
+        <div class="hero-label">Comment</div>
+        <div class="hero-title">Tokens + états CSS + grain sur solids</div>
+        <div class="hero-body">Toutes les couleurs via tokens. Grain SVG (<span style="font-size:11px;color:var(--ap-400)">::after</span> opacity 0.38) sur boutons solides uniquement. Focus visible via outline offset. Chaque état (hover, focus, active, disabled, loading) est explicitement défini et rendu ici.</div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         §1 — BOUTONS
+    ═══════════════════════════════════════════════════════════════ -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-num">Section 01</div>
+        <div class="section-title">Boutons</div>
+        <div class="section-desc">5 variants (primary, secondary, danger, outline, ghost) × 3 tailles (sm, md, lg) × 5 états (repos, hover, focus, actif, désactivé, chargement). Le grain est obligatoire sur tous les variants solids. Border-radius minimum 4px — aucun pill, aucun arrondi excessif.</div>
+      </div>
+
+      <!-- Variants -->
+      <div class="subsection">
+        <div class="subsection-title">Variants — état de repos</div>
+        <div class="demo-box">
+          <div class="btn-row">
+            <button class="btn btn-primary">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v14a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
+              Enregistrer
+            </button>
+            <button class="btn btn-secondary">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Exporter
+            </button>
+            <button class="btn btn-danger">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+              Supprimer
+            </button>
+            <button class="btn btn-outline">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+              Rechercher
+            </button>
+            <button class="btn btn-ghost">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              Annuler
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tailles -->
+      <div class="subsection">
+        <div class="subsection-title">Tailles — sm / md / lg</div>
+        <div class="demo-box">
+          <div class="btn-row">
+            <button class="btn btn-primary btn-sm">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+              Petit (sm)
+            </button>
+            <button class="btn btn-primary">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+              Moyen (md)
+            </button>
+            <button class="btn btn-primary btn-lg">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+              Grand (lg)
+            </button>
+          </div>
+          <table class="prop-table" style="margin-top:18px;">
+            <thead><tr><th>Taille</th><th>Classe</th><th>Padding</th><th>Font-size</th><th>Usage</th></tr></thead>
+            <tbody>
+              <tr><td>sm</td><td class="code">.btn-sm</td><td class="code">5px 13px</td><td class="code">12px</td><td style="font-size:11px;color:var(--texte-tertiaire)">Actions dans tableaux, barres denses</td></tr>
+              <tr><td>md <em style="font-size:10px;color:var(--texte-tertiaire)">(défaut)</em></td><td class="code">.btn</td><td class="code">8px 18px</td><td class="code">13px</td><td style="font-size:11px;color:var(--texte-tertiaire)">Actions principales dans formulaires, modales</td></tr>
+              <tr><td>lg</td><td class="code">.btn-lg</td><td class="code">11px 24px</td><td class="code">14px</td><td style="font-size:11px;color:var(--texte-tertiaire)">Call-to-action primaire, landing sections</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- États -->
+      <div class="subsection">
+        <div class="subsection-title">États interactifs — primary (tous états visibles simultanément)</div>
+        <div class="demo-box">
+          <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:20px;">
+            <div>
+              <span class="state-label">Repos (default)</span>
+              <button class="btn btn-primary">Enregistrer patient</button>
+            </div>
+            <div>
+              <span class="state-label">Hover (survolé)</span>
+              <button class="btn btn-primary" style="background:var(--ap-500);box-shadow:var(--ombre-2);">Enregistrer patient</button>
+            </div>
+            <div>
+              <span class="state-label">Focus (clavier)</span>
+              <button class="btn btn-primary" style="outline:2px solid var(--ap-400);outline-offset:3px;">Enregistrer patient</button>
+            </div>
+            <div>
+              <span class="state-label">Actif (appui)</span>
+              <button class="btn btn-primary" style="transform:scale(0.975);background:var(--ap-600);">Enregistrer patient</button>
+            </div>
+            <div>
+              <span class="state-label">Désactivé (disabled)</span>
+              <button class="btn btn-primary" disabled>Enregistrer patient</button>
+            </div>
+            <div>
+              <span class="state-label">Chargement (loading)</span>
+              <button class="btn btn-primary btn-loading">
+                <div class="btn-spinner"></div>
+                Enregistrement…
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Boutons icône seule -->
+      <div class="subsection">
+        <div class="subsection-title">Boutons icône seule &amp; avec indicateur</div>
+        <div class="demo-box">
+          <div class="btn-row">
+            <button class="btn btn-primary" style="padding:8px 10px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+            </button>
+            <button class="btn btn-outline" style="padding:7px 9px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            </button>
+            <button class="btn btn-ghost" style="padding:7px 9px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+            </button>
+            <div style="width:1px;height:28px;background:var(--bordure-normale);"></div>
+            <button class="btn btn-primary" style="position:relative;padding:8px 18px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              Alertes
+              <span style="position:absolute;top:-6px;right:-6px;background:var(--erreur-accent);color:#fff;font-size:9px;font-weight:700;min-width:17px;height:17px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid var(--fond-surface);">3</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         §2 — FORMULAIRES
+    ═══════════════════════════════════════════════════════════════ -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-num">Section 02</div>
+        <div class="section-title">Formulaires</div>
+        <div class="section-desc">Tous les champs partagent le même fond <span class="code">--fond-input</span>, le même border-radius xs (4px), et la même transition focus (outline bleu ardoise + shadow 3px). Les états d'erreur et de succès utilisent les couleurs sémantiques avec bordure colorée.</div>
+      </div>
+
+      <!-- Inputs texte -->
+      <div class="subsection">
+        <div class="subsection-title">Champs texte — tous états</div>
+        <div class="demo-box">
+          <div class="form-grid">
+            <div class="field-group">
+              <label class="field-label">Nom du patient <span class="required">*</span></label>
+              <input class="input" type="text" placeholder="Ex : Moukouri Jean-Baptiste">
+              <span class="field-hint">Tel que figurant sur la pièce d'identité</span>
+            </div>
+            <div class="field-group">
+              <label class="field-label">Numéro de dossier</label>
+              <div class="field-wrap">
+                <span class="field-icon-left">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                </span>
+                <input class="input input-icon-l" type="text" placeholder="SARIS-2025-00001">
+              </div>
+            </div>
+            <div class="field-group">
+              <label class="field-label">Téléphone</label>
+              <div class="field-wrap">
+                <span class="field-icon-left">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 8.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                </span>
+                <input class="input input-icon-l input-success" type="text" value="+242 06 123 45 67">
+                <span class="field-icon-right">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--succes-accent)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                </span>
+              </div>
+              <span class="field-message success">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                Numéro vérifié
+              </span>
+            </div>
+            <div class="field-group">
+              <label class="field-label">Date de naissance <span class="required">*</span></label>
+              <div class="field-wrap">
+                <span class="field-icon-left">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                </span>
+                <input class="input input-icon-l input-error" type="text" value="32/14/1990">
+              </div>
+              <span class="field-message error">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                Date invalide — format attendu JJ/MM/AAAA
+              </span>
+            </div>
+            <div class="field-group">
+              <label class="field-label">Champ désactivé</label>
+              <input class="input" type="text" value="Moutela — Site principal" disabled>
+              <span class="field-hint">Modifiable uniquement par un administrateur</span>
+            </div>
+            <div class="field-group">
+              <label class="field-label">Spécialité médicale</label>
+              <div class="field-wrap">
+                <select class="input">
+                  <option>Médecine générale</option>
+                  <option>Pédiatrie</option>
+                  <option>Gynécologie</option>
+                  <option>Chirurgie</option>
+                </select>
+                <span class="field-icon-right" style="pointer-events:none;">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Textarea -->
+      <div class="subsection">
+        <div class="subsection-title">Zone de texte — notes cliniques</div>
+        <div class="demo-box">
+          <div class="field-group" style="max-width:600px;">
+            <label class="field-label">Observations cliniques <span class="required">*</span></label>
+            <textarea class="input" placeholder="Décrire les symptômes observés, l'anamnèse, les antécédents pertinents…" style="min-height:100px;"></textarea>
+            <div style="display:flex;justify-content:space-between;">
+              <span class="field-hint">Minimum 50 caractères. Champ archivé dans le dossier patient.</span>
+              <span class="field-hint">0 / 2000</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Checkbox / Radio / Toggle -->
+      <div class="subsection">
+        <div class="subsection-title">Contrôles de sélection</div>
+        <div class="demo-box">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:28px;">
+            <div>
+              <span class="state-label">Cases à cocher</span>
+              <div class="check-group">
+                <label class="check-item checked" onclick="toggleCheck(this)">
+                  <div class="check-box">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                  <div>
+                    <div class="check-label">Consentement signé</div>
+                    <div class="check-desc">Formulaire en dossier physique</div>
+                  </div>
+                </label>
+                <label class="check-item" onclick="toggleCheck(this)">
+                  <div class="check-box">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                  <div>
+                    <div class="check-label">Allergie connue</div>
+                    <div class="check-desc">Préciser dans les notes</div>
+                  </div>
+                </label>
+                <label class="check-item checked" onclick="toggleCheck(this)">
+                  <div class="check-box">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                  <div>
+                    <div class="check-label">Vaccination à jour</div>
+                  </div>
+                </label>
+              </div>
+            </div>
+            <div>
+              <span class="state-label">Boutons radio</span>
+              <div class="check-group" id="radio-group">
+                <label class="check-item checked" onclick="selectRadio(this)">
+                  <div class="radio-box"><div class="radio-dot"></div></div>
+                  <div class="check-label">Moutela</div>
+                </label>
+                <label class="check-item" onclick="selectRadio(this)">
+                  <div class="radio-box"><div class="radio-dot"></div></div>
+                  <div class="check-label">Nkayi</div>
+                </label>
+                <label class="check-item" onclick="selectRadio(this)">
+                  <div class="radio-box"><div class="radio-dot"></div></div>
+                  <div class="check-label">Consultation externe</div>
+                </label>
+              </div>
+            </div>
+            <div>
+              <span class="state-label">Interrupteurs toggle</span>
+              <div class="check-group">
+                <div class="toggle-wrap" onclick="toggleSwitch(this)">
+                  <div class="toggle-track on"><div class="toggle-thumb"></div></div>
+                  <span class="toggle-lbl">Alertes SMS activées</span>
+                </div>
+                <div class="toggle-wrap" onclick="toggleSwitch(this)">
+                  <div class="toggle-track"><div class="toggle-thumb"></div></div>
+                  <span class="toggle-lbl">Rappels automatiques</span>
+                </div>
+                <div class="toggle-wrap" onclick="toggleSwitch(this)">
+                  <div class="toggle-track on"><div class="toggle-thumb"></div></div>
+                  <span class="toggle-lbl">Accès infirmiers</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         §3 — BADGES & TAGS
+    ═══════════════════════════════════════════════════════════════ -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-num">Section 03</div>
+        <div class="section-title">Badges &amp; Tags</div>
+        <div class="section-desc">Les badges communiquent un statut ou une catégorie. Les tags représentent des métadonnées attachées à un objet (patient, dossier) et peuvent être retirés. Grain discret (opacity 0.18) sur les badges colorés. Border-radius xs=4px obligatoire — aucun badge pill.</div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Badges sémantiques — statuts patients &amp; actes</div>
+        <div class="demo-box">
+          <div class="badge-row" style="margin-bottom:16px;">
+            <span class="badge badge-primary">
+              <div class="badge-dot badge-dot-info"></div>
+              En consultation
+            </span>
+            <span class="badge badge-success">
+              <div class="badge-dot badge-dot-success"></div>
+              Sorti guéri
+            </span>
+            <span class="badge badge-error">
+              <div class="badge-dot badge-dot-error"></div>
+              Urgence
+            </span>
+            <span class="badge badge-warning">
+              <div class="badge-dot badge-dot-warning"></div>
+              En attente
+            </span>
+            <span class="badge badge-info">
+              <div class="badge-dot badge-dot-info"></div>
+              Hospitalisé
+            </span>
+            <span class="badge badge-secondary">
+              <div class="badge-dot" style="background:var(--as-400);"></div>
+              VIP / Prioritaire
+            </span>
+            <span class="badge badge-neutral">Archivé</span>
+          </div>
+          <hr class="sep" style="margin:16px 0;">
+          <div class="badge-row">
+            <span class="badge badge-primary">Médecine générale</span>
+            <span class="badge badge-success">Pédiatrie</span>
+            <span class="badge badge-info">Gynécologie</span>
+            <span class="badge badge-warning">Chirurgie</span>
+            <span class="badge badge-neutral">Radiologie</span>
+            <span class="badge badge-secondary">Nkayi</span>
+            <span class="badge badge-primary">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              2025-S12
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Tags retirables — métadonnées dossier</div>
+        <div class="demo-box">
+          <div class="badge-row" id="tag-container">
+            <div class="tag">
+              Diabète type 2
+              <span class="tag-remove" onclick="removeTag(this)">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </span>
+            </div>
+            <div class="tag">
+              Hypertension
+              <span class="tag-remove" onclick="removeTag(this)">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </span>
+            </div>
+            <div class="tag">
+              Allergie pénicilline
+              <span class="tag-remove" onclick="removeTag(this)">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </span>
+            </div>
+            <div class="tag">
+              Paludisme récidivant
+              <span class="tag-remove" onclick="removeTag(this)">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </span>
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="addTag()" style="display:flex;align-items:center;gap:5px;">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Ajouter
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         §4 — AVATARS
+    ═══════════════════════════════════════════════════════════════ -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-num">Section 04</div>
+        <div class="section-title">Avatars</div>
+        <div class="section-desc">Les avatars identifient les personnes (médecins, infirmiers, patients) dans l'interface. Toujours circulaires (border-radius 50%). Initiales en fallback si pas de photo. Les indicateurs de présence (online/away/offline) sont reservés aux profils du personnel.</div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Tailles &amp; couleurs</div>
+        <div class="demo-box">
+          <div class="avatar-row" style="margin-bottom:20px;">
+            <div><span class="state-label" style="margin-bottom:8px;">xs — 24px</span>
+              <div class="avatar avatar-xs">MK</div></div>
+            <div><span class="state-label" style="margin-bottom:8px;">sm — 32px</span>
+              <div class="avatar avatar-sm">MK</div></div>
+            <div><span class="state-label" style="margin-bottom:8px;">md — 40px</span>
+              <div class="avatar avatar-md">MK</div></div>
+            <div><span class="state-label" style="margin-bottom:8px;">lg — 52px</span>
+              <div class="avatar avatar-lg">MK</div></div>
+            <div><span class="state-label" style="margin-bottom:8px;">xl — 64px</span>
+              <div class="avatar avatar-xl">MK</div></div>
+          </div>
+          <hr class="sep" style="margin:16px 0;">
+          <div class="avatar-row">
+            <div class="avatar avatar-md">MK</div>
+            <div class="avatar avatar-md avatar-gold">OB</div>
+            <div class="avatar avatar-md avatar-success">NC</div>
+            <div class="avatar avatar-md avatar-error">PL</div>
+            <div style="width:1px;height:40px;background:var(--bordure-normale);"></div>
+            <!-- Avec indicateur de présence -->
+            <div class="avatar-wrap">
+              <div class="avatar avatar-md">DR</div>
+              <div class="presence presence-online"></div>
+            </div>
+            <div class="avatar-wrap">
+              <div class="avatar avatar-md avatar-gold">IN</div>
+              <div class="presence presence-away"></div>
+            </div>
+            <div class="avatar-wrap">
+              <div class="avatar avatar-md avatar-success">SR</div>
+              <div class="presence presence-offline"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Stack d'avatars — équipe de soins</div>
+        <div class="demo-box">
+          <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+            <div>
+              <span class="state-label">Équipe Moutela — 5 membres</span>
+              <div class="avatar-stack">
+                <div class="avatar avatar-sm">MK</div>
+                <div class="avatar avatar-sm avatar-gold">OB</div>
+                <div class="avatar avatar-sm avatar-success">NC</div>
+                <div class="avatar avatar-sm avatar-error">PL</div>
+                <div class="avatar avatar-sm avatar-more">+2</div>
+              </div>
+            </div>
+            <div>
+              <span class="state-label">Équipe Nkayi — 3 membres</span>
+              <div class="avatar-stack">
+                <div class="avatar avatar-md">DR</div>
+                <div class="avatar avatar-md avatar-gold">IN</div>
+                <div class="avatar avatar-md avatar-success">SR</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         §5 — SÉPARATEURS
+    ═══════════════════════════════════════════════════════════════ -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-num">Section 05</div>
+        <div class="section-title">Séparateurs</div>
+        <div class="section-desc">3 variants d'intensité (légère / normale / forte) pour la séparation horizontale. Séparateur vertical pour les barres d'outils et les headers. Séparateur étiqueté pour les sections de formulaire.</div>
+      </div>
+
+      <div class="demo-box">
+        <div style="display:flex;flex-direction:column;gap:20px;">
+          <div>
+            <span class="state-label">Légère — <span class="code">--bordure-legere</span> — sections de contenu, cartes</span>
+            <hr class="sep">
+          </div>
+          <div>
+            <span class="state-label">Normale — <span class="code">--bordure-normale</span> — séparation entre zones</span>
+            <hr class="sep sep-normale">
+          </div>
+          <div>
+            <span class="state-label">Forte — <span class="code">--bordure-forte</span> — délimiteurs structurels</span>
+            <hr class="sep sep-forte">
+          </div>
+          <div>
+            <span class="state-label">Étiqueté — sections de formulaire</span>
+            <div class="sep-label-wrap">
+              <span class="sep-label">Informations administratives</span>
+            </div>
+          </div>
+          <div>
+            <span class="state-label">Vertical — barres d'outils, headers</span>
+            <div style="display:flex;align-items:center;gap:12px;height:32px;">
+              <button class="btn btn-ghost btn-sm">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="15 18 9 12 15 6"/></svg>
+                Retour
+              </button>
+              <div class="sep-vertical"></div>
+              <button class="btn btn-ghost btn-sm">Modifier</button>
+              <div class="sep-vertical"></div>
+              <button class="btn btn-ghost btn-sm">Imprimer</button>
+              <div class="sep-vertical"></div>
+              <button class="btn btn-danger btn-sm">Archiver</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         §6 — TOOLTIPS
+    ═══════════════════════════════════════════════════════════════ -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-num">Section 06</div>
+        <div class="section-title">Tooltips</div>
+        <div class="section-desc">Fond sombre en mode clair (<span class="code">--g-900</span>), fond moyen avec bordure en mode sombre (<span class="code">--g-800</span>). 4 positions (top, bottom, left, right). Caret triangulaire de 5px. Apparition à 150ms. Texte court, jamais plus de 2 lignes.</div>
+      </div>
+
+      <div class="demo-box">
+        <div class="tooltip-demo-zone">
+          <!-- Top -->
+          <div class="tooltip-anchor" style="margin-top:48px;">
+            <div class="tooltip-trigger">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              Groupe sanguin
+            </div>
+            <div class="tooltip-box tooltip-top">Obligatoire avant toute transfusion</div>
+          </div>
+
+          <!-- Bottom -->
+          <div class="tooltip-anchor" style="margin-bottom:48px;">
+            <div class="tooltip-trigger">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              Consentement
+            </div>
+            <div class="tooltip-box tooltip-bottom">Formulaire CF-02 requis</div>
+          </div>
+
+          <!-- Left -->
+          <div class="tooltip-anchor" style="margin-left:180px;">
+            <div class="tooltip-trigger">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              Dernier RDV
+            </div>
+            <div class="tooltip-box tooltip-left">12 mai 2026 — Dr. Moussavou</div>
+          </div>
+
+          <!-- Right -->
+          <div class="tooltip-anchor">
+            <div class="tooltip-trigger">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              Constantes
+            </div>
+            <div class="tooltip-box tooltip-right">Tension, pouls, température</div>
+          </div>
+        </div>
+
+        <div style="margin-top:24px;padding:12px 16px;background:var(--fond-surface-2);border-radius:var(--radius-sm);font-size:11px;color:var(--texte-tertiaire);">
+          <strong style="color:var(--texte-secondaire);">Règle d'apparition :</strong> delay 400ms au hover, 0ms au focus clavier. Disparition à 100ms. Animation : opacity 0 → 1 + translateY(4px → 0) pour tooltip-bottom, inverse pour tooltip-top.
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         RÈGLES ABSOLUES
+    ═══════════════════════════════════════════════════════════════ -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-num">Règles absolues</div>
+        <div class="section-title">Obligations &amp; Interdictions — Composants atomiques</div>
+        <div class="section-desc">Ces règles s'imposent à tous les développeurs et agents IA sur CMS SARIS Congo, sans exception.</div>
+      </div>
+      <div class="rules-grid">
+        <div class="rules-card ok">
+          <div class="rules-card-title">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Obligations
+          </div>
+          <div class="rule-item"><span>✓</span><span>Grain obligatoire sur tous les boutons solid via <code style="font-size:10px;background:var(--succes-fond);padding:0 3px;border-radius:2px;">::after</code> opacity 0.38 mix-blend-mode overlay.</span></div>
+          <div class="rule-item"><span>✓</span><span>Tous les champs de formulaire utilisent <code style="font-size:10px;background:var(--succes-fond);padding:0 3px;border-radius:2px;">--fond-input</code> comme fond et <code style="font-size:10px;background:var(--succes-fond);padding:0 3px;border-radius:2px;">--radius-xs</code> comme rayon.</span></div>
+          <div class="rule-item"><span>✓</span><span>Le focus-visible est toujours stylisé — outline 2px couleur d'accent + offset 3px — pour l'accessibilité clavier.</span></div>
+          <div class="rule-item"><span>✓</span><span>Les badges colorés portent le grain à opacity 0.18 maximum. Les tags sont toujours en fond neutre, jamais colorés.</span></div>
+          <div class="rule-item"><span>✓</span><span>Les avatars sont toujours circulaires (border-radius 50%). Les initiales sont en majuscules, police Inter 600.</span></div>
+          <div class="rule-item"><span>✓</span><span>Les tooltips apparaissent après 400ms de hover. Jamais d'information critique uniquement en tooltip — elle doit aussi exister dans le contenu.</span></div>
+        </div>
+        <div class="rules-card no">
+          <div class="rules-card-title">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            Interdictions absolues
+          </div>
+          <div class="rule-item"><span>✗</span><span>Aucun border-radius supérieur à 10px (--radius-lg) sur les boutons. Zéro bouton pill (border-radius 999px) dans toute l'interface.</span></div>
+          <div class="rule-item"><span>✗</span><span>Aucune couleur hardcodée — ni dans les boutons, ni dans les badges, ni dans les avatars. Tout via tokens CSS.</span></div>
+          <div class="rule-item"><span>✗</span><span>Pas de <code style="font-size:10px;background:var(--erreur-fond);padding:0 3px;border-radius:2px;">cursor: not-allowed</code> sans désactivation visuelle (opacity 0.40). Les deux vont ensemble.</span></div>
+          <div class="rule-item"><span>✗</span><span>Pas d'emoji ou d'icône ASCII dans les boutons, badges ou labels. Uniquement des SVG Lucide.</span></div>
+          <div class="rule-item"><span>✗</span><span>Les tooltips ne contiennent jamais d'éléments interactifs (liens, boutons). Ils sont en lecture seule.</span></div>
+          <div class="rule-item"><span>✗</span><span>Aucun badge avec border-radius 999px. Les badges médico-sociaux restent discrets et précis — 4px uniquement.</span></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    function toggleTheme() {
+      const html = document.documentElement;
+      const isDark = html.getAttribute('data-theme') === 'dark';
+      html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+      document.getElementById('toggle-label').textContent = isDark ? 'Mode sombre' : 'Mode clair';
+    }
+
+    function toggleCheck(el) {
+      el.classList.toggle('checked');
+    }
+
+    function selectRadio(el) {
+      const group = el.closest('#radio-group');
+      group.querySelectorAll('.check-item').forEach(i => i.classList.remove('checked'));
+      el.classList.add('checked');
+    }
+
+    function toggleSwitch(el) {
+      const track = el.querySelector('.toggle-track');
+      track.classList.toggle('on');
+    }
+
+    function removeTag(btn) {
+      btn.closest('.tag').remove();
+    }
+
+    const extraTags = ['Chirurgie cardio', 'VIH sous traitement', 'Suivi postnatal', 'Drepanocytose'];
+    let tagIdx = 0;
+    function addTag() {
+      const container = document.getElementById('tag-container');
+      const addBtn = container.querySelector('button');
+      if (tagIdx < extraTags.length) {
+        const tag = document.createElement('div');
+        tag.className = 'tag';
+        tag.innerHTML = `${extraTags[tagIdx++]}
+          <span class="tag-remove" onclick="removeTag(this)">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </span>`;
+        container.insertBefore(tag, addBtn);
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CG-03 · Espacements & Grilles — Charte Graphique CMS SARIS Congo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+
+    /* ═══════════════════════════════════════════════════════════════
+       TOKENS PARTAGÉS
+    ═══════════════════════════════════════════════════════════════ */
+    :root, [data-theme="light"] {
+      --fond-page:       #F4F6F8;
+      --fond-surface:    #FFFFFF;
+      --fond-surface-2:  #F0F2F5;
+      --fond-input:      #EAECF0;
+      --texte-primaire:   #0F172A;
+      --texte-secondaire: #475569;
+      --texte-tertiaire:  #94A3B8;
+      --bordure-legere: rgba(15,23,42,0.08);
+      --bordure-normale: rgba(15,23,42,0.14);
+      --bordure-forte:  rgba(15,23,42,0.28);
+      --ap-50:  #D6E8EF; --ap-100: #A8CCDA; --ap-200: #79AFBF;
+      --ap-300: #5B9BB0; --ap-400: #4E8BA4; --ap-500: #3D7A92;
+      --ap-600: #366680; --ap-700: #2A5269; --ap-800: #214A5E; --ap-900: #0F2F3D;
+      --as-400: #C99A2E; --as-50: #F6EBD2; --as-900: #4D3A08;
+      --succes-fond: #EAF3EC; --succes-texte: #2D6A3F; --succes-accent: #3D7A5E; --succes-bordure: rgba(45,106,63,0.2);
+      --erreur-fond: #F5EAEA; --erreur-texte: #7A2E2E; --erreur-accent: #9B4444; --erreur-bordure: rgba(122,46,46,0.2);
+      --avert-fond: #F5EEDF; --avert-texte: #6B4D1A; --avert-accent: #8A6A2A;
+      --info-fond: #E6EFF5; --info-texte: #2A4F6B; --info-accent: #3A6080;
+      --couleur-accent: var(--ap-400);
+      --couleur-accent-fond: var(--ap-50);
+      --couleur-accent-hover: var(--ap-500);
+      --radius-xs: 4px; --radius-sm: 6px; --radius-md: 8px; --radius-lg: 10px;
+    }
+    [data-theme="dark"] {
+      --fond-page:       #0D1117;
+      --fond-surface:    #161B22;
+      --fond-surface-2:  #1C2333;
+      --fond-input:      #21262D;
+      --texte-primaire:   #E6EDF3;
+      --texte-secondaire: #8B949E;
+      --texte-tertiaire:  #484F58;
+      --bordure-legere: rgba(230,237,243,0.08);
+      --bordure-normale: rgba(230,237,243,0.14);
+      --bordure-forte:  rgba(230,237,243,0.28);
+      --ap-50:  #0F2F3D; --ap-100: #214A5E; --ap-200: #2A5269;
+      --ap-300: #366680; --ap-400: #4E8BA4; --ap-500: #5B9BB0;
+      --ap-600: #79AFBF; --ap-700: #A8CCDA; --ap-800: #C8E0E9; --ap-900: #D6E8EF;
+      --as-400: #C99A2E; --as-50: #4D3A08; --as-900: #F6EBD2;
+      --succes-fond: #1A2E20; --succes-texte: #7EE2A0; --succes-accent: #56C47A; --succes-bordure: rgba(126,226,160,0.15);
+      --erreur-fond: #2E1A1A; --erreur-texte: #E2857E; --erreur-accent: #CC6060; --erreur-bordure: rgba(226,133,126,0.15);
+      --avert-fond: #2E2410; --avert-texte: #E2C07E; --avert-accent: #C9A23A;
+      --info-fond: #0F2030; --info-texte: #7EB5D6; --info-accent: #5E9FC0;
+      --couleur-accent: var(--ap-400);
+      --couleur-accent-fond: var(--ap-50);
+      --couleur-accent-hover: var(--ap-500);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       BASE
+    ═══════════════════════════════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      font-size: 14px; line-height: 1.6;
+      background: var(--fond-page); color: var(--texte-primaire);
+      transition: background 0.22s ease, color 0.22s ease;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       HEADER + NAV
+    ═══════════════════════════════════════════════════════════════ */
+    .page-header {
+      position: sticky; top: 0; z-index: 100;
+      border-bottom: 1px solid var(--bordure-legere); padding: 0 40px;
+    }
+    [data-theme="light"] .page-header { background: rgba(255,255,255,0.88); backdrop-filter: blur(14px); }
+    [data-theme="dark"]  .page-header { background: rgba(22,27,34,0.88);  backdrop-filter: blur(14px); }
+    .page-header-inner {
+      max-width: 1100px; margin: 0 auto; height: 54px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .header-left { display: flex; align-items: center; gap: 10px; }
+    .module-badge {
+      font-size: 10px; font-weight: 600; padding: 3px 9px;
+      border-radius: var(--radius-xs); background: var(--couleur-accent-fond);
+      color: var(--ap-800); letter-spacing: 0.06em; text-transform: uppercase;
+    }
+    [data-theme="dark"] .module-badge { background: var(--ap-100); color: var(--ap-700); }
+    .header-title-text { font-size: 13px; font-weight: 500; color: var(--texte-primaire); }
+    .header-sep { width: 1px; height: 16px; background: var(--bordure-normale); }
+    .header-sub { font-size: 12px; color: var(--texte-tertiaire); }
+    .toggle-btn {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--fond-surface-2); border: 1px solid var(--bordure-normale);
+      border-radius: var(--radius-sm); padding: 5px 12px; cursor: pointer;
+      font-family: 'Inter', sans-serif; font-size: 12px; color: var(--texte-secondaire);
+      transition: background 0.15s, color 0.15s;
+    }
+    .toggle-btn:hover { background: var(--fond-input); color: var(--texte-primaire); }
+    .modules-nav {
+      background: var(--fond-surface); border-bottom: 1px solid var(--bordure-legere);
+      padding: 0 40px; overflow-x: auto; scrollbar-width: none;
+    }
+    .modules-nav::-webkit-scrollbar { display: none; }
+    .modules-nav-inner {
+      max-width: 1100px; margin: 0 auto;
+      display: flex; align-items: center; gap: 2px; height: 40px;
+    }
+    .nav-link {
+      display: flex; align-items: center; gap: 5px; padding: 4px 10px;
+      border-radius: var(--radius-xs); font-size: 11px; font-weight: 500;
+      color: var(--texte-tertiaire); text-decoration: none; white-space: nowrap;
+      transition: background 0.13s, color 0.13s; border: 1px solid transparent;
+    }
+    .nav-link:hover { background: var(--fond-surface-2); color: var(--texte-secondaire); }
+    .nav-link.active { background: var(--couleur-accent-fond); color: var(--ap-700); border-color: var(--ap-200); }
+    [data-theme="dark"] .nav-link.active { background: var(--ap-100); color: var(--ap-600); border-color: var(--ap-300); }
+    .nav-num { font-size: 9px; font-weight: 700; opacity: 0.6; letter-spacing: 0.04em; }
+    .nav-sep { width: 1px; height: 14px; background: var(--bordure-legere); margin: 0 4px; flex-shrink: 0; }
+
+    /* ═══════════════════════════════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════════════════════════════ */
+    .main { max-width: 1100px; margin: 0 auto; padding: 48px 40px 96px; }
+    .module-hero {
+      background: var(--fond-surface); border: 1px solid var(--bordure-legere);
+      border-radius: var(--radius-lg); padding: 32px 36px; margin-bottom: 52px;
+      display: grid; grid-template-columns: 1fr 1px 1fr 1px 1fr;
+    }
+    .hero-col { padding: 0 28px; }
+    .hero-col:first-child { padding-left: 0; }
+    .hero-col:last-child  { padding-right: 0; }
+    .hero-divider { background: var(--bordure-legere); }
+    .hero-label { font-size: 10px; font-weight: 600; color: var(--ap-400); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
+    .hero-title { font-size: 14px; font-weight: 500; color: var(--texte-primaire); margin-bottom: 6px; }
+    .hero-body  { font-size: 12px; color: var(--texte-secondaire); line-height: 1.65; }
+    .section { margin-bottom: 60px; }
+    .section-header { margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--bordure-legere); }
+    .section-num   { font-size: 10px; font-weight: 600; color: var(--ap-400); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 5px; }
+    .section-title { font-size: 17px; font-weight: 500; color: var(--texte-primaire); margin-bottom: 6px; }
+    .section-desc  { font-size: 13px; color: var(--texte-secondaire); line-height: 1.65; max-width: 700px; }
+    .card { background: var(--fond-surface); border: 1px solid var(--bordure-legere); border-radius: var(--radius-lg); overflow: hidden; }
+    .two-col   { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .three-col { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
+    .note {
+      font-size: 11px; color: var(--texte-tertiaire); padding: 8px 12px;
+      background: var(--fond-surface-2); border-radius: var(--radius-xs);
+      border-left: 2px solid var(--ap-300); margin-top: 10px;
+    }
+    .rule-box { background: var(--fond-surface); border: 1px solid var(--bordure-legere); border-radius: var(--radius-lg); padding: 20px 22px; }
+    .rule-box-title { font-size: 13px; font-weight: 500; margin-bottom: 14px; }
+    .rule-item { display: flex; gap: 10px; align-items: flex-start; padding: 7px 0; border-bottom: 1px solid var(--bordure-legere); font-size: 12px; color: var(--texte-secondaire); line-height: 1.55; }
+    .rule-item:last-child { border-bottom: none; }
+    .ri { flex-shrink: 0; width: 16px; font-size: 12px; margin-top: 1px; }
+    .ri.ok { color: var(--succes-accent); }
+    .ri.no { color: var(--erreur-accent); }
+
+    /* ═══════════════════════════════════════════════════════════════
+       ÉCHELLE D'ESPACEMENT — VISUALISATION
+    ═══════════════════════════════════════════════════════════════ */
+    .space-scale {
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .space-row {
+      display: flex; align-items: center; gap: 16px;
+    }
+    .space-name {
+      font-size: 11px; font-family: 'Courier New', monospace;
+      color: var(--ap-400); font-weight: 600; min-width: 100px;
+    }
+    .space-bar-wrap {
+      display: flex; align-items: center; gap: 10px; flex: 1;
+    }
+    .space-bar {
+      background: var(--ap-400); border-radius: 2px; height: 20px;
+      opacity: 0.8; flex-shrink: 0;
+      position: relative;
+    }
+    .space-bar.principal { opacity: 1; outline: 2px solid var(--ap-400); outline-offset: 2px; }
+    .space-val {
+      font-size: 12px; font-weight: 500; color: var(--texte-primaire); min-width: 36px;
+    }
+    .space-use {
+      font-size: 11px; color: var(--texte-secondaire); flex: 1;
+    }
+    .space-token {
+      font-size: 10px; font-family: 'Courier New', monospace;
+      color: var(--texte-tertiaire); min-width: 120px; text-align: right;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       DÉMO ESPACEMENT — COMPOSANTS ANNOTÉS
+    ═══════════════════════════════════════════════════════════════ */
+    .annotated-card {
+      background: var(--fond-surface);
+      border: 1px solid var(--bordure-legere);
+      border-radius: var(--radius-lg);
+      position: relative;
+      overflow: visible;
+    }
+
+    /* Règles de mesure visuelles */
+    .ruler {
+      position: absolute;
+      background: rgba(78,139,164,0.25);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .ruler-label {
+      font-size: 9px; font-weight: 700;
+      color: var(--ap-600); background: var(--ap-50);
+      padding: 1px 4px; border-radius: 2px;
+      border: 1px solid var(--ap-200);
+      white-space: nowrap;
+    }
+    [data-theme="dark"] .ruler-label { background: var(--ap-100); color: var(--ap-700); border-color: var(--ap-300); }
+
+    /* ═══════════════════════════════════════════════════════════════
+       GRILLE LAYOUT — ZONES
+    ═══════════════════════════════════════════════════════════════ */
+    .layout-diagram {
+      background: var(--fond-surface-2);
+      border: 1px solid var(--bordure-legere);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      display: flex;
+      gap: 6px;
+      height: 420px;
+      overflow: hidden;
+    }
+
+    /* Sidebar */
+    .ld-sidebar {
+      width: 220px;
+      flex-shrink: 0;
+      background: var(--fond-surface);
+      border: 1px solid var(--bordure-legere);
+      border-radius: var(--radius-md);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .ld-sidebar-header {
+      padding: 14px 16px 10px;
+      border-bottom: 1px solid var(--bordure-legere);
+    }
+    .ld-logo-placeholder {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
+    }
+    .ld-logo-dot {
+      width: 24px; height: 24px; border-radius: 5px; background: var(--ap-400);
+      flex-shrink: 0;
+    }
+    .ld-logo-text { font-size: 13px; font-weight: 500; color: var(--texte-primaire); }
+    .ld-nav-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 8px; border-radius: 4px; margin-bottom: 2px;
+      font-size: 12px; color: var(--texte-secondaire);
+    }
+    .ld-nav-item.active {
+      background: var(--couleur-accent-fond);
+      color: var(--ap-700); font-weight: 500;
+    }
+    .ld-nav-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+    .ld-nav-group {
+      font-size: 9px; font-weight: 600; color: var(--texte-tertiaire);
+      text-transform: uppercase; letter-spacing: 0.09em;
+      padding: 8px 8px 4px;
+    }
+    .ld-sidebar-body { padding: 10px 10px; flex: 1; overflow: hidden; }
+
+    /* Main area */
+    .ld-main { flex: 1; display: flex; flex-direction: column; gap: 6px; overflow: hidden; }
+
+    /* Topbar */
+    .ld-topbar {
+      background: var(--fond-surface);
+      border: 1px solid var(--bordure-legere);
+      border-radius: var(--radius-md);
+      padding: 0 20px;
+      height: 48px;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .ld-breadcrumb { font-size: 12px; color: var(--texte-secondaire); display: flex; align-items: center; gap: 4px; }
+    .ld-bc-sep { color: var(--texte-tertiaire); }
+    .ld-bc-active { color: var(--texte-primaire); font-weight: 500; }
+    .ld-topbar-right { display: flex; align-items: center; gap: 8px; }
+    .ld-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--ap-400); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: #fff; }
+
+    /* Content zone */
+    .ld-content {
+      flex: 1;
+      background: var(--fond-surface);
+      border: 1px solid var(--bordure-legere);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      overflow: hidden;
+    }
+    .ld-content-title { font-size: 18px; font-weight: 500; color: var(--texte-primaire); margin-bottom: 16px; }
+    .ld-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 14px; }
+    .ld-stat { background: var(--fond-surface-2); border-radius: 6px; padding: 12px 14px; }
+    .ld-stat-label { font-size: 9px; font-weight: 600; color: var(--texte-tertiaire); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+    .ld-stat-value { font-size: 22px; font-weight: 500; color: var(--texte-primaire); }
+    .ld-mini-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    .ld-mini-table th { text-align: left; padding: 6px 8px; font-size: 9px; font-weight: 600; color: var(--texte-tertiaire); text-transform: uppercase; letter-spacing: 0.07em; border-bottom: 1px solid var(--bordure-legere); }
+    .ld-mini-table td { padding: 6px 8px; border-bottom: 1px solid var(--bordure-legere); color: var(--texte-secondaire); }
+    .ld-mini-table tr:last-child td { border-bottom: none; }
+
+    /* Annotations de zones */
+    .zone-label {
+      position: absolute;
+      font-size: 9px; font-weight: 700;
+      padding: 2px 6px; border-radius: 3px;
+      white-space: nowrap; pointer-events: none;
+      z-index: 10;
+    }
+    .zone-label.blue { background: rgba(78,139,164,0.15); color: var(--ap-600); border: 1px solid var(--ap-200); }
+    .zone-label.gold { background: rgba(201,154,46,0.12); color: #8A6A15; border: 1px solid rgba(201,154,46,0.3); }
+    [data-theme="dark"] .zone-label.gold { color: var(--as-400); border-color: rgba(201,154,46,0.25); }
+
+    /* Dimensions sidebar */
+    .dim-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 0; border-bottom: 1px solid var(--bordure-legere);
+    }
+    .dim-row:last-child { border-bottom: none; }
+    .dim-visual { flex-shrink: 0; }
+    .dim-name  { font-size: 12px; font-weight: 500; color: var(--texte-primaire); margin-bottom: 2px; }
+    .dim-value { font-size: 11px; font-family: 'Courier New', monospace; color: var(--ap-400); margin-bottom: 2px; }
+    .dim-use   { font-size: 11px; color: var(--texte-secondaire); }
+
+    /* Grille colonnes */
+    .col-grid-demo {
+      display: grid;
+      gap: 8px;
+      padding: 16px;
+      background: var(--fond-surface-2);
+      border-radius: var(--radius-md);
+    }
+    .col-cell {
+      background: var(--ap-50);
+      border: 1px solid var(--ap-200);
+      border-radius: 4px;
+      height: 40px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 600; color: var(--ap-700);
+    }
+    [data-theme="dark"] .col-cell { background: var(--ap-100); color: var(--ap-600); border-color: var(--ap-300); }
+
+    /* Token table */
+    .token-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .token-table th { text-align: left; padding: 9px 14px; font-size: 10px; font-weight: 600; color: var(--texte-tertiaire); text-transform: uppercase; letter-spacing: 0.09em; border-bottom: 1px solid var(--bordure-legere); background: var(--fond-surface-2); }
+    .token-table td { padding: 10px 14px; border-bottom: 1px solid var(--bordure-legere); vertical-align: middle; }
+    .token-table tr:last-child td { border-bottom: none; }
+    .token-table tr:hover td { background: var(--fond-surface-2); }
+    .token-table tr.hl td { background: var(--fond-surface-2); }
+    .t-name { font-family: 'Courier New', monospace; font-size: 11px; color: var(--ap-400); font-weight: 600; }
+    .t-val  { font-family: 'Courier New', monospace; font-size: 11px; color: var(--texte-primaire); }
+    .t-use  { font-size: 11px; color: var(--texte-secondaire); }
+
+  </style>
+</head>
+<body>
+
+<header class="page-header">
+  <div class="page-header-inner">
+    <div class="header-left">
+      <span class="module-badge">CG-03</span>
+      <span class="header-title-text">Espacements &amp; Grilles</span>
+      <span class="header-sep"></span>
+      <span class="header-sub">Charte Graphique · CMS SARIS Congo</span>
+    </div>
+    <button class="toggle-btn" onclick="toggleTheme()">
+      <span id="themeIcon">☾</span>
+      <span id="themeLabel">Mode sombre</span>
+    </button>
+  </div>
+</header>
+
+<nav class="modules-nav" aria-label="Navigation modules charte graphique">
+  <div class="modules-nav-inner">
+    <a href="CG-01_Couleurs_et_Tokens.html"        class="nav-link"><span class="nav-num">01</span> Couleurs &amp; Tokens</a>
+    <div class="nav-sep"></div>
+    <a href="CG-02_Typographie.html"                class="nav-link"><span class="nav-num">02</span> Typographie</a>
+    <div class="nav-sep"></div>
+    <a href="CG-03_Espacements_et_Grilles.html"     class="nav-link active"><span class="nav-num">03</span> Espacements &amp; Grilles</a>
+    <div class="nav-sep"></div>
+    <a href="CG-04_Effets_de_Surface.html"          class="nav-link"><span class="nav-num">04</span> Effets de Surface</a>
+    <div class="nav-sep"></div>
+    <a href="CG-05_Composants_Fondamentaux.html"    class="nav-link"><span class="nav-num">05</span> Composants Fondamentaux</a>
+    <div class="nav-sep"></div>
+    <a href="CG-06_Navigation_et_Structure.html"    class="nav-link"><span class="nav-num">06</span> Navigation &amp; Structure</a>
+    <div class="nav-sep"></div>
+    <a href="CG-07_Donnees_et_Contenu.html"         class="nav-link"><span class="nav-num">07</span> Données &amp; Contenu</a>
+    <div class="nav-sep"></div>
+    <a href="CG-08_Feedback_et_Communication.html"  class="nav-link"><span class="nav-num">08</span> Feedback &amp; Communication</a>
+    <div class="nav-sep"></div>
+    <a href="CG-09_Animations_et_Transitions.html"  class="nav-link"><span class="nav-num">09</span> Animations</a>
+    <div class="nav-sep"></div>
+    <a href="CG-10_Iconographie_et_Assets.html"     class="nav-link"><span class="nav-num">10</span> Iconographie</a>
+    <div class="nav-sep"></div>
+    <a href="CG-11_Etats_et_Accessibilite.html"     class="nav-link"><span class="nav-num">11</span> États &amp; Accessibilité</a>
+    <div class="nav-sep"></div>
+    <a href="CG-12_Recapitulatif_et_Regles.html"    class="nav-link"><span class="nav-num">12</span> Récapitulatif</a>
+  </div>
+</nav>
+
+<main class="main">
+
+  <!-- HERO -->
+  <div class="module-hero">
+    <div class="hero-col">
+      <p class="hero-label">Pourquoi</p>
+      <p class="hero-title">La respiration crée la clarté</p>
+      <p class="hero-body">Dans un CMS médical dense en données, l'espacement n'est pas du luxe — c'est un outil de sécurité. Un bon espacement réduit les erreurs de lecture entre deux lignes de tableau, distingue clairement les blocs de données, et guide l'œil sans effort.</p>
+    </div>
+    <div class="hero-divider"></div>
+    <div class="hero-col">
+      <p class="hero-label">Quoi</p>
+      <p class="hero-title">Unité de base 4px · échelle ×2 jusqu'à 64px · style aéré Linear</p>
+      <p class="hero-body">Tout espacement est un multiple de 4px. L'échelle couvre 12 niveaux de 2px à 64px. Le style général est aéré (style Linear/Vercel) : on préfère trop de respiration à pas assez. La grille de contenu est à 12 colonnes avec gouttières de 24px.</p>
+    </div>
+    <div class="hero-divider"></div>
+    <div class="hero-col">
+      <p class="hero-label">Comment</p>
+      <p class="hero-title">Tokens --espace-N · zones de layout nommées</p>
+      <p class="hero-body">Chaque valeur d'espacement est un token CSS (--espace-1 à --espace-16). Les zones du layout (sidebar, topbar, contenu, padding de page) ont toutes une valeur fixe nommée. Un développeur n'écrit jamais une valeur brute en px — il utilise le token.</p>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SECTION 01 · ÉCHELLE D'ESPACEMENT
+  ══════════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <p class="section-num">Section 01</p>
+      <h2 class="section-title">Échelle d'espacement — Unité de base 4px</h2>
+      <p class="section-desc">12 niveaux couvrent tous les contextes de l'interface. Le principe : tout multiple de 4. Les niveaux marqués ★ sont les plus utilisés — ils couvrent 80% des cas. Les niveaux extrêmes (2px, 64px) sont réservés à des usages très spécifiques.</p>
+    </div>
+
+    <div class="card" style="padding: 28px 32px;">
+      <div class="space-scale">
+
+        <div class="space-row">
+          <span class="space-name">--espace-px</span>
+          <div class="space-bar-wrap">
+            <div class="space-bar" style="width:2px; height:16px;"></div>
+            <span class="space-val">2px</span>
+            <span class="space-use">Séparateurs ultra-fins · traits de 1px en rendu HiDPI</span>
+          </div>
+          <span class="space-token">--espace-px</span>
+        </div>
+
+        <div class="space-row">
+          <span class="space-name">--espace-1</span>
+          <div class="space-bar-wrap">
+            <div class="space-bar" style="width:4px;"></div>
+            <span class="space-val">4px</span>
+            <span class="space-use">Gap entre icône et texte · espacement interne de badge · micro-gap</span>
+          </div>
+          <span class="space-token">--espace-1</span>
+        </div>
+
+        <div class="space-row">
+          <span class="space-name">--espace-2</span>
+          <div class="space-bar-wrap">
+            <div class="space-bar" style="width:8px;"></div>
+            <span class="space-val">8px</span>
+            <span class="space-use">Gap entre éléments d'une même ligne · padding horizontal de badge · espacement interne discret</span>
+          </div>
+          <span class="space-token">--espace-2</span>
+        </div>
+
+        <div class="space-row">
+          <span class="space-name">--espace-3 ★</span>
+          <div class="space-bar-wrap">
+            <div class="space-bar principal" style="width:12px;"></div>
+            <span class="space-val" style="font-weight:600;">12px</span>
+            <span class="space-use">Padding horizontal des boutons · padding interne des cellules de tableau · gap entre nav items</span>
+          </div>
+          <span class="space-token">--espace-3</span>
+        </div>
+
+        <div class="space-row">
+          <span class="space-name">--espace-4 ★</span>
+          <div class="space-bar-wrap">
+            <div class="space-bar principal" style="width:16px;"></div>
+            <span class="space-val" style="font-weight:600;">16px</span>
+            <span class="space-use">Padding interne des cartes (compact) · gap entre champs de formulaire · espacement de ligne de tableau</span>
+          </div>
+          <span class="space-token">--espace-4</span>
+        </div>
+
+        <div class="space-row">
+          <span class="space-name">--espace-5 ★</span>
+          <div class="space-bar-wrap">
+            <div class="space-bar principal" style="width:20px;"></div>
+            <span class="space-val" style="font-weight:600;">20px</span>
+            <span class="space-use">Padding horizontal des cartes · gap entre colonnes étroites · espacement entre éléments de liste</span>
+          </div>
+          <span class="space-token">--espace-5</span>
+        </div>
+
+        <div class="space-row">
+          <span class="space-name">--espace-6 ★</span>
+          <div class="space-bar-wrap">
+            <div class="space-bar principal" style="width:24px;"></div>
+            <span class="space-val" style="font-weight:600;">24px</span>
+            <span class="space-use">Gouttière de grille principale · padding interne des cartes standard · gap entre sections</span>
+          </div>
+          <span class="space-token">--espace-6</span>
+        </div>
+
+        <div class="space-row">
+          <span class="space-name">--espace-8 ★</span>
+          <div class="space-bar-wrap">
+            <div class="space-bar principal" style="width:32px;"></div>
+            <span class="space-val" style="font-weight:600;">32px</span>
+            <span class="space-use">Padding de section dans le contenu · gap entre cartes · marge sous les titres de section</span>
+          </div>
+          <span class="space-token">--espace-8</span>
+        </div>
+
+        <div class="space-row">
+          <span class="space-name">--espace-10</span>
+          <div class="space-bar-wrap">
+            <div class="space-bar" style="width:40px;"></div>
+            <span class="space-val">40px</span>
+            <span class="space-use">Padding horizontal des pages · marge entre modules visuels distincts</span>
+          </div>
+          <span class="space-token">--espace-10</span>
+        </div>
+
+        <div class="space-row">
+          <span class="space-name">--espace-12 ★</span>
+          <div class="space-bar-wrap">
+            <div class="space-bar principal" style="width:48px;"></div>
+            <span class="space-val" style="font-weight:600;">48px</span>
+            <span class="space-use">Padding vertical du contenu principal · espacement entre grandes sections de page</span>
+          </div>
+          <span class="space-token">--espace-12</span>
+        </div>
+
+        <div class="space-row">
+          <span class="space-name">--espace-14</span>
+          <div class="space-bar-wrap">
+            <div class="space-bar" style="width:56px;"></div>
+            <span class="space-val">56px</span>
+            <span class="space-use">Hauteur du header fixe · marge entre blocs de page majeurs</span>
+          </div>
+          <span class="space-token">--espace-14</span>
+        </div>
+
+        <div class="space-row">
+          <span class="space-name">--espace-16</span>
+          <div class="space-bar-wrap">
+            <div class="space-bar" style="width:64px;"></div>
+            <span class="space-val">64px</span>
+            <span class="space-use">Padding bas de page · marge en dessous du dernier élément de contenu</span>
+          </div>
+          <span class="space-token">--espace-16</span>
+        </div>
+
+      </div>
+    </div>
+    <div class="note">Règle fondamentale : tout espacement est un multiple de 4px. Si vous avez besoin d'un espacement de 10px, choisissez 8px ou 12px. Jamais de valeur impaire ou non-multiple de 4 dans le code.</div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SECTION 02 · TOKENS CSS COMPLETS
+  ══════════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <p class="section-num">Section 02</p>
+      <h2 class="section-title">Tokens CSS d'espacement — Variables de référence</h2>
+      <p class="section-desc">Ces tokens sont à déclarer dans le :root du projet. Ils s'utilisent à la place de toute valeur brute en px pour les margin, padding, gap et height de composants.</p>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <table class="token-table">
+          <thead>
+            <tr><th>Token</th><th>Valeur</th><th>Usage principal</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="t-name">--espace-px</td><td class="t-val">2px</td><td class="t-use">Séparateurs ultra-fins</td></tr>
+            <tr><td class="t-name">--espace-1</td><td class="t-val">4px</td><td class="t-use">Micro-gap · gap icône/texte</td></tr>
+            <tr class="hl"><td class="t-name">--espace-2</td><td class="t-val">8px</td><td class="t-use">Gap intra-composant</td></tr>
+            <tr><td class="t-name">--espace-3</td><td class="t-val">12px</td><td class="t-use">Padding bouton · cellule tableau</td></tr>
+            <tr class="hl"><td class="t-name">--espace-4</td><td class="t-val">16px</td><td class="t-use">Padding carte compact · gap formulaire</td></tr>
+            <tr><td class="t-name">--espace-5</td><td class="t-val">20px</td><td class="t-use">Padding horizontal carte</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <table class="token-table">
+          <thead>
+            <tr><th>Token</th><th>Valeur</th><th>Usage principal</th></tr>
+          </thead>
+          <tbody>
+            <tr class="hl"><td class="t-name">--espace-6</td><td class="t-val">24px</td><td class="t-use">Gouttière · padding carte standard</td></tr>
+            <tr><td class="t-name">--espace-7</td><td class="t-val">28px</td><td class="t-use">Padding interne de hero block</td></tr>
+            <tr class="hl"><td class="t-name">--espace-8</td><td class="t-val">32px</td><td class="t-use">Gap entre cartes · marge sous titres</td></tr>
+            <tr><td class="t-name">--espace-10</td><td class="t-val">40px</td><td class="t-use">Padding horizontal de page</td></tr>
+            <tr class="hl"><td class="t-name">--espace-12</td><td class="t-val">48px</td><td class="t-use">Padding vertical contenu</td></tr>
+            <tr><td class="t-name">--espace-14</td><td class="t-val">56px</td><td class="t-use">Hauteur header fixe</td></tr>
+            <tr><td class="t-name">--espace-16</td><td class="t-val">64px</td><td class="t-use">Padding bas de page</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SECTION 03 · ZONES DE LAYOUT
+  ══════════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <p class="section-num">Section 03</p>
+      <h2 class="section-title">Zones de layout — Structure de l'écran CMS SARIS</h2>
+      <p class="section-desc">L'écran est divisé en 4 zones permanentes. Chaque zone a des dimensions fixes et immuables. Elles constituent l'ossature de toutes les pages du CMS.</p>
+    </div>
+
+    <div style="position:relative; margin-bottom:20px;">
+      <div class="layout-diagram">
+        <!-- SIDEBAR -->
+        <div class="ld-sidebar">
+          <div class="ld-sidebar-header">
+            <div class="ld-logo-placeholder">
+              <div class="ld-logo-dot"></div>
+              <span class="ld-logo-text">CMS SARIS</span>
+            </div>
+          </div>
+          <div class="ld-sidebar-body">
+            <p class="ld-nav-group">Principal</p>
+            <div class="ld-nav-item active">
+              <div class="ld-nav-dot" style="background:var(--ap-400);"></div>
+              Dossier Patient
+            </div>
+            <div class="ld-nav-item">
+              <div class="ld-nav-dot" style="background:var(--texte-tertiaire);"></div>
+              Accueil &amp; Triage
+            </div>
+            <div class="ld-nav-item">
+              <div class="ld-nav-dot" style="background:var(--texte-tertiaire);"></div>
+              Pharmacie
+            </div>
+            <div class="ld-nav-item">
+              <div class="ld-nav-dot" style="background:var(--texte-tertiaire);"></div>
+              Actes Prescrits
+            </div>
+            <p class="ld-nav-group" style="margin-top:8px;">Gestion</p>
+            <div class="ld-nav-item">
+              <div class="ld-nav-dot" style="background:var(--texte-tertiaire);"></div>
+              Personnel
+            </div>
+            <div class="ld-nav-item">
+              <div class="ld-nav-dot" style="background:var(--texte-tertiaire);"></div>
+              Statistiques
+            </div>
+            <div class="ld-nav-item">
+              <div class="ld-nav-dot" style="background:var(--texte-tertiaire);"></div>
+              Administration
+            </div>
+          </div>
+        </div>
+
+        <!-- MAIN -->
+        <div class="ld-main">
+          <!-- TOPBAR -->
+          <div class="ld-topbar">
+            <div class="ld-breadcrumb">
+              <span>CMS Moutela</span>
+              <span class="ld-bc-sep">/</span>
+              <span>Dossier Patient</span>
+              <span class="ld-bc-sep">/</span>
+              <span class="ld-bc-active">Loubaki Jean-Pierre</span>
+            </div>
+            <div class="ld-topbar-right">
+              <div style="width:28px; height:28px; border-radius:4px; background:var(--fond-surface-2); border:1px solid var(--bordure-legere); display:flex; align-items:center; justify-content:center;">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="var(--texte-tertiaire)" stroke-width="1.2"/><path d="M7 4.5V7.5M7 9V9.5" stroke="var(--texte-tertiaire)" stroke-width="1.2" stroke-linecap="round"/></svg>
+              </div>
+              <div class="ld-avatar">MB</div>
+            </div>
+          </div>
+
+          <!-- CONTENT -->
+          <div class="ld-content">
+            <p class="ld-content-title">Dossier Patient</p>
+            <div class="ld-grid">
+              <div class="ld-stat">
+                <p class="ld-stat-label">Consultations</p>
+                <p class="ld-stat-value">12</p>
+              </div>
+              <div class="ld-stat">
+                <p class="ld-stat-label">Prescriptions</p>
+                <p class="ld-stat-value">8</p>
+              </div>
+              <div class="ld-stat">
+                <p class="ld-stat-label">Dernier acte</p>
+                <p class="ld-stat-value" style="font-size:16px;">15 mai</p>
+              </div>
+            </div>
+            <table class="ld-mini-table">
+              <thead><tr><th>Date</th><th>Médecin</th><th>Motif</th><th>Site</th></tr></thead>
+              <tbody>
+                <tr><td>15 mai 2026</td><td>Dr. Mbemba</td><td>Douleurs lombaires</td><td>Moutela</td></tr>
+                <tr><td>02 avr. 2026</td><td>Dr. Loubaki</td><td>Contrôle tension</td><td>Nkayi</td></tr>
+                <tr><td>18 jan. 2026</td><td>Dr. Mbemba</td><td>Consultation générale</td><td>Moutela</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dimensions des zones -->
+    <div class="card" style="margin-top:16px;">
+      <table class="token-table">
+        <thead>
+          <tr><th>Zone</th><th>Largeur</th><th>Hauteur</th><th>Token</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="font-size:12px; font-weight:500; color:var(--texte-primaire);">Sidebar</td>
+            <td class="t-val">240px</td>
+            <td class="t-val">100vh</td>
+            <td class="t-name">--layout-sidebar-width</td>
+            <td class="t-use">Fixe, non redimensionnable. Glassmorphism. Scroll interne si contenu dépasse. Collapsible en 56px (icônes seules) sur demande utilisateur.</td>
+          </tr>
+          <tr class="hl">
+            <td style="font-size:12px; font-weight:500; color:var(--texte-primaire);">Topbar</td>
+            <td class="t-val">100% (flex)</td>
+            <td class="t-val">54px</td>
+            <td class="t-name">--layout-topbar-height</td>
+            <td class="t-use">Fixe en haut de la zone de contenu. Contient breadcrumb, actions contextuelles, avatar utilisateur. Fond surface + blur.</td>
+          </tr>
+          <tr>
+            <td style="font-size:12px; font-weight:500; color:var(--texte-primaire);">Zone de contenu</td>
+            <td class="t-val">calc(100vw - 240px)</td>
+            <td class="t-val">calc(100vh - 54px)</td>
+            <td class="t-name">--layout-content-area</td>
+            <td class="t-use">Zone principale scrollable. Padding interne : 48px vertical, 40px horizontal. Max-width interne : 1100px centré.</td>
+          </tr>
+          <tr class="hl">
+            <td style="font-size:12px; font-weight:500; color:var(--texte-primaire);">Max-width contenu</td>
+            <td class="t-val">1100px</td>
+            <td class="t-val">—</td>
+            <td class="t-name">--layout-max-width</td>
+            <td class="t-use">Largeur maximale du contenu centré à l'intérieur de la zone de contenu. Au-delà, les marges s'élargissent.</td>
+          </tr>
+          <tr>
+            <td style="font-size:12px; font-weight:500; color:var(--texte-primaire);">Nav secondaire (modules)</td>
+            <td class="t-val">100%</td>
+            <td class="t-val">40px</td>
+            <td class="t-name">--layout-subnav-height</td>
+            <td class="t-use">Barre de navigation entre sous-modules (ex : charte graphique). Fond surface, scroll horizontal invisible.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SECTION 04 · GRILLE DE CONTENU
+  ══════════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <p class="section-num">Section 04</p>
+      <h2 class="section-title">Grille de contenu — 12 colonnes &amp; gouttières</h2>
+      <p class="section-desc">La grille de contenu est à 12 colonnes avec des gouttières de 24px (--espace-6). Elle s'applique à l'intérieur de la zone de contenu. Les dispositions courantes sont 1, 2, 3, 4 ou 6 colonnes selon les besoins.</p>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:16px;">
+
+      <!-- 12 colonnes -->
+      <div>
+        <p style="font-size:11px; font-weight:600; color:var(--texte-tertiaire); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">12 colonnes — Grille de base (gouttière 24px)</p>
+        <div class="col-grid-demo" style="grid-template-columns:repeat(12,1fr);">
+          <div class="col-cell">1</div><div class="col-cell">2</div>
+          <div class="col-cell">3</div><div class="col-cell">4</div>
+          <div class="col-cell">5</div><div class="col-cell">6</div>
+          <div class="col-cell">7</div><div class="col-cell">8</div>
+          <div class="col-cell">9</div><div class="col-cell">10</div>
+          <div class="col-cell">11</div><div class="col-cell">12</div>
+        </div>
+      </div>
+
+      <!-- Usages courants -->
+      <div class="three-col">
+
+        <div>
+          <p style="font-size:11px; font-weight:600; color:var(--texte-tertiaire); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">4 colonnes — Cartes KPI</p>
+          <div class="col-grid-demo" style="grid-template-columns:repeat(4,1fr);">
+            <div class="col-cell" style="height:60px; flex-direction:column; gap:4px; font-size:9px;">
+              <span style="font-size:18px; font-weight:500;">147</span>Consult.
+            </div>
+            <div class="col-cell" style="height:60px; flex-direction:column; gap:4px; font-size:9px;">
+              <span style="font-size:18px; font-weight:500;">32</span>Prescr.
+            </div>
+            <div class="col-cell" style="height:60px; flex-direction:column; gap:4px; font-size:9px;">
+              <span style="font-size:18px; font-weight:500;">6</span>Urgences
+            </div>
+            <div class="col-cell" style="height:60px; flex-direction:column; gap:4px; font-size:9px;">
+              <span style="font-size:18px; font-weight:500;">94%</span>Taux
+            </div>
+          </div>
+          <p style="font-size:10px; color:var(--texte-tertiaire); margin-top:6px;">--layout-grid-4 · gap: var(--espace-6)</p>
+        </div>
+
+        <div>
+          <p style="font-size:11px; font-weight:600; color:var(--texte-tertiaire); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">3 colonnes — Modules dashboard</p>
+          <div class="col-grid-demo" style="grid-template-columns:repeat(3,1fr);">
+            <div class="col-cell" style="height:72px; font-size:10px;">Dossier<br>patient</div>
+            <div class="col-cell" style="height:72px; font-size:10px;">Stock<br>pharmacie</div>
+            <div class="col-cell" style="height:72px; font-size:10px;">Planning<br>personnel</div>
+          </div>
+          <p style="font-size:10px; color:var(--texte-tertiaire); margin-top:6px;">--layout-grid-3 · gap: var(--espace-6)</p>
+        </div>
+
+        <div>
+          <p style="font-size:11px; font-weight:600; color:var(--texte-tertiaire); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">2 colonnes — Vue détail</p>
+          <div class="col-grid-demo" style="grid-template-columns:1fr 1fr;">
+            <div class="col-cell" style="height:72px; font-size:10px;">Informations<br>patient</div>
+            <div class="col-cell" style="height:72px; font-size:10px;">Historique<br>consultations</div>
+          </div>
+          <p style="font-size:10px; color:var(--texte-tertiaire); margin-top:6px;">--layout-grid-2 · gap: var(--espace-6)</p>
+        </div>
+
+      </div>
+
+      <!-- Proportions spéciales -->
+      <div>
+        <p style="font-size:11px; font-weight:600; color:var(--texte-tertiaire); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">Proportions asymétriques — Vue liste + détail</p>
+        <div class="col-grid-demo" style="grid-template-columns:1fr 2fr;">
+          <div class="col-cell" style="height:56px; font-size:10px;">Liste (1fr)<br>Navigation</div>
+          <div class="col-cell" style="height:56px; font-size:10px;">Détail (2fr)<br>Contenu principal</div>
+        </div>
+        <p style="font-size:10px; color:var(--texte-tertiaire); margin-top:6px;">--layout-grid-1-2 · gap: var(--espace-6) · utilisé pour liste de patients + dossier ouvert</p>
+      </div>
+
+      <div>
+        <p style="font-size:11px; font-weight:600; color:var(--texte-tertiaire); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">1 colonne pleine largeur — Tableaux de données</p>
+        <div class="col-grid-demo" style="grid-template-columns:1fr;">
+          <div class="col-cell" style="height:40px; font-size:10px;">Tableau de consultations · Liste complète · Historique pharmacie</div>
+        </div>
+        <p style="font-size:10px; color:var(--texte-tertiaire); margin-top:6px;">Pleine largeur dans la zone de contenu · pas de colonne secondaire · max-width: --layout-max-width (1100px)</p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SECTION 05 · PADDING ET DENSITÉ DES COMPOSANTS
+  ══════════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <p class="section-num">Section 05</p>
+      <h2 class="section-title">Padding &amp; Densité des composants — Valeurs de référence</h2>
+      <p class="section-desc">Chaque type de composant a un padding standardisé. Ces valeurs garantissent la cohérence visuelle entre tous les écrans. Le style est aéré — en cas de doute, on choisit toujours la valeur plus généreuse.</p>
+    </div>
+
+    <div class="card">
+      <table class="token-table">
+        <thead>
+          <tr><th>Composant</th><th>Padding vertical</th><th>Padding horizontal</th><th>Token(s)</th><th>Justification</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="font-size:12px; font-weight:500; color:var(--texte-primaire);">Page de contenu</td>
+            <td class="t-val">48px</td>
+            <td class="t-val">40px</td>
+            <td class="t-name">--espace-12 / --espace-10</td>
+            <td class="t-use">Respiration généreuse — le contenu ne colle jamais aux bords</td>
+          </tr>
+          <tr class="hl">
+            <td style="font-size:12px; font-weight:500; color:var(--texte-primaire);">Carte standard</td>
+            <td class="t-val">20px</td>
+            <td class="t-val">24px</td>
+            <td class="t-name">--espace-5 / --espace-6</td>
+            <td class="t-use">Équilibre entre densité et lisibilité pour les cartes de données</td>
+          </tr>
+          <tr>
+            <td style="font-size:12px; font-weight:500; color:var(--texte-primaire);">Carte compacte (KPI)</td>
+            <td class="t-val">14px</td>
+            <td class="t-val">16px</td>
+            <td class="t-name">--espace-3.5 / --espace-4</td>
+            <td class="t-use">Cartes de statistiques sur tableau de bord — densité acceptable</td>
+          </tr>
+          <tr class="hl">
+            <td style="font-size:12px; font-weight:500; color:var(--texte-primaire);">Cellule de tableau</td>
+            <td class="t-val">10px</td>
+            <td class="t-val">14px</td>
+            <td class="t-name">--espace-2.5 / --espace-3.5</td>
+            <td class="t-use">Densité optimisée pour les tableaux de données — lisible sans être trop compact</td>
+          </tr>
+          <tr>
+            <td style="font-size:12px; font-weight:500; color:var(--texte-primaire);">Bouton standard</td>
+            <td class="t-val">7px</td>
+            <td class="t-val">16px</td>
+            <td class="t-name">--espace-1.75 / --espace-4</td>
+            <td class="t-use">Hauteur perçue ~36px — confortable sans être massif</td>
+          </tr>
+          <tr class="hl">
+            <td style="font-size:12px; font-weight:500; color:var(--texte-primaire);">Bouton compact</td>
+            <td class="t-val">4px</td>
+            <td class="t-val">10px</td>
+            <td class="t-name">--espace-1 / --espace-2.5</td>
+            <td class="t-use">Boutons dans les tableaux ou en contexte dense — hauteur ~28px</td>
+          </tr>
+          <tr>
+            <td style="font-size:12px; font-weight:500; color:var(--texte-primaire);">Champ de formulaire</td>
+            <td class="t-val">7px</td>
+            <td class="t-val">12px</td>
+            <td class="t-name">--espace-1.75 / --espace-3</td>
+            <td class="t-use">Cohérent avec le bouton standard — ligne de base alignée</td>
+          </tr>
+          <tr class="hl">
+            <td style="font-size:12px; font-weight:500; color:var(--texte-primaire);">Item de navigation sidebar</td>
+            <td class="t-val">6px</td>
+            <td class="t-val">10px</td>
+            <td class="t-name">--espace-1.5 / --espace-2.5</td>
+            <td class="t-use">Dense mais lisible — permet d'afficher 8 à 10 items sans scroll</td>
+          </tr>
+          <tr>
+            <td style="font-size:12px; font-weight:500; color:var(--texte-primaire);">Header de section</td>
+            <td class="t-val">0 bas · 16px bas</td>
+            <td class="t-val">—</td>
+            <td class="t-name">--espace-4</td>
+            <td class="t-use">Séparation claire entre le titre de section et le contenu</td>
+          </tr>
+          <tr class="hl">
+            <td style="font-size:12px; font-weight:500; color:var(--texte-primaire);">Gap entre sections de page</td>
+            <td class="t-val">60px</td>
+            <td class="t-val">—</td>
+            <td class="t-name">--espace-15</td>
+            <td class="t-use">Respiration majeure entre sections distinctes d'une même page</td>
+          </tr>
+          <tr>
+            <td style="font-size:12px; font-weight:500; color:var(--texte-primaire);">Sidebar (padding interne)</td>
+            <td class="t-val">10px</td>
+            <td class="t-val">10px</td>
+            <td class="t-name">--espace-2.5</td>
+            <td class="t-use">Dense — la sidebar doit contenir beaucoup d'items sans scroller</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SECTION 06 · BORDER RADIUS
+  ══════════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <p class="section-num">Section 06</p>
+      <h2 class="section-title">Border-radius — Arrondis discrets</h2>
+      <p class="section-desc">Les arrondis sont discrets et cohérents. Le principe est simple : plus un composant est petit, plus son arrondi est petit. Aucun style "pill" généralisé. Pas d'arrondi supérieur à 12px dans l'interface fonctionnelle.</p>
+    </div>
+
+    <div style="display:flex; gap:16px; flex-wrap:wrap; margin-bottom:20px;">
+
+      <div style="text-align:center; flex:1; min-width:100px;">
+        <div style="width:60px; height:60px; background:var(--ap-400); border-radius:4px; margin:0 auto 10px; display:flex; align-items:center; justify-content:center;">
+          <span style="font-size:9px; font-weight:700; color:#fff;">4px</span>
+        </div>
+        <p style="font-size:11px; font-weight:600; color:var(--texte-primaire);">--radius-xs</p>
+        <p style="font-family:monospace; font-size:10px; color:var(--ap-400);">4px</p>
+        <p style="font-size:10px; color:var(--texte-tertiaire); margin-top:4px; line-height:1.4;">Badges · tags · overlines de nav · séparateurs</p>
+      </div>
+
+      <div style="text-align:center; flex:1; min-width:100px;">
+        <div style="width:60px; height:60px; background:var(--ap-400); border-radius:6px; margin:0 auto 10px; display:flex; align-items:center; justify-content:center;">
+          <span style="font-size:9px; font-weight:700; color:#fff;">6px</span>
+        </div>
+        <p style="font-size:11px; font-weight:600; color:var(--texte-primaire);">--radius-sm</p>
+        <p style="font-family:monospace; font-size:10px; color:var(--ap-400);">6px</p>
+        <p style="font-size:10px; color:var(--texte-tertiaire); margin-top:4px; line-height:1.4;">Boutons · champs de formulaire · items de nav actif · selects</p>
+      </div>
+
+      <div style="text-align:center; flex:1; min-width:100px;">
+        <div style="width:60px; height:60px; background:var(--ap-400); border-radius:8px; margin:0 auto 10px; display:flex; align-items:center; justify-content:center;">
+          <span style="font-size:9px; font-weight:700; color:#fff;">8px</span>
+        </div>
+        <p style="font-size:11px; font-weight:600; color:var(--texte-primaire);">--radius-md</p>
+        <p style="font-family:monospace; font-size:10px; color:var(--ap-400);">8px</p>
+        <p style="font-size:10px; color:var(--texte-tertiaire); margin-top:4px; line-height:1.4;">Cartes standards · alertes inline · tooltips · selects larges</p>
+      </div>
+
+      <div style="text-align:center; flex:1; min-width:100px;">
+        <div style="width:60px; height:60px; background:var(--ap-400); border-radius:10px; margin:0 auto 10px; display:flex; align-items:center; justify-content:center;">
+          <span style="font-size:9px; font-weight:700; color:#fff;">10px</span>
+        </div>
+        <p style="font-size:11px; font-weight:600; color:var(--texte-primaire);">--radius-lg</p>
+        <p style="font-family:monospace; font-size:10px; color:var(--ap-400);">10px</p>
+        <p style="font-size:10px; color:var(--texte-tertiaire); margin-top:4px; line-height:1.4;">Cartes de module · panneaux · hero blocks · modales</p>
+      </div>
+
+      <div style="text-align:center; flex:1; min-width:100px;">
+        <div style="width:60px; height:60px; background:var(--ap-400); border-radius:50%; margin:0 auto 10px; display:flex; align-items:center; justify-content:center;">
+          <span style="font-size:9px; font-weight:700; color:#fff;">50%</span>
+        </div>
+        <p style="font-size:11px; font-weight:600; color:var(--texte-primaire);">--radius-full</p>
+        <p style="font-family:monospace; font-size:10px; color:var(--ap-400);">50%</p>
+        <p style="font-size:10px; color:var(--texte-tertiaire); margin-top:4px; line-height:1.4;">Avatars uniquement · indicateurs ronds · jamais pour les boutons</p>
+      </div>
+
+    </div>
+
+    <div class="note">Règle absolue : le border-radius minimum sur tout bouton est 4px (--radius-xs). Le style "pill" (border-radius: 9999px) est interdit sur les boutons — il n'est autorisé que sur les avatars et indicateurs circulaires.</div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SECTION 07 · RÈGLES ABSOLUES
+  ══════════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <p class="section-num">Section 07</p>
+      <h2 class="section-title">Règles absolues — Obligations &amp; Interdictions</h2>
+      <p class="section-desc">Ces règles s'appliquent à tous les composants et layouts du CMS SARIS Congo.</p>
+    </div>
+
+    <div class="two-col">
+      <div class="rule-box">
+        <p class="rule-box-title" style="color:var(--succes-accent);">Obligations</p>
+        <div class="rule-item"><span class="ri ok">✓</span><span>Tout espacement est un multiple de 4px — utiliser les tokens --espace-N. Jamais de valeur brute en px dans le code.</span></div>
+        <div class="rule-item"><span class="ri ok">✓</span><span>Le style d'espacement est aéré (style Linear) — en cas de doute entre deux valeurs, choisir la plus généreuse.</span></div>
+        <div class="rule-item"><span class="ri ok">✓</span><span>La sidebar est fixée à 240px. La topbar à 54px. Le contenu prend le reste. Ces dimensions ne changent pas selon le module.</span></div>
+        <div class="rule-item"><span class="ri ok">✓</span><span>La gouttière de grille est toujours 24px (--espace-6) entre les colonnes de contenu.</span></div>
+        <div class="rule-item"><span class="ri ok">✓</span><span>Le max-width du contenu est 1100px — le contenu est centré avec des marges auto au-delà.</span></div>
+        <div class="rule-item"><span class="ri ok">✓</span><span>Le border-radius minimum sur tout bouton est 4px. Les avatars sont les seuls éléments en border-radius: 50%.</span></div>
+      </div>
+      <div class="rule-box">
+        <p class="rule-box-title" style="color:var(--erreur-accent);">Interdictions</p>
+        <div class="rule-item"><span class="ri no">✗</span><span>Aucune valeur d'espacement hors de l'échelle (ex : 5px, 7px, 11px, 15px…) — uniquement les multiples de 4.</span></div>
+        <div class="rule-item"><span class="ri no">✗</span><span>Aucun style "pill" (border-radius: 9999px) sur les boutons — uniquement les avatars.</span></div>
+        <div class="rule-item"><span class="ri no">✗</span><span>Aucun border-radius supérieur à 12px dans l'interface fonctionnelle.</span></div>
+        <div class="rule-item"><span class="ri no">✗</span><span>Aucune largeur fixe pour la zone de contenu — elle est toujours calculée en soustrayant la sidebar.</span></div>
+        <div class="rule-item"><span class="ri no">✗</span><span>Ne jamais coller le contenu aux bords de la zone sans padding — le minimum est 24px de chaque côté.</span></div>
+        <div class="rule-item"><span class="ri no">✗</span><span>Aucune grille de plus de 4 colonnes pour les cartes KPI — au-delà, passer à 2 rangées de 4 ou réduire les colonnes.</span></div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  function toggleTheme() {
+    const html = document.documentElement;
+    const isDark = html.getAttribute('data-theme') === 'dark';
+    html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+    document.getElementById('themeLabel').textContent = isDark ? 'Mode sombre' : 'Mode clair';
+    document.getElementById('themeIcon').textContent  = isDark ? '☾' : '☀';
+  }
+</script>
+</body>
+</html>

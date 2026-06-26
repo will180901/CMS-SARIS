@@ -1,0 +1,27 @@
+{
+  "name": "@cms-saris/desktop",
+  "version": "1.4.0",
+  "private": true,
+  "description": "CMS SARIS — client de bureau Windows (centre médical SARIS-CONGO).",
+  "author": "Déo Cherel BOUWAYI MIKOUYA",
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "build:renderer": "pnpm --filter web build:desktop",
+    "build:main": "tsc -p tsconfig.json",
+    "build": "pnpm run build:renderer && pnpm run build:main && node scripts/copy-renderer.mjs",
+    "start": "electron .",
+    "dist": "pnpm run build && electron-builder --win",
+    "dist:unpacked": "pnpm run build && electron-builder --win --dir",
+    "clean": "node -e \"for (const d of ['dist-electron','app','release']) require('fs').rmSync(d,{recursive:true,force:true})\""
+  },
+  "dependencies": {
+    "electron-log": "^5.2.4",
+    "electron-updater": "^6.3.9"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
+    "sharp": "^0.34.5"
+  }
+}

@@ -1,0 +1,67 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# render.yaml — Mise en ligne CMS SARIS (modèle « ulamu »)
+#
+#   • cms-saris-api : API NestJS (serveur central)        → service web Node
+#   • cms-saris-web : site web React/Vite (PWA, public)   → site statique
+#
+# La base de données PostgreSQL est hébergée sur NEON (externe à Render) : la
+# variable DATABASE_URL doit être renseignée à la main (secret, sync:false).
+#
+# Le monorepo pnpm réel est dans CMS/APP/CMS-SARIS (rootDir) ; ce fichier vit à la
+# racine du dépôt git (lu par Render « New Blueprint »).
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  # ── 1) API centrale (NestJS) ───────────────────────────────────────────────
+  - type: web
+    name: cms-saris-api
+    runtime: node
+    region: frankfurt          # région la plus proche de l'Afrique centrale
+    plan: free                 # free = mise en veille après ~15 min d'inactivité.
+                               # Pour un central toujours actif → passer en 'starter'.
+    rootDir: CMS/APP/CMS-SARIS
+    # pnpm via npm (corepack de Node 20.18 a des clés de signature périmées → échec).
+    # --prod=false : garde les devDeps (nest CLI, tsc) nécessaires au build même si NODE_ENV=production.
+    buildCommand: npm install -g pnpm@9.15.9 && pnpm install --frozen-lockfile --prod=false && pnpm --filter @cms-saris/db exec prisma generate && pnpm --filter api build
+    # Les migrations sont appliquées à chaque déploiement (idempotent) puis l'API démarre.
+    startCommand: pnpm --filter @cms-saris/db exec prisma migrate deploy && node apps/api/dist/main.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 20.18.0
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL          # ← coller la chaîne de connexion NEON (secret)
+        sync: false
+      - key: JWT_SECRET            # ← coller (secret de prod généré)
+        sync: false
+      - key: JWT_EXPIRES_IN
+        value: 8h
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 7d
+      - key: TOTP_ENC_KEY          # ← coller (secret de prod) — NE JAMAIS changer après enrôlement 2FA
+        sync: false
+      - key: MESSAGE_ENC_KEY       # ← coller (secret de prod) — doit matcher le desktop
+        sync: false
+      - key: CORS_ORIGINS          # origine(s) du site web public autorisée(s)
+        value: https://cms-saris-web.onrender.com
+      - key: TRUST_PROXY           # derrière le proxy Render → vraie IP client
+        value: "true"
+
+  # ── 2) Site web public (React/Vite, PWA) ───────────────────────────────────
+  - type: web
+    name: cms-saris-web
+    runtime: static
+    rootDir: CMS/APP/CMS-SARIS
+    buildCommand: npm install -g pnpm@9.15.9 && pnpm install --frozen-lockfile --prod=false && pnpm --filter web exec vite build
+    staticPublishPath: apps/web/dist
+    # SPA : toutes les routes renvoient index.html (routage côté client).
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: NODE_VERSION
+        value: 20.18.0
+      - key: VITE_API_URL          # l'URL publique de l'API ci-dessus
+        value: https://cms-saris-api.onrender.com

@@ -1,0 +1,67 @@
+appId: cg.sariscongo.cms
+productName: CMS SARIS
+copyright: © 2026 Déo Cherel BOUWAYI MIKOUYA — SARIS-CONGO
+
+# ──────────────────────────────────────────────────────────────────────────────
+# CONFIG « MODE LOCAL » (offline-first : backend NestJS + SQLite embarqués).
+# À utiliser via `node scripts/build-local.mjs` (qui prépare build/api-runtime,
+# build/sqlite-client et build/seed.db AVANT d'appeler electron-builder avec CE fichier).
+# La config REMOTE par défaut reste `electron-builder.yml` (inchangée).
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Aucune dépendance native côté MAIN Electron (electron-log/updater = JS pur).
+npmRebuild: false
+buildDependenciesFromSource: false
+
+directories:
+  output: release
+  buildResources: build
+
+files:
+  - dist-electron/**/*
+  - app/**/*
+  - package.json
+
+# Le backend embarqué est FORKÉ depuis un fichier : il doit être un vrai fichier sur
+# disque (et non virtualisé dans l'archive asar) pour que child_process.fork le charge.
+asarUnpack:
+  - "dist-electron/backend-entry.js"
+
+# Backend NestJS compilé + node_modules à plat, client Prisma SQLite, base pré-migrée :
+# placés dans resources/ et résolus à l'exécution via process.resourcesPath (main.ts).
+extraResources:
+  - from: build/api-runtime
+    to: api            # → resources/api/dist/main.js  +  resources/api/node_modules
+  - from: build/sqlite-client
+    to: sqlite-client  # → resources/sqlite-client (client Prisma SQLite généré)
+  - from: build/seed.db
+    to: seed.db        # → resources/seed.db (base SQLite pré-migrée, copiée au 1er run)
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: build/icon.png
+  artifactName: ${productName}-Local-Setup-${version}.${ext}
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowElevation: false
+  allowToChangeInstallationDirectory: true
+  runAfterFinish: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: CMS SARIS
+  uninstallDisplayName: CMS SARIS (local) ${version}
+  deleteAppDataOnUninstall: true
+  installerSidebar: build/installerSidebar.bmp
+  uninstallerSidebar: build/uninstallerSidebar.bmp
+  installerHeader: build/installerHeader.bmp
+  include: build/installer.nsh
+
+publish:
+  - provider: github
+    owner: will180901
+    repo: CMS-SARIS-CONGO

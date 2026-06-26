@@ -1,0 +1,1429 @@
+// ⚠️ GÉNÉRÉ par scripts/gen-sqlite-schema.mjs — NE PAS ÉDITER. Source : ../schema.prisma
+
+generator client {
+  provider      = "prisma-client-js"
+  output        = "./generated"
+  binaryTargets = ["native", "windows"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// MODULE : SÉCURITÉ & AUDIT
+// ─────────────────────────────────────────────
+
+model Utilisateur {
+  deletedAt          DateTime?
+  id                 String       @id @default(uuid())
+  login              String       @unique
+  email              String       @unique
+  passwordHash       String
+  statut             String @default("ACTIF")
+  motDePasseTemp     Boolean      @default(false)
+  tentativesEchec    Int          @default(0)
+  blocageJusquA      DateTime?
+  blocageMinutes     Int          @default(0)
+  siteId             String
+  personnelMedicalId String?      @unique
+  lastSeenAt         DateTime? // présence : dernière activité (messagerie)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  createdBy          String?
+  updatedBy          String?
+
+  site                 Site                      @relation(fields: [siteId], references: [id])
+  personnelMedical     PersonnelMedical?         @relation(fields: [personnelMedicalId], references: [id])
+  roles                UtilisateurRole[]
+  permissionsOverrides UtilisateurPermission[]
+  sessions             SessionUtilisateur[]
+  configTotp           ConfigurationTotp?
+  preferences          PreferenceUtilisateur?
+  journauxAudit        JournalAudit[]
+  journauxAuth         JournalAuthentification[]
+  conversations        ConversationParticipant[]
+  messagesEnvoyes      Message[]
+
+  @@index([updatedAt])
+}
+
+// ── Préférences personnelles (par utilisateur, 1-1) ──────────────────────────
+// Réglages propres au compte connecté : affichage, langue, page d'accueil…
+// N'affectent QUE l'utilisateur, jamais le système.
+model PreferenceUtilisateur {
+  utilisateurId String    @id
+  theme         String    @default("auto") // clair | sombre | auto
+  densite       String    @default("confort") // confort | compact
+  langue        String    @default("fr") // fr | en
+  pageAccueil   String    @default("dashboard") // route après connexion
+  lignesParPage Int       @default(25) // pagination par défaut
+  notifEmail    Boolean   @default(true) // notifications par e-mail
+  notifApp      Boolean   @default(true) // notifications dans l'application (cloche)
+  cguAccepteeLe DateTime? // date d'acceptation des conditions d'utilisation
+  cguVersion    String? // version des CGU acceptée (re-demande si obsolète)
+  updatedAt     DateTime  @updatedAt
+
+  utilisateur Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+}
+
+// ── Notifications (système global → individuelles, temps réel) ───────────────────
+// Une notification est soit INDIVIDUELLE (destinataireId renseigné), soit une
+// DIFFUSION (destinataireId null) visible par les utilisateurs d'un site qui
+// possèdent `requiredPermission` (respect des rôles/permissions/confidentialité).
+// L'état « lu » est par-utilisateur via NotificationLecture (compatible diffusion).
+model Notification {
+  id                 String                @id @default(uuid())
+  createdAt          DateTime              @default(now())
+  destinataireId     String? // individuelle si renseigné
+  siteId             String? // diffusion : null = tous les sites (système global)
+  requiredPermission String? // diffusion : permission requise pour voir
+  type               String // VISITE_CREE, CONSULTATION_CLOTUREE, SYSTEME…
+  niveau             String                @default("INFO") // INFO | SUCCES | AVERTISSEMENT | CRITIQUE
+  titre              String
+  message            String
+  entiteType         String?
+  entiteId           String?
+  lien               String? // route frontend (navigation au clic)
+  createdById        String? // acteur à l'origine
+  lectures           NotificationLecture[]
+
+  @@index([destinataireId])
+  @@index([siteId])
+  @@index([createdAt])
+}
+
+model NotificationLecture {
+  updatedAt      DateTime     @default(now()) @updatedAt
+  id             String       @id @default(uuid())
+  notificationId String
+  utilisateurId  String
+  readAt         DateTime     @default(now())
+  masque         Boolean      @default(false) // « supprimée pour moi » : masquée du feed de cet utilisateur
+  notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+  @@unique([notificationId, utilisateurId])
+  @@index([updatedAt])
+  @@index([utilisateurId])
+}
+
+
+model Role {
+  updatedAt    DateTime          @default(now()) @updatedAt
+  id           String            @id @default(uuid())
+  code         String            @unique
+  libelle      String
+  utilisateurs UtilisateurRole[]
+  permissions  RolePermission[]
+
+  @@index([updatedAt])
+}
+
+model Permission {
+  updatedAt DateTime                @default(now()) @updatedAt
+  id        String                  @id @default(uuid())
+  code      String                  @unique
+  module    String
+  roles     RolePermission[]
+  overrides UtilisateurPermission[]
+
+  @@index([updatedAt])
+}
+
+// ── Dérogations de permission par utilisateur ────────────────────────────────
+// Permet d'accorder (GRANT) ou de retirer (REVOKE) une permission à UN
+// utilisateur précis, par-dessus ce que ses rôles lui confèrent.
+// Permissions effectives = (permissions des rôles ∪ GRANTs) − REVOKEs.
+// Contrainte : au plus une dérogation par (utilisateur, permission).
+model UtilisateurPermission {
+  id            String                 @id @default(uuid())
+  utilisateurId String
+  permissionId  String
+  mode          String
+  motif         String?
+  accordePar    String? // id de l'admin auteur de la dérogation
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+
+  utilisateur Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+  permission  Permission  @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([utilisateurId, permissionId])
+  @@index([utilisateurId])
+}
+
+
+model UtilisateurRole {
+  updatedAt     DateTime    @default(now()) @updatedAt
+  utilisateurId String
+  roleId        String
+  utilisateur   Utilisateur @relation(fields: [utilisateurId], references: [id])
+  role          Role        @relation(fields: [roleId], references: [id])
+
+  @@id([utilisateurId, roleId])
+  @@index([updatedAt])
+}
+
+model RolePermission {
+  updatedAt    DateTime   @default(now()) @updatedAt
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id])
+  permission   Permission @relation(fields: [permissionId], references: [id])
+
+  @@id([roleId, permissionId])
+  @@index([updatedAt])
+}
+
+model SessionUtilisateur {
+  id               String      @id @default(uuid())
+  utilisateurId    String
+  posteLocalId     String?
+  refreshTokenHash String
+  ipAdresse        String?
+  userAgent        String?
+  createdAt        DateTime    @default(now())
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  utilisateur      Utilisateur @relation(fields: [utilisateurId], references: [id])
+}
+
+model ConfigurationTotp {
+  id            String            @id @default(uuid())
+  utilisateurId String            @unique
+  secretChiffre String
+  actif         Boolean           @default(false)
+  activatedAt   DateTime?
+  utilisateur   Utilisateur       @relation(fields: [utilisateurId], references: [id])
+  codesSecours  CodeSecoursTotp[]
+}
+
+model CodeSecoursTotp {
+  id         String            @id @default(uuid())
+  configId   String
+  codeHash   String
+  utilise    Boolean           @default(false)
+  utilisedAt DateTime?
+  config     ConfigurationTotp @relation(fields: [configId], references: [id])
+}
+
+model JournalAudit {
+  id            String       @id @default(uuid())
+  utilisateurId String?
+  action        String
+  module        String
+  entiteType    String?
+  entiteId      String?
+  avantJson     Json?
+  apresJson     Json?
+  ipAdresse     String?
+  statut        String
+  createdAt     DateTime     @default(now())
+  utilisateur   Utilisateur? @relation(fields: [utilisateurId], references: [id])
+}
+
+model JournalAuthentification {
+  id            String       @id @default(uuid())
+  utilisateurId String?
+  login         String
+  resultat      String
+  ipAdresse     String?
+  userAgent     String?
+  createdAt     DateTime     @default(now())
+  utilisateur   Utilisateur? @relation(fields: [utilisateurId], references: [id])
+}
+
+model AlerteAnomalie {
+  id          String    @id @default(uuid())
+  type        String
+  message     String
+  statut      String    @default("OUVERTE")
+  investigPar String?
+  investigAt  DateTime?
+  commentaire String?
+  createdAt   DateTime  @default(now())
+}
+
+model ParametreSysteme {
+  id          String   @id @default(uuid())
+  cle         String   @unique
+  valeur      String
+  description String?
+  updatedAt   DateTime @updatedAt
+  updatedBy   String?
+}
+
+model SauvegardeSysteme {
+  id           String    @id @default(uuid())
+  type         String
+  statut       String
+  declenchePar String?
+  createdAt    DateTime  @default(now())
+  // Contenu réel de la sauvegarde : snapshot JSON de la CONFIGURATION
+  // (référentiels, rôles+permissions, paramètres). NULL pour les anciennes
+  // entrées (simulation) → non restaurables.
+  perimetre    String? // 'CONFIGURATION'
+  contenuJson  String? // snapshot JSON
+  taille       Int? // octets du snapshot
+  finishedAt   DateTime?
+  message      String?
+}
+
+// ─────────────────────────────────────────────
+// MODULE : RÉFÉRENTIELS
+// ─────────────────────────────────────────────
+
+model Site {
+  updatedAt    DateTime  @default(now()) @updatedAt
+  deletedAt    DateTime?
+  id           String    @id @default(uuid())
+  code         String    @unique
+  libelle      String
+  localisation String?
+  statut       String    @default("ACTIF")
+  createdAt    DateTime  @default(now())
+
+  utilisateurs Utilisateur[]
+  patients     Patient[]
+  visites      Visite[]
+
+  @@index([updatedAt])
+}
+
+model CategoriePatient {
+  updatedAt   DateTime                     @default(now()) @updatedAt
+  deletedAt   DateTime?
+  id          String                       @id @default(uuid())
+  code        String                       @unique
+  libelle     String
+  statut      String                       @default("ACTIVE")
+  droits      DroitCategoriePatient[]
+  patients    Patient[]
+  historiques HistoriqueCategoriePatient[]
+
+  @@index([updatedAt])
+}
+
+model DroitCategoriePatient {
+  updatedAt            DateTime         @default(now()) @updatedAt
+  id                   String           @id @default(uuid())
+  categorieId          String
+  typePrestation       String
+  couvert              Boolean          @default(true)
+  plafondConsultations Int?
+  periode              String?
+  categorie            CategoriePatient @relation(fields: [categorieId], references: [id])
+
+  @@index([updatedAt])
+}
+
+model MotifConsultation {
+  updatedAt DateTime  @default(now()) @updatedAt
+  deletedAt DateTime?
+  id        String    @id @default(uuid())
+  code      String    @unique
+  libelle   String
+  statut    String    @default("ACTIF")
+  visites   Visite[]
+
+  @@index([updatedAt])
+}
+
+model TypeConsultation {
+  updatedAt     DateTime       @default(now()) @updatedAt
+  deletedAt     DateTime?
+  id            String         @id @default(uuid())
+  code          String         @unique
+  libelle       String
+  statut        String         @default("ACTIF")
+  consultations Consultation[]
+
+  @@index([updatedAt])
+}
+
+model PathologieReference {
+  updatedAt   DateTime                 @default(now()) @updatedAt
+  deletedAt   DateTime?
+  id          String                   @id @default(uuid())
+  code        String                   @unique
+  libelle     String
+  chronique   Boolean                  @default(false)
+  statut      String                   @default("ACTIVE")
+  diagnostics DiagnosticConsultation[]
+  suivis      SuiviChronique[]
+
+  @@index([updatedAt])
+}
+
+model MedicamentReference {
+  updatedAt         DateTime                     @default(now()) @updatedAt
+  deletedAt         DateTime?
+  id                String                       @id @default(uuid())
+  nomGenerique      String
+  nomCommercial     String?
+  familleThera      String?
+  statut            String                       @default("ACTIF")
+  contreIndications ContreIndicationMedicament[]
+  lignesOrdonnance  LigneOrdonnance[]
+  lignesBonPharmacie LigneBonPharmacie[]
+
+  @@index([updatedAt])
+}
+
+model ContreIndicationMedicament {
+  updatedAt     DateTime            @default(now()) @updatedAt
+  id            String              @id @default(uuid())
+  medicamentId  String
+  condition     String
+  typeCondition String
+  gravite       String
+  medicament    MedicamentReference @relation(fields: [medicamentId], references: [id])
+
+  @@index([updatedAt])
+}
+
+model TypeExamen {
+  updatedAt DateTime      @default(now()) @updatedAt
+  deletedAt DateTime?
+  id        String        @id @default(uuid())
+  code      String        @unique
+  libelle   String
+  domaine   String
+  statut    String        @default("ACTIF")
+  lignes    LigneExamen[]
+
+  @@index([updatedAt])
+}
+
+model TypeCertificat {
+  updatedAt   DateTime            @default(now()) @updatedAt
+  deletedAt   DateTime?
+  id          String              @id @default(uuid())
+  code        String              @unique
+  libelle     String
+  modeleTexte String?
+  statut      String              @default("ACTIF")
+  certificats CertificatMedical[]
+
+  @@index([updatedAt])
+}
+
+model EtablissementReference {
+  updatedAt    DateTime     @default(now()) @updatedAt
+  deletedAt    DateTime?
+  id           String       @id @default(uuid())
+  nom          String
+  type         String
+  localisation String?
+  statut       String       @default("ACTIF")
+  evacuations  Evacuation[]
+
+  @@index([updatedAt])
+}
+
+model SocieteSousTraitante {
+  updatedAt     DateTime                   @default(now()) @updatedAt
+  deletedAt     DateTime?
+  id            String                     @id @default(uuid())
+  nom           String
+  statut        String                     @default("ACTIVE")
+  createdAt     DateTime                   @default(now())
+  rattachements RattachementSousTraitant[]
+
+  @@index([updatedAt])
+}
+
+// ─────────────────────────────────────────────
+// MODULE : ACTEURS ADMINISTRATIFS
+// ─────────────────────────────────────────────
+
+model PersonnelMedical {
+  updatedAt          DateTime                 @default(now()) @updatedAt
+  deletedAt          DateTime?
+  id                 String                   @id @default(uuid())
+  nom                String
+  prenom             String
+  matricule          String                   @unique
+  role               String
+  siteId             String?
+  statut             String                   @default("ACTIF")
+  createdAt          DateTime                 @default(now())
+  utilisateur        Utilisateur?
+  habilitations      HabilitationPersonnel[]
+  plannings          PlanningPermutation[]
+  presences          PresenceJournaliere[]
+  absences           AbsencePersonnel[]
+  delegationsDonnees DelegationPrescription[] @relation("DelegationDonneeParMedecin")
+  delegationsRecues  DelegationPrescription[] @relation("DelegationRecueParInfirmier")
+  consultations      Consultation[]
+
+  @@index([updatedAt])
+}
+
+model HabilitationPersonnel {
+  updatedAt   DateTime         @default(now()) @updatedAt
+  id          String           @id @default(uuid())
+  personnelId String
+  type        String
+  statut      String           @default("ACTIVE")
+  dateDebut   DateTime
+  dateFin     DateTime?
+  personnel   PersonnelMedical @relation(fields: [personnelId], references: [id])
+
+  @@index([updatedAt])
+}
+
+model PlanningPermutation {
+  updatedAt   DateTime         @default(now()) @updatedAt
+  deletedAt   DateTime?
+  id          String           @id @default(uuid())
+  personnelId String
+  siteId      String
+  dateDebut   DateTime
+  dateFin     DateTime
+  personnel   PersonnelMedical @relation(fields: [personnelId], references: [id])
+
+  @@index([updatedAt])
+}
+
+model PresenceJournaliere {
+  updatedAt   DateTime         @default(now()) @updatedAt
+  deletedAt   DateTime?
+  id          String           @id @default(uuid())
+  personnelId String
+  siteId      String
+  date        DateTime
+  present     Boolean
+  personnel   PersonnelMedical @relation(fields: [personnelId], references: [id])
+
+  @@index([updatedAt])
+}
+
+model AbsencePersonnel {
+  updatedAt   DateTime         @default(now()) @updatedAt
+  deletedAt   DateTime?
+  id          String           @id @default(uuid())
+  personnelId String
+  date        DateTime
+  motif       String
+  personnel   PersonnelMedical @relation(fields: [personnelId], references: [id])
+
+  @@index([updatedAt])
+}
+
+model DelegationPrescription {
+  updatedAt            DateTime                       @default(now()) @updatedAt
+  deletedAt            DateTime?
+  id                   String                         @id @default(uuid())
+  medecinChefId        String
+  infirmierId          String
+  dateDebut            DateTime
+  dateFin              DateTime
+  statut               String                         @default("ACTIVE")
+  perimetre            String?
+  medecinChef          PersonnelMedical               @relation("DelegationDonneeParMedecin", fields: [medecinChefId], references: [id])
+  infirmier            PersonnelMedical               @relation("DelegationRecueParInfirmier", fields: [infirmierId], references: [id])
+  medicamentsAutorises DelegationMedicamentAutorise[]
+  ordonnances          Ordonnance[]
+  consultations        Consultation[]
+
+  @@index([updatedAt])
+}
+
+model DelegationMedicamentAutorise {
+  updatedAt    DateTime               @default(now()) @updatedAt
+  id           String                 @id @default(uuid())
+  delegationId String
+  medicamentId String
+  delegation   DelegationPrescription @relation(fields: [delegationId], references: [id])
+
+  @@index([updatedAt])
+}
+
+// Registre des employés SARIS — main-d'œuvre des autres départements/services qui vient se
+// faire soigner au CMS. DISTINCT des utilisateurs/soignants du CMS (système séparé : Utilisateur
+// + PersonnelMedical) et des sociétés sous-traitantes. Construit DYNAMIQUEMENT à l'accueil
+// (reconnaissance par matricule). Un employé peut figurer ici SANS être patient (seul son ayant
+// droit vient) ou être lié à un patient (Patient.employeId) quand il vient lui-même.
+model EmployeSaris {
+  updatedAt     DateTime  @default(now()) @updatedAt
+  deletedAt     DateTime?
+  id            String    @id @default(uuid())
+  matricule     String    @unique
+  nom           String
+  prenom        String
+  dateNaissance DateTime?
+  sexe          String?
+  fonction      String?
+  sectionPaie   String?
+  service       String?
+  departement   String?
+  categorie     String    // ASSURE_CDI | ASSURE_CDD
+  statut        String    @default("ACTIF")
+  createdAt     DateTime  @default(now())
+  patients                Patient[]
+  rattachementsAyantDroit RattachementAyantDroitCdi[]
+
+  @@index([updatedAt])
+}
+
+model RattachementAyantDroitCdi {
+  updatedAt   DateTime                           @default(now()) @updatedAt
+  deletedAt   DateTime?
+  id          String                             @id @default(uuid())
+  patientId   String
+  cdiId       String?                            // (legacy) id du patient CDI rattaché — conservé pour compat
+  employeId   String?                            // CDI rattaché dans le registre des employés SARIS (nouveau modèle)
+  typeLien    String
+  statut      String                             @default("ACTIF")
+  dateDebut   DateTime
+  dateFin     DateTime?
+  historiques HistoriqueRattachementAyantDroit[]
+  patient     Patient                            @relation(fields: [patientId], references: [id])
+  employe     EmployeSaris?                      @relation(fields: [employeId], references: [id])
+
+  @@index([updatedAt])
+}
+
+model HistoriqueRattachementAyantDroit {
+  id             String                    @id @default(uuid())
+  rattachementId String
+  evenement      String
+  createdAt      DateTime                  @default(now())
+  createdBy      String?
+  rattachement   RattachementAyantDroitCdi @relation(fields: [rattachementId], references: [id])
+}
+
+model RattachementSousTraitant {
+  updatedAt   DateTime                             @default(now()) @updatedAt
+  deletedAt   DateTime?
+  id          String                               @id @default(uuid())
+  patientId   String
+  societeId   String
+  statut      String                               @default("ACTIF")
+  dateDebut   DateTime
+  dateFin     DateTime?
+  historiques HistoriqueRattachementSousTraitant[]
+  patient     Patient                              @relation(fields: [patientId], references: [id])
+  societe     SocieteSousTraitante                 @relation(fields: [societeId], references: [id])
+
+  @@index([updatedAt])
+}
+
+model HistoriqueRattachementSousTraitant {
+  id             String                   @id @default(uuid())
+  rattachementId String
+  evenement      String
+  createdAt      DateTime                 @default(now())
+  createdBy      String?
+  rattachement   RattachementSousTraitant @relation(fields: [rattachementId], references: [id])
+}
+
+// ─────────────────────────────────────────────
+// MODULE : DOSSIER PATIENT
+// ─────────────────────────────────────────────
+
+model Patient {
+  siteId             String?
+  deletedAt          DateTime?
+  id                 String        @id @default(uuid())
+  numeroPatient      String        @unique
+  matricule          String?       @unique  // Matricule employeur (travailleur CDI) — base du rattachement des ayants droit ; NULL pour les non-CDI
+  employeId          String?       // Lien vers le registre des employés SARIS (si ce patient EST un employé CDI/CDD)
+  siteCreationId     String
+  categoriePatientId String
+  statut             String @default("ACTIF")
+  version            Int           @default(1)
+  // Verrou de confidentialité posé par le médecin-chef : accès restreint à la
+  // supervision (ADMIN_SYSTEME / MEDECIN_CHEF). Cf. permission patient.lock.
+  verrouille         Boolean       @default(false)
+  verrouilleParId    String?
+  verrouilleLe       DateTime?
+  motifVerrou        String?
+  createdAt          DateTime      @default(now())
+  createdBy          String?
+  updatedAt          DateTime      @updatedAt
+  updatedBy          String?
+
+  siteCreation     Site                         @relation(fields: [siteCreationId], references: [id])
+  categoriePatient CategoriePatient             @relation(fields: [categoriePatientId], references: [id])
+  employe          EmployeSaris?                @relation(fields: [employeId], references: [id])
+  identite         IdentitePatient?
+  contactUrgence   ContactUrgence?
+  donneesEmploi    DonneesEmploi?
+  modeVie          ModeViePatient?
+  allergies        AllergiePatient[]
+  antecedents      AntecedentPatient[]
+  alertesMedicales AlerteMedicale[]
+  historiquesCateg HistoriqueCategoriePatient[]
+  visites          Visite[]
+  preSaisies       PreSaisieMedicale[]
+  suiviGrossesse   SuiviGrossesse[]
+  rattachementsAD  RattachementAyantDroitCdi[]
+  rattachementsST  RattachementSousTraitant[]
+  fusionSource     FusionDossierPatient?        @relation("FusionSource")
+  fusionCible      FusionDossierPatient?        @relation("FusionCible")
+
+  @@index([siteId, updatedAt])
+  @@index([updatedAt])
+}
+
+
+model IdentitePatient {
+  updatedAt     DateTime  @default(now()) @updatedAt
+  deletedAt     DateTime?
+  id            String    @id @default(uuid())
+  patientId     String    @unique
+  nom           String
+  prenom        String
+  dateNaissance DateTime
+  sexe          String
+  telephone     String?
+  adresse       String?
+  photoUrl      String?
+  patient       Patient   @relation(fields: [patientId], references: [id])
+
+  @@index([updatedAt])
+}
+
+// Données professionnelles (recueil) — renseignées pour le personnel CDI/CDD.
+// Modèle dédié (1-1 optionnel) plutôt que d'élargir l'identité civile.
+model DonneesEmploi {
+  updatedAt   DateTime  @default(now()) @updatedAt
+  deletedAt   DateTime?
+  id          String    @id @default(uuid())
+  patientId   String    @unique
+  fonction    String?
+  sectionPaie String?
+  service     String?
+  departement String?
+  patient     Patient   @relation(fields: [patientId], references: [id])
+
+  @@index([updatedAt])
+}
+
+// Mode de vie (recueil) — capturé au triage, toutes catégories.
+model ModeViePatient {
+  updatedAt        DateTime  @default(now()) @updatedAt
+  deletedAt        DateTime?
+  id               String    @id @default(uuid())
+  patientId        String    @unique
+  tabac            String?
+  alcool           String?
+  drogues          String?
+  activitePhysique String?
+  alimentation     String?
+  sommeil          String?
+  troublesSommeil  String?
+  sedentarite      String?
+  portCharges      String?
+  observations     String?
+  patient          Patient   @relation(fields: [patientId], references: [id])
+
+  @@index([updatedAt])
+}
+
+model ContactUrgence {
+  updatedAt DateTime  @default(now()) @updatedAt
+  deletedAt DateTime?
+  id        String    @id @default(uuid())
+  patientId String    @unique
+  nom       String
+  prenom    String
+  telephone String
+  lien      String
+  patient   Patient   @relation(fields: [patientId], references: [id])
+
+  @@index([updatedAt])
+}
+
+model AllergiePatient {
+  updatedAt DateTime  @default(now()) @updatedAt
+  deletedAt DateTime?
+  id        String    @id @default(uuid())
+  patientId String
+  substance String
+  gravite   String
+  confirme  Boolean   @default(false)
+  statut    String    @default("ACTIVE")
+  createdAt DateTime  @default(now())
+  patient   Patient   @relation(fields: [patientId], references: [id])
+
+  @@index([updatedAt])
+}
+
+model AntecedentPatient {
+  updatedAt   DateTime  @default(now()) @updatedAt
+  deletedAt   DateTime?
+  id          String    @id @default(uuid())
+  patientId   String
+  type        String
+  description String
+  statut      String    @default("ACTIF")
+  patient     Patient   @relation(fields: [patientId], references: [id])
+
+  @@index([updatedAt])
+}
+
+model AlerteMedicale {
+  updatedAt  DateTime  @default(now()) @updatedAt
+  deletedAt  DateTime?
+  id         String    @id @default(uuid())
+  patientId  String
+  type       String
+  message    String
+  gravite    String
+  statut     String    @default("ACTIVE")
+  createdAt  DateTime  @default(now())
+  resolvedAt DateTime?
+  patient    Patient   @relation(fields: [patientId], references: [id])
+
+  @@index([updatedAt])
+}
+
+model HistoriqueCategoriePatient {
+  id                String           @id @default(uuid())
+  patientId         String
+  ancienneCategId   String?
+  nouvelleCategId   String
+  dateEffet         DateTime
+  motif             String?
+  createdBy         String?
+  createdAt         DateTime         @default(now())
+  patient           Patient          @relation(fields: [patientId], references: [id])
+  nouvelleCategorie CategoriePatient @relation(fields: [nouvelleCategId], references: [id])
+}
+
+model FusionDossierPatient {
+  id        String   @id @default(uuid())
+  sourceId  String   @unique
+  cibleId   String   @unique
+  createdBy String
+  createdAt DateTime @default(now())
+  source    Patient  @relation("FusionSource", fields: [sourceId], references: [id])
+  cible     Patient  @relation("FusionCible", fields: [cibleId], references: [id])
+}
+
+model PreSaisieMedicale {
+  updatedAt DateTime  @default(now()) @updatedAt
+  deletedAt DateTime?
+  id        String    @id @default(uuid())
+  patientId String
+  visiteId  String?
+  type      String
+  contenu   Json
+  valide    Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  patient   Patient   @relation(fields: [patientId], references: [id])
+
+  @@index([updatedAt])
+}
+
+model SuiviGrossesse {
+  updatedAt           DateTime                @default(now()) @updatedAt
+  deletedAt           DateTime?
+  id                  String                  @id @default(uuid())
+  patientId           String
+  datePrevueAccouch   DateTime
+  statut              String                  @default("ACTIF")
+  devenir             String?
+  dateFinReelle       DateTime?
+  createdAt           DateTime                @default(now())
+  patient             Patient                 @relation(fields: [patientId], references: [id])
+  consultationsPrenat ConsultationPrenatale[]
+
+  @@index([updatedAt])
+}
+
+model ConsultationPrenatale {
+  updatedAt      DateTime       @default(now()) @updatedAt
+  deletedAt      DateTime?
+  id             String         @id @default(uuid())
+  suiviId        String
+  consultationId String?
+  termeSemaines  Int
+  poids          Float?
+  tension        String?
+  notes          String?
+  createdAt      DateTime       @default(now())
+  suivi          SuiviGrossesse @relation(fields: [suiviId], references: [id])
+  consultation   Consultation?  @relation(fields: [consultationId], references: [id])
+
+  @@index([updatedAt])
+}
+
+// ─────────────────────────────────────────────
+// MODULE : ACCUEIL & TRIAGE
+// ─────────────────────────────────────────────
+
+model Visite {
+  deletedAt        DateTime?
+  id               String       @id @default(uuid())
+  patientId        String
+  siteId           String
+  motifPrincipalId String
+  statut           String @default("EN_ATTENTE")
+  soignantId       String?
+  notesAccueil     String? // Observations cliniques saisies au triage
+  motifAnnulation  String? // Renseigné uniquement si statut=ANNULEE
+  typeCloture      String? // AVEC_CONSULTATION | SANS_CONSULTATION (si CLOTUREE)
+  dateOuverture    DateTime     @default(now())
+  dateCloture      DateTime?
+  creerHorsLigne   Boolean      @default(false)
+  version          Int          @default(1)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  patient        Patient           @relation(fields: [patientId], references: [id])
+  site           Site              @relation(fields: [siteId], references: [id])
+  motifPrincipal MotifConsultation @relation(fields: [motifPrincipalId], references: [id])
+  constantes     ConstanteVitale[]
+  consultations  Consultation[]
+  evenements     VisiteEvenement[]
+
+  @@index([updatedAt])
+}
+
+
+// ── Audit trail des modifications de visite ──────────────────────────────────
+// Une ligne par changement de statut / priorité / soignant.
+
+model VisiteEvenement {
+  id          String              @id @default(uuid())
+  visiteId    String
+  type        String
+  ancienneVal String? // Valeur avant (statut/priorité/soignantId)
+  nouvelleVal String? // Valeur après
+  acteurId    String // Personnel qui a fait l'action
+  commentaire String? // Motif (annulation, ré-évaluation, etc.)
+  createdAt   DateTime            @default(now())
+
+  visite Visite @relation(fields: [visiteId], references: [id], onDelete: Cascade)
+
+  @@index([visiteId, createdAt])
+}
+
+
+model ConstanteVitale {
+  updatedAt          DateTime  @default(now()) @updatedAt
+  deletedAt          DateTime?
+  id                 String    @id @default(uuid())
+  visiteId           String
+  patientId          String
+  temperature        Float?
+  tensionSystolique  Int?
+  tensionDiastolique Int?
+  frequenceCardiaque Int?
+  saturationO2       Float?
+  poids              Float?
+  taille             Float?
+  imc                Float?
+  glycemie           Float?
+  // Signes généraux (modèle Jeannette)
+  etatConscience     String?
+  scoreGlasgow       Int?
+  etatGeneral        String?
+  hydratation        String?
+  coloration         String?
+  saisiePar          String
+  createdAt          DateTime  @default(now())
+  visite             Visite    @relation(fields: [visiteId], references: [id])
+
+  @@index([updatedAt])
+}
+
+// ─────────────────────────────────────────────
+// MODULE : CONSULTATION & ACTES PRESCRITS
+// ─────────────────────────────────────────────
+
+model Consultation {
+  updatedAt        DateTime           @default(now()) @updatedAt
+  deletedAt        DateTime?
+  id               String             @id @default(uuid())
+  visiteId         String
+  soignantId       String
+  delegationId     String?
+  statut           String @default("OUVERTE")
+  examenClinique   String?
+  conclusion       String?
+  decisionMedicale String?
+  motifAnnulation  String? // Motif de l'annulation (traçabilité, si statut ANNULEE)
+  typeConsultationId String?
+  reposJours       Int?
+  reposInclutJour  Boolean?           @default(false)
+  dateReprise      DateTime?
+  version          Int                @default(1)
+  createdAt        DateTime           @default(now())
+  closedAt         DateTime?
+  pickedUpById     String? // Utilisateur.id qui a la consultation en main (verrou souple)
+  pickedUpAt       DateTime?
+
+  visite              Visite                   @relation(fields: [visiteId], references: [id])
+  soignant            PersonnelMedical         @relation(fields: [soignantId], references: [id])
+  delegation          DelegationPrescription?  @relation(fields: [delegationId], references: [id])
+  diagnostics         DiagnosticConsultation[]
+  ordonnances         Ordonnance[]
+  bonsExamen          BonExamen[]
+  bonsPharmacie       BonPharmacie[]
+  suiviChronique      SuiviChronique[]
+  evacuation          Evacuation?
+  accidentTravail     AccidentTravail?
+  consultationsPrenat ConsultationPrenatale[]
+  typeConsultation    TypeConsultation?        @relation(fields: [typeConsultationId], references: [id])
+  certificats         CertificatMedical[]
+
+  @@index([updatedAt])
+}
+
+
+model DiagnosticConsultation {
+  updatedAt      DateTime            @default(now()) @updatedAt
+  id             String              @id @default(uuid())
+  consultationId String
+  pathologieId   String
+  type           String              @default("PRINCIPAL")
+  certitude      String              @default("CONFIRME")
+  consultation   Consultation        @relation(fields: [consultationId], references: [id])
+  pathologie     PathologieReference @relation(fields: [pathologieId], references: [id])
+
+  @@index([updatedAt])
+}
+
+model Ordonnance {
+  updatedAt       DateTime                @default(now()) @updatedAt
+  deletedAt       DateTime?
+  id              String                  @id @default(uuid())
+  consultationId  String
+  prescripteurId  String
+  delegationId    String?
+  statut          String                  @default("BROUILLON")
+  motifAnnulation String?
+  createdAt       DateTime                @default(now())
+  consultation    Consultation            @relation(fields: [consultationId], references: [id])
+  delegation      DelegationPrescription? @relation(fields: [delegationId], references: [id])
+  lignes          LigneOrdonnance[]
+
+  @@index([updatedAt])
+}
+
+model LigneOrdonnance {
+  updatedAt     DateTime            @default(now()) @updatedAt
+  deletedAt     DateTime?
+  id            String              @id @default(uuid())
+  ordonnanceId  String
+  medicamentId  String
+  posologie     String
+  duree         String
+  voieAdmin     String
+  instructions  String?
+  justification String?
+  ordonnance    Ordonnance          @relation(fields: [ordonnanceId], references: [id])
+  medicament    MedicamentReference @relation(fields: [medicamentId], references: [id])
+
+  @@index([updatedAt])
+}
+
+model BonExamen {
+  updatedAt        DateTime         @default(now()) @updatedAt
+  deletedAt        DateTime?
+  id               String           @id @default(uuid())
+  consultationId   String
+  indicationClinik String
+  etablissementId  String?
+  statut           String           @default("EN_ATTENTE")
+  motifAnnulation  String?
+  createdAt        DateTime         @default(now())
+  consultation     Consultation     @relation(fields: [consultationId], references: [id])
+  lignes           LigneExamen[]
+  resultats        ResultatExamen[]
+
+  @@index([updatedAt])
+}
+
+model LigneExamen {
+  updatedAt    DateTime   @default(now()) @updatedAt
+  id           String     @id @default(uuid())
+  bonId        String
+  typeExamenId String
+  bon          BonExamen  @relation(fields: [bonId], references: [id])
+  typeExamen   TypeExamen @relation(fields: [typeExamenId], references: [id])
+
+  @@index([updatedAt])
+}
+
+model ResultatExamen {
+  updatedAt      DateTime  @default(now()) @updatedAt
+  deletedAt      DateTime?
+  id             String    @id @default(uuid())
+  bonId          String
+  laboratoire    String?
+  contenu        String
+  interpretation String?
+  statut         String    @default("RECU")
+  saisiePar      String
+  createdAt      DateTime  @default(now())
+  bon            BonExamen @relation(fields: [bonId], references: [id])
+
+  @@index([updatedAt])
+}
+
+// Bon de pharmacie (recueil) — voucher de retrait de médicaments (gratuits) DISTINCT de
+// l'ordonnance. Réservé au personnel CDI + ayants droit (garde MEDICAMENT). Calque BonExamen.
+model BonPharmacie {
+  updatedAt       DateTime            @default(now()) @updatedAt
+  deletedAt       DateTime?
+  id              String              @id @default(uuid())
+  consultationId  String
+  prescripteurId  String
+  statut          String              @default("EN_ATTENTE") // EN_ATTENTE | DELIVRE | ANNULE
+  observations    String?
+  delivreLe       DateTime?
+  delivrePar      String?
+  motifAnnulation String?
+  createdAt       DateTime            @default(now())
+  consultation    Consultation        @relation(fields: [consultationId], references: [id])
+  lignes          LigneBonPharmacie[]
+
+  @@index([updatedAt])
+}
+
+model LigneBonPharmacie {
+  updatedAt    DateTime             @default(now()) @updatedAt
+  deletedAt    DateTime?
+  id           String               @id @default(uuid())
+  bonId        String
+  medicamentId String?
+  libelle      String
+  posologie    String?
+  quantite     String?
+  bon          BonPharmacie         @relation(fields: [bonId], references: [id])
+  medicament   MedicamentReference? @relation(fields: [medicamentId], references: [id])
+
+  @@index([updatedAt])
+}
+
+model SuiviChronique {
+  updatedAt       DateTime            @default(now()) @updatedAt
+  deletedAt       DateTime?
+  id              String              @id @default(uuid())
+  patientId       String?
+  consultationId  String?
+  pathologieId    String
+  frequenceSuivi  String?
+  objectifs       String?
+  statut          String              @default("ACTIF")
+  motifCloture    String?
+  motifAnnulation String?
+  createdAt       DateTime            @default(now())
+  closedAt        DateTime?
+  pathologie      PathologieReference @relation(fields: [pathologieId], references: [id])
+  consultation    Consultation?       @relation(fields: [consultationId], references: [id])
+
+  @@index([updatedAt])
+}
+
+model CertificatMedical {
+  updatedAt        DateTime       @default(now()) @updatedAt
+  deletedAt        DateTime?
+  id               String         @id @default(uuid())
+  consultationId   String
+  typeCertificatId String
+  dateApplication  DateTime?
+  dureeJours       Int?
+  dateFin          DateTime?
+  contenu          String?
+  statut           String         @default("EMIS")
+  motifAnnulation  String?
+  createdAt        DateTime       @default(now())
+  consultation     Consultation   @relation(fields: [consultationId], references: [id])
+  typeCertificat   TypeCertificat @relation(fields: [typeCertificatId], references: [id])
+
+  @@index([updatedAt])
+}
+
+// ─────────────────────────────────────────────
+// MODULE : SORTIES CRITIQUES
+// ─────────────────────────────────────────────
+
+model Evacuation {
+  updatedAt       DateTime                @default(now()) @updatedAt
+  deletedAt       DateTime?
+  id              String                  @id @default(uuid())
+  consultationId  String                  @unique
+  motifId         String?
+  niveauUrgence   String
+  etablissementId String?
+  infosCliniques  String?
+  statut          String                  @default("EN_COURS")
+  motifAnnulation String?
+  createdAt       DateTime                @default(now())
+  consultation    Consultation            @relation(fields: [consultationId], references: [id])
+  etablissement   EtablissementReference? @relation(fields: [etablissementId], references: [id])
+  suivi           SuiviEvacuation[]
+
+  @@index([updatedAt])
+}
+
+model SuiviEvacuation {
+  id           String     @id @default(uuid())
+  evacuationId String
+  notes        String
+  statut       String
+  createdAt    DateTime   @default(now())
+  createdBy    String?
+  evacuation   Evacuation @relation(fields: [evacuationId], references: [id])
+}
+
+model AccidentTravail {
+  updatedAt       DateTime               @default(now()) @updatedAt
+  deletedAt       DateTime?
+  id              String                 @id @default(uuid())
+  consultationId  String                 @unique
+  dateAccident    DateTime
+  heureAccident   String?
+  lieu            String
+  circonstances   String
+  lesions         String
+  gravite         String
+  temoins         String?
+  statut          String                 @default("OUVERT")
+  motifAnnulation String?
+  createdAt       DateTime               @default(now())
+  consultation    Consultation           @relation(fields: [consultationId], references: [id])
+  suivi           SuiviAccidentTravail[]
+
+  @@index([updatedAt])
+}
+
+model SuiviAccidentTravail {
+  id               String          @id @default(uuid())
+  accidentId       String
+  type             String
+  dateDebut        DateTime?
+  dateFin          DateTime?
+  dateReevaluation DateTime?
+  sequelles        Boolean?
+  descriptionSeq   String?
+  tauxIncapacite   Float?
+  createdAt        DateTime        @default(now())
+  createdBy        String?
+  accident         AccidentTravail @relation(fields: [accidentId], references: [id])
+}
+
+// ─────────────────────────────────────────────
+// MODULE : SYNCHRONISATION OFFLINE
+// ─────────────────────────────────────────────
+
+model PosteLocal {
+  id             String                   @id @default(uuid())
+  siteId         String
+  libelle        String
+  derniereSyncAt DateTime?
+  createdAt      DateTime                 @default(now())
+  fileMutations  FileMutation[]
+  journauxSync   JournalSynchronisation[]
+}
+
+model FileMutation {
+  id             String     @id @default(uuid())
+  mutationUuid   String     @unique
+  posteLocalId   String
+  module         String
+  entiteType     String
+  entiteId       String
+  action         String
+  payloadJson    Json
+  statut         String     @default("PENDING")
+  ordreLocal     BigInt
+  createdLocalAt DateTime
+  sentAt         DateTime?
+  serverAckedAt  DateTime?
+  errorMessage   String?
+  posteLocal     PosteLocal @relation(fields: [posteLocalId], references: [id])
+}
+
+model JournalSynchronisation {
+  id           String                   @id @default(uuid())
+  posteLocalId String
+  startedAt    DateTime                 @default(now())
+  finishedAt   DateTime?
+  statut       String                   @default("EN_COURS")
+  nbMutations  Int                      @default(0)
+  nbConflits   Int                      @default(0)
+  posteLocal   PosteLocal               @relation(fields: [posteLocalId], references: [id])
+  conflits     ConflitSynchronisation[]
+}
+
+model ConflitSynchronisation {
+  id            String                 @id @default(uuid())
+  journalId     String
+  mutationUuid  String
+  entiteType    String
+  entiteId      String
+  typeConflit   String
+  valeurLocale  Json
+  valeurServeur Json
+  statut        String                 @default("EN_ATTENTE")
+  resolution    ResolutionConflit?
+  createdAt     DateTime               @default(now())
+  journal       JournalSynchronisation @relation(fields: [journalId], references: [id])
+}
+
+model ResolutionConflit {
+  id            String                 @id @default(uuid())
+  conflitId     String                 @unique
+  resolution    String
+  auteur        String
+  justification String?
+  createdAt     DateTime               @default(now())
+  conflit       ConflitSynchronisation @relation(fields: [conflitId], references: [id])
+}
+
+model AlerteTechnique {
+  id        String   @id @default(uuid())
+  type      String
+  message   String
+  siteId    String?
+  statut    String   @default("OUVERTE")
+  createdAt DateTime @default(now())
+}
+
+model ParametreMetier {
+  id          String                      @id @default(uuid())
+  cle         String                      @unique
+  valeur      String
+  description String?
+  updatedAt   DateTime                    @updatedAt
+  updatedBy   String?
+  historiques HistoriqueParametreMetier[]
+}
+
+model HistoriqueParametreMetier {
+  id          String          @id @default(uuid())
+  parametreId String
+  ancienneVal String
+  nouvelleVal String
+  motif       String?
+  createdAt   DateTime        @default(now())
+  createdBy   String?
+  parametre   ParametreMetier @relation(fields: [parametreId], references: [id])
+}
+
+// ─────────────────────────────────────────────
+// MODULE : MESSAGERIE INTERNE (chiffrée)
+// ─────────────────────────────────────────────
+
+model Conversation {
+  deletedAt    DateTime?
+  id           String                    @id @default(uuid())
+  type         String                    @default("DIRECT") // DIRECT | GROUPE
+  titre        String? // titre des conversations de groupe
+  siteId       String?
+  createdById  String?
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
+  participants ConversationParticipant[]
+  messages     Message[]
+
+  @@index([updatedAt])
+}
+
+model ConversationParticipant {
+  updatedAt      DateTime     @default(now()) @updatedAt
+  id             String       @id @default(uuid())
+  conversationId String
+  utilisateurId  String
+  lastReadAt     DateTime?
+  joinedAt       DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  utilisateur    Utilisateur  @relation(fields: [utilisateurId], references: [id])
+
+  @@unique([conversationId, utilisateurId])
+  @@index([updatedAt])
+  @@index([utilisateurId])
+}
+
+model Message {
+  id             String               @id @default(uuid())
+  conversationId String
+  expediteurId   String
+  contenuChiffre String // contenu AES-256-GCM (jamais en clair)
+  replyToId      String? // message cité (réponse)
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  editedAt       DateTime?
+  deletedAt      DateTime?
+  conversation   Conversation         @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  expediteur     Utilisateur          @relation(fields: [expediteurId], references: [id])
+  piecesJointes  MessagePieceJointe[]
+  reactions      MessageReaction[]
+  masques        MessageMasque[]
+  replyTo        Message?             @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies        Message[]            @relation("MessageReplies")
+
+  @@index([conversationId])
+  @@index([conversationId, createdAt])
+  @@index([replyToId])
+}
+
+/**
+ * « Supprimer pour moi » : masque un message pour un utilisateur précis.
+ */
+model MessageMasque {
+  updatedAt     DateTime @default(now()) @updatedAt
+  id            String   @id @default(uuid())
+  messageId     String
+  utilisateurId String
+  createdAt     DateTime @default(now())
+  message       Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, utilisateurId])
+  @@index([updatedAt])
+  @@index([utilisateurId])
+}
+
+model MessageReaction {
+  updatedAt     DateTime  @default(now()) @updatedAt
+  deletedAt     DateTime?
+  id            String    @id @default(uuid())
+  messageId     String
+  utilisateurId String
+  emoji         String
+  createdAt     DateTime  @default(now())
+  message       Message   @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, utilisateurId, emoji])
+  @@index([updatedAt])
+  @@index([messageId])
+}
+
+model MessagePieceJointe {
+  updatedAt      DateTime  @default(now()) @updatedAt
+  deletedAt      DateTime?
+  id             String    @id @default(uuid())
+  messageId      String
+  nomFichier     String
+  mimeType       String
+  taille         Int // octets (taille en clair, avant chiffrement)
+  contenuChiffre String // octets AES-256-GCM (base64, jamais en clair)
+  createdAt      DateTime  @default(now())
+  message        Message   @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([updatedAt])
+  @@index([messageId])
+}
+
+// ── Synchronisation offline-first ──────────────────────────────────────────────
+/// Curseur de synchronisation par poste/appareil et par site (serveur central).
+model SyncState {
+  id           String    @id @default(uuid())
+  posteLocalId String
+  siteId       String
+  lastPulledAt DateTime  @default(now())
+  lastPushedAt DateTime?
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([posteLocalId, siteId])
+  @@index([siteId])
+}

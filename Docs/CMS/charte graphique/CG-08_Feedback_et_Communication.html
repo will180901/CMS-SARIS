@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CG-08 · Feedback & Communication — Charte Graphique CMS SARIS Congo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* ═══════════════════════════════════════════════════════════════
+       TOKENS
+    ═══════════════════════════════════════════════════════════════ */
+    :root, [data-theme="light"] {
+      --fond-page:#F4F6F8; --fond-surface:#FFFFFF; --fond-surface-2:#F0F2F5; --fond-input:#EAECF0;
+      --texte-primaire:#0F172A; --texte-secondaire:#475569; --texte-tertiaire:#94A3B8;
+      --bordure-legere:rgba(15,23,42,0.08); --bordure-normale:rgba(15,23,42,0.14); --bordure-forte:rgba(15,23,42,0.28);
+      --ap-50:#D6E8EF; --ap-100:#A8CCDA; --ap-200:#79AFBF; --ap-300:#5B9BB0;
+      --ap-400:#4E8BA4; --ap-500:#3D7A92; --ap-600:#366680; --ap-700:#2A5269; --ap-800:#214A5E; --ap-900:#0F2F3D;
+      --as-50:#F6EBD2; --as-100:#EBCF87; --as-200:#D9AD4A; --as-300:#D0A030;
+      --as-400:#C99A2E; --as-500:#B88A25; --as-600:#A07A1E; --as-700:#8A6A15; --as-800:#765A12; --as-900:#4D3A08;
+      --succes-fond:#EAF3EC; --succes-texte:#2D6A3F; --succes-accent:#3D7A5E; --succes-bordure:rgba(45,106,63,0.20);
+      --erreur-fond:#F5EAEA; --erreur-texte:#7A2E2E; --erreur-accent:#9B4444; --erreur-bordure:rgba(122,46,46,0.20);
+      --avert-fond:#F5EEDF;  --avert-texte:#6B4D1A;  --avert-accent:#8A6A2A;  --avert-bordure:rgba(107,77,26,0.20);
+      --info-fond:#E6EFF5;   --info-texte:#2A4F6B;   --info-accent:#3A6080;   --info-bordure:rgba(42,79,107,0.20);
+      --couleur-accent:var(--ap-400); --couleur-accent-fond:var(--ap-50); --couleur-accent-hover:var(--ap-500); --couleur-accent-texte:#FFFFFF;
+      --radius-xs:4px; --radius-sm:6px; --radius-md:8px; --radius-lg:10px; --radius-xl:14px;
+      --ombre-1:0 1px 2px rgba(15,23,42,0.06),0 0 0 1px rgba(15,23,42,0.04);
+      --ombre-2:0 2px 6px rgba(15,23,42,0.08),0 1px 2px rgba(15,23,42,0.06);
+      --ombre-3:0 4px 14px rgba(15,23,42,0.10),0 2px 4px rgba(15,23,42,0.06);
+      --ombre-4:0 8px 24px rgba(15,23,42,0.12),0 2px 8px rgba(15,23,42,0.07);
+      --ombre-5:0 16px 40px rgba(15,23,42,0.14),0 6px 12px rgba(15,23,42,0.08);
+      --glass-header:rgba(255,255,255,0.88); --glass-toast:rgba(255,255,255,0.88);
+      --glass-overlay:rgba(15,23,42,0.48);
+      --grain-url:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='130' height='130'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='130' height='130' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+    }
+    [data-theme="dark"] {
+      --fond-page:#0D1117; --fond-surface:#161B22; --fond-surface-2:#1C2333; --fond-input:#21262D;
+      --texte-primaire:#E6EDF3; --texte-secondaire:#8B949E; --texte-tertiaire:#484F58;
+      --bordure-legere:rgba(230,237,243,0.08); --bordure-normale:rgba(230,237,243,0.14); --bordure-forte:rgba(230,237,243,0.28);
+      --ap-50:#0F2F3D; --ap-100:#214A5E; --ap-400:#4E8BA4; --ap-500:#5B9BB0; --ap-700:#A8CCDA;
+      --as-50:#4D3A08; --as-100:#765A12; --as-400:#C99A2E; --as-500:#D0A030;
+      --succes-fond:#1A2E20; --succes-texte:#7EE2A0; --succes-accent:#56C47A; --succes-bordure:rgba(126,226,160,0.15);
+      --erreur-fond:#2E1A1A; --erreur-texte:#E2857E; --erreur-accent:#CC6060; --erreur-bordure:rgba(226,133,126,0.15);
+      --avert-fond:#2E2410;  --avert-texte:#E2C07E;  --avert-accent:#C9A23A;  --avert-bordure:rgba(226,192,126,0.15);
+      --info-fond:#0F2030;   --info-texte:#7EB5D6;   --info-accent:#5E9FC0;   --info-bordure:rgba(126,181,214,0.15);
+      --couleur-accent:var(--ap-400); --couleur-accent-fond:var(--ap-50); --couleur-accent-hover:var(--ap-500); --couleur-accent-texte:#FFFFFF;
+      --glass-header:rgba(22,27,34,0.88); --glass-toast:rgba(22,27,34,0.92);
+      --glass-overlay:rgba(0,0,0,0.65);
+      --ombre-1:none; --ombre-2:none; --ombre-3:none; --ombre-4:none; --ombre-5:none;
+    }
+
+    /* BASE */
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;font-size:14px;line-height:1.6;background:var(--fond-page);color:var(--texte-primaire);transition:background .22s ease,color .22s ease;-webkit-font-smoothing:antialiased;}
+
+    /* TOPBAR */
+    .page-header{position:sticky;top:0;z-index:100;border-bottom:1px solid var(--bordure-legere);padding:0 40px;}
+    [data-theme="light"] .page-header{background:var(--glass-header);backdrop-filter:blur(14px);}
+    [data-theme="dark"]  .page-header{background:var(--glass-header);backdrop-filter:blur(14px);}
+    .page-header-inner{max-width:1100px;margin:0 auto;height:54px;display:flex;align-items:center;justify-content:space-between;}
+    .header-left{display:flex;align-items:center;gap:10px;}
+    .module-badge{font-size:10px;font-weight:600;padding:3px 9px;border-radius:var(--radius-xs);background:var(--couleur-accent-fond);color:var(--ap-800);letter-spacing:.06em;text-transform:uppercase;}
+    [data-theme="dark"] .module-badge{background:var(--ap-100);color:var(--ap-700);}
+    .header-title-text{font-size:13px;font-weight:500;color:var(--texte-primaire);}
+    .header-sep{width:1px;height:16px;background:var(--bordure-normale);}
+    .header-sub{font-size:12px;color:var(--texte-tertiaire);}
+    .toggle-btn{display:flex;align-items:center;gap:6px;background:var(--fond-surface-2);border:1px solid var(--bordure-normale);border-radius:var(--radius-sm);padding:5px 12px;cursor:pointer;font-family:'Inter',sans-serif;font-size:12px;color:var(--texte-secondaire);transition:background .15s,color .15s;}
+    .toggle-btn:hover{background:var(--fond-input);color:var(--texte-primaire);}
+
+    /* NAV MODULES */
+    .modules-nav{background:var(--fond-surface);border-bottom:1px solid var(--bordure-legere);padding:0 40px;overflow-x:auto;scrollbar-width:none;}
+    .modules-nav::-webkit-scrollbar{display:none;}
+    .modules-nav-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:2px;height:40px;}
+    .nav-link{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:var(--radius-xs);font-size:11px;font-weight:500;color:var(--texte-tertiaire);text-decoration:none;white-space:nowrap;transition:background .13s,color .13s;border:1px solid transparent;}
+    .nav-link:hover{background:var(--fond-surface-2);color:var(--texte-secondaire);}
+    .nav-link.active{background:var(--couleur-accent-fond);color:var(--ap-700);border-color:var(--ap-200);}
+    [data-theme="dark"] .nav-link.active{background:var(--ap-100);color:var(--ap-600);border-color:var(--ap-300);}
+    .nav-num{font-size:9px;font-weight:700;opacity:.6;letter-spacing:.04em;}
+    .nav-sep{width:1px;height:14px;background:var(--bordure-legere);margin:0 4px;flex-shrink:0;}
+
+    /* LAYOUT */
+    .main{max-width:1100px;margin:0 auto;padding:48px 40px 96px;}
+
+    /* HERO */
+    .module-hero{background:var(--fond-surface);border:1px solid var(--bordure-legere);border-radius:var(--radius-lg);padding:32px 36px;margin-bottom:52px;display:grid;grid-template-columns:1fr 1px 1fr 1px 1fr;}
+    .hero-col{padding:0 28px;}
+    .hero-col:first-child{padding-left:0;}
+    .hero-col:last-child{padding-right:0;}
+    .hero-divider{background:var(--bordure-legere);}
+    .hero-label{font-size:10px;font-weight:600;color:var(--ap-400);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;}
+    .hero-title{font-size:14px;font-weight:500;color:var(--texte-primaire);margin-bottom:6px;}
+    .hero-body{font-size:12px;color:var(--texte-secondaire);line-height:1.65;}
+
+    /* SECTIONS */
+    .section{margin-bottom:64px;}
+    .section-header{margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid var(--bordure-legere);}
+    .section-num{font-size:10px;font-weight:600;color:var(--ap-400);text-transform:uppercase;letter-spacing:.12em;margin-bottom:5px;}
+    .section-title{font-size:17px;font-weight:500;color:var(--texte-primaire);margin-bottom:6px;}
+    .section-desc{font-size:13px;color:var(--texte-secondaire);line-height:1.65;max-width:700px;}
+    .subsection{margin-bottom:32px;}
+    .subsection-title{font-size:11px;font-weight:600;color:var(--texte-tertiaire);text-transform:uppercase;letter-spacing:.10em;margin-bottom:16px;padding-bottom:8px;border-bottom:1px dashed var(--bordure-legere);}
+    .demo-box{background:var(--fond-surface);border:1px solid var(--bordure-legere);border-radius:var(--radius-md);padding:24px 28px;}
+    .code{font-family:'Courier New',monospace;font-size:11px;color:var(--ap-500);}
+
+    /* GRILLES */
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+    .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+
+    /* SPEC TABLE */
+    .spec-table{width:100%;border-collapse:collapse;font-size:12px;}
+    .spec-table th{text-align:left;padding:8px 12px;background:var(--fond-surface-2);color:var(--texte-tertiaire);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--bordure-normale);}
+    .spec-table td{padding:9px 12px;border-bottom:1px solid var(--bordure-legere);color:var(--texte-secondaire);vertical-align:top;}
+    .spec-table td:first-child{font-weight:500;color:var(--texte-primaire);}
+    .spec-table tr:last-child td{border-bottom:none;}
+    .spec-table code{font-family:'Courier New',monospace;font-size:10.5px;color:var(--ap-500);background:var(--fond-surface-2);padding:1px 5px;border-radius:3px;}
+
+    /* RÈGLES GRID */
+    .rules-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;}
+    .rules-card{border-radius:var(--radius-md);padding:18px 20px;border:1px solid;}
+    .rules-card.ok{background:var(--succes-fond);border-color:var(--succes-bordure);}
+    .rules-card.no{background:var(--erreur-fond);border-color:var(--erreur-bordure);}
+    .rules-card-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.10em;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+    .rules-card.ok .rules-card-title{color:var(--succes-texte);}
+    .rules-card.no .rules-card-title{color:var(--erreur-texte);}
+    .rules-card-body{font-size:12px;line-height:1.65;}
+    .rules-card.ok .rules-card-body{color:var(--succes-texte);}
+    .rules-card.no .rules-card-body{color:var(--erreur-texte);}
+
+    /* ═══════════════════════════════════════════════════════════════
+       §1 — TOASTS
+    ═══════════════════════════════════════════════════════════════ */
+    /* Toast container (live) */
+    .toast-container{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;width:360px;}
+    .toast-container .toast-item{pointer-events:all;}
+
+    /* Toast component */
+    .toast-item{
+      display:flex;align-items:flex-start;gap:10px;
+      width:340px;padding:12px 14px;
+      border-radius:var(--radius-md);
+      background:var(--glass-toast);
+      backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+      border:1px solid rgba(255,255,255,0.24);
+      box-shadow:var(--ombre-4);
+      position:relative;overflow:hidden;
+      animation:toastIn .22s cubic-bezier(0.34,1.56,0.64,1) both;
+    }
+    [data-theme="dark"] .toast-item{border-color:rgba(230,237,243,0.12);}
+    @keyframes toastIn{from{opacity:0;transform:translateY(-12px) scale(.96)}to{opacity:1;transform:none}}
+    .toast-item::after{content:'';position:absolute;inset:0;background-image:var(--grain-url);background-size:130px;opacity:.16;mix-blend-mode:overlay;pointer-events:none;}
+    .toast-item.dismissing{animation:toastOut .18s ease forwards;}
+    @keyframes toastOut{to{opacity:0;transform:scale(.94) translateY(-6px)}}
+    .toast-icon{width:18px;height:18px;flex-shrink:0;margin-top:1px;}
+    .toast-body{flex:1;min-width:0;}
+    .toast-title{font-size:13px;font-weight:600;margin-bottom:2px;}
+    .toast-msg{font-size:12px;color:var(--texte-secondaire);line-height:1.5;}
+    .toast-action{display:inline-block;font-size:12px;font-weight:500;color:var(--ap-400);cursor:pointer;margin-top:5px;}
+    .toast-close{width:20px;height:20px;display:flex;align-items:center;justify-content:center;border-radius:3px;cursor:pointer;color:var(--texte-tertiaire);flex-shrink:0;transition:background .12s,color .12s;background:none;border:none;}
+    .toast-close:hover{background:var(--fond-surface-2);color:var(--texte-primaire);}
+    .toast-progress{position:absolute;bottom:0;left:0;height:2px;border-radius:0 0 0 var(--radius-md);animation:toastProgress linear both;}
+    @keyframes toastProgress{from{width:100%}to{width:0%}}
+    .toast-ok .toast-icon{color:var(--succes-accent);}  .toast-ok .toast-progress{background:var(--succes-accent);}
+    .toast-err .toast-icon{color:var(--erreur-accent);}  .toast-err .toast-progress{background:var(--erreur-accent);}
+    .toast-warn .toast-icon{color:var(--avert-accent);}   .toast-warn .toast-progress{background:var(--avert-accent);}
+    .toast-info .toast-icon{color:var(--info-accent);}   .toast-info .toast-progress{background:var(--info-accent);}
+
+    /* Déclencheurs */
+    .trigger-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
+    .trig-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--radius-sm);font-family:'Inter',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:opacity .15s,transform .12s;position:relative;overflow:hidden;}
+    .trig-btn::after{content:'';position:absolute;inset:0;background-image:var(--grain-url);background-size:130px;opacity:.18;mix-blend-mode:overlay;pointer-events:none;}
+    .trig-btn:hover{transform:translateY(-1px);}
+    .trig-btn:active{transform:scale(.97);}
+    .trig-ok  {background:var(--succes-fond);color:var(--succes-texte);border:1px solid var(--succes-bordure);}
+    .trig-err {background:var(--erreur-fond);color:var(--erreur-texte);border:1px solid var(--erreur-bordure);}
+    .trig-warn{background:var(--avert-fond); color:var(--avert-texte); border:1px solid var(--avert-bordure);}
+    .trig-info{background:var(--info-fond);  color:var(--info-texte);  border:1px solid var(--info-bordure);}
+    .trig-act {background:var(--fond-surface-2);color:var(--texte-secondaire);border:1px solid var(--bordure-normale);}
+
+    /* Preview scène sombre */
+    .toast-stage{background:linear-gradient(160deg,#1e2a3a 0%,#0d1117 100%);border-radius:var(--radius-md);padding:24px 20px;display:flex;flex-direction:column;gap:10px;align-items:center;}
+
+    /* ═══════════════════════════════════════════════════════════════
+       §2 — MODALES
+    ═══════════════════════════════════════════════════════════════ */
+    .modal-overlay{position:fixed;inset:0;z-index:8000;background:var(--glass-overlay);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px;animation:overlayIn .2s ease both;}
+    @keyframes overlayIn{from{opacity:0}to{opacity:1}}
+    .modal-panel{background:var(--fond-surface);border:1px solid var(--bordure-legere);border-radius:var(--radius-xl);box-shadow:var(--ombre-5);width:100%;max-height:90vh;overflow:auto;animation:modalIn .22s cubic-bezier(0.34,1.56,0.64,1) both;}
+    @keyframes modalIn{from{opacity:0;transform:scale(.94) translateY(12px)}to{opacity:1;transform:none}}
+    .modal-sm{max-width:400px;} .modal-md{max-width:560px;} .modal-lg{max-width:720px;}
+    .modal-header{display:flex;align-items:flex-start;justify-content:space-between;padding:20px 24px 16px;border-bottom:1px solid var(--bordure-legere);}
+    .modal-title{font-size:15px;font-weight:500;color:var(--texte-primaire);margin-bottom:2px;}
+    .modal-subtitle{font-size:12px;color:var(--texte-tertiaire);}
+    .modal-close{width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:var(--radius-xs);cursor:pointer;color:var(--texte-tertiaire);background:none;border:none;transition:background .12s,color .12s;flex-shrink:0;}
+    .modal-close:hover{background:var(--fond-surface-2);color:var(--texte-primaire);}
+    .modal-body{padding:20px 24px;}
+    .modal-footer{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:14px 24px 20px;border-top:1px solid var(--bordure-legere);}
+
+    /* Cartes de déclenchement */
+    .modal-trigger-card{background:var(--fond-surface-2);border:1px solid var(--bordure-legere);border-radius:var(--radius-md);padding:16px;cursor:pointer;transition:border-color .15s,background .15s,transform .15s;text-align:center;}
+    .modal-trigger-card:hover{border-color:var(--ap-400);background:var(--ap-50);transform:translateY(-2px);}
+    .modal-trigger-card svg{margin-bottom:10px;}
+    .modal-trigger-label{font-size:12px;font-weight:500;color:var(--texte-secondaire);}
+    .modal-trigger-size{font-size:11px;color:var(--texte-tertiaire);margin-top:2px;}
+
+    /* Champs dans modales */
+    .field-group{margin-bottom:14px;}
+    .field-label{font-size:11px;font-weight:500;color:var(--texte-secondaire);margin-bottom:5px;display:block;letter-spacing:.02em;}
+    .field-input{width:100%;padding:8px 10px;border-radius:var(--radius-sm);border:1px solid var(--bordure-normale);background:var(--fond-input);color:var(--texte-primaire);font-size:13px;font-family:'Inter',sans-serif;transition:border-color .15s,box-shadow .15s;outline:none;}
+    .field-input:focus{border-color:var(--ap-400);box-shadow:0 0 0 3px rgba(78,139,164,.15);}
+    .field-select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;}
+
+    /* Boutons dans modales/drawers */
+    .btn-m{display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border-radius:var(--radius-sm);font-family:'Inter',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;border:1px solid transparent;position:relative;overflow:hidden;}
+    .btn-m::after{content:'';position:absolute;inset:0;background-image:var(--grain-url);background-size:130px;opacity:.22;mix-blend-mode:overlay;pointer-events:none;}
+    .btn-primary-m{background:var(--ap-400);color:#fff;border-color:var(--ap-400);} .btn-primary-m:hover{background:var(--ap-500);}
+    .btn-ghost-m{background:transparent;color:var(--texte-secondaire);border-color:var(--bordure-normale);} .btn-ghost-m:hover{background:var(--fond-surface-2);color:var(--texte-primaire);}
+    .btn-danger-m{background:var(--erreur-accent);color:#fff;border-color:var(--erreur-accent);} .btn-danger-m:hover{opacity:.9;}
+
+    /* ═══════════════════════════════════════════════════════════════
+       §3 — DRAWERS
+    ═══════════════════════════════════════════════════════════════ */
+    .drawer-overlay{position:fixed;inset:0;z-index:7000;background:var(--glass-overlay);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);animation:overlayIn .2s ease both;}
+    .drawer-panel{position:fixed;top:0;right:0;bottom:0;z-index:7001;background:var(--fond-surface);border-left:1px solid var(--bordure-legere);box-shadow:var(--ombre-5);display:flex;flex-direction:column;animation:drawerIn .24s cubic-bezier(0.34,1.20,0.64,1) both;}
+    @keyframes drawerIn{from{transform:translateX(100%)}to{transform:none}}
+    .drawer-sm{width:320px;} .drawer-md{width:480px;}
+    .drawer-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 14px;border-bottom:1px solid var(--bordure-legere);flex-shrink:0;}
+    .drawer-title{font-size:14px;font-weight:500;color:var(--texte-primaire);}
+    .drawer-body{flex:1;overflow-y:auto;padding:20px;}
+    .drawer-footer{flex-shrink:0;border-top:1px solid var(--bordure-legere);padding:12px 20px;display:flex;gap:8px;justify-content:flex-end;background:var(--fond-surface);}
+
+    /* Contenu fiche patient dans drawer */
+    .patient-meta-row{display:flex;align-items:center;gap:12px;margin-bottom:18px;}
+    .p-avatar-lg{width:48px;height:48px;border-radius:var(--radius-md);background:var(--ap-50);color:var(--ap-700);font-size:16px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .p-name-lg{font-size:14px;font-weight:500;color:var(--texte-primaire);}
+    .p-id-lg{font-size:11px;color:var(--texte-tertiaire);margin-top:1px;}
+    .info-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--bordure-legere);font-size:12px;}
+    .info-row:last-child{border-bottom:none;}
+    .info-key{color:var(--texte-tertiaire);}
+    .info-val{font-weight:500;color:var(--texte-primaire);}
+    .drawer-section-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--texte-tertiaire);margin:16px 0 8px;}
+
+    /* Cartes de déclenchement drawers */
+    .drawer-trigger-card{background:var(--fond-surface-2);border:1px solid var(--bordure-legere);border-radius:var(--radius-md);padding:16px;cursor:pointer;transition:border-color .15s,background .15s,transform .15s;text-align:center;}
+    .drawer-trigger-card:hover{border-color:var(--ap-400);background:var(--ap-50);transform:translateY(-2px);}
+    .drawer-trigger-card svg{margin-bottom:10px;}
+    .drawer-trigger-label{font-size:12px;font-weight:500;color:var(--texte-secondaire);}
+    .drawer-trigger-size{font-size:11px;color:var(--texte-tertiaire);margin-top:2px;}
+
+    /* ═══════════════════════════════════════════════════════════════
+       §4 — ALERTES INLINE
+    ═══════════════════════════════════════════════════════════════ */
+    .alert-inline{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:var(--radius-md);border:1px solid;position:relative;overflow:hidden;margin-bottom:10px;}
+    .alert-inline::after{content:'';position:absolute;inset:0;background-image:var(--grain-url);background-size:130px;opacity:.09;mix-blend-mode:overlay;pointer-events:none;}
+    .alert-inline:last-child{margin-bottom:0;}
+    .alert-ok  {background:var(--succes-fond);border-color:var(--succes-bordure);}
+    .alert-err {background:var(--erreur-fond);border-color:var(--erreur-bordure);}
+    .alert-warn{background:var(--avert-fond); border-color:var(--avert-bordure);}
+    .alert-info{background:var(--info-fond);  border-color:var(--info-bordure);}
+    .alert-icon{width:16px;height:16px;flex-shrink:0;margin-top:1px;}
+    .alert-ok .alert-icon  {color:var(--succes-accent);}
+    .alert-err .alert-icon {color:var(--erreur-accent);}
+    .alert-warn .alert-icon{color:var(--avert-accent);}
+    .alert-info .alert-icon{color:var(--info-accent);}
+    .alert-content{flex:1;}
+    .alert-title{font-size:13px;font-weight:500;margin-bottom:2px;}
+    .alert-ok .alert-title  {color:var(--succes-texte);}
+    .alert-err .alert-title {color:var(--erreur-texte);}
+    .alert-warn .alert-title{color:var(--avert-texte);}
+    .alert-info .alert-title{color:var(--info-texte);}
+    .alert-body{font-size:12px;line-height:1.6;}
+    .alert-ok .alert-body  {color:var(--succes-texte);}
+    .alert-err .alert-body {color:var(--erreur-texte);}
+    .alert-warn .alert-body{color:var(--avert-texte);}
+    .alert-info .alert-body{color:var(--info-texte);}
+    .alert-link{font-size:12px;font-weight:500;cursor:pointer;text-decoration:underline;text-underline-offset:2px;margin-top:6px;display:inline-block;}
+    .alert-ok .alert-link  {color:var(--succes-accent);}
+    .alert-err .alert-link {color:var(--erreur-accent);}
+    .alert-dismiss{width:18px;height:18px;display:flex;align-items:center;justify-content:center;border-radius:3px;cursor:pointer;color:var(--texte-tertiaire);background:none;border:none;flex-shrink:0;transition:background .12s;opacity:.6;}
+    .alert-dismiss:hover{opacity:1;background:rgba(15,23,42,.08);}
+
+    /* ═══════════════════════════════════════════════════════════════
+       §5 — SKELETONS
+    ═══════════════════════════════════════════════════════════════ */
+    @keyframes shimmer{0%{background-position:-600px 0}100%{background-position:600px 0}}
+    .sk{border-radius:var(--radius-sm);background:linear-gradient(90deg,var(--fond-surface-2) 25%,var(--fond-input) 50%,var(--fond-surface-2) 75%);background-size:1200px 100%;animation:shimmer 1.4s ease-in-out infinite;}
+    .sk-text{height:12px;margin-bottom:8px;}
+    .sk-text.h10{height:10px;} .sk-text.h14{height:14px;} .sk-text.h32{height:32px;}
+    .sk-avatar{border-radius:var(--radius-md);}
+    .sk-circle{border-radius:50%;}
+    .sk-card{background:var(--fond-surface);border:1px solid var(--bordure-legere);border-radius:var(--radius-md);padding:16px;box-shadow:var(--ombre-1);}
+
+    /* ═══════════════════════════════════════════════════════════════
+       §6 — SPINNERS
+    ═══════════════════════════════════════════════════════════════ */
+    @keyframes spinRing{to{transform:rotate(360deg)}}
+    @keyframes spinDash{
+      0%{stroke-dasharray:1,150;stroke-dashoffset:0}
+      50%{stroke-dasharray:90,150;stroke-dashoffset:-35}
+      100%{stroke-dasharray:90,150;stroke-dashoffset:-124}
+    }
+    @keyframes pulseDot{0%,100%{opacity:1}50%{opacity:.3}}
+    @keyframes eqBar{0%,100%{transform:scaleY(.3)}50%{transform:scaleY(1)}}
+    .spin-ring{animation:spinRing .9s linear infinite;}
+    .spin-dash{stroke-dasharray:90 150;stroke-dashoffset:-35;animation:spinDash 1.2s ease-in-out infinite,spinRing .9s linear infinite;}
+    .pulse-dot{animation:pulseDot 1.4s ease-in-out infinite;}
+    .eq-bar{animation:eqBar .9s ease-in-out infinite;}
+    .eq-bar:nth-child(2){animation-delay:.15s;} .eq-bar:nth-child(3){animation-delay:.30s;} .eq-bar:nth-child(4){animation-delay:.45s;}
+    .spinner-showcase{display:flex;flex-wrap:wrap;gap:28px;align-items:center;}
+    .spinner-item{display:flex;flex-direction:column;align-items:center;gap:10px;}
+    .spinner-label{font-size:10px;font-weight:500;color:var(--texte-tertiaire);text-transform:uppercase;letter-spacing:.06em;text-align:center;}
+
+    /* Bouton état chargement */
+    .btn-loading{display:inline-flex;align-items:center;gap:8px;padding:7px 16px;border-radius:var(--radius-sm);background:var(--ap-400);color:#fff;border:none;font-family:'Inter',sans-serif;font-size:13px;font-weight:500;cursor:not-allowed;opacity:.85;position:relative;overflow:hidden;}
+    .btn-loading::after{content:'';position:absolute;inset:0;background-image:var(--grain-url);background-size:130px;opacity:.28;mix-blend-mode:overlay;pointer-events:none;}
+  </style>
+</head>
+<body>
+
+  <!-- TOPBAR -->
+  <header class="page-header">
+    <div class="page-header-inner">
+      <div class="header-left">
+        <span class="module-badge">Module 08</span>
+        <div class="header-sep"></div>
+        <span class="header-title-text">Feedback &amp; Communication</span>
+        <div class="header-sep"></div>
+        <span class="header-sub">Toasts · Modales · Drawers · Alertes · Skeletons · Spinners</span>
+      </div>
+      <button class="toggle-btn" onclick="toggleTheme()">
+        <svg id="theme-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        <span id="theme-label">Mode sombre</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- NAV MODULES -->
+  <nav class="modules-nav">
+    <div class="modules-nav-inner">
+      <a href="CG-01_Couleurs_et_Tokens.html"          class="nav-link"><span class="nav-num">01</span> Couleurs &amp; Tokens</a><div class="nav-sep"></div>
+      <a href="CG-02_Typographie.html"                 class="nav-link"><span class="nav-num">02</span> Typographie</a><div class="nav-sep"></div>
+      <a href="CG-03_Espacements_et_Grilles.html"      class="nav-link"><span class="nav-num">03</span> Espacements &amp; Grilles</a><div class="nav-sep"></div>
+      <a href="CG-04_Effets_de_Surface.html"           class="nav-link"><span class="nav-num">04</span> Effets de Surface</a><div class="nav-sep"></div>
+      <a href="CG-05_Composants_Fondamentaux.html"     class="nav-link"><span class="nav-num">05</span> Composants Fondamentaux</a><div class="nav-sep"></div>
+      <a href="CG-06_Navigation_et_Structure.html"     class="nav-link"><span class="nav-num">06</span> Navigation &amp; Structure</a><div class="nav-sep"></div>
+      <a href="CG-07_Donnees_et_Contenu.html"          class="nav-link"><span class="nav-num">07</span> Données &amp; Contenu</a><div class="nav-sep"></div>
+      <a href="CG-08_Feedback_et_Communication.html"   class="nav-link active"><span class="nav-num">08</span> Feedback &amp; Communication</a><div class="nav-sep"></div>
+      <a href="CG-09_Animations_et_Transitions.html"   class="nav-link"><span class="nav-num">09</span> Animations &amp; Transitions</a><div class="nav-sep"></div>
+      <a href="CG-10_Iconographie_et_Assets.html"      class="nav-link"><span class="nav-num">10</span> Iconographie &amp; Assets</a><div class="nav-sep"></div>
+      <a href="CG-11_Etats_et_Accessibilite.html"      class="nav-link"><span class="nav-num">11</span> États &amp; Accessibilité</a><div class="nav-sep"></div>
+      <a href="CG-12_Recapitulatif_et_Regles.html"     class="nav-link"><span class="nav-num">12</span> Récapitulatif &amp; Règles</a>
+    </div>
+  </nav>
+
+  <!-- LIVE TOAST CONTAINER -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <main class="main">
+
+    <!-- HERO -->
+    <div class="module-hero">
+      <div class="hero-col">
+        <div class="hero-label">Pourquoi</div>
+        <div class="hero-title">Répondre à chaque action de l'utilisateur</div>
+        <div class="hero-body">Dans un CMS médical, chaque action a des conséquences réelles — enregistrement d'un patient, alerte de rupture, validation d'ordonnance. Le feedback visuel immédiat et non-ambigu est critique : un professionnel de santé ne peut pas douter de ce que le système a fait ou non.</div>
+      </div>
+      <div class="hero-divider"></div>
+      <div class="hero-col">
+        <div class="hero-label">Quoi</div>
+        <div class="hero-title">6 mécanismes de communication</div>
+        <div class="hero-body">Toasts (notifications éphémères haut-centre) · Modales (focus bloquant, 3 tailles) · Drawers (panneau latéral droit, 2 largeurs) · Alertes inline (4 niveaux sémantiques) · Skeletons (placeholders de chargement structurés) · Spinners (indicateurs d'activité, 4 variantes).</div>
+      </div>
+      <div class="hero-divider"></div>
+      <div class="hero-col">
+        <div class="hero-label">Comment</div>
+        <div class="hero-title">Glassmorphisme + grain + sémantique</div>
+        <div class="hero-body">Toasts et modales utilisent le glassmorphisme (backdrop-filter blur) et le grain SVG. Les 4 couleurs sémantiques (succès, erreur, avertissement, info) sont désaturées pour rester lisibles dans un contexte professionnel. Aucun emoji, aucune police décorative.</div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         §1 — TOASTS
+    ═══════════════════════════════════════════════════════════════ -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-num">Section 01</div>
+        <div class="section-title">Toasts — Notifications éphémères</div>
+        <div class="section-desc">Notifications non bloquantes positionnées <strong>haut-centre fixe</strong> (<span class="code">top:16px; left:50%; transform:translateX(-50%)</span>). Glassmorphisme complet, grain SVG, barre de progression de durée, auto-dismiss configurable par variante. Cliquer les boutons déclenche de vraies notifications.</div>
+      </div>
+
+      <!-- Déclencheurs -->
+      <div class="subsection">
+        <div class="subsection-title">Déclencheurs live — cliquer pour afficher un toast</div>
+        <div class="trigger-row">
+          <button class="trig-btn trig-ok" onclick="showToast('ok')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            Succès — enregistrement
+          </button>
+          <button class="trig-btn trig-err" onclick="showToast('err')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            Erreur — synchronisation
+          </button>
+          <button class="trig-btn trig-warn" onclick="showToast('warn')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/></svg>
+            Avertissement — stock
+          </button>
+          <button class="trig-btn trig-info" onclick="showToast('info')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            Info — mise à jour
+          </button>
+          <button class="trig-btn trig-act" onclick="showToast('action')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Avec action
+          </button>
+        </div>
+      </div>
+
+      <!-- Prévisualisation statique -->
+      <div class="subsection">
+        <div class="subsection-title">Aperçu des 4 variantes — fond sombre simulé</div>
+        <div class="toast-stage">
+          <!-- ok statique -->
+          <div class="toast-item toast-ok" style="animation:none;">
+            <svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            <div class="toast-body">
+              <div class="toast-title">Patient enregistré</div>
+              <div class="toast-msg">Kabibi Ondongo · N° MOU-2024-0891 créé avec succès.</div>
+            </div>
+            <button class="toast-close"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+            <div class="toast-progress" style="animation-duration:4s;animation-play-state:paused;width:65%;"></div>
+          </div>
+          <!-- err statique -->
+          <div class="toast-item toast-err" style="animation:none;">
+            <svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            <div class="toast-body">
+              <div class="toast-title">Échec de synchronisation</div>
+              <div class="toast-msg">Connexion avec le site Nkayi interrompue.</div>
+              <span class="toast-action">Réessayer</span>
+            </div>
+            <button class="toast-close"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+          </div>
+          <!-- warn statique -->
+          <div class="toast-item toast-warn" style="animation:none;">
+            <svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <div class="toast-body">
+              <div class="toast-title">Stock faible — Paracétamol 500 mg</div>
+              <div class="toast-msg">12 boîtes restantes. Seuil d'alerte : 20.</div>
+            </div>
+            <button class="toast-close"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+            <div class="toast-progress" style="animation-duration:6s;animation-play-state:paused;width:50%;"></div>
+          </div>
+          <!-- info statique -->
+          <div class="toast-item toast-info" style="animation:none;">
+            <svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            <div class="toast-body">
+              <div class="toast-title">Mise à jour disponible</div>
+              <div class="toast-msg">SARIS v2.4.1 — correctifs de sécurité.</div>
+            </div>
+            <button class="toast-close"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+            <div class="toast-progress" style="animation-duration:5s;animation-play-state:paused;width:80%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Spec table -->
+      <div class="subsection">
+        <div class="subsection-title">Spécifications techniques</div>
+        <table class="spec-table">
+          <thead><tr><th>Propriété</th><th>Valeur</th><th>Règle</th></tr></thead>
+          <tbody>
+            <tr><td>Position</td><td><code>top:16px; left:50%; transform:translateX(-50%)</code></td><td>Toujours centré — jamais en coin</td></tr>
+            <tr><td>Largeur</td><td><code>340px</code> fixe, <code>max-width:92vw</code></td><td>Jamais plein écran</td></tr>
+            <tr><td>z-index</td><td><code>9999</code></td><td>Au-dessus de tout, y compris les modales</td></tr>
+            <tr><td>Fond clair</td><td><code>rgba(255,255,255,0.88) + blur(20px)</code></td><td>Glassmorphisme — jamais opaque</td></tr>
+            <tr><td>Fond sombre</td><td><code>rgba(22,27,34,0.92) + blur(20px)</code></td><td>Surface 92% + blur</td></tr>
+            <tr><td>Durée succès/info</td><td><code>4 000 ms</code></td><td>Auto-dismiss</td></tr>
+            <tr><td>Durée avertissement</td><td><code>6 000 ms</code></td><td>Auto-dismiss</td></tr>
+            <tr><td>Durée erreur</td><td><code>∞ persistant</code></td><td>Reste jusqu'à action utilisateur</td></tr>
+            <tr><td>Empilement max</td><td><code>4</code> toasts simultanés, LIFO</td><td>Le 5e expulse le plus ancien</td></tr>
+            <tr><td>Animation entrée</td><td><code>translateY(-12px) scale(.96) → normal</code></td><td>spring cubic-bezier(0.34,1.56,0.64,1), 220 ms</td></tr>
+            <tr><td>Grain</td><td><code>opacity:0.16, mix-blend-mode:overlay</code></td><td>Identique aux composants solides</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         §2 — MODALES
+    ═══════════════════════════════════════════════════════════════ -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-num">Section 02</div>
+        <div class="section-title">Modales — Panneaux de focus</div>
+        <div class="section-desc">Fenêtres modales avec overlay <span class="code">backdrop-filter:blur(4px)</span>. Trois tailles : sm (400 px) pour confirmations courtes, md (560 px) pour formulaires, lg (720 px) pour contenus riches. Animation d'entrée spring, fermeture sur ✕ / overlay / Echap.</div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Cliquer une carte pour ouvrir la modale correspondante</div>
+        <div class="grid-3">
+          <div class="modal-trigger-card" onclick="openModal('form')">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--ap-400)" stroke-width="1.5" style="display:block;margin:0 auto 10px;"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+            <div class="modal-trigger-label">Nouveau patient</div>
+            <div class="modal-trigger-size">Modale md — 560 px</div>
+          </div>
+          <div class="modal-trigger-card" onclick="openModal('confirm')">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--erreur-accent)" stroke-width="1.5" style="display:block;margin:0 auto 10px;"><polyline points="3 6 5 6 21 6"/><path d="m19 6-.867 12.142A2 2 0 0 1 16.138 20H7.862a2 2 0 0 1-1.995-1.858L5 6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+            <div class="modal-trigger-label">Confirmation suppression</div>
+            <div class="modal-trigger-size">Modale sm — 400 px</div>
+          </div>
+          <div class="modal-trigger-card" onclick="openModal('ordo')">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--info-accent)" stroke-width="1.5" style="display:block;margin:0 auto 10px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            <div class="modal-trigger-label">Fiche ordonnance</div>
+            <div class="modal-trigger-size">Modale lg — 720 px</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Spécifications communes</div>
+        <table class="spec-table">
+          <thead><tr><th>Propriété</th><th>sm (400 px)</th><th>md (560 px)</th><th>lg (720 px)</th></tr></thead>
+          <tbody>
+            <tr><td>Padding header</td><td colspan="3"><code>20px 24px 16px</code> — identique toutes tailles</td></tr>
+            <tr><td>Padding body</td><td colspan="3"><code>20px 24px</code></td></tr>
+            <tr><td>Padding footer</td><td colspan="3"><code>14px 24px 20px</code></td></tr>
+            <tr><td>Border-radius</td><td colspan="3"><code>--radius-xl (14px)</code></td></tr>
+            <tr><td>Overlay</td><td colspan="3"><code>rgba(15,23,42,0.48)</code> clair · <code>rgba(0,0,0,0.65)</code> sombre + <code>blur(4px)</code></td></tr>
+            <tr><td>z-index</td><td colspan="3"><code>8000</code> overlay · <code>8001</code> panel</td></tr>
+            <tr><td>Fermeture</td><td colspan="3">Bouton ✕ header · clic overlay · <kbd>Echap</kbd></td></tr>
+            <tr><td>Animation entrée</td><td colspan="3">spring 220 ms · <code>scale(.94) translateY(12px) → normal</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         §3 — DRAWERS
+    ═══════════════════════════════════════════════════════════════ -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-num">Section 03</div>
+        <div class="section-title">Drawers — Panneaux latéraux</div>
+        <div class="section-desc">Panneau glissant depuis la droite. Deux largeurs : sm (320 px) pour des détails rapides sans quitter le contexte, md (480 px) pour des formulaires étendus. Body scrollable, footer ancré, header fixe.</div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Cliquer pour ouvrir</div>
+        <div class="grid-2">
+          <div class="drawer-trigger-card" onclick="openDrawer('sm')">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--ap-400)" stroke-width="1.5" style="display:block;margin:0 auto 10px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
+            <div class="drawer-trigger-label">Fiche patient rapide</div>
+            <div class="drawer-trigger-size">Drawer sm — 320 px</div>
+          </div>
+          <div class="drawer-trigger-card" onclick="openDrawer('md')">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--ap-400)" stroke-width="1.5" style="display:block;margin:0 auto 10px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
+            <div class="drawer-trigger-label">Formulaire consultation</div>
+            <div class="drawer-trigger-size">Drawer md — 480 px</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Spécifications</div>
+        <table class="spec-table">
+          <thead><tr><th>Propriété</th><th>Drawer sm (320 px)</th><th>Drawer md (480 px)</th></tr></thead>
+          <tbody>
+            <tr><td>Hauteur</td><td colspan="2">100 vh — toute la hauteur de l'écran</td></tr>
+            <tr><td>Position</td><td colspan="2"><code>fixed; top:0; right:0; bottom:0</code></td></tr>
+            <tr><td>z-index</td><td colspan="2"><code>7000</code> overlay · <code>7001</code> drawer</td></tr>
+            <tr><td>Animation</td><td colspan="2"><code>translateX(100%) → 0</code>, spring-soft 240 ms</td></tr>
+            <tr><td>Overlay</td><td colspan="2"><code>blur(2px)</code> — moins intense que les modales</td></tr>
+            <tr><td>Structure</td><td colspan="2">Header fixe · Body <code>flex:1; overflow-y:auto</code> · Footer ancré</td></tr>
+            <tr><td>Fermeture</td><td colspan="2">Bouton ✕ · clic overlay · <kbd>Echap</kbd></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         §4 — ALERTES INLINE
+    ═══════════════════════════════════════════════════════════════ -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-num">Section 04</div>
+        <div class="section-title">Alertes inline</div>
+        <div class="section-desc">Messages contextuels intégrés dans le flux de la page — pas de position fixe. Quatre niveaux sémantiques, grain SVG intégré, variantes avec titre, action, ou bouton de fermeture. Le bouton ✕ est optionnel : absent sur les alertes bloquantes (erreur critique non résolue).</div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">4 niveaux sémantiques</div>
+        <div class="demo-box">
+          <div class="alert-inline alert-ok">
+            <svg class="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            <div class="alert-content">
+              <div class="alert-title">Synchronisation réussie</div>
+              <div class="alert-body">Les données du site Moutela ont été synchronisées avec le serveur central. Dernière synchro : il y a 2 minutes.</div>
+              <a class="alert-link">Voir le journal de synchro</a>
+            </div>
+            <button class="alert-dismiss" onclick="this.closest('.alert-inline').remove()"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+          </div>
+
+          <div class="alert-inline alert-err">
+            <svg class="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            <div class="alert-content">
+              <div class="alert-title">Rupture de stock critique — Artémisinine 80 mg</div>
+              <div class="alert-body">Stock épuisé au site Nkayi. Approvisionnement urgent requis avant le 18 mai 2026. Cette alerte persiste jusqu'à résolution.</div>
+              <a class="alert-link">Créer une commande d'urgence</a>
+            </div>
+          </div>
+
+          <div class="alert-inline alert-warn">
+            <svg class="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <div class="alert-content">
+              <div class="alert-title">Données incomplètes</div>
+              <div class="alert-body">Le groupe sanguin de 47 patients est manquant. Ces données sont requises pour les prescriptions chirurgicales.</div>
+              <a class="alert-link">Voir les patients concernés</a>
+            </div>
+            <button class="alert-dismiss" onclick="this.closest('.alert-inline').remove()"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+          </div>
+
+          <div class="alert-inline alert-info">
+            <svg class="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            <div class="alert-content">
+              <div class="alert-title">Maintenance planifiée</div>
+              <div class="alert-body">Le système sera indisponible le samedi 17 mai 2026 de 02h00 à 04h00 pour mise à jour de la base de données.</div>
+            </div>
+            <button class="alert-dismiss" onclick="this.closest('.alert-inline').remove()"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Alerte compacte — sous un champ de saisie</div>
+        <div class="demo-box" style="max-width:480px;">
+          <div class="field-group">
+            <label class="field-label">Numéro de dossier</label>
+            <input class="field-input" type="text" value="MOU-2024-XXXX" style="border-color:var(--erreur-accent);box-shadow:0 0 0 3px rgba(155,68,68,.12);"/>
+          </div>
+          <div class="alert-inline alert-err" style="padding:8px 12px;margin-bottom:0;">
+            <svg class="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            <div class="alert-content"><div class="alert-body" style="font-size:11.5px;">Format invalide. Attendu : <strong>MOU-AAAA-NNNN</strong> (ex : MOU-2024-0891)</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Règles</div>
+        <div class="rules-grid">
+          <div class="rules-card ok">
+            <div class="rules-card-title"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Autorisé</div>
+            <div class="rules-card-body">Bouton ✕ sur alertes informationnelles et récupérables (succès, info, avertissement résolu). Lien d'action dans le corps du texte. Taille compacte <code>8px 12px</code> sous les champs.</div>
+          </div>
+          <div class="rules-card no">
+            <div class="rules-card-title"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Interdit</div>
+            <div class="rules-card-body">Bouton ✕ sur alertes d'erreur critique non résolues. Alertes en position fixe (utiliser les toasts à la place). Utiliser des emojis à la place des icônes Lucide.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         §5 — SKELETONS
+    ═══════════════════════════════════════════════════════════════ -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-num">Section 05</div>
+        <div class="section-title">Skeletons — Placeholders de chargement</div>
+        <div class="section-desc">Squelettes animés qui reproduisent la forme exacte du contenu cible. Animation shimmer horizontal sur 1 200 px de cycle. Toujours préférer un skeleton à un spinner pour les blocs de contenu structuré (tableaux, cartes, listes).</div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Carte patient · Grille KPI · Tableau · Sidebar</div>
+        <div class="grid-2">
+          <!-- Card patient -->
+          <div>
+            <div style="font-size:11px;font-weight:600;color:var(--texte-tertiaire);letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px;">Carte patient</div>
+            <div class="sk-card">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+                <div class="sk sk-avatar" style="width:40px;height:40px;flex-shrink:0;"></div>
+                <div style="flex:1;">
+                  <div class="sk sk-text" style="width:60%;"></div>
+                  <div class="sk sk-text h10" style="width:40%;"></div>
+                </div>
+              </div>
+              <div class="sk sk-text w-full"></div>
+              <div class="sk sk-text" style="width:75%;"></div>
+              <div class="sk sk-text" style="width:50%;"></div>
+              <div style="display:flex;gap:8px;margin-top:12px;">
+                <div class="sk" style="height:26px;width:80px;border-radius:6px;"></div>
+                <div class="sk" style="height:26px;width:80px;border-radius:6px;"></div>
+              </div>
+            </div>
+          </div>
+          <!-- KPI -->
+          <div>
+            <div style="font-size:11px;font-weight:600;color:var(--texte-tertiaire);letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px;">Grille KPI 2×2</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <div class="sk-card" style="text-align:center;padding:18px 12px;"><div class="sk" style="height:30px;width:70px;margin:0 auto 8px;border-radius:4px;"></div><div class="sk sk-text h10" style="width:90px;margin:0 auto;"></div></div>
+              <div class="sk-card" style="text-align:center;padding:18px 12px;"><div class="sk" style="height:30px;width:70px;margin:0 auto 8px;border-radius:4px;"></div><div class="sk sk-text h10" style="width:90px;margin:0 auto;"></div></div>
+              <div class="sk-card" style="text-align:center;padding:18px 12px;"><div class="sk" style="height:30px;width:70px;margin:0 auto 8px;border-radius:4px;"></div><div class="sk sk-text h10" style="width:90px;margin:0 auto;"></div></div>
+              <div class="sk-card" style="text-align:center;padding:18px 12px;"><div class="sk" style="height:30px;width:70px;margin:0 auto 8px;border-radius:4px;"></div><div class="sk sk-text h10" style="width:90px;margin:0 auto;"></div></div>
+            </div>
+          </div>
+          <!-- Tableau -->
+          <div>
+            <div style="font-size:11px;font-weight:600;color:var(--texte-tertiaire);letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px;">Tableau — 4 lignes</div>
+            <div class="sk-card" style="padding:0;overflow:hidden;">
+              <div style="padding:10px 14px;background:var(--fond-surface-2);display:flex;gap:16px;">
+                <div class="sk sk-text h10" style="width:80px;margin:0;"></div>
+                <div class="sk sk-text h10" style="width:120px;margin:0;"></div>
+                <div class="sk sk-text h10" style="width:60px;margin:0;"></div>
+              </div>
+              <div style="border-top:1px solid var(--bordure-legere);">
+                <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--bordure-legere);"><div class="sk sk-avatar" style="width:26px;height:26px;flex-shrink:0;"></div><div class="sk sk-text" style="width:110px;margin:0;"></div><div style="margin-left:auto;"><div class="sk" style="height:18px;width:60px;border-radius:4px;"></div></div></div>
+                <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--bordure-legere);"><div class="sk sk-avatar" style="width:26px;height:26px;flex-shrink:0;"></div><div class="sk sk-text" style="width:130px;margin:0;"></div><div style="margin-left:auto;"><div class="sk" style="height:18px;width:60px;border-radius:4px;"></div></div></div>
+                <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--bordure-legere);"><div class="sk sk-avatar" style="width:26px;height:26px;flex-shrink:0;"></div><div class="sk sk-text" style="width:95px;margin:0;"></div><div style="margin-left:auto;"><div class="sk" style="height:18px;width:60px;border-radius:4px;"></div></div></div>
+                <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;"><div class="sk sk-avatar" style="width:26px;height:26px;flex-shrink:0;"></div><div class="sk sk-text" style="width:115px;margin:0;"></div><div style="margin-left:auto;"><div class="sk" style="height:18px;width:60px;border-radius:4px;"></div></div></div>
+              </div>
+            </div>
+          </div>
+          <!-- Sidebar -->
+          <div>
+            <div style="font-size:11px;font-weight:600;color:var(--texte-tertiaire);letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px;">Sidebar navigation</div>
+            <div class="sk-card" style="padding:16px;">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+                <div class="sk" style="width:28px;height:28px;border-radius:6px;flex-shrink:0;"></div>
+                <div style="flex:1;"><div class="sk sk-text" style="width:70px;margin-bottom:4px;"></div><div class="sk sk-text h10" style="width:50px;"></div></div>
+              </div>
+              <div class="sk sk-text h10" style="width:35%;margin-bottom:12px;"></div>
+              <div style="display:flex;flex-direction:column;gap:6px;">
+                <div class="sk" style="height:30px;border-radius:6px;background:var(--ap-50);"></div>
+                <div class="sk" style="height:30px;border-radius:6px;"></div>
+                <div class="sk" style="height:30px;border-radius:6px;"></div>
+                <div class="sk" style="height:30px;border-radius:6px;"></div>
+              </div>
+              <div class="sk sk-text h10" style="width:35%;margin:14px 0 10px;"></div>
+              <div style="display:flex;flex-direction:column;gap:6px;">
+                <div class="sk" style="height:30px;border-radius:6px;"></div>
+                <div class="sk" style="height:30px;border-radius:6px;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Règles d'animation shimmer</div>
+        <table class="spec-table">
+          <thead><tr><th>Propriété</th><th>Valeur</th><th>Note</th></tr></thead>
+          <tbody>
+            <tr><td>Animation</td><td><code>shimmer 1.4s ease-in-out infinite</code></td><td>Gradient background-position 0 → 1200px</td></tr>
+            <tr><td>Couleur repos</td><td><code>--fond-surface-2</code></td><td>Fond légèrement décalé de la surface</td></tr>
+            <tr><td>Couleur pic (50%)</td><td><code>--fond-input</code></td><td>Pic du shimmer au milieu du cycle</td></tr>
+            <tr><td>Border-radius</td><td>Suit la forme du contenu cible</td><td>Texte → radius-sm · Avatar → radius-md · Cercle → 50%</td></tr>
+            <tr><td>Arrêt</td><td>Immédiat dès que le contenu arrive</td><td>Fondu croisé opacity 0→1 en 200 ms</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         §6 — SPINNERS
+    ═══════════════════════════════════════════════════════════════ -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-num">Section 06</div>
+        <div class="section-title">Spinners — Indicateurs d'activité</div>
+        <div class="section-desc">Quatre variantes pour les états de chargement ponctuels. L'anneau dasharray est la référence. Les dots pulsants et barres équaliseur conviennent aux indicateurs de synchronisation continue dans la topbar.</div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Catalogue des variantes</div>
+        <div class="demo-box">
+          <div class="spinner-showcase">
+            <!-- Anneau simple -->
+            <div class="spinner-item">
+              <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                <circle cx="16" cy="16" r="12" stroke="var(--bordure-forte)" stroke-width="3"/>
+                <circle cx="16" cy="16" r="12" stroke="var(--ap-400)" stroke-width="3" stroke-linecap="round" stroke-dasharray="22 54" class="spin-ring"/>
+              </svg>
+              <div class="spinner-label">Anneau simple</div>
+            </div>
+            <!-- Dasharray animé -->
+            <div class="spinner-item">
+              <svg width="32" height="32" viewBox="0 0 32 32" fill="none" style="overflow:visible;">
+                <circle cx="16" cy="16" r="12" stroke="var(--bordure-forte)" stroke-width="3"/>
+                <circle cx="16" cy="16" r="12" stroke="var(--ap-400)" stroke-width="3" stroke-linecap="round" class="spin-dash" style="transform-origin:16px 16px;"/>
+              </svg>
+              <div class="spinner-label">Dasharray</div>
+            </div>
+            <!-- sm ap -->
+            <div class="spinner-item">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <circle cx="9" cy="9" r="6.5" stroke="var(--ap-100)" stroke-width="2"/>
+                <circle cx="9" cy="9" r="6.5" stroke="var(--ap-400)" stroke-width="2" stroke-linecap="round" stroke-dasharray="10 31" class="spin-ring"/>
+              </svg>
+              <div class="spinner-label">sm 18px</div>
+            </div>
+            <!-- sm erreur -->
+            <div class="spinner-item">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <circle cx="9" cy="9" r="6.5" stroke="var(--erreur-fond)" stroke-width="2"/>
+                <circle cx="9" cy="9" r="6.5" stroke="var(--erreur-accent)" stroke-width="2" stroke-linecap="round" stroke-dasharray="10 31" class="spin-ring"/>
+              </svg>
+              <div class="spinner-label">sm erreur</div>
+            </div>
+            <!-- Dots pulsants -->
+            <div class="spinner-item">
+              <div style="display:flex;gap:5px;align-items:center;height:32px;">
+                <div class="pulse-dot" style="width:8px;height:8px;border-radius:50%;background:var(--ap-400);"></div>
+                <div class="pulse-dot" style="width:8px;height:8px;border-radius:50%;background:var(--ap-400);animation-delay:.16s;"></div>
+                <div class="pulse-dot" style="width:8px;height:8px;border-radius:50%;background:var(--ap-400);animation-delay:.32s;"></div>
+              </div>
+              <div class="spinner-label">Dots pulsants</div>
+            </div>
+            <!-- Barres équaliseur -->
+            <div class="spinner-item">
+              <div style="display:flex;gap:3px;align-items:flex-end;height:32px;">
+                <div class="eq-bar" style="width:5px;height:20px;background:var(--ap-400);border-radius:2px;transform-origin:bottom;"></div>
+                <div class="eq-bar" style="width:5px;height:28px;background:var(--ap-400);border-radius:2px;transform-origin:bottom;"></div>
+                <div class="eq-bar" style="width:5px;height:16px;background:var(--ap-400);border-radius:2px;transform-origin:bottom;"></div>
+                <div class="eq-bar" style="width:5px;height:24px;background:var(--ap-400);border-radius:2px;transform-origin:bottom;"></div>
+              </div>
+              <div class="spinner-label">Equaliser (sync)</div>
+            </div>
+            <!-- Bouton loading -->
+            <div class="spinner-item">
+              <button class="btn-loading">
+                <svg width="14" height="14" viewBox="0 0 18 18" fill="none">
+                  <circle cx="9" cy="9" r="6.5" stroke="rgba(255,255,255,.3)" stroke-width="2"/>
+                  <circle cx="9" cy="9" r="6.5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-dasharray="10 31" class="spin-ring"/>
+                </svg>
+                Enregistrement…
+              </button>
+              <div class="spinner-label">Bouton loading</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Quel spinner choisir selon le contexte</div>
+        <table class="spec-table">
+          <thead><tr><th>Contexte</th><th>Type recommandé</th><th>Taille</th></tr></thead>
+          <tbody>
+            <tr><td>Bouton submit / save</td><td>Anneau simple blanc dans le bouton</td><td>14 px inline</td></tr>
+            <tr><td>Chargement page entière</td><td>Anneau dasharray centré avec overlay</td><td>40 px</td></tr>
+            <tr><td>Chargement section (tableau, graphique)</td><td>Skeleton préférable · anneau si &lt; 300 ms</td><td>24 px</td></tr>
+            <tr><td>Synchronisation continue (topbar)</td><td>Dots pulsants ou barres équaliseur</td><td>18 px</td></tr>
+            <tr><td>Appel API rapide (&lt; 200 ms)</td><td>Aucun indicateur visible</td><td>—</td></tr>
+            <tr><td>Couleur par défaut</td><td><code>--ap-400</code> · blanc sur fond coloré · variante sémantique si contexte d'erreur</td><td>—</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       MODALES DOM
+  ═══════════════════════════════════════════════════════════════ -->
+
+  <!-- Modale formulaire (md) -->
+  <div class="modal-overlay" id="modal-form" style="display:none;" onclick="closeModal('form',event)">
+    <div class="modal-panel modal-md" onclick="event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="mf-title">
+      <div class="modal-header">
+        <div><div class="modal-title" id="mf-title">Nouveau patient — Moutela</div><div class="modal-subtitle">Saisir les informations d'admission</div></div>
+        <button class="modal-close" onclick="closeModal('form')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+      <div class="modal-body">
+        <div class="grid-2">
+          <div class="field-group"><label class="field-label">Prénom</label><input class="field-input" type="text" placeholder="Ex : Kabibi"/></div>
+          <div class="field-group"><label class="field-label">Nom de famille</label><input class="field-input" type="text" placeholder="Ex : Ondongo"/></div>
+        </div>
+        <div class="grid-2">
+          <div class="field-group"><label class="field-label">Date de naissance</label><input class="field-input" type="date"/></div>
+          <div class="field-group"><label class="field-label">Sexe</label><select class="field-input field-select"><option>Féminin</option><option>Masculin</option><option>Non précisé</option></select></div>
+        </div>
+        <div class="field-group"><label class="field-label">Adresse</label><input class="field-input" type="text" placeholder="Quartier, ville…"/></div>
+        <div class="grid-2">
+          <div class="field-group"><label class="field-label">Téléphone</label><input class="field-input" type="tel" placeholder="+242 06 …"/></div>
+          <div class="field-group"><label class="field-label">Groupe sanguin</label><select class="field-input field-select"><option value="">—</option><option>A+</option><option>A−</option><option>B+</option><option>B−</option><option>O+</option><option>O−</option><option>AB+</option><option>AB−</option></select></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-m btn-ghost-m" onclick="closeModal('form')">Annuler</button>
+        <button class="btn-m btn-primary-m">Enregistrer le patient</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modale confirmation (sm) -->
+  <div class="modal-overlay" id="modal-confirm" style="display:none;" onclick="closeModal('confirm',event)">
+    <div class="modal-panel modal-sm" onclick="event.stopPropagation()" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <div><div class="modal-title">Supprimer le dossier</div><div class="modal-subtitle">Cette action est irréversible</div></div>
+        <button class="modal-close" onclick="closeModal('confirm')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert-inline alert-err" style="margin-bottom:0;">
+          <svg class="alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/></svg>
+          <div class="alert-content"><div class="alert-body">Vous allez supprimer définitivement le dossier de <strong>Kabibi Ondongo</strong> (N° MOU-2024-0891). Toutes les consultations et ordonnances associées seront perdues.</div></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-m btn-ghost-m" onclick="closeModal('confirm')">Annuler</button>
+        <button class="btn-m btn-danger-m" onclick="closeModal('confirm')">Supprimer définitivement</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modale ordonnance (lg) -->
+  <div class="modal-overlay" id="modal-ordo" style="display:none;" onclick="closeModal('ordo',event)">
+    <div class="modal-panel modal-lg" onclick="event.stopPropagation()" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <div><div class="modal-title">Ordonnance N° ORD-2024-0347</div><div class="modal-subtitle">Dr. Moussavou · Moutela · 14 mai 2026</div></div>
+        <button class="modal-close" onclick="closeModal('ordo')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+      <div class="modal-body">
+        <div class="grid-2" style="margin-bottom:16px;">
+          <div>
+            <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--texte-tertiaire);margin-bottom:8px;">Patient</div>
+            <div class="info-row"><span class="info-key">Nom complet</span><span class="info-val">Ondongo, Kabibi</span></div>
+            <div class="info-row"><span class="info-key">Âge</span><span class="info-val">34 ans</span></div>
+            <div class="info-row"><span class="info-key">Diagnostic</span><span class="info-val">Paludisme simple</span></div>
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--texte-tertiaire);margin-bottom:8px;">Validité</div>
+            <div class="info-row"><span class="info-key">Émise le</span><span class="info-val">14/05/2026</span></div>
+            <div class="info-row"><span class="info-key">Valide jusqu'au</span><span class="info-val">13/06/2026</span></div>
+            <div class="info-row"><span class="info-key">Statut</span><span class="info-val" style="color:var(--succes-accent);">Validée</span></div>
+          </div>
+        </div>
+        <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--texte-tertiaire);margin-bottom:8px;">Médicaments prescrits</div>
+        <table class="spec-table">
+          <thead><tr><th>Médicament</th><th>Posologie</th><th>Durée</th><th>Quantité</th></tr></thead>
+          <tbody>
+            <tr><td>Artémisinine 80 mg</td><td>1 cp matin + soir</td><td>5 jours</td><td>10 cp</td></tr>
+            <tr><td>Paracétamol 500 mg</td><td>1 cp si fièvre &gt; 38.5°C</td><td>5 jours</td><td>15 cp</td></tr>
+            <tr><td>SRO sachet</td><td>1 sachet dans 1 L d'eau</td><td>3 jours</td><td>3 sachets</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-m btn-ghost-m" onclick="closeModal('ordo')">Fermer</button>
+        <button class="btn-m btn-ghost-m"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Imprimer</button>
+        <button class="btn-m btn-primary-m">Délivrer au patient</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       DRAWERS DOM
+  ═══════════════════════════════════════════════════════════════ -->
+  <div id="drawer-overlay" style="display:none;" class="drawer-overlay" onclick="closeDrawer()"></div>
+
+  <!-- Drawer sm -->
+  <div id="drawer-sm" class="drawer-panel drawer-sm" style="display:none;">
+    <div class="drawer-header">
+      <div class="drawer-title">Fiche patient</div>
+      <button class="modal-close" onclick="closeDrawer()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="drawer-body">
+      <div class="patient-meta-row">
+        <div class="p-avatar-lg">KO</div>
+        <div><div class="p-name-lg">Kabibi Ondongo</div><div class="p-id-lg">N° MOU-2024-0891</div></div>
+      </div>
+      <div class="drawer-section-label">Informations générales</div>
+      <div class="info-row"><span class="info-key">Âge</span><span class="info-val">34 ans</span></div>
+      <div class="info-row"><span class="info-key">Sexe</span><span class="info-val">Féminin</span></div>
+      <div class="info-row"><span class="info-key">Groupe sanguin</span><span class="info-val">O+</span></div>
+      <div class="info-row"><span class="info-key">Téléphone</span><span class="info-val">+242 06 458 12 33</span></div>
+      <div class="info-row"><span class="info-key">Adresse</span><span class="info-val">Moungali, Brazzaville</span></div>
+      <div class="drawer-section-label">Dernière visite</div>
+      <div class="info-row"><span class="info-key">Date</span><span class="info-val">14 mai 2026</span></div>
+      <div class="info-row"><span class="info-key">Médecin</span><span class="info-val">Dr. Moussavou</span></div>
+      <div class="info-row"><span class="info-key">Diagnostic</span><span class="info-val">Paludisme simple</span></div>
+      <div class="info-row"><span class="info-key">Statut</span><span class="info-val" style="color:var(--succes-accent);">En traitement</span></div>
+      <div class="drawer-section-label">Allergies connues</div>
+      <div class="info-row"><span class="info-key">Pénicilline</span><span class="info-val" style="color:var(--erreur-accent);">Oui — éruption cutanée</span></div>
+    </div>
+    <div class="drawer-footer">
+      <button class="btn-m btn-ghost-m" onclick="closeDrawer()">Fermer</button>
+      <button class="btn-m btn-primary-m">Dossier complet</button>
+    </div>
+  </div>
+
+  <!-- Drawer md -->
+  <div id="drawer-md" class="drawer-panel drawer-md" style="display:none;">
+    <div class="drawer-header">
+      <div class="drawer-title">Nouvelle consultation</div>
+      <button class="modal-close" onclick="closeDrawer()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="drawer-body">
+      <div class="patient-meta-row" style="margin-bottom:20px;">
+        <div class="p-avatar-lg">KO</div>
+        <div><div class="p-name-lg">Kabibi Ondongo</div><div class="p-id-lg">N° MOU-2024-0891 · 34 ans</div></div>
+      </div>
+      <div class="field-group"><label class="field-label">Motif de consultation</label><input class="field-input" type="text" placeholder="Ex : Fièvre, céphalées depuis 3 jours"/></div>
+      <div class="grid-2">
+        <div class="field-group"><label class="field-label">Température (°C)</label><input class="field-input" type="number" placeholder="38.5"/></div>
+        <div class="field-group"><label class="field-label">Tension artérielle</label><input class="field-input" type="text" placeholder="120/80 mmHg"/></div>
+      </div>
+      <div class="grid-2">
+        <div class="field-group"><label class="field-label">Poids (kg)</label><input class="field-input" type="number" placeholder="62"/></div>
+        <div class="field-group"><label class="field-label">FC (bpm)</label><input class="field-input" type="text" placeholder="72"/></div>
+      </div>
+      <div class="field-group"><label class="field-label">Diagnostic</label><input class="field-input" type="text" placeholder="Ex : Paludisme simple (B54)"/></div>
+      <div class="field-group"><label class="field-label">Notes cliniques</label><textarea class="field-input" rows="4" placeholder="Observations, antécédents, plan de traitement…" style="resize:vertical;"></textarea></div>
+      <div class="field-group"><label class="field-label">Médecin traitant</label><select class="field-input field-select"><option>Dr. Moussavou</option><option>Dr. Ngoma</option></select></div>
+    </div>
+    <div class="drawer-footer">
+      <button class="btn-m btn-ghost-m" onclick="closeDrawer()">Annuler</button>
+      <button class="btn-m btn-ghost-m">Brouillon</button>
+      <button class="btn-m btn-primary-m">Valider la consultation</button>
+    </div>
+  </div>
+
+  <script>
+    /* ─── THEME ─── */
+    function toggleTheme(){
+      const h=document.documentElement, isDark=h.getAttribute('data-theme')==='dark';
+      h.setAttribute('data-theme', isDark?'light':'dark');
+      document.getElementById('theme-label').textContent = isDark?'Mode sombre':'Mode clair';
+      const icon=document.getElementById('theme-icon');
+      if(isDark) icon.innerHTML='<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+      else icon.innerHTML='<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+    }
+
+    /* ─── TOASTS ─── */
+    const T_DATA = {
+      ok:   {cls:'toast-ok',  icon:'<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',          title:'Patient enregistré',              msg:'Kabibi Ondongo · N° MOU-2024-0891 créé avec succès.', dur:4000},
+      err:  {cls:'toast-err', icon:'<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>',title:'Échec de synchronisation',          msg:'Connexion avec le site Nkayi interrompue.', action:'Réessayer', dur:0},
+      warn: {cls:'toast-warn',icon:'<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/>',title:'Stock faible — Paracétamol 500 mg', msg:'12 boîtes restantes. Seuil d\'alerte : 20.', dur:6000},
+      info: {cls:'toast-info',icon:'<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',title:'Mise à jour disponible',              msg:'SARIS v2.4.1 — correctifs de sécurité.', dur:5000},
+      action:{cls:'toast-info',icon:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>',title:'Ordonnance sauvegardée',            msg:'N° ORD-2024-0347 en attente de validation.', action:'Valider maintenant', dur:6000},
+    };
+    function showToast(key){
+      const c=document.getElementById('toastContainer');
+      const items=c.querySelectorAll('.toast-item');
+      if(items.length>=4) dismissToast(items[0]);
+      const d=T_DATA[key], el=document.createElement('div');
+      el.className='toast-item '+d.cls;
+      el.innerHTML=`<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${d.icon}</svg>
+        <div class="toast-body"><div class="toast-title">${d.title}</div><div class="toast-msg">${d.msg}</div>${d.action?`<span class="toast-action">${d.action}</span>`:''}</div>
+        <button class="toast-close" onclick="dismissToast(this.closest('.toast-item'))"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        ${d.dur?`<div class="toast-progress" style="animation-duration:${d.dur}ms;"></div>`:''}`;
+      c.appendChild(el);
+      if(d.dur) setTimeout(()=>dismissToast(el), d.dur);
+    }
+    function dismissToast(el){
+      if(!el||el.classList.contains('dismissing')) return;
+      el.classList.add('dismissing');
+      setTimeout(()=>el.remove(), 200);
+    }
+
+    /* ─── MODALES ─── */
+    function openModal(name){ document.getElementById('modal-'+name).style.display='flex'; document.body.style.overflow='hidden'; }
+    function closeModal(name,e){ if(e&&e.target!==document.getElementById('modal-'+name)) return; document.getElementById('modal-'+name).style.display='none'; document.body.style.overflow=''; }
+
+    /* ─── DRAWERS ─── */
+    let activeDrawer=null;
+    function openDrawer(size){
+      closeDrawer();
+      document.getElementById('drawer-overlay').style.display='block';
+      document.getElementById('drawer-'+size).style.display='flex';
+      document.body.style.overflow='hidden';
+      activeDrawer=size;
+    }
+    function closeDrawer(){
+      document.getElementById('drawer-overlay').style.display='none';
+      ['sm','md'].forEach(s=>{ document.getElementById('drawer-'+s).style.display='none'; });
+      document.body.style.overflow='';
+      activeDrawer=null;
+    }
+
+    /* ─── KEYBOARD ─── */
+    document.addEventListener('keydown',e=>{
+      if(e.key==='Escape'){
+        ['form','confirm','ordo'].forEach(n=>{ const m=document.getElementById('modal-'+n); if(m&&m.style.display!=='none'){m.style.display='none';document.body.style.overflow='';} });
+        closeDrawer();
+      }
+    });
+  </script>
+</body>
+</html>

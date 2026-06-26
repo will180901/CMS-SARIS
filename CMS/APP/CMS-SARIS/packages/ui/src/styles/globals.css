@@ -1,0 +1,553 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/jetbrains-mono";
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/plus-jakarta-sans";
+@import "@fontsource-variable/sora";
+
+@custom-variant dark (&:is(.dark *));
+@source "../../../apps/**/*.{ts,tsx}";
+@source "../../../components/**/*.{ts,tsx}";
+@source "../**/*.{ts,tsx}";
+
+/* ═══════════════════════════════════════════════════════════════
+   TOKENS CMS SARIS CONGO — MODE CLAIR
+   Charte Graphique v1.0 · CG-01 à CG-12
+   Bleu Ardoise #4E8BA4 · Or Congo #C99A2E
+═══════════════════════════════════════════════════════════════ */
+:root {
+  /* ── Palette primaire — MONOCHROME gris froid, accent teal conservé ──
+     Les teintes claires (tuiles, chips, états) et foncées (icônes, textes
+     actifs) deviennent gris ardoise ; SEULS --ap-400/500 restent teal =
+     accent réservé aux BOUTONS / CTA. Les badges gardent leurs sémantiques. */
+  --ap-50:  #E9EDF1;   /* tuiles d'icône, chips → gris très clair */
+  --ap-100: #DBE1E8;
+  --ap-200: #C3CBD5;
+  --ap-300: #A3ACB8;
+  --ap-400: #4E8BA4;   /* ACCENT teal conservé (boutons) */
+  --ap-500: #3D7A92;   /* ACCENT teal conservé (boutons / hover) */
+  --ap-600: #586472;   /* icônes décoratives → graphite (monochrome) */
+  --ap-700: #3F4A58;   /* états actifs (texte) → graphite foncé */
+  --ap-800: #2F3845;
+  --ap-900: #1F2731;
+
+  /* ── Palette secondaire — Or Congo ──────────────────────── */
+  --as-50:  #F6EBD2;
+  --as-100: #EBCF87;
+  --as-200: #D9AD4A;
+  --as-300: #D0A030;
+  --as-400: #C99A2E;
+  --as-500: #B88A25;
+  --as-600: #A07A1E;
+  --as-700: #8A6A15;
+  --as-800: #765A12;
+  --as-900: #4D3A08;
+
+  /* ── Niveaux de gris froids (style GitHub) ────────────── */
+  --g-0:   #FFFFFF;
+  --g-50:  #F4F6F8;
+  --g-100: #EAECF0;
+  --g-200: #D0D5DD;
+  --g-300: #B5BCC8;
+  --g-400: #8892A4;
+  --g-500: #64748B;
+  --g-600: #475569;
+  --g-700: #334155;
+  --g-800: #1E293B;
+  --g-900: #0F172A;
+
+  /* ── Fonds & Surfaces ────────────────────────────────────── */
+  --fond-page:      #F4F6F8;
+  --fond-surface:   #FFFFFF;
+  --fond-surface-2: #F0F2F5;
+  --fond-input:     #EAECF0;
+
+  /* ── Charte : grain « grains de sable » + verre poli ─────── */
+  /* Grain ALPHA : grains sombres fins sur fond TRANSPARENT → se pose PAR-DESSUS
+     la surface sans changer sa couleur (le gris bleuté est conservé). */
+  --grain-url: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch' result='t'/%3E%3CfeColorMatrix in='t' type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.28 0 0 0 0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='gamma' exponent='2.3' amplitude='1' offset='0'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  --grain-size:    200px;
+  --grain-blend:   normal;    /* alpha → compositing normal, couleur préservée */
+  /* Verre poli : fond translucide + flou. */
+  --verre-fond:  color-mix(in srgb, var(--fond-surface) 82%, transparent);
+  --verre-blur:  14px;
+
+  /* ── Textes — encre douce (jamais de noir pur) ───────────── */
+  --texte-primaire:   #242B34;   /* graphite doux (≈ slate, pas de #000) */
+  --texte-secondaire: #54606E;   /* gris ardoise apaisé */
+  --texte-tertiaire:  #98A2B2;   /* gris brume */
+
+  /* ── Bordures ────────────────────────────────────────────── */
+  --bordure-legere: rgba(15, 23, 42, 0.08);
+  --bordure-normale: rgba(15, 23, 42, 0.14);
+  --bordure-forte:  rgba(15, 23, 42, 0.28);
+
+  /* ── Couleurs sémantiques désaturées ─────────────────────── */
+  --succes-fond:    #EAF3EC;
+  --succes-texte:   #2D6A3F;
+  --succes-accent:  #3D7A5E;
+  --succes-bordure: rgba(45, 106, 63, 0.2);
+  --erreur-fond:    #F5EAEA;
+  --erreur-texte:   #7A2E2E;
+  --erreur-accent:  #9B4444;
+  --erreur-bordure: rgba(122, 46, 46, 0.2);
+  --avert-fond:     #F5EEDF;
+  --avert-texte:    #6B4D1A;
+  --avert-accent:   #8A6A2A;
+  --avert-bordure:  rgba(107, 77, 26, 0.2);
+  --info-fond:      #E6EFF5;
+  --info-texte:     #2A4F6B;
+  --info-accent:    #3A6080;
+  --info-bordure:   rgba(42, 79, 107, 0.2);
+
+  /* ── Raccourcis accent ───────────────────────────────────── */
+  --couleur-accent:       var(--ap-400);
+  --couleur-accent-fond:  var(--ap-50);
+  --couleur-accent-hover: var(--ap-500);
+  --couleur-accent-texte: #FFFFFF;
+  --couleur-accent-2:     var(--as-400);
+
+  /* ── Ombres Z0–Z5 (mode clair uniquement) ───────────────── */
+  --ombre-0: none;
+  --ombre-1: 0 1px 2px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.04);
+  --ombre-2: 0 2px 6px rgba(15,23,42,0.08), 0 1px 2px rgba(15,23,42,0.06);
+  --ombre-3: 0 4px 14px rgba(15,23,42,0.10), 0 2px 4px rgba(15,23,42,0.06);
+  --ombre-4: 0 8px 24px rgba(15,23,42,0.12), 0 4px 8px rgba(15,23,42,0.07);
+  --ombre-5: 0 16px 40px rgba(15,23,42,0.14), 0 6px 12px rgba(15,23,42,0.08);
+
+  /* ── Glassmorphisme — mode clair ─────────────────────────── */
+  --glass-sidebar-bg:   rgba(255, 255, 255, 0.72);
+  --glass-sidebar-blur: 16px;
+  --glass-card-bg:      rgba(255, 255, 255, 0.60);
+  --glass-card-blur:    12px;
+  --glass-toast-bg:     rgba(255, 255, 255, 0.82);
+  --glass-toast-blur:   20px;
+  --glass-header-bg:    rgba(255, 255, 255, 0.88);
+  --glass-header-blur:  14px;
+  --glass-bordure:      rgba(255, 255, 255, 0.55);
+
+  /* ── Espacement — base 4px (multiples stricts) ───────────── */
+  --espace-px: 2px;
+  --espace-1:  4px;
+  --espace-2:  8px;
+  --espace-3:  12px;
+  --espace-4:  16px;
+  --espace-5:  20px;
+  --espace-6:  24px;
+  --espace-7:  28px;
+  --espace-8:  32px;
+  --espace-10: 40px;
+  --espace-12: 48px;
+  --espace-14: 56px;
+  --espace-16: 64px;
+
+  /* ── Layout ──────────────────────────────────────────────── */
+  --layout-sidebar-width:  240px;
+  --layout-topbar-height:  54px;
+  --layout-max-width:      1100px;
+  --layout-subnav-height:  40px;
+
+  /* ── Typographie — échelle 11 niveaux ───────────────────── */
+  --font-size-display: 28px;
+  --font-size-h1:      22px;
+  --font-size-h2:      18px;
+  --font-size-h3:      16px;
+  --font-size-h4:      14px;
+  --font-size-body-lg: 15px;
+  --font-size-body:    14px;
+  --font-size-body-sm: 13px;
+  --font-size-label:   12px;
+  --font-size-caption: 11px;
+  --font-size-overline:10px;
+
+  /* ── Tokens shadcn/ui → palette SARIS ───────────────────── */
+  --background:           var(--fond-page);
+  --foreground:           var(--texte-primaire);
+  --card:                 var(--fond-surface);
+  --card-foreground:      var(--texte-primaire);
+  --popover:              var(--fond-surface);
+  --popover-foreground:   var(--texte-primaire);
+  --primary:              var(--ap-400);
+  --primary-foreground:   #FFFFFF;
+  --secondary:            var(--fond-surface-2);
+  --secondary-foreground: var(--texte-secondaire);
+  --muted:                var(--fond-surface-2);
+  --muted-foreground:     var(--texte-tertiaire);
+  --accent:               var(--ap-50);
+  --accent-foreground:    var(--ap-700);
+  --destructive:          var(--erreur-accent);
+  --border:               var(--bordure-legere);
+  --input:                var(--fond-input);
+  --ring:                 var(--ap-400);
+  --chart-1:              var(--ap-400);
+  --chart-2:              var(--as-400);
+  --chart-3:              var(--succes-accent);
+  --chart-4:              var(--erreur-accent);
+  --chart-5:              var(--info-accent);
+  --radius:               6px;
+  --sidebar:              var(--glass-sidebar-bg);
+  --sidebar-foreground:   var(--texte-primaire);
+  --sidebar-primary:      var(--ap-400);
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent:       var(--ap-50);
+  --sidebar-accent-foreground:  var(--ap-700);
+  --sidebar-border:       var(--bordure-legere);
+  --sidebar-ring:         var(--ap-400);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TOKENS CMS SARIS CONGO — MODE SOMBRE
+═══════════════════════════════════════════════════════════════ */
+.dark {
+  /* ── Palette primaire — MONOCHROME (sombre), accent teal conservé ──
+     Mêmes règles qu'en clair : tuiles/états/icônes en gris froid ; SEULS
+     --ap-400/500 restent teal = accent réservé aux BOUTONS / CTA. */
+  --ap-50:  #262E38;   /* tuiles d'icône / états → ardoise sombre */
+  --ap-100: #313A45;
+  --ap-200: #3D4753;
+  --ap-300: #5A6573;
+  --ap-400: #4E8BA4;   /* ACCENT teal conservé (boutons) */
+  --ap-500: #5B9BB0;   /* ACCENT teal conservé (boutons / hover) */
+  --ap-600: #98A6B5;   /* icônes décoratives → gris clair (monochrome) */
+  --ap-700: #B7C0CB;   /* états actifs (texte) → gris plus clair */
+  --ap-800: #CFD6DE;
+  --ap-900: #E0E5EB;
+
+  /* ── Palette secondaire inversée ────────────────────────── */
+  --as-50:  #4D3A08;
+  --as-100: #765A12;
+  --as-200: #8A6A15;
+  --as-300: #A07A1E;
+  --as-400: #C99A2E;
+  --as-500: #D0A030;
+  --as-600: #D9AD4A;
+  --as-700: #EBCF87;
+  --as-800: #F2DFA8;
+  --as-900: #F6EBD2;
+
+  /* ── Fonds & Surfaces ────────────────────────────────────── */
+  --fond-page:      #0D1117;
+  --fond-surface:   #161B22;
+  --fond-surface-2: #1C2333;
+  --fond-input:     #21262D;
+
+  /* ── Charte : grain + verre poli (sombre) ────────────────── */
+  --grain-blend: normal;           /* grain alpha : compositing normal */
+  --verre-fond:  color-mix(in srgb, var(--fond-surface) 68%, transparent);
+
+  /* ── Textes ──────────────────────────────────────────────── */
+  --texte-primaire:   #E6EDF3;
+  --texte-secondaire: #8B949E;
+  --texte-tertiaire:  #484F58;
+
+  /* ── Bordures ────────────────────────────────────────────── */
+  --bordure-legere:  rgba(230, 237, 243, 0.08);
+  --bordure-normale: rgba(230, 237, 243, 0.14);
+  --bordure-forte:   rgba(230, 237, 243, 0.28);
+
+  /* ── Sémantiques dark ────────────────────────────────────── */
+  --succes-fond:    #1A2E20;
+  --succes-texte:   #7EE2A0;
+  --succes-accent:  #56C47A;
+  --succes-bordure: rgba(126, 226, 160, 0.15);
+  --erreur-fond:    #2E1A1A;
+  --erreur-texte:   #E2857E;
+  --erreur-accent:  #CC6060;
+  --erreur-bordure: rgba(226, 133, 126, 0.15);
+  --avert-fond:     #2E2410;
+  --avert-texte:    #E2C07E;
+  --avert-accent:   #C9A23A;
+  --avert-bordure:  rgba(226, 192, 126, 0.15);
+  --info-fond:      #0F2030;
+  --info-texte:     #7EB5D6;
+  --info-accent:    #5E9FC0;
+  --info-bordure:   rgba(126, 181, 214, 0.15);
+
+  /* ── Ombres — désactivées (bordures assurent la hiérarchie) */
+  --ombre-0: none;
+  --ombre-1: none;
+  --ombre-2: none;
+  --ombre-3: none;
+  --ombre-4: none;
+  --ombre-5: none;
+
+  /* ── Glassmorphisme — mode sombre ────────────────────────── */
+  --glass-sidebar-bg:   rgba(22, 27, 34, 0.78);
+  --glass-card-bg:      rgba(22, 27, 34, 0.65);
+  --glass-toast-bg:     rgba(13, 17, 23, 0.86);
+  --glass-header-bg:    rgba(22, 27, 34, 0.88);
+  --glass-bordure:      rgba(230, 237, 243, 0.10);
+
+  /* ── Tokens shadcn/ui dark ───────────────────────────────── */
+  --background:           var(--fond-page);
+  --foreground:           var(--texte-primaire);
+  --card:                 var(--fond-surface);
+  --card-foreground:      var(--texte-primaire);
+  --popover:              var(--fond-surface);
+  --popover-foreground:   var(--texte-primaire);
+  --primary:              var(--ap-400);
+  --primary-foreground:   #FFFFFF;
+  --secondary:            var(--fond-surface-2);
+  --secondary-foreground: var(--texte-secondaire);
+  --muted:                var(--fond-surface-2);
+  --muted-foreground:     var(--texte-tertiaire);
+  --accent:               var(--ap-50);
+  --accent-foreground:    var(--ap-700);
+  --destructive:          var(--erreur-accent);
+  --border:               var(--bordure-legere);
+  --input:                var(--fond-input);
+  --ring:                 var(--ap-400);
+  --chart-1:              var(--ap-400);
+  --chart-2:              var(--as-400);
+  --chart-3:              var(--succes-accent);
+  --chart-4:              var(--erreur-accent);
+  --chart-5:              var(--info-accent);
+  --sidebar:              var(--glass-sidebar-bg);
+  --sidebar-foreground:   var(--texte-primaire);
+  --sidebar-primary:      var(--ap-400);
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent:       var(--ap-50);
+  --sidebar-accent-foreground:  var(--ap-700);
+  --sidebar-border:       var(--bordure-legere);
+  --sidebar-ring:         var(--ap-400);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DENSITÉ COMPACTE — préférence personnelle (data-densite="compact")
+   Réduit l'espacement global (~25%) sans toucher aux tailles de police.
+═══════════════════════════════════════════════════════════════ */
+[data-densite="compact"] {
+  --espace-1:  3px;
+  --espace-2:  6px;
+  --espace-3:  9px;
+  --espace-4:  12px;
+  --espace-5:  15px;
+  --espace-6:  18px;
+  --espace-7:  21px;
+  --espace-8:  24px;
+  --espace-10: 30px;
+  --espace-12: 36px;
+  --espace-14: 42px;
+  --espace-16: 48px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   THEME INLINE — Connexion tokens CSS → classes Tailwind
+═══════════════════════════════════════════════════════════════ */
+@theme inline {
+  /* ── Couleurs shadcn ── */
+  --color-background:                   var(--background);
+  --color-foreground:                   var(--foreground);
+  --color-card:                         var(--card);
+  --color-card-foreground:              var(--card-foreground);
+  --color-popover:                      var(--popover);
+  --color-popover-foreground:           var(--popover-foreground);
+  --color-primary:                      var(--primary);
+  --color-primary-foreground:           var(--primary-foreground);
+  --color-secondary:                    var(--secondary);
+  --color-secondary-foreground:         var(--secondary-foreground);
+  --color-muted:                        var(--muted);
+  --color-muted-foreground:             var(--muted-foreground);
+  --color-accent:                       var(--accent);
+  --color-accent-foreground:            var(--accent-foreground);
+  --color-destructive:                  var(--destructive);
+  --color-border:                       var(--border);
+  --color-input:                        var(--input);
+  --color-ring:                         var(--ring);
+  --color-chart-1:                      var(--chart-1);
+  --color-chart-2:                      var(--chart-2);
+  --color-chart-3:                      var(--chart-3);
+  --color-chart-4:                      var(--chart-4);
+  --color-chart-5:                      var(--chart-5);
+  --color-sidebar:                      var(--sidebar);
+  --color-sidebar-foreground:           var(--sidebar-foreground);
+  --color-sidebar-primary:              var(--sidebar-primary);
+  --color-sidebar-primary-foreground:   var(--sidebar-primary-foreground);
+  --color-sidebar-accent:               var(--sidebar-accent);
+  --color-sidebar-accent-foreground:    var(--sidebar-accent-foreground);
+  --color-sidebar-border:               var(--sidebar-border);
+  --color-sidebar-ring:                 var(--sidebar-ring);
+
+  /* ── Couleurs SARIS exposées en classes Tailwind ── */
+  --color-ap-50:      var(--ap-50);
+  --color-ap-100:     var(--ap-100);
+  --color-ap-200:     var(--ap-200);
+  --color-ap-300:     var(--ap-300);
+  --color-ap-400:     var(--ap-400);
+  --color-ap-500:     var(--ap-500);
+  --color-ap-600:     var(--ap-600);
+  --color-ap-700:     var(--ap-700);
+  --color-ap-800:     var(--ap-800);
+  --color-ap-900:     var(--ap-900);
+  --color-as-50:      var(--as-50);
+  --color-as-400:     var(--as-400);
+  --color-as-700:     var(--as-700);
+  --color-succes:     var(--succes-accent);
+  --color-succes-bg:  var(--succes-fond);
+  --color-erreur:     var(--erreur-accent);
+  --color-erreur-bg:  var(--erreur-fond);
+  --color-avert:      var(--avert-accent);
+  --color-avert-bg:   var(--avert-fond);
+  --color-info:       var(--info-accent);
+  --color-info-bg:    var(--info-fond);
+
+  /* ── Border-radius — charte SARIS ──────────────────────────
+     rounded-sm  = 4px  → badges, tags, overlines de nav
+     rounded-md  = 6px  → boutons, inputs, items nav actif
+     rounded-lg  = 8px  → cartes, alertes, tooltips
+     rounded-xl  = 10px → cartes de module, panneaux, hero, modales
+     (max 10px dans l'interface fonctionnelle)
+  ─────────────────────────────────────────────────────────── */
+  --radius-sm:  4px;
+  --radius-md:  6px;
+  --radius-lg:  8px;
+  --radius-xl:  10px;
+  --radius-2xl: 10px;
+  --radius-3xl: 10px;
+  --radius-4xl: 10px;
+
+  /* ── Polices ── */
+  --font-sans:    'Plus Jakarta Sans Variable', 'Inter Variable', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono:    'JetBrains Mono Variable', 'Courier New', monospace;
+  --font-heading: 'Sora Variable', 'Plus Jakarta Sans Variable', sans-serif;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BASE
+═══════════════════════════════════════════════════════════════ */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    font-size: var(--font-size-body);
+    line-height: 1.6;
+    /* Grain de fond (pages) — mélangé à la couleur de page, peu coûteux. */
+    background-image: var(--grain-url);
+    background-size: var(--grain-size) var(--grain-size);
+    background-blend-mode: var(--grain-blend);
+    background-attachment: fixed;
+  }
+  /* Titres en Sora — hiérarchie marquée (titres ≠ corps). */
+  h1, h2, h3, h4, h5, h6, .saris-heading {
+    font-family: var(--font-heading);
+    letter-spacing: -0.015em;
+    font-weight: 700;
+  }
+  button:not(:disabled), [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  /* ── Barres de défilement — cohérence plateforme (clair + sombre auto) ──────
+     Fines, discrètes, coins arrondis. Les couleurs s'appuient sur les variables
+     SARIS, donc s'inversent automatiquement en mode sombre. Le pouce a une marge
+     (bordure transparente + background-clip) pour ne pas coller aux bords, et se
+     renforce au survol (--bordure-normale → --bordure-forte). */
+  * {
+    scrollbar-width: thin;                               /* Firefox */
+    scrollbar-color: var(--bordure-forte) transparent;  /* pouce | rail */
+  }
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    background-color: var(--bordure-normale);
+    border-radius: 8px;
+    border: 2px solid transparent;        /* marge → pouce visuel ~6px */
+    background-clip: padding-box;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: var(--bordure-forte);
+  }
+  *::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  /* ── Poignée de redimensionnement de colonne (tableaux) ────────────────────
+     Zone de préhension invisible sur la frontière entre deux colonnes ; un trait
+     vertical fin apparaît au survol / pendant le glissement. */
+  .saris-col-resize {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 10px;
+    height: 100%;
+    cursor: col-resize;
+    z-index: 6;
+    touch-action: none;
+    user-select: none;
+    display: flex;
+    justify-content: flex-end;
+  }
+  .saris-col-resize::after {
+    content: '';
+    width: 2px;
+    height: 100%;
+    background: transparent;
+    transition: background 0.12s;
+  }
+  .saris-col-resize:hover::after,
+  .saris-col-resize.is-active::after {
+    background: var(--ap-400);
+  }
+
+  /* ── Champs numériques — masquer les flèches « spinner » natives ───────────
+     Le style natif (petites flèches haut/bas) casse l'esthétique SARIS. On le
+     retire partout : les valeurs restent saisissables au clavier. */
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;   /* Firefox */
+    appearance: textfield;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CHARTE — grain subtil + verre poli (glassmorphism)
+   Utilitaires réutilisables, combinables : class="saris-glass saris-grain".
+   - .saris-grain : texture de bruit fractal mélangée en soft-light/overlay.
+     Ne définit PAS de couleur de fond → se superpose au fond existant.
+   - .saris-glass : fond translucide + flou d'arrière-plan.
+═══════════════════════════════════════════════════════════════ */
+.saris-grain {
+  background-image: var(--grain-url);
+  background-repeat: repeat;
+  background-size: var(--grain-size) var(--grain-size);
+  background-blend-mode: var(--grain-blend);
+}
+
+/* Grain « grains de sable » sur les surfaces : appliqué via background-blend-mode
+   (peu coûteux, par élément — PAS de mix-blend-mode plein écran qui fait ramer).
+   Toute surface portant la classe .saris-grain (ou le body/main ci-dessous) reçoit
+   le grain mélangé à sa propre couleur de fond. */
+.saris-grain-strong {
+  background-image: var(--grain-url);
+  background-repeat: repeat;
+  background-size: var(--grain-size) var(--grain-size);
+  background-blend-mode: var(--grain-blend);
+}
+.saris-glass {
+  background-color: var(--verre-fond);
+  -webkit-backdrop-filter: blur(var(--verre-blur));
+  backdrop-filter: blur(var(--verre-blur));
+}
+/* Respect des préférences d'accessibilité : pas de grain si contraste élevé. */
+@media (prefers-contrast: more) {
+  .saris-grain { background-image: none; }
+  body::after { display: none; }
+}

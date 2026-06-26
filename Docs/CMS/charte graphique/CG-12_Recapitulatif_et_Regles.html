@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CG-12 · Récapitulatif & Règles Absolues — Charte Graphique CMS SARIS Congo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* ═══════════════════════════════════════════════════════════════
+       TOKENS
+    ═══════════════════════════════════════════════════════════════ */
+    :root, [data-theme="light"] {
+      --fond-page:#F4F6F8; --fond-surface:#FFFFFF; --fond-surface-2:#F0F2F5; --fond-input:#EAECF0;
+      --texte-primaire:#0F172A; --texte-secondaire:#475569; --texte-tertiaire:#94A3B8;
+      --bordure-legere:rgba(15,23,42,0.08); --bordure-normale:rgba(15,23,42,0.14); --bordure-forte:rgba(15,23,42,0.28);
+      --ap-50:#D6E8EF; --ap-100:#A8CCDA; --ap-200:#79AFBF; --ap-300:#5B9BB0;
+      --ap-400:#4E8BA4; --ap-500:#3D7A92; --ap-600:#366680; --ap-700:#2A5269; --ap-800:#214A5E; --ap-900:#0F2F3D;
+      --as-50:#F6EBD2; --as-100:#EBCF87; --as-200:#D9AD4A; --as-300:#D0A030;
+      --as-400:#C99A2E; --as-500:#B88A25; --as-600:#A07A1E; --as-700:#8A6A15; --as-800:#765A12; --as-900:#4D3A08;
+      --succes-fond:#EAF3EC; --succes-texte:#2D6A3F; --succes-accent:#3D7A5E; --succes-bordure:rgba(45,106,63,0.2);
+      --erreur-fond:#F5EAEA; --erreur-texte:#7A2E2E; --erreur-accent:#9B4444; --erreur-bordure:rgba(122,46,46,0.2);
+      --avert-fond:#F5EEDF;  --avert-texte:#6B4D1A;  --avert-accent:#8A6A2A;  --avert-bordure:rgba(107,77,26,0.2);
+      --info-fond:#E6EFF5;   --info-texte:#2A4F6B;   --info-accent:#3A6080;   --info-bordure:rgba(42,79,107,0.2);
+      --couleur-accent:var(--ap-400); --couleur-accent-fond:var(--ap-50); --couleur-accent-hover:var(--ap-500); --couleur-accent-texte:#FFFFFF;
+      --radius-xs:4px; --radius-sm:6px; --radius-md:8px; --radius-lg:10px;
+      --ombre-1:0 1px 2px rgba(15,23,42,0.06),0 0 0 1px rgba(15,23,42,0.04);
+      --ombre-2:0 2px 6px rgba(15,23,42,0.08),0 1px 2px rgba(15,23,42,0.06);
+      --ombre-3:0 4px 14px rgba(15,23,42,0.10),0 2px 4px rgba(15,23,42,0.06);
+    }
+    [data-theme="dark"] {
+      --fond-page:#0D1117; --fond-surface:#161B22; --fond-surface-2:#1C2333; --fond-input:#21262D;
+      --texte-primaire:#E6EDF3; --texte-secondaire:#8B949E; --texte-tertiaire:#484F58;
+      --bordure-legere:rgba(230,237,243,0.08); --bordure-normale:rgba(230,237,243,0.14); --bordure-forte:rgba(230,237,243,0.28);
+      --ap-50:#0F2F3D; --ap-100:#214A5E; --ap-200:#2A5269; --ap-300:#366680;
+      --ap-400:#4E8BA4; --ap-500:#5B9BB0; --ap-600:#79AFBF; --ap-700:#A8CCDA; --ap-800:#C8E0E9; --ap-900:#D6E8EF;
+      --as-50:#4D3A08; --as-100:#765A12; --as-200:#8A6A15; --as-300:#A07A1E;
+      --as-400:#C99A2E; --as-500:#D0A030; --as-600:#D9AD4A; --as-700:#EBCF87; --as-800:#F2DFA8; --as-900:#F6EBD2;
+      --succes-fond:#1A2E20; --succes-texte:#7EE2A0; --succes-accent:#56C47A; --succes-bordure:rgba(126,226,160,0.15);
+      --erreur-fond:#2E1A1A; --erreur-texte:#E2857E; --erreur-accent:#CC6060; --erreur-bordure:rgba(226,133,126,0.15);
+      --avert-fond:#2E2410;  --avert-texte:#E2C07E;  --avert-accent:#C9A23A;  --avert-bordure:rgba(226,192,126,0.15);
+      --info-fond:#0F2030;   --info-texte:#7EB5D6;   --info-accent:#5E9FC0;   --info-bordure:rgba(126,181,214,0.15);
+      --couleur-accent:var(--ap-400); --couleur-accent-fond:var(--ap-50); --couleur-accent-hover:var(--ap-500); --couleur-accent-texte:#FFFFFF;
+      --ombre-1:none; --ombre-2:none; --ombre-3:none;
+    }
+
+    /* BASE */
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;font-size:14px;line-height:1.6;background:var(--fond-page);color:var(--texte-primaire);transition:background .22s ease,color .22s ease;-webkit-font-smoothing:antialiased;}
+
+    /* HEADER */
+    .page-header{position:sticky;top:0;z-index:100;border-bottom:1px solid var(--bordure-legere);padding:0 40px;}
+    [data-theme="light"] .page-header{background:rgba(255,255,255,0.88);backdrop-filter:blur(14px);}
+    [data-theme="dark"]  .page-header{background:rgba(22,27,34,0.88);backdrop-filter:blur(14px);}
+    .page-header-inner{max-width:1100px;margin:0 auto;height:54px;display:flex;align-items:center;justify-content:space-between;}
+    .header-left{display:flex;align-items:center;gap:10px;}
+    .module-badge{font-size:10px;font-weight:600;padding:3px 9px;border-radius:var(--radius-xs);background:var(--couleur-accent-fond);color:var(--ap-800);letter-spacing:.06em;text-transform:uppercase;}
+    [data-theme="dark"] .module-badge{background:var(--ap-100);color:var(--ap-700);}
+    .header-title-text{font-size:13px;font-weight:500;color:var(--texte-primaire);}
+    .header-sep{width:1px;height:16px;background:var(--bordure-normale);}
+    .header-sub{font-size:12px;color:var(--texte-tertiaire);}
+    .toggle-btn{display:flex;align-items:center;gap:6px;background:var(--fond-surface-2);border:1px solid var(--bordure-normale);border-radius:var(--radius-sm);padding:5px 12px;cursor:pointer;font-family:'Inter',sans-serif;font-size:12px;color:var(--texte-secondaire);transition:background .15s,color .15s;}
+    .toggle-btn:hover{background:var(--fond-input);color:var(--texte-primaire);}
+
+    /* NAV MODULES */
+    .modules-nav{background:var(--fond-surface);border-bottom:1px solid var(--bordure-legere);padding:0 40px;overflow-x:auto;scrollbar-width:none;}
+    .modules-nav::-webkit-scrollbar{display:none;}
+    .modules-nav-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:2px;height:40px;}
+    .nav-link{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:var(--radius-xs);font-size:11px;font-weight:500;color:var(--texte-tertiaire);text-decoration:none;white-space:nowrap;transition:background .13s,color .13s;border:1px solid transparent;}
+    .nav-link:hover{background:var(--fond-surface-2);color:var(--texte-secondaire);}
+    .nav-link.active{background:var(--couleur-accent-fond);color:var(--ap-700);border-color:var(--ap-200);}
+    [data-theme="dark"] .nav-link.active{background:var(--ap-100);color:var(--ap-600);border-color:var(--ap-300);}
+    .nav-num{font-size:9px;font-weight:700;opacity:.6;letter-spacing:.04em;}
+    .nav-sep{width:1px;height:14px;background:var(--bordure-legere);margin:0 4px;flex-shrink:0;}
+
+    /* LAYOUT */
+    .main{max-width:1100px;margin:0 auto;padding:48px 40px 96px;}
+
+    /* HERO */
+    .module-hero{background:var(--fond-surface);border:1px solid var(--bordure-legere);border-radius:var(--radius-lg);padding:32px 36px;margin-bottom:52px;display:grid;grid-template-columns:1fr 1px 1fr 1px 1fr;}
+    .hero-col{padding:0 28px;}
+    .hero-col:first-child{padding-left:0;}
+    .hero-col:last-child{padding-right:0;}
+    .hero-divider{background:var(--bordure-legere);}
+    .hero-label{font-size:10px;font-weight:600;color:var(--ap-400);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px;}
+    .hero-title{font-size:14px;font-weight:500;color:var(--texte-primaire);margin-bottom:6px;}
+    .hero-body{font-size:12px;color:var(--texte-secondaire);line-height:1.65;}
+
+    /* SECTIONS */
+    .section{margin-bottom:64px;}
+    .section-header{margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid var(--bordure-legere);}
+    .section-num{font-size:10px;font-weight:600;color:var(--ap-400);text-transform:uppercase;letter-spacing:.12em;margin-bottom:5px;}
+    .section-title{font-size:17px;font-weight:500;color:var(--texte-primaire);margin-bottom:6px;}
+    .section-desc{font-size:13px;color:var(--texte-secondaire);line-height:1.65;max-width:700px;}
+    .subsection{margin-bottom:32px;}
+    .subsection-title{font-size:11px;font-weight:600;color:var(--texte-tertiaire);text-transform:uppercase;letter-spacing:.10em;margin-bottom:16px;padding-bottom:8px;border-bottom:1px dashed var(--bordure-legere);}
+    .demo-box{background:var(--fond-surface);border:1px solid var(--bordure-legere);border-radius:var(--radius-md);padding:24px 28px;}
+    code{font-family:'Courier New',monospace;font-size:10.5px;background:var(--fond-surface-2);border:1px solid var(--bordure-legere);border-radius:3px;padding:1px 5px;color:var(--ap-500);}
+
+    /* ═══════════════════════════════════════════════════════════════
+       §1 — INDEX DES MODULES
+    ═══════════════════════════════════════════════════════════════ */
+    .modules-index{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+    .module-card{background:var(--fond-surface);border:1px solid var(--bordure-legere);border-radius:var(--radius-md);padding:18px 20px;text-decoration:none;transition:border-color .15s,box-shadow .15s,transform .15s;display:flex;flex-direction:column;gap:8px;}
+    .module-card:hover{border-color:var(--ap-300);box-shadow:var(--ombre-2);transform:translateY(-1px);}
+    .module-card-num{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ap-400);}
+    .module-card-title{font-size:13px;font-weight:600;color:var(--texte-primaire);}
+    .module-card-items{display:flex;flex-wrap:wrap;gap:4px;margin-top:2px;}
+    .module-tag{font-size:10px;padding:2px 7px;border-radius:var(--radius-xs);background:var(--fond-surface-2);color:var(--texte-tertiaire);border:1px solid var(--bordure-legere);}
+    .module-card-desc{font-size:11px;color:var(--texte-tertiaire);line-height:1.55;margin-top:2px;}
+
+    /* ═══════════════════════════════════════════════════════════════
+       §2 — TOKENS RAPIDES
+    ═══════════════════════════════════════════════════════════════ */
+    .tokens-recap{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+    .token-group{background:var(--fond-surface);border:1px solid var(--bordure-legere);border-radius:var(--radius-md);padding:18px 20px;}
+    .token-group-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ap-400);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--bordure-legere);}
+    .token-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--bordure-legere);font-size:12px;}
+    .token-row:last-child{border-bottom:none;}
+    .token-name{font-family:'Courier New',monospace;font-size:11px;color:var(--ap-500);}
+    .token-value{color:var(--texte-secondaire);}
+    .token-swatch{width:14px;height:14px;border-radius:3px;border:1px solid var(--bordure-normale);flex-shrink:0;}
+    .token-triple{display:flex;align-items:center;gap:8px;}
+
+    /* ═══════════════════════════════════════════════════════════════
+       §3 — TYPOGRAPHIE RAPIDE
+    ═══════════════════════════════════════════════════════════════ */
+    .typo-recap-table{width:100%;border-collapse:collapse;font-size:12px;}
+    .typo-recap-table thead th{background:var(--fond-surface-2);color:var(--texte-tertiaire);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;padding:8px 12px;text-align:left;border-bottom:1px solid var(--bordure-normale);}
+    .typo-recap-table tbody td{padding:9px 12px;border-bottom:1px solid var(--bordure-legere);color:var(--texte-secondaire);vertical-align:middle;}
+    .typo-recap-table tbody tr:last-child td{border-bottom:none;}
+    .typo-recap-table tbody tr:hover{background:var(--fond-surface-2);}
+    .typo-preview{color:var(--texte-primaire);}
+
+    /* ═══════════════════════════════════════════════════════════════
+       §4 — RÈGLES ABSOLUES GLOBALES
+    ═══════════════════════════════════════════════════════════════ */
+    .mega-rules{display:flex;flex-direction:column;gap:10px;}
+    .rule-abs{background:var(--fond-surface);border:1px solid var(--bordure-legere);border-radius:var(--radius-md);padding:16px 18px;}
+    .rule-head{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+    .rule-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+    .rule-dot-ok  {background:var(--succes-accent);}
+    .rule-dot-no  {background:var(--erreur-accent);}
+    .rule-dot-warn{background:var(--avert-accent);}
+    .rule-title-abs{font-size:13px;font-weight:600;color:var(--texte-primaire);}
+    .rule-body-abs{font-size:12.5px;color:var(--texte-secondaire);line-height:1.55;padding-left:16px;}
+    .rule-source{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--texte-tertiaire);margin-top:4px;padding-left:16px;}
+
+    /* Grille des règles par module */
+    .rules-by-module{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+    .module-rules-card{background:var(--fond-surface);border:1px solid var(--bordure-legere);border-radius:var(--radius-md);padding:18px 20px;}
+    .module-rules-header{display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--bordure-legere);}
+    .module-rules-num{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ap-400);white-space:nowrap;}
+    .module-rules-title{font-size:12px;font-weight:600;color:var(--texte-primaire);}
+    .rule-mini{display:flex;gap:7px;margin-bottom:7px;font-size:11.5px;line-height:1.5;color:var(--texte-secondaire);}
+    .rule-mini:last-child{margin-bottom:0;}
+    .rule-mini-ok{color:var(--succes-accent);font-weight:700;flex-shrink:0;}
+    .rule-mini-no{color:var(--erreur-accent);font-weight:700;flex-shrink:0;}
+
+    /* ═══════════════════════════════════════════════════════════════
+       §5 — TABLEAU DE BORD VISUEL
+    ═══════════════════════════════════════════════════════════════ */
+    .dashboard-recap{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}
+    .kpi-card{background:var(--fond-surface);border:1px solid var(--bordure-legere);border-radius:var(--radius-md);padding:18px 20px;text-align:center;}
+    .kpi-number{font-size:28px;font-weight:600;color:var(--ap-400);line-height:1;}
+    .kpi-label{font-size:11px;color:var(--texte-tertiaire);margin-top:6px;text-transform:uppercase;letter-spacing:.06em;}
+    .kpi-sub{font-size:12px;color:var(--texte-secondaire);margin-top:4px;}
+
+    /* Palette visuelle condensée */
+    .palette-strip{display:flex;border-radius:var(--radius-sm);overflow:hidden;height:48px;border:1px solid var(--bordure-legere);}
+    .palette-swatch{flex:1;display:flex;align-items:flex-end;justify-content:center;padding-bottom:5px;font-size:9px;font-weight:600;letter-spacing:.04em;}
+
+    /* Grille composants */
+    .composants-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+    .composant-chip{background:var(--fond-surface-2);border:1px solid var(--bordure-legere);border-radius:var(--radius-sm);padding:8px 10px;font-size:11px;color:var(--texte-secondaire);text-align:center;display:flex;align-items:center;justify-content:center;gap:5px;}
+    .chip-dot{width:6px;height:6px;border-radius:50%;background:var(--ap-400);flex-shrink:0;}
+
+    /* GRILLES */
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+    .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+
+    /* RESPONSIVE */
+    @media(max-width:900px){
+      .modules-index,.dashboard-recap,.composants-grid{grid-template-columns:1fr 1fr;}
+      .tokens-recap,.rules-by-module,.grid-2{grid-template-columns:1fr;}
+      .module-hero{grid-template-columns:1fr;}
+      .hero-divider{display:none;}
+    }
+    @media(max-width:600px){
+      .modules-index,.grid-3{grid-template-columns:1fr;}
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="page-header">
+    <div class="page-header-inner">
+      <div class="header-left">
+        <span class="module-badge">Module 12</span>
+        <div class="header-sep"></div>
+        <span class="header-title-text">Récapitulatif &amp; Règles Absolues</span>
+        <div class="header-sep"></div>
+        <span class="header-sub">Index · Tokens · Typographie · 36 règles absolues · Tableau de bord visuel</span>
+      </div>
+      <button class="toggle-btn" onclick="toggleTheme()">
+        <svg id="theme-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        <span id="theme-label">Mode sombre</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- NAV MODULES -->
+  <nav class="modules-nav">
+    <div class="modules-nav-inner">
+      <a href="CG-01_Couleurs_et_Tokens.html" class="nav-link"><span class="nav-num">01</span> Couleurs &amp; Tokens</a><div class="nav-sep"></div>
+      <a href="CG-02_Typographie.html" class="nav-link"><span class="nav-num">02</span> Typographie</a><div class="nav-sep"></div>
+      <a href="CG-03_Espacements_et_Grilles.html" class="nav-link"><span class="nav-num">03</span> Espacements &amp; Grilles</a><div class="nav-sep"></div>
+      <a href="CG-04_Effets_de_Surface.html" class="nav-link"><span class="nav-num">04</span> Effets de Surface</a><div class="nav-sep"></div>
+      <a href="CG-05_Composants_Fondamentaux.html" class="nav-link"><span class="nav-num">05</span> Composants Fondamentaux</a><div class="nav-sep"></div>
+      <a href="CG-06_Navigation_et_Structure.html" class="nav-link"><span class="nav-num">06</span> Navigation &amp; Structure</a><div class="nav-sep"></div>
+      <a href="CG-07_Donnees_et_Contenu.html" class="nav-link"><span class="nav-num">07</span> Données &amp; Contenu</a><div class="nav-sep"></div>
+      <a href="CG-08_Feedback_et_Communication.html" class="nav-link"><span class="nav-num">08</span> Feedback &amp; Communication</a><div class="nav-sep"></div>
+      <a href="CG-09_Animations_et_Transitions.html" class="nav-link"><span class="nav-num">09</span> Animations &amp; Transitions</a><div class="nav-sep"></div>
+      <a href="CG-10_Iconographie_et_Assets.html" class="nav-link"><span class="nav-num">10</span> Iconographie &amp; Assets</a><div class="nav-sep"></div>
+      <a href="CG-11_Etats_et_Accessibilite.html" class="nav-link"><span class="nav-num">11</span> États &amp; Accessibilité</a><div class="nav-sep"></div>
+      <a href="CG-12_Recapitulatif_et_Regles.html" class="nav-link active"><span class="nav-num">12</span> Récapitulatif &amp; Règles</a>
+    </div>
+  </nav>
+
+  <main class="main">
+
+    <!-- HERO -->
+    <div class="module-hero">
+      <div class="hero-col">
+        <div class="hero-label">Ce module</div>
+        <div class="hero-title">La source de vérité unique</div>
+        <div class="hero-body">Ce douzième et dernier module est le point de référence pour toute l'équipe. Il consolide les décisions de design prises dans CG-01 à CG-11 en un seul endroit : tokens, typographie, règles absolues, index des composants. En cas de doute, c'est ici qu'on vérifie.</div>
+      </div>
+      <div class="hero-divider"></div>
+      <div class="hero-col">
+        <div class="hero-label">Structure</div>
+        <div class="hero-title">5 sections de référence</div>
+        <div class="hero-body">Index des 12 modules · Tokens de design condensés · Échelle typographique · 36 règles absolues classées par module · Tableau de bord visuel synthétique. Tout ce qu'il faut pour vérifier une décision de design sans rouvrir les 11 modules précédents.</div>
+      </div>
+      <div class="hero-divider"></div>
+      <div class="hero-col">
+        <div class="hero-label">Statut</div>
+        <div class="hero-title">Document vivant</div>
+        <div class="hero-body">Ce récapitulatif est mis à jour à chaque évolution de la charte. Toute règle ajoutée dans CG-01 à CG-11 doit être reflétée ici. La version présente correspond à la charte SARIS Congo v1.0 — Moutela &amp; Nkayi, mai 2026.</div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         §1 — INDEX DES MODULES
+    ═══════════════════════════════════════════════════════════════ -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-num">Section 01</div>
+        <div class="section-title">Index des 12 modules</div>
+        <div class="section-desc">Navigation directe vers chaque module de la charte. Chaque carte résume le périmètre du module et ses composants couverts.</div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Les 12 modules — cliquer pour accéder</div>
+        <div class="modules-index">
+          <a href="CG-01_Couleurs_et_Tokens.html" class="module-card">
+            <div class="module-card-num">01 — Couleurs &amp; Tokens</div>
+            <div class="module-card-title">Palette &amp; Variables CSS</div>
+            <div class="module-card-items">
+              <span class="module-tag">ap-400 Bleu Ardoise</span>
+              <span class="module-tag">as-400 Or Congo</span>
+              <span class="module-tag">Sémantiques</span>
+              <span class="module-tag">Dark mode</span>
+            </div>
+            <div class="module-card-desc">Palette primaire, secondaire, gris, sémantiques, tokens de radius et d'ombre. Source de vérité des couleurs.</div>
+          </a>
+          <a href="CG-02_Typographie.html" class="module-card">
+            <div class="module-card-num">02 — Typographie</div>
+            <div class="module-card-title">Échelle Inter &amp; Hiérarchie</div>
+            <div class="module-card-items">
+              <span class="module-tag">Inter 400/500/600</span>
+              <span class="module-tag">9 niveaux</span>
+              <span class="module-tag">Monospace</span>
+            </div>
+            <div class="module-card-desc">Police unique Inter, 9 niveaux de taille de 9 px à 24 px, règles d'usage par contexte.</div>
+          </a>
+          <a href="CG-03_Espacements_et_Grilles.html" class="module-card">
+            <div class="module-card-num">03 — Espacements &amp; Grilles</div>
+            <div class="module-card-title">Échelle 4 px &amp; Grilles</div>
+            <div class="module-card-items">
+              <span class="module-tag">Base 4 px</span>
+              <span class="module-tag">12 colonnes</span>
+              <span class="module-tag">Breakpoints</span>
+            </div>
+            <div class="module-card-desc">Échelle de 4 px à 64 px, grille 12 colonnes, gouttière 24 px, padding de page 40 px.</div>
+          </a>
+          <a href="CG-04_Effets_de_Surface.html" class="module-card">
+            <div class="module-card-num">04 — Effets de Surface</div>
+            <div class="module-card-title">Ombres, verre &amp; Grain</div>
+            <div class="module-card-items">
+              <span class="module-tag">5 niveaux Z</span>
+              <span class="module-tag">Glassmorphisme</span>
+              <span class="module-tag">Grain SVG</span>
+            </div>
+            <div class="module-card-desc">5 niveaux d'ombre (Z1–Z5), glassmorphisme backdrop-filter, grain SVG texture 130×130.</div>
+          </a>
+          <a href="CG-05_Composants_Fondamentaux.html" class="module-card">
+            <div class="module-card-num">05 — Composants Fondamentaux</div>
+            <div class="module-card-title">Boutons, Inputs, Badges…</div>
+            <div class="module-card-items">
+              <span class="module-tag">6 types boutons</span>
+              <span class="module-tag">Inputs</span>
+              <span class="module-tag">Badges</span>
+              <span class="module-tag">Avatars</span>
+            </div>
+            <div class="module-card-desc">Boutons (6 variantes), champs texte, select, checkbox, toggle, badges, avatars, séparateurs.</div>
+          </a>
+          <a href="CG-06_Navigation_et_Structure.html" class="module-card">
+            <div class="module-card-num">06 — Navigation &amp; Structure</div>
+            <div class="module-card-title">Sidebar, Topbar, Tabs…</div>
+            <div class="module-card-items">
+              <span class="module-tag">Sidebar 240 px</span>
+              <span class="module-tag">Topbar 54 px</span>
+              <span class="module-tag">Breadcrumb</span>
+            </div>
+            <div class="module-card-desc">Sidebar gauche, topbar sticky, barre de navigation modules, onglets, breadcrumb, pagination.</div>
+          </a>
+          <a href="CG-07_Donnees_et_Contenu.html" class="module-card">
+            <div class="module-card-num">07 — Données &amp; Contenu</div>
+            <div class="module-card-title">Tableaux, KPI, Graphiques</div>
+            <div class="module-card-items">
+              <span class="module-tag">Tableaux triables</span>
+              <span class="module-tag">Cartes KPI</span>
+              <span class="module-tag">5 graphiques SVG</span>
+            </div>
+            <div class="module-card-desc">Tableaux de données, cartes KPI, listes groupées, accordéons, 5 graphiques SVG natifs.</div>
+          </a>
+          <a href="CG-08_Feedback_et_Communication.html" class="module-card">
+            <div class="module-card-num">08 — Feedback &amp; Communication</div>
+            <div class="module-card-title">Toasts, Modales, Alertes</div>
+            <div class="module-card-items">
+              <span class="module-tag">Toasts haut-centre</span>
+              <span class="module-tag">3 tailles modales</span>
+              <span class="module-tag">Drawers</span>
+            </div>
+            <div class="module-card-desc">Toasts glassmorphisme, modales 3 tailles, drawers latéraux, alertes inline, skeletons, spinners.</div>
+          </a>
+          <a href="CG-09_Animations_et_Transitions.html" class="module-card">
+            <div class="module-card-num">09 — Animations &amp; Transitions</div>
+            <div class="module-card-title">Courbes, Durées, Micro-interactions</div>
+            <div class="module-card-items">
+              <span class="module-tag">5 courbes</span>
+              <span class="module-tag">6 durées</span>
+              <span class="module-tag">Spring</span>
+            </div>
+            <div class="module-card-desc">5 courbes Bézier, 6 paliers de durée (80–600 ms), micro-interactions, transitions composants.</div>
+          </a>
+          <a href="CG-10_Iconographie_et_Assets.html" class="module-card">
+            <div class="module-card-num">10 — Iconographie &amp; Assets</div>
+            <div class="module-card-title">Lucide SVG &amp; Logo SARIS</div>
+            <div class="module-card-items">
+              <span class="module-tag">Lucide SVG inline</span>
+              <span class="module-tag">5 tailles</span>
+              <span class="module-tag">Logo 4 variantes</span>
+            </div>
+            <div class="module-card-desc">Bibliothèque Lucide, 5 tailles (14–24 px), stroke-width 2 px invariable, logo SARIS 4 variantes.</div>
+          </a>
+          <a href="CG-11_Etats_et_Accessibilite.html" class="module-card">
+            <div class="module-card-num">11 — États &amp; Accessibilité</div>
+            <div class="module-card-title">WCAG AA · Focus · ARIA</div>
+            <div class="module-card-items">
+              <span class="module-tag">7 états</span>
+              <span class="module-tag">WCAG AA 4,5:1</span>
+              <span class="module-tag">ARIA complet</span>
+            </div>
+            <div class="module-card-desc">7 états de composant, focus clavier visible, contrastes WCAG 2.1 AA, attributs ARIA, états vides.</div>
+          </a>
+          <a href="CG-12_Recapitulatif_et_Regles.html" class="module-card" style="border-color:var(--ap-300);background:var(--ap-50);">
+            <div class="module-card-num" style="color:var(--ap-600);">12 — Récapitulatif &amp; Règles</div>
+            <div class="module-card-title">Ce module — référence globale</div>
+            <div class="module-card-items">
+              <span class="module-tag">36 règles</span>
+              <span class="module-tag">Tokens condensés</span>
+              <span class="module-tag">Cheat-sheet</span>
+            </div>
+            <div class="module-card-desc">Index, tokens, typographie, 36 règles absolues consolidées, tableau de bord visuel synthétique.</div>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         §2 — TOKENS DE RÉFÉRENCE RAPIDE
+    ═══════════════════════════════════════════════════════════════ */
+    <section class="section">
+      <div class="section-header">
+        <div class="section-num">Section 02</div>
+        <div class="section-title">Tokens de référence rapide</div>
+        <div class="section-desc">Condensé des variables CSS fondamentales. Ces valeurs sont l'unique source de vérité — aucune valeur codée en dur dans les composants.</div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Palette principale — valeurs hex et tokens CSS</div>
+        <div class="tokens-recap">
+          <div class="token-group">
+            <div class="token-group-title">Accent primaire — Bleu Ardoise</div>
+            <div class="token-row"><span class="token-name">--ap-400</span><div class="token-triple"><span class="token-value">#4E8BA4</span><div class="token-swatch" style="background:#4E8BA4;"></div></div></div>
+            <div class="token-row"><span class="token-name">--ap-500</span><div class="token-triple"><span class="token-value">#3D7A92</span><div class="token-swatch" style="background:#3D7A92;"></div></div></div>
+            <div class="token-row"><span class="token-name">--ap-50</span> <div class="token-triple"><span class="token-value">#D6E8EF</span><div class="token-swatch" style="background:#D6E8EF;"></div></div></div>
+            <div class="token-row"><span class="token-name">--ap-700</span><div class="token-triple"><span class="token-value">#2A5269</span><div class="token-swatch" style="background:#2A5269;"></div></div></div>
+            <div class="token-row"><span class="token-name">--ap-900</span><div class="token-triple"><span class="token-value">#0F2F3D</span><div class="token-swatch" style="background:#0F2F3D;"></div></div></div>
+          </div>
+          <div class="token-group">
+            <div class="token-group-title">Accent secondaire — Or Congo</div>
+            <div class="token-row"><span class="token-name">--as-400</span><div class="token-triple"><span class="token-value">#C99A2E</span><div class="token-swatch" style="background:#C99A2E;"></div></div></div>
+            <div class="token-row"><span class="token-name">--as-500</span><div class="token-triple"><span class="token-value">#B88A25</span><div class="token-swatch" style="background:#B88A25;"></div></div></div>
+            <div class="token-row"><span class="token-name">--as-50</span> <div class="token-triple"><span class="token-value">#F6EBD2</span><div class="token-swatch" style="background:#F6EBD2;"></div></div></div>
+            <div class="token-row"><span class="token-name">--as-700</span><div class="token-triple"><span class="token-value">#8A6A15</span><div class="token-swatch" style="background:#8A6A15;"></div></div></div>
+            <div class="token-row"><span class="token-name">--as-900</span><div class="token-triple"><span class="token-value">#4D3A08</span><div class="token-swatch" style="background:#4D3A08;"></div></div></div>
+          </div>
+          <div class="token-group">
+            <div class="token-group-title">Fonds &amp; Surfaces</div>
+            <div class="token-row"><span class="token-name">--fond-page</span>      <div class="token-triple"><span class="token-value">#F4F6F8</span><div class="token-swatch" style="background:#F4F6F8;border:1px solid #ddd;"></div></div></div>
+            <div class="token-row"><span class="token-name">--fond-surface</span>   <div class="token-triple"><span class="token-value">#FFFFFF</span><div class="token-swatch" style="background:#FFFFFF;border:1px solid #ddd;"></div></div></div>
+            <div class="token-row"><span class="token-name">--fond-surface-2</span><div class="token-triple"><span class="token-value">#F0F2F5</span><div class="token-swatch" style="background:#F0F2F5;border:1px solid #ddd;"></div></div></div>
+            <div class="token-row"><span class="token-name">--fond-input</span>     <div class="token-triple"><span class="token-value">#EAECF0</span><div class="token-swatch" style="background:#EAECF0;"></div></div></div>
+          </div>
+          <div class="token-group">
+            <div class="token-group-title">Textes &amp; Bordures</div>
+            <div class="token-row"><span class="token-name">--texte-primaire</span>  <div class="token-triple"><span class="token-value">#0F172A</span><div class="token-swatch" style="background:#0F172A;"></div></div></div>
+            <div class="token-row"><span class="token-name">--texte-secondaire</span><div class="token-triple"><span class="token-value">#475569</span><div class="token-swatch" style="background:#475569;"></div></div></div>
+            <div class="token-row"><span class="token-name">--texte-tertiaire</span> <div class="token-triple"><span class="token-value">#94A3B8</span><div class="token-swatch" style="background:#94A3B8;"></div></div></div>
+            <div class="token-row"><span class="token-name">--bordure-legere</span> <div class="token-triple"><span class="token-value">rgba(15,23,42,.08)</span><div class="token-swatch" style="background:rgba(15,23,42,.08);border:1px solid #ddd;"></div></div></div>
+            <div class="token-row"><span class="token-name">--bordure-normale</span><div class="token-triple"><span class="token-value">rgba(15,23,42,.14)</span><div class="token-swatch" style="background:rgba(15,23,42,.14);border:1px solid #ddd;"></div></div></div>
+          </div>
+          <div class="token-group">
+            <div class="token-group-title">Sémantiques</div>
+            <div class="token-row"><span class="token-name">--succes-accent</span><div class="token-triple"><span class="token-value">#3D7A5E</span><div class="token-swatch" style="background:#3D7A5E;"></div></div></div>
+            <div class="token-row"><span class="token-name">--erreur-accent</span><div class="token-triple"><span class="token-value">#9B4444</span><div class="token-swatch" style="background:#9B4444;"></div></div></div>
+            <div class="token-row"><span class="token-name">--avert-accent</span> <div class="token-triple"><span class="token-value">#8A6A2A</span><div class="token-swatch" style="background:#8A6A2A;"></div></div></div>
+            <div class="token-row"><span class="token-name">--info-accent</span>  <div class="token-triple"><span class="token-value">#3A6080</span><div class="token-swatch" style="background:#3A6080;"></div></div></div>
+          </div>
+          <div class="token-group">
+            <div class="token-group-title">Radius &amp; Ombres</div>
+            <div class="token-row"><span class="token-name">--radius-xs</span><span class="token-value">4 px — badges, tags, nav</span></div>
+            <div class="token-row"><span class="token-name">--radius-sm</span><span class="token-value">6 px — boutons, inputs</span></div>
+            <div class="token-row"><span class="token-name">--radius-md</span><span class="token-value">8 px — cartes, modales</span></div>
+            <div class="token-row"><span class="token-name">--radius-lg</span><span class="token-value">10 px — hero, panels</span></div>
+            <div class="token-row"><span class="token-name">--ombre-1</span><span class="token-value" style="font-size:10px;">Z1 — cartes au repos</span></div>
+            <div class="token-row"><span class="token-name">--ombre-3</span><span class="token-value" style="font-size:10px;">Z3 — cartes hover</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Palette visuelle -->
+      <div class="subsection">
+        <div class="subsection-title">Palette visuelle condensée — séquence complète</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div>
+            <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--texte-tertiaire);margin-bottom:6px;">Bleu Ardoise (ap-50 → ap-900)</div>
+            <div class="palette-strip">
+              <div class="palette-swatch" style="background:#D6E8EF;color:#2A5269;">50</div>
+              <div class="palette-swatch" style="background:#A8CCDA;color:#214A5E;">100</div>
+              <div class="palette-swatch" style="background:#79AFBF;color:#214A5E;">200</div>
+              <div class="palette-swatch" style="background:#5B9BB0;color:#fff;">300</div>
+              <div class="palette-swatch" style="background:#4E8BA4;color:#fff;">400</div>
+              <div class="palette-swatch" style="background:#3D7A92;color:#fff;">500</div>
+              <div class="palette-swatch" style="background:#366680;color:#fff;">600</div>
+              <div class="palette-swatch" style="background:#2A5269;color:#fff;">700</div>
+              <div class="palette-swatch" style="background:#214A5E;color:#fff;">800</div>
+              <div class="palette-swatch" style="background:#0F2F3D;color:#fff;">900</div>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--texte-tertiaire);margin-bottom:6px;">Or Congo (as-50 → as-900)</div>
+            <div class="palette-strip">
+              <div class="palette-swatch" style="background:#F6EBD2;color:#765A12;">50</div>
+              <div class="palette-swatch" style="background:#EBCF87;color:#765A12;">100</div>
+              <div class="palette-swatch" style="background:#D9AD4A;color:#4D3A08;">200</div>
+              <div class="palette-swatch" style="background:#D0A030;color:#fff;">300</div>
+              <div class="palette-swatch" style="background:#C99A2E;color:#fff;">400</div>
+              <div class="palette-swatch" style="background:#B88A25;color:#fff;">500</div>
+              <div class="palette-swatch" style="background:#A07A1E;color:#fff;">600</div>
+              <div class="palette-swatch" style="background:#8A6A15;color:#fff;">700</div>
+              <div class="palette-swatch" style="background:#765A12;color:#fff;">800</div>
+              <div class="palette-swatch" style="background:#4D3A08;color:#fff;">900</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         §3 — TYPOGRAPHIE RAPIDE
+    ═══════════════════════════════════════════════════════════════ -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-num">Section 03</div>
+        <div class="section-title">Échelle typographique — référence rapide</div>
+        <div class="section-desc">Police unique Inter (Google Fonts). Trois poids : 400 normal, 500 medium, 600 semibold. Neuf niveaux de 9 px à 24 px. Aucune autre police dans l'interface.</div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Les 9 niveaux — taille, poids, usage, exemple visuel</div>
+        <table class="typo-recap-table">
+          <thead>
+            <tr><th>Niveau</th><th>Taille</th><th>Poids</th><th>Usage principal</th><th>Aperçu</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>XL</td><td>24 px</td><td>600</td><td>Titre de page principal, dashboard header</td>
+              <td class="typo-preview" style="font-size:24px;font-weight:600;line-height:1.2;">Tableau de bord</td>
+            </tr>
+            <tr>
+              <td>L2</td><td>20 px</td><td>500</td><td>Titre de section principale</td>
+              <td class="typo-preview" style="font-size:20px;font-weight:500;line-height:1.3;">Consultations du jour</td>
+            </tr>
+            <tr>
+              <td>L1</td><td>17 px</td><td>500</td><td>Titre de section dans le contenu</td>
+              <td class="typo-preview" style="font-size:17px;font-weight:500;">Tableau patients — Moutela</td>
+            </tr>
+            <tr>
+              <td>M2</td><td>15 px</td><td>500</td><td>Titre de carte, nom de colonne prominent</td>
+              <td class="typo-preview" style="font-size:15px;font-weight:500;">Kabibi Ondongo · N° MOU-2024-0891</td>
+            </tr>
+            <tr>
+              <td>M1</td><td>14 px</td><td>500 / 400</td><td>Titre drawer/modale, corps important, nav principale</td>
+              <td class="typo-preview" style="font-size:14px;font-weight:500;">Nouvelle consultation — Moutela</td>
+            </tr>
+            <tr>
+              <td>S2</td><td>13 px</td><td>400</td><td>Corps de texte courant, valeurs de tableau, inputs</td>
+              <td class="typo-preview" style="font-size:13px;font-weight:400;">Paracétamol 500 mg · 3×/jour après repas · 5 jours</td>
+            </tr>
+            <tr>
+              <td>S1</td><td>12 px</td><td>400</td><td>Métadonnées, descriptions secondaires, hints</td>
+              <td class="typo-preview" style="font-size:12px;font-weight:400;">Dernière consultation : 14 mai 2026 · Dr. Moussavou</td>
+            </tr>
+            <tr>
+              <td>XS2</td><td>11 px</td><td>600</td><td>Labels de champ, badges, tags, nav-link</td>
+              <td class="typo-preview" style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;">Section 01 · Couleurs &amp; Tokens</td>
+            </tr>
+            <tr>
+              <td>XS1</td><td>9–10 px</td><td>700</td><td>Numéros de nav, labels décoratifs, horodatages</td>
+              <td class="typo-preview" style="font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;">Module 07 · 14:32</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         §4 — 36 RÈGLES ABSOLUES PAR MODULE
+    ═══════════════════════════════════════════════════════════════ -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-num">Section 04</div>
+        <div class="section-title">36 Règles absolues — par module</div>
+        <div class="section-desc">Ces règles sont non-négociables. Toute déviation doit être approuvée, documentée et tracée dans le changelog de la charte. Elles s'appliquent à Moutela, à Nkayi, et à toute évolution future du CMS SARIS Congo.</div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Toutes les règles — classées par module source</div>
+        <div class="rules-by-module">
+
+          <!-- CG-01 -->
+          <div class="module-rules-card">
+            <div class="module-rules-header">
+              <span class="module-rules-num">CG-01</span>
+              <span class="module-rules-title">Couleurs &amp; Tokens</span>
+            </div>
+            <div class="rule-mini"><span class="rule-mini-no">✗</span><span>Aucune valeur hex codée en dur dans les composants. Toujours via les variables CSS <code>var(--...)</code>.</span></div>
+            <div class="rule-mini"><span class="rule-mini-ok">✓</span><span>Le Bleu Ardoise (<code>--ap-400</code>) est la seule couleur d'action primaire. L'Or Congo (<code>--as-400</code>) est strictement réservé aux indicateurs financiers et de stock.</span></div>
+            <div class="rule-mini"><span class="rule-mini-no">✗</span><span>Les 4 couleurs sémantiques (succès, erreur, avertissement, info) ne sont pas interchangeables. Erreur = rouge, jamais or.</span></div>
+            <div class="rule-mini"><span class="rule-mini-ok">✓</span><span>Chaque token de couleur a son équivalent dark mode. Aucune couleur n'est laissée sans override <code>[data-theme="dark"]</code>.</span></div>
+          </div>
+
+          <!-- CG-02 -->
+          <div class="module-rules-card">
+            <div class="module-rules-header">
+              <span class="module-rules-num">CG-02</span>
+              <span class="module-rules-title">Typographie</span>
+            </div>
+            <div class="rule-mini"><span class="rule-mini-no">✗</span><span>Aucune autre police que Inter. Pas de Georgia, pas de Roboto, pas de système sans Inter explicite.</span></div>
+            <div class="rule-mini"><span class="rule-mini-ok">✓</span><span>Taille minimale absolue : 11 px / weight 600 pour les labels porteurs d'information. Jamais de texte en dessous de 9 px.</span></div>
+            <div class="rule-mini"><span class="rule-mini-no">✗</span><span>Pas de <code>font-weight: 700</code> (bold) dans l'interface — Inter utilise 400, 500, 600 uniquement. Le 700 est réservé aux numéros décoratifs.</span></div>
+            <div class="rule-mini"><span class="rule-mini-ok">✓</span><span><code>font-family: 'Courier New', monospace</code> pour tous les codes, identifiants et extraits de valeurs CSS. Jamais d'Inter pour ces éléments.</span></div>
+          </div>
+
+          <!-- CG-03 -->
+          <div class="module-rules-card">
+            <div class="module-rules-header">
+              <span class="module-rules-num">CG-03</span>
+              <span class="module-rules-title">Espacements &amp; Grilles</span>
+            </div>
+            <div class="rule-mini"><span class="rule-mini-ok">✓</span><span>Tout espacement est un multiple de 4 px. Les valeurs autorisées sont : 4, 8, 12, 16, 20, 24, 32, 40, 48, 64 px.</span></div>
+            <div class="rule-mini"><span class="rule-mini-no">✗</span><span>Pas de valeurs d'espacement impaires (3, 5, 7, 9 px…). Elles brisent l'harmonie visuelle de la grille.</span></div>
+            <div class="rule-mini"><span class="rule-mini-ok">✓</span><span>Padding de page : 40 px horizontal, 48 px vertical en haut. Largeur max du contenu : 1100 px, centré.</span></div>
+          </div>
+
+          <!-- CG-04 -->
+          <div class="module-rules-card">
+            <div class="module-rules-header">
+              <span class="module-rules-num">CG-04</span>
+              <span class="module-rules-title">Effets de Surface</span>
+            </div>
+            <div class="rule-mini"><span class="rule-mini-ok">✓</span><span>Les 5 niveaux Z (ombre-1 à ombre-5) sont utilisés de façon strictement hiérarchique. Z1 = repos, Z3 = hover, Z4 = dropdown, Z5 = modales.</span></div>
+            <div class="rule-mini"><span class="rule-mini-no">✗</span><span>En mode sombre, les ombres sont supprimées (<code>box-shadow: none</code>). La profondeur est indiquée par les fonds colorés, jamais par les ombres.</span></div>
+            <div class="rule-mini"><span class="rule-mini-ok">✓</span><span>Le grain SVG (opacity .22 sur les boutons, .09 sur les alertes) est obligatoire sur tous les éléments glassmorphisme et les boutons primaires.</span></div>
+          </div>
+
+          <!-- CG-05 -->
+          <div class="module-rules-card">
+            <div class="module-rules-header">
+              <span class="module-rules-num">CG-05</span>
+              <span class="module-rules-title">Composants Fondamentaux</span>
+            </div>
+            <div class="rule-mini"><span class="rule-mini-ok">✓</span><span>La hiérarchie des boutons est respectée sur chaque écran : un seul bouton primaire par vue, les actions secondaires en ghost ou outline.</span></div>
+            <div class="rule-mini"><span class="rule-mini-no">✗</span><span>Pas de bouton rouge "danger" comme variante primaire — le rouge est réservé aux confirmations de suppression en contexte modal uniquement.</span></div>
+            <div class="rule-mini"><span class="rule-mini-ok">✓</span><span>Tout bouton icône-only (sans label visible) a une zone de clic minimum de 32×32 px et un <code>aria-label</code> obligatoire.</span></div>
+          </div>
+
+          <!-- CG-06 -->
+          <div class="module-rules-card">
+            <div class="module-rules-header">
+              <span class="module-rules-num">CG-06</span>
+              <span class="module-rules-title">Navigation &amp; Structure</span>
+            </div>
+            <div class="rule-mini"><span class="rule-mini-ok">✓</span><span>La sidebar gauche est fixe à 240 px en mode étendu, 56 px en mode compact. Elle ne se superpose jamais au contenu — elle pousse le layout.</span></div>
+            <div class="rule-mini"><span class="rule-mini-no">✗</span><span>Pas plus d'un niveau de sous-menu dans la sidebar. La navigation profonde est gérée par la topbar contextuelle et les breadcrumbs.</span></div>
+            <div class="rule-mini"><span class="rule-mini-ok">✓</span><span>La topbar est toujours sticky (<code>position: sticky; top: 0; z-index: 100</code>). L'utilisateur voit toujours le contexte de navigation actuel.</span></div>
+          </div>
+
+          <!-- CG-07 -->
+          <div class="module-rules-card">
+            <div class="module-rules-header">
+              <span class="module-rules-num">CG-07</span>
+              <span class="module-rules-title">Données &amp; Contenu</span>
+            </div>
+            <div class="rule-mini"><span class="rule-mini-ok">✓</span><span>Tableaux avec tri par colonne obligatoire sur toutes les colonnes numériques ou de date. L'indicateur visuel (↑↓) est toujours visible sur la colonne active.</span></div>
+            <div class="rule-mini"><span class="rule-mini-no">✗</span><span>Les 5 types de graphiques (courbe, barres, donut, jauge, Gantt) sont exclusifs. Pas de bibliothèque externe — SVG pur uniquement.</span></div>
+            <div class="rule-mini"><span class="rule-mini-ok">✓</span><span>Les couleurs des graphiques utilisent uniquement les tokens de palette : ap-400, as-400, succes-accent, erreur-accent, info-accent.</span></div>
+          </div>
+
+          <!-- CG-08 -->
+          <div class="module-rules-card">
+            <div class="module-rules-header">
+              <span class="module-rules-num">CG-08</span>
+              <span class="module-rules-title">Feedback &amp; Communication</span>
+            </div>
+            <div class="rule-mini"><span class="rule-mini-ok">✓</span><span>Les toasts sont positionnés haut-centre fixe (<code>top: 16px; left: 50%; transform: translateX(-50%)</code>). Jamais en bas, jamais à droite.</span></div>
+            <div class="rule-mini"><span class="rule-mini-no">✗</span><span>Pas plus de 4 toasts simultanés. Le 5e toast pousse et supprime le 1er automatiquement.</span></div>
+            <div class="rule-mini"><span class="rule-mini-ok">✓</span><span>Les modales de confirmation de suppression comportent toujours 3 éléments : titre de l'action, description des conséquences irréversibles, bouton danger explicite.</span></div>
+          </div>
+
+          <!-- CG-09 -->
+          <div class="module-rules-card">
+            <div class="module-rules-header">
+              <span class="module-rules-num">CG-09</span>
+              <span class="module-rules-title">Animations &amp; Transitions</span>
+            </div>
+            <div class="rule-mini"><span class="rule-mini-no">✗</span><span>Aucune animation sur des propriétés non composites (width, height, top, left, margin). Uniquement <code>transform</code>, <code>opacity</code>, <code>filter</code>.</span></div>
+            <div class="rule-mini"><span class="rule-mini-ok">✓</span><span>Durée maximale pour une micro-interaction : 300 ms. Durée maximale pour une transition de composant : 400 ms. Au-delà, l'interface paraît lente.</span></div>
+            <div class="rule-mini"><span class="rule-mini-no">✗</span><span>Pas d'animation infinie visible à l'écran sauf les spinners actifs et les barres de progression de toast. Jamais d'élément décoratif en boucle.</span></div>
+          </div>
+
+          <!-- CG-10 -->
+          <div class="module-rules-card">
+            <div class="module-rules-header">
+              <span class="module-rules-num">CG-10</span>
+              <span class="module-rules-title">Iconographie &amp; Assets</span>
+            </div>
+            <div class="rule-mini"><span class="rule-mini-ok">✓</span><span>Bibliothèque exclusive : Lucide SVG, intégré en inline. <code>fill="none"</code>, <code>stroke-width="2"</code>, <code>stroke-linecap="round"</code>, <code>stroke-linejoin="round"</code> invariables.</span></div>
+            <div class="rule-mini"><span class="rule-mini-no">✗</span><span>Pas de Font Awesome, Material Icons, emojis, caractères ASCII ou images raster pour les icônes d'interface. SVG inline uniquement.</span></div>
+            <div class="rule-mini"><span class="rule-mini-ok">✓</span><span>5 tailles d'icônes : 14 px (xs), 16 px (sm), 18 px (md), 20 px (lg), 24 px (xl). Le stroke-width reste 2 px à toutes les tailles.</span></div>
+          </div>
+
+          <!-- CG-11 -->
+          <div class="module-rules-card">
+            <div class="module-rules-header">
+              <span class="module-rules-num">CG-11</span>
+              <span class="module-rules-title">États &amp; Accessibilité</span>
+            </div>
+            <div class="rule-mini"><span class="rule-mini-no">✗</span><span><code>outline: none</code> sans alternative accessible — le focus clavier ne disparaît jamais. Règle absolue, sans exception dans l'ensemble du CMS.</span></div>
+            <div class="rule-mini"><span class="rule-mini-ok">✓</span><span>Ratio de contraste minimum 4,5:1 (WCAG AA) pour tout texte porteur d'information. Testé et validé avant chaque mise en production.</span></div>
+            <div class="rule-mini"><span class="rule-mini-no">✗</span><span>Utiliser la couleur comme seul signal d'état (erreur, succès, désactivé). Toujours doubler avec forme, icône ou texte pour les daltoniens.</span></div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         §5 — TABLEAU DE BORD VISUEL
+    ═══════════════════════════════════════════════════════════════ -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-num">Section 05</div>
+        <div class="section-title">Tableau de bord visuel — CMS SARIS Congo v1.0</div>
+        <div class="section-desc">Vue synthétique des chiffres clés de la charte et des composants couverts. Référence pour évaluer la complétude d'une implémentation.</div>
+      </div>
+
+      <!-- KPIs -->
+      <div class="subsection">
+        <div class="subsection-title">Chiffres clés de la charte graphique</div>
+        <div class="dashboard-recap">
+          <div class="kpi-card">
+            <div class="kpi-number">12</div>
+            <div class="kpi-label">Modules</div>
+            <div class="kpi-sub">CG-01 à CG-12</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-number">36</div>
+            <div class="kpi-label">Règles absolues</div>
+            <div class="kpi-sub">3 par module</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-number">2</div>
+            <div class="kpi-label">Couleurs identité</div>
+            <div class="kpi-sub">Bleu Ardoise · Or Congo</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-number">50</div>
+            <div class="kpi-label">Icônes officielles</div>
+            <div class="kpi-sub">Lucide SVG · 6 domaines</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-number">1</div>
+            <div class="kpi-label">Police</div>
+            <div class="kpi-sub">Inter 400 / 500 / 600</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-number">4px</div>
+            <div class="kpi-label">Base d'espacement</div>
+            <div class="kpi-sub">Grille 4 px stricte</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-number">4,5:1</div>
+            <div class="kpi-label">Contraste minimum</div>
+            <div class="kpi-sub">WCAG 2.1 AA</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-number">5</div>
+            <div class="kpi-label">Graphiques natifs SVG</div>
+            <div class="kpi-sub">Courbe · Barres · Donut · Jauge · Gantt</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Composants couverts -->
+      <div class="subsection">
+        <div class="subsection-title">Composants couverts par la charte — vue complète</div>
+        <div class="composants-grid">
+          <div class="composant-chip"><div class="chip-dot"></div>Boutons (6 variantes)</div>
+          <div class="composant-chip"><div class="chip-dot"></div>Champs texte</div>
+          <div class="composant-chip"><div class="chip-dot"></div>Select / Dropdown</div>
+          <div class="composant-chip"><div class="chip-dot"></div>Checkbox / Toggle</div>
+          <div class="composant-chip"><div class="chip-dot"></div>Badges &amp; Tags</div>
+          <div class="composant-chip"><div class="chip-dot"></div>Avatars &amp; Stacks</div>
+          <div class="composant-chip"><div class="chip-dot"></div>Séparateurs</div>
+          <div class="composant-chip"><div class="chip-dot"></div>Sidebar 240 px</div>
+          <div class="composant-chip"><div class="chip-dot"></div>Topbar sticky</div>
+          <div class="composant-chip"><div class="chip-dot"></div>Barre nav modules</div>
+          <div class="composant-chip"><div class="chip-dot"></div>Onglets (Tabs)</div>
+          <div class="composant-chip"><div class="chip-dot"></div>Breadcrumb</div>
+          <div class="composant-chip"><div class="chip-dot"></div>Pagination</div>
+          <div class="composant-chip"><div class="chip-dot"></div>Tableaux triables</div>
+          <div class="composant-chip"><div class="chip-dot"></div>Cartes KPI</div>
+          <div class="composant-chip"><div class="chip-dot"></div>Cartes patient</div>
+          <div class="composant-chip"><div class="chip-dot"></div>Listes groupées</div>
+          <div class="composant-chip"><div class="chip-dot"></div>Accordéons</div>
+          <div class="composant-chip"><div class="chip-dot"></div>Graphique courbe</div>
+          <div class="composant-chip"><div class="chip-dot"></div>Graphique barres</div>
+          <div class="composant-chip"><div class="chip-dot"></div>Graphique donut</div>
+          <div class="composant-chip"><div class="chip-dot"></div>Jauge circulaire</div>
+          <div class="composant-chip"><div class="chip-dot"></div>Gantt planning</div>
+          <div class="composant-chip"><div class="chip-dot"></div>Toasts haut-centre</div>
+          <div class="composant-chip"><div class="chip-dot"></div>Modales (3 tailles)</div>
+          <div class="composant-chip"><div class="chip-dot"></div>Drawers latéraux</div>
+          <div class="composant-chip"><div class="chip-dot"></div>Alertes inline</div>
+          <div class="composant-chip"><div class="chip-dot"></div>Skeletons</div>
+          <div class="composant-chip"><div class="chip-dot"></div>Spinners (4 types)</div>
+          <div class="composant-chip"><div class="chip-dot"></div>Icônes Lucide (50)</div>
+          <div class="composant-chip"><div class="chip-dot"></div>Logo SARIS (4 vars)</div>
+          <div class="composant-chip"><div class="chip-dot"></div>États vides (3 types)</div>
+          <div class="composant-chip"><div class="chip-dot"></div>Focus ring clavier</div>
+          <div class="composant-chip"><div class="chip-dot"></div>Formulaires d'erreur</div>
+          <div class="composant-chip"><div class="chip-dot"></div>Skip links</div>
+          <div class="composant-chip"><div class="chip-dot"></div>Tooltips &amp; Dropdowns</div>
+        </div>
+      </div>
+
+      <!-- Signature finale -->
+      <div class="subsection">
+        <div class="subsection-title">Signature de la charte</div>
+        <div class="demo-box" style="text-align:center;padding:40px 28px;">
+          <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:20px;">
+            <div style="width:40px;height:40px;border-radius:8px;background:var(--ap-400);display:flex;align-items:center;justify-content:center;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </div>
+            <div style="text-align:left;">
+              <div style="font-size:18px;font-weight:600;color:var(--texte-primaire);letter-spacing:-.01em;">SARIS Congo</div>
+              <div style="font-size:11px;color:var(--texte-tertiaire);">Système d'Information Santé · Moutela &amp; Nkayi</div>
+            </div>
+          </div>
+          <div style="font-size:13px;color:var(--texte-secondaire);max-width:560px;margin:0 auto;line-height:1.7;">
+            Charte Graphique <strong style="color:var(--texte-primaire);">CMS SARIS Congo v1.0</strong><br>
+            12 modules · 36 règles absolues · 36 composants documentés<br>
+            WCAG 2.1 AA · Inter · Lucide SVG · Glassmorphisme<br>
+            <span style="font-size:12px;color:var(--texte-tertiaire);">Brazzaville, Congo — Mai 2026</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:20px;margin-top:24px;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--texte-tertiaire);">
+              <div style="width:10px;height:10px;border-radius:50%;background:var(--ap-400);"></div>
+              Bleu Ardoise #4E8BA4
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--texte-tertiaire);">
+              <div style="width:10px;height:10px;border-radius:50%;background:var(--as-400);"></div>
+              Or Congo #C99A2E
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--texte-tertiaire);">
+              <div style="width:10px;height:10px;border-radius:50%;background:var(--succes-accent);"></div>
+              Succès #3D7A5E
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--texte-tertiaire);">
+              <div style="width:10px;height:10px;border-radius:50%;background:var(--erreur-accent);"></div>
+              Erreur #9B4444
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    function toggleTheme() {
+      const html = document.documentElement;
+      const isDark = html.getAttribute('data-theme') === 'dark';
+      html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+      document.getElementById('theme-label').textContent = isDark ? 'Mode sombre' : 'Mode clair';
+      const icon = document.getElementById('theme-icon');
+      if (isDark) {
+        icon.innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+      } else {
+        icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+      }
+    }
+  </script>
+</body>
+</html>

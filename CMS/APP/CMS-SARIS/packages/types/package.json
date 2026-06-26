@@ -1,0 +1,22 @@
+{
+  "name": "@cms-saris/types",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./auth":         "./src/auth.ts",
+    "./patient":      "./src/patient.ts",
+    "./visite":       "./src/visite.ts",
+    "./consultation": "./src/consultation.ts",
+    "./sync":         "./src/sync.ts",
+    "./sync-conflict": "./src/sync-conflict.ts",
+    "./referentiel":  "./src/referentiel.ts",
+    ".":              "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

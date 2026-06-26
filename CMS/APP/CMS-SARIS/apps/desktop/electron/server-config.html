@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CMS SARIS — Connexion au serveur</title>
+    <style>
+      :root {
+        --ap-400: #4e8ba4;
+        --ap-500: #3d7a92;
+        --texte: #242b34;
+        --texte-2: #54606e;
+        --texte-3: #98a2b2;
+        --surface: #ffffff;
+        --page: #f4f6f8;
+        --bordure: rgba(15, 23, 42, 0.14);
+        --erreur: #9b4444;
+        --succes: #3d7a5e;
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; margin: 0; }
+      body {
+        font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+        background: var(--page);
+        color: var(--texte);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      main {
+        width: 420px;
+        max-width: 90vw;
+        background: var(--surface);
+        border: 1px solid var(--bordure);
+        border-radius: 10px;
+        padding: 28px 26px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      }
+      .badge {
+        width: 44px; height: 44px; border-radius: 10px;
+        background: #e9edf1; color: var(--ap-400);
+        display: flex; align-items: center; justify-content: center;
+        font-weight: 700; font-size: 18px; margin-bottom: 14px;
+      }
+      h1 { font-size: 18px; margin: 0 0 6px; }
+      p { font-size: 13px; color: var(--texte-2); margin: 0 0 18px; line-height: 1.5; }
+      label { font-size: 12px; font-weight: 600; color: var(--texte-2); display: block; margin-bottom: 6px; }
+      input {
+        width: 100%; height: 40px; padding: 0 12px;
+        border: 1px solid var(--bordure); border-radius: 8px;
+        font-size: 14px; color: var(--texte); outline: none;
+        -webkit-user-select: text; user-select: text;
+      }
+      input:focus { border-color: var(--ap-400); }
+      .msg { font-size: 12px; min-height: 18px; margin: 8px 0 0; }
+      .msg.err { color: var(--erreur); }
+      .msg.ok { color: var(--succes); }
+      .row { display: flex; gap: 10px; margin-top: 18px; }
+      button {
+        flex: 1; height: 40px; border-radius: 8px; font-size: 13px; font-weight: 600;
+        cursor: pointer; border: 1px solid var(--bordure); background: var(--surface); color: var(--texte-2);
+      }
+      button:hover { background: #f0f2f5; }
+      button.primary { background: var(--ap-400); border-color: var(--ap-400); color: #fff; }
+      button.primary:hover { background: var(--ap-500); }
+      button:disabled { opacity: 0.6; cursor: default; }
+      .hint { font-size: 11px; color: var(--texte-3); margin-top: 16px; line-height: 1.5; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="badge">CS</div>
+      <h1>Connexion au serveur</h1>
+      <p>Indiquez l’adresse du serveur CMS SARIS fournie par votre administrateur. Elle sera mémorisée sur ce poste.</p>
+      <label for="url">Adresse du serveur</label>
+      <input id="url" type="url" placeholder="https://serveur.exemple.cg" autocomplete="off" spellcheck="false" />
+      <div id="msg" class="msg"></div>
+      <div class="row">
+        <button id="test">Tester la connexion</button>
+        <button id="save" class="primary">Enregistrer et démarrer</button>
+      </div>
+      <p class="hint">Astuce : l’adresse peut aussi être imposée via la variable d’environnement <b>SARIS_API_URL</b>.</p>
+    </main>
+    <script>
+      const $ = (id) => document.getElementById(id)
+      const clean = (v) => (v || '').trim().replace(/\/+$/, '')
+      const setMsg = (text, kind) => {
+        const m = $('msg')
+        m.textContent = text
+        m.className = 'msg' + (kind ? ' ' + kind : '')
+      }
+
+      // Pré-remplit avec l'URL déjà connue (le cas échéant).
+      $('url').value = (window.saris && window.saris.apiUrl) || ''
+      $('url').focus()
+
+      $('test').onclick = async () => {
+        const url = clean($('url').value)
+        if (!url) return setMsg('Saisissez une adresse.', 'err')
+        setMsg('Test en cours…')
+        const ctrl = new AbortController()
+        const t = setTimeout(() => ctrl.abort(), 6000)
+        try {
+          await fetch(url + '/health', { mode: 'no-cors', signal: ctrl.signal })
+          setMsg('Serveur joignable ✓', 'ok')
+        } catch {
+          setMsg('Serveur injoignable — vérifiez l’adresse et le réseau.', 'err')
+        } finally {
+          clearTimeout(t)
+        }
+      }
+
+      $('save').onclick = async () => {
+        const url = clean($('url').value)
+        if (!url) return setMsg('Saisissez une adresse.', 'err')
+        if (!/^https?:\/\//i.test(url)) return setMsg('L’adresse doit commencer par http:// ou https://', 'err')
+        $('save').disabled = true
+        setMsg('Enregistrement… l’application va redémarrer.')
+        await window.saris.setApiUrl(url) // écrit la config puis relance l'app
+      }
+
+      $('url').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') $('save').click()
+      })
+    </script>
+  </body>
+</html>

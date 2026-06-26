@@ -1,0 +1,8 @@
+# Client Prisma SQLite généré (régénéré par db:sqlite:gen / db:sqlite:generate)
+prisma/sqlite/generated/
+
+# Bases SQLite locales (dev/test) — jamais versionnées
+*.db
+*.db-journal
+*.db-wal
+*.db-shm

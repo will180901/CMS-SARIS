@@ -1,0 +1,1264 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CG-06 · Navigation & Structure — Charte Graphique CMS SARIS Congo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+
+    /* ═══════════════════════════════════════════════════════════════
+       TOKENS
+    ═══════════════════════════════════════════════════════════════ */
+    :root, [data-theme="light"] {
+      --fond-page:       #F4F6F8;
+      --fond-surface:    #FFFFFF;
+      --fond-surface-2:  #F0F2F5;
+      --fond-input:      #EAECF0;
+      --texte-primaire:   #0F172A;
+      --texte-secondaire: #475569;
+      --texte-tertiaire:  #94A3B8;
+      --bordure-legere:  rgba(15,23,42,0.08);
+      --bordure-normale: rgba(15,23,42,0.14);
+      --bordure-forte:   rgba(15,23,42,0.28);
+      --ap-50:#D6E8EF; --ap-100:#A8CCDA; --ap-200:#79AFBF;
+      --ap-300:#5B9BB0; --ap-400:#4E8BA4; --ap-500:#3D7A92;
+      --ap-600:#366680; --ap-700:#2A5269; --ap-800:#214A5E; --ap-900:#0F2F3D;
+      --as-50:#F6EBD2; --as-100:#EBCF87; --as-200:#D9AD4A;
+      --as-300:#D0A030; --as-400:#C99A2E; --as-500:#B88A25;
+      --as-600:#A07A1E; --as-700:#8A6A15; --as-800:#765A12; --as-900:#4D3A08;
+      --g-50:#F4F6F8; --g-100:#EAECF0; --g-200:#D0D5DD; --g-300:#B5BCC8;
+      --g-400:#8892A4; --g-500:#64748B; --g-600:#475569; --g-700:#334155;
+      --g-800:#1E293B; --g-900:#0F172A; --g-950:#060D18;
+      --succes-fond:#EAF3EC; --succes-texte:#2D6A3F; --succes-accent:#3D7A5E; --succes-bordure:rgba(45,106,63,0.2);
+      --erreur-fond:#F5EAEA; --erreur-texte:#7A2E2E; --erreur-accent:#9B4444; --erreur-bordure:rgba(122,46,46,0.2);
+      --avert-fond: #F5EEDF; --avert-texte: #6B4D1A; --avert-accent: #8A6A2A; --avert-bordure: rgba(107,77,26,0.2);
+      --info-fond:  #E6EFF5; --info-texte:  #2A4F6B; --info-accent:  #3A6080; --info-bordure:  rgba(42,79,107,0.2);
+      --couleur-accent:      var(--ap-400);
+      --couleur-accent-fond: var(--ap-50);
+      --couleur-accent-hover:var(--ap-500);
+      --couleur-accent-texte:#FFFFFF;
+      --radius-xs:4px; --radius-sm:6px; --radius-md:8px; --radius-lg:10px;
+      --ombre-1: 0 1px 2px rgba(15,23,42,0.06), 0 0 0 1px rgba(15,23,42,0.04);
+      --ombre-2: 0 2px 6px rgba(15,23,42,0.08), 0 1px 2px rgba(15,23,42,0.06);
+      --ombre-3: 0 4px 14px rgba(15,23,42,0.10), 0 2px 4px rgba(15,23,42,0.06);
+      --ombre-4: 0 8px 24px rgba(15,23,42,0.12), 0 4px 8px rgba(15,23,42,0.07);
+      --glass-sidebar-bg:  rgba(255,255,255,0.72);
+      --glass-header-bg:   rgba(255,255,255,0.88);
+      --glass-bordure:     rgba(255,255,255,0.55);
+    }
+    [data-theme="dark"] {
+      --fond-page:       #0D1117;
+      --fond-surface:    #161B22;
+      --fond-surface-2:  #1C2333;
+      --fond-input:      #21262D;
+      --texte-primaire:   #E6EDF3;
+      --texte-secondaire: #8B949E;
+      --texte-tertiaire:  #484F58;
+      --bordure-legere:  rgba(230,237,243,0.08);
+      --bordure-normale: rgba(230,237,243,0.14);
+      --bordure-forte:   rgba(230,237,243,0.28);
+      --ap-50:#0F2F3D; --ap-100:#214A5E; --ap-200:#2A5269;
+      --ap-300:#366680; --ap-400:#4E8BA4; --ap-500:#5B9BB0;
+      --ap-600:#79AFBF; --ap-700:#A8CCDA; --ap-800:#C8E0E9; --ap-900:#D6E8EF;
+      --as-50:#4D3A08; --as-100:#765A12; --as-200:#8A6A15;
+      --as-300:#A07A1E; --as-400:#C99A2E; --as-500:#D0A030;
+      --as-600:#D9AD4A; --as-700:#EBCF87; --as-800:#F2DFA8; --as-900:#F6EBD2;
+      --g-50:#0D1117; --g-100:#161B22; --g-200:#21262D; --g-300:#30363D;
+      --g-400:#484F58; --g-500:#6E7681; --g-600:#8B949E; --g-700:#B1BAC4;
+      --g-800:#C9D1D9; --g-900:#E6EDF3; --g-950:#F0F6FC;
+      --succes-fond:#1A2E20; --succes-texte:#7EE2A0; --succes-accent:#56C47A; --succes-bordure:rgba(126,226,160,0.15);
+      --erreur-fond:#2E1A1A; --erreur-texte:#E2857E; --erreur-accent:#CC6060; --erreur-bordure:rgba(226,133,126,0.15);
+      --avert-fond: #2E2410; --avert-texte: #E2C07E; --avert-accent: #C9A23A; --avert-bordure: rgba(226,192,126,0.15);
+      --info-fond:  #0F2030; --info-texte:  #7EB5D6; --info-accent:  #5E9FC0; --info-bordure:  rgba(126,181,214,0.15);
+      --couleur-accent:      var(--ap-400);
+      --couleur-accent-fond: var(--ap-50);
+      --couleur-accent-hover:var(--ap-500);
+      --couleur-accent-texte:#FFFFFF;
+      --ombre-1:none; --ombre-2:none; --ombre-3:none; --ombre-4:none;
+      --glass-sidebar-bg:  rgba(22,27,34,0.78);
+      --glass-header-bg:   rgba(22,27,34,0.88);
+      --glass-bordure:     rgba(230,237,243,0.10);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       BASE
+    ═══════════════════════════════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 14px; line-height: 1.6;
+      background: var(--fond-page); color: var(--texte-primaire);
+      transition: background 0.22s ease, color 0.22s ease;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       HEADER DE PAGE
+    ═══════════════════════════════════════════════════════════════ */
+    .page-header {
+      position: sticky; top: 0; z-index: 200;
+      border-bottom: 1px solid var(--bordure-legere); padding: 0 40px;
+    }
+    [data-theme="light"] .page-header { background: rgba(255,255,255,0.88); backdrop-filter: blur(14px); }
+    [data-theme="dark"]  .page-header { background: rgba(22,27,34,0.88);   backdrop-filter: blur(14px); }
+    .page-header-inner {
+      max-width: 1100px; margin: 0 auto; height: 54px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .header-left { display: flex; align-items: center; gap: 10px; }
+    .module-badge {
+      font-size: 10px; font-weight: 600; padding: 3px 9px;
+      border-radius: var(--radius-xs);
+      background: var(--couleur-accent-fond); color: var(--ap-800);
+      letter-spacing: 0.06em; text-transform: uppercase;
+    }
+    [data-theme="dark"] .module-badge { background: var(--ap-100); color: var(--ap-700); }
+    .header-title-text { font-size: 13px; font-weight: 500; color: var(--texte-primaire); }
+    .header-sep { width: 1px; height: 16px; background: var(--bordure-normale); }
+    .header-sub  { font-size: 12px; color: var(--texte-tertiaire); }
+    .toggle-btn {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--fond-surface-2); border: 1px solid var(--bordure-normale);
+      border-radius: var(--radius-sm); padding: 5px 12px; cursor: pointer;
+      font-family: 'Inter', sans-serif; font-size: 12px; color: var(--texte-secondaire);
+      transition: background 0.15s, color 0.15s;
+    }
+    .toggle-btn:hover { background: var(--fond-input); color: var(--texte-primaire); }
+
+    /* ═══════════════════════════════════════════════════════════════
+       NAV MODULES
+    ═══════════════════════════════════════════════════════════════ */
+    .modules-nav {
+      background: var(--fond-surface); border-bottom: 1px solid var(--bordure-legere);
+      padding: 0 40px; overflow-x: auto; scrollbar-width: none;
+    }
+    .modules-nav::-webkit-scrollbar { display: none; }
+    .modules-nav-inner {
+      max-width: 1100px; margin: 0 auto;
+      display: flex; align-items: center; gap: 2px; height: 40px;
+    }
+    .nav-link {
+      display: flex; align-items: center; gap: 5px;
+      padding: 4px 10px; border-radius: var(--radius-xs);
+      font-size: 11px; font-weight: 500; color: var(--texte-tertiaire);
+      text-decoration: none; white-space: nowrap;
+      transition: background 0.13s, color 0.13s; border: 1px solid transparent;
+    }
+    .nav-link:hover { background: var(--fond-surface-2); color: var(--texte-secondaire); }
+    .nav-link.active { background: var(--couleur-accent-fond); color: var(--ap-700); border-color: var(--ap-200); }
+    [data-theme="dark"] .nav-link.active { background: var(--ap-100); color: var(--ap-600); border-color: var(--ap-300); }
+    .nav-num { font-size: 9px; font-weight: 700; opacity: 0.6; letter-spacing: 0.04em; }
+    .nav-sep { width: 1px; height: 14px; background: var(--bordure-legere); margin: 0 4px; flex-shrink: 0; }
+
+    /* ═══════════════════════════════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════════════════════════════ */
+    .main { max-width: 1100px; margin: 0 auto; padding: 48px 40px 96px; }
+
+    /* ═══════════════════════════════════════════════════════════════
+       HERO
+    ═══════════════════════════════════════════════════════════════ */
+    .module-hero {
+      background: var(--fond-surface); border: 1px solid var(--bordure-legere);
+      border-radius: var(--radius-lg); padding: 32px 36px; margin-bottom: 52px;
+      display: grid; grid-template-columns: 1fr 1px 1fr 1px 1fr;
+    }
+    .hero-col { padding: 0 28px; }
+    .hero-col:first-child { padding-left: 0; }
+    .hero-col:last-child  { padding-right: 0; }
+    .hero-divider { background: var(--bordure-legere); }
+    .hero-label { font-size: 10px; font-weight: 600; color: var(--ap-400); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
+    .hero-title { font-size: 14px; font-weight: 500; color: var(--texte-primaire); margin-bottom: 6px; }
+    .hero-body  { font-size: 12px; color: var(--texte-secondaire); line-height: 1.65; }
+
+    /* ═══════════════════════════════════════════════════════════════
+       SECTIONS
+    ═══════════════════════════════════════════════════════════════ */
+    .section { margin-bottom: 64px; }
+    .section-header { margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--bordure-legere); }
+    .section-num   { font-size: 10px; font-weight: 600; color: var(--ap-400); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 5px; }
+    .section-title { font-size: 17px; font-weight: 500; color: var(--texte-primaire); margin-bottom: 6px; }
+    .section-desc  { font-size: 13px; color: var(--texte-secondaire); line-height: 1.65; max-width: 700px; }
+    .subsection { margin-bottom: 32px; }
+    .subsection-title {
+      font-size: 11px; font-weight: 600; color: var(--texte-tertiaire);
+      text-transform: uppercase; letter-spacing: 0.10em;
+      margin-bottom: 16px; padding-bottom: 8px;
+      border-bottom: 1px dashed var(--bordure-legere);
+    }
+    .demo-box {
+      background: var(--fond-surface); border: 1px solid var(--bordure-legere);
+      border-radius: var(--radius-md); padding: 24px 28px;
+    }
+    .code { font-family: 'Courier New', monospace; font-size: 11px; color: var(--ap-500); }
+
+    /* ═══════════════════════════════════════════════════════════════
+       §1 — SIDEBAR
+    ═══════════════════════════════════════════════════════════════ */
+
+    /* Scène complète : sidebar + topbar + contenu */
+    .app-scene {
+      border: 1px solid var(--bordure-legere);
+      border-radius: var(--radius-md); overflow: hidden;
+      display: flex; height: 460px;
+      background: var(--fond-page);
+    }
+
+    /* SIDEBAR */
+    .sidebar {
+      width: 240px; flex-shrink: 0;
+      background: var(--glass-sidebar-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-right: 1px solid var(--bordure-legere);
+      display: flex; flex-direction: column;
+      overflow: hidden; position: relative;
+    }
+
+    /* Logo zone */
+    .sidebar-logo {
+      height: 54px; display: flex; align-items: center; gap: 10px;
+      padding: 0 16px; flex-shrink: 0;
+      border-bottom: 1px solid var(--bordure-legere);
+    }
+    .logo-mark {
+      width: 28px; height: 28px; border-radius: var(--radius-sm);
+      background: var(--ap-400); display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .logo-name { font-size: 13px; font-weight: 600; color: var(--texte-primaire); }
+    .logo-sub  { font-size: 10px; color: var(--texte-tertiaire); }
+
+    /* Sélecteur de site */
+    .site-switcher {
+      margin: 8px 10px; border-radius: var(--radius-sm);
+      background: var(--fond-surface-2); border: 1px solid var(--bordure-normale);
+      padding: 7px 10px; display: flex; align-items: center; gap: 8px;
+      cursor: pointer; transition: background 0.13s;
+    }
+    .site-switcher:hover { background: var(--fond-input); }
+    .site-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--succes-accent); flex-shrink: 0; }
+    .site-name { font-size: 12px; font-weight: 500; color: var(--texte-primaire); flex: 1; }
+    .site-arrow { color: var(--texte-tertiaire); }
+
+    /* Nav items */
+    .sidebar-nav { flex: 1; padding: 6px 8px; overflow-y: auto; scrollbar-width: none; }
+    .sidebar-nav::-webkit-scrollbar { display: none; }
+
+    .nav-group { margin-bottom: 4px; }
+    .nav-group-label {
+      font-size: 9px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.12em; color: var(--texte-tertiaire);
+      padding: 8px 8px 4px; display: block;
+    }
+
+    .sidebar-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 8px; border-radius: var(--radius-xs);
+      font-size: 12px; font-weight: 500; color: var(--texte-secondaire);
+      cursor: pointer; transition: background 0.12s, color 0.12s;
+      text-decoration: none; position: relative;
+      margin-bottom: 1px;
+    }
+    .sidebar-item:hover:not(.active) {
+      background: var(--fond-surface-2); color: var(--texte-primaire);
+    }
+    .sidebar-item.active {
+      background: var(--ap-400); color: #fff;
+    }
+    .sidebar-item .s-icon { width: 15px; height: 15px; flex-shrink: 0; opacity: 0.75; }
+    .sidebar-item.active .s-icon { opacity: 1; }
+    .sidebar-item .s-badge {
+      margin-left: auto; font-size: 10px; font-weight: 600;
+      background: rgba(255,255,255,0.22); color: #fff;
+      padding: 1px 6px; border-radius: var(--radius-xs);
+    }
+    .sidebar-item:not(.active) .s-badge {
+      background: var(--erreur-fond); color: var(--erreur-texte);
+    }
+    /* Sous-items */
+    .sidebar-sub-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 5px 8px 5px 30px; border-radius: var(--radius-xs);
+      font-size: 11px; color: var(--texte-tertiaire);
+      cursor: pointer; transition: background 0.12s, color 0.12s;
+      margin-bottom: 1px;
+    }
+    .sidebar-sub-item:hover { background: var(--fond-surface-2); color: var(--texte-secondaire); }
+    .sidebar-sub-item.active { color: var(--ap-400); font-weight: 500; }
+    .sidebar-sub-item::before {
+      content: ''; width: 4px; height: 4px; border-radius: 50%;
+      background: currentColor; opacity: 0.5; flex-shrink: 0;
+    }
+
+    /* Pied de sidebar */
+    .sidebar-footer {
+      border-top: 1px solid var(--bordure-legere);
+      padding: 10px 8px; flex-shrink: 0;
+    }
+    .sidebar-user {
+      display: flex; align-items: center; gap: 9px;
+      padding: 7px 8px; border-radius: var(--radius-xs);
+      cursor: pointer; transition: background 0.12s;
+    }
+    .sidebar-user:hover { background: var(--fond-surface-2); }
+    .s-avatar {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--ap-100); color: var(--ap-700);
+      font-size: 10px; font-weight: 600;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .s-user-name  { font-size: 12px; font-weight: 500; color: var(--texte-primaire); }
+    .s-user-role  { font-size: 10px; color: var(--texte-tertiaire); }
+
+    /* ZONE DROITE = topbar + contenu */
+    .app-right { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* TOPBAR */
+    .topbar {
+      height: 54px; flex-shrink: 0;
+      border-bottom: 1px solid var(--bordure-legere);
+      display: flex; align-items: center; gap: 12px; padding: 0 20px;
+      background: var(--glass-header-bg);
+      backdrop-filter: blur(14px);
+    }
+    .topbar-breadcrumb {
+      display: flex; align-items: center; gap: 4px; flex: 1;
+    }
+    .tb-crumb { font-size: 12px; color: var(--texte-tertiaire); cursor: pointer; }
+    .tb-crumb:hover { color: var(--texte-secondaire); }
+    .tb-crumb.current { color: var(--texte-primaire); font-weight: 500; cursor: default; }
+    .tb-sep { color: var(--texte-tertiaire); font-size: 12px; }
+
+    .topbar-actions { display: flex; align-items: center; gap: 8px; }
+    .tb-icon-btn {
+      width: 32px; height: 32px; border-radius: var(--radius-sm);
+      display: flex; align-items: center; justify-content: center;
+      background: transparent; border: 1px solid transparent;
+      cursor: pointer; color: var(--texte-tertiaire);
+      transition: background 0.13s, color 0.13s;
+      position: relative;
+    }
+    .tb-icon-btn:hover { background: var(--fond-surface-2); color: var(--texte-secondaire); border-color: var(--bordure-legere); }
+    .tb-notif-dot {
+      position: absolute; top: 4px; right: 4px;
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--erreur-accent); border: 1.5px solid var(--fond-surface);
+    }
+    .tb-vsep { width: 1px; height: 20px; background: var(--bordure-normale); }
+    .tb-avatar {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--ap-400); color: #fff;
+      font-size: 10px; font-weight: 600;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+    }
+
+    /* CONTENU DE LA SCÈNE */
+    .app-content { flex: 1; overflow: auto; padding: 20px; }
+    .content-title { font-size: 15px; font-weight: 500; color: var(--texte-primaire); margin-bottom: 4px; }
+    .content-sub   { font-size: 12px; color: var(--texte-tertiaire); margin-bottom: 16px; }
+    .kpi-mini-row  { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+    .kpi-mini {
+      background: var(--fond-surface); border: 1px solid var(--bordure-legere);
+      border-radius: var(--radius-sm); padding: 12px 14px;
+    }
+    .kpi-mini-label { font-size: 10px; color: var(--texte-tertiaire); margin-bottom: 4px; }
+    .kpi-mini-value { font-size: 20px; font-weight: 600; color: var(--texte-primaire); }
+    .kpi-mini-trend { font-size: 10px; margin-top: 2px; }
+    .trend-up   { color: var(--succes-accent); }
+    .trend-down { color: var(--erreur-accent); }
+
+    /* Spec table */
+    .spec-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 16px; }
+    .spec-table th {
+      text-align: left; padding: 7px 12px;
+      background: var(--fond-surface-2); color: var(--texte-tertiaire);
+      font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;
+      border-bottom: 1px solid var(--bordure-normale);
+    }
+    .spec-table td {
+      padding: 8px 12px; border-bottom: 1px solid var(--bordure-legere);
+      color: var(--texte-secondaire); vertical-align: middle;
+    }
+    .spec-table tr:last-child td { border-bottom: none; }
+    .spec-table tr:hover td { background: var(--fond-surface-2); }
+
+    /* ═══════════════════════════════════════════════════════════════
+       §2 — BREADCRUMB standalone
+    ═══════════════════════════════════════════════════════════════ */
+    .breadcrumb {
+      display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
+    }
+    .bc-item {
+      display: flex; align-items: center; gap: 4px;
+      font-size: 13px; color: var(--texte-tertiaire); cursor: pointer;
+    }
+    .bc-item:hover .bc-label { color: var(--texte-secondaire); }
+    .bc-item.current .bc-label { color: var(--texte-primaire); font-weight: 500; cursor: default; }
+    .bc-label { transition: color 0.12s; }
+    .bc-sep { color: var(--bordure-forte); font-size: 14px; margin: 0 1px; user-select: none; }
+    .bc-icon { width: 13px; height: 13px; opacity: 0.6; }
+
+    /* breadcrumb avec fond */
+    .breadcrumb-bar {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--fond-surface);
+      border: 1px solid var(--bordure-legere);
+      border-radius: var(--radius-sm);
+      padding: 7px 14px;
+      width: fit-content;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       §3 — TABS
+    ═══════════════════════════════════════════════════════════════ */
+    /* Variant 1 — Underline */
+    .tabs-underline {
+      display: flex; gap: 0; border-bottom: 1px solid var(--bordure-normale);
+    }
+    .tab-ul {
+      padding: 9px 16px; font-size: 13px; font-weight: 500;
+      color: var(--texte-tertiaire); cursor: pointer;
+      border-bottom: 2px solid transparent; margin-bottom: -1px;
+      transition: color 0.13s, border-color 0.13s;
+      display: flex; align-items: center; gap: 7px; white-space: nowrap;
+    }
+    .tab-ul:hover:not(.active) { color: var(--texte-secondaire); }
+    .tab-ul.active { color: var(--ap-400); border-bottom-color: var(--ap-400); }
+    .tab-count {
+      font-size: 10px; font-weight: 600;
+      background: var(--fond-surface-2); color: var(--texte-tertiaire);
+      padding: 1px 6px; border-radius: 10px;
+    }
+    .tab-ul.active .tab-count { background: var(--ap-50); color: var(--ap-600); }
+
+    /* Variant 2 — Pills (usage tableaux de bord) */
+    .tabs-pills {
+      display: flex; gap: 4px; padding: 4px;
+      background: var(--fond-surface-2); border-radius: var(--radius-sm);
+      width: fit-content;
+    }
+    .tab-pill {
+      padding: 6px 14px; font-size: 12px; font-weight: 500;
+      color: var(--texte-tertiaire); cursor: pointer;
+      border-radius: var(--radius-xs);
+      transition: background 0.13s, color 0.13s;
+    }
+    .tab-pill:hover:not(.active) { color: var(--texte-secondaire); }
+    .tab-pill.active {
+      background: var(--fond-surface); color: var(--texte-primaire);
+      box-shadow: var(--ombre-1);
+    }
+
+    /* Variant 3 — Vertical (sidebar secondaire) */
+    .tabs-vertical {
+      display: flex; flex-direction: column; gap: 1px; width: 180px;
+      border-right: 1px solid var(--bordure-legere);
+      padding-right: 12px;
+    }
+    .tab-vert {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px; border-radius: var(--radius-xs);
+      font-size: 12px; font-weight: 500; color: var(--texte-tertiaire);
+      cursor: pointer; transition: background 0.12s, color 0.12s;
+      border-right: 2px solid transparent; margin-right: -13px;
+    }
+    .tab-vert:hover:not(.active) { background: var(--fond-surface-2); color: var(--texte-secondaire); }
+    .tab-vert.active { color: var(--ap-400); border-right-color: var(--ap-400); background: var(--couleur-accent-fond); }
+
+    .tabs-with-content { display: flex; gap: 20px; }
+    .tab-content-area {
+      flex: 1; padding: 12px 0;
+      font-size: 13px; color: var(--texte-secondaire); line-height: 1.7;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       §4 — PAGINATION
+    ═══════════════════════════════════════════════════════════════ */
+    .pagination {
+      display: flex; align-items: center; gap: 4px;
+    }
+    .pg-btn {
+      min-width: 32px; height: 32px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: var(--radius-xs); font-size: 13px; font-weight: 500;
+      cursor: pointer; transition: background 0.12s, color 0.12s;
+      background: transparent; border: 1px solid transparent;
+      color: var(--texte-secondaire);
+    }
+    .pg-btn:hover:not(.active):not(:disabled) {
+      background: var(--fond-surface-2); border-color: var(--bordure-legere);
+    }
+    .pg-btn.active {
+      background: var(--ap-400); color: #fff;
+      border-color: var(--ap-400);
+    }
+    .pg-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .pg-btn.pg-nav { padding: 0 10px; min-width: auto; gap: 5px; font-size: 12px; }
+    .pg-dots { padding: 0 6px; color: var(--texte-tertiaire); font-size: 13px; letter-spacing: 2px; }
+
+    .pagination-info {
+      font-size: 12px; color: var(--texte-tertiaire); margin-left: 12px;
+    }
+
+    /* Pagination compacte avec select */
+    .pagination-compact {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .pg-input {
+      width: 48px; height: 32px; text-align: center;
+      background: var(--fond-input); border: 1px solid var(--bordure-normale);
+      border-radius: var(--radius-xs); font-family: 'Inter', sans-serif;
+      font-size: 13px; color: var(--texte-primaire); outline: none;
+    }
+    .pg-input:focus { border-color: var(--ap-400); box-shadow: 0 0 0 3px rgba(78,139,164,0.15); }
+    .pg-total { font-size: 12px; color: var(--texte-tertiaire); }
+
+    /* ═══════════════════════════════════════════════════════════════
+       §5 — MENUS CONTEXTUELS & DROPDOWNS
+    ═══════════════════════════════════════════════════════════════ */
+    .dropdown-scene {
+      display: flex; gap: 32px; align-items: flex-start; flex-wrap: wrap;
+    }
+
+    .dropdown-wrap { position: relative; }
+    .dropdown-trigger {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 13px; border-radius: var(--radius-xs);
+      background: var(--fond-surface-2); border: 1px solid var(--bordure-normale);
+      font-size: 13px; font-weight: 500; color: var(--texte-secondaire);
+      cursor: pointer; transition: background 0.13s, color 0.13s;
+    }
+    .dropdown-trigger:hover { background: var(--fond-input); color: var(--texte-primaire); }
+    .dropdown-trigger.open {
+      border-color: var(--ap-400);
+      box-shadow: 0 0 0 3px rgba(78,139,164,0.15);
+      color: var(--texte-primaire);
+    }
+
+    .dropdown-menu {
+      position: absolute; top: calc(100% + 6px); left: 0; z-index: 50;
+      background: var(--fond-surface);
+      border: 1px solid var(--bordure-normale);
+      border-radius: var(--radius-md);
+      box-shadow: var(--ombre-3);
+      min-width: 200px; padding: 4px;
+      animation: dropIn 0.14s ease;
+    }
+    [data-theme="dark"] .dropdown-menu { box-shadow: none; border-color: var(--bordure-forte); }
+
+    @keyframes dropIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .dd-item {
+      display: flex; align-items: center; gap: 9px;
+      padding: 8px 10px; border-radius: var(--radius-xs);
+      font-size: 13px; color: var(--texte-secondaire); cursor: pointer;
+      transition: background 0.10s, color 0.10s;
+    }
+    .dd-item:hover { background: var(--fond-surface-2); color: var(--texte-primaire); }
+    .dd-item.danger:hover { background: var(--erreur-fond); color: var(--erreur-texte); }
+    .dd-item.active { background: var(--couleur-accent-fond); color: var(--ap-600); }
+    .dd-icon { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.75; }
+    .dd-item.active .dd-icon, .dd-item:hover .dd-icon { opacity: 1; }
+    .dd-item.danger:hover .dd-icon { opacity: 1; color: var(--erreur-accent); }
+    .dd-label { flex: 1; }
+    .dd-kbd {
+      font-size: 10px; font-family: 'Courier New', monospace;
+      color: var(--texte-tertiaire); background: var(--fond-surface-2);
+      padding: 1px 5px; border-radius: 3px; border: 1px solid var(--bordure-normale);
+    }
+    .dd-check { width: 14px; height: 14px; flex-shrink: 0; }
+
+    .dd-separator { height: 1px; background: var(--bordure-legere); margin: 4px 0; }
+    .dd-header {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.10em; color: var(--texte-tertiaire);
+      padding: 6px 10px 3px; display: block;
+    }
+
+    /* Menu contextuel (right-click) */
+    .context-menu {
+      background: var(--fond-surface);
+      border: 1px solid var(--bordure-normale);
+      border-radius: var(--radius-md);
+      box-shadow: var(--ombre-4);
+      width: 200px; padding: 4px;
+    }
+    [data-theme="dark"] .context-menu { box-shadow: none; border-color: var(--bordure-forte); }
+
+    /* ═══════════════════════════════════════════════════════════════
+       RÈGLES ABSOLUES
+    ═══════════════════════════════════════════════════════════════ */
+    .rules-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .rules-card { border-radius: var(--radius-md); padding: 20px 22px; border: 1px solid; }
+    .rules-card.ok { background: var(--succes-fond); border-color: var(--succes-bordure); }
+    .rules-card.no { background: var(--erreur-fond); border-color: var(--erreur-bordure); }
+    .rules-card-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.10em; margin-bottom: 14px; display: flex; align-items: center; gap: 7px; }
+    .rules-card.ok .rules-card-title { color: var(--succes-texte); }
+    .rules-card.no .rules-card-title { color: var(--erreur-texte); }
+    .rule-item { display: flex; gap: 8px; margin-bottom: 10px; font-size: 12px; line-height: 1.55; }
+    .rule-item:last-child { margin-bottom: 0; }
+    .rules-card.ok .rule-item { color: var(--succes-texte); }
+    .rules-card.no .rule-item { color: var(--erreur-texte); }
+
+    @media (max-width: 800px) {
+      .module-hero { grid-template-columns: 1fr; }
+      .hero-divider { display: none; }
+      .rules-grid { grid-template-columns: 1fr; }
+      .app-scene { height: auto; flex-direction: column; }
+      .sidebar { width: 100%; height: 200px; border-right: none; border-bottom: 1px solid var(--bordure-legere); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="page-header">
+    <div class="page-header-inner">
+      <div class="header-left">
+        <span class="module-badge">CG-06</span>
+        <span class="header-title-text">Navigation &amp; Structure</span>
+        <span class="header-sep"></span>
+        <span class="header-sub">Sidebar · Topbar · Breadcrumb · Tabs · Pagination · Menus</span>
+      </div>
+      <button class="toggle-btn" onclick="toggleTheme()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="4"/>
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+        </svg>
+        <span id="toggle-label">Mode sombre</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- NAV MODULES -->
+  <nav class="modules-nav">
+    <div class="modules-nav-inner">
+      <a href="CG-01_Couleurs_et_Tokens.html"       class="nav-link"><span class="nav-num">01</span> Couleurs &amp; Tokens</a>
+      <div class="nav-sep"></div>
+      <a href="CG-02_Typographie.html"               class="nav-link"><span class="nav-num">02</span> Typographie</a>
+      <div class="nav-sep"></div>
+      <a href="CG-03_Espacements_et_Grilles.html"    class="nav-link"><span class="nav-num">03</span> Espacements &amp; Grilles</a>
+      <div class="nav-sep"></div>
+      <a href="CG-04_Effets_de_Surface.html"         class="nav-link"><span class="nav-num">04</span> Effets de Surface</a>
+      <div class="nav-sep"></div>
+      <a href="CG-05_Composants_Fondamentaux.html"   class="nav-link"><span class="nav-num">05</span> Composants Fondamentaux</a>
+      <div class="nav-sep"></div>
+      <a href="CG-06_Navigation_et_Structure.html"   class="nav-link active"><span class="nav-num">06</span> Navigation &amp; Structure</a>
+      <div class="nav-sep"></div>
+      <a href="CG-07_Donnees_et_Contenu.html"        class="nav-link"><span class="nav-num">07</span> Données &amp; Contenu</a>
+      <div class="nav-sep"></div>
+      <a href="CG-08_Feedback_et_Communication.html" class="nav-link"><span class="nav-num">08</span> Feedback &amp; Communication</a>
+      <div class="nav-sep"></div>
+      <a href="CG-09_Animations_et_Transitions.html" class="nav-link"><span class="nav-num">09</span> Animations &amp; Transitions</a>
+      <div class="nav-sep"></div>
+      <a href="CG-10_Iconographie_et_Assets.html"    class="nav-link"><span class="nav-num">10</span> Iconographie &amp; Assets</a>
+      <div class="nav-sep"></div>
+      <a href="CG-11_Etats_et_Accessibilite.html"    class="nav-link"><span class="nav-num">11</span> États &amp; Accessibilité</a>
+      <div class="nav-sep"></div>
+      <a href="CG-12_Recapitulatif_et_Regles.html"   class="nav-link"><span class="nav-num">12</span> Récapitulatif &amp; Règles</a>
+    </div>
+  </nav>
+
+  <main class="main">
+
+    <!-- HERO -->
+    <div class="module-hero">
+      <div class="hero-col">
+        <div class="hero-label">Pourquoi</div>
+        <div class="hero-title">Orienter sans jamais perdre le soignant</div>
+        <div class="hero-body">Dans un CMS médico-social, la navigation est critique. Un infirmier de Nkayi qui cherche un dossier patient ne peut pas se permettre de tâtonner. La structure visuelle — sidebar, topbar, fil d'Ariane — doit être lue en un coup d'œil, à tout moment.</div>
+      </div>
+      <div class="hero-divider"></div>
+      <div class="hero-col">
+        <div class="hero-label">Quoi</div>
+        <div class="hero-title">5 composants structurels de navigation</div>
+        <div class="hero-body">Sidebar verticale fixe 240px (style Linear/Notion) avec glassmorphisme · Topbar 54px avec breadcrumb intégré · Breadcrumb autonome (3 variants) · Tabs (underline, pills, vertical) · Pagination numérotée &amp; compacte · Menus contextuels &amp; dropdowns.</div>
+      </div>
+      <div class="hero-divider"></div>
+      <div class="hero-col">
+        <div class="hero-label">Comment</div>
+        <div class="hero-title">Scène complète + tokens de position</div>
+        <div class="hero-body">La démo principale reconstruit l'application réelle — sidebar glass + topbar + contenu — en une seule scène. Chaque sous-composant est ensuite isolé avec ses variantes et ses règles de sélection précises selon le contexte d'usage.</div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         §1 — SIDEBAR & TOPBAR (scène complète)
+    ═══════════════════════════════════════════════════════════════ -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-num">Section 01</div>
+        <div class="section-title">Sidebar &amp; Topbar — Scène application complète</div>
+        <div class="section-desc">La sidebar est fixe à gauche, 240px, glassmorphisée (backdrop-filter blur 16px). La topbar est fixe en haut, 54px, glassmorphisée (blur 14px). Les items de navigation portent un état actif en bleu ardoise solid. Les groupes de navigation sont étiquetés. Le sélecteur de site est en haut de sidebar.</div>
+      </div>
+
+      <div class="app-scene">
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+          <!-- Logo -->
+          <div class="sidebar-logo">
+            <div class="logo-mark">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+              </svg>
+            </div>
+            <div>
+              <div class="logo-name">CMS SARIS</div>
+              <div class="logo-sub">Congo</div>
+            </div>
+          </div>
+
+          <!-- Sélecteur de site -->
+          <div class="site-switcher">
+            <div class="site-dot"></div>
+            <span class="site-name">Site Moutela</span>
+            <span class="site-arrow">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </span>
+          </div>
+
+          <!-- Navigation -->
+          <nav class="sidebar-nav">
+            <div class="nav-group">
+              <span class="nav-group-label">Principal</span>
+              <a class="sidebar-item active" href="#">
+                <svg class="s-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                Tableau de bord
+              </a>
+              <a class="sidebar-item" href="#">
+                <svg class="s-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                Patients
+                <span class="s-badge">12</span>
+              </a>
+              <div class="sidebar-sub-item active">Consultations du jour</div>
+              <div class="sidebar-sub-item">Liste générale</div>
+              <div class="sidebar-sub-item">Nouveaux dossiers</div>
+              <a class="sidebar-item" href="#">
+                <svg class="s-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Dossiers médicaux
+              </a>
+              <a class="sidebar-item" href="#">
+                <svg class="s-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                Planning
+              </a>
+            </div>
+            <div class="nav-group">
+              <span class="nav-group-label">Gestion</span>
+              <a class="sidebar-item" href="#">
+                <svg class="s-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                Pharmacie
+              </a>
+              <a class="sidebar-item" href="#">
+                <svg class="s-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                Statistiques
+              </a>
+              <a class="sidebar-item" href="#">
+                <svg class="s-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 1.41 13.44M4.93 4.93A10 10 0 0 0 3.52 18.37"/><path d="M14.83 9.17a4 4 0 0 1 0 5.66"/><path d="M9.17 9.17a4 4 0 0 0 0 5.66"/></svg>
+                Paramètres
+              </a>
+            </div>
+          </nav>
+
+          <!-- Footer -->
+          <div class="sidebar-footer">
+            <div class="sidebar-user">
+              <div class="s-avatar">DR</div>
+              <div>
+                <div class="s-user-name">Dr. Renaud Moussavou</div>
+                <div class="s-user-role">Médecin chef · Moutela</div>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <!-- DROITE -->
+        <div class="app-right">
+          <!-- Topbar -->
+          <div class="topbar">
+            <div class="topbar-breadcrumb">
+              <span class="tb-crumb">CMS SARIS</span>
+              <span class="tb-sep">›</span>
+              <span class="tb-crumb">Patients</span>
+              <span class="tb-sep">›</span>
+              <span class="tb-crumb current">Consultations du jour</span>
+            </div>
+            <div class="topbar-actions">
+              <button class="tb-icon-btn">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+              </button>
+              <button class="tb-icon-btn" style="position:relative;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                <div class="tb-notif-dot"></div>
+              </button>
+              <div class="tb-vsep"></div>
+              <div class="tb-avatar">DR</div>
+            </div>
+          </div>
+
+          <!-- Contenu -->
+          <div class="app-content">
+            <div class="content-title">Consultations du jour — Moutela</div>
+            <div class="content-sub">Vendredi 15 mai 2026 · 24 patients programmés</div>
+            <div class="kpi-mini-row">
+              <div class="kpi-mini">
+                <div class="kpi-mini-label">Consultés</div>
+                <div class="kpi-mini-value">14</div>
+                <div class="kpi-mini-trend trend-up">↑ +3 vs hier</div>
+              </div>
+              <div class="kpi-mini">
+                <div class="kpi-mini-label">En attente</div>
+                <div class="kpi-mini-value">10</div>
+                <div class="kpi-mini-trend" style="color:var(--texte-tertiaire);">— en cours</div>
+              </div>
+              <div class="kpi-mini">
+                <div class="kpi-mini-label">Urgences</div>
+                <div class="kpi-mini-value" style="color:var(--erreur-accent);">2</div>
+                <div class="kpi-mini-trend trend-down">↑ Prioritaires</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Spec table sidebar -->
+      <div style="margin-top:20px; overflow:hidden; border-radius:var(--radius-md); border:1px solid var(--bordure-legere);">
+        <table class="spec-table">
+          <thead><tr><th>Élément</th><th>Valeur</th><th>Token / règle</th></tr></thead>
+          <tbody>
+            <tr><td>Largeur sidebar</td><td class="code">240px</td><td class="code">fixe — ne s'adapte pas en responsive desktop</td></tr>
+            <tr><td>Hauteur topbar</td><td class="code">54px</td><td class="code">--topbar-h: 54px</td></tr>
+            <tr><td>Fond sidebar</td><td class="code">rgba(255,255,255,0.72)</td><td class="code">--glass-sidebar-bg + backdrop-filter blur(16px)</td></tr>
+            <tr><td>Item actif</td><td class="code">background: --ap-400 / color: #fff</td><td class="code">Seul item avec fond solid — pas de gradient</td></tr>
+            <tr><td>Item hover</td><td class="code">background: --fond-surface-2</td><td class="code">Transition 120ms ease</td></tr>
+            <tr><td>Groupe label</td><td class="code">9px / 700 / uppercase / 0.12em</td><td class="code">Couleur --texte-tertiaire — jamais --ap-400</td></tr>
+            <tr><td>Z-index sidebar</td><td class="code">position: fixed (app réelle)</td><td class="code">z-index: 50 — sous modales (z:100) et toasts (z:200)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         §2 — BREADCRUMB
+    ═══════════════════════════════════════════════════════════════ -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-num">Section 02</div>
+        <div class="section-title">Fil d'Ariane — Breadcrumb</div>
+        <div class="section-desc">Le breadcrumb situe l'utilisateur dans l'arborescence. Les éléments cliquables sont en <span class="code">--texte-tertiaire</span>, l'élément courant en <span class="code">--texte-primaire</span> (non cliquable). Séparateur › (U+203A). Toujours au maximum 4 niveaux.</div>
+      </div>
+
+      <div class="demo-box">
+        <div style="display:flex;flex-direction:column;gap:20px;">
+          <!-- Breadcrumb simple -->
+          <div>
+            <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.10em;color:var(--texte-tertiaire);margin-bottom:10px;">Simple — dans topbar ou page header</div>
+            <nav class="breadcrumb">
+              <div class="bc-item">
+                <svg class="bc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+                <span class="bc-label">Accueil</span>
+              </div>
+              <span class="bc-sep">›</span>
+              <div class="bc-item">
+                <span class="bc-label">Patients</span>
+              </div>
+              <span class="bc-sep">›</span>
+              <div class="bc-item">
+                <span class="bc-label">Dossiers</span>
+              </div>
+              <span class="bc-sep">›</span>
+              <div class="bc-item current">
+                <span class="bc-label">Moukouri Jean-Baptiste</span>
+              </div>
+            </nav>
+          </div>
+
+          <!-- Breadcrumb avec fond -->
+          <div>
+            <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.10em;color:var(--texte-tertiaire);margin-bottom:10px;">Sur fond encadré — sections internes de page</div>
+            <nav class="breadcrumb-bar">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--texte-tertiaire)" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+              <span style="font-size:12px;color:var(--texte-tertiaire);">CMS SARIS</span>
+              <span style="color:var(--texte-tertiaire);font-size:12px;">›</span>
+              <span style="font-size:12px;color:var(--texte-tertiaire);">Planning</span>
+              <span style="color:var(--texte-tertiaire);font-size:12px;">›</span>
+              <span style="font-size:12px;font-weight:500;color:var(--texte-primaire);">Semaine S-20</span>
+            </nav>
+          </div>
+
+          <!-- Breadcrumb tronqué -->
+          <div>
+            <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.10em;color:var(--texte-tertiaire);margin-bottom:10px;">Tronqué (ellipse) — plus de 4 niveaux</div>
+            <nav class="breadcrumb">
+              <div class="bc-item">
+                <svg class="bc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+                <span class="bc-label">Accueil</span>
+              </div>
+              <span class="bc-sep">›</span>
+              <div class="bc-item" style="padding:2px 6px;background:var(--fond-surface-2);border-radius:var(--radius-xs);border:1px solid var(--bordure-normale);">
+                <span class="bc-label" style="font-size:12px;color:var(--texte-tertiaire);">…</span>
+              </div>
+              <span class="bc-sep">›</span>
+              <div class="bc-item">
+                <span class="bc-label">Dossiers</span>
+              </div>
+              <span class="bc-sep">›</span>
+              <div class="bc-item current">
+                <span class="bc-label">Examen du 15/05/2026</span>
+              </div>
+            </nav>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         §3 — TABS
+    ═══════════════════════════════════════════════════════════════ */
+    <section class="section">
+      <div class="section-header">
+        <div class="section-num">Section 03</div>
+        <div class="section-title">Onglets — Tabs</div>
+        <div class="section-desc">3 variants selon le contexte : <strong style="font-weight:500;">Underline</strong> pour les pages de contenu (dossier patient, fiche pharmacie) · <strong style="font-weight:500;">Pills</strong> pour les filtres de tableaux de bord · <strong style="font-weight:500;">Vertical</strong> pour la navigation secondaire dans les paramètres ou les formulaires longs.</div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Variant Underline — fiche patient, dossier médical</div>
+        <div class="demo-box" style="padding-left:0;padding-right:0;padding-top:0;">
+          <div class="tabs-underline" style="padding:0 28px;" id="tabs-ul">
+            <div class="tab-ul active" onclick="switchTab('tabs-ul',this,'content-ul','c-resume')">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              Résumé
+            </div>
+            <div class="tab-ul" onclick="switchTab('tabs-ul',this,'content-ul','c-antecedents')">
+              Antécédents
+              <span class="tab-count">3</span>
+            </div>
+            <div class="tab-ul" onclick="switchTab('tabs-ul',this,'content-ul','c-ordonnances')">
+              Ordonnances
+              <span class="tab-count">7</span>
+            </div>
+            <div class="tab-ul" onclick="switchTab('tabs-ul',this,'content-ul','c-examens')">
+              Examens
+              <span class="tab-count">12</span>
+            </div>
+            <div class="tab-ul" onclick="switchTab('tabs-ul',this,'content-ul','c-consultations')">
+              Consultations
+            </div>
+          </div>
+          <div id="content-ul" style="padding:20px 28px;">
+            <div id="c-resume" class="tab-panel" style="font-size:13px;color:var(--texte-secondaire);line-height:1.7;">
+              <strong style="color:var(--texte-primaire);">Moukouri Jean-Baptiste</strong> · Né le 18/09/1978 · Groupe O+ · Allergies : Pénicilline<br>
+              Dernière consultation : 08/05/2026 — Dr. Moussavou · Diagnostic : Paludisme simple<br>
+              <span style="color:var(--texte-tertiaire);font-size:12px;">Prochain RDV : 22/05/2026 à 09h00</span>
+            </div>
+            <div id="c-antecedents" class="tab-panel" style="display:none;font-size:13px;color:var(--texte-secondaire);">Diabète type 2 (2019) · Hypertension artérielle (2021) · Intervention chirurgicale appendice (2015)</div>
+            <div id="c-ordonnances" class="tab-panel" style="display:none;font-size:13px;color:var(--texte-secondaire);">7 ordonnances archivées · Dernière : Artéméther-Luméfantrine 6 comprimés · 08/05/2026</div>
+            <div id="c-examens" class="tab-panel" style="display:none;font-size:13px;color:var(--texte-secondaire);">12 examens · Derniers résultats : NFS (05/05/2026) · Glycémie à jeun : 7,4 mmol/L</div>
+            <div id="c-consultations" class="tab-panel" style="display:none;font-size:13px;color:var(--texte-secondaire);">24 consultations depuis l'ouverture du dossier en janvier 2023.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Variant Pills — filtre tableau de bord, vue synthétique</div>
+        <div class="demo-box">
+          <div class="tabs-pills" id="tabs-pills">
+            <div class="tab-pill active" onclick="switchPill('tabs-pills',this)">Tous les sites</div>
+            <div class="tab-pill" onclick="switchPill('tabs-pills',this)">Moutela</div>
+            <div class="tab-pill" onclick="switchPill('tabs-pills',this)">Nkayi</div>
+            <div class="tab-pill" onclick="switchPill('tabs-pills',this)">Externe</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Variant Vertical — paramètres, formulaires longs</div>
+        <div class="demo-box">
+          <div class="tabs-with-content">
+            <nav class="tabs-vertical" id="tabs-vert">
+              <div class="tab-vert active" onclick="switchVert('tabs-vert',this,'cv-profil')">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                Profil médecin
+              </div>
+              <div class="tab-vert" onclick="switchVert('tabs-vert',this,'cv-site')">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+                Configuration site
+              </div>
+              <div class="tab-vert" onclick="switchVert('tabs-vert',this,'cv-notifications')">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                Notifications
+              </div>
+              <div class="tab-vert" onclick="switchVert('tabs-vert',this,'cv-securite')">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                Sécurité &amp; accès
+              </div>
+            </nav>
+            <div class="tab-content-area">
+              <div id="cv-profil">Informations du médecin en charge · Dr. Renaud Moussavou · Spécialité : Médecine générale · Matricule : SARIS-MED-042 · Affecté au site Moutela depuis janvier 2023.</div>
+              <div id="cv-site" style="display:none;">Configuration du site Moutela : capacité d'accueil 200 patients/mois · Équipe : 3 médecins, 8 infirmiers, 2 laborantins · Adresse : Quartier Moutela, Brazzaville.</div>
+              <div id="cv-notifications" style="display:none;">Alertes SMS activées · Email : Rapports hebdomadaires · Push : Urgences uniquement · Délai de rappel RDV : 24h avant.</div>
+              <div id="cv-securite" style="display:none;">Authentification à deux facteurs activée · Dernière connexion : 15/05/2026 08:47 · Sessions actives : 1 · Rôle : Médecin chef (accès complet).</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         §4 — PAGINATION
+    ═══════════════════════════════════════════════════════════════ -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-num">Section 04</div>
+        <div class="section-title">Pagination</div>
+        <div class="section-desc">2 variants : <strong style="font-weight:500;">Numérotée</strong> pour les listes de patients et tableaux longs (toujours visible la page active, ±2 pages adjacentes, ellipse aux extrêmes) · <strong style="font-weight:500;">Compacte</strong> pour les tableaux denses avec champ de saisie directe. Jamais de scroll infini dans CMS SARIS — les données médicales exigent une pagination claire.</div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Numérotée — liste de patients, résultats de recherche</div>
+        <div class="demo-box">
+          <div style="display:flex;align-items:center;flex-wrap:wrap;gap:16px;">
+            <nav class="pagination">
+              <button class="pg-btn pg-nav" disabled>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+                Préc.
+              </button>
+              <button class="pg-btn" onclick="setPg(1)">1</button>
+              <button class="pg-btn" onclick="setPg(2)">2</button>
+              <button class="pg-btn active" onclick="setPg(3)">3</button>
+              <button class="pg-btn" onclick="setPg(4)">4</button>
+              <button class="pg-btn" onclick="setPg(5)">5</button>
+              <span class="pg-dots">…</span>
+              <button class="pg-btn" onclick="setPg(12)">12</button>
+              <button class="pg-btn pg-nav" onclick="setPg(4)">
+                Suiv.
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+            </nav>
+            <span class="pagination-info">Page 3 sur 12 · 284 patients</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="subsection">
+        <div class="subsection-title">Compacte — tableaux denses, ordonnances, examens</div>
+        <div class="demo-box">
+          <div class="pagination-compact">
+            <button class="pg-btn pg-nav">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <span style="font-size:12px;color:var(--texte-tertiaire);">Page</span>
+            <input class="pg-input" type="number" value="3" min="1" max="12">
+            <span class="pg-total">sur 12</span>
+            <button class="pg-btn pg-nav">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+            <span class="pagination-info">· 7 lignes par page ·</span>
+            <select style="font-family:'Inter',sans-serif;font-size:12px;background:var(--fond-input);border:1px solid var(--bordure-normale);border-radius:var(--radius-xs);padding:4px 8px;color:var(--texte-secondaire);outline:none;cursor:pointer;">
+              <option>7 / page</option>
+              <option>15 / page</option>
+              <option>25 / page</option>
+              <option>50 / page</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         §5 — MENUS CONTEXTUELS & DROPDOWNS
+    ═══════════════════════════════════════════════════════════════ -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-num">Section 05</div>
+        <div class="section-title">Menus contextuels &amp; Dropdowns</div>
+        <div class="section-desc">Les dropdowns s'ouvrent sous le déclencheur avec une animation d'entrée (opacity 0→1, translateY -6px→0, 140ms). Le menu contextuel (clic droit) est identique mais positionné au curseur. Les deux partagent le même style de fond : <span class="code">--fond-surface</span> avec bordure et ombre Z3.</div>
+      </div>
+
+      <div class="demo-box">
+        <div class="dropdown-scene">
+
+          <!-- Dropdown simple -->
+          <div>
+            <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.10em;color:var(--texte-tertiaire);margin-bottom:10px;">Dropdown action — bouton</div>
+            <div class="dropdown-wrap">
+              <div class="dropdown-trigger open">
+                Actions
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
+              <div class="dropdown-menu">
+                <a class="dd-item" href="#">
+                  <svg class="dd-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  <span class="dd-label">Modifier le dossier</span>
+                  <span class="dd-kbd">⌘E</span>
+                </a>
+                <a class="dd-item" href="#">
+                  <svg class="dd-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/></svg>
+                  <span class="dd-label">Exporter PDF</span>
+                  <span class="dd-kbd">⌘P</span>
+                </a>
+                <a class="dd-item" href="#">
+                  <svg class="dd-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                  <span class="dd-label">Dupliquer</span>
+                </a>
+                <div class="dd-separator"></div>
+                <a class="dd-item danger" href="#">
+                  <svg class="dd-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+                  <span class="dd-label">Archiver le dossier</span>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dropdown avec sélection -->
+          <div>
+            <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.10em;color:var(--texte-tertiaire);margin-bottom:10px;">Dropdown sélection — filtre / statut</div>
+            <div class="dropdown-wrap">
+              <div class="dropdown-trigger open">
+                <div style="width:8px;height:8px;border-radius:50%;background:var(--succes-accent);"></div>
+                Statut : En consultation
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
+              <div class="dropdown-menu">
+                <span class="dd-header">Changer le statut</span>
+                <div class="dd-item active">
+                  <div style="width:8px;height:8px;border-radius:50%;background:var(--ap-400);flex-shrink:0;"></div>
+                  <span class="dd-label">En consultation</span>
+                  <svg class="dd-check" viewBox="0 0 24 24" fill="none" stroke="var(--ap-400)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <div class="dd-item">
+                  <div style="width:8px;height:8px;border-radius:50%;background:var(--avert-accent);flex-shrink:0;"></div>
+                  <span class="dd-label">En attente</span>
+                </div>
+                <div class="dd-item">
+                  <div style="width:8px;height:8px;border-radius:50%;background:var(--succes-accent);flex-shrink:0;"></div>
+                  <span class="dd-label">Sorti — guéri</span>
+                </div>
+                <div class="dd-item">
+                  <div style="width:8px;height:8px;border-radius:50%;background:var(--info-accent);flex-shrink:0;"></div>
+                  <span class="dd-label">Hospitalisé</span>
+                </div>
+                <div class="dd-separator"></div>
+                <div class="dd-item danger">
+                  <div style="width:8px;height:8px;border-radius:50%;background:var(--erreur-accent);flex-shrink:0;"></div>
+                  <span class="dd-label">Urgence</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Menu contextuel -->
+          <div>
+            <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.10em;color:var(--texte-tertiaire);margin-bottom:10px;">Menu contextuel — clic droit sur ligne de tableau</div>
+            <div class="context-menu">
+              <a class="dd-item" href="#">
+                <svg class="dd-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                <span class="dd-label">Voir le dossier</span>
+              </a>
+              <a class="dd-item" href="#">
+                <svg class="dd-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                <span class="dd-label">Modifier</span>
+              </a>
+              <a class="dd-item" href="#">
+                <svg class="dd-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                <span class="dd-label">Planifier RDV</span>
+              </a>
+              <a class="dd-item" href="#">
+                <svg class="dd-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/></svg>
+                <span class="dd-label">Exporter PDF</span>
+              </a>
+              <div class="dd-separator"></div>
+              <a class="dd-item danger" href="#">
+                <svg class="dd-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+                <span class="dd-label">Archiver</span>
+              </a>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- RÈGLES ABSOLUES -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-num">Règles absolues</div>
+        <div class="section-title">Obligations &amp; Interdictions — Navigation &amp; Structure</div>
+        <div class="section-desc">Ces règles s'imposent à tous les développeurs et agents IA travaillant sur CMS SARIS Congo.</div>
+      </div>
+      <div class="rules-grid">
+        <div class="rules-card ok">
+          <div class="rules-card-title">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Obligations
+          </div>
+          <div class="rule-item"><span>✓</span><span>La sidebar est toujours à 240px, fixe à gauche. Glassmorphisme obligatoire (<span class="code" style="background:var(--succes-fond);color:var(--succes-accent);">--glass-sidebar-bg</span> + blur 16px).</span></div>
+          <div class="rule-item"><span>✓</span><span>Un seul item actif à la fois dans la sidebar. Il est en <span class="code" style="background:var(--succes-fond);color:var(--succes-accent);">--ap-400</span> fond solid, couleur blanche. Pas de gradient sur l'actif.</span></div>
+          <div class="rule-item"><span>✓</span><span>Le breadcrumb est toujours présent dès le deuxième niveau de profondeur. Séparateur › uniquement.</span></div>
+          <div class="rule-item"><span>✓</span><span>Les tabs Underline portent le soulignement sur l'onglet actif en <span class="code" style="background:var(--succes-fond);color:var(--succes-accent);">--ap-400</span>, épaisseur 2px.</span></div>
+          <div class="rule-item"><span>✓</span><span>Tout dropdown ou menu contextuel utilise l'animation 140ms (opacity + translateY). Box-shadow via <span class="code" style="background:var(--succes-fond);color:var(--succes-accent);">--ombre-3</span>.</span></div>
+          <div class="rule-item"><span>✓</span><span>La pagination numérotée affiche toujours la page courante ±2 pages avec ellipse. Maximum 7 boutons visibles.</span></div>
+        </div>
+        <div class="rules-card no">
+          <div class="rules-card-title">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            Interdictions absolues
+          </div>
+          <div class="rule-item"><span>✗</span><span>Pas de sidebar rétractable (hamburger toggle) en desktop. Elle est toujours visible. Le contenu s'adapte à 240px de marge gauche.</span></div>
+          <div class="rule-item"><span>✗</span><span>Pas de gradient sur l'item actif de la sidebar. Fond solid <span class="code" style="background:var(--erreur-fond);color:var(--erreur-accent);">--ap-400</span> uniquement.</span></div>
+          <div class="rule-item"><span>✗</span><span>Pas de breadcrumb sur la page d'accueil (niveau 0). Il apparaît à partir du niveau 1.</span></div>
+          <div class="rule-item"><span>✗</span><span>Pas plus de 8 items dans un dropdown. Au-delà, utiliser une modale de sélection ou un champ de recherche.</span></div>
+          <div class="rule-item"><span>✗</span><span>Pas de scroll infini dans CMS SARIS. La pagination est obligatoire sur toutes les listes de plus de 10 entrées.</span></div>
+          <div class="rule-item"><span>✗</span><span>Les 3 variants de tabs ne se mélangent jamais sur une même page. Un seul variant par contexte de navigation.</span></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    function toggleTheme() {
+      const html = document.documentElement;
+      const isDark = html.getAttribute('data-theme') === 'dark';
+      html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+      document.getElementById('toggle-label').textContent = isDark ? 'Mode sombre' : 'Mode clair';
+    }
+
+    /* Tabs underline */
+    function switchTab(navId, el, contentId, targetId) {
+      document.getElementById(navId).querySelectorAll('.tab-ul').forEach(t => t.classList.remove('active'));
+      el.classList.add('active');
+      document.getElementById(contentId).querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
+      document.getElementById(targetId).style.display = 'block';
+    }
+
+    /* Tabs pills */
+    function switchPill(navId, el) {
+      document.getElementById(navId).querySelectorAll('.tab-pill').forEach(t => t.classList.remove('active'));
+      el.classList.add('active');
+    }
+
+    /* Tabs vertical */
+    function switchVert(navId, el, targetId) {
+      document.getElementById(navId).querySelectorAll('.tab-vert').forEach(t => t.classList.remove('active'));
+      el.classList.add('active');
+      ['cv-profil','cv-site','cv-notifications','cv-securite'].forEach(id => {
+        const el2 = document.getElementById(id);
+        if (el2) el2.style.display = id === targetId ? 'block' : 'none';
+      });
+    }
+
+    /* Pagination */
+    function setPg(n) {
+      document.querySelectorAll('.pg-btn:not(.pg-nav)').forEach(b => b.classList.remove('active'));
+    }
+  </script>
+</body>
+</html>

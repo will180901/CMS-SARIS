@@ -1,0 +1,1369 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CG-01 · Couleurs & Tokens — Charte Graphique CMS SARIS Congo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+
+    /* ═══════════════════════════════════════════════════════════════
+       TOKENS — MODE CLAIR
+    ═══════════════════════════════════════════════════════════════ */
+    :root, [data-theme="light"] {
+      --fond-page:       #F4F6F8;
+      --fond-surface:    #FFFFFF;
+      --fond-surface-2:  #F0F2F5;
+      --fond-input:      #EAECF0;
+
+      --texte-primaire:   #0F172A;
+      --texte-secondaire: #475569;
+      --texte-tertiaire:  #94A3B8;
+
+      --bordure-legere: rgba(15,23,42,0.08);
+      --bordure-normale: rgba(15,23,42,0.14);
+      --bordure-forte:  rgba(15,23,42,0.28);
+
+      /* Accent primaire — Bleu ardoise */
+      --ap-50:  #D6E8EF;
+      --ap-100: #A8CCDA;
+      --ap-200: #79AFBF;
+      --ap-300: #5B9BB0;
+      --ap-400: #4E8BA4;
+      --ap-500: #3D7A92;
+      --ap-600: #366680;
+      --ap-700: #2A5269;
+      --ap-800: #214A5E;
+      --ap-900: #0F2F3D;
+
+      /* Accent secondaire — Or Congo */
+      --as-50:  #F6EBD2;
+      --as-100: #EBCF87;
+      --as-200: #D9AD4A;
+      --as-300: #D0A030;
+      --as-400: #C99A2E;
+      --as-500: #B88A25;
+      --as-600: #A07A1E;
+      --as-700: #8A6A15;
+      --as-800: #765A12;
+      --as-900: #4D3A08;
+
+      /* Gris froids bleutés */
+      --g-0:   #FFFFFF;
+      --g-50:  #F4F6F8;
+      --g-100: #EAECF0;
+      --g-200: #D0D5DD;
+      --g-300: #B5BCC8;
+      --g-400: #8892A4;
+      --g-500: #64748B;
+      --g-600: #475569;
+      --g-700: #334155;
+      --g-800: #1E293B;
+      --g-900: #0F172A;
+      --g-950: #060D18;
+
+      /* Sémantiques */
+      --succes-fond:     #EAF3EC;
+      --succes-texte:    #2D6A3F;
+      --succes-accent:   #3D7A5E;
+      --succes-bordure:  rgba(45,106,63,0.2);
+
+      --erreur-fond:     #F5EAEA;
+      --erreur-texte:    #7A2E2E;
+      --erreur-accent:   #9B4444;
+      --erreur-bordure:  rgba(122,46,46,0.2);
+
+      --avert-fond:      #F5EEDF;
+      --avert-texte:     #6B4D1A;
+      --avert-accent:    #8A6A2A;
+      --avert-bordure:   rgba(107,77,26,0.2);
+
+      --info-fond:       #E6EFF5;
+      --info-texte:      #2A4F6B;
+      --info-accent:     #3A6080;
+      --info-bordure:    rgba(42,79,107,0.2);
+
+      /* Tokens contextuels */
+      --couleur-accent:           var(--ap-400);
+      --couleur-accent-fond:      var(--ap-50);
+      --couleur-accent-hover:     var(--ap-500);
+      --couleur-accent-texte:     #FFFFFF;
+      --couleur-accent-secondaire: var(--as-400);
+
+      --radius-xs: 4px;
+      --radius-sm: 6px;
+      --radius-md: 8px;
+      --radius-lg: 10px;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       TOKENS — MODE SOMBRE
+    ═══════════════════════════════════════════════════════════════ */
+    [data-theme="dark"] {
+      --fond-page:       #0D1117;
+      --fond-surface:    #161B22;
+      --fond-surface-2:  #1C2333;
+      --fond-input:      #21262D;
+
+      --texte-primaire:   #E6EDF3;
+      --texte-secondaire: #8B949E;
+      --texte-tertiaire:  #484F58;
+
+      --bordure-legere: rgba(230,237,243,0.08);
+      --bordure-normale: rgba(230,237,243,0.14);
+      --bordure-forte:  rgba(230,237,243,0.28);
+
+      --ap-50:  #0F2F3D;
+      --ap-100: #214A5E;
+      --ap-200: #2A5269;
+      --ap-300: #366680;
+      --ap-400: #4E8BA4;
+      --ap-500: #5B9BB0;
+      --ap-600: #79AFBF;
+      --ap-700: #A8CCDA;
+      --ap-800: #C8E0E9;
+      --ap-900: #D6E8EF;
+
+      --as-50:  #4D3A08;
+      --as-100: #765A12;
+      --as-200: #8A6A15;
+      --as-300: #A07A1E;
+      --as-400: #C99A2E;
+      --as-500: #D0A030;
+      --as-600: #D9AD4A;
+      --as-700: #EBCF87;
+      --as-800: #F2DFA8;
+      --as-900: #F6EBD2;
+
+      --g-0:   #060D18;
+      --g-50:  #0D1117;
+      --g-100: #161B22;
+      --g-200: #21262D;
+      --g-300: #30363D;
+      --g-400: #484F58;
+      --g-500: #6E7681;
+      --g-600: #8B949E;
+      --g-700: #B1BAC4;
+      --g-800: #C9D1D9;
+      --g-900: #E6EDF3;
+      --g-950: #F0F6FC;
+
+      --succes-fond:     #1A2E20;
+      --succes-texte:    #7EE2A0;
+      --succes-accent:   #56C47A;
+      --succes-bordure:  rgba(126,226,160,0.15);
+
+      --erreur-fond:     #2E1A1A;
+      --erreur-texte:    #E2857E;
+      --erreur-accent:   #CC6060;
+      --erreur-bordure:  rgba(226,133,126,0.15);
+
+      --avert-fond:      #2E2410;
+      --avert-texte:     #E2C07E;
+      --avert-accent:    #C9A23A;
+      --avert-bordure:   rgba(226,192,126,0.15);
+
+      --info-fond:       #0F2030;
+      --info-texte:      #7EB5D6;
+      --info-accent:     #5E9FC0;
+      --info-bordure:    rgba(126,181,214,0.15);
+
+      --couleur-accent:           var(--ap-400);
+      --couleur-accent-fond:      var(--ap-50);
+      --couleur-accent-hover:     var(--ap-500);
+      --couleur-accent-texte:     #FFFFFF;
+      --couleur-accent-secondaire: var(--as-400);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       BASE
+    ═══════════════════════════════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      background: var(--fond-page);
+      color: var(--texte-primaire);
+      transition: background 0.22s ease, color 0.22s ease;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       HEADER FIXE
+    ═══════════════════════════════════════════════════════════════ */
+    .page-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      border-bottom: 1px solid var(--bordure-legere);
+      padding: 0 40px;
+    }
+    [data-theme="light"] .page-header { background: rgba(255,255,255,0.88); backdrop-filter: blur(14px); }
+    [data-theme="dark"]  .page-header { background: rgba(22,27,34,0.88);  backdrop-filter: blur(14px); }
+
+    .page-header-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .header-left { display: flex; align-items: center; gap: 10px; }
+
+    .module-badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: var(--radius-xs);
+      background: var(--couleur-accent-fond);
+      color: var(--ap-800);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    [data-theme="dark"] .module-badge { background: var(--ap-100); color: var(--ap-700); }
+
+    .header-title-text { font-size: 13px; font-weight: 500; color: var(--texte-primaire); }
+    .header-sep { width: 1px; height: 16px; background: var(--bordure-normale); }
+    .header-sub  { font-size: 12px; color: var(--texte-tertiaire); }
+
+    .toggle-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--fond-surface-2);
+      border: 1px solid var(--bordure-normale);
+      border-radius: var(--radius-sm);
+      padding: 5px 12px;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      color: var(--texte-secondaire);
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    .toggle-btn:hover { background: var(--fond-input); color: var(--texte-primaire); }
+
+    /* ═══════════════════════════════════════════════════════════════
+       BARRE DE NAVIGATION ENTRE MODULES
+    ═══════════════════════════════════════════════════════════════ */
+    .modules-nav {
+      background: var(--fond-surface);
+      border-bottom: 1px solid var(--bordure-legere);
+      padding: 0 40px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .modules-nav::-webkit-scrollbar { display: none; }
+    .modules-nav-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      height: 40px;
+    }
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: var(--radius-xs);
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--texte-tertiaire);
+      text-decoration: none;
+      white-space: nowrap;
+      transition: background 0.13s ease, color 0.13s ease;
+      border: 1px solid transparent;
+    }
+    .nav-link:hover {
+      background: var(--fond-surface-2);
+      color: var(--texte-secondaire);
+    }
+    .nav-link.active {
+      background: var(--couleur-accent-fond);
+      color: var(--ap-700);
+      border-color: var(--ap-200);
+    }
+    [data-theme="dark"] .nav-link.active {
+      background: var(--ap-100);
+      color: var(--ap-600);
+      border-color: var(--ap-300);
+    }
+    .nav-num {
+      font-size: 9px;
+      font-weight: 700;
+      opacity: 0.6;
+      letter-spacing: 0.04em;
+    }
+    .nav-sep {
+      width: 1px;
+      height: 14px;
+      background: var(--bordure-legere);
+      margin: 0 4px;
+      flex-shrink: 0;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       LAYOUT PRINCIPAL
+    ═══════════════════════════════════════════════════════════════ */
+    .main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 48px 40px 96px;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       HERO DU MODULE
+    ═══════════════════════════════════════════════════════════════ */
+    .module-hero {
+      background: var(--fond-surface);
+      border: 1px solid var(--bordure-legere);
+      border-radius: var(--radius-lg);
+      padding: 32px 36px;
+      margin-bottom: 52px;
+      display: grid;
+      grid-template-columns: 1fr 1px 1fr 1px 1fr;
+      gap: 0;
+    }
+    .hero-col { padding: 0 28px; }
+    .hero-col:first-child { padding-left: 0; }
+    .hero-col:last-child  { padding-right: 0; }
+    .hero-divider { background: var(--bordure-legere); }
+
+    .hero-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--ap-400);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 6px;
+    }
+    .hero-title { font-size: 14px; font-weight: 500; color: var(--texte-primaire); margin-bottom: 6px; }
+    .hero-body  { font-size: 12px; color: var(--texte-secondaire); line-height: 1.65; }
+
+    /* ═══════════════════════════════════════════════════════════════
+       SECTION
+    ═══════════════════════════════════════════════════════════════ */
+    .section { margin-bottom: 60px; }
+
+    .section-header {
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--bordure-legere);
+    }
+    .section-num {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--ap-400);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      margin-bottom: 5px;
+    }
+    .section-title { font-size: 17px; font-weight: 500; color: var(--texte-primaire); margin-bottom: 6px; }
+    .section-desc  { font-size: 13px; color: var(--texte-secondaire); line-height: 1.65; max-width: 700px; }
+
+    /* ═══════════════════════════════════════════════════════════════
+       SWATCHES
+    ═══════════════════════════════════════════════════════════════ */
+    .swatch-grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
+    .swatch-grid-2 { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; }
+
+    .swatch-card {
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      border: 1px solid var(--bordure-legere);
+    }
+    .swatch-color { height: 76px; }
+    .swatch-info  { padding: 11px 14px; background: var(--fond-surface); }
+    .swatch-name  { font-size: 13px; font-weight: 500; color: var(--texte-primaire); margin-bottom: 2px; }
+    .swatch-hex   { font-size: 11px; font-family: 'Courier New', monospace; color: var(--texte-secondaire); margin-bottom: 3px; }
+    .swatch-token { font-size: 10px; font-family: 'Courier New', monospace; color: var(--ap-400); margin-bottom: 3px; }
+    .swatch-use   { font-size: 11px; color: var(--texte-tertiaire); line-height: 1.45; }
+
+    /* ═══════════════════════════════════════════════════════════════
+       SPECTRE
+    ═══════════════════════════════════════════════════════════════ */
+    .spectrum-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--texte-tertiaire);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 8px;
+    }
+    .spectrum-row {
+      display: grid;
+      grid-template-columns: repeat(10,1fr);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      margin-bottom: 4px;
+    }
+    .spectrum-stop {
+      height: 52px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      padding-bottom: 5px;
+      position: relative;
+    }
+    .spectrum-stop.principal::before {
+      content: '';
+      position: absolute;
+      top: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.85);
+    }
+    .sp-lbl { font-size: 9px; font-weight: 600; opacity: 0.75; }
+    .sp-hex { font-size: 8px; opacity: 0.55; font-family: monospace; }
+
+    /* ═══════════════════════════════════════════════════════════════
+       TABLEAU DE TOKENS
+    ═══════════════════════════════════════════════════════════════ */
+    .card {
+      background: var(--fond-surface);
+      border: 1px solid var(--bordure-legere);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+    .token-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .token-table th {
+      text-align: left;
+      padding: 9px 14px;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--texte-tertiaire);
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      border-bottom: 1px solid var(--bordure-legere);
+      background: var(--fond-surface-2);
+    }
+    .token-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--bordure-legere);
+      vertical-align: middle;
+    }
+    .token-table tr:last-child td { border-bottom: none; }
+    .token-table tr.hl td { background: var(--fond-surface-2); }
+    .token-table tr:hover td { background: var(--fond-surface-2); transition: background 0.1s; }
+
+    .t-name {
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      color: var(--ap-400);
+      font-weight: 600;
+    }
+    .t-val  { font-family: 'Courier New', monospace; font-size: 11px; color: var(--texte-primaire); }
+    .t-use  { font-size: 11px; color: var(--texte-secondaire); }
+
+    .color-dot {
+      display: inline-block;
+      width: 18px; height: 18px;
+      border-radius: 4px;
+      border: 1px solid var(--bordure-legere);
+      vertical-align: middle;
+      margin-right: 7px;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       GRIS — DOUBLE COLONNE CLAIR / SOMBRE
+    ═══════════════════════════════════════════════════════════════ */
+    .gris-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .gris-col-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--texte-tertiaire);
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      margin-bottom: 10px;
+    }
+    .gris-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 10px;
+      border-radius: 5px;
+      margin-bottom: 3px;
+    }
+    .gris-dot { width: 26px; height: 26px; border-radius: 5px; flex-shrink: 0; }
+    .gris-name  { font-size: 11px; font-weight: 500; }
+    .gris-usage { font-size: 10px; }
+
+    /* ═══════════════════════════════════════════════════════════════
+       SÉMANTIQUES
+    ═══════════════════════════════════════════════════════════════ */
+    .sem-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
+    .sem-card { border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--bordure-legere); }
+    .sem-head { padding: 14px 14px 10px; }
+    .sem-icon {
+      width: 30px; height: 30px;
+      border-radius: var(--radius-xs);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 8px;
+    }
+    .sem-title { font-size: 13px; font-weight: 500; margin-bottom: 3px; }
+    .sem-desc  { font-size: 11px; line-height: 1.45; opacity: 0.8; }
+    .sem-tokens {
+      padding: 10px 14px;
+      background: var(--fond-surface);
+      border-top: 1px solid var(--bordure-legere);
+    }
+    .sem-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 3px 0;
+    }
+    .sem-key { font-size: 10px; color: var(--texte-tertiaire); }
+    .sem-val { font-size: 10px; font-family: monospace; color: var(--texte-secondaire); }
+
+    /* ═══════════════════════════════════════════════════════════════
+       USAGE PAR CONTEXTE
+    ═══════════════════════════════════════════════════════════════ */
+    .usage-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+    .usage-card {
+      background: var(--fond-surface);
+      border: 1px solid var(--bordure-legere);
+      border-radius: var(--radius-md);
+      padding: 16px;
+    }
+    .usage-title {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--texte-primaire);
+      margin-bottom: 12px;
+      display: flex; align-items: center; gap: 7px;
+    }
+    .usage-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .usage-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 0;
+      border-bottom: 1px solid var(--bordure-legere);
+    }
+    .usage-row:last-child { border-bottom: none; }
+    .usage-chip { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; border: 1px solid var(--bordure-legere); }
+    .usage-name { font-size: 11px; color: var(--texte-primaire); flex: 1; }
+    .usage-ctx  { font-size: 10px; color: var(--texte-tertiaire); }
+
+    /* ═══════════════════════════════════════════════════════════════
+       DÉMO LIVE
+    ═══════════════════════════════════════════════════════════════ */
+    .demo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .demo-card {
+      background: var(--fond-surface);
+      border: 1px solid var(--bordure-legere);
+      border-radius: var(--radius-lg);
+      padding: 20px 22px;
+    }
+    .demo-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--texte-tertiaire);
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      margin-bottom: 14px;
+    }
+
+    /* Boutons avec grain sérigraphié */
+    .btn {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 16px;
+      border-radius: var(--radius-sm);
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      overflow: hidden;
+      transition: all 0.18s cubic-bezier(0.34, 1.3, 0.64, 1);
+      user-select: none;
+    }
+    .btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+      background-size: 130px 130px;
+      opacity: 0.38;
+      mix-blend-mode: overlay;
+      pointer-events: none;
+    }
+    .btn-primary  { background: var(--ap-400); color: #fff; }
+    .btn-primary:hover  { background: var(--ap-500); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(78,139,164,0.28); }
+    .btn-primary:active { transform: scale(0.97); }
+
+    .btn-secondary { background: var(--fond-surface); color: var(--texte-primaire); border: 1px solid var(--bordure-normale); }
+    .btn-secondary:hover { background: var(--fond-surface-2); }
+
+    .btn-ghost { background: transparent; color: var(--ap-400); border: 1px solid var(--ap-200); }
+    [data-theme="dark"] .btn-ghost { border-color: var(--ap-700); }
+    .btn-ghost:hover { background: var(--ap-50); }
+    [data-theme="dark"] .btn-ghost:hover { background: var(--ap-100); }
+
+    .btn-danger { background: var(--erreur-accent); color: #fff; }
+    .btn-danger:hover { opacity: 0.88; }
+
+    .btn:disabled { opacity: 0.42; cursor: not-allowed; transform: none !important; }
+
+    /* Tags */
+    .tag {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 500;
+      padding: 2px 9px;
+      border-radius: var(--radius-xs);
+    }
+    .tag-ap  { background: var(--ap-50);      color: var(--ap-800); }
+    .tag-as  { background: var(--as-50);      color: var(--as-900); }
+    .tag-ok  { background: var(--succes-fond); color: var(--succes-texte); }
+    .tag-err { background: var(--erreur-fond); color: var(--erreur-texte); }
+    .tag-av  { background: var(--avert-fond);  color: var(--avert-texte); }
+    .tag-inf { background: var(--info-fond);   color: var(--info-texte); }
+
+    [data-theme="dark"] .tag-ap { background: var(--ap-100); color: var(--ap-700); }
+    [data-theme="dark"] .tag-as { background: var(--as-100); color: var(--as-700); }
+
+    /* Alertes inline */
+    .alert {
+      padding: 10px 13px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    .alert-ok  { background: var(--succes-fond); color: var(--succes-texte); border: 1px solid var(--succes-bordure); }
+    .alert-err { background: var(--erreur-fond); color: var(--erreur-texte); border: 1px solid var(--erreur-bordure); }
+    .alert-av  { background: var(--avert-fond);  color: var(--avert-texte);  border: 1px solid var(--avert-bordure); }
+    .alert-inf { background: var(--info-fond);   color: var(--info-texte);   border: 1px solid var(--info-bordure); }
+
+    /* Champs */
+    .field-label { display: block; font-size: 11px; font-weight: 500; color: var(--texte-secondaire); margin-bottom: 4px; }
+    .field-input {
+      width: 100%;
+      padding: 7px 11px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--bordure-normale);
+      background: var(--fond-input);
+      color: var(--texte-primaire);
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .field-input:focus { border-color: var(--ap-400); box-shadow: 0 0 0 3px var(--ap-50); }
+    .field-input.error { border-color: var(--erreur-accent); }
+    .field-hint { font-size: 10px; margin-top: 3px; }
+
+    /* ═══════════════════════════════════════════════════════════════
+       RÈGLES ABSOLUES
+    ═══════════════════════════════════════════════════════════════ */
+    .rules-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .rule-box {
+      background: var(--fond-surface);
+      border: 1px solid var(--bordure-legere);
+      border-radius: var(--radius-lg);
+      padding: 20px 22px;
+    }
+    .rule-box-title { font-size: 13px; font-weight: 500; margin-bottom: 14px; }
+    .rule-item {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 7px 0;
+      border-bottom: 1px solid var(--bordure-legere);
+      font-size: 12px;
+      color: var(--texte-secondaire);
+      line-height: 1.55;
+    }
+    .rule-item:last-child { border-bottom: none; }
+    .ri { flex-shrink: 0; width: 16px; font-size: 12px; margin-top: 1px; }
+    .ri.ok  { color: var(--succes-accent); }
+    .ri.no  { color: var(--erreur-accent); }
+
+    /* ═══════════════════════════════════════════════════════════════
+       UTILITAIRES
+    ═══════════════════════════════════════════════════════════════ */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .flex-col { display: flex; flex-direction: column; gap: 8px; }
+    .flex-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .mt8  { margin-top: 8px; }
+    .mt14 { margin-top: 14px; }
+    .mt20 { margin-top: 20px; }
+    .sep  { height: 1px; background: var(--bordure-legere); margin: 48px 0; }
+
+    /* note interne */
+    .note {
+      font-size: 11px;
+      color: var(--texte-tertiaire);
+      padding: 8px 12px;
+      background: var(--fond-surface-2);
+      border-radius: var(--radius-xs);
+      border-left: 2px solid var(--ap-300);
+      margin-top: 10px;
+    }
+
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     HEADER FIXE
+══════════════════════════════════════════════════════════════════ -->
+<header class="page-header">
+  <div class="page-header-inner">
+    <div class="header-left">
+      <span class="module-badge">CG-01</span>
+      <span class="header-title-text">Couleurs &amp; Tokens</span>
+      <span class="header-sep"></span>
+      <span class="header-sub">Charte Graphique · CMS SARIS Congo</span>
+    </div>
+    <button class="toggle-btn" onclick="toggleTheme()" id="toggleBtn">
+      <span id="themeIcon">☾</span>
+      <span id="themeLabel">Mode sombre</span>
+    </button>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     NAVIGATION ENTRE MODULES
+══════════════════════════════════════════════════════════════════ -->
+<nav class="modules-nav" aria-label="Navigation modules charte graphique">
+  <div class="modules-nav-inner">
+    <a href="CG-01_Couleurs_et_Tokens.html"        class="nav-link active"><span class="nav-num">01</span> Couleurs &amp; Tokens</a>
+    <div class="nav-sep"></div>
+    <a href="CG-02_Typographie.html"                class="nav-link"><span class="nav-num">02</span> Typographie</a>
+    <div class="nav-sep"></div>
+    <a href="CG-03_Espacements_et_Grilles.html"     class="nav-link"><span class="nav-num">03</span> Espacements &amp; Grilles</a>
+    <div class="nav-sep"></div>
+    <a href="CG-04_Effets_de_Surface.html"          class="nav-link"><span class="nav-num">04</span> Effets de Surface</a>
+    <div class="nav-sep"></div>
+    <a href="CG-05_Composants_Fondamentaux.html"    class="nav-link"><span class="nav-num">05</span> Composants Fondamentaux</a>
+    <div class="nav-sep"></div>
+    <a href="CG-06_Navigation_et_Structure.html"    class="nav-link"><span class="nav-num">06</span> Navigation &amp; Structure</a>
+    <div class="nav-sep"></div>
+    <a href="CG-07_Donnees_et_Contenu.html"         class="nav-link"><span class="nav-num">07</span> Données &amp; Contenu</a>
+    <div class="nav-sep"></div>
+    <a href="CG-08_Feedback_et_Communication.html"  class="nav-link"><span class="nav-num">08</span> Feedback &amp; Communication</a>
+    <div class="nav-sep"></div>
+    <a href="CG-09_Animations_et_Transitions.html"  class="nav-link"><span class="nav-num">09</span> Animations</a>
+    <div class="nav-sep"></div>
+    <a href="CG-10_Iconographie_et_Assets.html"     class="nav-link"><span class="nav-num">10</span> Iconographie</a>
+    <div class="nav-sep"></div>
+    <a href="CG-11_Etats_et_Accessibilite.html"     class="nav-link"><span class="nav-num">11</span> États &amp; Accessibilité</a>
+    <div class="nav-sep"></div>
+    <a href="CG-12_Recapitulatif_et_Regles.html"    class="nav-link"><span class="nav-num">12</span> Récapitulatif</a>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     CONTENU PRINCIPAL
+══════════════════════════════════════════════════════════════════ -->
+<main class="main">
+
+  <!-- ── HERO ─────────────────────────────────────────────────── -->
+  <div class="module-hero">
+    <div class="hero-col">
+      <p class="hero-label">Pourquoi</p>
+      <p class="hero-title">Un système ancré dans l'identité de marque</p>
+      <p class="hero-body">Toutes les couleurs de l'interface sont directement extraites du logo SARIS Congo. Ce choix garantit une cohérence totale entre la marque institutionnelle et le logiciel, renforçant la légitimité du CMS auprès des équipes médicales de Moutela et Nkayi.</p>
+    </div>
+    <div class="hero-divider"></div>
+    <div class="hero-col">
+      <p class="hero-label">Quoi</p>
+      <p class="hero-title">Bleu ardoise primaire · Or Congo secondaire · Gris froids</p>
+      <p class="hero-body">Le bleu ardoise (#4E8BA4) incarne confiance, rigueur et calme médical. L'or Congo (#C99A2E) apporte singularité, réservé aux éléments de mise en valeur. Les fonds sont des gris froids bleutés style GitHub — sérieux et neutres.</p>
+    </div>
+    <div class="hero-divider"></div>
+    <div class="hero-col">
+      <p class="hero-label">Comment</p>
+      <p class="hero-title">Tokens CSS nommés · nuances 50 → 900 · double mode</p>
+      <p class="hero-body">Chaque couleur est un token CSS avec 10 nuances. Les tokens contextuels (--fond-page, --couleur-accent…) s'adaptent automatiquement au mode clair et sombre. Aucune valeur hex ne doit être hardcodée dans les composants — on utilise toujours les tokens.</p>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SECTION 01 · PALETTE DE MARQUE
+  ══════════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <p class="section-num">Section 01</p>
+      <h2 class="section-title">Palette de marque — Couleurs extraites du logo SARIS Congo</h2>
+      <p class="section-desc">Les quatre couleurs fondatrices. Elles constituent l'ADN visuel du système. Les couleurs de marque brutes (Brun SARIS, Sable chaud) sont réservées aux éléments éditoriaux — elles n'apparaissent pas dans l'interface fonctionnelle.</p>
+    </div>
+
+    <div class="swatch-grid-4">
+      <div class="swatch-card">
+        <div class="swatch-color" style="background:#6B3F26;"></div>
+        <div class="swatch-info">
+          <p class="swatch-name">Brun SARIS</p>
+          <p class="swatch-hex">#6B3F26</p>
+          <p class="swatch-token">--marque-brun</p>
+          <p class="swatch-use">Couleur de marque · texte du logo · usage éditorial uniquement · non repris en UI fonctionnelle</p>
+        </div>
+      </div>
+      <div class="swatch-card">
+        <div class="swatch-color" style="background:#C99A2E;"></div>
+        <div class="swatch-info">
+          <p class="swatch-name">Or Congo</p>
+          <p class="swatch-hex">#C99A2E</p>
+          <p class="swatch-token">--marque-or · --as-400</p>
+          <p class="swatch-use">Pétale supérieur du logo · accent secondaire de l'interface · badges et highlights</p>
+        </div>
+      </div>
+      <div class="swatch-card">
+        <div class="swatch-color" style="background:#4E8BA4;"></div>
+        <div class="swatch-info">
+          <p class="swatch-name">Bleu ardoise</p>
+          <p class="swatch-hex">#4E8BA4</p>
+          <p class="swatch-token">--marque-bleu · --ap-400</p>
+          <p class="swatch-use">Pétale gauche du logo · accent primaire de toute l'interface · boutons, liens, états actifs</p>
+        </div>
+      </div>
+      <div class="swatch-card">
+        <div class="swatch-color" style="background:#8A7460;"></div>
+        <div class="swatch-info">
+          <p class="swatch-name">Sable chaud</p>
+          <p class="swatch-hex">#8A7460</p>
+          <p class="swatch-token">--marque-sable</p>
+          <p class="swatch-use">Sous-titre du logo · usage éditorial uniquement · absent de l'interface fonctionnelle</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SECTION 02 · ACCENT PRIMAIRE
+  ══════════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <p class="section-num">Section 02</p>
+      <h2 class="section-title">Accent primaire — Bleu ardoise · Spectre complet</h2>
+      <p class="section-desc">Dix nuances de la couleur d'accent principale. La nuance <strong style="font-weight:600;">400</strong> est la couleur de référence : elle apparaît sur tous les éléments interactifs principaux (boutons, liens actifs, indicateurs de sélection, barres de progression). Les nuances basses (50–200) servent aux fonds d'état ; les hautes (600–900) servent aux textes sur fonds clairs et aux états dark mode.</p>
+    </div>
+
+    <p class="spectrum-label">Spectre complet · 50 → 900</p>
+    <div class="spectrum-row" style="margin-bottom:16px;">
+      <div class="spectrum-stop" style="background:#D6E8EF;"><span class="sp-lbl" style="color:#366680;">50</span><span class="sp-hex" style="color:#366680;">#D6E8EF</span></div>
+      <div class="spectrum-stop" style="background:#A8CCDA;"><span class="sp-lbl" style="color:#214A5E;">100</span><span class="sp-hex" style="color:#214A5E;">#A8CCDA</span></div>
+      <div class="spectrum-stop" style="background:#79AFBF;"><span class="sp-lbl" style="color:#214A5E;">200</span><span class="sp-hex" style="color:#214A5E;">#79AFBF</span></div>
+      <div class="spectrum-stop" style="background:#5B9BB0;"><span class="sp-lbl" style="color:#fff;">300</span><span class="sp-hex" style="color:rgba(255,255,255,0.7);">#5B9BB0</span></div>
+      <div class="spectrum-stop principal" style="background:#4E8BA4;"><span class="sp-lbl" style="color:#fff;">400 ★</span><span class="sp-hex" style="color:rgba(255,255,255,0.8);">#4E8BA4</span></div>
+      <div class="spectrum-stop" style="background:#3D7A92;"><span class="sp-lbl" style="color:#fff;">500</span><span class="sp-hex" style="color:rgba(255,255,255,0.7);">#3D7A92</span></div>
+      <div class="spectrum-stop" style="background:#366680;"><span class="sp-lbl" style="color:#fff;">600</span><span class="sp-hex" style="color:rgba(255,255,255,0.7);">#366680</span></div>
+      <div class="spectrum-stop" style="background:#2A5269;"><span class="sp-lbl" style="color:#A8CCDA;">700</span><span class="sp-hex" style="color:rgba(168,204,218,0.7);">#2A5269</span></div>
+      <div class="spectrum-stop" style="background:#214A5E;"><span class="sp-lbl" style="color:#A8CCDA;">800</span><span class="sp-hex" style="color:rgba(168,204,218,0.7);">#214A5E</span></div>
+      <div class="spectrum-stop" style="background:#0F2F3D;"><span class="sp-lbl" style="color:#79AFBF;">900</span><span class="sp-hex" style="color:rgba(121,175,191,0.7);">#0F2F3D</span></div>
+    </div>
+
+    <div class="card">
+      <table class="token-table">
+        <thead>
+          <tr>
+            <th style="width:32px;"></th>
+            <th>Token</th>
+            <th>Valeur</th>
+            <th>Usage dans l'interface</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="color-dot" style="background:#D6E8EF;"></span></td><td class="t-name">--ap-50</td><td class="t-val">#D6E8EF</td><td class="t-use">Fond d'état actif discret · arrière-plan de badge accent · fond de card sélectionnée (clair)</td></tr>
+          <tr><td><span class="color-dot" style="background:#A8CCDA;"></span></td><td class="t-name">--ap-100</td><td class="t-val">#A8CCDA</td><td class="t-use">Fond de toast informationnel · surface survolée sur fond accent</td></tr>
+          <tr><td><span class="color-dot" style="background:#79AFBF;"></span></td><td class="t-name">--ap-200</td><td class="t-val">#79AFBF</td><td class="t-use">Bordure d'élément actif · indicateur de focus en fond clair moyen</td></tr>
+          <tr><td><span class="color-dot" style="background:#5B9BB0;"></span></td><td class="t-name">--ap-300</td><td class="t-val">#5B9BB0</td><td class="t-use">Nuances secondaires dans les graphiques · états intermédiaires</td></tr>
+          <tr class="hl"><td><span class="color-dot" style="background:#4E8BA4; outline:2px solid #4E8BA4; outline-offset:1px;"></span></td><td class="t-name" style="font-weight:700;">--ap-400 ★</td><td class="t-val" style="font-weight:600;">#4E8BA4</td><td class="t-use" style="font-weight:500; color:var(--texte-primaire);">Couleur d'accent principale · fond bouton primaire · liens actifs · indicateurs · focus ring</td></tr>
+          <tr><td><span class="color-dot" style="background:#3D7A92;"></span></td><td class="t-name">--ap-500</td><td class="t-val">#3D7A92</td><td class="t-use">État hover du bouton primaire</td></tr>
+          <tr><td><span class="color-dot" style="background:#366680;"></span></td><td class="t-name">--ap-600</td><td class="t-val">#366680</td><td class="t-use">État actif/pressed · bordures d'accent marquées</td></tr>
+          <tr><td><span class="color-dot" style="background:#2A5269;"></span></td><td class="t-name">--ap-700</td><td class="t-val">#2A5269</td><td class="t-use">Texte accent sur fond clair intermédiaire · lien visité</td></tr>
+          <tr><td><span class="color-dot" style="background:#214A5E;"></span></td><td class="t-name">--ap-800</td><td class="t-val">#214A5E</td><td class="t-use">Texte accent sur fond très clair (50) · titres de badge en mode clair</td></tr>
+          <tr><td><span class="color-dot" style="background:#0F2F3D;"></span></td><td class="t-name">--ap-900</td><td class="t-val">#0F2F3D</td><td class="t-use">Fond d'accent profond en dark mode · texte sur fond accent très vif</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SECTION 03 · ACCENT SECONDAIRE
+  ══════════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <p class="section-num">Section 03</p>
+      <h2 class="section-title">Accent secondaire — Or Congo · Spectre complet</h2>
+      <p class="section-desc">L'or Congo est strictement réservé aux badges de statut particulier, métriques clés et éléments de mise en valeur ponctuelle. Il ne concurrence jamais le bleu ardoise sur les éléments interactifs. Les deux accents ne se mélangent pas sur un même composant.</p>
+    </div>
+
+    <p class="spectrum-label">Spectre complet · 50 → 900</p>
+    <div class="spectrum-row" style="margin-bottom:16px;">
+      <div class="spectrum-stop" style="background:#F6EBD2;"><span class="sp-lbl" style="color:#8A6A15;">50</span><span class="sp-hex" style="color:#8A6A15;">#F6EBD2</span></div>
+      <div class="spectrum-stop" style="background:#EBCF87;"><span class="sp-lbl" style="color:#4D3A08;">100</span><span class="sp-hex" style="color:#4D3A08;">#EBCF87</span></div>
+      <div class="spectrum-stop" style="background:#D9AD4A;"><span class="sp-lbl" style="color:#4D3A08;">200</span><span class="sp-hex" style="color:#4D3A08;">#D9AD4A</span></div>
+      <div class="spectrum-stop" style="background:#D0A030;"><span class="sp-lbl" style="color:#fff;">300</span><span class="sp-hex" style="color:rgba(255,255,255,0.75);">#D0A030</span></div>
+      <div class="spectrum-stop principal" style="background:#C99A2E;"><span class="sp-lbl" style="color:#fff;">400 ★</span><span class="sp-hex" style="color:rgba(255,255,255,0.8);">#C99A2E</span></div>
+      <div class="spectrum-stop" style="background:#B88A25;"><span class="sp-lbl" style="color:#fff;">500</span><span class="sp-hex" style="color:rgba(255,255,255,0.7);">#B88A25</span></div>
+      <div class="spectrum-stop" style="background:#A07A1E;"><span class="sp-lbl" style="color:#EBCF87;">600</span><span class="sp-hex" style="color:rgba(235,207,135,0.7);">#A07A1E</span></div>
+      <div class="spectrum-stop" style="background:#8A6A15;"><span class="sp-lbl" style="color:#EBCF87;">700</span><span class="sp-hex" style="color:rgba(235,207,135,0.7);">#8A6A15</span></div>
+      <div class="spectrum-stop" style="background:#765A12;"><span class="sp-lbl" style="color:#EBCF87;">800</span><span class="sp-hex" style="color:rgba(235,207,135,0.7);">#765A12</span></div>
+      <div class="spectrum-stop" style="background:#4D3A08;"><span class="sp-lbl" style="color:#EBCF87;">900</span><span class="sp-hex" style="color:rgba(235,207,135,0.7);">#4D3A08</span></div>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <table class="token-table">
+          <thead><tr><th></th><th>Token</th><th>Valeur</th><th>Usage</th></tr></thead>
+          <tbody>
+            <tr><td><span class="color-dot" style="background:#F6EBD2;"></span></td><td class="t-name">--as-50</td><td class="t-val">#F6EBD2</td><td class="t-use">Fond badge Or · fond card mise en valeur</td></tr>
+            <tr><td><span class="color-dot" style="background:#EBCF87;"></span></td><td class="t-name">--as-100</td><td class="t-val">#EBCF87</td><td class="t-use">Bordure badge Or · accent hover</td></tr>
+            <tr><td><span class="color-dot" style="background:#D9AD4A;"></span></td><td class="t-name">--as-200</td><td class="t-val">#D9AD4A</td><td class="t-use">Icône accentuée · bordure forte Or</td></tr>
+            <tr><td><span class="color-dot" style="background:#D0A030;"></span></td><td class="t-name">--as-300</td><td class="t-val">#D0A030</td><td class="t-use">Indicateur de progression secondaire</td></tr>
+            <tr class="hl"><td><span class="color-dot" style="background:#C99A2E; outline:2px solid #C99A2E; outline-offset:1px;"></span></td><td class="t-name" style="font-weight:700;">--as-400 ★</td><td class="t-val" style="font-weight:600;">#C99A2E</td><td class="t-use" style="font-weight:500;">Accent secondaire principal</td></tr>
+            <tr><td><span class="color-dot" style="background:#B88A25;"></span></td><td class="t-name">--as-500</td><td class="t-val">#B88A25</td><td class="t-use">État hover sur élément Or</td></tr>
+            <tr><td><span class="color-dot" style="background:#A07A1E;"></span></td><td class="t-name">--as-600</td><td class="t-val">#A07A1E</td><td class="t-use">Bordure d'emphase Or</td></tr>
+            <tr><td><span class="color-dot" style="background:#8A6A15;"></span></td><td class="t-name">--as-700</td><td class="t-val">#8A6A15</td><td class="t-use">Texte Or sur fond clair moyen</td></tr>
+            <tr><td><span class="color-dot" style="background:#765A12;"></span></td><td class="t-name">--as-800</td><td class="t-val">#765A12</td><td class="t-use">Texte Or sur fond très clair (50)</td></tr>
+            <tr><td><span class="color-dot" style="background:#4D3A08;"></span></td><td class="t-name">--as-900</td><td class="t-val">#4D3A08</td><td class="t-use">Texte sur fond Or vif (bouton, badge plein)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div>
+        <div class="rule-box" style="margin-bottom:12px;">
+          <p class="rule-box-title" style="color:var(--succes-accent);">Quand utiliser l'Or Congo</p>
+          <div class="rule-item"><span class="ri ok">✓</span><span>Badge de statut spécial : "Priorité haute", "Médecin en déplacement", "KPI critique"</span></div>
+          <div class="rule-item"><span class="ri ok">✓</span><span>Métrique-clé dans un tableau de bord — indicateur de performance principal</span></div>
+          <div class="rule-item"><span class="ri ok">✓</span><span>Bordure latérale gauche d'une carte de statistique importante</span></div>
+          <div class="rule-item"><span class="ri ok">✓</span><span>Deuxième courbe d'un graphique multi-séries (bleu = site Moutela, or = site Nkayi)</span></div>
+        </div>
+        <div class="rule-box">
+          <p class="rule-box-title" style="color:var(--erreur-accent);">Ne jamais utiliser l'Or Congo pour</p>
+          <div class="rule-item"><span class="ri no">✗</span><span>Boutons interactifs principaux — réservé au bleu ardoise</span></div>
+          <div class="rule-item"><span class="ri no">✗</span><span>Navigation principale ou éléments structurels</span></div>
+          <div class="rule-item"><span class="ri no">✗</span><span>Mélange avec le bleu sur un même composant</span></div>
+          <div class="rule-item"><span class="ri no">✗</span><span>Fond de page ou fond de surface</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SECTION 04 · GRIS FROIDS
+  ══════════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <p class="section-num">Section 04</p>
+      <h2 class="section-title">Échelle de gris froids bleutés — Fonds &amp; Surfaces</h2>
+      <p class="section-desc">Les gris du CMS SARIS sont des gris bleutés froids, dans la tradition de GitHub et Linear. Ils créent une atmosphère sérieuse et institutionnelle. En mode sombre, l'échelle est inversée — les valeurs basses deviennent les plus sombres, les hautes les plus claires. Les gris ne doivent jamais tirer vers le chaud (beige, crème).</p>
+    </div>
+
+    <div class="gris-grid">
+      <!-- MODE CLAIR -->
+      <div>
+        <p class="gris-col-title">Mode clair</p>
+        <div style="border:1px solid var(--bordure-legere); border-radius:var(--radius-md); overflow:hidden; background:var(--fond-surface);">
+          <div class="gris-item" style="background:#FFFFFF; border-bottom:1px solid #eee;">
+            <div class="gris-dot" style="background:#FFFFFF; border:1px solid #ddd;"></div>
+            <div><p class="gris-name" style="color:#0F172A;">--g-0 · #FFFFFF</p><p class="gris-usage" style="color:#64748B;">Surface élevée · modales · drawers · cartes flottantes</p></div>
+          </div>
+          <div class="gris-item" style="background:#F4F6F8; border-bottom:1px solid #eee;">
+            <div class="gris-dot" style="background:#F4F6F8; border:1px solid #ddd;"></div>
+            <div><p class="gris-name" style="color:#0F172A;">--g-50 · #F4F6F8 ★</p><p class="gris-usage" style="color:#64748B;">Fond de page principal — valeur de référence</p></div>
+          </div>
+          <div class="gris-item" style="background:#F4F6F8; border-bottom:1px solid #eee;">
+            <div class="gris-dot" style="background:#EAECF0; border:1px solid #ddd;"></div>
+            <div><p class="gris-name" style="color:#0F172A;">--g-100 · #EAECF0</p><p class="gris-usage" style="color:#64748B;">Fond des inputs · fond de tableau · surface-2</p></div>
+          </div>
+          <div class="gris-item" style="background:#F4F6F8; border-bottom:1px solid #eee;">
+            <div class="gris-dot" style="background:#D0D5DD;"></div>
+            <div><p class="gris-name" style="color:#0F172A;">--g-200 · #D0D5DD</p><p class="gris-usage" style="color:#64748B;">Bordures légères · séparateurs · dividers discrets</p></div>
+          </div>
+          <div class="gris-item" style="background:#F4F6F8; border-bottom:1px solid #eee;">
+            <div class="gris-dot" style="background:#B5BCC8;"></div>
+            <div><p class="gris-name" style="color:#0F172A;">--g-300 · #B5BCC8</p><p class="gris-usage" style="color:#64748B;">Bordures normales · séparateurs de sections</p></div>
+          </div>
+          <div class="gris-item" style="background:#F4F6F8; border-bottom:1px solid #eee;">
+            <div class="gris-dot" style="background:#8892A4;"></div>
+            <div><p class="gris-name" style="color:#0F172A;">--g-400 · #8892A4</p><p class="gris-usage" style="color:#64748B;">Texte désactivé · placeholders · icônes inactives</p></div>
+          </div>
+          <div class="gris-item" style="background:#F4F6F8; border-bottom:1px solid #eee;">
+            <div class="gris-dot" style="background:#64748B;"></div>
+            <div><p class="gris-name" style="color:#0F172A;">--g-500 · #64748B</p><p class="gris-usage" style="color:#64748B;">Texte tertiaire · captions · labels discrets</p></div>
+          </div>
+          <div class="gris-item" style="background:#F4F6F8; border-bottom:1px solid #eee;">
+            <div class="gris-dot" style="background:#475569;"></div>
+            <div><p class="gris-name" style="color:#0F172A;">--g-600 · #475569 ★</p><p class="gris-usage" style="color:#64748B;">Texte secondaire · descriptions · métadonnées</p></div>
+          </div>
+          <div class="gris-item" style="background:#F4F6F8; border-bottom:1px solid #eee;">
+            <div class="gris-dot" style="background:#334155;"></div>
+            <div><p class="gris-name" style="color:#0F172A;">--g-700 · #334155</p><p class="gris-usage" style="color:#64748B;">Texte fort · valeurs importantes · labels de tableau</p></div>
+          </div>
+          <div class="gris-item" style="background:#F4F6F8; border-bottom:1px solid #eee;">
+            <div class="gris-dot" style="background:#1E293B;"></div>
+            <div><p class="gris-name" style="color:#0F172A;">--g-800 · #1E293B</p><p class="gris-usage" style="color:#64748B;">Titres · sidebar · navigation · en-têtes</p></div>
+          </div>
+          <div class="gris-item" style="background:#F4F6F8;">
+            <div class="gris-dot" style="background:#0F172A;"></div>
+            <div><p class="gris-name" style="color:#0F172A;">--g-900 · #0F172A ★</p><p class="gris-usage" style="color:#64748B;">Texte principal — valeur de référence</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODE SOMBRE -->
+      <div>
+        <p class="gris-col-title">Mode sombre</p>
+        <div style="border:1px solid #30363D; border-radius:var(--radius-md); overflow:hidden; background:#0D1117;">
+          <div class="gris-item" style="background:#0D1117; border-bottom:1px solid #21262D;">
+            <div class="gris-dot" style="background:#060D18; border:1px solid #21262D;"></div>
+            <div><p class="gris-name" style="color:#E6EDF3;">--g-0 · #060D18</p><p class="gris-usage" style="color:#6E7681;">Surface la plus profonde · fond de modal en dark</p></div>
+          </div>
+          <div class="gris-item" style="background:#161B22; border-bottom:1px solid #21262D;">
+            <div class="gris-dot" style="background:#0D1117;"></div>
+            <div><p class="gris-name" style="color:#E6EDF3;">--g-50 · #0D1117 ★</p><p class="gris-usage" style="color:#6E7681;">Fond de page principal en dark mode</p></div>
+          </div>
+          <div class="gris-item" style="background:#161B22; border-bottom:1px solid #21262D;">
+            <div class="gris-dot" style="background:#161B22; border:1px solid #30363D;"></div>
+            <div><p class="gris-name" style="color:#E6EDF3;">--g-100 · #161B22</p><p class="gris-usage" style="color:#6E7681;">Surface principale · cartes · sidebar</p></div>
+          </div>
+          <div class="gris-item" style="background:#161B22; border-bottom:1px solid #21262D;">
+            <div class="gris-dot" style="background:#21262D; border:1px solid #30363D;"></div>
+            <div><p class="gris-name" style="color:#E6EDF3;">--g-200 · #21262D</p><p class="gris-usage" style="color:#6E7681;">Fond des inputs · fond de surface-2</p></div>
+          </div>
+          <div class="gris-item" style="background:#161B22; border-bottom:1px solid #21262D;">
+            <div class="gris-dot" style="background:#30363D;"></div>
+            <div><p class="gris-name" style="color:#E6EDF3;">--g-300 · #30363D</p><p class="gris-usage" style="color:#6E7681;">Bordures légères · séparateurs</p></div>
+          </div>
+          <div class="gris-item" style="background:#161B22; border-bottom:1px solid #21262D;">
+            <div class="gris-dot" style="background:#484F58;"></div>
+            <div><p class="gris-name" style="color:#E6EDF3;">--g-400 · #484F58</p><p class="gris-usage" style="color:#6E7681;">Texte désactivé · placeholders</p></div>
+          </div>
+          <div class="gris-item" style="background:#161B22; border-bottom:1px solid #21262D;">
+            <div class="gris-dot" style="background:#6E7681;"></div>
+            <div><p class="gris-name" style="color:#E6EDF3;">--g-500 · #6E7681</p><p class="gris-usage" style="color:#6E7681;">Texte tertiaire · captions</p></div>
+          </div>
+          <div class="gris-item" style="background:#161B22; border-bottom:1px solid #21262D;">
+            <div class="gris-dot" style="background:#8B949E;"></div>
+            <div><p class="gris-name" style="color:#E6EDF3;">--g-600 · #8B949E ★</p><p class="gris-usage" style="color:#6E7681;">Texte secondaire en dark mode</p></div>
+          </div>
+          <div class="gris-item" style="background:#161B22; border-bottom:1px solid #21262D;">
+            <div class="gris-dot" style="background:#B1BAC4;"></div>
+            <div><p class="gris-name" style="color:#E6EDF3;">--g-700 · #B1BAC4</p><p class="gris-usage" style="color:#6E7681;">Texte fort · valeurs · labels de tableau</p></div>
+          </div>
+          <div class="gris-item" style="background:#161B22; border-bottom:1px solid #21262D;">
+            <div class="gris-dot" style="background:#C9D1D9;"></div>
+            <div><p class="gris-name" style="color:#E6EDF3;">--g-800 · #C9D1D9</p><p class="gris-usage" style="color:#6E7681;">Titres secondaires · en-têtes de section</p></div>
+          </div>
+          <div class="gris-item" style="background:#161B22;">
+            <div class="gris-dot" style="background:#E6EDF3;"></div>
+            <div><p class="gris-name" style="color:#E6EDF3;">--g-900 · #E6EDF3 ★</p><p class="gris-usage" style="color:#6E7681;">Texte principal en dark mode</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SECTION 05 · SÉMANTIQUES
+  ══════════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <p class="section-num">Section 05</p>
+      <h2 class="section-title">Couleurs sémantiques — États &amp; Signaux</h2>
+      <p class="section-desc">Volontairement désaturées pour s'intégrer au monochrome sans le dominer. Chaque couleur sémantique existe en quatre rôles indissociables : fond, texte/icône, accent (bordure gauche ou icône forte), bordure. Ces quatre tokens sont toujours utilisés ensemble — jamais séparément.</p>
+    </div>
+
+    <div class="sem-grid">
+      <div class="sem-card">
+        <div class="sem-head" style="background:var(--succes-fond);">
+          <div class="sem-icon" style="background:rgba(61,122,94,0.18);">
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M2.5 7.5L6 11L12.5 4" stroke="#3D7A5E" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <p class="sem-title" style="color:var(--succes-texte);">Succès</p>
+          <p class="sem-desc" style="color:var(--succes-texte);">Action validée · donnée confirmée · stock suffisant · permutation confirmée</p>
+        </div>
+        <div class="sem-tokens">
+          <div class="sem-row"><span class="sem-key">--succes-fond</span><span class="sem-val">#EAF3EC</span></div>
+          <div class="sem-row"><span class="sem-key">--succes-texte</span><span class="sem-val">#2D6A3F</span></div>
+          <div class="sem-row"><span class="sem-key">--succes-accent</span><span class="sem-val">#3D7A5E</span></div>
+          <div class="sem-row"><span class="sem-key">--succes-bordure</span><span class="sem-val">rgba(45,106,63,.2)</span></div>
+        </div>
+      </div>
+
+      <div class="sem-card">
+        <div class="sem-head" style="background:var(--erreur-fond);">
+          <div class="sem-icon" style="background:rgba(155,68,68,0.18);">
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M7.5 4V8M7.5 10.5V11" stroke="#9B4444" stroke-width="1.6" stroke-linecap="round"/><circle cx="7.5" cy="7.5" r="6" stroke="#9B4444" stroke-width="1.2"/></svg>
+          </div>
+          <p class="sem-title" style="color:var(--erreur-texte);">Erreur</p>
+          <p class="sem-desc" style="color:var(--erreur-texte);">Champ invalide · action échouée · rupture critique · accès refusé</p>
+        </div>
+        <div class="sem-tokens">
+          <div class="sem-row"><span class="sem-key">--erreur-fond</span><span class="sem-val">#F5EAEA</span></div>
+          <div class="sem-row"><span class="sem-key">--erreur-texte</span><span class="sem-val">#7A2E2E</span></div>
+          <div class="sem-row"><span class="sem-key">--erreur-accent</span><span class="sem-val">#9B4444</span></div>
+          <div class="sem-row"><span class="sem-key">--erreur-bordure</span><span class="sem-val">rgba(122,46,46,.2)</span></div>
+        </div>
+      </div>
+
+      <div class="sem-card">
+        <div class="sem-head" style="background:var(--avert-fond);">
+          <div class="sem-icon" style="background:rgba(138,106,42,0.18);">
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M7.5 2.5L13 12.5H2L7.5 2.5Z" stroke="#8A6A2A" stroke-width="1.2" stroke-linejoin="round"/><path d="M7.5 6.5V9M7.5 10.5V11" stroke="#8A6A2A" stroke-width="1.4" stroke-linecap="round"/></svg>
+          </div>
+          <p class="sem-title" style="color:var(--avert-texte);">Avertissement</p>
+          <p class="sem-desc" style="color:var(--avert-texte);">Stock faible · délai dépassé · bon non signé · donnée à vérifier</p>
+        </div>
+        <div class="sem-tokens">
+          <div class="sem-row"><span class="sem-key">--avert-fond</span><span class="sem-val">#F5EEDF</span></div>
+          <div class="sem-row"><span class="sem-key">--avert-texte</span><span class="sem-val">#6B4D1A</span></div>
+          <div class="sem-row"><span class="sem-key">--avert-accent</span><span class="sem-val">#8A6A2A</span></div>
+          <div class="sem-row"><span class="sem-key">--avert-bordure</span><span class="sem-val">rgba(107,77,26,.2)</span></div>
+        </div>
+      </div>
+
+      <div class="sem-card">
+        <div class="sem-head" style="background:var(--info-fond);">
+          <div class="sem-icon" style="background:rgba(58,96,128,0.18);">
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="7.5" cy="7.5" r="6" stroke="#3A6080" stroke-width="1.2"/><path d="M7.5 7V11M7.5 4.5V5.5" stroke="#3A6080" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </div>
+          <p class="sem-title" style="color:var(--info-texte);">Information</p>
+          <p class="sem-desc" style="color:var(--info-texte);">Notification neutre · guide contextuel · information complémentaire</p>
+        </div>
+        <div class="sem-tokens">
+          <div class="sem-row"><span class="sem-key">--info-fond</span><span class="sem-val">#E6EFF5</span></div>
+          <div class="sem-row"><span class="sem-key">--info-texte</span><span class="sem-val">#2A4F6B</span></div>
+          <div class="sem-row"><span class="sem-key">--info-accent</span><span class="sem-val">#3A6080</span></div>
+          <div class="sem-row"><span class="sem-key">--info-bordure</span><span class="sem-val">rgba(42,79,107,.2)</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="note mt14">Mode sombre : les couleurs sémantiques sont recalibrées — fonds très sombres, textes désaturés plus clairs. Les quatre tokens s'adaptent automatiquement via les variables CSS du thème.</div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SECTION 06 · TOKENS CONTEXTUELS
+  ══════════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <p class="section-num">Section 06</p>
+      <h2 class="section-title">Tokens contextuels — Variables CSS prêtes à l'emploi</h2>
+      <p class="section-desc">Ce sont les seules variables à utiliser dans le code des composants. Jamais de valeur hex hardcodée — toujours un token. Ils s'adaptent automatiquement au mode clair et sombre. Un développeur ou un agent IA lit ce tableau avant de coder un composant.</p>
+    </div>
+
+    <div class="card">
+      <table class="token-table">
+        <thead>
+          <tr><th style="width:26px;"></th><th>Token</th><th>Mode clair</th><th>Mode sombre</th><th>Rôle</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="color-dot" style="background:#F4F6F8;"></span></td><td class="t-name">--fond-page</td><td class="t-val">#F4F6F8</td><td class="t-val">#0D1117</td><td class="t-use">Fond de toute la page</td></tr>
+          <tr><td><span class="color-dot" style="background:#FFFFFF;"></span></td><td class="t-name">--fond-surface</td><td class="t-val">#FFFFFF</td><td class="t-val">#161B22</td><td class="t-use">Cartes, panneaux, sidebar</td></tr>
+          <tr><td><span class="color-dot" style="background:#F0F2F5;"></span></td><td class="t-name">--fond-surface-2</td><td class="t-val">#F0F2F5</td><td class="t-val">#1C2333</td><td class="t-use">Surfaces imbriquées, ligne de tableau au survol</td></tr>
+          <tr><td><span class="color-dot" style="background:#EAECF0;"></span></td><td class="t-name">--fond-input</td><td class="t-val">#EAECF0</td><td class="t-val">#21262D</td><td class="t-use">Champs de formulaire, selects, inputs</td></tr>
+          <tr><td><span class="color-dot" style="background:#0F172A;"></span></td><td class="t-name">--texte-primaire</td><td class="t-val">#0F172A</td><td class="t-val">#E6EDF3</td><td class="t-use">Texte principal, valeurs, titres de tableaux</td></tr>
+          <tr><td><span class="color-dot" style="background:#475569;"></span></td><td class="t-name">--texte-secondaire</td><td class="t-val">#475569</td><td class="t-val">#8B949E</td><td class="t-use">Descriptions, sous-titres, métadonnées</td></tr>
+          <tr><td><span class="color-dot" style="background:#94A3B8;"></span></td><td class="t-name">--texte-tertiaire</td><td class="t-val">#94A3B8</td><td class="t-val">#484F58</td><td class="t-use">Captions, labels discrets, placeholders</td></tr>
+          <tr><td><span class="color-dot" style="background:rgba(15,23,42,0.08);"></span></td><td class="t-name">--bordure-legere</td><td class="t-val">rgba(15,23,42,.08)</td><td class="t-val">rgba(230,237,243,.08)</td><td class="t-use">Séparateurs, lignes de tableau</td></tr>
+          <tr><td><span class="color-dot" style="background:rgba(15,23,42,0.14);"></span></td><td class="t-name">--bordure-normale</td><td class="t-val">rgba(15,23,42,.14)</td><td class="t-val">rgba(230,237,243,.14)</td><td class="t-use">Bordures de cartes, inputs</td></tr>
+          <tr><td><span class="color-dot" style="background:rgba(15,23,42,0.28);"></span></td><td class="t-name">--bordure-forte</td><td class="t-val">rgba(15,23,42,.28)</td><td class="t-val">rgba(230,237,243,.28)</td><td class="t-use">Focus ring, bordures d'emphase</td></tr>
+          <tr class="hl"><td><span class="color-dot" style="background:#4E8BA4; outline:2px solid #4E8BA4; outline-offset:1px;"></span></td><td class="t-name" style="font-weight:700;">--couleur-accent</td><td class="t-val">#4E8BA4</td><td class="t-val">#4E8BA4</td><td class="t-use">Accent principal — identique dans les deux modes</td></tr>
+          <tr><td><span class="color-dot" style="background:#D6E8EF;"></span></td><td class="t-name">--couleur-accent-fond</td><td class="t-val">#D6E8EF</td><td class="t-val">#0F2F3D</td><td class="t-use">Fond de badge accent, état sélectionné discret</td></tr>
+          <tr><td><span class="color-dot" style="background:#3D7A92;"></span></td><td class="t-name">--couleur-accent-hover</td><td class="t-val">#3D7A92</td><td class="t-val">#5B9BB0</td><td class="t-use">État hover sur élément accent</td></tr>
+          <tr><td><span class="color-dot" style="background:#FFFFFF;"></span></td><td class="t-name">--couleur-accent-texte</td><td class="t-val">#FFFFFF</td><td class="t-val">#FFFFFF</td><td class="t-use">Texte sur fond accent (bouton primaire)</td></tr>
+          <tr><td><span class="color-dot" style="background:#C99A2E; outline:2px solid #C99A2E; outline-offset:1px;"></span></td><td class="t-name">--couleur-accent-secondaire</td><td class="t-val">#C99A2E</td><td class="t-val">#C99A2E</td><td class="t-use">Or Congo — accent secondaire identique dans les deux modes</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SECTION 07 · USAGE PAR CONTEXTE
+  ══════════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <p class="section-num">Section 07</p>
+      <h2 class="section-title">Règles d'usage par contexte</h2>
+      <p class="section-desc">Chaque couleur a un rôle précis et exclusif. Ces règles s'appliquent à tous les composants du CMS SARIS sans exception.</p>
+    </div>
+
+    <div class="usage-grid">
+      <div class="usage-card">
+        <p class="usage-title"><span class="usage-dot" style="background:var(--g-100); border:1px solid var(--bordure-normale);"></span>Fonds (backgrounds)</p>
+        <div class="usage-row"><span class="usage-chip" style="background:#F4F6F8;"></span><span class="usage-name">--fond-page</span><span class="usage-ctx">Page entière</span></div>
+        <div class="usage-row"><span class="usage-chip" style="background:#FFFFFF;"></span><span class="usage-name">--fond-surface</span><span class="usage-ctx">Cartes · sidebar</span></div>
+        <div class="usage-row"><span class="usage-chip" style="background:#F0F2F5;"></span><span class="usage-name">--fond-surface-2</span><span class="usage-ctx">Sections imbriquées</span></div>
+        <div class="usage-row"><span class="usage-chip" style="background:#EAECF0;"></span><span class="usage-name">--fond-input</span><span class="usage-ctx">Champs · selects</span></div>
+      </div>
+      <div class="usage-card">
+        <p class="usage-title"><span class="usage-dot" style="background:#0F172A;"></span>Textes</p>
+        <div class="usage-row"><span class="usage-chip" style="background:#0F172A;"></span><span class="usage-name">--texte-primaire</span><span class="usage-ctx">Valeurs · titres</span></div>
+        <div class="usage-row"><span class="usage-chip" style="background:#475569;"></span><span class="usage-name">--texte-secondaire</span><span class="usage-ctx">Descriptions</span></div>
+        <div class="usage-row"><span class="usage-chip" style="background:#94A3B8;"></span><span class="usage-name">--texte-tertiaire</span><span class="usage-ctx">Captions · labels</span></div>
+        <div class="usage-row"><span class="usage-chip" style="background:#4E8BA4;"></span><span class="usage-name">--couleur-accent</span><span class="usage-ctx">Liens · actions</span></div>
+      </div>
+      <div class="usage-card">
+        <p class="usage-title"><span class="usage-dot" style="background:#D0D5DD;"></span>Bordures</p>
+        <div class="usage-row"><span class="usage-chip" style="background:rgba(15,23,42,0.08);"></span><span class="usage-name">--bordure-legere</span><span class="usage-ctx">Tableaux · sépar.</span></div>
+        <div class="usage-row"><span class="usage-chip" style="background:rgba(15,23,42,0.14);"></span><span class="usage-name">--bordure-normale</span><span class="usage-ctx">Cartes · inputs</span></div>
+        <div class="usage-row"><span class="usage-chip" style="background:rgba(15,23,42,0.28);"></span><span class="usage-name">--bordure-forte</span><span class="usage-ctx">Focus ring</span></div>
+        <div class="usage-row"><span class="usage-chip" style="background:#4E8BA4;"></span><span class="usage-name">--couleur-accent</span><span class="usage-ctx">Sélectionné</span></div>
+      </div>
+      <div class="usage-card">
+        <p class="usage-title"><span class="usage-dot" style="background:#4E8BA4;"></span>Accent primaire (bleu)</p>
+        <div class="usage-row"><span class="usage-chip" style="background:#4E8BA4;"></span><span class="usage-name">Boutons primaires</span><span class="usage-ctx">Fond</span></div>
+        <div class="usage-row"><span class="usage-chip" style="background:#4E8BA4;"></span><span class="usage-name">Liens actifs</span><span class="usage-ctx">Couleur texte</span></div>
+        <div class="usage-row"><span class="usage-chip" style="background:#4E8BA4;"></span><span class="usage-name">Item nav actif</span><span class="usage-ctx">Indicateur sidebar</span></div>
+        <div class="usage-row"><span class="usage-chip" style="background:#D6E8EF;"></span><span class="usage-name">Badges info</span><span class="usage-ctx">Fond discret</span></div>
+      </div>
+      <div class="usage-card">
+        <p class="usage-title"><span class="usage-dot" style="background:#C99A2E;"></span>Accent secondaire (or)</p>
+        <div class="usage-row"><span class="usage-chip" style="background:#C99A2E;"></span><span class="usage-name">Badge "Priorité"</span><span class="usage-ctx">Statut spécial</span></div>
+        <div class="usage-row"><span class="usage-chip" style="background:#C99A2E;"></span><span class="usage-name">KPI principal</span><span class="usage-ctx">Métrique clé</span></div>
+        <div class="usage-row"><span class="usage-chip" style="background:#F6EBD2;"></span><span class="usage-name">Fond badge or</span><span class="usage-ctx">Accompagne</span></div>
+        <div class="usage-row"><span class="usage-chip" style="background:#4D3A08;"></span><span class="usage-name">Texte sur or</span><span class="usage-ctx">Toujours foncé</span></div>
+      </div>
+      <div class="usage-card">
+        <p class="usage-title"><span class="usage-dot" style="background:#3D7A5E;"></span>États sémantiques</p>
+        <div class="usage-row"><span class="usage-chip" style="background:#3D7A5E;"></span><span class="usage-name">Succès</span><span class="usage-ctx">Vert désaturé</span></div>
+        <div class="usage-row"><span class="usage-chip" style="background:#9B4444;"></span><span class="usage-name">Erreur</span><span class="usage-ctx">Rouge désaturé</span></div>
+        <div class="usage-row"><span class="usage-chip" style="background:#8A6A2A;"></span><span class="usage-name">Avertissement</span><span class="usage-ctx">Ambre désaturé</span></div>
+        <div class="usage-row"><span class="usage-chip" style="background:#3A6080;"></span><span class="usage-name">Information</span><span class="usage-ctx">Bleu-gris</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SECTION 08 · DÉMONSTRATION LIVE
+  ══════════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <p class="section-num">Section 08</p>
+      <h2 class="section-title">Démonstration live — Composants en situation réelle</h2>
+      <p class="section-desc">Tous les composants ci-dessous utilisent exclusivement les tokens définis dans ce module. Basculez le mode clair/sombre (bouton en haut à droite) pour vérifier la cohérence complète dans les deux thèmes.</p>
+    </div>
+
+    <div class="demo-grid">
+      <!-- Boutons -->
+      <div class="demo-card">
+        <p class="demo-label">Boutons — Grain sérigraphié activé · 4 variantes · états</p>
+        <div class="flex-row" style="margin-bottom:10px;">
+          <button class="btn btn-primary">Valider consultation</button>
+          <button class="btn btn-secondary">Annuler</button>
+          <button class="btn btn-ghost">Voir dossier</button>
+          <button class="btn btn-danger">Supprimer</button>
+        </div>
+        <div class="flex-row">
+          <button class="btn btn-primary" disabled>Désactivé</button>
+          <span style="font-size:11px; color:var(--texte-tertiaire);">opacity: 0.42 sur tous les états disabled</span>
+        </div>
+        <div class="note" style="margin-top:10px;">Le grain sérigraphié est créé par un SVG turbulence en pseudo-element ::after, blend-mode overlay. Intensité prononcée sur tous les boutons. Aucun dégradé.</div>
+      </div>
+
+      <!-- Badges et tags -->
+      <div class="demo-card">
+        <p class="demo-label">Badges &amp; Tags — Toutes variantes sémantiques</p>
+        <div class="flex-row">
+          <span class="tag tag-ap">Consulté</span>
+          <span class="tag tag-as">Priorité haute</span>
+          <span class="tag tag-ok">Validé</span>
+          <span class="tag tag-err">Rupture stock</span>
+          <span class="tag tag-av">Stock faible</span>
+          <span class="tag tag-inf">En attente</span>
+        </div>
+        <div class="flex-row mt8">
+          <span style="font-size:11px; color:var(--texte-tertiaire);">Texte sur fond Or :</span>
+          <span style="display:inline-block; font-size:10px; font-weight:500; padding:3px 10px; border-radius:var(--radius-xs); background:#C99A2E; color:#4D3A08;">Nkayi · Dr. Mbemba</span>
+          <span style="display:inline-block; font-size:10px; font-weight:500; padding:3px 10px; border-radius:var(--radius-xs); background:#F6EBD2; color:#4D3A08; border:1px solid #EBCF87;">En déplacement</span>
+        </div>
+      </div>
+
+      <!-- Alertes inline -->
+      <div class="demo-card">
+        <p class="demo-label">Alertes inline — 4 niveaux sémantiques</p>
+        <div class="flex-col">
+          <div class="alert alert-ok">Permutation du Dr. Loubaki confirmée — CMS Moutela, 16 mai 2026.</div>
+          <div class="alert alert-err">Rupture critique — Paracétamol 500mg : 3 unités restantes. Réapprovisionnement requis.</div>
+          <div class="alert alert-av">Bon de pharmacie n° BPH-2026-0412 non signé — délivrance bloquée.</div>
+          <div class="alert alert-inf">Le planning de permutation du mois de juin est disponible dans la section Personnel.</div>
+        </div>
+      </div>
+
+      <!-- Champs de formulaire -->
+      <div class="demo-card">
+        <p class="demo-label">Champs — État défaut · focus accent · erreur</p>
+        <div class="flex-col">
+          <div>
+            <label class="field-label">Nom du patient</label>
+            <input type="text" class="field-input" placeholder="Ex : Loubaki Jean-Pierre">
+          </div>
+          <div>
+            <label class="field-label">Site CMS <span style="color:var(--erreur-accent);">*</span></label>
+            <input type="text" class="field-input" value="CMS de Moutela" style="border-color:var(--ap-400); box-shadow:0 0 0 3px var(--ap-50);">
+            <p class="field-hint" style="color:var(--ap-600);">État focus — bordure accent + ring discret ap-50</p>
+          </div>
+          <div>
+            <label class="field-label" style="color:var(--erreur-texte);">Numéro de dossier</label>
+            <input type="text" class="field-input error" value="MTLA-2026-???">
+            <p class="field-hint" style="color:var(--erreur-texte);">Format invalide — attendu : MTLA-AAAA-NNNN</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       SECTION 09 · RÈGLES ABSOLUES
+  ══════════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-header">
+      <p class="section-num">Section 09</p>
+      <h2 class="section-title">Règles absolues — Obligations &amp; Interdictions</h2>
+      <p class="section-desc">Ces règles s'appliquent sans exception à tous les composants du CMS SARIS Congo. Toute déviation constitue une violation de la charte graphique.</p>
+    </div>
+
+    <div class="rules-grid">
+      <div class="rule-box">
+        <p class="rule-box-title" style="color:var(--succes-accent);">Obligations — à respecter toujours</p>
+        <div class="rule-item"><span class="ri ok">✓</span><span>Toujours utiliser les tokens CSS (--fond-page, --couleur-accent…) — jamais de valeur hex hardcodée dans un composant.</span></div>
+        <div class="rule-item"><span class="ri ok">✓</span><span>Texte sur fond accent (#4E8BA4) : toujours blanc #FFFFFF — ratio WCAG 4.5:1 minimum.</span></div>
+        <div class="rule-item"><span class="ri ok">✓</span><span>Texte sur fond Or (#C99A2E) : toujours la nuance 900 (#4D3A08) — jamais blanc, jamais noir pur.</span></div>
+        <div class="rule-item"><span class="ri ok">✓</span><span>Les fonds de page et de surface sont toujours des gris froids bleutés — jamais de blanc #FFFFFF comme fond de page en mode clair.</span></div>
+        <div class="rule-item"><span class="ri ok">✓</span><span>Les quatre tokens sémantiques (fond / texte / accent / bordure) sont toujours utilisés ensemble pour un même état.</span></div>
+        <div class="rule-item"><span class="ri ok">✓</span><span>En mode sombre, les bordures sont toujours en rgba blanc avec opacité — jamais en valeur hex grise fixe.</span></div>
+        <div class="rule-item"><span class="ri ok">✓</span><span>Les couleurs sémantiques (succès, erreur, avertissement, info) restent toujours désaturées — jamais de rouge #FF0000 ou vert #00FF00.</span></div>
+      </div>
+      <div class="rule-box">
+        <p class="rule-box-title" style="color:var(--erreur-accent);">Interdictions — à ne jamais faire</p>
+        <div class="rule-item"><span class="ri no">✗</span><span>Aucun dégradé sur boutons, cartes, fonds de page ou tout composant d'interface courant. Dégradé autorisé uniquement sous les courbes de graphiques statistiques (transparent, discret).</span></div>
+        <div class="rule-item"><span class="ri no">✗</span><span>Les couleurs d'accent (bleu ou or) ne servent jamais de fond de page ou de surface — uniquement en accent.</span></div>
+        <div class="rule-item"><span class="ri no">✗</span><span>Ne jamais mélanger bleu ardoise et or Congo sur un même composant (ex : bouton bicolore) — ils s'utilisent en alternance.</span></div>
+        <div class="rule-item"><span class="ri no">✗</span><span>Les couleurs de marque brutes (Brun SARIS #6B3F26, Sable chaud #8A7460) n'apparaissent jamais dans l'UI fonctionnelle.</span></div>
+        <div class="rule-item"><span class="ri no">✗</span><span>Aucun fond blanc pur #FFFFFF comme fond de page en mode clair — utiliser --fond-page (#F4F6F8).</span></div>
+        <div class="rule-item"><span class="ri no">✗</span><span>Aucun gris chaud (beige, crème, ivoire) — tous les gris tirent vers le bleu froid.</span></div>
+        <div class="rule-item"><span class="ri no">✗</span><span>Aucune couleur sémantique vive non désaturée — toujours utiliser les versions définies dans ce module.</span></div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  function toggleTheme() {
+    const html = document.documentElement;
+    const isDark = html.getAttribute('data-theme') === 'dark';
+    html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+    document.getElementById('themeLabel').textContent = isDark ? 'Mode sombre' : 'Mode clair';
+    document.getElementById('themeIcon').textContent  = isDark ? '☾' : '☀';
+  }
+</script>
+</body>
+</html>
