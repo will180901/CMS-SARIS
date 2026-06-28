@@ -127,14 +127,20 @@ export class NotificationController {
   @RequirePermissions('notification.create')
   async annonce(@Body() dto: CreateAnnonceDto, @Req() req: AuthedRequest) {
     const a = audienceFromReq(req)
+    // Annonce de mise à jour : un lien de téléchargement la transforme en notification
+    // « MISE_A_JOUR » (le front affiche un bouton d'installation). Niveau par défaut = AVERTISSEMENT.
+    const isUpdate = !!dto.lienTelechargement
     const n = await this.notif.emit({
       type:               'ANNONCE',
-      niveau:             (dto.niveau as NiveauNotif | undefined) ?? 'INFO',
+      niveau:             (dto.niveau as NiveauNotif | undefined) ?? (isUpdate ? 'AVERTISSEMENT' : 'INFO'),
       titre:              dto.titre,
       message:            dto.message,
       destinataireId:     null,
       siteId:             dto.portee === 'TOUS' ? null : a.siteId,
       requiredPermission: null,
+      entiteType:         isUpdate ? 'MISE_A_JOUR' : undefined,
+      lien:               isUpdate ? dto.lienTelechargement : undefined,
+      entiteId:           isUpdate ? (dto.version ?? null) : undefined,
       createdById:        a.userId,
     })
     return { ok: !!n, id: n?.id ?? null }

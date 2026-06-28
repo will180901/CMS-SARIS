@@ -8,10 +8,11 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   Bell, X, CheckCheck, Info, CheckCircle2, AlertTriangle, Siren, ChevronRight,
-  Trash2, ListChecks, Check, Megaphone,
+  Trash2, ListChecks, Check, Megaphone, Download,
 } from 'lucide-react'
 import i18n from '@/i18n/config'
 import { toast } from '@workspace/ui/components/sonner'
+import { isDesktop, desktopBridge } from '@/lib/desktop'
 import { IconButton, EmptyState, Modal, Button, TextInput, SelectBox, Textarea, Field } from '@/components/saris'
 import {
   useNotificationsFeed, useMarkAllRead, useMarkNotificationRead,
@@ -90,7 +91,22 @@ export function NotificationDrawer({ open, onClose }: { open: boolean; onClose: 
   function handleClick(n: NotificationItem) {
     if (selecting) { toggleSel(n.id); return }
     if (!n.lu) markRead.mutate(n.id)
-    if (n.lien) { navigate(n.lien); onClose() }
+    // Seuls les liens INTERNES (routes « /… ») naviguent ; les MAJ portent un lien HTTP
+    // de téléchargement, géré par leur bouton dédié (pas de navigation router).
+    if (n.lien && n.lien.startsWith('/')) { navigate(n.lien); onClose() }
+  }
+  function installUpdate(n: NotificationItem, e: React.MouseEvent) {
+    e.stopPropagation()
+    if (!n.lien) return
+    if (!n.lu) markRead.mutate(n.id)
+    if (isDesktop) {
+      void desktopBridge()?.installFromUrl(n.lien).then(r => {
+        if (!r?.ok) toast.error(r?.error || t('shell.updateInstallError', { defaultValue: 'Échec du téléchargement de la mise à jour' }))
+        // Si OK : l'application va se fermer pour laisser l'installeur s'exécuter.
+      })
+    } else {
+      window.open(n.lien, '_blank', 'noopener')   // web : téléchargement via le navigateur
+    }
   }
 
   const allSelected = items.length > 0 && selected.size === items.length
@@ -181,7 +197,7 @@ export function NotificationDrawer({ open, onClose }: { open: boolean; onClose: 
                 onMouseLeave={() => setHoveredId(h => (h === n.id ? null : h))}
                 style={{
                   position: 'relative', width: '100%', textAlign: 'left', display: 'flex', gap: 11, alignItems: 'flex-start',
-                  padding: '12px 16px', cursor: selecting ? 'pointer' : n.lien ? 'pointer' : 'default',
+                  padding: '12px 16px', cursor: selecting ? 'pointer' : (n.lien && n.lien.startsWith('/')) ? 'pointer' : 'default',
                   borderBottom: '1px solid var(--bordure-legere)',
                   background: isSel ? 'var(--ap-100)' : n.lu ? (hovered ? 'var(--fond-surface-2)' : 'transparent') : (hovered ? 'var(--ap-100)' : 'var(--ap-50)'),
                   borderLeft: `3px solid ${n.lu ? 'transparent' : 'var(--ap-400)'}`,
@@ -202,6 +218,14 @@ export function NotificationDrawer({ open, onClose }: { open: boolean; onClose: 
                     <span style={{ fontSize: 10, color: 'var(--texte-tertiaire)', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{tempsRelatif(n.createdAt)}</span>
                   </div>
                   <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--texte-secondaire)', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as 'vertical' }}>{n.message}</p>
+                  {n.entiteType === 'MISE_A_JOUR' && n.lien && (
+                    <button onClick={(e) => installUpdate(n, e)}
+                      style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, border: 'none', background: 'var(--ap-600)', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                      <Download size={13} />
+                      {isDesktop ? t('shell.updateInstall', { defaultValue: 'Télécharger et installer' }) : t('shell.updateDownload', { defaultValue: 'Télécharger' })}
+                      {n.entiteId && <span style={{ opacity: 0.85, fontWeight: 500 }}>· v{n.entiteId}</span>}
+                    </button>
+                  )}
                 </div>
                 {/* Corbeille au survol (suppression rapide pour moi) */}
                 {!selecting && hovered && (
@@ -210,7 +234,7 @@ export function NotificationDrawer({ open, onClose }: { open: boolean; onClose: 
                     <Trash2 size={13} />
                   </button>
                 )}
-                {!selecting && !hovered && n.lien && <ChevronRight size={15} style={{ color: 'var(--texte-tertiaire)', flexShrink: 0, alignSelf: 'center' }} />}
+                {!selecting && !hovered && n.lien && n.lien.startsWith('/') && <ChevronRight size={15} style={{ color: 'var(--texte-tertiaire)', flexShrink: 0, alignSelf: 'center' }} />}
               </div>
             )
           })}
@@ -228,12 +252,24 @@ function AnnonceModal({ onClose }: { onClose: () => void }) {
   const [message, setMessage] = useState('')
   const [niveau, setNiveau]   = useState<NiveauNotif>('INFO')
   const [portee, setPortee]   = useState<'SITE' | 'TOUS'>('SITE')
-  const valid = titre.trim().length > 0 && message.trim().length > 0
+  const [isUpdate, setIsUpdate] = useState(false)
+  const [lien, setLien]         = useState('')
+  const [version, setVersion]   = useState('')
+  const valid = titre.trim().length > 0 && message.trim().length > 0 && (!isUpdate || lien.trim().length > 0)
+
+  // Cocher « mise à jour » pré-règle la diffusion à TOUS les sites + niveau Avertissement.
+  function toggleUpdate(on: boolean) {
+    setIsUpdate(on)
+    if (on) { setPortee('TOUS'); setNiveau('AVERTISSEMENT') }
+  }
 
   function submit() {
     if (!valid || create.isPending) return
     create.mutate(
-      { titre: titre.trim(), message: message.trim(), niveau, portee },
+      {
+        titre: titre.trim(), message: message.trim(), niveau, portee,
+        ...(isUpdate ? { lienTelechargement: lien.trim(), version: version.trim() || undefined } : {}),
+      },
       {
         onSuccess: () => { toast.success(t('shell.annonceSent')); playSound('success'); onClose() },
         onError:   () => toast.error(t('shell.annonceError')),
@@ -286,6 +322,22 @@ function AnnonceModal({ onClose }: { onClose: () => void }) {
             )}
           </Field>
         </div>
+
+        {/* Mode « mise à jour de l'application » : ajoute un lien d'installation à l'annonce */}
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--texte-secondaire)', cursor: 'pointer', userSelect: 'none' }}>
+          <input type="checkbox" checked={isUpdate} onChange={e => toggleUpdate(e.target.checked)} style={{ width: 15, height: 15, accentColor: 'var(--ap-600)' }} />
+          {t('shell.annonceUpdateToggle', { defaultValue: 'Annonce de mise à jour (avec lien d\'installation)' })}
+        </label>
+        {isUpdate && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 12, background: 'var(--fond-surface-2)', borderRadius: 8, border: '1px solid var(--bordure-legere)' }}>
+            <Field label={t('shell.annonceUpdateLink', { defaultValue: 'Lien de téléchargement de l\'installeur (.exe)' })}>
+              {id => <TextInput id={id} value={lien} onChange={e => setLien(e.target.value)} maxLength={500} placeholder="https://…/CMS SARIS-Setup-1.4.1.exe" />}
+            </Field>
+            <Field label={t('shell.annonceUpdateVersion', { defaultValue: 'Version (optionnel)' })}>
+              {id => <TextInput id={id} value={version} onChange={e => setVersion(e.target.value)} maxLength={40} placeholder="1.4.1" />}
+            </Field>
+          </div>
+        )}
       </div>
     </Modal>
   )

@@ -20,4 +20,17 @@ export class CreateAnnonceDto {
   @IsOptional()
   @IsIn(['SITE', 'TOUS'])
   portee?: string
+
+  /** Annonce de MISE À JOUR : URL de téléchargement du nouvel installeur (.exe).
+   *  Présent → la notification devient une « mise à jour » avec bouton d'installation. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  lienTelechargement?: string
+
+  /** Version associée à la mise à jour (ex. « 1.4.1 »), affichée à l'utilisateur. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  version?: string
 }

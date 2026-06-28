@@ -74,6 +74,12 @@ contextBridge.exposeInMainWorld('saris', {
     download: (): Promise<void> => ipcRenderer.invoke('saris:update-download'),
     install:  (): Promise<void> => ipcRenderer.invoke('saris:update-install'),
   },
+  /** Ouvre une URL (page de téléchargement) dans le navigateur système. */
+  openExternal: (url: string): Promise<void> => ipcRenderer.invoke('saris:open-external', url),
+  /** Mise à jour par ANNONCE admin : télécharge l'installeur depuis l'URL puis le lance
+   *  (l'app se ferme pour libérer l'installeur intelligent qui gère la mise à niveau). */
+  installFromUrl: (url: string): Promise<{ ok: boolean; error?: string }> =>
+    ipcRenderer.invoke('saris:install-from-url', url),
   /** Synchronise la barre de titre + les menus natifs avec le thème de l'app. */
   setNativeTheme: (theme: 'light' | 'dark' | 'system'): Promise<void> =>
     ipcRenderer.invoke('saris:set-native-theme', theme),

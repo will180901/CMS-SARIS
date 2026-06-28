@@ -28,6 +28,9 @@ export interface CreateAnnoncePayload {
   message: string
   niveau?: NiveauNotif
   portee?: 'SITE' | 'TOUS'
+  /** Annonce de mise à jour : lien de téléchargement de l'installeur + version. */
+  lienTelechargement?: string
+  version?:            string
 }
 
 export const notificationsApi = {

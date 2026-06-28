@@ -10,6 +10,7 @@ import { app, BrowserWindow, Menu, dialog, ipcMain, nativeTheme, protocol, shell
 import type { MenuItemConstructorOptions } from 'electron'
 import path from 'node:path'
 import fs from 'node:fs'
+import { spawn } from 'node:child_process'
 import log from 'electron-log/main'
 import { resolveApiUrl, resolveMode, resolveServerUrl, readConfig, writeConfig, secureGet, secureSet, secureDel, bakedSecrets } from './config'
 import { initAutoUpdater, checkForUpdates, downloadUpdate, quitAndInstall } from './updater'
@@ -269,6 +270,33 @@ function registerIpc(): void {
   ipcMain.handle('saris:check-updates', () => checkForUpdates())
   ipcMain.handle('saris:update-download', () => downloadUpdate())
   ipcMain.handle('saris:update-install', () => quitAndInstall())
+  // Ouvre une URL (page de téléchargement) dans le navigateur système.
+  ipcMain.handle('saris:open-external', (_e, url: string) => {
+    if (typeof url === 'string' && /^https?:\/\//i.test(url)) void shell.openExternal(url)
+  })
+  // Mise à jour pilotée par une ANNONCE admin : télécharge l'installeur (.exe) depuis
+  // l'URL fournie, puis le lance et FERME l'app (l'installeur intelligent gère la mise à
+  // niveau ; le délai de 2 s libère le mutex « app en cours d'exécution »).
+  ipcMain.handle('saris:install-from-url', async (_e, url: string) => {
+    try {
+      if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) return { ok: false, error: 'URL invalide' }
+      const res = await fetch(url)
+      if (!res.ok) return { ok: false, error: `Téléchargement échoué (HTTP ${res.status})` }
+      const buf = Buffer.from(await res.arrayBuffer())
+      const file = path.join(app.getPath('temp'), `CMS-SARIS-Setup-${Date.now()}.exe`)
+      await fs.promises.writeFile(file, buf)
+      // Lance l'installeur ~2 s APRÈS (le temps que l'app se ferme), détaché de l'app.
+      // `ping` = délai fiable sans console (timeout échoue avec stdio:ignore) ; `start ""`
+      // gère les espaces du chemin temp. shell:true → cmd.exe préserve les guillemets.
+      spawn(`ping 127.0.0.1 -n 3 >nul & start "" "${file}"`, {
+        shell: true, detached: true, stdio: 'ignore', windowsHide: true,
+      }).unref()
+      setTimeout(() => app.quit(), 400)
+      return { ok: true }
+    } catch (e) {
+      return { ok: false, error: (e as Error).message }
+    }
+  })
   // Synchronise le thème NATIF (barre de titre Windows + menus + fond fenêtre) avec
   // le thème choisi dans l'application (clair / sombre / système).
   ipcMain.handle('saris:set-native-theme', (_e, theme: string) => {

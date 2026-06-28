@@ -27,7 +27,7 @@ ManifestDPIAware true
 !endif
 
 !ifndef VERSION
-  !define VERSION "1.4.0"
+  !define VERSION "1.4.1"
 !endif
 !ifndef SRCDIR
   !define SRCDIR "..\release\win-unpacked"

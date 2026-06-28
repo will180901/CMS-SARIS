@@ -16,17 +16,20 @@ import { useEffect } from 'react'
 import { useNetworkStore } from '@/stores/network.store'
 import { BASE_URL } from '@/lib/api'
 
-const INTERVAL_MS = 8_000
-const TIMEOUT_MS  = 4_000
+const INTERVAL_MS = 10_000
+const TIMEOUT_MS  = 8_000   // tolérant : un hébergement gratuit (Render) peut être lent à répondre / au réveil
+const MAX_FAILS   = 2       // anti-clignotement : 2 échecs consécutifs avant de basculer « Hors ligne »
 
 export function useServerHealth() {
   const setOnline = useNetworkStore(s => s.setOnline)
 
   useEffect(() => {
     let cancelled = false
+    let fails = 0   // compteur d'échecs consécutifs
 
     async function check() {
       if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        fails = MAX_FAILS
         if (!cancelled) setOnline(false)
         return
       }
@@ -34,9 +37,13 @@ export function useServerHealth() {
       const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS)
       try {
         const res = await fetch(`${BASE_URL}/health`, { signal: ctrl.signal, cache: 'no-store' })
-        if (!cancelled) setOnline(res.ok)
+        if (cancelled) return
+        if (res.ok) { fails = 0; setOnline(true) }                 // succès → En ligne immédiat
+        else        { fails++; if (fails >= MAX_FAILS) setOnline(false) }
       } catch {
-        if (!cancelled) setOnline(false)
+        if (cancelled) return
+        fails++                                                     // échec/timeout → on attend 2 fois avant d'afficher Hors ligne
+        if (fails >= MAX_FAILS) setOnline(false)
       } finally {
         clearTimeout(timer)
       }
@@ -45,8 +52,8 @@ export function useServerHealth() {
     check()
     const id = setInterval(check, INTERVAL_MS)
 
-    const onOnline  = () => check()
-    const onOffline = () => setOnline(false)
+    const onOnline  = () => { fails = 0; check() }
+    const onOffline = () => { fails = MAX_FAILS; setOnline(false) }
     const onFocus   = () => check()
     window.addEventListener('online',  onOnline)
     window.addEventListener('offline', onOffline)

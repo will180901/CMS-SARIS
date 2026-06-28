@@ -33,6 +33,10 @@ export interface SarisDesktopBridge {
   }
   setNativeTheme: (theme: 'light' | 'dark' | 'system') => Promise<void>
   openAppMenu: () => Promise<void>
+  /** Ouvre une URL (téléchargement) dans le navigateur système. */
+  openExternal: (url: string) => Promise<void>
+  /** Télécharge l'installeur depuis l'URL et le lance (l'app se ferme). Annonce de MAJ. */
+  installFromUrl: (url: string) => Promise<{ ok: boolean; error?: string }>
   secure: {
     get: (key: string) => Promise<string | null>
     set: (key: string, value: string) => Promise<void>
