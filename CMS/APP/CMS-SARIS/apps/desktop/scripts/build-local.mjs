@@ -121,6 +121,17 @@ if (!secrets.jwtSecret) console.warn('⚠️  JWT_SECRET absent du .env → le b
 fs.writeFileSync(defaultsPath, JSON.stringify({ ...curDefaults, ...secrets, mode: 'local' }, null, 2))
 console.log('[build-local] mode local + secrets backend (JWT/TOTP/MESSAGE) bakés dans defaults.json')
 
+// 7c — assets installateur (icône app + images NSIS). `build/icon.png` n'est PAS suivi
+// par git : on le (re)génère depuis l'icône tracée `electron/setup-logo.png`, puis on
+// régénère les .bmp (header/sidebars). Évite l'échec NSIS « cannot find specified
+// resource build/installerHeader.bmp » après un nettoyage de build/.
+const iconDst = path.join(buildDir, 'icon.png')
+if (!fs.existsSync(iconDst)) {
+  fs.copyFileSync(path.join(desktopDir, 'electron', 'setup-logo.png'), iconDst)
+  console.log('[build-local] build/icon.png recréé depuis electron/setup-logo.png')
+}
+run('node scripts/gen-installer-assets.mjs', { cwd: desktopDir })
+
 // 8 — packaging
 const ebMode = dirOnly ? '--dir' : ''
 run(`pnpm --filter @cms-saris/desktop exec electron-builder --win ${ebMode} --config electron-builder.local.yml`, {
