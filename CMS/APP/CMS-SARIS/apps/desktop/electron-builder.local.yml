@@ -64,4 +64,4 @@ nsis:
 publish:
   - provider: github
     owner: will180901
-    repo: CMS-SARIS-CONGO
+    repo: CMS-SARIS

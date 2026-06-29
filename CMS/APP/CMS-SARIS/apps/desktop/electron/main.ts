@@ -86,14 +86,19 @@ function registerAppProtocol(): void {
     if (!filePath.startsWith(RENDERER_DIR)) {
       return new Response('Forbidden', { status: 403 })
     }
+    // Anti-cache : les fichiers sont servis depuis le bundle LOCAL (lecture disque,
+    // pas de réseau). Sans cela, Electron met en cache index.html → après une mise à
+    // jour de l'app, l'ancien rendu (anciens hash d'assets) reste servi indéfiniment
+    // et « Recharger » n'y change rien. `no-store` garantit un rendu toujours frais.
+    const noCache = { 'Cache-Control': 'no-store, must-revalidate' }
     try {
       const data = await fs.promises.readFile(filePath)
       const ext = path.extname(filePath).toLowerCase()
-      return new Response(data, { headers: { 'Content-Type': MIME[ext] ?? 'application/octet-stream' } })
+      return new Response(data, { headers: { 'Content-Type': MIME[ext] ?? 'application/octet-stream', ...noCache } })
     } catch {
       // Route inconnue (SPA) → index.html
       const index = await fs.promises.readFile(path.join(RENDERER_DIR, 'index.html'))
-      return new Response(index, { headers: { 'Content-Type': 'text/html' } })
+      return new Response(index, { headers: { 'Content-Type': 'text/html', ...noCache } })
     }
   })
 }
@@ -193,7 +198,7 @@ function createMainWindow(): void {
     if (input.type !== 'keyDown') return
     const k = input.key.toLowerCase()
     if (k === 'f12') mainWindow?.webContents.toggleDevTools()
-    else if (input.control && k === 'r') mainWindow?.webContents.reload()
+    else if (input.control && k === 'r') mainWindow?.webContents.reloadIgnoringCache()
   })
 
   mainWindow.on('closed', () => {
@@ -216,7 +221,7 @@ function buildAppMenu(): void {
   const template: MenuItemConstructorOptions[] = [
     { label: 'Paramètres du serveur…', click: () => loadServerConfig() },
     { type: 'separator' },
-    { role: 'reload', label: 'Recharger' },
+    { label: 'Recharger', accelerator: 'CmdOrCtrl+R', click: () => mainWindow?.webContents.reloadIgnoringCache() },
     { role: 'togglefullscreen', label: 'Plein écran' },
     { role: 'toggleDevTools', label: 'Outils de développement' },
     { type: 'separator' },
