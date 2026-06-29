@@ -74,8 +74,8 @@ fichier Prisma).
   sessions, TOTP, préférences, journaux, conversations, messages envoyés.
 - **`Role` / `Permission` / `RolePermission` / `UtilisateurRole`** — modèle RBAC.
   Le catalogue comprend **~110 permissions** (cf. `packages/types/src/permissions.ts`)
-  pour **4 rôles** (ADMIN_SYSTEME, MEDECIN_CHEF, MEDECIN, INFIRMIER — cf.
-  [[MODULE_02_acces_habilitations]]). Permissions effectives = (permissions des rôles ∪ GRANT)
+  pour **3 rôles** (ADMIN_SYSTEME, MEDECIN_CHEF, INFIRMIER — cf.
+  [[MODULE_02_acces_habilitations]] ; MEDECIN est une profession mappée au rôle MEDECIN_CHEF, pas un rôle). Permissions effectives = (permissions des rôles ∪ GRANT)
   − REVOKE.
 - **`UtilisateurPermission`** — dérogation par utilisateur (`mode` GRANT/REVOKE,
   `motif`, `accordePar`), au plus une par couple (utilisateur, permission).

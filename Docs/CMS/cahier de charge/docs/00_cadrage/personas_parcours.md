@@ -23,8 +23,10 @@ L'architecture est **offline-first multi-poste** : chaque poste de travail peut 
 revient. Un **site web public** (PWA) donne également un accès direct au central. Cette
 contrainte de **connectivité variable** structure tous les parcours décrits ci-dessous.
 
-Le système est organisé autour de **4 rôles** (voir [[MODULE_02_acces_habilitations]] et la fiche
-projet « réduction à 4 rôles ») : `ADMIN_SYSTEME`, `MEDECIN_CHEF`, `MEDECIN`, `INFIRMIER`.
+Le système est organisé autour de **3 rôles d'habilitation** (voir [[MODULE_02_acces_habilitations]] et la fiche
+projet « réduction à 3 rôles ») : `ADMIN_SYSTEME`, `MEDECIN_CHEF`, `INFIRMIER`. La **profession « Médecin »**
+du personnel soignant (référentiel `TypePersonnel`) est **mappée au rôle `MEDECIN_CHEF`** (un seul rôle
+médecin = Médecin Chef) ; ce n'est donc pas un rôle d'habilitation distinct.
 Le **patient** et l'**ayant droit** ne sont pas des utilisateurs du logiciel : ce sont les
 **sujets** des dossiers ; ils sont décrits ici comme personas pour éclairer les besoins.
 
@@ -55,7 +57,9 @@ Le **patient** et l'**ayant droit** ne sont pas des utilisateurs du logiciel : c
 
 ### 2.2 Persona P-02 — Médecin (« Dr Ndinga »)
 
-- **Rôle système** : `MEDECIN`.
+- **Profession** : `MEDECIN` (profession du personnel soignant, référentiel `TypePersonnel`).
+- **Rôle système (habilitation)** : `MEDECIN_CHEF` — la profession « Médecin » est **mappée au rôle
+  `MEDECIN_CHEF`** (un seul rôle médecin) ; il n'existe pas de rôle d'habilitation `MEDECIN` distinct.
 - **Mission** : assurer **ses** consultations cliniques.
 - **Littératie numérique** : moyenne.
 - **Équipement** : poste fixe (desktop) ou web.

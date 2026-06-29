@@ -18,7 +18,7 @@
 | **Liens `[[...]]` résolus** | extraction de toutes les cibles vs noms de fichiers réels | ✅ **Tous résolvent** après correction (les liens aliasés `[[doc\|libellé]]` sont valides). |
 | **Chiffres canoniques** | grep des valeurs périmées | ✅ **0 résidu** « 79 tables » / « 88 permissions » comme compte courant. |
 | **Décompte vérifié dans le code** | `grep -c "^model"` + comptage `PERMISSIONS` | **87 tables**, **110 permissions** (110 lignes, 110 chaînes distinctes ; `ADMIN_SYSTEME = [...ALL_PERMISSIONS]`). |
-| **Rôles / sites / modules** | recoupement code | **4 rôles**, **2 sites**, **16 modules** — cohérents partout. |
+| **Rôles / sites / modules** | recoupement code | **3 rôles** (ADMIN_SYSTEME, MEDECIN_CHEF, INFIRMIER ; *MEDECIN* = profession → rôle MEDECIN_CHEF), **2 sites**, **16 modules** — cohérents partout. |
 
 ## 3. Anomalies trouvées et corrigées
 

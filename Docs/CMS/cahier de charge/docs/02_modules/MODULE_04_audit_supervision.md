@@ -39,13 +39,12 @@ Le code correspondant est porté par :
 
 ## 2. Acteurs et rôles
 
-Rôles du système (4, cf. [[glossaire]], PM-46, D-003) :
+Rôles du système (3 d'habilitation : ADMIN_SYSTEME, MEDECIN_CHEF, INFIRMIER — cf. [[glossaire]], PM-46, D-003. « MEDECIN » n'est pas un rôle mais une profession du personnel mappée au rôle MEDECIN_CHEF) :
 
 | Rôle | Audit (`audit.read`) | Supervision/Sauvegardes (`synchronisation.read/execute/restore`) |
 |------|----------------------|------------------------------------------------------------------|
 | **ADMIN_SYSTEME** | Oui (catalogue complet, D-004) | Oui (lecture + exécution + restauration) |
 | **MEDECIN_CHEF** | **Oui** (`audit.read` présent au catalogue, `permissions.ts` l. 373) | **Non** (aucune permission `synchronisation.*`) |
-| **MEDECIN** | Non (rôle absent du catalogue de droits, D-003 « à régulariser ») | Non |
 | **INFIRMIER** | Non | Non |
 
 > Vérifié dans `packages/types/src/permissions.ts` : `MEDECIN_CHEF` possède `audit.read` mais **pas** les permissions de synchronisation ; seul `ADMIN_SYSTEME` détient `synchronisation.read/execute/restore`. La granularité exacte des permissions (`audit.read`, `synchronisation.read`, `synchronisation.execute`, `synchronisation.restore`) est définie en l. 146–155 / 306–315.

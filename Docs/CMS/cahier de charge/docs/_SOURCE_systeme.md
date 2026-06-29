@@ -23,11 +23,10 @@
 - **Desktop** : Electron 33 (Node 20.18), electron-builder + installeur NSIS sur-mesure, auto-update electron-updater, stockage sécurisé DPAPI.
 - **Sync** : module `sync/` (pull/push, LWW sur `updatedAt` + `baseUpdatedAt`, tombstones soft-delete, cron purge), `SyncState` curseur par poste.
 
-## Rôles (4 — système réduit, NE PAS remettre 6/7)
+## Rôles (3 — système réduit, NE PAS remettre 6/7)
 1. **ADMIN_SYSTEME** — super-administrateur (tout le catalogue de permissions, gouvernance + clinique).
-2. **MEDECIN_CHEF** — admin médical + supervision (voit tout le clinique du site, peut **verrouiller** un dossier).
-3. **MEDECIN** — clinique (ses consultations).
-4. **INFIRMIER** — triage + consultation/prescription déléguée.
+2. **MEDECIN_CHEF** — admin médical + supervision (voit tout le clinique du site, peut **verrouiller** un dossier). **MEDECIN n'est PAS un rôle** : c'est une **profession** du personnel médical (TypePersonnel) mappée au rôle MEDECIN_CHEF (tout médecin reçoit le rôle MEDECIN_CHEF).
+3. **INFIRMIER** — triage + consultation/prescription déléguée.
 > Supervision = {ADMIN_SYSTEME, MEDECIN_CHEF}. Catégories de patients (pilotent les droits aux bons) : ASSURE_CDI, ayant droit, RIVERAIN, sous-traitant, etc. (référentiel `CategoriePatient`).
 
 ## Modules fonctionnels (noms canoniques)
@@ -48,7 +47,7 @@
 
 ## Données (échelle) — VÉRIFIÉ dans le code
 - **87 tables/modèles Prisma** (`grep -c "^model " schema.prisma` = 87). UUID majoritaire. Colonnes sync : `updatedAt`, `deletedAt` (soft-delete), index. Schéma : `packages/db/prisma/schema.prisma` (PG) ; `packages/db/prisma/sqlite/schema.prisma` (desktop).
-- **110 permissions** (const `PERMISSIONS` dans `packages/types/src/permissions.ts`). 4 rôles.
+- **110 permissions** (const `PERMISSIONS` dans `packages/types/src/permissions.ts`). 3 rôles.
 - ⚠️ Le module backend `acteurs` N'EXISTE PAS : `personnel` (personnel médical + délégations + sociétés sous-traitantes) et `employe` (registre des employés SARIS) le couvrent. `parametres` est un module SUPPORT (non importé dans AppModule, tiré par security/notification/admin). Cf. [[plan_modules]].
 
 ## Exigences non fonctionnelles clés (as-built)

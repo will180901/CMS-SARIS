@@ -201,7 +201,7 @@ les **parcours critiques** aux niveaux de test qui les couvrent.
   configuré ; la stratégie vise la **couverture des comportements critiques**, pas un pourcentage de
   lignes. *À confirmer si un objectif chiffré est souhaité.*
 - **ST-06-07 (script de permissions obsolète)** — `test-permissions.ps1` référence encore des
-  comptes/rôles supprimés (cf. D-003) et **doit être aligné** sur les 4 rôles actuels avant usage.
+  comptes/rôles supprimés (cf. D-003) et **doit être aligné** sur les 3 rôles actuels avant usage.
 
 ---
 

@@ -76,9 +76,9 @@ Le module est porté par deux modules NestJS distincts (cf. [[plan_modules]]) :
 
 ## 2. Acteurs et rôles
 
-Rôles du système (4 au brief ; **3 clés réelles** au catalogue — pas de clé `MEDECIN`, cf.
-[[registre_decisions]] D-003) : `ADMIN_SYSTEME`, `MEDECIN_CHEF`, `INFIRMIER`. Permissions vérifiées
-dans `packages/types/src/permissions.ts`.
+Rôles d'habilitation du système : **3** au catalogue — `ADMIN_SYSTEME`, `MEDECIN_CHEF`, `INFIRMIER` (pas de
+clé `MEDECIN` : « MEDECIN » est une **profession** du personnel mappée au rôle `MEDECIN_CHEF`, cf.
+[[registre_decisions]] D-003). Permissions vérifiées dans `packages/types/src/permissions.ts`.
 
 | Acteur | Personnel | Sous-traitants | Délégations | Employés SARIS |
 |--------|-----------|----------------|-------------|----------------|
@@ -385,8 +385,8 @@ SAGE_FEMME, TECHNICIEN_LAB, ADMINISTRATIF — à ne pas confondre avec les rôle
   `PresenceJournaliere`, `DelegationMedicamentAutorise`) présents en base mais non exposés : DROP
   à régulariser au déploiement (cf. [[registre_decisions]] D-023). **À confirmer** : ne pas les
   documenter comme fonctionnalités actives.
-- **Divergence rôles 3 vs 4** : le catalogue ne contient pas la clé `MEDECIN` ; tous les médecins
-  sont `MEDECIN_CHEF` (cf. [[registre_decisions]] D-003). À trancher et propager.
+- **Rôles d'habilitation = 3** : le catalogue ne contient pas la clé `MEDECIN` ; « MEDECIN » est une
+  profession du personnel et tous les médecins reçoivent le rôle `MEDECIN_CHEF` (cf. [[registre_decisions]] D-003).
 - **Authenticité déclarative des matricules** : le registre n'est pas adossé à un export RH ;
   un matricule peut être enregistré sur la seule foi de l'accueil (D-022, recueil §9). Risque de
   matricule erroné assumé (vérification visuelle).

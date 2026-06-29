@@ -48,7 +48,7 @@ Le module applique la garde `@RequirePermissions` sur 4 permissions (`packages/t
 | `messagerie.update` | Modifier un message | éditer son propre message (≤ 15 min) |
 | `messagerie.delete` | Supprimer un message | supprimer pour tous (≤ 15 min) / pour moi / batch |
 
-Ces 4 permissions sont incluses dans le **baseline commun à TOUS les rôles** (`COMMS_BASELINE`, `permissions.ts`). Tous les rôles de [[registre_decisions]] D-003 en disposent : **ADMIN_SYSTEME**, **MEDECIN_CHEF**, **INFIRMIER** (et **MEDECIN** dans la cible documentaire 4-rôles). La règle codée : « chacun peut lire/écrire/éditer/supprimer SES propres messages ».
+Ces 4 permissions sont incluses dans le **baseline commun à TOUS les rôles** (`COMMS_BASELINE`, `permissions.ts`). Les **3 rôles d'habilitation** de [[registre_decisions]] D-003 en disposent : **ADMIN_SYSTEME**, **MEDECIN_CHEF**, **INFIRMIER** (« MEDECIN » étant une profession mappée au rôle `MEDECIN_CHEF`, donc déjà couverte). La règle codée : « chacun peut lire/écrire/éditer/supprimer SES propres messages ».
 
 > Honnêteté as-built : il n'existe **pas de privilège de supervision** dans la messagerie. Un médecin-chef ou un admin **ne voit pas** les conversations des autres ; le cloisonnement est **par participant**, identique pour tous les rôles (≠ supervision clinique des modules 07/08/09). Les catégories de patient ne s'appliquent pas (acteurs = comptes utilisateurs).
 
@@ -176,13 +176,13 @@ Notes as-built : tous ces modèles portent `updatedAt`/`deletedAt` et des index 
 | **RM-13-08** | Un **groupe** compte **1 à 50 participants** (hors créateur compté à part), titre ≤ 120 car. ; tous doivent être **actifs et du même site**. | `createGroup`, `CreateGroupDto` |
 | **RM-13-09** | Toute action requiert d'être **participant** de la conversation (sinon `403`) et tout destinataire direct doit être **actif et du même site** (sinon `404` uniforme). | `assertParticipant`, cloisonnement siteId |
 | **RM-13-10** | Les **règles fines de média** (durée vidéo ≤ 2 min, compression image) sont **appliquées côté client** ; le backend ne contrôle que MIME/taille/nombre/magic-bytes. | [[parametres_metier]] PM-17 ; `mediaUtils.ts` |
-| **RM-13-11** | L'**aperçu** d'un message (liste de conversations, citation) est **tronqué** (≤ 80 car. liste, ≤ 120 car. citation/notif) ; une pièce jointe seule affiche « 📎 <nom> ». | [[parametres_metier]] PM-18 |
+| **RM-13-11** | L'**aperçu** d'un message (liste de conversations, citation) est **tronqué** (liste [[parametres_metier]] PM-50, citation/notif [[parametres_metier]] PM-18) ; une pièce jointe seule affiche « 📎 <nom> ». | [[parametres_metier]] PM-50, PM-18 |
 | **RM-13-12** | Un message est **« remis »** si le destinataire est en ligne ou si `lastSeenAt`/`lastReadAt` ≥ date du message ; **« lu »** si `lastReadAt` ≥ date du message ; en groupe **« lu par tous »** quand tous les autres l'ont lu. | `listMessages`, `getMessageDetails` |
 | **RM-13-13** | Une **mention** déclenche une notification **AVERTISSEMENT** au mentionné même s'il regarde la conversation ; un message simple chez un participant qui **regarde** le fil produit un live **silencieux** (pas de cloche). | `sendMessage`, présence `isViewing` |
 | **RM-13-14** | Une **réaction** est un **toggle** ; sa pose ressuscite un éventuel tombstone (re-réaction au même emoji possible après retrait). | `toggleReaction` |
 | **RM-13-15** | La présence « regarde la conversation » expire après **45 s** sans rafraîchissement (TTL). | [[parametres_metier]] PM-19 (`VIEWING_TTL_MS`) |
 | **RM-13-16** | Quitter une conversation retire le participant ; si **plus aucun participant**, la conversation **et ses messages** sont supprimés (suppression explicite, le soft-delete ayant neutralisé la cascade DB). | `leaveConversation` |
-| **RM-13-17** | Le **rate-limit est appliqué par utilisateur** : 150 req/min par défaut, **40 envois/min**, **240 typing/min** (HTTP 429 au dépassement). | `@Throttle` + `UserThrottlerGuard` |
+| **RM-13-17** | Le **rate-limit est appliqué par utilisateur** : lecture par défaut [[parametres_metier]] PM-51, envoi [[parametres_metier]] PM-52, présence/typing [[parametres_metier]] PM-53 (HTTP 429 au dépassement). | `@Throttle` + `UserThrottlerGuard` ; [[parametres_metier]] PM-51, PM-52, PM-53 |
 
 > Toute valeur chiffrée renvoie à [[parametres_metier]] ; aucune n'est redéfinie ici.
 
@@ -229,7 +229,7 @@ Notes as-built : tous ces modèles portent `updatedAt`/`deletedAt` et des index 
 - **Latence hors-ligne** : en mode local pur, la propagation inter-postes dépend de la cadence de synchronisation ([[parametres_metier]] PM-32/PM-33) ; le temps réel exige le central (D-020).
 - **Comptage des permissions** : le décompte vérifié est **110** ([[parametres_metier]] PM-47) — sans incidence sur les 4 permissions du module, présentes et vérifiées.
 - **Présence en mémoire** : `PresenceService` (en ligne / regarde) est un état **non persisté** ; à la reconnexion ou au redémarrage serveur, les accusés « remis » retombent sur `lastSeenAt`/`lastReadAt`. *(comportement attendu, à documenter pour l'exploitation)*
-- **Rôle MEDECIN au catalogue** : divergence 3 vs 4 rôles ([[registre_decisions]] D-003) — sans effet ici (baseline messagerie appliqué à **tous** les rôles existants).
+- **Rôles** ([[registre_decisions]] D-003) : le système compte **3 rôles d'habilitation** (`ADMIN_SYSTEME`, `MEDECIN_CHEF`, `INFIRMIER`) ; « MEDECIN » est une profession mappée au rôle `MEDECIN_CHEF` — sans effet ici (baseline messagerie appliqué à **tous** les rôles existants).
 
 ---
 

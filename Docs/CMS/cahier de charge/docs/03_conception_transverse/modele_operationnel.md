@@ -19,11 +19,11 @@
 
 ## 1. Rôles d'exploitation
 
-L'exploitation de la plateforme repose sur le modèle de rôles réduit (voir [[registre_decisions]]
-D-003, et [[parametres_metier]] PM-46 : 4 rôles au brief — divergence « 3 vs 4 » à régulariser dans
-le code). Deux rôles concentrent l'exploitation : **ADMIN_SYSTEME** (exploitation technique et
-gouvernance) et **MEDECIN_CHEF** (supervision clinique). `MEDECIN` et `INFIRMIER` sont des rôles
-d'usage, pas d'exploitation.
+L'exploitation de la plateforme repose sur le modèle de rôles réduit à **3 rôles d'habilitation**
+(voir [[registre_decisions]] D-003, et [[parametres_metier]] PM-46 : ADMIN_SYSTEME, MEDECIN_CHEF,
+INFIRMIER — « MEDECIN » fusionné dans MEDECIN_CHEF). Deux rôles concentrent l'exploitation :
+**ADMIN_SYSTEME** (exploitation technique et gouvernance) et **MEDECIN_CHEF** (supervision clinique).
+`INFIRMIER` est un rôle d'usage, pas d'exploitation.
 
 ### 1.1 ADMIN_SYSTEME — exploitant système
 
@@ -65,10 +65,11 @@ Admin médical et superviseur (voir [[_SOURCE_systeme]]). Côté exploitation cl
 - **Délégation de prescription** — accorde/retire la délégation permettant à un INFIRMIER de
   prescrire (D-011, `DelegationPrescription`).
 
-### 1.3 Rôles d'usage (rappel, hors exploitation)
+### 1.3 Rôle d'usage (rappel, hors exploitation)
 
-- **MEDECIN** — clinique (ses consultations) ; **INFIRMIER** — triage + consultation/prescription
-  déléguée. Ces rôles n'administrent pas la plateforme.
+- **INFIRMIER** — triage + consultation/prescription déléguée. Ce rôle n'administre pas la
+  plateforme. (La profession « MEDECIN » du personnel médical est mappée au rôle MEDECIN_CHEF —
+  un seul rôle médecin = Médecin Chef.)
 
 | Activité d'exploitation | ADMIN_SYSTEME | MEDECIN_CHEF |
 |---|---|---|

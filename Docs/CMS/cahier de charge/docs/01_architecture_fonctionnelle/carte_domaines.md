@@ -109,7 +109,7 @@
   - → **Référentiels (D-04)** : sociétés sous-traitantes pour le personnel concerné.
 
 ### D-06 — Accès & Sécurité
-- **Mission** : gérer les **utilisateurs**, les **4 rôles** (cf. [[_SOURCE_systeme]] §Rôles), les
+- **Mission** : gérer les **utilisateurs**, les **3 rôles** (cf. [[_SOURCE_systeme]] §Rôles), les
   **~110 permissions**, l'**authentification** (JWT access+refresh, **session unique**, **TOTP 2FA**
   chiffré), la **récupération de compte** (codes de secours), la **gestion des sessions** et
   l'acceptation des **CGU**.
@@ -140,8 +140,8 @@
   catégorie), avec **exports CSV/PDF** et sélecteur de période.
 - **Modules** : `apps/api/src/modules/dashboard`, `apps/web/src/modules/dashboard`.
 - **Frontières** : domaine **lecture seule / agrégation** ; ne modifie aucune donnée métier. Les KPI
-  sont filtrés par site et par rôle (système réduit à 4 rôles → essentiellement vue clinique + vue
-  admin-système, cf. mémoire réduction 4 rôles).
+  sont filtrés par site et par rôle (système réduit à 3 rôles d'habilitation → essentiellement vue clinique + vue
+  admin-système, cf. mémoire réduction 3 rôles).
 - **Interactions principales** :
   - ← **Soins (D-02)**, **Dossier patient (D-03)**, **Acteurs & RH (D-05)** : agrège les données.
   - → **Accès & Sécurité (D-06)** : visibilité conditionnée par permission `dashboard.read`.

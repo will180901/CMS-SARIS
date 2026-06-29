@@ -180,7 +180,7 @@ Les contrats ci-dessous décrivent les **collaborations fonctionnelles** entre m
 
 - Vérité de référence : [[_SOURCE_systeme]].
 - Cartographie des domaines : [[carte_domaines]].
-- Détail des permissions par rôle : voir le catalogue `packages/types/src/permissions.ts` (~110 permissions, 4 rôles).
+- Détail des permissions par rôle : voir le catalogue `packages/types/src/permissions.ts` (~110 permissions, 3 rôles).
 - Synchronisation offline-first : module `sync` (LWW, tombstones, `SyncState`).
 
 > Tous les faits techniques de ce document sont issus de la lecture de `apps/api/src/app.module.ts` et des fichiers `apps/api/src/modules/*/*.module.ts` (champs `imports`/`exports`/`controllers`). Les éléments non confirmés par le code sont signalés « à confirmer » ou explicitement nuancés.

@@ -64,14 +64,15 @@ Ne relèvent **pas** de ce module (mais lui sont reliés) :
 
 ## 2. Acteurs et rôles
 
-Le système compte **4 rôles** ([[glossaire]] « Rôle », `PM-46`, D-003). L'accès à ce module est piloté par
-les permissions de gouvernance, non par le rôle nominal.
+Le système compte **3 rôles** d'habilitation (`ADMIN_SYSTEME`, `MEDECIN_CHEF`, `INFIRMIER` ; [[glossaire]]
+« Rôle », `PM-46`, D-003). L'accès à ce module est piloté par les permissions de gouvernance, non par le
+rôle nominal.
 
 | Acteur | Accès au module (as-built) |
 |--------|----------------------------|
 | **ADMIN_SYSTEME** | Acteur principal. Détient l'ensemble du catalogue (D-004), donc toutes les permissions `utilisateur.*` et `role.*`. Seul à pouvoir gérer rôles et permissions en pratique. |
 | **MEDECIN_CHEF** | Accès **partiel** selon les permissions effectivement détenues. Sur l'écran `AccesPage`, l'onglet **Délégations** lui est ouvert s'il détient `delegation.read` (il gère ses propres délégations) ; les onglets Utilisateurs / Rôles ne s'affichent que s'il détient `utilisateur.read` / `role.read`. *(Le détail des rôles porteurs de ces permissions est dans [[MODULE_02_acces_habilitations]] ; à confirmer côté seed.)* |
-| **MEDECIN**, **INFIRMIER** | Pas d'accès de gouvernance en standard (ne détiennent pas `utilisateur.*` / `role.*`). |
+| **INFIRMIER** | Pas d'accès de gouvernance en standard (ne détient pas `utilisateur.*` / `role.*`). *(La profession `MEDECIN` du personnel est mappée au rôle `MEDECIN_CHEF`, ci-dessus.)* |
 
 > **Catégories de patient** : sans objet pour ce module (il n'agit pas sur les patients).
 
@@ -453,10 +454,11 @@ manipulées par ce module :
 
 ## 9. Risques et points ouverts
 
-- **Divergence « 3 vs 4 rôles » (D-003)** : la constante `SYSTEM_ROLES` ne liste que **3 rôles**
-  (ADMIN_SYSTEME, MEDECIN_CHEF, INFIRMIER), cohérent avec l'absence de clé `MEDECIN` au catalogue, alors que
-  [[glossaire]] et [[_SOURCE_systeme]] annoncent **4 rôles**. À trancher et propager (cf. note de cohérence
-  du [[registre_decisions]]).
+- **Nombre de rôles (D-003)** : la constante `SYSTEM_ROLES` liste **3 rôles** d'habilitation
+  (ADMIN_SYSTEME, MEDECIN_CHEF, INFIRMIER), cohérent avec l'absence de clé `MEDECIN` au catalogue.
+  `MEDECIN` n'est **pas** un rôle mais une **profession** du personnel mappée au rôle `MEDECIN_CHEF`
+  (`seed.ts:379`). Toute mention résiduelle de « 4 rôles » dans [[glossaire]] ou [[_SOURCE_systeme]] est à
+  corriger en **3 rôles** (cf. note de cohérence du [[registre_decisions]]).
 - **Décompte de permissions** : `PM-47` retient **110** entrées vérifiées dans le code ; ce module ne fige
   pas le chiffre — il lit la table `Permission`.
 - **Réduction prévue d'ADMIN_SYSTEME (D-004)** : l'accès clinique complet est **temporaire** ; une réduction

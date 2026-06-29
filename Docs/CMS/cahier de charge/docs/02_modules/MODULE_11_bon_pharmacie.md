@@ -38,17 +38,17 @@ Le module appartient au domaine **Parcours de soin clinique** ([[plan_modules]] 
 
 ## 2. Acteurs et rôles
 
-Rôles du système (4, cf. [[glossaire]] « Rôle », **D-003**) ; les droits sont portés par les permissions du catalogue `packages/types/src/permissions.ts` (clés `bon_pharmacie.*`).
+Rôles du système (3, cf. [[glossaire]] « Rôle », **D-003**) ; les droits sont portés par les permissions du catalogue `packages/types/src/permissions.ts` (clés `bon_pharmacie.*`). « MEDECIN » n'est **pas** un rôle : c'est une **profession** du personnel médical mappée au rôle `MEDECIN_CHEF` (tout médecin reçoit ce rôle).
 
-| Permission | ADMIN_SYSTEME | MEDECIN_CHEF | MEDECIN | INFIRMIER |
-|---|:---:|:---:|:---:|:---:|
-| `bon_pharmacie.read` | ✓ | ✓ | (à confirmer) | ✓ |
-| `bon_pharmacie.create` | ✓ | ✓ | (à confirmer) | ✓ |
-| `bon_pharmacie.deliver` | ✓ | ✓ | (à confirmer) | ✗ |
-| `bon_pharmacie.cancel` | ✓ | ✓ | (à confirmer) | ✓ |
-| `bon_pharmacie.delete` | ✓ | ✓ | (à confirmer) | ✗ |
+| Permission | ADMIN_SYSTEME | MEDECIN_CHEF | INFIRMIER |
+|---|:---:|:---:|:---:|
+| `bon_pharmacie.read` | ✓ | ✓ | ✓ |
+| `bon_pharmacie.create` | ✓ | ✓ | ✓ |
+| `bon_pharmacie.deliver` | ✓ | ✓ | ✗ |
+| `bon_pharmacie.cancel` | ✓ | ✓ | ✓ |
+| `bon_pharmacie.delete` | ✓ | ✓ | ✗ |
 
-> Lecture du code (`permissions.ts`) : `ADMIN_SYSTEME` possède **les 5** permissions (catalogue complet, **D-004**) ; `MEDECIN_CHEF` possède **les 5** ; un autre profil (l'INFIRMIER) possède `read`, `create`, `cancel` mais **ni `deliver` ni `delete`**. Conformément à **D-003** (divergence « 3 vs 4 rôles »), le rôle `MEDECIN` peut être **absent du catalogue effectif** : sa colonne est marquée « à confirmer » et **ne doit pas être inventée**. Voir [[MODULE_02_acces_habilitations]].
+> Lecture du code (`permissions.ts`) : `ADMIN_SYSTEME` possède **les 5** permissions (catalogue complet, **D-004**) ; `MEDECIN_CHEF` possède **les 5** ; l'INFIRMIER possède `read`, `create`, `cancel` mais **ni `deliver` ni `delete`**. Conformément à **D-003**, « MEDECIN » n'est pas un rôle au catalogue : c'est une profession mappée au rôle `MEDECIN_CHEF` (un médecin dispose des droits de `MEDECIN_CHEF`). Voir [[MODULE_02_acces_habilitations]].
 
 **Droit de prescrire (orthogonal aux permissions, garde D-011, `assertPeutPrescrire`)** : à la **création** d'un bon, `MEDECIN_CHEF`/`ADMIN_SYSTEME` émettent librement ; un **INFIRMIER** ne peut émettre **que** s'il dispose d'une **délégation de prescription active** (`DelegationPrescription` couvrant le jour). Sinon : refus `403`.
 
@@ -132,7 +132,7 @@ Rôles du système (4, cf. [[glossaire]] « Rôle », **D-003**) ; les droits so
 - **Scénario nominal** : le bon et ses lignes sont supprimés (transaction) ; réponse `{ id, deleted: true }`.
 - **Scénarios d'erreur** : côté interface, l'action de suppression est **indisponible** pour un bon `DELIVRE` (`statut !== 'DELIVRE'`). Bon introuvable sur le site → `404`.
 - **Critères** : *Étant donné* un bon non délivré, *quand* un acteur habilité le supprime, *alors* le bon et ses lignes disparaissent et l'action est auditée.
-- *Réserve as-built : la suppression côté service est une suppression Prisma `delete` enveloppée dans une transaction ; le soft-delete global (D-015) s'applique selon l'allow-list `PrismaService` — à confirmer pour `BonPharmacie`/`LigneBonPharmacie`.*
+- *As-built : la suppression côté service est une suppression Prisma `delete` enveloppée dans une transaction ; le soft-delete global (D-015) s'applique : `BonPharmacie`/`LigneBonPharmacie` sont sur l'allow-list `PrismaService` (suppression = pose d'un tombstone `deletedAt`, propagée par synchronisation).*
 
 ### CU-11-06 — Imprimer un bon
 
@@ -210,8 +210,8 @@ Renvoi aux contrats de [[plan_modules]] §6.
 
 ## 9. Risques et points ouverts
 
-- **Rôle `MEDECIN`** : présence au catalogue **non confirmée** (D-003, divergence « 3 vs 4 rôles »). Les colonnes correspondantes du §2 restent « à confirmer » tant que `permissions.ts` n'est pas tranché.
-- **Soft-delete de `BonPharmacie`/`LigneBonPharmacie`** : `delete()` utilise `prisma.*.delete`/`deleteMany` ; l'effet réel (hard ou soft via allow-list `PrismaService`, D-015) est **à confirmer** sur la configuration du soft-delete.
+- **Rôles** (D-003) : le système compte **3 rôles d'habilitation** (`ADMIN_SYSTEME`, `MEDECIN_CHEF`, `INFIRMIER`). « MEDECIN » est une profession mappée au rôle `MEDECIN_CHEF` ; les droits d'un médecin sont ceux de `MEDECIN_CHEF` (§2).
+- **Soft-delete de `BonPharmacie`/`LigneBonPharmacie`** : `delete()` utilise `prisma.*.delete`/`deleteMany` ; ces entités étant sur l'allow-list soft-delete `PrismaService` (D-015), la suppression pose un tombstone `deletedAt` (soft-delete global), propagé par synchronisation.
 - **Plafonds de prise en charge** : `DroitCategoriePatient.plafondConsultations`/`periode` **non appliqués** aux médicaments. À confirmer si un plafonnement (nombre de bons / période) est attendu par le recueil.
 - **Contre-indications** : `ContreIndicationMedicament` **non vérifié** à l'émission. Risque clinique résiduel : aucune alerte d'interaction/contre-indication à la création du bon.
 - **`delivrePar` libre** : champ **texte libre** (≤ 100 car.), non relié à un acteur (`PersonnelMedical`/`Utilisateur`). Traçabilité de l'agent dispensateur **faible**. À confirmer si une référence forte est souhaitée.

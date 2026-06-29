@@ -35,13 +35,12 @@ Tenir le **dossier patient centralisé cross-site** (cf. [[glossaire#Dossier pat
 
 ## 2. Acteurs et rôles
 
-Source : `packages/types/src/permissions.ts` (assignations de rôles) et `patient.controller.ts` (`@RequirePermissions`). Voir [[glossaire#Rôle]] et [[parametres_metier#PM-46]] (4 rôles). ⚠️ Divergence « 3 vs 4 rôles » documentée en [[registre_decisions#D-003]] (le rôle `MEDECIN` n'est pas au catalogue) — à confirmer.
+Source : `packages/types/src/permissions.ts` (assignations de rôles) et `patient.controller.ts` (`@RequirePermissions`). Voir [[glossaire#Rôle]] et [[parametres_metier#PM-46]] (3 rôles). Le système compte **3 rôles d'habilitation** : `ADMIN_SYSTEME`, `MEDECIN_CHEF`, `INFIRMIER`. « MEDECIN » n'est **pas** un rôle : c'est une **profession** du personnel médical (`TypePersonnel`) **mappée au rôle `MEDECIN_CHEF`** (seed : « un seul rôle médecin = Médecin Chef »).
 
 | Acteur | Lecture dossier | Création / MAJ / sous-entités | Catégorie | Archiver | Verrou | Supprimer | Voir dossier verrouillé |
 |--------|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 | **ADMIN_SYSTEME** (super-admin) | oui | oui | oui | oui | oui | oui | oui (supervision) |
-| **MEDECIN_CHEF** (admin médical + supervision) | oui | oui | oui | oui | oui | non* | oui (supervision) |
-| **MEDECIN** (clinique) | (selon catalogue, à confirmer — voir D-003) | — | — | — | — | — | non |
+| **MEDECIN_CHEF** (admin médical + supervision ; tout médecin reçoit ce rôle) | oui | oui | oui | oui | oui | non* | oui (supervision) |
 | **INFIRMIER** (triage + consultation déléguée) | oui | oui | non | non | non | non | non |
 
 \* Le catalogue (`MEDECIN_CHEF`) n'inclut **pas** `patient.delete` : seul `ADMIN_SYSTEME` (qui détient `[...ALL_PERMISSIONS]`) peut supprimer définitivement. À confirmer si voulu.
@@ -51,7 +50,7 @@ Source : `packages/types/src/permissions.ts` (assignations de rôles) et `patien
 
 **Supervision** (= peut voir un dossier verrouillé) = { `ADMIN_SYSTEME`, `MEDECIN_CHEF` } (constante `SUPERVISION_ROLES`, `patient.controller.ts`). Cf. [[glossaire#Supervision]], [[registre_decisions#D-006]] et [[registre_decisions#D-007]].
 
-> Note as-built : la fonction `isRestrictedDoctor()` (cloisonnement par médecin) existe mais retourne **toujours `false`** (le rôle `MEDECIN` ayant été supprimé du modèle clinique). Le scope « ne voir que les patients que je suis » (`assertOwnPatient`) est donc **dormant** mais conservé dans la signature des services.
+> Note as-built : la fonction `isRestrictedDoctor()` (cloisonnement par médecin) existe mais retourne **toujours `false`** (la profession `MEDECIN` étant mappée au rôle `MEDECIN_CHEF`, aucun rôle médecin restreint distinct n'existe au modèle clinique). Le scope « ne voir que les patients que je suis » (`assertOwnPatient`) est donc **dormant** mais conservé dans la signature des services.
 
 **Catégories de patient pertinentes** (pilotent les obligations administratives à la création, cf. [[glossaire#Catégorie de patient]], [[registre_decisions#D-009]]) : `ASSURE_CDI`, `ASSURE_CDD`, `AYANT_DROIT_CDI`, `SOUS_TRAITANT`, `RIVERAIN`.
 
@@ -126,6 +125,7 @@ Source : `packages/types/src/permissions.ts` (assignations de rôles) et `patien
 - **Déclencheur** : évolution du statut administratif (ex. CDD → CDI).
 - **Scénario nominal** : l'acteur saisit la nouvelle catégorie + motif obligatoire, valide → le système historise et met à jour la catégorie en transaction (EF-07-22).
 - **Scénarios d'erreur** : motif vide → 400 ; patient introuvable → 404 ; sans `patient.change_category` → 403.
+- **Hors-ligne** : pris en charge — le dossier est **global** et présent sur le poste local ; le changement de catégorie (+ son historisation) est appliqué sur le backend local et mis en file (IndexedDB web / SQLite desktop) puis répliqué au central en LWW à la reconnexion ([[registre_decisions#D-005]], [[registre_decisions#D-016]]).
 - **Critères** : *Étant donné* un patient SOUS_TRAITANT, *Quand* sa catégorie passe à ASSURE_CDI avec motif, *Alors* l'historique conserve l'ancienne et la nouvelle catégorie avec l'auteur.
 
 ### CU-07-05 — Gérer allergies / antécédents / alertes
@@ -133,6 +133,7 @@ Source : `packages/types/src/permissions.ts` (assignations de rôles) et `patien
 - **Déclencheur** : recueil d'information clinique.
 - **Scénario nominal** : l'acteur ajoute/modifie/supprime une entrée → le système valide la sous-entité (RM-07-04) et la rattache au dossier ; une alerte mise à INACTIVE renseigne `resolvedAt`.
 - **Scénarios d'erreur** : sous-entité introuvable pour ce patient → 404 ; valeurs hors énumération → 400.
+- **Hors-ligne** : pris en charge — le dossier (et ses sous-entités allergies/antécédents/alertes) est **global** sur le poste local ; les ajouts/modifications/suppressions sont écrits sur le backend local et mis en file (IndexedDB web / SQLite desktop), rejoués au central en LWW à la reconnexion ([[registre_decisions#D-005]], [[registre_decisions#D-016]]).
 - **Critères** : *Étant donné* un patient, *Quand* on ajoute une allergie SEVERE active, *Alors* elle apparaît en bannière critique et dans le compteur de la sidebar.
 
 ### CU-07-06 — Inscrire un ayant droit par matricule
@@ -148,6 +149,7 @@ Source : `packages/types/src/permissions.ts` (assignations de rôles) et `patien
 - **Déclencheur** : dossier obsolète ou créé par erreur.
 - **Scénario nominal (archivage)** : l'acteur passe le statut à ARCHIVE (EF-07-23). **Suppression** : si le dossier n'a **aucune** visite ni référence bloquante, l'acteur le supprime définitivement (EF-07-25).
 - **Scénarios d'erreur** : dossier avec historique clinique (visites) → 409 « archivez-le plutôt » ; référence par suivi de grossesse / pré-saisie → 409 ; contrainte FK résiduelle (P2003/P2014) → 409.
+- **Hors-ligne** : pris en charge — le dossier est **global** sur le poste local ; l'archivage (changement de statut) comme la suppression définitive sont appliqués sur le backend local et mis en file (IndexedDB web / SQLite desktop), répliqués au central en LWW à la reconnexion ; la suppression se matérialise par un soft-delete bi-cible (tombstone) propagé par synchronisation ([[registre_decisions#D-005]], [[registre_decisions#D-015]], [[registre_decisions#D-016]]).
 - **Critères** : *Étant donné* un dossier ayant au moins une visite, *Quand* on tente de le supprimer, *Alors* le système refuse et propose l'archivage.
 
 ### CU-07-08 — Visualiser les alertes cliniques calculées
@@ -155,6 +157,7 @@ Source : `packages/types/src/permissions.ts` (assignations de rôles) et `patien
 - **Déclencheur** : ouverture du dossier (bannière) ou onglet alertes.
 - **Scénario nominal** : le système calcule les 3 règles (EF-07-16) sur l'historique complet (tous sites) et renvoie la liste triée par gravité.
 - **Scénarios d'erreur** : dossier verrouillé non accessible → liste vide ; sans `consultation.read` → bannière non affichée.
+- **Hors-ligne** : pris en charge — le calcul est servi par le backend local (desktop) ou le cache web sur les données **globales** présentes sur le poste (dossier, visites, constantes, ordonnances) ; opération de lecture/calcul sans mutation, aucune mise en file requise. Le dépouillement du verrou s'applique aussi en local ([[registre_decisions#D-005]], [[registre_decisions#D-006]]).
 - **Critères** : *Étant donné* un patient allergique à une substance et une ordonnance VALIDÉE d'un médicament rapproché, *Quand* on ouvre son dossier, *Alors* une alerte CRITIQUE « Allergie vs médicament prescrit » apparaît.
 
 ---
@@ -189,10 +192,10 @@ Entités **lues** par le module (appartenant à d'autres modules) : `CategoriePa
 - **RM-07-05** — **Verrou de confidentialité** : un dossier `verrouille` n'expose son contenu clinique qu'à la **supervision** ({ ADMIN_SYSTEME, MEDECIN_CHEF }) ; pour les autres, le contenu est dépouillé côté serveur, y compris en mode **local hors-ligne** (cf. [[registre_decisions#D-006]], [[glossaire#Verrou de confidentialité]]).
 - **RM-07-06** — **Suppression conditionnelle** : un dossier avec au moins une visite (historique clinique, vérifié sur le client brut incluant les tombstones) **ne peut être supprimé** ; il doit être **archivé**. Idem en cas de référence par un suivi de grossesse ou une pré-saisie médicale.
 - **RM-07-07** — **Historisation** : tout changement de catégorie et tout événement de rattachement (CREATION/MODIFICATION/CLOTURE) est journalisé avec auteur et date.
-- **RM-07-08** — **Seuils des alertes cliniques calculées** (`patient.service.ts`, EF-07-16, valeurs codées dans le module clinique — à inscrire en [[parametres_metier]] « à confirmer ») : SpO₂ < 90 % (CRITIQUE) ; température ≥ 38,5 °C (ELEVE) / ≥ 39,5 °C (CRITIQUE) ; tension systolique ≥ 160 (ELEVE) / ≥ 180 (CRITIQUE) mmHg ; fréquence cardiaque ≥ 120 ou < 50 bpm (ELEVE). La règle allergie↔médicament est un **rapprochement textuel** (ne remplace pas une base d'interactions).
+- **RM-07-08** — **Seuils des alertes cliniques calculées** (`patient.service.ts`, EF-07-16 ; valeurs faisant foi en [[parametres_metier]]) : SpO₂ critique ([[parametres_metier#PM-54]]) ; température élevée puis critique ([[parametres_metier#PM-55]]) ; tension systolique élevée puis critique ([[parametres_metier#PM-56]]) ; fréquence cardiaque élevée haute/basse ([[parametres_metier#PM-57]]). La règle allergie↔médicament est un **rapprochement textuel** (ne remplace pas une base d'interactions).
 - **RM-07-09** — **Photo** : image ≤ 5 Mo (JPEG/PNG/WEBP/GIF), normalisée 512×512 JPEG q80, stockée **en base** en Base64 (pas de fichier disque) pour rester transportable avec le dump.
 - **RM-07-10** — **Filtrage des tombstones dans les relations imbriquées** : les sous-ressources soft-deletables sont explicitement filtrées (`deletedAt: null`) dans les `include` du dossier, car l'extension soft-delete ne filtre que le niveau racine.
-- **RM-07-11** — **Scope par initiateur (dormant)** : la garde `assertOwnPatient` (médecin restreint à ses patients) existe mais est inactive (`isRestrictedDoctor` = false), le rôle `MEDECIN` ayant été retiré du modèle clinique (cf. [[registre_decisions#D-003]], [[registre_decisions#D-007]]).
+- **RM-07-11** — **Scope par initiateur (dormant)** : la garde `assertOwnPatient` (médecin restreint à ses patients) existe mais est inactive (`isRestrictedDoctor` = false), la profession `MEDECIN` étant mappée au rôle `MEDECIN_CHEF` (pas de rôle médecin restreint distinct ; cf. [[registre_decisions#D-003]], [[registre_decisions#D-007]]).
 
 ---
 
@@ -231,11 +234,11 @@ Endpoints REST sous `/patients` (`patient.controller.ts`), tous protégés par `
 
 ## 9. Risques et points ouverts
 
-- **Rôles « 3 vs 4 »** ([[registre_decisions#D-003]]) : le rôle `MEDECIN` n'est pas au catalogue ; la colonne « MEDECIN » du §2 est **à confirmer**. À trancher et propager.
+- **Rôles** ([[registre_decisions#D-003]]) : le système compte **3 rôles d'habilitation** (`ADMIN_SYSTEME`, `MEDECIN_CHEF`, `INFIRMIER`) ; « MEDECIN » est une profession mappée au rôle `MEDECIN_CHEF`, pas un rôle distinct.
 - **Suppression réservée à ADMIN_SYSTEME** : `MEDECIN_CHEF` n'a pas `patient.delete` au catalogue — à confirmer si conforme à l'intention.
 - **Scope par initiateur dormant** (`assertOwnPatient` jamais déclenché, RM-07-11) : code conservé mais inactif → dette à clarifier (réactiver ou retirer).
 - **Modèles dormants en garde de suppression** : `suiviGrossesse` / `preSaisieMedicale` encore référencés alors que ces zones sont retirées du périmètre ([[registre_decisions#D-023]]) → nettoyer au **DROP** des tables dormantes.
-- **Seuils des alertes cliniques codés en dur** (RM-07-08) : à inscrire formellement dans [[parametres_metier]] (PM dédié) plutôt que dans le service.
+- **Seuils des alertes cliniques** (RM-07-08) : ✅ externalisés en [[parametres_metier]] **PM-54→PM-57** (audit 2026-06-29). Restent codés dans `patient.service.ts` (le référentiel documente la valeur as-built) ; les rendre configurables au catalogue serait une évolution.
 - **Rapprochement allergie↔médicament purement textuel** : risque de faux positifs/négatifs ; n'est pas une base d'interactions médicamenteuses (signalé dans le code).
 - **Limite photo 5 Mo / stockage Base64 en base** : alourdit la base et les dumps de synchronisation si beaucoup de photos ; valeur non centralisée en [[parametres_metier]] (à confirmer).
 - **Fusion de dossiers retirée** : aucune voie de réconciliation de doublons créés hors-ligne autre que l'archivage manuel — à surveiller.

@@ -38,7 +38,7 @@ Système de **gestion clinique médico-sociale multi-site** pour les travailleur
 | Desktop | Electron 33, electron-builder + installeur NSIS, auto-update |
 | Monorepo | pnpm workspace |
 
-Chiffres : **16 modules**, **87 tables**, **110 permissions**, **4 rôles** (ADMIN_SYSTEME, MEDECIN_CHEF, MEDECIN, INFIRMIER).
+Chiffres : **16 modules**, **87 tables**, **110 permissions**, **3 rôles** (ADMIN_SYSTEME, MEDECIN_CHEF, INFIRMIER ; *MEDECIN* = profession du personnel mappée au rôle MEDECIN_CHEF).
 
 ## Structure du dépôt
 

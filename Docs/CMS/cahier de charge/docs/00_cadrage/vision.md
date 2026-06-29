@@ -34,13 +34,12 @@ CMS SARIS **remplace ce suivi Excel/papier** par une application médico-sociale
 
 ## 3. Bénéficiaires
 
-CMS SARIS s'adresse à **quatre rôles** (système réduit — voir [[MODULE_02_acces_habilitations]]) :
+CMS SARIS s'adresse à **trois rôles d'habilitation** (système réduit — voir [[MODULE_02_acces_habilitations]]) :
 
 | Rôle | Bénéfice principal |
 |---|---|
 | **ADMIN_SYSTEME** | Super-administrateur : gouvernance (comptes, rôles, permissions, sessions, paramètres, synchronisation, audit) et accès clinique complet. |
-| **MEDECIN_CHEF** | Admin médical + supervision : voit l'ensemble du clinique de son site, peut **verrouiller** un dossier en confidentialité. |
-| **MEDECIN** | Conduit ses propres consultations et prescriptions. |
+| **MEDECIN_CHEF** | Admin médical + supervision : voit l'ensemble du clinique de son site, peut **verrouiller** un dossier en confidentialité. La **profession « Médecin »** du personnel soignant est mappée à ce rôle (un seul rôle médecin = Médecin Chef). |
 | **INFIRMIER** | Réalise le triage, les constantes et la consultation/prescription (prescription via délégation). |
 
 > Supervision = { ADMIN_SYSTEME, MEDECIN_CHEF }.

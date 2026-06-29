@@ -40,8 +40,7 @@ Les rôles sont définis dans [[glossaire]] (terme « Rôle ») et [[registre_de
 | Acteur | Lecture (`referentiel.read`) | Écriture (create/update/delete granulaires) |
 |--------|------------------------------|---------------------------------------------|
 | **ADMIN_SYSTEME** | Oui | Oui — possède **tout** le catalogue, dont les 21 permissions `referentiel.*` (D-004) |
-| **MEDECIN_CHEF** | Oui (`referentiel.read`) | Oui — dispose du bloc complet `referentiel.*` d'écriture (vérifié `permissions.ts`, lignes 360-367) |
-| **MEDECIN** | Selon attribution | Selon attribution (rôle non présent au catalogue de droits — cf. D-003, « à confirmer ») |
+| **MEDECIN_CHEF** | Oui (`referentiel.read`) | Oui — dispose du bloc complet `referentiel.*` d'écriture (vérifié `permissions.ts`, lignes 360-367). *(La profession « MEDECIN » du personnel est mappée à ce rôle.)* |
 | **INFIRMIER** | Oui (`referentiel.read`) | **Limité** : `referentiel.motif.create` uniquement (vérifié `permissions.ts`, ligne 402) ; pas d'autre écriture référentiel |
 
 **Catégories de patient** (pertinentes pour le cœur métier, [[glossaire]]) : **ASSURE_CDI**, **AYANT_DROIT_CDI**, **ASSURE_CDD**, **SOUS_TRAITANT**, **RIVERAIN**. Elles ne sont pas des « acteurs » mais sont l'objet du référentiel `CategoriePatient` et pilotent les droits (D-009).

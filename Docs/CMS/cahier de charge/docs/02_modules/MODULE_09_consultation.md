@@ -38,13 +38,12 @@ Conduire l'**acte clinique** (la [[glossaire#Consultation|consultation]]) mené 
 
 ## 2. Acteurs et rôles
 
-Rôles du système (4, voir [[glossaire#Rôle]], D-003 — divergence 3/4 « à confirmer ») :
+Rôles du système (3, voir [[glossaire#Rôle]], D-003). « MEDECIN » n'est **pas** un rôle : c'est une **profession** du personnel médical mappée au rôle `MEDECIN_CHEF` (tout médecin reçoit ce rôle) :
 
 | Rôle | Capacités dans le module (vérifiées via permissions et gardes) |
 |------|----------------------------------------------------------------|
 | **ADMIN_SYSTEME** | Supervision (`SUPERVISION_ROLES`) : voit **toutes** les consultations du site ; prescription **libre**. (Réserve D-004 : accès clinique complet temporaire.) L'en-tête du code note « ADMIN_SYSTEME pas de permission clinique » mais le garde `SUPERVISION_ROLES` l'inclut — **incohérence de commentaire** signalée, comportement effectif = supervision. |
-| **MEDECIN_CHEF** | Supervision : voit toutes les consultations du site, peut prescrire **librement** (`assertPeutPrescrire`). |
-| **MEDECIN** | Conduit **ses** consultations (scope initiateur, D-007) ; prescription libre **à confirmer** : le garde `assertPeutPrescrire` n'autorise librement que `MEDECIN_CHEF`/`ADMIN_SYSTEME` et exige une délégation pour `INFIRMIER` — le rôle `MEDECIN` n'y est **pas** traité (cohérent avec D-003 : pas de rôle `MEDECIN` au catalogue de droits). |
+| **MEDECIN_CHEF** | Supervision : voit toutes les consultations du site, peut prescrire **librement** (`assertPeutPrescrire`). Tout médecin (profession) reçoit ce rôle et prescrit donc librement. |
 | **INFIRMIER** | Conduit ses consultations ; **prescrit uniquement** s'il dispose d'une [[glossaire#Permission|délégation de prescription]] active (D-011, garde `assertPeutPrescrire`). |
 
 > Cloisonnement : un soignant non-supervision ne voit / n'ouvre **que** ses propres consultations (`findAll`/`findById` filtrent par `soignantId = personnelMedicalId`). La supervision = { ADMIN_SYSTEME, MEDECIN_CHEF } voit tout le site (D-007, [[glossaire#Supervision]]).
@@ -99,7 +98,7 @@ Rôles du système (4, voir [[glossaire#Rôle]], D-003 — divergence 3/4 « à 
 Format : acteur · déclencheur · nominal · erreurs · hors-ligne · critères « Étant donné / Quand / Alors ».
 
 ### CU-09-01 — Ouvrir une consultation
-- **Acteur** : MEDECIN / INFIRMIER / supervision · **Déclencheur** : prise en charge d'une visite triée.
+- **Acteur** : MEDECIN_CHEF / INFIRMIER / supervision · **Déclencheur** : prise en charge d'une visite triée.
 - **Nominal** : sélection d'une visite `EN_COURS` → consultation créée (`OUVERTE`), visite clôturée (`AVEC_CONSULTATION`), notification ciblée au médecin assigné.
 - **Erreurs** : visite non `EN_COURS` → `409` ; aucun soignant assigné → `400` ; consultation ouverte déjà existante → `409` (+ `existingConsultationId`).
 - **Hors-ligne** : opérationnel sur le backend embarqué desktop ([[glossaire#Poste local]]) ; la notification et la propagation suivent la [[glossaire#Synchronisation|synchronisation]] (D-001).
@@ -227,7 +226,7 @@ Tous les modèles portent les colonnes de synchro (`updatedAt`, `deletedAt` soft
 
 ## 9. Risques et points ouverts
 
-- **R1 — Rôle `MEDECIN`** : le garde `assertPeutPrescrire` n'accorde la prescription libre qu'à `MEDECIN_CHEF`/`ADMIN_SYSTEME` et ne traite pas `MEDECIN`. Cohérent avec D-003 (pas de `MEDECIN` au catalogue) mais **à confirmer / régulariser** (divergence 3 vs 4 rôles).
+- **R1 — Rôles** : le système compte **3 rôles d'habilitation** (`ADMIN_SYSTEME`, `MEDECIN_CHEF`, `INFIRMIER`). « MEDECIN » est une **profession** mappée au rôle `MEDECIN_CHEF` : tout médecin prescrit donc librement via ce rôle (le garde `assertPeutPrescrire` accorde la prescription libre à `MEDECIN_CHEF`/`ADMIN_SYSTEME`). Cohérent avec D-003.
 - **R2 — Commentaire trompeur** : l'en-tête du controller affirme « ADMIN_SYSTEME n'a PAS de permissions cliniques (gouvernance pure) », alors que `SUPERVISION_ROLES` l'inclut et que D-004 lui donne tout le catalogue (temporairement). **Incohérence documentaire dans le code** à corriger ; comportement effectif = supervision complète.
 - **R3 — Modèles dormants** : `delete()` compte encore `SuiviChronique`, `ConsultationPrenatale`, `AccidentTravail` (hors périmètre D-023). À purger lors de la re-baseline des migrations / DROP des tables dormantes.
 - **R4 — Périmètre des certificats** : seul le **repos maladie** est dans le périmètre ; la portée des autres certificats reste **« à confirmer »** ([[glossaire#Certificat]]).

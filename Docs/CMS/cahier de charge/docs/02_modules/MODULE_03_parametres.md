@@ -36,8 +36,7 @@ Le module est un **module support** au sens [[plan_modules]] : `ParametresModule
 |--------|-------------------------------------|
 | **ADMIN_SYSTEME** | Lecture **et** écriture de tous les paramètres (détient `parametre.read` + `parametre.update` via le catalogue complet, cf. [[registre_decisions]] D-004). |
 | **MEDECIN_CHEF** | Selon attribution de `parametre.read` / `parametre.update` à son rôle (à confirmer dans `permissions.ts` ; par défaut, l'écran est gouvernance/admin). |
-| **MEDECIN** | Pas d'accès attendu (aucune permission `parametre.*` requise pour le clinique). |
-| **INFIRMIER** | Idem — pas d'accès. |
+| **INFIRMIER** | Pas d'accès attendu (aucune permission `parametre.*` requise pour le clinique). |
 
 > L'accès est gouverné **uniquement** par deux permissions : `parametre.read` (lecture / affichage de l'onglet Généraux) et `parametre.update` (édition + reset). Définitions : `packages/types/src/permissions.ts` (`PARAMETRE_READ`, `PARAMETRE_UPDATE`). Sans `parametre.update`, l'écran s'affiche en **lecture seule** (bandeau « lecture seule », contrôles désactivés). Les **catégories de patient** ne sont pas pertinentes pour ce module.
 
@@ -138,7 +137,7 @@ Le module est un **module support** au sens [[plan_modules]] : `ParametresModule
 - **RM-03-04** — **Audit non bloquant.** L'écriture du `JournalAudit` est encapsulée et **ne propage jamais** d'erreur : l'échec de journalisation ne fait pas échouer l'update/reset.
 - **RM-03-05** — **Bascules de notifications** : `notif.app_enabled` est l'**interrupteur global** (s'il est faux, aucune notification applicative) ; les bascules par catégorie (`notif.evenements_cliniques` → clinique, `notif.sorties_critiques` → sortie/évacuation, `notif.evenements_administratifs` → administratif) filtrent par catégorie ; la catégorie *système* est **toujours active**. En cas de paramètre illisible, **la notification passe** (fail-open). *(`categoryEnabled`)*
 - **RM-03-06** — **Cache de lecture 30 s**, invalidé clé par clé à chaque update/reset (cohérence quasi-immédiate des valeurs live). *(la durée 30 s est un PM à formaliser dans [[parametres_metier]] — à confirmer)*
-- **RM-03-07** — **Rétention des notifications** : le cron de purge supprime les notifications plus anciennes que `notif.retention_jours` (**PM-37**, défaut 30 j). *(`notification-purge.cron.ts`)*
+- **RM-03-07** — **Rétention des notifications** : le cron de purge supprime les notifications plus anciennes que `notif.retention_jours` (**PM-37**, défaut 30 j). Ce cron ne s'exécute que sur le **serveur central** (PostgreSQL) ; les **postes locaux SQLite ne purgent pas** (no-op). *(`notification-purge.cron.ts`)*
 - **RM-03-08** — **Escalade de blocage** : le 1ᵉʳ blocage dure `auth.duree_blocage_minutes` (**PM-08**), puis la durée est multipliée (×4) aux blocages suivants. *(règle portée par `security.service.ts`, paramètre fourni par ce module — détail dans [[MODULE_01_securite_authentification]])*
 
 ---

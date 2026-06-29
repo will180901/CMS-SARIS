@@ -69,23 +69,25 @@ Source : `apps/api/src/modules/bon-examen/bon-examen.service.ts`,
 
 ## 2. Acteurs et rôles
 
-Rôles du catalogue (`packages/types/src/permissions.ts`, voir [[MODULE_02_acces_habilitations]], PM-46). Les
+Rôles du catalogue (`packages/types/src/permissions.ts`, voir [[MODULE_02_acces_habilitations]], PM-46). Le
+système compte **3 rôles d'habilitation** ; « MEDECIN » n'est **pas** un rôle mais une **profession**
+mappée au rôle `MEDECIN_CHEF` (tout médecin reçoit ce rôle). Les
 permissions `bon_examen.*` réellement affectées :
 
-| Action / permission | ADMIN_SYSTEME | MEDECIN_CHEF | INFIRMIER | MEDECIN *(voir note)* |
-|---------------------|:---:|:---:|:---:|:---:|
-| `bon_examen.read` (consulter) | ✔ | ✔ | ✔ | — |
-| `bon_examen.create` (émettre / modifier brouillon) | ✔ | ✔ | ✔ | — |
-| `bon_examen.validate` (valider / annuler via `/statut`) | ✔ | ✔ | — | — |
-| `bon_examen.cancel` (annuler, y compris bon validé) | ✔ | ✔ | ✔ | — |
-| `bon_examen.delete` (supprimer définitivement) | ✔ | ✔ | — | — |
-| `bon_examen.result` (saisir un résultat) | ✔ | ✔ | ✔ | — |
+| Action / permission | ADMIN_SYSTEME | MEDECIN_CHEF | INFIRMIER |
+|---------------------|:---:|:---:|:---:|
+| `bon_examen.read` (consulter) | ✔ | ✔ | ✔ |
+| `bon_examen.create` (émettre / modifier brouillon) | ✔ | ✔ | ✔ |
+| `bon_examen.validate` (valider / annuler via `/statut`) | ✔ | ✔ | — |
+| `bon_examen.cancel` (annuler, y compris bon validé) | ✔ | ✔ | ✔ |
+| `bon_examen.delete` (supprimer définitivement) | ✔ | ✔ | — |
+| `bon_examen.result` (saisir un résultat) | ✔ | ✔ | ✔ |
 
 > `ADMIN_SYSTEME` détient `[...ALL_PERMISSIONS]` (D-004). `MEDECIN_CHEF` détient les 6 permissions.
 > `INFIRMIER` détient `read, create, cancel, result` (mais **pas** `validate` ni `delete`).
-> **Note** (D-003 « à régulariser ») : le rôle `MEDECIN` n'apparaît **pas** au catalogue
-> `ROLE_PERMISSIONS` du code de référence ; tous les médecins sont `MEDECIN_CHEF`. La colonne MEDECIN
-> est laissée vide en conséquence. À trancher/propager (voir [[registre_decisions]] D-003).
+> **Note** (D-003) : « MEDECIN » n'est pas un rôle au catalogue `ROLE_PERMISSIONS` ; c'est une
+> profession du personnel médical mappée au rôle `MEDECIN_CHEF` (tous les médecins sont `MEDECIN_CHEF`).
+> Voir [[registre_decisions]] D-003.
 
 **Surcouche métier (au-delà de la permission) :**
 - L'**émission** (`create`) requiert en plus, côté service : (a) le **droit de prescrire** (D-011) —
@@ -352,9 +354,9 @@ permissions `bon_examen.*` réellement affectées :
 - **Cycle « RECU/CONSULTÉ » documentaire vs réel** : les commentaires du code mentionnent un cycle
   `VALIDE → RECU → CONSULTÉ`, mais le **statut du bon** ne matérialise pas `RECU`/`CONSULTÉ` (ce sont
   l'état du résultat et un libellé d'affichage). À clarifier pour éviter toute confusion (à confirmer).
-- **Rôle `MEDECIN`** (D-003) : absent du catalogue de permissions ; la matrice du §2 le laisse vide.
-  Tant que la divergence « 3 vs 4 rôles » n'est pas tranchée, les droits du bon d'examen pour un éventuel
-  `MEDECIN` restent **non définis**.
+- **Rôles** (D-003) : le système compte **3 rôles d'habilitation** (`ADMIN_SYSTEME`, `MEDECIN_CHEF`,
+  `INFIRMIER`). « MEDECIN » est une profession mappée au rôle `MEDECIN_CHEF` : un médecin dispose donc
+  des droits `bon_examen.*` de `MEDECIN_CHEF`.
 - **FK `etablissementId`** : cible exacte non vérifiée dans ce travail ; à documenter dans
   [[modele_donnees_global]].
 - **Couverture catégorie côté frontend** : l'éligibilité affichée (`ASSURE_CDI`/`AYANT_DROIT_CDI` codés)

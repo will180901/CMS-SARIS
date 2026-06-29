@@ -11,7 +11,7 @@
 >
 > Conventions : identifiant stable `ADR-NN`. **Honnêteté as-built** : on documente ce qui EXISTE ;
 > tout point non vérifié à la source est marqué « à confirmer ». Aucun chiffre n'est inventé. Les
-> chiffres canoniques (4 rôles, ~87 modèles Prisma, ~110 permissions, stack) sont définis dans
+> chiffres canoniques (3 rôles, ~87 modèles Prisma, ~110 permissions, stack) sont définis dans
 > [[_SOURCE_systeme]] et seulement référencés ici.
 
 ---
@@ -353,5 +353,5 @@
 
 > Tout point « à confirmer / réserve » de ce document est repris du [[registre_decisions]] (notes de
 > cohérence) et de [[exigences_non_fonctionnelles]] : re-baseline des migrations, réduction
-> d'`ADMIN_SYSTEME`, divergence « 3 vs 4 rôles », signature de code, run de rotation de clé non exécuté,
+> d'`ADMIN_SYSTEME`, signature de code, run de rotation de clé non exécuté,
 > SLA de latence et plancher matériel non chiffrés. Aucune valeur n'est inventée.

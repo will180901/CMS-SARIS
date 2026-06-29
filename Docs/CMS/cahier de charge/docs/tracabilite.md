@@ -72,7 +72,7 @@ chaque spec sur le jalon de [[plan_releases]] §5 (ou inversement), au choix de 
 | Authentification JWT + session unique + révocation immédiate | 01, 02 | MVP | ENF-04-01/02/03 | D-021 |
 | 2FA TOTP chiffré at-rest + codes de secours | 01, 02 | MVP | ENF-04-04 | D-013 |
 | Anti brute-force (rate-limit, blocage escaladé) | 01 | MVP | ENF-04-08 | — |
-| Catalogue permissions (~110) + 4 rôles (RBAC granulaire) | 02, 01 | MVP | ENF-05-05 | D-003, D-004 |
+| Catalogue permissions (~110) + 3 rôles (RBAC granulaire) | 02, 01 | MVP | ENF-05-05 | D-003, D-004 |
 | Gouvernance des comptes/rôles cloisonnée par site | 02 | MVP | ENF-05-02 | D-005 |
 | Configuration système clé-valeur typée (politique mdp, sessions, notifs) | 03 | MVP | ENF-04-01 | D-004 |
 | Audit persistant transverse (`@Audit` + interceptor global, IP réelle + géo) | 04 | MVP | ENF-04-06, ENF-04-09 | D-014 |

@@ -61,13 +61,14 @@ sur le recueil ([[registre_decisions]] D-023) : `CLOTURE_SIMPLE`, `PRESCRIPTION`
 
 ## 2. Acteurs et rôles
 
-Rôles du système (4 — [[registre_decisions]] D-003, [[parametres_metier]] PM-46) :
+Rôles du système (3 — [[registre_decisions]] D-003, [[parametres_metier]] PM-46) ; « MEDECIN » n'est
+**pas** un rôle mais une **profession** du personnel médical mappée au rôle `MEDECIN_CHEF` (tout médecin
+reçoit ce rôle) :
 
 | Acteur | Droits sur le module (permissions `evacuation.*`) | Source |
 |--------|---------------------------------------------------|--------|
 | **ADMIN_SYSTEME** | **Toutes** (`read, create, update, cancel, close, delete`) — super-admin, catalogue complet ([[registre_decisions]] D-004) | `permissions.ts` (`ALL_PERMISSIONS`) |
-| **MEDECIN_CHEF** | **Toutes** (`read, create, update, cancel, close, delete`) | `permissions.ts` (bloc `MEDECIN_CHEF`) |
-| **MEDECIN** | *(rôle absent du catalogue de droits — à confirmer, [[registre_decisions]] D-003)* | `permissions.ts` |
+| **MEDECIN_CHEF** | **Toutes** (`read, create, update, cancel, close, delete`) ; tout médecin (profession) reçoit ce rôle | `permissions.ts` (bloc `MEDECIN_CHEF`) |
 | **INFIRMIER** | **Aucune** permission `evacuation.*` n'est affectée par défaut | `permissions.ts` (bloc `INFIRMIER`) |
 
 > Cohérence [[glossaire]] : « Évacuation … réservée au médecin-chef ». Vérifié dans le code :
@@ -357,8 +358,9 @@ pas d'enum Prisma dédié — à confirmer côté [[modele_donnees_global]].)*
 
 ## 9. Risques et points ouverts
 
-- **Rôle `MEDECIN`** : absent du catalogue de droits ; l'évacuation est de fait limitée à
-  `MEDECIN_CHEF` + `ADMIN_SYSTEME`. À trancher avec [[registre_decisions]] D-003 (3 vs 4 rôles).
+- **Rôles** (D-003) : le système compte **3 rôles d'habilitation** (`ADMIN_SYSTEME`, `MEDECIN_CHEF`,
+  `INFIRMIER`). « MEDECIN » est une profession mappée au rôle `MEDECIN_CHEF` ; l'évacuation est de fait
+  ouverte à `MEDECIN_CHEF` (donc à tout médecin) + `ADMIN_SYSTEME`.
 - **Scope par site vs par soignant** : l'activité clinique est en principe scopée à l'initiateur
   ([[registre_decisions]] D-007), mais l'évacuation n'a **pas** de champ soignant et est scopée
   **par site**. Cohérence à confirmer (acceptable car flux supervisé par le médecin-chef).

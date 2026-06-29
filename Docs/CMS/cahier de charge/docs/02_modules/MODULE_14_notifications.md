@@ -76,7 +76,6 @@ Permissions vérifiées dans `packages/types/src/permissions.ts`.
 |--------|--------------------------|--------------------------|
 | **ADMIN_SYSTEME** | `notification.read`, `notification.update`, `notification.create`, `notification.delete` | Tout : recevoir, lire, supprimer « pour moi », **émettre des annonces** (SITE / TOUS), **publier une annonce de mise à jour**, **supprimer définitivement** une notification. |
 | **MEDECIN_CHEF** | `notification.read`, `notification.update` *(`create`/`delete` réservés à ADMIN_SYSTEME — cf. commentaire `permissions.ts` l.410)* | Recevoir, lire / tout lire, supprimer « pour moi ». *Émission d'annonce et suppression définitive : à confirmer selon l'attribution réelle du rôle (le code réserve `create`/`delete` à l'admin système).* |
-| **MEDECIN** | `notification.read`, `notification.update` | Recevoir, lire / tout lire, supprimer « pour moi ». |
 | **INFIRMIER** | `notification.read`, `notification.update` | Recevoir, lire / tout lire, supprimer « pour moi ». |
 
 > Le bouton « Nouvelle annonce » du panneau n'apparaît que si l'utilisateur détient `notification.create`

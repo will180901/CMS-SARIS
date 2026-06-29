@@ -1,14 +1,14 @@
 # 🏠 CMS SARIS — Cahier des charges (as-built)
 
-**Version** 1.0 · **Date** 2026-06-26 · **Statut global** : Complet v1.0 — revu · **Méthodologie** : `generic_prompt_v2` + `methodologie_creation_systeme` (ULAMU)
+**Version** 1.1 · **Date** 2026-06-29 · **Statut global** : **v1.1 — contenu complet, cohérence + fidélité au code vérifiées (audit 2026-06-29) ; statut documentaire : Brouillon (validation finale du porteur via checklist en attente)** · **Méthodologie** : `generic_prompt_v2` + `methodologie_creation_systeme` (ULAMU)
 
 > Coffre Obsidian documentant le système **tel que construit** (web + API + desktop, offline-first). Source de vérité technique : le code (`CMS/APP/CMS-SARIS`) + la mémoire projet. Brief canonique : [[_SOURCE_systeme]].
 
 ---
 
 ## Chiffres clés (vérifiés dans le code)
-- **87 tables** Prisma · **110 permissions** · **4 rôles** (ADMIN_SYSTEME, MEDECIN_CHEF, MEDECIN, INFIRMIER) · **2 sites** (Moutela, Nkayi).
-- **16 modules** métier · ~**363 exigences fonctionnelles (EF)** · ~**111 cas d'usage (CU)** · **23 décisions (D-001→D-023)** · **49 paramètres (PM)**.
+- **87 tables** Prisma · **110 permissions** · **3 rôles** (ADMIN_SYSTEME, MEDECIN_CHEF, INFIRMIER ; MEDECIN = profession mappée au rôle MEDECIN_CHEF) · **2 sites** (Moutela, Nkayi).
+- **16 modules** métier · ~**363 exigences fonctionnelles (EF)** · ~**111 cas d'usage (CU)** · **23 décisions (D-001→D-023)** · **62 paramètres (PM-01→PM-62)**.
 - **Stack** : React 19 / NestJS 11 / Prisma 6 / PostgreSQL + SQLite / Electron 33. Monorepo pnpm.
 - **Déploiement** : API **Render**, base **Neon**, site web **Render**, desktop **installeur Windows**.
 
@@ -28,7 +28,7 @@
 - [[carte_domaines]] — 11 domaines (bounded contexts)
 - [[plan_modules]] — 16 modules, dépendances acycliques, contrats **C-1→C-13** ⭐
 - [[modele_donnees_global]] — entités + dictionnaire (87 tables)
-- [[parametres_metier]] — **référentiel des chiffres (PM-01→PM-49)** ⭐
+- [[parametres_metier]] — **référentiel des chiffres (PM-01→PM-62)** ⭐ — inclut seuils d'alerte vitaux (PM-54→PM-57), quotas messagerie (PM-50→PM-53), sync/supervision (PM-58→PM-62)
 - [[exigences_non_fonctionnelles]] — ENF quantifiées (sécurité, offline, perf…)
 - [[plan_releases]] — MVP / V1 / V2, MoSCoW
 
@@ -64,8 +64,10 @@
 - [[charte_graphique]] — design system SARIS (tokens, palette, composants)
 - [[specifications_ecrans]] — parcours critiques, états, responsive, accessibilité
 
-## Traçabilité  ✅
+## Traçabilité & audits  ✅
 - [[tracabilite]] — matrice exigences ↔ modules ↔ releases ↔ ENF ↔ décisions
+- [[rapport_audit_fidelite]] — ⭐ audit **fidélité doc↔code + conformité aux 2 prompts** (2026-06-29) : miroir confirmé, écarts corrigés
+- [[rapport_revue_coherence]] — revue de cohérence interne (liens, chiffres)
 
 ---
 
@@ -74,4 +76,4 @@
 - **Identifiants** : EF-NN-xx (exigence), CU-NN-xx (cas d'usage), RM-NN-xx (règle métier), C-x (contrat d'interface), ENF-xx (non-fonctionnel), R-xx (risque), D-xxx (décision), PM-xx (paramètre).
 - **Honnêteté as-built** : on documente ce qui EXISTE ; « à confirmer » si non vérifié ; jamais d'invention.
 
-> ✅ Revue de cohérence effectuée : tous les liens `[[...]]` résolvent, chiffres uniformisés (**87 tables / 110 permissions / 4 rôles / 16 modules**), liens copiés de la mémoire dé-liés. Détails : [[rapport_revue_coherence]].
+> ✅ Revue de cohérence effectuée : tous les liens `[[...]]` résolvent, chiffres uniformisés (**87 tables / 110 permissions / 3 rôles / 16 modules**), liens copiés de la mémoire dé-liés. Détails : [[rapport_revue_coherence]].

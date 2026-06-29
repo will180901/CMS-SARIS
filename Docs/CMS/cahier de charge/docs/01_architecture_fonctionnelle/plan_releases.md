@@ -43,7 +43,7 @@ Chaque fonctionnalité est classée selon la priorité **MoSCoW** *relative à s
 | **Must** | Consultation pilotée par la décision (clôture guidée, type de consultation, certificat, repos, prise en charge anti-double) | `consultation` | Livré | `apps/api/src/modules/consultation` (Brique 2) |
 | **Must** | Dossier patient centralisé cross-site (identité, allergies, antécédents, alertes, mode de vie, ayants droit par matricule) | `patient`, `employe` | Livré | `apps/api/src/modules/patient` (Brique 3) |
 | **Must** | Documents cliniques imprimables A4 (ordonnance, bon d'examen, bon de pharmacie, certificat, évacuation) | `consultation`, `bon-examen`, `bon-pharmacie`, `sorties-critiques` | Livré | (traçabilité interne) |
-| **Must** | Accès & habilitations : utilisateurs, rôles, permissions (4 rôles, ~110 permissions), sessions | `admin`, `security` | Livré | `packages/types/src/permissions.ts` ; `apps/api/src/modules/admin` |
+| **Must** | Accès & habilitations : utilisateurs, rôles, permissions (3 rôles, ~110 permissions), sessions | `admin`, `security` | Livré | `packages/types/src/permissions.ts` ; `apps/api/src/modules/admin` |
 | **Must** | Référentiels métier (catégories patient, motifs, pathologies, médicaments, types d'examen/consultation/certificat) | `referentiels` | Livré | `apps/api/src/modules/referentiels` |
 | **Should** | Personnel médical & RH (habilitations, absences, délégations, sociétés sous-traitantes) | `personnel` | Livré | `apps/api/src/modules/personnel` |
 | **Should** | Cohérence dossier : timeline unifiée, historique des constantes, alertes cliniques auto, export PDF de synthèse | `patient`, `consultation` | Livré | `apps/api/src/modules/patient` (Brique 3) |
@@ -64,7 +64,7 @@ Les seuils ci-dessous sont **constatés** (et non des objectifs futurs) sur l'é
 | **EF-MVP-03** | Couverture CRUD modules vérifiée | 100 % | **19/19** | (traçabilité interne) |
 | **EF-MVP-04** | E2E cliniques (parcours médecin) | au vert | **40/40** | (traçabilité interne) |
 | **EF-MVP-05** | Erreurs de typage (`tsc`) sur api + web + desktop | 0 | **0** | (traçabilité interne) |
-| **EF-MVP-06** | Catalogue de permissions (gouvernance des accès) | défini, unique | **~110** permissions, **4** rôles | `packages/types/src/permissions.ts` |
+| **EF-MVP-06** | Catalogue de permissions (gouvernance des accès) | défini, unique | **~110** permissions, **3** rôles | `packages/types/src/permissions.ts` |
 | **EF-MVP-07** | Dédup patient au triage (anti-doublon) | distance ≤ 2 + même date de naissance | Levenshtein ≤ 2, normalisation accents | (traçabilité interne) |
 | **EF-MVP-08** | Documents cliniques imprimables au gabarit unifié | 5 documents | ordonnance, bon d'examen, bon de pharmacie, certificat, évacuation | (traçabilité interne) |
 

@@ -99,7 +99,7 @@ Une **messagerie interne** de type WhatsApp Web (chiffrement **AES-256-GCM** au 
 
 ### 3.5 Sécurité, traçabilité et pilotage
 
-- **Sécurité** : authentification JWT à **session unique** (révocation immédiate), **2FA TOTP** chiffrée at-rest, permissions par rôle (**110**, `packages/types/src/permissions.ts`), **4 rôles** (ADMIN_SYSTEME, MEDECIN_CHEF, MEDECIN, INFIRMIER — voir [[MODULE_02_acces_habilitations]]).
+- **Sécurité** : authentification JWT à **session unique** (révocation immédiate), **2FA TOTP** chiffrée at-rest, permissions par rôle (**110**, `packages/types/src/permissions.ts`), **3 rôles d'habilitation** (ADMIN_SYSTEME, MEDECIN_CHEF, INFIRMIER — la profession « Médecin » est mappée au rôle MEDECIN_CHEF ; voir [[MODULE_02_acces_habilitations]]).
 - **Traçabilité** : **journal d'audit persistant** (`@Audit` + interceptor global), **IP réelle + géolocalisation hors-ligne**, conditions d'utilisation (CGU). Réponse à la limite **L5**.
 - **Pilotage** : **tableaux de bord et statistiques** par rôle (stats type × pathologie × catégorie), **exports CSV/PDF** (`modules/dashboard`). Réponse à la limite **L4** (comptages manuels).
 

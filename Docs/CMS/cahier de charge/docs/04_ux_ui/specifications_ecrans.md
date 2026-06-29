@@ -5,7 +5,7 @@
 > Document « as-built » : il décrit les écrans **réellement présents** dans le frontend React
 > sous `apps/web/src/modules` et `apps/web/src/components/layout`. Chaque parcours est décrit
 > écran par écran (layout, composants, états, navigation, micro-interactions, responsive,
-> accessibilité). Les chiffres et règles canoniques (4 rôles, ~110 permissions, offline-first)
+> accessibilité). Les chiffres et règles canoniques (3 rôles, ~110 permissions, offline-first)
 > proviennent du brief [[_SOURCE_systeme]] ; les exigences transverses (responsive, temps réel,
 > confidentialité) sont définies dans [[exigences_non_fonctionnelles]] et référencées ici sans
 > redéfinition. Les modules backend sont renvoyés via [[plan_modules]].

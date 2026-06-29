@@ -39,16 +39,16 @@ Il porte aussi le **self-service du compte** (`/me`) : préférences d'affichage
 
 ## 2. Acteurs et rôles
 
-Le module distingue l'**autorisation par rôle** (4 rôles du système, [[glossaire]] « Rôle », [[registre_decisions]] D-003) de l'**autorisation par permission** (granulaire). Tout utilisateur authentifié — quel que soit son rôle — accède au self-service `/me` et aux endpoints `/auth` (changement de mot de passe, profil, logout) **sans permission particulière**.
+Le module distingue l'**autorisation par rôle** (3 rôles d'habilitation du système, [[glossaire]] « Rôle », [[registre_decisions]] D-003) de l'**autorisation par permission** (granulaire). Tout utilisateur authentifié — quel que soit son rôle — accède au self-service `/me` et aux endpoints `/auth` (changement de mot de passe, profil, logout) **sans permission particulière**.
 
 | Acteur | Rôle système | Interaction avec le module |
 |--------|--------------|----------------------------|
-| **Utilisateur authentifié** (tout rôle) | `ADMIN_SYSTEME`, `MEDECIN_CHEF`, `MEDECIN`, `INFIRMIER` | Se connecte, change son mot de passe, gère ses sessions, active/désactive sa 2FA, accepte les CGU. |
+| **Utilisateur authentifié** (tout rôle) | `ADMIN_SYSTEME`, `MEDECIN_CHEF`, `INFIRMIER` | Se connecte, change son mot de passe, gère ses sessions, active/désactive sa 2FA, accepte les CGU. |
 | **ADMIN_SYSTEME** | super-administrateur ([[registre_decisions]] D-004) | Mêmes droits self-service ; l'administration des comptes/rôles relève de `AdminModule` (hors périmètre §1.3). |
-| **MEDECIN_CHEF / MEDECIN / INFIRMIER** | rôles cliniques | Mêmes droits self-service ; leurs permissions cliniques sont chargées dans le JWT et vérifiées par les gardes. |
+| **MEDECIN_CHEF / INFIRMIER** | rôles cliniques | Mêmes droits self-service ; leurs permissions cliniques sont chargées dans le JWT et vérifiées par les gardes. *(La profession `MEDECIN` du personnel est mappée au rôle `MEDECIN_CHEF`.)* |
 | **Session de synchronisation desktop** | (technique, non humaine) | Authentification portant `posteLocalId` → exemptée de la session unique ([[registre_decisions]] D-021, D-020). |
 
-> Note honnêteté ([[registre_decisions]] D-003) : le catalogue de rôles réellement présent peut diverger (« 3 vs 4 ») ; le rôle `MEDECIN` est documenté comme rôle de droits mais son existence au catalogue est **à confirmer** sur `packages/types/src/permissions.ts`. Le module de sécurité ne définit pas les rôles : il les lit depuis les `UtilisateurRole` et les injecte dans le JWT.
+> Note honnêteté ([[registre_decisions]] D-003) : le système compte **3 rôles d'habilitation** (`ADMIN_SYSTEME`, `MEDECIN_CHEF`, `INFIRMIER`), vérifiés dans `packages/types/src/permissions.ts` (`ROLE_CATALOG` + `DEFAULT_ROLE_PERMISSIONS`). **`MEDECIN` n'est PAS un rôle** : c'est une **profession** du personnel médical (`TypePersonnel`) **mappée au rôle `MEDECIN_CHEF`** (`seed.ts:379` `MEDECIN: 'MEDECIN_CHEF'` — « un seul rôle médecin = Médecin Chef »). Le module de sécurité ne définit pas les rôles : il les lit depuis les `UtilisateurRole` et les injecte dans le JWT.
 
 Les catégories de patient (ASSURE_CDI, AYANT_DROIT_CDI, etc.) **ne sont pas pertinentes** pour ce module (aucun patient n'est un acteur de l'authentification).
 
@@ -69,11 +69,21 @@ Les catégories de patient (ASSURE_CDI, AYANT_DROIT_CDI, etc.) **ne sont pas per
 - **EF-01-07** — Quand le nombre de tentatives atteint le maximum (`PM-07`), le compte passe `BLOQUE` jusqu'à `maintenant + durée` (`PM-08`), avec **escalade** : le 1er blocage vaut `PM-08`, chaque blocage suivant est multiplié par 4 (`prochainBlocage`).
 - **EF-01-08** — Un login réussi remet à zéro le compteur d'échecs et l'escalade de blocage (« ardoise propre »).
 - **EF-01-09** — Le rate-limiting anti brute-force s'applique à `POST /auth/login` (`PM-04`) et à `POST /auth/totp/verify` (`PM-05`).
-- **EF-01-10** — Toute tentative d'authentification (succès comme échec, avec son motif : `SUCCES_LOGIN`, `ECHEC_MOT_DE_PASSE`, `ECHEC_COMPTE_BLOQUE`, `ECHEC_COMPTE_DESACTIVE`, `ECHEC_LOGIN_INCONNU`, `SUCCES_LOGIN_TOTP_REQUIS`, `SUCCES_LOGIN_TOTP`, `SUCCES_LOGIN_CODE_SECOURS`, `SUCCES_LOGOUT`, `SUCCES_CHANGEMENT_MDP`) est journalisée dans `JournalAuthentification` (login, résultat, IP, user-agent), de façon non bloquante.
+- **EF-01-10** — Toute tentative d'authentification (succès comme échec) est journalisée dans `JournalAuthentification` (login, résultat, IP, user-agent), de façon non bloquante. Le motif consigné prend l'une des valeurs détaillées en EF-01-10a à EF-01-10j.
+- **EF-01-10a** — Un login direct réussi (sans 2FA) consigne le motif `SUCCES_LOGIN`.
+- **EF-01-10b** — Un login échouant sur mot de passe erroné consigne le motif `ECHEC_MOT_DE_PASSE`.
+- **EF-01-10c** — Un login refusé pour compte bloqué consigne le motif `ECHEC_COMPTE_BLOQUE`.
+- **EF-01-10d** — Un login refusé pour compte désactivé consigne le motif `ECHEC_COMPTE_DESACTIVE`.
+- **EF-01-10e** — Un login sur identifiant inconnu (ou compte supprimé) consigne le motif `ECHEC_LOGIN_INCONNU`.
+- **EF-01-10f** — Un login réussi en étape 1 mais nécessitant la 2FA consigne le motif `SUCCES_LOGIN_TOTP_REQUIS`.
+- **EF-01-10g** — Une vérification 2FA réussie par code applicatif consigne le motif `SUCCES_LOGIN_TOTP`.
+- **EF-01-10h** — Une vérification 2FA réussie par code de secours consigne le motif `SUCCES_LOGIN_CODE_SECOURS`.
+- **EF-01-10i** — Une déconnexion (logout) consigne le motif `SUCCES_LOGOUT`.
+- **EF-01-10j** — Un changement de mot de passe réussi consigne le motif `SUCCES_CHANGEMENT_MDP`.
 
 ### 3.2 Double authentification (TOTP)
 
-- **EF-01-11** — Si le compte a une `ConfigurationTotp` active, `POST /auth/login` ne délivre **pas** de jeton final mais renvoie `{ requireTotp: true, tempToken }`, le `tempToken` étant valable `PM-03`.
+- **EF-01-11** — Si le compte a une `ConfigurationTotp` active, `POST /auth/login` ne délivre **pas** de jeton final mais renvoie `{ requireTotp: true, tempToken }`, le `tempToken` étant valable `PM-03` (durée **fixe**, codée en dur dans `security.service.ts` — non configurable).
 - **EF-01-12** — `POST /auth/totp/verify` accepte `{ code, tempToken }` et délivre les jetons finaux après vérification. Le `code` est soit 6 chiffres (code applicatif), soit un code de secours `XXXX-XXXX` (tiret optionnel, casse indifférente — `dto/totp-verify.dto.ts`).
 - **EF-01-13** — Le code applicatif est validé contre le secret **déchiffré** avec une tolérance d'horloge (`epochTolerance` ±30 s) pour absorber le décalage client/serveur.
 - **EF-01-14** — Un code de secours valide (comparaison `bcrypt` contre les codes non utilisés) est accepté **une seule fois** : il est marqué `utilise` avec horodatage à l'usage.
@@ -89,7 +99,7 @@ Les catégories de patient (ASSURE_CDI, AYANT_DROIT_CDI, etc.) **ne sont pas per
 
 ### 3.4 Jetons & sessions
 
-- **EF-01-21** — Une session réussie crée une `SessionUtilisateur` (clé = `sid` UUID) et délivre un **jeton d'accès** (TTL `PM-01`, durée live lue dans les paramètres) et un **jeton de rafraîchissement** (TTL `PM-02`), ce dernier portant un `sid` qui le rend unique et stocké **uniquement haché** (`bcrypt`).
+- **EF-01-21** — Une session réussie crée une `SessionUtilisateur` (clé = `sid` UUID) et délivre un **jeton d'accès** (TTL `PM-01`, **configurable**, durée live lue dans les paramètres) et un **jeton de rafraîchissement** (TTL `PM-02`, durée **fixe** codée en dur), ce dernier portant un `sid` qui le rend unique et stocké **uniquement haché** (`bcrypt`).
 - **EF-01-22** — `POST /auth/refresh` échange un jeton de rafraîchissement valide contre un nouveau couple de jetons (**rotation** : l'ancienne session est révoquée, une nouvelle est créée). Le type de session (interactive vs synchro, via `posteLocalId`) est **préservé**.
 - **EF-01-23** — Le rafraîchissement retrouve la session par son `sid` signé et vérifie : appartenance à l'utilisateur, non-révocation, non-expiration et concordance `bcrypt` du jeton. Les anciens jetons **sans** `sid` sont tolérés (rétro-compat, boucle) le temps de leur expiration.
 - **EF-01-24** — `POST /auth/logout` révoque **toutes** les sessions actives de l'utilisateur.
@@ -100,7 +110,10 @@ Les catégories de patient (ASSURE_CDI, AYANT_DROIT_CDI, etc.) **ne sont pas per
 
 - **EF-01-27** — `GET /auth/me` (JWT requis) renvoie le profil courant à jour depuis la base : id, login, site, rôles, permissions effectives, `personnelMedicalId`.
 - **EF-01-28** — `POST /auth/change-password` (JWT requis) vérifie le mot de passe actuel, applique la politique de mot de passe **en vigueur** (`PM-09` à `PM-13`, via `assertPasswordValid`), enregistre le nouveau haché (`bcrypt`, coût 12) et lève le marqueur `motDePasseTemp`.
-- **EF-01-29** — `GET /me/preferences` / `PUT /me/preferences` lisent/écrivent les préférences d'affichage (thème, densité, langue, page d'accueil, lignes/page, notif e-mail), avec valeurs par défaut (langue par défaut de l'établissement) sans créer de ligne tant que rien n'est modifié.
+- **EF-01-29** — Le self-service expose la lecture et l'écriture des préférences d'affichage (thème, densité, langue, page d'accueil, lignes/page, notif e-mail), détaillées en EF-01-29a à EF-01-29c.
+- **EF-01-29a** — `GET /me/preferences` renvoie les préférences d'affichage de l'utilisateur courant.
+- **EF-01-29b** — En l'absence de préférence enregistrée, `GET /me/preferences` renvoie des valeurs par défaut (dont la langue par défaut de l'établissement) **sans** créer de ligne `PreferenceUtilisateur` tant que rien n'a été modifié.
+- **EF-01-29c** — `PUT /me/preferences` enregistre les préférences d'affichage modifiées de l'utilisateur courant.
 - **EF-01-30** — `POST /me/cgu/accepter` enregistre l'acceptation des CGU (version serveur courante `CGU_VERSION`) ; `GET /me/preferences` expose si l'acceptation est à jour (`cguAJour`) et la version requise.
 
 ### 3.6 Autorisation (gardes)
@@ -184,6 +197,7 @@ Les catégories de patient (ASSURE_CDI, AYANT_DROIT_CDI, etc.) **ne sont pas per
 - **Déclencheur** : écran « Sessions » des paramètres.
 - **Scénario nominal** : `GET /me/sessions` liste les sessions actives (avec localisation IP) ; l'utilisateur révoque une session (`DELETE /me/sessions/:id`) ou toutes les autres (`POST /me/sessions/revoke-others`).
 - **Scénarios d'erreur** : session inexistante ou n'appartenant pas à l'utilisateur → 404.
+- **Hors-ligne** : non disponible hors-ligne — la liste et la révocation des sessions portent sur le registre `SessionUtilisateur` central et nécessitent le central joignable ; sur desktop embarqué (SQLite) la session n'est pas vérifiée (signature de confiance, [[registre_decisions]] D-020), donc la gestion fine des sessions reste une opération en ligne (cf. §8).
 - **Critères** :
   - *Étant donné* plusieurs sessions actives, *quand* l'utilisateur révoque les autres, *alors* seule sa session courante demeure.
 
@@ -217,7 +231,7 @@ Le module ne définit pas son propre schéma : il agit sur des entités du modè
 - **RM-01-02** — Blocage de compte au seuil d'échecs `PM-07` ; durée du 1er blocage `PM-08`, **escaladée ×4** à chaque blocage successif ; un blocage expiré est automatiquement levé à la prochaine tentative.
 - **RM-01-03** — Un login réussi réinitialise `tentativesEchec` et l'escalade de blocage.
 - **RM-01-04** — Rate-limiting : `PM-04` sur login, `PM-05` sur vérification TOTP, plus le rate-limit global `PM-06` ; le refresh est limité à 30/min/IP (à inscrire comme variante de `PM-04`/`PM-05`, **à confirmer** comme PM dédié).
-- **RM-01-05** — Durées de jetons : accès `PM-01` (configurable, lu en live dans les paramètres), rafraîchissement `PM-02`, jeton temporaire TOTP `PM-03`.
+- **RM-01-05** — Durées de jetons : seul l'accès `PM-01` est **configurable** (lu en live dans les paramètres) ; le rafraîchissement `PM-02` et le jeton temporaire TOTP `PM-03` sont des **constantes codées en dur** (`REFRESH_TOKEN_TTL`, `TEMP_TOKEN_TTL` dans `security.service.ts`), ni configurables au catalogue ni par variable d'environnement.
 - **RM-01-06** — **Révocation immédiate** : tout token portant un `sid` n'est accepté que si sa session est présente, non révoquée et non expirée (EF-01-32). Exception backend embarqué SQLite (signature de confiance, [[registre_decisions]] D-020).
 - **RM-01-07** — **Rotation** au refresh : l'ancienne session est révoquée et un nouveau couple de jetons est émis ; le `sid` rend chaque refresh token unique (évite la collision `bcrypt` au-delà de 72 octets).
 - **RM-01-08** — **Session unique** appliquée aux seules sessions interactives (`posteLocalId` absent) ; les sessions de synchronisation desktop sont **exemptées** ([[registre_decisions]] D-021/D-020).
@@ -272,7 +286,7 @@ Le module ne définit pas son propre schéma : il agit sur des entités du modè
 
 ## 9. Risques et points ouverts
 
-- **Nombre de rôles (D-003)** : divergence « 3 vs 4 » au catalogue ; existence du rôle `MEDECIN` **à confirmer** dans `packages/types/src/permissions.ts`. Sans impact sur la mécanique d'autorisation (le module lit les rôles présents), mais à régulariser pour la cohérence documentaire.
+- **Nombre de rôles (D-003)** : le catalogue compte **3 rôles d'habilitation** (`ADMIN_SYSTEME`, `MEDECIN_CHEF`, `INFIRMIER`) vérifiés dans `packages/types/src/permissions.ts`. `MEDECIN` n'est **pas** un rôle mais une **profession** mappée à `MEDECIN_CHEF` (`seed.ts:379`). Sans impact sur la mécanique d'autorisation (le module lit les rôles présents).
 - **Rate-limit du refresh** : valeur 30/min/IP codée dans `security.controller.ts` sans `PM` dédié → **à confirmer** comme paramètre métier référencé (RM-01-04).
 - **Codes de secours en mode desktop** : disponibilité des `CodeSecoursTotp` sur un poste embarqué hors-ligne dépend du périmètre synchronisé (CU-01-03) — **à confirmer**.
 - **Backend embarqué sans vérification de session (D-020)** : la révocation immédiate n'est pas effective hors-ligne (le jeton reste valide jusqu'à expiration `PM-01`) ; compromis assumé, sécurité reposant sur le central et le loopback.

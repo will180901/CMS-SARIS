@@ -17,8 +17,9 @@ qui la met à jour. Les paramètres métier sont notés `PM-xx`, les exigences `
 `RM-NN-xx`, les cas d'usage `CU-NN-xx`, les contrats d'interface `C-x` (définis dans les documents de
 modules respectifs).
 
-**Honnêteté** : ce registre documente ce qui a été **décidé et appliqué**. Les points encore mouvants
-(notamment le nombre exact de rôles, voir D-003) sont signalés « à confirmer / à régulariser ».
+**Honnêteté** : ce registre documente ce qui a été **décidé et appliqué**. Le nombre de rôles
+d'habilitation est tranché : **3 rôles** (ADMIN_SYSTEME, MEDECIN_CHEF, INFIRMIER ; MEDECIN fusionné dans
+MEDECIN_CHEF), voir D-003.
 
 ---
 
@@ -28,7 +29,7 @@ modules respectifs).
 |----|----------|------|--------|
 | D-001 | Architecture offline-first multi-poste (modèle « ulamu ») | 2026-06-23 | Acté · Appliqué |
 | D-002 | Serveur central cloud : API Render + PostgreSQL Neon | 2026-06-23 | Acté · Déployé |
-| D-003 | Réduction du nombre de rôles (de 7 vers 4, état réel 3 de droits) | 2026-06-24 | Acté · à régulariser |
+| D-003 | Réduction à 3 rôles d'habilitation (ADMIN_SYSTEME, MEDECIN_CHEF, INFIRMIER ; MEDECIN fusionné dans MEDECIN_CHEF) | 2026-06-24 | Acté · Appliqué |
 | D-004 | ADMIN_SYSTEME = super-administrateur (catalogue complet) | 2026-06-02 | Acté · Appliqué (réduction prévue) |
 | D-005 | Dossier patient CENTRALISÉ cross-site | 2026-06-26 | Acté · Appliqué |
 | D-006 | Verrou de confidentialité du médecin-chef (par dossier) | 2026-06-26 | Acté · Appliqué |
@@ -90,29 +91,29 @@ modules respectifs).
   production (JWT, clés de chiffrement) sont saisis dans l'environnement Render (jamais dans le dépôt).
 - **Liens** : D-001, D-019.
 
-## D-003 — Réduction du nombre de rôles
+## D-003 — Réduction à 3 rôles d'habilitation
 
 - **Date** : 2026-06-24 (réduction) ; affinée jusqu'au 2026-06-26.
-- **Statut** : Acté · **à régulariser / à confirmer** (écart documentaire).
+- **Statut** : Acté · Appliqué.
 - **Contexte** : le système comportait historiquement 7 rôles. Le recueil de l'existant ne décrit que
   **deux rôles cliniques** (Infirmier, Médecin-Chef) plus un administrateur système.
-- **Décision** : réduire à un petit ensemble de rôles centré sur le besoin réel.
-- **État réel (à confirmer)** : il existe une **divergence entre les mémoires** à clarifier dans le code
-  de référence :
-  - le brief canonique et la fiche de réduction décrivent **4 rôles** : `ADMIN_SYSTEME`,
-    `MEDECIN_CHEF`, `MEDECIN`, `INFIRMIER` (traçabilité interne) ;
-  - l'audit pré-déploiement le plus récent constate **3 rôles de droits** réellement présents au
-    catalogue (`ADMIN_SYSTEME`, `MEDECIN_CHEF`, `INFIRMIER`) — **pas de rôle `MEDECIN`** au catalogue,
-    tous les médecins étant `MEDECIN_CHEF` (traçabilité interne). Vérification sur
-    `packages/types/src/permissions.ts` : le catalogue ne contient pas `MEDECIN` comme clé.
-  - Ne pas confondre avec `ROLES_PERSONNEL` (le **métier** de `PersonnelMedical` : MEDECIN, INFIRMIER,
-    SAGE_FEMME, TECHNICIEN_LAB, ADMINISTRATIF), qui est **descriptif** et non un rôle de droits.
+- **Décision** : réduire à **3 rôles d'habilitation** centrés sur le besoin réel :
+  `ADMIN_SYSTEME`, `MEDECIN_CHEF`, `INFIRMIER`. **MEDECIN fusionné dans MEDECIN_CHEF** — il n'existe
+  **pas de rôle d'habilitation `MEDECIN`** au catalogue ; tout médecin reçoit le rôle `MEDECIN_CHEF`
+  (un seul rôle médecin = Médecin Chef).
+- **Vérification (code de référence)** : `packages/types/src/permissions.ts`
+  (`ROLE_CATALOG` / `DEFAULT_ROLE_PERMISSIONS`) ne contient que ces **3 rôles** ; le seed mappe la
+  profession `MEDECIN` au rôle `MEDECIN_CHEF` (`seed.ts` : `MEDECIN: 'MEDECIN_CHEF'`).
+  - Ne pas confondre avec `ROLES_PERSONNEL` (le **métier / la profession** de `PersonnelMedical` :
+    MEDECIN, INFIRMIER, SAGE_FEMME, TECHNICIEN_LAB, ADMINISTRATIF), qui est **descriptif** et non un
+    rôle d'habilitation.
 - **Rôles supprimés** : `ADMIN_MEDICAL` (fusionné dans `MEDECIN_CHEF`), `INFIRMIER_DELEGUE` et
-  `AGENT_RH` (avec leurs tableaux de bord dédiés).
+  `AGENT_RH` (avec leurs tableaux de bord dédiés) ; la profession `MEDECIN` n'a jamais constitué un
+  rôle d'habilitation distinct (mappée à `MEDECIN_CHEF`).
 - **Alternatives écartées** : *conserver 6/7 rôles* — surcharge non justifiée par le recueil.
 - **Justification** : simplification alignée sur l'organisation réelle du centre.
-- **Action de régularisation** : trancher entre « 3 » et « 4 » dans le code, puis aligner la
-  documentation et le script `test-permissions.ps1` (encore basé sur des comptes supprimés).
+- **Action de régularisation** : aligner la documentation et le script `test-permissions.ps1`
+  (encore basé sur des comptes supprimés) sur ces 3 rôles.
 - **Liens** : D-004, D-011.
 
 ## D-004 — ADMIN_SYSTEME = super-administrateur (catalogue complet)
@@ -462,9 +463,9 @@ modules respectifs).
 
 ## Notes de cohérence (points à confirmer / régulariser)
 
-- **Nombre de rôles** (D-003) : divergence « 3 vs 4 » entre mémoires ; le code de référence
-  (`packages/types/src/permissions.ts`) ne contient pas `MEDECIN` au catalogue. À trancher et à propager
-  dans la documentation et `test-permissions.ps1`.
+- **Nombre de rôles** (D-003) : tranché à **3 rôles d'habilitation** (ADMIN_SYSTEME, MEDECIN_CHEF,
+  INFIRMIER) ; le code de référence (`packages/types/src/permissions.ts`) ne contient pas `MEDECIN` au
+  catalogue (profession mappée à MEDECIN_CHEF). Reste à propager dans `test-permissions.ps1`.
 - **Réduction d'ADMIN_SYSTEME** (D-004) : accès clinique complet **temporaire** ; réduction de
   gouvernance prévue.
 - **Migrations** (D-009, D-023) : développement sur `db push` ; **re-baseline** des migrations formelles

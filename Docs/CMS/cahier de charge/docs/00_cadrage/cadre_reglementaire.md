@@ -107,7 +107,7 @@ Tableau de correspondance **exigence de sécurité → implémentation as-built*
 | SEC-03 | **Chiffrement at-rest de la messagerie** (AES-256-GCM, versionné `v2:<keyId>:…` + legacy `v1`, trousseau `MESSAGE_ENC_KEYS`, rotation de clé + ré-encryption non destructive). | P-06, confidentialité des échanges internes. | `apps/api/src/.../message-crypto.ts`. |
 | SEC-04 | **Authentification JWT** (access + refresh, **session unique** par utilisateur, révocation immédiate). | Contrôle d'accès. | [[_SOURCE_systeme]] §Backend. |
 | SEC-05 | **TOTP 2FA** (chiffré at-rest, cf. SEC-01). | Renforcement de l'authentification. | idem. |
-| SEC-06 | **Contrôle d'accès par rôle et permissions** (4 rôles, 110 permissions, guard `@RequirePermissions`). | SM-01, P-06, minimisation des accès. | `packages/types/src/permissions.ts`. |
+| SEC-06 | **Contrôle d'accès par rôle et permissions** (3 rôles d'habilitation — ADMIN_SYSTEME, MEDECIN_CHEF, INFIRMIER ; la profession « Médecin » est mappée au rôle MEDECIN_CHEF — 110 permissions, guard `@RequirePermissions`). | SM-01, P-06, minimisation des accès. | `packages/types/src/permissions.ts`. |
 | SEC-07 | **Verrou de confidentialité de dossier** : le MEDECIN_CHEF peut verrouiller un dossier sensible. | SM-01, confidentialité renforcée. | [[_SOURCE_systeme]] §Rôles/Patients. |
 | SEC-08 | **Cloisonnement par site** (lectures cliniques et messagerie scopées au site, fermeture IDOR cross-site). | SM-01, SM-02. | (traçabilité interne). |
 | SEC-09 | **Rideau de confidentialité** (flou des zones cliniques à l'écran, défaut activé). | Confidentialité « épaule » / écran partagé. | (traçabilité interne). |
@@ -139,8 +139,8 @@ Tableau de correspondance **exigence de sécurité → implémentation as-built*
 
 - **D-001** — Tout fait juridique précis non vérifié est marqué « à vérifier auprès d'un juriste » ; aucune affirmation légale n'est inventée ni présentée comme certaine. (Méthodo ULAMU — honnêteté absolue.)
 - **D-002** — La trace d'acceptation des CGU (CG-01) concerne l'**utilisateur du logiciel** et ne vaut **pas** consentement du **patient** (CO-02).
-- **PM-01** — Version courante des CGU : `v1-2026.06` ; un changement de version **re-demande** l'acceptation à tous les utilisateurs (source : `MeService.CGU_VERSION`).
-- **PM-02** — Effacement applicatif = **soft-delete** (`deletedAt`), non destructif (source : `schema.prisma`).
+- **Version courante des CGU** (`v1-2026.06`) : voir [[parametres_metier]] **PM-61** ; un changement de version **re-demande** l'acceptation à tous les utilisateurs (source : `MeService.CGU_VERSION`).
+- **Effacement applicatif = soft-delete** (`deletedAt`), non destructif : voir [[parametres_metier]] **PM-62** (source : `schema.prisma`).
 
 ---
 

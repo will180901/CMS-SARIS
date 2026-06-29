@@ -5,7 +5,7 @@
 > Ce document recense les exigences non fonctionnelles **telles que construites** (le système
 > est développé et déployé pour la soutenance). Chaque exigence est quantifiée et vérifiable.
 > Les faits techniques citent le chemin de code de référence dans le monorepo
-> `CMS/APP/CMS-SARIS/`. Les chiffres canoniques (4 rôles, 87 tables, 110 permissions, stack)
+> `CMS/APP/CMS-SARIS/`. Les chiffres canoniques (3 rôles, 87 tables, 110 permissions, stack)
 > proviennent du brief système et sont définis une seule fois — voir [[_SOURCE_systeme]].
 > Documents liés : [[plan_modules]], [[glossaire]], [[tracabilite]].
 >
@@ -41,7 +41,8 @@ documents, messagerie locale), puis se synchroniser à la reconnexion.
   `apps/desktop/electron/main.ts` (poll `/sync/ready`, max 90 s).
 - **ENF-01-05 (cohérence multi-poste)** — La résolution de conflits est **Last-Write-Wins** sur
   `updatedAt` + détection de vrai conflit via `baseUpdatedAt`, avec **tombstones** (soft-delete
-  `deletedAt`) répliqués. Le serveur central reste la **source de vérité**. Référence :
+  `deletedAt` — [[parametres_metier]] PM-62) répliqués. Le serveur central reste la **source de
+  vérité**. Référence :
   `packages/types/src/sync-conflict.ts`, `apps/api/src/modules/sync/sync.service.ts`.
 - **ENF-01-06 (mode en-ligne prioritaire)** — En ligne, le renderer desktop parle **directement au
   central** (API + temps réel SSE) pour la latence ; hors-ligne il bascule sur le backend local.
@@ -79,7 +80,8 @@ documents, messagerie locale), puis se synchroniser à la reconnexion.
   Référence : `apps/api/src/modules/synchronisation` / écran admin Synchronisation.
 - **ENF-03-04 (purge contrôlée)** — Les notifications expirées sont purgées par cron (rétention
   `notif.retention_jours`, central uniquement) ; les tombstones de synchronisation sont purgés
-  physiquement au-delà de **90 jours**, avec garde-fou `deletedAt < min(SyncState.lastPulledAt)`
+  physiquement au-delà de **90 jours** — [[parametres_metier]] PM-59, avec garde-fou
+  `deletedAt < min(SyncState.lastPulledAt)`
   pour ne jamais purger un changement non encore propagé. Référence :
   `apps/api/src/modules/sync/tombstone-purge.cron.ts`, `NotificationPurgeCron`.
 
@@ -87,8 +89,9 @@ documents, messagerie locale), puis se synchroniser à la reconnexion.
 
 - **ENF-04-01 (authentification JWT)** — Authentification par **JWT access + refresh**. Le token
   d'accès porte un identifiant de session `sid` ; sa durée de vie est pilotée par le paramètre
-  système `auth.session_timeout_minutes` (**défaut 480 min**, plage 5 à 10080). Le refresh dure
-  **7 jours** ; le token temporaire (étape 2FA) dure **5 minutes**. Référence :
+  système `auth.session_timeout_minutes` (**défaut 480 min** — [[parametres_metier]] PM-01, plage 5
+  à 10080). Le refresh dure **7 jours** — [[parametres_metier]] PM-02 ; le token temporaire
+  (étape 2FA) dure **5 minutes** — [[parametres_metier]] PM-03. Référence :
   `apps/api/src/modules/security/security.service.ts` (`REFRESH_TOKEN_TTL`, `TEMP_TOKEN_TTL`),
   `apps/api/src/modules/parametres/parametres.service.ts`.
 - **ENF-04-02 (session unique)** — Un même compte ne peut avoir **qu'une seule session
@@ -119,9 +122,10 @@ documents, messagerie locale), puis se synchroniser à la reconnexion.
   (`CORS_ORIGINS` / `FRONTEND_URL`) + l'origine du client de bureau `app://cms-saris` + les origines
   loopback (mode backend embarqué) ; toute autre origine est refusée. Méthodes limitées à
   GET/POST/PUT/PATCH/DELETE, `credentials: true`. Référence : `apps/api/src/main.ts` (`enableCors`).
-- **ENF-04-08 (rate-limit)** — Throttling global **100 requêtes / minute** (fenêtre 60 000 ms).
-  Le login et la vérification TOTP sont limités à **10 tentatives / minute / IP** (anti brute-force),
-  le refresh à 30 / minute. Référence : `apps/api/src/app.module.ts` (`ThrottlerModule`),
+- **ENF-04-08 (rate-limit)** — Throttling global **100 requêtes / minute** — [[parametres_metier]]
+  PM-06 (fenêtre 60 000 ms). Le login est limité à **10 tentatives / minute / IP** — [[parametres_metier]]
+  PM-04, et la vérification TOTP à **10 tentatives / minute / IP** — [[parametres_metier]] PM-05
+  (anti brute-force), le refresh à 30 / minute (valeur as-built, cf. code). Référence : `apps/api/src/app.module.ts` (`ThrottlerModule`),
   `apps/api/src/modules/security/security.controller.ts` (`@Throttle`),
   `apps/api/src/modules/security/guards/user-throttler.guard.ts` (throttling par utilisateur
   derrière proxy/NAT).
@@ -135,8 +139,9 @@ documents, messagerie locale), puis se synchroniser à la reconnexion.
 - **ENF-04-11 (stockage de secrets desktop)** — Sur le poste Windows, les secrets de session sont
   stockés via le coffre sécurisé du système (DPAPI / `safeStorage`). Référence :
   `apps/desktop/electron` (`window.saris.secure.*`).
-- **ENF-04-12 (CGU)** — L'acceptation des **Conditions d'utilisation** est tracée (masque CGU) et
-  bloque l'accès tant qu'elle n'est pas faite (CguGate). Référence : (traçabilité interne).
+- **ENF-04-12 (CGU)** — L'acceptation des **Conditions d'utilisation** (version `v1-2026.06` —
+  [[parametres_metier]] PM-61) est tracée (masque CGU) et bloque l'accès tant qu'elle n'est pas
+  faite (CguGate). Référence : (traçabilité interne).
 - *Note honnêteté* : les builds de test sont bakés sur `localhost` avec des clés `.env` de
   développement ; le déploiement réel impose un re-packaging avec l'URL Render et les clés du
   central (TOTP/messagerie doivent matcher). La **signature de code** (certificat OV/EV) est un
@@ -163,7 +168,7 @@ documents, messagerie locale), puis se synchroniser à la reconnexion.
   `apps/web/src/components/PrivacyCurtain.tsx`, `apps/web/src/stores/privacy.store.ts`.
 - **ENF-05-05 (permissions par rôle)** — Le contrôle d'accès repose sur **~110 permissions**
   catalogue (`packages/types/src/permissions.ts`) appliquées par garde `@RequirePermissions`, sur
-  **4 rôles** (ADMIN_SYSTEME, MEDECIN_CHEF, MEDECIN, INFIRMIER). Référence :
+  **3 rôles** (ADMIN_SYSTEME, MEDECIN_CHEF, INFIRMIER ; MEDECIN = profession mappée au rôle MEDECIN_CHEF). Référence :
   `packages/types/src/permissions.ts`, [[_SOURCE_systeme]].
 
 ## ENF-06 — Internationalisation

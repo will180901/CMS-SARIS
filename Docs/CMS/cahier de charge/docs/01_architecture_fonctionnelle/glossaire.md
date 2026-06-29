@@ -90,7 +90,7 @@ Dispositif d'interface masquant (effet de flou « verre poli ») en permanence l
 Patient de la catégorie **RIVERAIN** : personne du voisinage, non rattachée à SARIS par un contrat. A droit à la consultation et aux premiers soins, mais **pas** au **bon d'examen** ni au **bon de pharmacie**.
 
 ### Rôle
-Profil d'habilitation regroupant un ensemble de **permissions**. Le système compte **4 rôles** : **ADMIN_SYSTEME** (super-administrateur), **MEDECIN_CHEF** (admin médical + supervision), **MEDECIN** (clinique), **INFIRMIER** (triage + consultation/prescription déléguée). Voir `[[MODULE_02_acces_habilitations]]`.
+Profil d'habilitation regroupant un ensemble de **permissions**. Le système compte **3 rôles** : **ADMIN_SYSTEME** (super-administrateur), **MEDECIN_CHEF** (admin médical + supervision), **INFIRMIER** (triage + consultation/prescription déléguée). À noter : **MEDECIN n'est pas un rôle** mais une **profession** du personnel médical (TypePersonnel) mappée au rôle **MEDECIN_CHEF** (tout médecin reçoit le rôle MEDECIN_CHEF). Voir `[[MODULE_02_acces_habilitations]]`.
 
 ## S
 

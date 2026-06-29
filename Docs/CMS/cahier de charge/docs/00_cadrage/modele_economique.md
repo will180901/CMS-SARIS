@@ -73,7 +73,7 @@ Ces hypothèses dimensionnent la charge et donc le palier d'hébergement nécess
 - **2 sites** : Moutela et Nkayi (fait canonique, voir [[vision]]).
 
 ### PM-12 — Utilisateurs (soignants et administration)
-- **N soignants** répartis sur les 4 rôles (ADMIN_SYSTEME, MEDECIN_CHEF, MEDECIN, INFIRMIER — voir [[MODULE_02_acces_habilitations]]). Effectif réel : **à estimer** (la démo est seedée avec ~10 comptes, ce qui n'est pas l'effectif cible).
+- **N soignants** répartis sur les 3 rôles d'habilitation (ADMIN_SYSTEME, MEDECIN_CHEF, INFIRMIER — la profession « Médecin » est mappée au rôle MEDECIN_CHEF ; voir [[MODULE_02_acces_habilitations]]). Effectif réel : **à estimer** (la démo est seedée avec ~10 comptes, ce qui n'est pas l'effectif cible).
 - **Sessions** : une **session unique par utilisateur** (révocation immédiate), ce qui borne la concurrence.
 
 ### PM-13 — Patientèle
