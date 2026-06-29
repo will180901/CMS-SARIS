@@ -1,8 +1,8 @@
 version: 1.4.1
 files:
   - url: CMS-SARIS-Local-Setup-1.4.1.exe
-    sha512: wX6dA/llX1x8Seg6S+pfPTlKcfxj0CGoJm3oCbc499KwBhYZUQD6Msd0h4RNcMBaxH+pJYW2ar4J5gD4Mr1XHQ==
-    size: 213783820
+    sha512: JPZ81GPLd+y8+5RP3A9AsCRiJjKOHmJxs9dcu728gVkbQ50hOq+5TIboPBsCtcnhWWMj7bt2B2BYfDaldomUHQ==
+    size: 213784129
 path: CMS-SARIS-Local-Setup-1.4.1.exe
-sha512: wX6dA/llX1x8Seg6S+pfPTlKcfxj0CGoJm3oCbc499KwBhYZUQD6Msd0h4RNcMBaxH+pJYW2ar4J5gD4Mr1XHQ==
-releaseDate: '2026-06-29T15:28:12.460Z'
+sha512: JPZ81GPLd+y8+5RP3A9AsCRiJjKOHmJxs9dcu728gVkbQ50hOq+5TIboPBsCtcnhWWMj7bt2B2BYfDaldomUHQ==
+releaseDate: '2026-06-29T19:45:17.779Z'
