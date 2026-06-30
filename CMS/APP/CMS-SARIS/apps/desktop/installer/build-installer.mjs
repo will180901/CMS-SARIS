@@ -74,7 +74,7 @@ if (!fs.existsSync(icoDst)) { console.error('icon.ico introuvable (attendu : ' +
 const resDir = path.join(srcdir, 'resources')
 const appUpdateYml = path.join(resDir, 'app-update.yml')
 if (!fs.existsSync(appUpdateYml)) {
-  fs.writeFileSync(appUpdateYml, 'owner: will180901\nrepo: CMS-SARIS-CONGO\nprovider: github\nupdaterCacheDirName: cms-saris-updater\n')
+  fs.writeFileSync(appUpdateYml, 'owner: will180901\nrepo: CMS-SARIS\nprovider: github\nupdaterCacheDirName: cms-saris-updater\n')
   console.log('app-update.yml généré (auto-update)')
 }
 const elevateExe = path.join(resDir, 'elevate.exe')
