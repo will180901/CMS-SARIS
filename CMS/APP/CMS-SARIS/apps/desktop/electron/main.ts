@@ -103,11 +103,12 @@ function registerAppProtocol(): void {
   })
 }
 
-/** Dimensionne la fenêtre : COMPACTE (taille du formulaire) pour les écrans de config,
- *  PLEINE pour l'application. */
-function sizeWindow(kind: 'setup' | 'app'): void {
+/** Dimensionne la fenêtre : COMPACTE (taille du formulaire) pour les écrans de config
+ *  ET la page de connexion du SPA (même gabarit, cf. `saris:set-window-mode`), PLEINE
+ *  pour l'application authentifiée. */
+function sizeWindow(kind: 'setup' | 'app' | 'login'): void {
   if (!mainWindow) return
-  if (kind === 'setup') {
+  if (kind === 'setup' || kind === 'login') {
     mainWindow.setResizable(false)
     mainWindow.setMaximizable(false)
     mainWindow.setMinimumSize(460, 600)
@@ -317,6 +318,14 @@ function registerIpc(): void {
         })
       }
     }
+  })
+  // Le renderer (SPA React) signale son état d'écran (page /login vs application
+  // authentifiée) : la fenêtre se redimensionne EN PETIT sur /login (même gabarit que
+  // les écrans de config hors-SPA), PLEINE dès qu'un utilisateur est authentifié.
+  // N'affecte PAS server-config.html / sync-setup.html, qui gèrent leur taille
+  // indépendamment via loadServerConfig()/loadSyncSetup().
+  ipcMain.on('saris:set-window-mode', (_e, mode: 'login' | 'app') => {
+    if (mode === 'login' || mode === 'app') sizeWindow(mode)
   })
   // Chargement SYNCHRONE du blob de session chiffré (lu par le preload au démarrage).
   ipcMain.on('saris:session-load', (event) => {

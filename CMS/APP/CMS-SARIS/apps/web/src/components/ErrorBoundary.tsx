@@ -11,6 +11,8 @@ import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { AlertTriangle } from 'lucide-react'
 import i18n from '@/i18n/config'
 import { useSessionStore } from '@/stores/session.store'
+import { isDesktop } from '@/lib/desktop'
+import { DESKTOP_TITLEBAR_H } from './layout/DesktopTitleBar'
 
 interface Props { children: ReactNode }
 interface State { error: Error | null }
@@ -44,7 +46,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
     return (
       <div style={{
-        position: 'fixed', inset: 0,
+        position: 'fixed', top: isDesktop ? DESKTOP_TITLEBAR_H : 0, right: 0, bottom: 0, left: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: 'var(--espace-6)',
         background: 'var(--fond-page)',

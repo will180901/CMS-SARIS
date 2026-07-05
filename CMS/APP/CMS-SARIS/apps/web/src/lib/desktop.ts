@@ -33,6 +33,8 @@ export interface SarisDesktopBridge {
   }
   setNativeTheme: (theme: 'light' | 'dark' | 'system') => Promise<void>
   openAppMenu: () => Promise<void>
+  /** Signale l'écran actif au process principal (redimensionnement de la fenêtre desktop). */
+  setWindowMode: (mode: 'login' | 'app') => void
   /** Ouvre une URL (téléchargement) dans le navigateur système. */
   openExternal: (url: string) => Promise<void>
   /** Télécharge l'installeur depuis l'URL et le lance (l'app se ferme). Annonce de MAJ. */

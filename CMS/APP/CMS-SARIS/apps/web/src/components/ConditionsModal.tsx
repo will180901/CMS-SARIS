@@ -11,6 +11,8 @@ import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X, ShieldCheck, Lock, Loader2, Check } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { isDesktop } from '@/lib/desktop'
+import { DESKTOP_TITLEBAR_H } from './layout/DesktopTitleBar'
 
 const SECTION_COUNT = { cgu: 6, privacy: 7 } as const
 
@@ -54,7 +56,7 @@ export function ConditionsModal({
   }))
 
   return createPortal(
-    <div onClick={blocking ? undefined : onClose} style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+    <div onClick={blocking ? undefined : onClose} style={{ position: 'fixed', top: isDesktop ? DESKTOP_TITLEBAR_H : 0, right: 0, bottom: 0, left: 0, zIndex: 2000, background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
       <div onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={title}
         style={{ width: 620, maxWidth: '100%', maxHeight: '88vh', background: 'var(--fond-surface)', borderRadius: 16, border: '1px solid var(--bordure-legere)', boxShadow: '0 24px 60px rgba(15,23,42,0.28)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 11, padding: '16px 18px', borderBottom: '1px solid var(--bordure-legere)' }}>

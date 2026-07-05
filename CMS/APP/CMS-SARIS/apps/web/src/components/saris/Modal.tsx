@@ -13,6 +13,8 @@ import type { ReactNode } from 'react'
 import { X } from 'lucide-react'
 import { IconButton } from './IconButton'
 import { useIsMobile } from '@/hooks/useMediaQuery'
+import { isDesktop } from '@/lib/desktop'
+import { DESKTOP_TITLEBAR_H } from '../layout/DesktopTitleBar'
 
 interface ModalProps {
   icon:      ReactNode
@@ -47,7 +49,7 @@ export function Modal({ icon, title, subtitle, onClose, width = 560, footer, bod
       <div
         onClick={onClose}
         style={{
-          position: 'fixed', inset: 0, zIndex: 1000,
+          position: 'fixed', top: isDesktop ? DESKTOP_TITLEBAR_H : 0, right: 0, bottom: 0, left: 0, zIndex: 1000,
           background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(2px)',
         }}
       />
@@ -56,8 +58,13 @@ export function Modal({ icon, title, subtitle, onClose, width = 560, footer, bod
         aria-modal="true"
         className="saris-grain"
         style={{
-          position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-          zIndex: 1001, width, maxWidth: isMobile ? 'calc(100vw - 18px)' : 'calc(100vw - 32px)', maxHeight: isMobile ? 'calc(100vh - 18px)' : 'calc(100vh - 32px)',
+          position: 'fixed',
+          top: isDesktop ? `calc(${DESKTOP_TITLEBAR_H}px + (100vh - ${DESKTOP_TITLEBAR_H}px) / 2)` : '50%',
+          left: '50%', transform: 'translate(-50%, -50%)',
+          zIndex: 1001, width, maxWidth: isMobile ? 'calc(100vw - 18px)' : 'calc(100vw - 32px)',
+          maxHeight: isDesktop
+            ? (isMobile ? `calc(100vh - ${DESKTOP_TITLEBAR_H}px - 18px)` : `calc(100vh - ${DESKTOP_TITLEBAR_H}px - 32px)`)
+            : (isMobile ? 'calc(100vh - 18px)' : 'calc(100vh - 32px)'),
           backgroundColor: 'var(--fond-surface)', borderRadius: 'var(--radius-xl)', boxShadow: 'var(--ombre-4)',
           overflow: 'hidden', display: 'flex', flexDirection: 'column',
         }}

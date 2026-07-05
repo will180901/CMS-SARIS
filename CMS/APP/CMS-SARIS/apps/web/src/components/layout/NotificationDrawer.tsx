@@ -13,6 +13,7 @@ import {
 import i18n from '@/i18n/config'
 import { toast } from '@workspace/ui/components/sonner'
 import { isDesktop, desktopBridge } from '@/lib/desktop'
+import { DESKTOP_TITLEBAR_H } from './DesktopTitleBar'
 import { IconButton, EmptyState, Modal, Button, TextInput, SelectBox, Textarea, Field } from '@/components/saris'
 import {
   useNotificationsFeed, useMarkAllRead, useMarkNotificationRead,
@@ -113,10 +114,10 @@ export function NotificationDrawer({ open, onClose }: { open: boolean; onClose: 
 
   return (
     <>
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(15,23,42,0.40)', backdropFilter: 'blur(3px)' }} />
+      <div onClick={onClose} style={{ position: 'fixed', top: isDesktop ? DESKTOP_TITLEBAR_H : 0, right: 0, bottom: 0, left: 0, zIndex: 1000, background: 'rgba(15,23,42,0.40)', backdropFilter: 'blur(3px)' }} />
       <aside role="dialog" aria-modal="true" aria-label={t('shell.notificationsAria')} className="saris-grain"
         style={{
-          position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 1001,
+          position: 'fixed', top: isDesktop ? DESKTOP_TITLEBAR_H : 0, right: 0, bottom: 0, zIndex: 1001,
           width: 460, maxWidth: 'calc(100vw - 24px)',
           backgroundColor: 'var(--fond-surface)', borderLeft: '1px solid var(--bordure-legere)',
           boxShadow: '-12px 0 40px rgba(15,23,42,0.18)', display: 'flex', flexDirection: 'column',

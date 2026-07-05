@@ -85,6 +85,12 @@ contextBridge.exposeInMainWorld('saris', {
     ipcRenderer.invoke('saris:set-native-theme', theme),
   /** Ouvre le menu de l'application (popup natif depuis la barre de titre custom). */
   openAppMenu: (): Promise<void> => ipcRenderer.invoke('saris:open-menu'),
+  /**
+   * Signale au process principal l'état d'écran actuel du SPA : 'login' = fenêtre
+   * petite (même gabarit que les écrans de config), 'app' = fenêtre pleine. Sans effet
+   * en navigateur web (le pont n'existe pas). N'affecte pas server-config.html/sync-setup.html.
+   */
+  setWindowMode: (mode: 'login' | 'app'): void => ipcRenderer.send('saris:set-window-mode', mode),
   /** Coffre chiffré au repos (DPAPI) — pour stocker p. ex. le refresh token. */
   secure: {
     get: (key: string): Promise<string | null> => ipcRenderer.invoke('saris:secure-get', key),
