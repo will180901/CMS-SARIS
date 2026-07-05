@@ -9,8 +9,10 @@
 
 import {
   Controller, Get, Put, Post, Delete, Body, Param, Req,
-  UseGuards, HttpCode, HttpStatus,
+  UseGuards, HttpCode, HttpStatus, UseInterceptors, UploadedFile, BadRequestException,
 } from '@nestjs/common'
+import { FileInterceptor } from '@nestjs/platform-express'
+import { memoryStorage } from 'multer'
 import { MeService } from './me.service'
 import { JwtAuthGuard } from './guards/jwt-auth.guard'
 import { UpdatePreferencesDto, TotpCodeDto } from './dto/me.dto'
@@ -29,6 +31,26 @@ export class MeController {
   @Put('preferences')
   updatePreferences(@Body() dto: UpdatePreferencesDto, @Req() req: any) {
     return this.svc.updatePreferences(req.user.id, dto)
+  }
+
+  // ── Photo de profil (avatar) ──────────────────────────────────────────────
+  @Post('photo')
+  @UseInterceptors(FileInterceptor('file', {
+    storage: memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5 Mo
+    fileFilter: (_req, file, cb) => {
+      if (/^image\/(jpeg|png|webp|gif)$/.test(file.mimetype)) cb(null, true)
+      else cb(new BadRequestException('Format invalide — image JPEG, PNG, WEBP ou GIF attendue'), false)
+    },
+  }))
+  uploadPhoto(@UploadedFile() file: Express.Multer.File | undefined, @Req() req: any) {
+    if (!file) throw new BadRequestException('Aucun fichier reçu')
+    return this.svc.setPhoto(req.user.id, file.buffer)
+  }
+
+  @Delete('photo')
+  removePhoto(@Req() req: any) {
+    return this.svc.removePhoto(req.user.id)
   }
 
   // ── Conditions d'utilisation ──────────────────────────────────────────────

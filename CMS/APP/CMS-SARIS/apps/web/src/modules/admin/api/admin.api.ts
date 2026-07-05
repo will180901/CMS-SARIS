@@ -297,6 +297,13 @@ export const adminApi = {
     totpSetup:         ()                              => api.post<TotpSetup>('/me/totp/setup', {}),
     totpActivate:      (code: string)                  => api.post<TotpActivated>('/me/totp/activate', { code }),
     totpDisable:       (code: string)                  => api.post<{ success: boolean }>('/me/totp/disable', { code }),
+
+    uploadPhoto: (file: File) => {
+      const form = new FormData()
+      form.append('file', file)
+      return api.upload<{ photoUrl: string }>('/me/photo', form)
+    },
+    removePhoto: () => api.delete<{ photoUrl: null }>('/me/photo'),
   },
 
   synchronisation: {

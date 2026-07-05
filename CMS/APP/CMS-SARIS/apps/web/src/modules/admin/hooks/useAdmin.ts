@@ -468,6 +468,32 @@ export function useAcceptCgu() {
   })
 }
 
+/** Upload de la photo de profil — met aussi à jour la session (affichage immédiat, sans reload). */
+export function useUploadMyPhoto() {
+  return useMutation({
+    mutationFn: (file: File) => adminApi.me.uploadPhoto(file),
+    onSuccess: ({ photoUrl }) => {
+      const { user, setUser } = useSessionStore.getState()
+      if (user) setUser({ ...user, photoUrl })
+      toast.success(i18n.t('admin.toastPhotoSaved'))
+    },
+    onError: toastErr,
+  })
+}
+
+/** Retire la photo de profil (repli sur les initiales). */
+export function useRemoveMyPhoto() {
+  return useMutation({
+    mutationFn: () => adminApi.me.removePhoto(),
+    onSuccess: () => {
+      const { user, setUser } = useSessionStore.getState()
+      if (user) setUser({ ...user, photoUrl: null })
+      toast.success(i18n.t('admin.toastPhotoRemoved'))
+    },
+    onError: toastErr,
+  })
+}
+
 export function useMySessions() {
   return useQuery({
     queryKey: ME_KEYS.sessions,

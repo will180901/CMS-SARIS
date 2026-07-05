@@ -62,6 +62,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       roles:              payload.roles,
       permissions:        payload.permissions ?? [],
       personnelMedicalId: payload.personnelMedicalId ?? null,
+      // Contexte d'AUTORISATION par requête (pas un payload de profil) : le JWT ne porte pas
+      // la photo (évite de la faire voyager sur chaque requête / la rendre périmée). La vraie
+      // valeur vient de login/refresh/auth-me — cf. security.service.ts.
+      photoUrl:           null,
       sid:                payload.sid ?? null,   // session courante (gestion des sessions)
     }
   }

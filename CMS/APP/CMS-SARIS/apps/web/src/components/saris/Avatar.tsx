@@ -11,6 +11,8 @@ interface Props {
   size?:  number
   /** Palette de couleurs déterministe (hash du nom) */
   tone?:  'auto' | 'accent' | 'gold' | 'neutral'
+  /** Photo de profil (data URL). Si fournie, remplace les initiales — même principe que PatientAvatar. */
+  photoUrl?: string | null
 }
 
 const PALETTE = [
@@ -30,7 +32,7 @@ function hash(s: string): number {
   return Math.abs(h)
 }
 
-export function Avatar({ nom, prenom, size = 32, tone = 'auto' }: Props) {
+export function Avatar({ nom, prenom, size = 32, tone = 'auto', photoUrl }: Props) {
   const initials = useMemo(() => {
     const a = (prenom?.[0] ?? '').toUpperCase()
     const b = (nom?.[0] ?? '').toUpperCase()
@@ -45,13 +47,28 @@ export function Avatar({ nom, prenom, size = 32, tone = 'auto' }: Props) {
     return PALETTE[idx]!
   }, [tone, nom, prenom])
 
+  const radius = size > 40 ? 'var(--radius-lg)' : 'var(--radius-md)'
+
+  if (photoUrl) {
+    return (
+      <img
+        src={photoUrl}
+        alt={`${prenom ?? ''} ${nom}`.trim()}
+        style={{
+          width: size, height: size, borderRadius: radius,
+          objectFit: 'cover', flexShrink: 0, userSelect: 'none',
+        }}
+      />
+    )
+  }
+
   return (
     <div
       aria-label={`${prenom ?? ''} ${nom}`.trim()}
       style={{
         width:        size,
         height:       size,
-        borderRadius: size > 40 ? 'var(--radius-lg)' : 'var(--radius-md)',
+        borderRadius: radius,
         background:   colors.bg,
         color:        colors.text,
         fontSize:     Math.max(10, Math.round(size * 0.38)),

@@ -11,6 +11,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
 import { randomBytes } from 'crypto'
 import * as bcrypt from 'bcrypt'
+import sharp from 'sharp'
 import { generateSecret, generateURI, verifySync } from 'otplib'
 import { PrismaService } from '../../prisma/prisma.service'
 import { ParametresService } from '../parametres/parametres.service'
@@ -74,6 +75,39 @@ export class MeService {
       update: data,
       create: { utilisateurId: userId, ...PREF_DEFAULTS, ...data },
     })
+  }
+
+  // ════════════════════════════════════════════════════════════════════════
+  //  PHOTO DE PROFIL (avatar)
+  // ════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Redimensionne/compresse la photo puis l'enregistre en Base64 (data URL) dans
+   * la base — même convention que PatientService.setPhoto() (aucun fichier disque).
+   */
+  async setPhoto(userId: string, buffer: Buffer) {
+    let jpeg: Buffer
+    try {
+      jpeg = await sharp(buffer)
+        .rotate()                                    // respecte l'orientation EXIF
+        .resize(256, 256, { fit: 'cover', position: 'centre' }) // carré recadré centré
+        .jpeg({ quality: 80, mozjpeg: true })
+        .toBuffer()
+    } catch {
+      // Le mimetype déclaré par le client (Multer) n'inspecte pas les octets réels —
+      // un fichier renommé/corrompu peut passer le filtre et faire échouer Sharp.
+      throw new BadRequestException('Image illisible ou corrompue')
+    }
+
+    const photoUrl = `data:image/jpeg;base64,${jpeg.toString('base64')}`
+    await this.prisma.utilisateur.update({ where: { id: userId }, data: { photoUrl } })
+    return { photoUrl }
+  }
+
+  /** Retire la photo de profil (repli sur les initiales). */
+  async removePhoto(userId: string) {
+    await this.prisma.utilisateur.update({ where: { id: userId }, data: { photoUrl: null } })
+    return { photoUrl: null }
   }
 
   // ════════════════════════════════════════════════════════════════════════

@@ -9,33 +9,94 @@
 import { useState, useEffect, useRef } from 'react'
 import {
   Palette, ShieldCheck, MonitorSmartphone, KeyRound, Check, Copy, ShieldAlert,
-  LogOut, QrCode, Save, MapPin, Globe, Navigation,
+  LogOut, QrCode, Save, MapPin, Globe, Navigation, ImageUp, Trash2,
 } from 'lucide-react'
 import { parseUserAgent } from '@/lib/userAgent'
 import { geoLabel, formatCoords, mapsUrl } from '@/lib/geo'
 import { QRCode } from '@workspace/ui/components/kibo-ui/qr-code'
-import { Card, Button, SelectBox, TextInput, StatusPill, Skeleton, SegmentedTabs, TotpCountdown } from '@/components/saris'
+import { toast } from '@workspace/ui/components/sonner'
+import { Card, Button, SelectBox, TextInput, StatusPill, Skeleton, SegmentedTabs, TotpCountdown, Avatar } from '@/components/saris'
 import { ChangePasswordDialog } from '@/modules/auth/components/ChangePasswordDialog'
 import { useTheme } from '@/components/theme-provider'
 import { THEME_MAP } from '@/components/PreferencesSync'
 import { soundsEnabled, setSoundsEnabled } from '@/lib/sounds'
 import { formatDateTime } from '@/lib/intl'
 import { useTranslation } from 'react-i18next'
+import { useSessionStore } from '@/stores/session.store'
 import {
   useMyPreferences, useUpdateMyPreferences,
   useMySessions, useRevokeSession, useRevokeOtherSessions,
   useTotpStatus, useTotpSetup, useTotpActivate, useTotpDisable,
+  useUploadMyPhoto, useRemoveMyPhoto,
 } from '../../hooks/useAdmin'
 import type { Preferences } from '../../api/admin.api'
+
+const PHOTO_MAX_BYTES = 5 * 1024 * 1024
+const PHOTO_MIME_RE = /^image\/(jpeg|png|webp|gif)$/
 
 /** Rend UNE section du compte personnel, sélectionnée par la sous-nav. */
 export function PersonnelTab({ section }: { section: string }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--espace-4)' }}>
-      {section === 'preferences' && <PreferencesCard />}
+      {section === 'preferences' && <><PhotoCard /><PreferencesCard /></>}
       {section === 'securite' && <><TotpCard /><MotDePasseCard /></>}
       {section === 'sessions' && <SessionsCard />}
     </div>
+  )
+}
+
+// ── Photo de profil (avatar) ──────────────────────────────────────────────────
+
+function PhotoCard() {
+  const { t } = useTranslation()
+  const user = useSessionStore(s => s.user)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const upload = useUploadMyPhoto()
+  const remove = useRemoveMyPhoto()
+
+  function onPick(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = '' // permet de re-choisir le même fichier ensuite
+    if (!file) return
+    if (!PHOTO_MIME_RE.test(file.type)) {
+      toast.error(t('settings.photoInvalidFormat'))
+      return
+    }
+    if (file.size > PHOTO_MAX_BYTES) {
+      toast.error(t('settings.photoTooLarge'))
+      return
+    }
+    upload.mutate(file)
+  }
+
+  if (!user) return null
+
+  return (
+    <Card>
+      <Card.Header icon={<ImageUp size={15} />} title={t('settings.photoTitle')} subtitle={t('settings.photoHint')} />
+      <Card.Body padding="md">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--espace-4)', flexWrap: 'wrap' }}>
+          <Avatar nom={user.login} size={72} tone="accent" photoUrl={user.photoUrl} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--espace-2)' }}>
+            <div style={{ display: 'flex', gap: 'var(--espace-2)', flexWrap: 'wrap' }}>
+              <Button size="sm" variant="outline" leftIcon={<ImageUp size={13} />} loading={upload.isPending} onClick={() => fileInputRef.current?.click()}>
+                {t('settings.photoChoose')}
+              </Button>
+              {user.photoUrl && (
+                <Button size="sm" variant="ghost" leftIcon={<Trash2 size={13} />} loading={remove.isPending} onClick={() => remove.mutate()}>
+                  {t('settings.photoRemove')}
+                </Button>
+              )}
+            </div>
+            <p style={{ margin: 0, fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)' }}>{t('settings.photoFormats')}</p>
+          </div>
+          <input
+            ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif"
+            style={{ display: 'none' }} onChange={onPick}
+          />
+        </div>
+      </Card.Body>
+    </Card>
   )
 }
 

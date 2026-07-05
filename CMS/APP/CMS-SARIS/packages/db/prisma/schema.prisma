@@ -24,6 +24,8 @@ model Utilisateur {
   blocageMinutes     Int          @default(0)
   siteId             String
   personnelMedicalId String?      @unique
+  /** Photo de profil (data URL base64, même convention que IdentitePatient.photoUrl). */
+  photoUrl           String?
   lastSeenAt         DateTime? // présence : dernière activité (messagerie)
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt

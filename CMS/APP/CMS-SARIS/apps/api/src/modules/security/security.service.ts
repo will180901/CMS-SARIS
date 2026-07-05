@@ -227,7 +227,7 @@ export class SecurityService {
     return {
       requireTotp:  false,
       ...tokens,
-      user: { id: user.id, login: user.login, siteId, roles, permissions, personnelMedicalId },
+      user: { id: user.id, login: user.login, siteId, roles, permissions, personnelMedicalId, photoUrl: user.photoUrl },
     }
   }
 
@@ -320,7 +320,7 @@ export class SecurityService {
 
     return {
       ...tokens,
-      user: { id: user.id, login: user.login, siteId: user.siteId, roles, permissions, personnelMedicalId },
+      user: { id: user.id, login: user.login, siteId: user.siteId, roles, permissions, personnelMedicalId, photoUrl: user.photoUrl },
     }
   }
 
@@ -399,7 +399,7 @@ export class SecurityService {
 
     return {
       ...tokens,
-      user: { id: user.id, login: user.login, siteId: user.siteId, roles, permissions, personnelMedicalId },
+      user: { id: user.id, login: user.login, siteId: user.siteId, roles, permissions, personnelMedicalId, photoUrl: user.photoUrl },
     }
   }
 
@@ -559,6 +559,7 @@ export class SecurityService {
       roles,
       permissions,
       personnelMedicalId: user.personnelMedicalId,
+      photoUrl:           user.photoUrl,
     }
   }
 

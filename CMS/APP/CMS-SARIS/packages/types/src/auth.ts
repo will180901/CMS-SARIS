@@ -24,6 +24,7 @@ export interface UserSession {
   roles:              Role[]
   permissions:        PermissionCode[]
   personnelMedicalId: string | null
+  photoUrl:           string | null
   token:              string
 }
 
