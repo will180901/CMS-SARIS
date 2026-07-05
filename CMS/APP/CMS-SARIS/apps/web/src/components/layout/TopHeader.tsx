@@ -10,7 +10,6 @@ import { Tooltip } from '@/components/saris'
 import { useIsMobile } from '@/hooks/useMediaQuery'
 import { useUiStore } from '@/stores/ui.store'
 import { usePrivacyStore } from '@/stores/privacy.store'
-import { useNetworkStore } from '@/stores/network.store'
 import { useSyncStore } from '@/stores/sync.store'
 import { useUnreadCount, useNotificationStream } from '@/modules/notifications/hooks/useNotifications'
 import { useApiEndpointSwitch, useConnectivityStore } from '@/stores/connectivity.store'
@@ -23,14 +22,16 @@ export function TopHeader() {
   const [open, setOpen]  = useState(false)
   const isMobile         = useIsMobile()
   const toggleMobileNav  = useUiStore(s => s.toggleMobileNav)
-  const healthOnline     = useNetworkStore(s => s.isOnline)
+  // Badge « En ligne / Hors ligne » : DESKTOP uniquement. `centralOnline` (poussé par
+  // le process principal, cf. connectivity.store) reflète la vraie joignabilité du
+  // central, indépendamment du backend actuellement actif (central ou local).
+  // Retiré du WEB (2026-07-05) : le signal générique (useServerHealth/`/health/ping`)
+  // reste correct côté serveur, mais un onglet déjà ouvert peut tourner sur un ancien
+  // bundle JS tant que le service worker PWA n'a pas fini sa mise à jour — un badge
+  // « en direct » sur un signal potentiellement périmé est trompeur pour l'utilisateur.
+  // La détection sous-jacente (useServerHealth/useNetworkStore) reste active pour la
+  // vraie logique de relance de la file hors-ligne (useSyncEngine, lib/sync.ts).
   const centralOnline    = useConnectivityStore(s => s.online)
-  // Desktop : une fois basculé sur le backend LOCAL (central injoignable), le ping
-  // générique (useServerHealth) suivrait BASE_URL et interrogerait ce backend local
-  // (même machine → répond presque toujours) → « En ligne » à tort. `centralOnline`
-  // (poussé par le process principal, cf. connectivity.store) reflète la VRAIE
-  // joignabilité du central, indépendamment du backend actuellement actif.
-  const isOnline         = isDesktop ? centralOnline : healthOnline
   const syncStatus       = useSyncStore(s => s.status)
   const pendingCount     = useSyncStore(s => s.pendingCount)
   const { data }         = useUnreadCount()
@@ -79,19 +80,21 @@ export function TopHeader() {
         {/* Fil d'Ariane + navigation avant / arrière (desktop) */}
         {!isMobile && <BreadcrumbBar />}
 
-        {/* Statut de connectivité */}
-        <Tooltip label={isOnline ? t('header.onlineTooltip') : t('header.offlineTooltip')}>
-          <span style={{
-            display: 'inline-flex', alignItems: 'center', gap: 5,
-            fontSize: 11, fontWeight: 600,
-            padding: '4px 9px', borderRadius: 9999,
-            background: isOnline ? 'var(--succes-fond)' : 'var(--avert-fond)',
-            color:      isOnline ? 'var(--succes-texte)' : 'var(--avert-texte)',
-          }}>
-            {isOnline ? <Wifi size={12} /> : <WifiOff size={12} />}
-            {isOnline ? t('common.online') : t('common.offline')}
-          </span>
-        </Tooltip>
+        {/* Statut de connectivité — desktop uniquement (cf. note ci-dessus) */}
+        {isDesktop && (
+          <Tooltip label={centralOnline ? t('header.onlineTooltip') : t('header.offlineTooltip')}>
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 5,
+              fontSize: 11, fontWeight: 600,
+              padding: '4px 9px', borderRadius: 9999,
+              background: centralOnline ? 'var(--succes-fond)' : 'var(--avert-fond)',
+              color:      centralOnline ? 'var(--succes-texte)' : 'var(--avert-texte)',
+            }}>
+              {centralOnline ? <Wifi size={12} /> : <WifiOff size={12} />}
+              {centralOnline ? t('common.online') : t('common.offline')}
+            </span>
+          </Tooltip>
+        )}
 
         {/* File de synchronisation hors-ligne */}
         {(pendingCount > 0 || syncing) && (

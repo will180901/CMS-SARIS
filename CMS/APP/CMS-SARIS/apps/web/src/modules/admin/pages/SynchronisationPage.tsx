@@ -27,7 +27,6 @@ import { toast } from '@workspace/ui/components/sonner'
 import { usePermissions } from '@/hooks/usePermissions'
 import { formatDateTime, formatNumber } from '@/lib/intl'
 import { labelModule, labelStatut, labelAction } from '@/config/labels'
-import { useNetworkStore } from '@/stores/network.store'
 import { useConnectivityStore } from '@/stores/connectivity.store'
 import { isDesktop } from '@/lib/desktop'
 import { useSyncStore } from '@/stores/sync.store'
@@ -496,12 +495,10 @@ function DataSyncZone() {
 
 function SyncTerrainZone() {
   const { t } = useTranslation()
-  const healthOnline  = useNetworkStore(s => s.isOnline)
+  // Badge + garde du bouton « Forcer la synchro » : DESKTOP uniquement (cf. TopHeader.tsx
+  // pour le détail — retiré du web le 2026-07-05, un onglet déjà ouvert peut tourner sur un
+  // ancien bundle JS tant que le service worker n'a pas fini sa mise à jour PWA).
   const centralOnline = useConnectivityStore(s => s.online)
-  // Desktop : reflète la joignabilité RÉELLE du central (poussée par le process
-  // principal), pas le ping générique qui suivrait le backend LOCAL une fois basculé
-  // dessus (même machine → toujours joignable → « En ligne » à tort). Cf. TopHeader.
-  const isOnline      = isDesktop ? centralOnline : healthOnline
   const syncStatus   = useSyncStore(s => s.status)
   const pendingCount = useSyncStore(s => s.pendingCount)
   const lastSyncAt   = useSyncStore(s => s.lastSyncAt)
@@ -555,15 +552,17 @@ function SyncTerrainZone() {
           background: 'color-mix(in srgb, var(--fond-surface-2) 70%, transparent)',
           backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
         }}>
-          <span style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700,
-            padding: '5px 11px', borderRadius: 9999,
-            background: isOnline ? 'var(--succes-fond)' : 'var(--avert-fond)',
-            color:      isOnline ? 'var(--succes-texte)' : 'var(--avert-texte)',
-          }}>
-            {isOnline ? <Wifi size={13} /> : <WifiOff size={13} />}
-            {isOnline ? t('admin.online') : t('admin.offline')}
-          </span>
+          {isDesktop && (
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700,
+              padding: '5px 11px', borderRadius: 9999,
+              background: centralOnline ? 'var(--succes-fond)' : 'var(--avert-fond)',
+              color:      centralOnline ? 'var(--succes-texte)' : 'var(--avert-texte)',
+            }}>
+              {centralOnline ? <Wifi size={13} /> : <WifiOff size={13} />}
+              {centralOnline ? t('admin.online') : t('admin.offline')}
+            </span>
+          )}
 
           <Metric label={t('admin.pendingSync')} value={`${pendingCount}`} tone={pendingCount > 0 ? 'warning' : 'neutral'} />
           <Metric label={t('admin.lastSync')} value={relative(lastSyncAt)} />
@@ -579,7 +578,7 @@ function SyncTerrainZone() {
                 size="sm"
                 variant="ghost"
                 leftIcon={syncing ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
-                disabled={!isOnline || syncing || sync.isPending}
+                disabled={(isDesktop && !centralOnline) || syncing || sync.isPending}
                 onClick={() => sync.mutate()}
               >
                 {syncing ? t('admin.syncing') : t('admin.forceSync')}
