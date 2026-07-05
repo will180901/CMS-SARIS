@@ -18,11 +18,13 @@ import {
   RefreshCw, Database, Save, ShieldCheck, FileText, KeyRound, Wifi, WifiOff,
   HardDrive, CheckCircle2, AlertTriangle, Loader2, CloudUpload, Trash2,
   RotateCcw, Users, Stethoscope, Pill, Ambulance, FlaskConical, HardHat, ClipboardList,
-  CalendarClock, MonitorSmartphone, Activity, GitMerge, Radio,
+  CalendarClock, MonitorSmartphone, Activity, GitMerge, Radio, LayoutGrid, List, Search,
 } from 'lucide-react'
 import {
   PageHeader, Card, Button, StatusPill, Skeleton, EmptyState, Tooltip, Modal, SegmentedTabs,
+  Toolbar, DataTableHead, DATA_TABLE_CARD, DATA_TD_PADDING, dataRowStyle,
 } from '@/components/saris'
+import type { SegmentedTab } from '@/components/saris'
 import { toast } from '@workspace/ui/components/sonner'
 import { usePermissions } from '@/hooks/usePermissions'
 import { formatDateTime, formatNumber } from '@/lib/intl'
@@ -187,6 +189,10 @@ function journalStatutLabel(t: TFn, statut: string): string {
   return map[(statut || '').toUpperCase()] ?? statut
 }
 
+type SupTab = 'postes' | 'activite' | 'conflits'
+type PosteFiltre = 'tous' | 'ligne' | 'horsligne'
+type PosteVue = 'grid' | 'list'
+
 function SupervisionZone() {
   const { t } = useTranslation()
   const { data, isLoading } = useSyncSupervision()
@@ -194,6 +200,14 @@ function SupervisionZone() {
   const journaux = data?.journaux ?? []
   const conflits = data?.conflits ?? []
   const enLigne  = postes.filter(p => p.enLigne).length
+
+  const [supTab, setSupTab] = useState<SupTab>('postes')
+
+  const supTabs: SegmentedTab[] = [
+    { key: 'postes',   label: t('admin.supPostesTitle'),   icon: <MonitorSmartphone size={13} />, badge: postes.length || undefined },
+    { key: 'activite', label: t('admin.supActivityTitle'), icon: <Activity size={13} /> },
+    { key: 'conflits', label: t('admin.supConflictsTitle'), icon: <GitMerge size={13} />, badge: conflits.length || undefined },
+  ]
 
   return (
     <Card padding="none" className="saris-grain">
@@ -213,107 +227,131 @@ function SupervisionZone() {
         }
       />
       <Card.Body padding="md">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--espace-4)' }}>
-
-          {/* ── Postes ───────────────────────────────────────────────────── */}
-          <section>
-            <SupSectionTitle
-              icon={<MonitorSmartphone size={13} />}
-              label={t('admin.supPostesTitle')}
-              count={postes.length > 0 ? t('admin.supPostesOnline', { online: enLigne, total: postes.length }) : undefined}
-            />
-            {isLoading ? (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 'var(--espace-2)' }}>
-                {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} height={58} />)}
-              </div>
-            ) : postes.length === 0 ? (
-              <EmptyState
-                icon={<MonitorSmartphone size={18} />}
-                title={t('admin.supNoPosteTitle')}
-                description={t('admin.supNoPosteDesc')}
-                variant="subtle"
-              />
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 'var(--espace-2)' }}>
-                {postes.map(p => <PosteCard key={p.id} poste={p} />)}
-              </div>
-            )}
-          </section>
-
-          {/* ── Activité récente ─────────────────────────────────────────── */}
-          <section>
-            <SupSectionTitle
-              icon={<Activity size={13} />}
-              label={t('admin.supActivityTitle')}
-            />
-            {isLoading ? (
-              <div>{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} height={44} style={{ marginBottom: 6 }} />)}</div>
-            ) : journaux.length === 0 ? (
-              <EmptyState
-                icon={<Activity size={18} />}
-                title={t('admin.supNoActivityTitle')}
-                description={t('admin.supNoActivityDesc')}
-                variant="subtle"
-              />
-            ) : (
-              <div style={{ border: '1px solid var(--bordure-legere)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
-                {journaux.map((j, i) => <JournalRow key={j.id} j={j} striped={i % 2 === 1} />)}
-              </div>
-            )}
-          </section>
-
-          {/* ── Conflits ─────────────────────────────────────────────────── */}
-          <section>
-            <SupSectionTitle
-              icon={<GitMerge size={13} />}
-              label={t('admin.supConflictsTitle')}
-              badge={conflits.length > 0 ? conflits.length : undefined}
-            />
-            {isLoading ? (
-              <div>{Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} height={44} style={{ marginBottom: 6 }} />)}</div>
-            ) : conflits.length === 0 ? (
-              <EmptyState
-                icon={<CheckCircle2 size={18} />}
-                title={t('admin.supNoConflictTitle')}
-                description={t('admin.supNoConflictDesc')}
-                variant="subtle"
-              />
-            ) : (
-              <div style={{ border: '1px solid var(--bordure-legere)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
-                {conflits.map((c, i) => <ConflitRow key={c.id} c={c} striped={i % 2 === 1} />)}
-              </div>
-            )}
-          </section>
-
+        <div style={{ marginBottom: 'var(--espace-4)' }}>
+          <SegmentedTabs value={supTab} onChange={(k) => setSupTab(k as SupTab)} tabs={supTabs} size="sm" aria-label={t('admin.supTitle')} />
         </div>
+
+        {supTab === 'postes' && <PostesSection postes={postes} enLigne={enLigne} loading={isLoading} />}
+        {supTab === 'activite' && <ActiviteTable journaux={journaux} loading={isLoading} />}
+        {supTab === 'conflits' && <ConflitsTable conflits={conflits} loading={isLoading} />}
       </Card.Body>
     </Card>
   )
 }
 
-function SupSectionTitle({ icon, label, count, badge }: {
-  icon: ReactNode; label: string; count?: string; badge?: number
+// ── Onglet Postes : recherche + filtre en ligne/hors ligne + bascule grille/liste ──
+
+function PostesSection({ postes, enLigne, loading }: {
+  postes: SyncSupervisionPoste[]; enLigne: number; loading: boolean
 }) {
+  const { t } = useTranslation()
+  const [search, setSearch] = useState('')
+  const [filtre, setFiltre] = useState<PosteFiltre>('tous')
+  const [vue, setVue] = useState<PosteVue>('grid')
+
+  const horsLigne = postes.length - enLigne
+  const pillFiltres: { key: PosteFiltre; label: string; count: number }[] = [
+    { key: 'tous',      label: t('admin.supFilterAll'), count: postes.length },
+    { key: 'ligne',     label: t('admin.supOnline'),    count: enLigne },
+    { key: 'horsligne', label: t('admin.supOffline'),   count: horsLigne },
+  ]
+
+  const filtered = postes.filter(p => {
+    if (filtre === 'ligne' && !p.enLigne) return false
+    if (filtre === 'horsligne' && p.enLigne) return false
+    if (search.trim()) {
+      const q = search.trim().toLowerCase()
+      const nom  = (p.utilisateurNom ?? p.libelle).toLowerCase()
+      const role = p.utilisateurRole ? labelRole(p.utilisateurRole).toLowerCase() : ''
+      if (!nom.includes(q) && !role.includes(q)) return false
+    }
+    return true
+  })
+
+  if (loading) {
+    return (
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 'var(--espace-2)' }}>
+        {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} height={58} />)}
+      </div>
+    )
+  }
+  if (postes.length === 0) {
+    return <EmptyState icon={<MonitorSmartphone size={18} />} title={t('admin.supNoPosteTitle')} description={t('admin.supNoPosteDesc')} variant="subtle" />
+  }
+
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 'var(--espace-2)' }}>
-      <span style={{ display: 'inline-flex', color: 'var(--texte-tertiaire)' }}>{icon}</span>
-      <p style={{ margin: 0, fontSize: 'var(--font-size-overline)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--texte-tertiaire)' }}>
-        {label}
-      </p>
-      {badge !== undefined && (
-        <span style={{
-          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          minWidth: 18, height: 18, padding: '0 5px', borderRadius: 9999,
-          fontSize: 11, fontWeight: 700,
-          background: 'var(--erreur-fond)', color: 'var(--erreur-texte)',
-        }}>
-          {badge}
-        </span>
-      )}
-      {count && (
-        <span style={{ marginLeft: 'auto', fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)' }}>
-          {count}
-        </span>
+    <div>
+      <Card style={{ marginBottom: 'var(--espace-3)' }}>
+        <Toolbar
+          search={search}
+          onSearchChange={setSearch}
+          searchPlaceholder={t('admin.supSearchPlaceholder')}
+          filters={
+            <div style={{ display: 'flex', gap: 3, padding: 3, borderRadius: 'var(--radius-md)', background: 'var(--fond-surface-2)', border: '1px solid var(--bordure-legere)' }}>
+              {pillFiltres.map(f => (
+                <button
+                  key={f.key} type="button" onClick={() => setFiltre(f.key)}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    padding: '4px 10px', borderRadius: 'var(--radius-sm)', border: 'none', cursor: 'pointer',
+                    fontSize: 'var(--font-size-caption)', fontWeight: 600,
+                    background: filtre === f.key ? 'var(--fond-surface)' : 'transparent',
+                    color:      filtre === f.key ? 'var(--texte-primaire)' : 'var(--texte-tertiaire)',
+                    boxShadow:  filtre === f.key ? 'var(--ombre-1)' : 'none',
+                  }}
+                >
+                  {f.label}
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    minWidth: 16, height: 16, padding: '0 4px', borderRadius: 9999,
+                    fontSize: 10, fontWeight: 700,
+                    background: filtre === f.key ? 'var(--ap-100)' : 'var(--fond-surface-2)',
+                    color:      filtre === f.key ? 'var(--ap-700)' : 'var(--texte-tertiaire)',
+                  }}>
+                    {f.count}
+                  </span>
+                </button>
+              ))}
+            </div>
+          }
+          actions={
+            <div style={{ display: 'flex', gap: 2, padding: 3, borderRadius: 'var(--radius-md)', background: 'var(--fond-surface-2)', border: '1px solid var(--bordure-legere)' }}>
+              <Tooltip label={t('admin.supViewGrid')}>
+                <button type="button" onClick={() => setVue('grid')} aria-label={t('admin.supViewGrid')} aria-pressed={vue === 'grid'}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    width: 26, height: 26, borderRadius: 'var(--radius-sm)', border: 'none', cursor: 'pointer',
+                    background: vue === 'grid' ? 'var(--fond-surface)' : 'transparent',
+                    color:      vue === 'grid' ? 'var(--ap-600)' : 'var(--texte-tertiaire)',
+                    boxShadow:  vue === 'grid' ? 'var(--ombre-1)' : 'none',
+                  }}
+                ><LayoutGrid size={14} /></button>
+              </Tooltip>
+              <Tooltip label={t('admin.supViewList')}>
+                <button type="button" onClick={() => setVue('list')} aria-label={t('admin.supViewList')} aria-pressed={vue === 'list'}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    width: 26, height: 26, borderRadius: 'var(--radius-sm)', border: 'none', cursor: 'pointer',
+                    background: vue === 'list' ? 'var(--fond-surface)' : 'transparent',
+                    color:      vue === 'list' ? 'var(--ap-600)' : 'var(--texte-tertiaire)',
+                    boxShadow:  vue === 'list' ? 'var(--ombre-1)' : 'none',
+                  }}
+                ><List size={14} /></button>
+              </Tooltip>
+            </div>
+          }
+        />
+      </Card>
+
+      {filtered.length === 0 ? (
+        <EmptyState icon={<Search size={18} />} title={t('admin.supNoMatchTitle')} description={t('admin.supNoMatchDesc')} variant="subtle" />
+      ) : (
+        <div style={vue === 'grid'
+          ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 'var(--espace-2)' }
+          : { display: 'flex', flexDirection: 'column', gap: 'var(--espace-2)' }}
+        >
+          {filtered.map(p => <PosteCard key={p.id} poste={p} />)}
+        </div>
       )}
     </div>
   )
@@ -353,53 +391,95 @@ function PosteCard({ poste }: { poste: SyncSupervisionPoste }) {
   )
 }
 
-function JournalRow({ j, striped }: { j: SyncSupervisionJournal; striped: boolean }) {
+// ── Onglet Activité récente : tableau propre (comme les autres pages) ────────
+
+function ActiviteTable({ journaux, loading }: { journaux: SyncSupervisionJournal[]; loading: boolean }) {
   const { t } = useTranslation()
-  const tone = JOURNAL_STATUT_TONE[(j.statut || '').toUpperCase()] ?? 'neutral'
+  if (loading) {
+    return <div>{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} height={40} style={{ marginBottom: 6 }} />)}</div>
+  }
+  if (journaux.length === 0) {
+    return <EmptyState icon={<Activity size={18} />} title={t('admin.supNoActivityTitle')} description={t('admin.supNoActivityDesc')} variant="subtle" />
+  }
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 'var(--espace-3)',
-      padding: 'var(--espace-2) var(--espace-3)',
-      background: striped ? 'var(--fond-surface-2)' : 'transparent',
-      borderBottom: '1px solid var(--bordure-legere)',
-    }}>
-      <div style={{ width: 26, height: 26, borderRadius: 'var(--radius-md)', background: 'var(--ap-50)', color: 'var(--ap-600)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        <Activity size={13} />
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ margin: 0, fontSize: 'var(--font-size-body-sm)', fontWeight: 600, color: 'var(--texte-primaire)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {j.poste}
-        </p>
-        <p style={{ margin: '1px 0 0', fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)' }}>
-          {relative(j.startedAt)} · {t('admin.supMutations', { count: j.nbMutations })} · {t('admin.supConflicts', { count: j.nbConflits })}
-        </p>
-      </div>
-      <StatusPill tone={tone as any} size="sm">{journalStatutLabel(t, j.statut)}</StatusPill>
+    <div style={DATA_TABLE_CARD}>
+      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <DataTableHead columns={[
+          { label: t('admin.colPoste') },
+          { label: t('admin.colStatus'), width: 110 },
+          { label: t('admin.colStarted'), width: 140 },
+          { label: t('admin.colMutations'), align: 'right', width: 110 },
+          { label: t('admin.colConflicts'), align: 'right', width: 100 },
+        ]} />
+        <tbody>
+          {journaux.map((j, i) => {
+            const tone = JOURNAL_STATUT_TONE[(j.statut || '').toUpperCase()] ?? 'neutral'
+            return (
+              <tr key={j.id} style={dataRowStyle(i % 2 === 1, false)}>
+                <td style={{ padding: DATA_TD_PADDING }}>
+                  <span style={{ fontSize: 'var(--font-size-body-sm)', fontWeight: 600, color: 'var(--texte-primaire)' }}>{j.poste}</span>
+                </td>
+                <td style={{ padding: DATA_TD_PADDING }}>
+                  <StatusPill tone={tone as any} size="sm">{journalStatutLabel(t, j.statut)}</StatusPill>
+                </td>
+                <td style={{ padding: DATA_TD_PADDING }}>
+                  <span style={{ fontSize: 'var(--font-size-body-sm)', color: 'var(--texte-secondaire)' }}>{relative(j.startedAt)}</span>
+                </td>
+                <td style={{ padding: DATA_TD_PADDING, textAlign: 'right' }}>
+                  <span style={{ fontSize: 'var(--font-size-body-sm)', color: 'var(--texte-secondaire)' }}>{formatNumber(j.nbMutations)}</span>
+                </td>
+                <td style={{ padding: DATA_TD_PADDING, textAlign: 'right' }}>
+                  <span style={{ fontSize: 'var(--font-size-body-sm)', color: j.nbConflits > 0 ? 'var(--avert-accent)' : 'var(--texte-tertiaire)', fontWeight: j.nbConflits > 0 ? 700 : 400 }}>
+                    {formatNumber(j.nbConflits)}
+                  </span>
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
     </div>
   )
 }
 
-function ConflitRow({ c, striped }: { c: SyncSupervisionConflit; striped: boolean }) {
+// ── Onglet Conflits : tableau propre (comme les autres pages) ────────────────
+
+function ConflitsTable({ conflits, loading }: { conflits: SyncSupervisionConflit[]; loading: boolean }) {
   const { t } = useTranslation()
+  if (loading) {
+    return <div>{Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} height={40} style={{ marginBottom: 6 }} />)}</div>
+  }
+  if (conflits.length === 0) {
+    return <EmptyState icon={<CheckCircle2 size={18} />} title={t('admin.supNoConflictTitle')} description={t('admin.supNoConflictDesc')} variant="subtle" />
+  }
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 'var(--espace-3)',
-      padding: 'var(--espace-2) var(--espace-3)',
-      background: striped ? 'var(--fond-surface-2)' : 'transparent',
-      borderBottom: '1px solid var(--bordure-legere)',
-    }}>
-      <div style={{ width: 26, height: 26, borderRadius: 'var(--radius-md)', background: 'var(--erreur-fond)', color: 'var(--erreur-accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        <GitMerge size={13} />
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ margin: 0, fontSize: 'var(--font-size-body-sm)', fontWeight: 600, color: 'var(--texte-primaire)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {humanizeCode(c.entiteType)}
-        </p>
-        <p style={{ margin: '1px 0 0', fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)' }}>
-          {humanizeCode(c.typeConflit)} · {relative(c.createdAt)}
-        </p>
-      </div>
-      <StatusPill tone="warning" size="sm">{t('admin.supConflictBadge')}</StatusPill>
+    <div style={DATA_TABLE_CARD}>
+      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <DataTableHead columns={[
+          { label: t('admin.colEntity') },
+          { label: t('admin.colType') },
+          { label: t('admin.colDate'), width: 160 },
+          { label: t('admin.colStatus'), align: 'right', width: 110 },
+        ]} />
+        <tbody>
+          {conflits.map((c, i) => (
+            <tr key={c.id} style={dataRowStyle(i % 2 === 1, false)}>
+              <td style={{ padding: DATA_TD_PADDING }}>
+                <span style={{ fontSize: 'var(--font-size-body-sm)', fontWeight: 600, color: 'var(--texte-primaire)' }}>{humanizeCode(c.entiteType)}</span>
+              </td>
+              <td style={{ padding: DATA_TD_PADDING }}>
+                <span style={{ fontSize: 'var(--font-size-body-sm)', color: 'var(--texte-secondaire)' }}>{humanizeCode(c.typeConflit)}</span>
+              </td>
+              <td style={{ padding: DATA_TD_PADDING }}>
+                <span style={{ fontSize: 'var(--font-size-body-sm)', color: 'var(--texte-secondaire)' }}>{relative(c.createdAt)}</span>
+              </td>
+              <td style={{ padding: DATA_TD_PADDING, textAlign: 'right' }}>
+                <StatusPill tone="warning" size="sm">{t('admin.supConflictBadge')}</StatusPill>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }
