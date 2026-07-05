@@ -13,7 +13,8 @@ import { usePrivacyStore } from '@/stores/privacy.store'
 import { useNetworkStore } from '@/stores/network.store'
 import { useSyncStore } from '@/stores/sync.store'
 import { useUnreadCount, useNotificationStream } from '@/modules/notifications/hooks/useNotifications'
-import { useApiEndpointSwitch } from '@/stores/connectivity.store'
+import { useApiEndpointSwitch, useConnectivityStore } from '@/stores/connectivity.store'
+import { isDesktop } from '@/lib/desktop'
 import { NotificationDrawer } from './NotificationDrawer'
 import { BreadcrumbBar } from './BreadcrumbBar'
 
@@ -22,7 +23,14 @@ export function TopHeader() {
   const [open, setOpen]  = useState(false)
   const isMobile         = useIsMobile()
   const toggleMobileNav  = useUiStore(s => s.toggleMobileNav)
-  const isOnline         = useNetworkStore(s => s.isOnline)
+  const healthOnline     = useNetworkStore(s => s.isOnline)
+  const centralOnline    = useConnectivityStore(s => s.online)
+  // Desktop : une fois basculé sur le backend LOCAL (central injoignable), le ping
+  // générique (useServerHealth) suivrait BASE_URL et interrogerait ce backend local
+  // (même machine → répond presque toujours) → « En ligne » à tort. `centralOnline`
+  // (poussé par le process principal, cf. connectivity.store) reflète la VRAIE
+  // joignabilité du central, indépendamment du backend actuellement actif.
+  const isOnline         = isDesktop ? centralOnline : healthOnline
   const syncStatus       = useSyncStore(s => s.status)
   const pendingCount     = useSyncStore(s => s.pendingCount)
   const { data }         = useUnreadCount()

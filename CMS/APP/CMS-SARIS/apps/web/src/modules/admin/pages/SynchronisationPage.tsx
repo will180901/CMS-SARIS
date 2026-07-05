@@ -28,6 +28,8 @@ import { usePermissions } from '@/hooks/usePermissions'
 import { formatDateTime, formatNumber } from '@/lib/intl'
 import { labelModule, labelStatut, labelAction } from '@/config/labels'
 import { useNetworkStore } from '@/stores/network.store'
+import { useConnectivityStore } from '@/stores/connectivity.store'
+import { isDesktop } from '@/lib/desktop'
 import { useSyncStore } from '@/stores/sync.store'
 import { syncCycle, listMutations, purgeMutations, retryRejected } from '@/lib/sync'
 import {
@@ -494,7 +496,12 @@ function DataSyncZone() {
 
 function SyncTerrainZone() {
   const { t } = useTranslation()
-  const isOnline     = useNetworkStore(s => s.isOnline)
+  const healthOnline  = useNetworkStore(s => s.isOnline)
+  const centralOnline = useConnectivityStore(s => s.online)
+  // Desktop : reflète la joignabilité RÉELLE du central (poussée par le process
+  // principal), pas le ping générique qui suivrait le backend LOCAL une fois basculé
+  // dessus (même machine → toujours joignable → « En ligne » à tort). Cf. TopHeader.
+  const isOnline      = isDesktop ? centralOnline : healthOnline
   const syncStatus   = useSyncStore(s => s.status)
   const pendingCount = useSyncStore(s => s.pendingCount)
   const lastSyncAt   = useSyncStore(s => s.lastSyncAt)
