@@ -8,8 +8,10 @@
  *                      pousse un événement TEMPS RÉEL (broadcastLive) pour rafraîchir l'UI.
  *  - getSupervision(): postes (en ligne/hors-ligne + dernière synchro), activité récente
  *                      (journaux) et conflits en attente — pour l'écran de supervision.
+ *  - getPosteDetail() : détail d'un poste (modale) — dernière session connectée (début/fin).
+ *  - masquerPoste()   : retire un poste de la liste (dismiss) ; réapparaît à sa prochaine synchro.
  */
-import { Injectable, Logger } from '@nestjs/common'
+import { Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
 import { NotificationService } from '../notification/notification.service'
 
@@ -60,9 +62,11 @@ export class SyncSupervisionService {
     try {
       // 1. Poste connu + horodatage de la dernière synchro + DERNIER utilisateur connecté
       //    (traçabilité seule, pas de relation FK — cf. createdBy/updatedBy ailleurs au schéma).
+      //    `masque: false` — un poste qui resynchronise redevient visible même s'il avait été
+      //    retiré (dismiss) de la liste de supervision entre-temps.
       await this.prisma.posteLocal.upsert({
         where:  { id: posteLocalId },
-        update: { derniereSyncAt: now, siteId, dernierUtilisateurId: userId },
+        update: { derniereSyncAt: now, siteId, dernierUtilisateurId: userId, masque: false },
         create: { id: posteLocalId, siteId, libelle: `Poste ${posteLocalId.slice(0, 8)}`, derniereSyncAt: now, dernierUtilisateurId: userId },
       })
 
@@ -108,11 +112,10 @@ export class SyncSupervisionService {
     this.notifications.broadcastLive('SYNC_ACTIVITY', { requiredPermission: 'synchronisation.read' })
   }
 
-  /** Données de l'écran de supervision (scope par site). */
+  /** Données de l'écran de supervision (scope par site). Postes masqués (dismiss) exclus. */
   async getSupervision(siteId: string) {
-    const now = Date.now()
     const [postes, journaux, conflits] = await Promise.all([
-      this.prisma.posteLocal.findMany({ where: { siteId }, orderBy: { derniereSyncAt: 'desc' } }),
+      this.prisma.posteLocal.findMany({ where: { siteId, masque: false }, orderBy: { derniereSyncAt: 'desc' } }),
       this.prisma.journalSynchronisation.findMany({
         where:   { posteLocal: { siteId } },
         orderBy: { startedAt: 'desc' },
@@ -126,40 +129,8 @@ export class SyncSupervisionService {
       }),
     ])
 
-    // Enrichissement : dernier utilisateur connecté par poste (nom + rôle affichés au lieu
-    // de l'identifiant machine). `dernierUtilisateurId` n'est PAS une relation Prisma (cf.
-    // createdBy/updatedBy ailleurs au schéma) → jointure manuelle, une seule requête groupée.
-    const utilisateurIds = [...new Set(postes.map((p) => p.dernierUtilisateurId).filter((id): id is string => !!id))]
-    const utilisateurs = utilisateurIds.length
-      ? await this.prisma.utilisateur.findMany({
-          where:  { id: { in: utilisateurIds } },
-          select: {
-            id:    true,
-            login: true,
-            personnelMedical: { select: { nom: true, prenom: true } },
-            roles: { select: { role: { select: { code: true } } } },
-          },
-        })
-      : []
-    const utilisateurById = new Map(utilisateurs.map((u) => [u.id, u]))
-
     return {
-      postes: postes.map((p) => {
-        const u = p.dernierUtilisateurId ? utilisateurById.get(p.dernierUtilisateurId) : undefined
-        const utilisateurNom = u
-          ? (u.personnelMedical ? `${u.personnelMedical.prenom} ${u.personnelMedical.nom}` : u.login)
-          : null
-        const codes = u?.roles.map((r) => r.role.code) ?? []
-        const utilisateurRole = ROLE_PRIORITY.find((r) => codes.includes(r)) ?? codes[0] ?? null
-        return {
-          id:              p.id,
-          libelle:         p.libelle,
-          utilisateurNom,
-          utilisateurRole,
-          derniereSyncAt:  p.derniereSyncAt,
-          enLigne:         !!p.derniereSyncAt && now - +p.derniereSyncAt < ONLINE_WINDOW_MS,
-        }
-      }),
+      postes: await this.enrichPostes(postes),
       journaux: journaux.map((j) => ({
         id:          j.id,
         poste:       j.posteLocal.libelle,
@@ -177,5 +148,86 @@ export class SyncSupervisionService {
         createdAt:   c.createdAt,
       })),
     }
+  }
+
+  /**
+   * Détail d'un poste (modale de supervision) : identité enrichie + fenêtre de la DERNIÈRE
+   * session connectée (début → fin), déduite de la suite CONTIGUË de journaux de synchro la
+   * plus récente (un écart > ONLINE_WINDOW_MS entre deux cycles marque une déconnexion).
+   */
+  async getPosteDetail(siteId: string, posteId: string) {
+    const poste = await this.prisma.posteLocal.findFirst({ where: { id: posteId, siteId } })
+    if (!poste) throw new NotFoundException('Poste introuvable')
+
+    const journaux = await this.prisma.journalSynchronisation.findMany({
+      where:   { posteLocalId: posteId },
+      orderBy: { startedAt: 'desc' },
+      take:    200,
+    })
+
+    let sessionDebut: Date | null = null
+    let sessionFin:   Date | null = null
+    if (journaux.length) {
+      sessionFin = journaux[0].finishedAt ?? journaux[0].startedAt
+      sessionDebut = journaux[0].startedAt
+      let curseur = journaux[0].startedAt.getTime()
+      for (let i = 1; i < journaux.length; i++) {
+        const fin = journaux[i].finishedAt ?? journaux[i].startedAt
+        if (curseur - +fin > ONLINE_WINDOW_MS) break // écart trop grand → fin de la session
+        sessionDebut = journaux[i].startedAt
+        curseur = journaux[i].startedAt.getTime()
+      }
+    }
+
+    const [enrichi] = await this.enrichPostes([poste])
+    return { ...enrichi, sessionDebut, sessionFin }
+  }
+
+  /** Retire un poste de la liste de supervision (dismiss) — cf. record() pour le retour. */
+  async masquerPoste(siteId: string, posteId: string): Promise<void> {
+    const { count } = await this.prisma.posteLocal.updateMany({
+      where: { id: posteId, siteId },
+      data:  { masque: true },
+    })
+    if (!count) throw new NotFoundException('Poste introuvable')
+  }
+
+  /** Enrichit des postes avec le nom + rôle du DERNIER utilisateur connecté (nom lisible au lieu
+   *  de l'identifiant machine). `dernierUtilisateurId` n'est PAS une relation Prisma (cf.
+   *  createdBy/updatedBy ailleurs au schéma) → jointure manuelle, une seule requête groupée. */
+  private async enrichPostes<T extends { id: string; libelle: string; dernierUtilisateurId: string | null; derniereSyncAt: Date | null }>(
+    postes: T[],
+  ) {
+    const now = Date.now()
+    const utilisateurIds = [...new Set(postes.map((p) => p.dernierUtilisateurId).filter((id): id is string => !!id))]
+    const utilisateurs = utilisateurIds.length
+      ? await this.prisma.utilisateur.findMany({
+          where:  { id: { in: utilisateurIds } },
+          select: {
+            id:    true,
+            login: true,
+            personnelMedical: { select: { nom: true, prenom: true } },
+            roles: { select: { role: { select: { code: true } } } },
+          },
+        })
+      : []
+    const utilisateurById = new Map(utilisateurs.map((u) => [u.id, u]))
+
+    return postes.map((p) => {
+      const u = p.dernierUtilisateurId ? utilisateurById.get(p.dernierUtilisateurId) : undefined
+      const utilisateurNom = u
+        ? (u.personnelMedical ? `${u.personnelMedical.prenom} ${u.personnelMedical.nom}` : u.login)
+        : null
+      const codes = u?.roles.map((r) => r.role.code) ?? []
+      const utilisateurRole = ROLE_PRIORITY.find((r) => codes.includes(r)) ?? codes[0] ?? null
+      return {
+        id:              p.id,
+        libelle:         p.libelle,
+        utilisateurNom,
+        utilisateurRole,
+        derniereSyncAt:  p.derniereSyncAt,
+        enLigne:         !!p.derniereSyncAt && now - +p.derniereSyncAt < ONLINE_WINDOW_MS,
+      }
+    })
   }
 }

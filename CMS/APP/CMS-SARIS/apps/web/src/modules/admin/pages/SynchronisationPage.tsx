@@ -19,15 +19,19 @@ import {
   HardDrive, CheckCircle2, AlertTriangle, Loader2, CloudUpload, Trash2,
   RotateCcw, Users, Stethoscope, Pill, Ambulance, FlaskConical, HardHat, ClipboardList,
   CalendarClock, MonitorSmartphone, Activity, GitMerge, Radio, LayoutGrid, List, Search,
+  X, Clock, LogIn,
 } from 'lucide-react'
 import {
   PageHeader, Card, Button, StatusPill, Skeleton, EmptyState, Tooltip, Modal, SegmentedTabs,
-  Toolbar, DataTableHead, DATA_TABLE_CARD, DATA_TD_PADDING, dataRowStyle,
+  Toolbar, DataTableHead, DATA_TABLE_CARD, DATA_TD_PADDING, dataRowStyle, PaginationBar,
 } from '@/components/saris'
 import type { SegmentedTab } from '@/components/saris'
 import { toast } from '@workspace/ui/components/sonner'
 import { usePermissions } from '@/hooks/usePermissions'
+import { usePagination } from '@/hooks/usePagination'
+import { useRowsPerPage } from '@/hooks/useRowsPerPage'
 import { formatDateTime, formatNumber } from '@/lib/intl'
+import { formatDuree } from '@/lib/duree'
 import { labelModule, labelStatut, labelAction, labelRole } from '@/config/labels'
 import { useConnectivityStore } from '@/stores/connectivity.store'
 import { isDesktop } from '@/lib/desktop'
@@ -36,7 +40,9 @@ import { syncCycle, listMutations, purgeMutations, retryRejected } from '@/lib/s
 import {
   useSyncStatus, useSauvegardes, useRestaurerSauvegarde,
 } from '../hooks/useAdmin'
-import { useSyncStatus as useDataSyncStatus, useSyncRun, useSyncSupervision } from '../hooks/useSync'
+import {
+  useSyncStatus as useDataSyncStatus, useSyncRun, useSyncSupervision, usePosteDetail, useMasquerPoste,
+} from '../hooks/useSync'
 import type { SauvegardeSysteme } from '../api/admin.api'
 import type {
   SyncSupervisionPoste, SyncSupervisionJournal, SyncSupervisionConflit,
@@ -195,6 +201,8 @@ type PosteVue = 'grid' | 'list'
 
 function SupervisionZone() {
   const { t } = useTranslation()
+  const { has } = usePermissions()
+  const canExecute = has('synchronisation.execute')
   const { data, isLoading } = useSyncSupervision()
   const postes   = data?.postes   ?? []
   const journaux = data?.journaux ?? []
@@ -231,7 +239,7 @@ function SupervisionZone() {
           <SegmentedTabs value={supTab} onChange={(k) => setSupTab(k as SupTab)} tabs={supTabs} size="sm" aria-label={t('admin.supTitle')} />
         </div>
 
-        {supTab === 'postes' && <PostesSection postes={postes} enLigne={enLigne} loading={isLoading} />}
+        {supTab === 'postes' && <PostesSection postes={postes} enLigne={enLigne} loading={isLoading} canExecute={canExecute} />}
         {supTab === 'activite' && <ActiviteTable journaux={journaux} loading={isLoading} />}
         {supTab === 'conflits' && <ConflitsTable conflits={conflits} loading={isLoading} />}
       </Card.Body>
@@ -241,13 +249,15 @@ function SupervisionZone() {
 
 // ── Onglet Postes : recherche + filtre en ligne/hors ligne + bascule grille/liste ──
 
-function PostesSection({ postes, enLigne, loading }: {
-  postes: SyncSupervisionPoste[]; enLigne: number; loading: boolean
+function PostesSection({ postes, enLigne, loading, canExecute }: {
+  postes: SyncSupervisionPoste[]; enLigne: number; loading: boolean; canExecute: boolean
 }) {
   const { t } = useTranslation()
   const [search, setSearch] = useState('')
   const [filtre, setFiltre] = useState<PosteFiltre>('tous')
   const [vue, setVue] = useState<PosteVue>('grid')
+  const [detailId, setDetailId] = useState<string | null>(null)
+  const masquer = useMasquerPoste()
 
   const horsLigne = postes.length - enLigne
   const pillFiltres: { key: PosteFiltre; label: string; count: number }[] = [
@@ -267,6 +277,8 @@ function PostesSection({ postes, enLigne, loading }: {
     }
     return true
   })
+
+  const pagination = usePagination(filtered, useRowsPerPage())
 
   if (loading) {
     return (
@@ -346,25 +358,53 @@ function PostesSection({ postes, enLigne, loading }: {
       {filtered.length === 0 ? (
         <EmptyState icon={<Search size={18} />} title={t('admin.supNoMatchTitle')} description={t('admin.supNoMatchDesc')} variant="subtle" />
       ) : (
-        <div style={vue === 'grid'
-          ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 'var(--espace-2)' }
-          : { display: 'flex', flexDirection: 'column', gap: 'var(--espace-2)' }}
-        >
-          {filtered.map(p => <PosteCard key={p.id} poste={p} />)}
-        </div>
+        <>
+          <div style={vue === 'grid'
+            ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 'var(--espace-2)' }
+            : { display: 'flex', flexDirection: 'column', gap: 'var(--espace-2)' }}
+          >
+            {pagination.pageData.map(p => (
+              <PosteCard
+                key={p.id} poste={p}
+                onOpenDetail={() => setDetailId(p.id)}
+                onMasquer={canExecute ? () => masquer.mutate(p.id, {
+                  onSuccess: () => toast.success(t('admin.supPosteRemoved')),
+                }) : undefined}
+              />
+            ))}
+          </div>
+          <div style={{ marginTop: 'var(--espace-3)' }}>
+            <PaginationBar {...pagination} />
+          </div>
+        </>
       )}
+
+      {detailId && <PosteDetailModal id={detailId} onClose={() => setDetailId(null)} />}
     </div>
   )
 }
 
-function PosteCard({ poste }: { poste: SyncSupervisionPoste }) {
+function PosteCard({ poste, onOpenDetail, onMasquer }: {
+  poste: SyncSupervisionPoste; onOpenDetail: () => void; onMasquer?: () => void
+}) {
   const { t } = useTranslation()
+  const [hovered, setHovered] = useState(false)
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 'var(--espace-3)',
-      padding: 'var(--espace-2) var(--espace-3)', borderRadius: 'var(--radius-lg)',
-      border: '1px solid var(--bordure-legere)', background: 'var(--fond-surface)',
-    }}>
+    <div
+      onClick={onOpenDetail}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenDetail() } }}
+      style={{
+        position: 'relative',
+        display: 'flex', alignItems: 'center', gap: 'var(--espace-3)',
+        padding: 'var(--espace-2) var(--espace-3)', borderRadius: 'var(--radius-lg)',
+        border: '1px solid var(--bordure-legere)', background: 'var(--fond-surface)',
+        cursor: 'pointer',
+      }}
+    >
       <div style={{
         width: 30, height: 30, borderRadius: 'var(--radius-md)', flexShrink: 0,
         background: poste.enLigne ? 'var(--succes-fond)' : 'var(--fond-surface-2)',
@@ -387,6 +427,89 @@ function PosteCard({ poste }: { poste: SyncSupervisionPoste }) {
       <StatusPill tone={poste.enLigne ? 'success' : 'neutral'} size="sm">
         {poste.enLigne ? t('admin.supOnline') : t('admin.supOffline')}
       </StatusPill>
+
+      {onMasquer && hovered && (
+        <Tooltip label={t('admin.supPosteRemove')}>
+          <button
+            type="button"
+            aria-label={t('admin.supPosteRemove')}
+            onClick={(e) => { e.stopPropagation(); onMasquer() }}
+            style={{
+              position: 'absolute', top: -7, right: -7, zIndex: 1,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: 20, height: 20, borderRadius: '50%', border: '1px solid var(--bordure-legere)',
+              background: 'var(--fond-surface)', color: 'var(--erreur-accent)',
+              boxShadow: 'var(--ombre-1)', cursor: 'pointer',
+            }}
+          >
+            <X size={12} />
+          </button>
+        </Tooltip>
+      )}
+    </div>
+  )
+}
+
+/** Modale de détail d'un poste : identité + dernière session connectée (début → fin, durée). */
+function PosteDetailModal({ id, onClose }: { id: string; onClose: () => void }) {
+  const { t } = useTranslation()
+  const { data, isLoading } = usePosteDetail(id)
+
+  return (
+    <Modal
+      icon={<MonitorSmartphone size={18} />}
+      title={data?.utilisateurNom ?? data?.libelle ?? t('admin.supPosteDetailTitle')}
+      subtitle={data?.utilisateurRole ? labelRole(data.utilisateurRole) : undefined}
+      width={440}
+      onClose={onClose}
+    >
+      {isLoading || !data ? (
+        <div>{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} height={48} style={{ marginBottom: 6 }} />)}</div>
+      ) : (
+        <>
+          <DetailRow
+            icon={<StatusPill tone={data.enLigne ? 'success' : 'neutral'} size="sm">{data.enLigne ? t('admin.supOnline') : t('admin.supOffline')}</StatusPill>}
+            label={t('admin.supDetailStatus')}
+            value=""
+          />
+          <DetailRow
+            icon={<LogIn size={14} />}
+            label={t('admin.supDetailLastConnection')}
+            value={data.derniereSyncAt
+              ? formatDateTime(data.derniereSyncAt, { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+              : t('admin.relativeNever')}
+          />
+          <DetailRow
+            icon={<Clock size={14} />}
+            label={t('admin.supDetailSessionDuration')}
+            value={data.sessionDebut && data.sessionFin
+              ? formatDuree(data.sessionDebut, data.sessionFin, { precis: true })
+              : '—'}
+          />
+        </>
+      )}
+    </Modal>
+  )
+}
+
+function DetailRow({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 'var(--espace-3)',
+      padding: 'var(--espace-3)', borderRadius: 'var(--radius-lg)',
+      border: '1px solid var(--bordure-legere)', background: 'var(--fond-surface-2)',
+    }}>
+      <div style={{
+        width: 30, height: 30, borderRadius: 'var(--radius-md)', flexShrink: 0,
+        background: 'var(--ap-50)', color: 'var(--ap-600)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        {icon}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ margin: 0, fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)' }}>{label}</p>
+        {value && <p style={{ margin: '1px 0 0', fontSize: 'var(--font-size-body-sm)', fontWeight: 600, color: 'var(--texte-primaire)' }}>{value}</p>}
+      </div>
     </div>
   )
 }

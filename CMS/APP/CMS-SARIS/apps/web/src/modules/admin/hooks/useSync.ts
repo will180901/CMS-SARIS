@@ -34,3 +34,21 @@ export function useSyncSupervision(enabled = true) {
     refetchInterval: 60_000,
   })
 }
+
+/** Détail d'un poste (modale) — chargé à la demande (id = null tant que la modale est fermée). */
+export function usePosteDetail(id: string | null) {
+  return useQuery({
+    queryKey: ['admin', 'sync', 'supervision', 'poste', id],
+    queryFn: () => syncApi.posteDetail(id as string),
+    enabled: !!id,
+  })
+}
+
+/** Retire un poste de la liste de supervision (dismiss) — réapparaît à sa prochaine synchro. */
+export function useMasquerPoste() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => syncApi.masquerPoste(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'sync', 'supervision'] }),
+  })
+}

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query, Req, UnauthorizedException, UseGuards } from '@nestjs/common'
+import { Body, Controller, Delete, Get, Param, Post, Query, Req, UnauthorizedException, UseGuards } from '@nestjs/common'
 import { JwtAuthGuard } from '../security/guards/jwt-auth.guard'
 import { PermissionsGuard } from '../security/guards/permissions.guard'
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator'
@@ -51,6 +51,23 @@ export class SyncController {
   getSupervision(@Req() req: AuthedRequest) {
     const { siteId } = requireUser(req)
     return this.supervision.getSupervision(siteId)
+  }
+
+  /** Détail d'un poste (modale) : identité + fenêtre de sa dernière session connectée. */
+  @Get('supervision/postes/:id')
+  @RequirePermissions('synchronisation.read')
+  getPosteDetail(@Req() req: AuthedRequest, @Param('id') id: string) {
+    const { siteId } = requireUser(req)
+    return this.supervision.getPosteDetail(siteId, id)
+  }
+
+  /** Retire un poste de la liste de supervision (dismiss) — réapparaît à sa prochaine synchro. */
+  @Delete('supervision/postes/:id')
+  @RequirePermissions('synchronisation.execute')
+  async masquerPoste(@Req() req: AuthedRequest, @Param('id') id: string) {
+    const { siteId } = requireUser(req)
+    await this.supervision.masquerPoste(siteId, id)
+    return { ok: true }
   }
 
   @Get('status')

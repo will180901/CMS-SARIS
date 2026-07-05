@@ -1250,6 +1250,9 @@ model PosteLocal {
   /** Dernier utilisateur ayant synchronisé depuis ce poste (traçabilité, comme createdBy/updatedBy — pas de relation FK, cf. Patient). */
   dernierUtilisateurId String?
   derniereSyncAt       DateTime?
+  /** Retiré de la liste de supervision (dismiss admin) — n'affecte pas la synchro réelle : le
+   *  poste redevient visible automatiquement dès son prochain cycle de synchro (record()). */
+  masque               Boolean                  @default(false)
   createdAt            DateTime                 @default(now())
   fileMutations        FileMutation[]
   journauxSync         JournalSynchronisation[]

@@ -36,6 +36,12 @@ export interface SyncSupervisionPoste {
   derniereSyncAt: string | null
   enLigne: boolean
 }
+export interface SyncSupervisionPosteDetail extends SyncSupervisionPoste {
+  /** Début de la dernière session connectée (suite contiguë de cycles de synchro). */
+  sessionDebut: string | null
+  /** Fin de cette session (= derniereSyncAt si toujours la même session). */
+  sessionFin: string | null
+}
 export interface SyncSupervisionJournal {
   id: string
   poste: string
@@ -62,4 +68,6 @@ export const syncApi = {
   status: () => api.get<SyncStatusResponse>('/sync/status'),
   run: () => api.post<SyncRunResult>('/sync/run', {}),
   supervision: () => api.get<SyncSupervision>('/sync/supervision'),
+  posteDetail: (id: string) => api.get<SyncSupervisionPosteDetail>(`/sync/supervision/postes/${id}`),
+  masquerPoste: (id: string) => api.delete<{ ok: boolean }>(`/sync/supervision/postes/${id}`),
 }
