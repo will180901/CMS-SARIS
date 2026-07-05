@@ -14,9 +14,6 @@ import {
   ClipboardList,
   AlertTriangle,
   BookOpen,
-  RefreshCw,
-  ShieldCheck,
-  History,
   MessageSquare,
 } from 'lucide-react'
 import type { LucideIcon }     from 'lucide-react'
@@ -104,44 +101,11 @@ export const NAV_GROUPS: NavGroup[] = [
       },
     ],
   },
-  {
-    key:   'administration_systeme',
-    label: 'Administration système',
-    items: [
-      {
-        key:         'acces',
-        label:       'Accès & habilitations',
-        icon:        ShieldCheck,
-        href:        '/admin/acces',
-        // delegation.read inclus : le médecin-chef accède à l'onglet Délégations ici
-        // (chaque onglet de la page se garde ensuite individuellement).
-        permissions: ['utilisateur.read', 'role.read', 'delegation.read'],
-        description: 'Utilisateurs, rôles, permissions et délégations',
-      },
-      {
-        key:         'audit',
-        label:       'Journaux d\'audit',
-        icon:        History,
-        href:        '/admin/audit',
-        permissions: ['audit.read'],
-        description: 'Traces d\'authentification et d\'actions',
-      },
-    ],
-  },
-  {
-    key:   'systeme',
-    label: 'Système',
-    items: [
-      {
-        key:         'sync',
-        label:       'Synchronisation',
-        icon:        RefreshCw,
-        href:        '/synchronisation',
-        permissions: ['synchronisation.read'],
-        description: 'État de la synchronisation offline',
-      },
-    ],
-  },
+  // « Administration système » (Accès & habilitations, Journaux d'audit) et « Système »
+  // (Synchronisation) ne sont plus des groupes séparés de la sidebar : ces 3 pages restent
+  // pleinement fonctionnelles à leurs routes (/admin/acces, /admin/audit, /synchronisation)
+  // mais sont désormais accessibles via des raccourcis dans Paramètres > Généraux (cf.
+  // ParametresPage.tsx), pour désencombrer le menu principal.
 ]
 
 // ── Labels & couleurs des rôles ───────────────────────────────────────────────

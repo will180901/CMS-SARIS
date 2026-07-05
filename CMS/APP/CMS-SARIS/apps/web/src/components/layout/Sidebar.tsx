@@ -46,14 +46,12 @@ const SIDEBAR_TOP = isDesktop ? DESKTOP_TITLEBAR_H : 0
 const GROUP_TKEY: Record<string, string> = {
   clinique: 'navGroups.clinique',
   administration_medicale: 'navGroups.adminMedicale',
-  administration_systeme: 'navGroups.adminSysteme',
-  systeme: 'navGroups.systeme',
 }
 const ITEM_TKEY: Record<string, string> = {
   dashboard: 'nav.dashboard', patients: 'nav.patients', triage: 'nav.triage',
   consultations: 'nav.consultations', sorties: 'nav.sortiesCritiques', messagerie: 'nav.messagerie',
   referentiels: 'nav.referentiels', utilisateurs: 'nav.utilisateurs',
-  roles: 'nav.roles', audit: 'nav.audit', sync: 'nav.synchronisation', parametres: 'nav.parametres',
+  roles: 'nav.roles', parametres: 'nav.parametres',
 }
 
 // ── Composant ─────────────────────────────────────────────────────────────────
@@ -299,7 +297,7 @@ export function Sidebar() {
                 onMouseEnter={e => (e.currentTarget.style.background = 'var(--fond-surface-2)')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
               >
-                <Avatar nom={user.login} size={36} tone="accent" />
+                <Avatar nom={user.login} size={36} tone="accent" photoUrl={user.photoUrl} />
                 {open && (
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{
@@ -351,7 +349,7 @@ export function Sidebar() {
                 background: 'var(--fond-surface-2)',
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--espace-3)' }}>
-                  <Avatar nom={user.login} size={44} tone="accent" />
+                  <Avatar nom={user.login} size={44} tone="accent" photoUrl={user.photoUrl} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{
                       margin: 0,

@@ -11,7 +11,7 @@ import { useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Settings, SlidersHorizontal, UserCog, Bell, ShieldCheck, KeyRound,
-  Palette, MonitorSmartphone, Languages, FileText, Lock, Info, Users,
+  Palette, MonitorSmartphone, Languages, FileText, Lock, Info, Users, History, RefreshCw,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { PageHeader, SegmentedTabs } from '@/components/saris'
@@ -29,17 +29,25 @@ interface SectionItem { key: string; label: string; icon: ReactNode; hint?: stri
 
 export function ParametresPage() {
   const { t } = useTranslation()
-  const { has } = usePermissions()
+  const { has, hasAny } = usePermissions()
   const isCompact = useIsCompact()
   const canReadGeneraux = has('parametre.read')
   const canWrite = has('parametre.update')
+  const canReadAcces = hasAny('utilisateur.read', 'role.read', 'delegation.read')
+  const canReadAudit = has('audit.read')
+  const canReadSync  = has('synchronisation.read')
 
-  // Pour Généraux : la clé = nom du groupe (sert au filtrage des paramètres système).
+  // Pour Généraux : la clé = nom du groupe (sert au filtrage des paramètres système), sauf
+  // pour les raccourcis (comptes/audit/sync) qui ouvrent leur page dédiée. Regroupe ici les
+  // pages « Administration système » et « Système », qui n'ont plus d'entrée dédiée dans la
+  // barre latérale (cf. navigation.config.ts) — chacune filtrée par SA permission réelle.
   const generauxSections: SectionItem[] = [
-    { key: 'comptes', label: t('settings.genAccounts'), icon: <Users size={15} />, hint: t('settings.genAccountsHint') },
+    ...(canReadAcces ? [{ key: 'comptes', label: t('settings.genAccounts'), icon: <Users size={15} />, hint: t('settings.genAccountsHint') }] : []),
     { key: 'Sécurité & authentification', label: t('settings.genSecurity'), icon: <ShieldCheck size={15} />, hint: t('settings.genSecurityHint') },
     { key: 'Politique de mot de passe', label: t('settings.genPassword'), icon: <KeyRound size={15} />, hint: t('settings.genPasswordHint') },
     { key: 'Notifications', label: t('settings.genNotifications'), icon: <Bell size={15} />, hint: t('settings.genNotificationsHint') },
+    ...(canReadAudit ? [{ key: 'audit', label: t('settings.genAudit'), icon: <History size={15} />, hint: t('settings.genAuditHint') }] : []),
+    ...(canReadSync  ? [{ key: 'sync',  label: t('settings.genSync'),  icon: <RefreshCw size={15} />, hint: t('settings.genSyncHint') }] : []),
   ]
   const personnelSections: SectionItem[] = [
     { key: 'preferences', label: t('settings.secPreferences'), icon: <Palette size={15} />, hint: t('settings.secPreferencesHint') },
@@ -80,7 +88,9 @@ export function ParametresPage() {
         <SubNav items={sections} value={sub} onChange={setSub} compact={isCompact} />
         <div style={{ flex: 1, minWidth: 0, minHeight: 0, overflowY: 'auto' }}>
           {topTab === 'generaux' && canReadGeneraux && sub === 'comptes' && <ComptesAccesShortcut />}
-          {topTab === 'generaux' && canReadGeneraux && sub !== 'comptes' && <GenerauxTab canWrite={canWrite} section={sub} />}
+          {topTab === 'generaux' && canReadGeneraux && sub === 'audit' && <AuditShortcut />}
+          {topTab === 'generaux' && canReadGeneraux && sub === 'sync' && <SyncShortcut />}
+          {topTab === 'generaux' && canReadGeneraux && !['comptes', 'audit', 'sync'].includes(sub) && <GenerauxTab canWrite={canWrite} section={sub} />}
           {topTab === 'personnel' && sub === 'legal' && <LegalLangSection />}
           {topTab === 'personnel' && sub !== 'legal' && <PersonnelTab section={sub} />}
         </div>
@@ -132,15 +142,55 @@ function ComptesAccesShortcut() {
           {t('settings.accountsDesc')}
         </p>
         <div style={{ display: 'flex', gap: 'var(--espace-2)', flexWrap: 'wrap' }}>
-          <button type="button" onClick={() => navigate('/admin/utilisateurs')}
+          <button type="button" onClick={() => navigate('/admin/acces', { state: { tab: 'users' } })}
             style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 600, padding: '9px 16px', borderRadius: 'var(--radius-md)', cursor: 'pointer', background: 'var(--ap-400)', color: '#fff', border: 'none' }}>
             <Users size={14} /> {t('settings.accountsManage')}
           </button>
-          <button type="button" onClick={() => navigate('/admin/roles')}
+          <button type="button" onClick={() => navigate('/admin/acces', { state: { tab: 'roles' } })}
             style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 600, padding: '9px 16px', borderRadius: 'var(--radius-md)', cursor: 'pointer', background: 'var(--fond-surface-2)', color: 'var(--texte-primaire)', border: '1px solid var(--bordure-legere)' }}>
             <ShieldCheck size={14} /> {t('settings.accountsRoles')}
           </button>
         </div>
+      </SettingCard>
+    </div>
+  )
+}
+
+// ── Raccourci « Journaux d'audit » (ex-groupe « Administration système ») ────
+
+function AuditShortcut() {
+  const { t } = useTranslation()
+  const navigate = useNavigate()
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--espace-4)', maxWidth: 640 }}>
+      <SettingCard icon={<History size={16} />} title={t('settings.auditTitle')} hint={t('settings.auditHint')}>
+        <p style={{ margin: '0 0 var(--espace-3)', fontSize: 13, color: 'var(--texte-secondaire)', lineHeight: 1.5 }}>
+          {t('settings.auditDesc')}
+        </p>
+        <button type="button" onClick={() => navigate('/admin/audit')}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 600, padding: '9px 16px', borderRadius: 'var(--radius-md)', cursor: 'pointer', background: 'var(--ap-400)', color: '#fff', border: 'none' }}>
+          <History size={14} /> {t('settings.auditOpen')}
+        </button>
+      </SettingCard>
+    </div>
+  )
+}
+
+// ── Raccourci « Synchronisation » (ex-groupe « Système ») ────────────────────
+
+function SyncShortcut() {
+  const { t } = useTranslation()
+  const navigate = useNavigate()
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--espace-4)', maxWidth: 640 }}>
+      <SettingCard icon={<RefreshCw size={16} />} title={t('settings.syncTitle')} hint={t('settings.syncCardHint')}>
+        <p style={{ margin: '0 0 var(--espace-3)', fontSize: 13, color: 'var(--texte-secondaire)', lineHeight: 1.5 }}>
+          {t('settings.syncDesc')}
+        </p>
+        <button type="button" onClick={() => navigate('/synchronisation')}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 600, padding: '9px 16px', borderRadius: 'var(--radius-md)', cursor: 'pointer', background: 'var(--ap-400)', color: '#fff', border: 'none' }}>
+          <RefreshCw size={14} /> {t('settings.syncOpen')}
+        </button>
       </SettingCard>
     </div>
   )

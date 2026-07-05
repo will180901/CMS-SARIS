@@ -5,6 +5,8 @@
  * redondant est masqué — l'en-tête + les onglets ci-dessous le remplacent).
  * Remplace les 2 entrées de menu séparées /admin/utilisateurs + /admin/roles.
  */
+import { useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { ShieldCheck } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { SegmentedTabs } from '@/components/saris'
@@ -32,6 +34,17 @@ export function AccesPage() {
     ...(canDeleg ? [{ key: 'delegations', label: 'Délégations' }] : []),
   ]
   const [tab, setTab] = usePersistedState<string>('acces', 'tab', tabs[0]?.key ?? 'users')
+
+  // Un lien externe (ex. raccourcis de Paramètres > Généraux) peut demander un onglet
+  // PRÉCIS via l'état de navigation — sinon on garde le dernier onglet consulté (mémoire
+  // de session normale, cf. usePersistedState).
+  const location = useLocation()
+  const requestedTab = (location.state as { tab?: string } | null)?.tab
+  useEffect(() => {
+    if (requestedTab && tabs.some(t => t.key === requestedTab)) setTab(requestedTab)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestedTab])
+
   const active = tabs.some(t => t.key === tab) ? tab : (tabs[0]?.key ?? 'users')
 
   return (
