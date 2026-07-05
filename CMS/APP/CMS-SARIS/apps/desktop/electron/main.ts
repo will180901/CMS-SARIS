@@ -394,14 +394,20 @@ async function startLocalBackend(): Promise<void> {
 // instantanés, comme le web) et au backend LOCAL SQLite quand il est hors-ligne. Le backend
 // local tourne toujours et se synchronise en arrière-plan (prêt pour l'hors-ligne).
 
-/** Le central est-il joignable ? (sonde /health, timeout court). */
+/**
+ * Le central est-il joignable ? (sonde /health/ping, timeout court).
+ * PAS `/health` (racine) : c'est le healthCheckPath déclaré à Render (render.yaml),
+ * qui peut y répondre 503 pendant une transition d'instance côté plateforme, sans
+ * rapport avec la vraie disponibilité de l'API pour ce client. `/health/ping` est
+ * un chemin dédié, jamais sondé par Render — cf. useServerHealth.ts (même correctif).
+ */
 async function probeCentralOnline(): Promise<boolean> {
   const url = (resolveServerUrl() || '').replace(/\/+$/, '')
   if (!url) return false
   try {
     const ctrl = new AbortController()
     const timer = setTimeout(() => ctrl.abort(), 3000)
-    const res = await fetch(`${url}/health`, { signal: ctrl.signal })
+    const res = await fetch(`${url}/health/ping`, { signal: ctrl.signal })
     clearTimeout(timer)
     return res.ok
   } catch {

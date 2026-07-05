@@ -137,13 +137,19 @@ export class SyncClientService implements OnApplicationBootstrap {
     })
   }
 
-  /** Serveur central joignable ? */
+  /**
+   * Serveur central joignable ?
+   * PAS `/health` (racine) : c'est le healthCheckPath déclaré à Render (render.yaml),
+   * qui peut y répondre 503 pendant une transition d'instance côté plateforme, sans
+   * rapport avec la vraie disponibilité de l'API. `/health/ping` est un chemin dédié,
+   * jamais sondé par Render — cf. useServerHealth.ts / main.ts (même correctif).
+   */
   async isOnline(): Promise<boolean> {
     if (!this.serverUrl) return false
     try {
       const ctrl = new AbortController()
       const t = setTimeout(() => ctrl.abort(), 4000)
-      const res = await fetch(`${this.serverUrl}/health`, { signal: ctrl.signal })
+      const res = await fetch(`${this.serverUrl}/health/ping`, { signal: ctrl.signal })
       clearTimeout(t)
       return res.ok
     } catch {

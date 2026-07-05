@@ -3,11 +3,20 @@
  *
  * Contrairement à `navigator.onLine` (qui dit seulement si le navigateur a un
  * réseau), ce hook vérifie la VRAIE joignabilité du serveur API en interrogeant
- * périodiquement l'endpoint public `/health`.
+ * périodiquement l'endpoint public `/health/ping`.
+ *
+ * ⚠️ SURTOUT PAS `/health` (racine) : c'est le `healthCheckPath` déclaré à Render
+ * (render.yaml) — Render l'interroge en interne pour ses propres décisions de
+ * routage/redémarrage et peut y répondre 503 pendant une transition d'instance,
+ * INDÉPENDAMMENT de la disponibilité réelle de l'API pour les vrais clients.
+ * Constaté en direct (2026-07-05) : `/health` renvoyait 503 en rafale alors que
+ * TOUTES les autres routes (dashboard, notifications, messagerie…) répondaient
+ * normalement → badge « Hors ligne » à tort. `/health/ping` est un chemin dédié,
+ * jamais sondé par Render, qui ne reflète que la vraie joignabilité de l'API.
  *
  * Règles :
  *   - navigateur hors-ligne → Hors ligne immédiatement (inutile de pinger).
- *   - sinon → ping `/health` : 2xx = En ligne, échec/timeout = Hors ligne.
+ *   - sinon → ping `/health/ping` : 2xx = En ligne, échec/timeout = Hors ligne.
  *   - re-vérifie au montage, toutes les 8 s, au retour réseau (instantané), et au focus.
  *
  * À monter UNE fois (ex. dans la sidebar persistante).
@@ -46,7 +55,7 @@ export function useServerHealth() {
       const ctrl = new AbortController()
       const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS)
       try {
-        const res = await fetch(`${BASE_URL}/health`, { signal: ctrl.signal, cache: 'no-store' })
+        const res = await fetch(`${BASE_URL}/health/ping`, { signal: ctrl.signal, cache: 'no-store' })
         if (cancelled) return
         if (res.ok) { fails = 0; setOnline(true) }                 // succès → En ligne immédiat
         else        { fails++; if (fails >= MAX_FAILS) setOnline(false) }
