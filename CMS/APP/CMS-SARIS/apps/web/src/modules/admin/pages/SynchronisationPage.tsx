@@ -518,6 +518,7 @@ function DetailRow({ icon, label, value }: { icon: ReactNode; label: string; val
 
 function ActiviteTable({ journaux, loading }: { journaux: SyncSupervisionJournal[]; loading: boolean }) {
   const { t } = useTranslation()
+  const pagination = usePagination(journaux, useRowsPerPage())
   if (loading) {
     return <div>{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} height={40} style={{ marginBottom: 6 }} />)}</div>
   }
@@ -525,43 +526,48 @@ function ActiviteTable({ journaux, loading }: { journaux: SyncSupervisionJournal
     return <EmptyState icon={<Activity size={18} />} title={t('admin.supNoActivityTitle')} description={t('admin.supNoActivityDesc')} variant="subtle" />
   }
   return (
-    <div style={DATA_TABLE_CARD}>
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <DataTableHead columns={[
-          { label: t('admin.colPoste') },
-          { label: t('admin.colStatus'), width: 110 },
-          { label: t('admin.colStarted'), width: 140 },
-          { label: t('admin.colMutations'), align: 'right', width: 110 },
-          { label: t('admin.colConflicts'), align: 'right', width: 100 },
-        ]} />
-        <tbody>
-          {journaux.map((j, i) => {
-            const tone = JOURNAL_STATUT_TONE[(j.statut || '').toUpperCase()] ?? 'neutral'
-            return (
-              <tr key={j.id} style={dataRowStyle(i % 2 === 1, false)}>
-                <td style={{ padding: DATA_TD_PADDING }}>
-                  <span style={{ fontSize: 'var(--font-size-body-sm)', fontWeight: 600, color: 'var(--texte-primaire)' }}>{j.poste}</span>
-                </td>
-                <td style={{ padding: DATA_TD_PADDING }}>
-                  <StatusPill tone={tone as any} size="sm">{journalStatutLabel(t, j.statut)}</StatusPill>
-                </td>
-                <td style={{ padding: DATA_TD_PADDING }}>
-                  <span style={{ fontSize: 'var(--font-size-body-sm)', color: 'var(--texte-secondaire)' }}>{relative(j.startedAt)}</span>
-                </td>
-                <td style={{ padding: DATA_TD_PADDING, textAlign: 'right' }}>
-                  <span style={{ fontSize: 'var(--font-size-body-sm)', color: 'var(--texte-secondaire)' }}>{formatNumber(j.nbMutations)}</span>
-                </td>
-                <td style={{ padding: DATA_TD_PADDING, textAlign: 'right' }}>
-                  <span style={{ fontSize: 'var(--font-size-body-sm)', color: j.nbConflits > 0 ? 'var(--avert-accent)' : 'var(--texte-tertiaire)', fontWeight: j.nbConflits > 0 ? 700 : 400 }}>
-                    {formatNumber(j.nbConflits)}
-                  </span>
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
+    <>
+      <div style={DATA_TABLE_CARD}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <DataTableHead columns={[
+            { label: t('admin.colPoste') },
+            { label: t('admin.colStatus'), width: 110 },
+            { label: t('admin.colStarted'), width: 140 },
+            { label: t('admin.colMutations'), align: 'right', width: 110 },
+            { label: t('admin.colConflicts'), align: 'right', width: 100 },
+          ]} />
+          <tbody>
+            {pagination.pageData.map((j, i) => {
+              const tone = JOURNAL_STATUT_TONE[(j.statut || '').toUpperCase()] ?? 'neutral'
+              return (
+                <tr key={j.id} style={dataRowStyle(i % 2 === 1, false)}>
+                  <td style={{ padding: DATA_TD_PADDING }}>
+                    <span style={{ fontSize: 'var(--font-size-body-sm)', fontWeight: 600, color: 'var(--texte-primaire)' }}>{j.poste}</span>
+                  </td>
+                  <td style={{ padding: DATA_TD_PADDING }}>
+                    <StatusPill tone={tone as any} size="sm">{journalStatutLabel(t, j.statut)}</StatusPill>
+                  </td>
+                  <td style={{ padding: DATA_TD_PADDING }}>
+                    <span style={{ fontSize: 'var(--font-size-body-sm)', color: 'var(--texte-secondaire)' }}>{relative(j.startedAt)}</span>
+                  </td>
+                  <td style={{ padding: DATA_TD_PADDING, textAlign: 'right' }}>
+                    <span style={{ fontSize: 'var(--font-size-body-sm)', color: 'var(--texte-secondaire)' }}>{formatNumber(j.nbMutations)}</span>
+                  </td>
+                  <td style={{ padding: DATA_TD_PADDING, textAlign: 'right' }}>
+                    <span style={{ fontSize: 'var(--font-size-body-sm)', color: j.nbConflits > 0 ? 'var(--avert-accent)' : 'var(--texte-tertiaire)', fontWeight: j.nbConflits > 0 ? 700 : 400 }}>
+                      {formatNumber(j.nbConflits)}
+                    </span>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+      <div style={{ marginTop: 'var(--espace-3)' }}>
+        <PaginationBar {...pagination} />
+      </div>
+    </>
   )
 }
 
@@ -569,6 +575,7 @@ function ActiviteTable({ journaux, loading }: { journaux: SyncSupervisionJournal
 
 function ConflitsTable({ conflits, loading }: { conflits: SyncSupervisionConflit[]; loading: boolean }) {
   const { t } = useTranslation()
+  const pagination = usePagination(conflits, useRowsPerPage())
   if (loading) {
     return <div>{Array.from({ length: 2 }).map((_, i) => <Skeleton key={i} height={40} style={{ marginBottom: 6 }} />)}</div>
   }
@@ -576,34 +583,39 @@ function ConflitsTable({ conflits, loading }: { conflits: SyncSupervisionConflit
     return <EmptyState icon={<CheckCircle2 size={18} />} title={t('admin.supNoConflictTitle')} description={t('admin.supNoConflictDesc')} variant="subtle" />
   }
   return (
-    <div style={DATA_TABLE_CARD}>
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <DataTableHead columns={[
-          { label: t('admin.colEntity') },
-          { label: t('admin.colType') },
-          { label: t('admin.colDate'), width: 160 },
-          { label: t('admin.colStatus'), align: 'right', width: 110 },
-        ]} />
-        <tbody>
-          {conflits.map((c, i) => (
-            <tr key={c.id} style={dataRowStyle(i % 2 === 1, false)}>
-              <td style={{ padding: DATA_TD_PADDING }}>
-                <span style={{ fontSize: 'var(--font-size-body-sm)', fontWeight: 600, color: 'var(--texte-primaire)' }}>{humanizeCode(c.entiteType)}</span>
-              </td>
-              <td style={{ padding: DATA_TD_PADDING }}>
-                <span style={{ fontSize: 'var(--font-size-body-sm)', color: 'var(--texte-secondaire)' }}>{humanizeCode(c.typeConflit)}</span>
-              </td>
-              <td style={{ padding: DATA_TD_PADDING }}>
-                <span style={{ fontSize: 'var(--font-size-body-sm)', color: 'var(--texte-secondaire)' }}>{relative(c.createdAt)}</span>
-              </td>
-              <td style={{ padding: DATA_TD_PADDING, textAlign: 'right' }}>
-                <StatusPill tone="warning" size="sm">{t('admin.supConflictBadge')}</StatusPill>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <>
+      <div style={DATA_TABLE_CARD}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <DataTableHead columns={[
+            { label: t('admin.colEntity') },
+            { label: t('admin.colType') },
+            { label: t('admin.colDate'), width: 160 },
+            { label: t('admin.colStatus'), align: 'right', width: 110 },
+          ]} />
+          <tbody>
+            {pagination.pageData.map((c, i) => (
+              <tr key={c.id} style={dataRowStyle(i % 2 === 1, false)}>
+                <td style={{ padding: DATA_TD_PADDING }}>
+                  <span style={{ fontSize: 'var(--font-size-body-sm)', fontWeight: 600, color: 'var(--texte-primaire)' }}>{humanizeCode(c.entiteType)}</span>
+                </td>
+                <td style={{ padding: DATA_TD_PADDING }}>
+                  <span style={{ fontSize: 'var(--font-size-body-sm)', color: 'var(--texte-secondaire)' }}>{humanizeCode(c.typeConflit)}</span>
+                </td>
+                <td style={{ padding: DATA_TD_PADDING }}>
+                  <span style={{ fontSize: 'var(--font-size-body-sm)', color: 'var(--texte-secondaire)' }}>{relative(c.createdAt)}</span>
+                </td>
+                <td style={{ padding: DATA_TD_PADDING, textAlign: 'right' }}>
+                  <StatusPill tone="warning" size="sm">{t('admin.supConflictBadge')}</StatusPill>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div style={{ marginTop: 'var(--espace-3)' }}>
+        <PaginationBar {...pagination} />
+      </div>
+    </>
   )
 }
 

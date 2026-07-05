@@ -112,20 +112,23 @@ export class SyncSupervisionService {
     this.notifications.broadcastLive('SYNC_ACTIVITY', { requiredPermission: 'synchronisation.read' })
   }
 
-  /** Données de l'écran de supervision (scope par site). Postes masqués (dismiss) exclus. */
+  /** Données de l'écran de supervision (scope par site). Postes masqués (dismiss) exclus.
+   *  `take` généreux (pas de vraie pagination serveur) : suffisant pour que la pagination
+   *  CLIENT de l'écran (Activité/Conflits) reste utile à mesure que le parc de postes grossit,
+   *  sans pour autant renvoyer un historique illimité. */
   async getSupervision(siteId: string) {
     const [postes, journaux, conflits] = await Promise.all([
       this.prisma.posteLocal.findMany({ where: { siteId, masque: false }, orderBy: { derniereSyncAt: 'desc' } }),
       this.prisma.journalSynchronisation.findMany({
         where:   { posteLocal: { siteId } },
         orderBy: { startedAt: 'desc' },
-        take:    30,
+        take:    200,
         include: { posteLocal: { select: { libelle: true } } },
       }),
       this.prisma.conflitSynchronisation.findMany({
         where:   { statut: 'EN_ATTENTE', journal: { posteLocal: { siteId } } },
         orderBy: { createdAt: 'desc' },
-        take:    50,
+        take:    200,
       }),
     ])
 
