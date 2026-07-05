@@ -111,7 +111,8 @@ export class SecurityController {
   /**
    * POST /auth/logout  🔒 JWT requis
    *
-   * Révoque toutes les sessions actives de l'utilisateur.
+   * Révoque les sessions APP actives de l'utilisateur (une éventuelle session de
+   * synchro d'un poste local est préservée — cf. SecurityService.logout).
    */
   @Post('logout')
   @UseGuards(JwtAuthGuard)

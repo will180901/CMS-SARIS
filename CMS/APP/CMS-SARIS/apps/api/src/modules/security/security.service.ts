@@ -521,11 +521,18 @@ export class SecurityService {
   // ── POST /auth/logout ────────────────────────────────────────────────────
 
   /**
-   * Révoque toutes les sessions actives de l'utilisateur.
+   * Révoque les sessions APP actives de l'utilisateur (déconnexion explicite).
+   *
+   * `posteLocalId: null` — MÊME exemption que dans `creerSession()` : une session de
+   * SYNCHRO (backend embarqué d'un poste local, `posteLocalId` rempli) n'est JAMAIS
+   * révoquée par un logout applicatif, sinon un utilisateur qui a servi à la fois à
+   * lier le poste (sync-setup) et à se connecter au quotidien casserait la synchro de
+   * son propre poste en se déconnectant (l'app rebascule alors sur l'écran de 1er
+   * lancement au prochain démarrage, au lieu de l'écran de connexion).
    */
   async logout(utilisateurId: string): Promise<void> {
     await this.prisma.sessionUtilisateur.updateMany({
-      where: { utilisateurId, revokedAt: null },
+      where: { utilisateurId, revokedAt: null, posteLocalId: null },
       data:  { revokedAt: new Date() },
     })
     await this.journaliser(utilisateurId, utilisateurId, 'SUCCES_LOGOUT')
