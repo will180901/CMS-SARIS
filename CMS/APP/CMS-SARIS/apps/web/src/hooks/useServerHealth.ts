@@ -19,15 +19,25 @@ import { BASE_URL } from '@/lib/api'
 const INTERVAL_MS = 10_000
 const TIMEOUT_MS  = 8_000   // tolérant : un hébergement gratuit (Render) peut être lent à répondre / au réveil
 const MAX_FAILS   = 2       // anti-clignotement : 2 échecs consécutifs avant de basculer « Hors ligne »
+const MIN_GAP_MS  = 4_000   // anti-rafale : ignore un déclenchement trop proche du précédent (ex. l'événement
+                             // `focus` du navigateur qui suit quasi instantanément le check de montage) — sans
+                             // cela, 2 checks quasi simultanés peuvent tomber TOUS LES DEUX sur un même blip
+                             // transitoire du serveur (503 pendant un réveil/une rafale Render) et atteindre le
+                             // seuil MAX_FAILS en une fraction de seconde au lieu des ~20 s prévues.
 
 export function useServerHealth() {
   const setOnline = useNetworkStore(s => s.setOnline)
 
   useEffect(() => {
     let cancelled = false
-    let fails = 0   // compteur d'échecs consécutifs
+    let fails = 0        // compteur d'échecs consécutifs
+    let lastCheckAt = 0  // horodatage du dernier check RÉELLEMENT exécuté
 
     async function check() {
+      const now = Date.now()
+      if (now - lastCheckAt < MIN_GAP_MS) return   // trop proche du précédent → ignoré
+      lastCheckAt = now
+
       if (typeof navigator !== 'undefined' && !navigator.onLine) {
         fails = MAX_FAILS
         if (!cancelled) setOnline(false)
@@ -52,7 +62,7 @@ export function useServerHealth() {
     check()
     const id = setInterval(check, INTERVAL_MS)
 
-    const onOnline  = () => { fails = 0; check() }
+    const onOnline  = () => { fails = 0; lastCheckAt = 0; check() } // retour réseau confirmé → check immédiat forcé
     const onOffline = () => { fails = MAX_FAILS; setOnline(false) }
     const onFocus   = () => check()
     window.addEventListener('online',  onOnline)
