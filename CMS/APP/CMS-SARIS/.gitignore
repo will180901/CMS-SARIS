@@ -30,3 +30,8 @@ npm-debug.log*
 # Misc
 .DS_Store
 *.pem
+
+# Sauvegardes .env temporaires (ne jamais suivre)
+*.dev-bak
+*.rebuild-bak
+*.predeploy.bak
