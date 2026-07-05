@@ -16,7 +16,7 @@ import i18n from '@/i18n/config'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   RefreshCw, Database, Save, ShieldCheck, FileText, KeyRound, Wifi, WifiOff,
-  HardDrive, CheckCircle2, AlertTriangle, Loader2, Play, CloudUpload, Trash2,
+  HardDrive, CheckCircle2, AlertTriangle, Loader2, CloudUpload, Trash2,
   RotateCcw, Users, Stethoscope, Pill, Ambulance, FlaskConical, HardHat, ClipboardList,
   CalendarClock, MonitorSmartphone, Activity, GitMerge, Radio,
 } from 'lucide-react'
@@ -26,13 +26,13 @@ import {
 import { toast } from '@workspace/ui/components/sonner'
 import { usePermissions } from '@/hooks/usePermissions'
 import { formatDateTime, formatNumber } from '@/lib/intl'
-import { labelModule, labelStatut, labelAction } from '@/config/labels'
+import { labelModule, labelStatut, labelAction, labelRole } from '@/config/labels'
 import { useConnectivityStore } from '@/stores/connectivity.store'
 import { isDesktop } from '@/lib/desktop'
 import { useSyncStore } from '@/stores/sync.store'
 import { syncCycle, listMutations, purgeMutations, retryRejected } from '@/lib/sync'
 import {
-  useSyncStatus, useSauvegardes, useDeclencherSauvegarde, useRestaurerSauvegarde,
+  useSyncStatus, useSauvegardes, useRestaurerSauvegarde,
 } from '../hooks/useAdmin'
 import { useSyncStatus as useDataSyncStatus, useSyncRun, useSyncSupervision } from '../hooks/useSync'
 import type { SauvegardeSysteme } from '../api/admin.api'
@@ -104,12 +104,10 @@ type SyncTab = 'supervision' | 'terrain' | 'backups' | 'volumetry'
 export function SynchronisationPage() {
   const { t } = useTranslation()
   const { has } = usePermissions()
-  const canExecute = has('synchronisation.execute')
   const canRestore = has('synchronisation.restore')
 
   const { data: status, isLoading: ls } = useSyncStatus()
   const { data: sauvegardes = [], isLoading: lh } = useSauvegardes()
-  const declencher = useDeclencherSauvegarde()
 
   const totalEnregistrements = status?.modules.reduce((a, m) => a + m.count, 0) ?? 0
 
@@ -128,13 +126,6 @@ export function SynchronisationPage() {
         icon={<RefreshCw size={18} />}
         title={t('admin.syncPageTitle')}
         subtitle={t('admin.syncPageSubtitle')}
-        actions={
-          canExecute && (
-            <Button leftIcon={<Save size={14} />} loading={declencher.isPending} onClick={() => declencher.mutate()}>
-              {t('admin.runBackup')}
-            </Button>
-          )
-        }
       />
 
       {/* Onglets de regroupement (scroll horizontal sur petit écran) */}
@@ -152,8 +143,8 @@ export function SynchronisationPage() {
         {tab === 'terrain' && <SyncTerrainZone />}
         {tab === 'backups' && (
           <SauvegardesZone
-            sauvegardes={sauvegardes} loading={lh} canExecute={canExecute} canRestore={canRestore}
-            planification={status?.planification} declencher={declencher}
+            sauvegardes={sauvegardes} loading={lh} canRestore={canRestore}
+            planification={status?.planification}
           />
         )}
         {tab === 'volumetry' && <VolumetrieZone status={status} loading={ls} total={totalEnregistrements} />}
@@ -346,9 +337,12 @@ function PosteCard({ poste }: { poste: SyncSupervisionPoste }) {
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <p style={{ margin: 0, fontSize: 'var(--font-size-body-sm)', fontWeight: 600, color: 'var(--texte-primaire)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {poste.libelle}
+          {/* Nom du dernier utilisateur connecté depuis ce poste (repli sur l'identifiant
+              machine si aucun utilisateur n'a encore synchronisé avec cette version). */}
+          {poste.utilisateurNom ?? poste.libelle}
         </p>
         <p style={{ margin: '1px 0 0', fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)' }}>
+          {poste.utilisateurRole && `${labelRole(poste.utilisateurRole)} · `}
           {t('admin.supLastSync')} · {relative(poste.derniereSyncAt)}
         </p>
       </div>
@@ -676,13 +670,11 @@ function MutationRow({ m, striped }: { m: FileMutation; striped: boolean }) {
 //  ZONE 2 — Sauvegardes serveur
 // ════════════════════════════════════════════════════════════════════════════════
 
-function SauvegardesZone({ sauvegardes, loading, canExecute, canRestore, planification, declencher }: {
+function SauvegardesZone({ sauvegardes, loading, canRestore, planification }: {
   sauvegardes: SauvegardeSysteme[]
   loading: boolean
-  canExecute: boolean
   canRestore: boolean
   planification?: { actif: boolean; frequence?: string; heure?: string; expression?: string; retention: number }
-  declencher: ReturnType<typeof useDeclencherSauvegarde>
 }) {
   const { t } = useTranslation()
   const derniere = sauvegardes[0]
@@ -695,13 +687,6 @@ function SauvegardesZone({ sauvegardes, loading, canExecute, canRestore, planifi
         icon={<Save size={14} />}
         title={t('admin.backupsTitle')}
         subtitle={t('admin.backupsSubtitle', { count: sauvegardes.length })}
-        actions={canExecute && (
-          <Button variant="outline" size="sm"
-            leftIcon={declencher.isPending ? <Loader2 size={13} className="animate-spin" /> : <Play size={13} />}
-            disabled={declencher.isPending} onClick={() => declencher.mutate()}>
-            {t('admin.run')}
-          </Button>
-        )}
       />
       <Card.Body padding="md">
         {/* Bandeau planification automatique */}
@@ -753,11 +738,6 @@ function SauvegardesZone({ sauvegardes, loading, canExecute, canRestore, planifi
             title={t('admin.noBackupTitle')}
             description={t('admin.noBackupDesc')}
             variant="subtle"
-            action={canExecute && (
-              <Button leftIcon={<Play size={14} />} loading={declencher.isPending} onClick={() => declencher.mutate()}>
-                {t('admin.firstBackup')}
-              </Button>
-            )}
           />
         ) : (
           <div style={{ border: '1px solid var(--bordure-legere)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>

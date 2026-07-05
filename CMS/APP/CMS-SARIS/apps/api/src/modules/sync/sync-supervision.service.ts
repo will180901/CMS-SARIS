@@ -25,6 +25,7 @@ export interface SyncConflictDetail {
 export interface SyncRecordInput {
   posteLocalId: string
   siteId: string
+  userId: string
   startedAt: Date
   applied: number
   conflicts: SyncConflictDetail[]
@@ -32,6 +33,10 @@ export interface SyncRecordInput {
 
 /** Un poste est considéré « en ligne » s'il s'est synchronisé dans les 3 dernières minutes. */
 const ONLINE_WINDOW_MS = 3 * 60_000
+
+/** Ordre de priorité d'affichage quand un utilisateur porte plusieurs rôles (même ordre que
+ *  `getPrimaryRole` côté web, apps/web/src/config/navigation.config.ts). */
+const ROLE_PRIORITY = ['ADMIN_SYSTEME', 'MEDECIN_CHEF', 'INFIRMIER']
 
 @Injectable()
 export class SyncSupervisionService {
@@ -49,15 +54,16 @@ export class SyncSupervisionService {
   /** Enregistre un cycle de synchro reçu d'un poste (no-op sur un poste local SQLite). */
   async record(input: SyncRecordInput): Promise<void> {
     if (this.isSqlite) return
-    const { posteLocalId, siteId, startedAt, applied, conflicts } = input
+    const { posteLocalId, siteId, userId, startedAt, applied, conflicts } = input
     const now = new Date()
 
     try {
-      // 1. Poste connu + horodatage de la dernière synchro.
+      // 1. Poste connu + horodatage de la dernière synchro + DERNIER utilisateur connecté
+      //    (traçabilité seule, pas de relation FK — cf. createdBy/updatedBy ailleurs au schéma).
       await this.prisma.posteLocal.upsert({
         where:  { id: posteLocalId },
-        update: { derniereSyncAt: now, siteId },
-        create: { id: posteLocalId, siteId, libelle: `Poste ${posteLocalId.slice(0, 8)}`, derniereSyncAt: now },
+        update: { derniereSyncAt: now, siteId, dernierUtilisateurId: userId },
+        create: { id: posteLocalId, siteId, libelle: `Poste ${posteLocalId.slice(0, 8)}`, derniereSyncAt: now, dernierUtilisateurId: userId },
       })
 
       // 2. Journal du cycle (réussi / avec conflits).
@@ -120,13 +126,40 @@ export class SyncSupervisionService {
       }),
     ])
 
+    // Enrichissement : dernier utilisateur connecté par poste (nom + rôle affichés au lieu
+    // de l'identifiant machine). `dernierUtilisateurId` n'est PAS une relation Prisma (cf.
+    // createdBy/updatedBy ailleurs au schéma) → jointure manuelle, une seule requête groupée.
+    const utilisateurIds = [...new Set(postes.map((p) => p.dernierUtilisateurId).filter((id): id is string => !!id))]
+    const utilisateurs = utilisateurIds.length
+      ? await this.prisma.utilisateur.findMany({
+          where:  { id: { in: utilisateurIds } },
+          select: {
+            id:    true,
+            login: true,
+            personnelMedical: { select: { nom: true, prenom: true } },
+            roles: { select: { role: { select: { code: true } } } },
+          },
+        })
+      : []
+    const utilisateurById = new Map(utilisateurs.map((u) => [u.id, u]))
+
     return {
-      postes: postes.map((p) => ({
-        id:             p.id,
-        libelle:        p.libelle,
-        derniereSyncAt: p.derniereSyncAt,
-        enLigne:        !!p.derniereSyncAt && now - +p.derniereSyncAt < ONLINE_WINDOW_MS,
-      })),
+      postes: postes.map((p) => {
+        const u = p.dernierUtilisateurId ? utilisateurById.get(p.dernierUtilisateurId) : undefined
+        const utilisateurNom = u
+          ? (u.personnelMedical ? `${u.personnelMedical.prenom} ${u.personnelMedical.nom}` : u.login)
+          : null
+        const codes = u?.roles.map((r) => r.role.code) ?? []
+        const utilisateurRole = ROLE_PRIORITY.find((r) => codes.includes(r)) ?? codes[0] ?? null
+        return {
+          id:              p.id,
+          libelle:         p.libelle,
+          utilisateurNom,
+          utilisateurRole,
+          derniereSyncAt:  p.derniereSyncAt,
+          enLigne:         !!p.derniereSyncAt && now - +p.derniereSyncAt < ONLINE_WINDOW_MS,
+        }
+      }),
       journaux: journaux.map((j) => ({
         id:          j.id,
         poste:       j.posteLocal.libelle,

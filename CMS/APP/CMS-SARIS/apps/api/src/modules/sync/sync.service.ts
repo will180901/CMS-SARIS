@@ -136,7 +136,7 @@ export class SyncService {
   }
 
   // ── PUSH (lot) ──────────────────────────────────────────────────────────────
-  async push(siteId: string, posteLocalId: string, changes: SyncEntityEnvelope[]): Promise<SyncPushResponseV2> {
+  async push(siteId: string, userId: string, posteLocalId: string, changes: SyncEntityEnvelope[]): Promise<SyncPushResponseV2> {
     const startedAt = new Date()
     const applied: string[] = []
     const skipped: string[] = []
@@ -165,7 +165,7 @@ export class SyncService {
     // Traçabilité + temps réel (serveur central uniquement, no-op si pas de poste).
     if (posteLocalId) {
       await this.supervision.record({
-        posteLocalId, siteId, startedAt, applied: applied.length, conflicts: conflictDetails,
+        posteLocalId, siteId, userId, startedAt, applied: applied.length, conflicts: conflictDetails,
       })
     }
 

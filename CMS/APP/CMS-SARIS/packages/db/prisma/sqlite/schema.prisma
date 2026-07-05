@@ -1216,13 +1216,15 @@ model SuiviAccidentTravail {
 // ─────────────────────────────────────────────
 
 model PosteLocal {
-  id             String                   @id @default(uuid())
-  siteId         String
-  libelle        String
-  derniereSyncAt DateTime?
-  createdAt      DateTime                 @default(now())
-  fileMutations  FileMutation[]
-  journauxSync   JournalSynchronisation[]
+  id                   String                   @id @default(uuid())
+  siteId               String
+  libelle              String
+  /** Dernier utilisateur ayant synchronisé depuis ce poste (traçabilité, comme createdBy/updatedBy — pas de relation FK, cf. Patient). */
+  dernierUtilisateurId String?
+  derniereSyncAt       DateTime?
+  createdAt            DateTime                 @default(now())
+  fileMutations        FileMutation[]
+  journauxSync         JournalSynchronisation[]
 }
 
 model FileMutation {

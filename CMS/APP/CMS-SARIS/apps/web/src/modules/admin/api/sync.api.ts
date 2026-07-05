@@ -29,6 +29,10 @@ export interface SyncRunResult {
 export interface SyncSupervisionPoste {
   id: string
   libelle: string
+  /** Nom (ou identifiant) du dernier utilisateur ayant synchronisé depuis ce poste. */
+  utilisateurNom: string | null
+  /** Rôle de ce dernier utilisateur (le plus élevé s'il en porte plusieurs). */
+  utilisateurRole: string | null
   derniereSyncAt: string | null
   enLigne: boolean
 }

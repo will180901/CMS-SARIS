@@ -41,8 +41,8 @@ export class SyncController {
   @Post('push')
   @RequirePermissions('synchronisation.execute')
   push(@Req() req: AuthedRequest, @Body() body: SyncPushDto) {
-    const { siteId } = requireUser(req)
-    return this.svc.push(siteId, body.posteLocalId, body.changes)
+    const { userId, siteId } = requireUser(req)
+    return this.svc.push(siteId, userId, body.posteLocalId, body.changes)
   }
 
   /** Supervision (serveur central) : postes, activité récente, conflits — scope par site. */

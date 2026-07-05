@@ -426,7 +426,6 @@ export const admin = {
     // En-tête de page
     syncPageTitle: 'Synchronisation & sauvegardes',
     syncPageSubtitle: 'Synchronisation hors-ligne du terrain, sauvegardes système et volumétrie des données',
-    runBackup: 'Lancer une sauvegarde',
     // Temps relatif (helper relative())
     relativeNever: 'jamais',
     relativeNow: 'à l\'instant',
@@ -464,7 +463,6 @@ export const admin = {
     // Zone sauvegardes de configuration
     backupsTitle: 'Sauvegardes de configuration',
     backupsSubtitle: 'Référentiels, rôles & permissions, paramètres · {{count}} sauvegarde(s)',
-    run: 'Lancer',
     autoBackup: 'Sauvegarde automatique',
     scheduleDaily: 'Tous les jours à {{heure}}',
     scheduleUnknown: 'Planifiée',
@@ -472,8 +470,7 @@ export const admin = {
     lastBackup: 'Dernière sauvegarde',
     triggeredBy: 'déclenchement {{type}}',
     noBackupTitle: 'Aucune sauvegarde enregistrée',
-    noBackupDesc: 'Lancez la première sauvegarde système pour démarrer le suivi.',
-    firstBackup: 'Première sauvegarde',
+    noBackupDesc: 'La sauvegarde automatique n\'a pas encore été exécutée.',
     backupOfType: 'Sauvegarde {{type}}',
     notRestorable: 'Cette entrée ne contient pas de données restaurables',
     restore: 'Restaurer',
@@ -959,7 +956,6 @@ export const admin = {
     // Page header
     syncPageTitle: 'Synchronization & backups',
     syncPageSubtitle: 'Offline field synchronization, system backups and data volumetry',
-    runBackup: 'Run a backup',
     // Relative time (relative() helper)
     relativeNever: 'never',
     relativeNow: 'just now',
@@ -997,7 +993,6 @@ export const admin = {
     // Configuration backups zone
     backupsTitle: 'Configuration backups',
     backupsSubtitle: 'Reference data, roles & permissions, settings · {{count}} backup(s)',
-    run: 'Run',
     autoBackup: 'Automatic backup',
     scheduleDaily: 'Every day at {{heure}}',
     scheduleUnknown: 'Scheduled',
@@ -1005,8 +1000,7 @@ export const admin = {
     lastBackup: 'Last backup',
     triggeredBy: 'triggered {{type}}',
     noBackupTitle: 'No backup recorded',
-    noBackupDesc: 'Run the first system backup to start tracking.',
-    firstBackup: 'First backup',
+    noBackupDesc: 'The automatic backup has not run yet.',
     backupOfType: '{{type}} backup',
     notRestorable: 'This entry contains no restorable data',
     restore: 'Restore',
