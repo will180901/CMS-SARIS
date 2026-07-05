@@ -21,6 +21,8 @@ import { Avatar } from '@/components/saris'
 import { Popover, PopoverContent, PopoverTrigger } from '@workspace/ui/components/popover'
 import { toast } from '@workspace/ui/components/sonner'
 import { isOfflineQueued } from '@/lib/api'
+import { isDesktop } from '@/lib/desktop'
+import { DESKTOP_TITLEBAR_H } from '@/components/layout/DesktopTitleBar'
 import {
   useMessagesThread, flattenThread,
   useSendMessage, useUpdateMessage, useDeleteMessage, useHideMessage, useToggleReaction, useMessageDetails,
@@ -573,7 +575,7 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
       )}
 
       {multiDel && (
-        <div onClick={() => setMultiDel(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: 16 }}>
+        <div onClick={() => setMultiDel(false)} style={{ position: 'fixed', top: isDesktop ? DESKTOP_TITLEBAR_H : 0, right: 0, bottom: 0, left: 0, background: 'rgba(15,23,42,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: 16 }}>
           <div onClick={e => e.stopPropagation()} style={{ width: 350, background: 'var(--fond-surface)', borderRadius: 14, border: '1px solid var(--bordure-legere)', boxShadow: '0 20px 50px rgba(0,0,0,0.25)', padding: 18 }}>
             <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--texte-primaire)' }}>{t('messagerie.deleteForEveryoneTitle')}</p>
             <p style={{ margin: '8px 0 16px', fontSize: 13, color: 'var(--texte-secondaire)', lineHeight: 1.5 }}>
@@ -910,7 +912,7 @@ function MessageDetailsModal({ messageId, onClose }: { messageId: string; onClos
   const { t } = useTranslation()
   const { data, isLoading } = useMessageDetails(messageId, true)
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: 16 }}>
+    <div onClick={onClose} style={{ position: 'fixed', top: isDesktop ? DESKTOP_TITLEBAR_H : 0, right: 0, bottom: 0, left: 0, background: 'rgba(15,23,42,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: 16 }}>
       <div onClick={e => e.stopPropagation()} style={{ width: 380, maxWidth: '94vw', maxHeight: '82vh', overflowY: 'auto', background: 'var(--fond-surface)', borderRadius: 14, boxShadow: '0 20px 60px rgba(0,0,0,0.32)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: '1px solid var(--bordure-legere)', position: 'sticky', top: 0, background: 'var(--fond-surface)' }}>
           <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--texte-primaire)' }}>{t('messagerie.messageDetails')}</span>
@@ -963,7 +965,7 @@ function DeleteChoiceDialog({ message, onClose, onForMe, onForEveryone }: { mess
   const { t } = useTranslation()
   const canForAll = message.deMoi && !message.pending && withinWindow(message.createdAt)
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: 16 }}>
+    <div onClick={onClose} style={{ position: 'fixed', top: isDesktop ? DESKTOP_TITLEBAR_H : 0, right: 0, bottom: 0, left: 0, background: 'rgba(15,23,42,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: 16 }}>
       <div onClick={e => e.stopPropagation()} style={{ width: 340, maxWidth: '92vw', background: 'var(--fond-surface)', borderRadius: 14, boxShadow: '0 20px 60px rgba(0,0,0,0.32)', overflow: 'hidden' }}>
         <div style={{ padding: '16px 18px 8px' }}>
           <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: 'var(--texte-primaire)' }}>{t('messagerie.deleteMessageTitle')}</p>

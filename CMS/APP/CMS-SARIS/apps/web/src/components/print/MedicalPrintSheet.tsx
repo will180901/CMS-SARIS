@@ -17,6 +17,8 @@ import { useRef, useState, useEffect, createContext, useContext } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Printer, FileText, ZoomIn, ZoomOut } from 'lucide-react'
 import { labelMetier } from '@/config/labels'
+import { isDesktop } from '@/lib/desktop'
+import { DESKTOP_TITLEBAR_H } from '@/components/layout/DesktopTitleBar'
 import { formatDate as intlFormatDate } from '@/lib/intl'
 import { calcAge } from '@/lib/age'
 
@@ -246,8 +248,8 @@ export function MedicalPrintSheet({
   // ── Variante MODALE : fenêtre centrée ─────────────────────────────────────
   return (
     <>
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(15,23,42,0.55)', backdropFilter: 'blur(2px)' }} />
-      <div style={{ position: 'fixed', inset: 0, zIndex: 1001, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '20px 16px', overflowY: 'auto' }}>
+      <div onClick={onClose} style={{ position: 'fixed', top: isDesktop ? DESKTOP_TITLEBAR_H : 0, right: 0, bottom: 0, left: 0, zIndex: 1000, background: 'rgba(15,23,42,0.55)', backdropFilter: 'blur(2px)' }} />
+      <div style={{ position: 'fixed', top: isDesktop ? DESKTOP_TITLEBAR_H : 0, right: 0, bottom: 0, left: 0, zIndex: 1001, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '20px 16px', overflowY: 'auto' }}>
         <div style={{ width: '100%', maxWidth: SHEET_W + 28, background: 'var(--fond-surface)', borderRadius: 12, boxShadow: '0 24px 60px rgba(15,23,42,0.3)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           {toolbar}
           <div style={{ background: '#e9edf0', display: 'flex', justifyContent: 'center', padding: 24 }}>

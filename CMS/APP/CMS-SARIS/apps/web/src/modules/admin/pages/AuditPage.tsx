@@ -14,6 +14,8 @@ import { useState, useMemo, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { Popover, PopoverContent, PopoverTrigger } from '@workspace/ui/components/popover'
+import { isDesktop } from '@/lib/desktop'
+import { DESKTOP_TITLEBAR_H } from '@/components/layout/DesktopTitleBar'
 import {
   History, Activity, KeyRound, ChevronRight, ChevronDown,
   CheckCircle2, XCircle, AlertTriangle, X, FileText, GitCompare, Code2,
@@ -877,11 +879,11 @@ function AuditDetailDrawer({ entry, onClose }: { entry: AuditEntry; onClose: () 
   return (
     <>
       <div onClick={onClose} style={{
-        position: 'fixed', inset: 0, zIndex: 1000,
+        position: 'fixed', top: isDesktop ? DESKTOP_TITLEBAR_H : 0, right: 0, bottom: 0, left: 0, zIndex: 1000,
         background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(2px)',
       }} />
       <div style={{
-        position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 1001,
+        position: 'fixed', top: isDesktop ? DESKTOP_TITLEBAR_H : 0, right: 0, bottom: 0, zIndex: 1001,
         width: 600, maxWidth: '95vw',
         background: 'var(--fond-surface)',
         boxShadow: 'var(--ombre-4)',

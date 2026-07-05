@@ -17,6 +17,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@workspace/ui/component
 import { toast } from '@workspace/ui/components/sonner'
 import { Avatar } from '@/components/saris'
 import { isOfflineQueued } from '@/lib/api'
+import { isDesktop } from '@/lib/desktop'
+import { DESKTOP_TITLEBAR_H } from '@/components/layout/DesktopTitleBar'
 import { formatTime } from '@/lib/intl'
 import { useIsCompact } from '@/hooks/useMediaQuery'
 import { useConversations, useContacts, useStartConversation, useCreateGroup, useLeaveConversation } from '../hooks/useMessagerie'
@@ -206,7 +208,7 @@ export function MessageriePage() {
 
       {deleteTarget && createPortal(
         <div onClick={() => setDeleteTarget(null)}
-          style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          style={{ position: 'fixed', top: isDesktop ? DESKTOP_TITLEBAR_H : 0, right: 0, bottom: 0, left: 0, zIndex: 2000, background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <div onClick={e => e.stopPropagation()} role="dialog" aria-modal="true"
             style={{ width: 380, maxWidth: '100%', background: 'var(--fond-surface)', borderRadius: 14, border: '1px solid var(--bordure-legere)', boxShadow: '0 24px 60px rgba(15,23,42,0.28)', padding: '20px 22px' }}>
             <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--texte-primaire)' }}>

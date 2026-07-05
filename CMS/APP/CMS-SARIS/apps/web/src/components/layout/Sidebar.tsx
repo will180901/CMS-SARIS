@@ -106,7 +106,7 @@ export function Sidebar() {
         <div
           aria-hidden="true"
           onClick={() => setMobileNavOpen(false)}
-          style={{ position: 'fixed', inset: 0, zIndex: 49, background: 'rgba(15,23,42,0.45)' }}
+          style={{ position: 'fixed', top: SIDEBAR_TOP, right: 0, bottom: 0, left: 0, zIndex: 49, background: 'rgba(15,23,42,0.45)' }}
         />
       )}
       <aside
