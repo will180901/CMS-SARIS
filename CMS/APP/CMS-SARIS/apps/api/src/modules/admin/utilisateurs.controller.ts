@@ -19,13 +19,31 @@ import {
 } from './dto/utilisateur.dto'
 import { SetPermissionOverridesDto, BulkPermissionDto } from './dto/permission-override.dto'
 
-interface AuthedRequest { user?: { id?: string; siteId?: string } }
+interface AuthedRequest { user?: { id?: string; siteId?: string; permissions?: string[] } }
 
 /** siteId du JWT — cloisonnement multi-site, jamais depuis les query params. */
 function requireSite(req: AuthedRequest): string {
   const siteId = req.user?.siteId
   if (!siteId) throw new UnauthorizedException('Session invalide')
   return siteId
+}
+
+/**
+ * Accès multi-site : celui qui détient `utilisateur.create` (ADMIN_SYSTEME
+ * de base, ou un MEDECIN_CHEF à qui l'admin l'a accordée individuellement)
+ * peut voir/créer/gérer les comptes des DEUX sites, pas seulement le sien —
+ * un médecin-chef peut alterner entre Moutela et Nkayi si l'admin l'y autorise.
+ * Sans cette permission : cloisonnement strict au site du JWT (comportement
+ * historique, inchangé pour tout le reste des rôles).
+ */
+function hasCrossSiteAccess(req: AuthedRequest): boolean {
+  return (req.user?.permissions ?? []).includes('utilisateur.create')
+}
+
+/** Site de PORTÉE pour filtrer une liste/un accès existant : `undefined` = tous
+ *  les sites (accès transverse), sinon le site du JWT (cloisonnement). */
+function scopeSite(req: AuthedRequest): string | undefined {
+  return hasCrossSiteAccess(req) ? undefined : requireSite(req)
 }
 
 @Controller('admin/utilisateurs')
@@ -36,52 +54,52 @@ export class UtilisateursController {
   @Get()
   @RequirePermissions('utilisateur.read')
   findAll(@Query() query: UtilisateurQueryDto, @Req() req: AuthedRequest) {
-    return this.svc.findAll(query, requireSite(req))
+    return this.svc.findAll(query, scopeSite(req))
   }
 
   @Get(':id')
   @RequirePermissions('utilisateur.read')
   findById(@Param('id') id: string, @Req() req: AuthedRequest) {
-    return this.svc.findById(id, requireSite(req))
+    return this.svc.findById(id, scopeSite(req))
   }
 
   @Post()
   @RequirePermissions('utilisateur.create')
   @HttpCode(HttpStatus.CREATED)
   create(@Body() dto: CreateUtilisateurDto, @Req() req: AuthedRequest) {
-    return this.svc.create(dto, req.user?.id ?? null, requireSite(req))
+    return this.svc.create(dto, req.user?.id ?? null, requireSite(req), hasCrossSiteAccess(req))
   }
 
   @Patch(':id')
   @RequirePermissions('utilisateur.update')
   update(@Param('id') id: string, @Body() dto: UpdateUtilisateurDto, @Req() req: AuthedRequest) {
-    return this.svc.update(id, dto, req.user?.id ?? null, requireSite(req))
+    return this.svc.update(id, dto, req.user?.id ?? null, requireSite(req), hasCrossSiteAccess(req))
   }
 
   @Delete(':id')
   @RequirePermissions('utilisateur.delete')
   @HttpCode(HttpStatus.OK)
   remove(@Param('id') id: string, @Req() req: AuthedRequest) {
-    return this.svc.delete(id, req.user?.id ?? null, requireSite(req))
+    return this.svc.delete(id, req.user?.id ?? null, scopeSite(req))
   }
 
   @Patch(':id/roles')
   @RequirePermissions('utilisateur.assign_role')
   setRoles(@Param('id') id: string, @Body() dto: SetRolesDto, @Req() req: AuthedRequest) {
-    return this.svc.setRoles(id, dto, req.user?.id ?? null, requireSite(req))
+    return this.svc.setRoles(id, dto, req.user?.id ?? null, scopeSite(req))
   }
 
   @Patch(':id/statut')
   @RequirePermissions('utilisateur.update')
   setStatut(@Param('id') id: string, @Body() dto: SetStatutDto, @Req() req: AuthedRequest) {
-    return this.svc.setStatut(id, dto, req.user?.id ?? null, requireSite(req))
+    return this.svc.setStatut(id, dto, req.user?.id ?? null, scopeSite(req))
   }
 
   @Post(':id/reset-password')
   @RequirePermissions('utilisateur.reset_password')
   @HttpCode(HttpStatus.OK)
   resetPassword(@Param('id') id: string, @Body() dto: ResetPasswordDto, @Req() req: AuthedRequest) {
-    return this.svc.resetPassword(id, dto, req.user?.id ?? null, requireSite(req))
+    return this.svc.resetPassword(id, dto, req.user?.id ?? null, scopeSite(req))
   }
 
   // ── Récupération de compte (admin) ────────────────────────────────────────
@@ -91,7 +109,7 @@ export class UtilisateursController {
   @RequirePermissions('utilisateur.reset_password')
   @HttpCode(HttpStatus.OK)
   resetTotp(@Param('id') id: string, @Req() req: AuthedRequest) {
-    return this.svc.resetTotp(id, req.user?.id ?? null, requireSite(req))
+    return this.svc.resetTotp(id, req.user?.id ?? null, scopeSite(req))
   }
 
   /** Régénère les codes de secours (renvoyés une seule fois). */
@@ -99,7 +117,7 @@ export class UtilisateursController {
   @RequirePermissions('utilisateur.reset_password')
   @HttpCode(HttpStatus.OK)
   regenerateBackupCodes(@Param('id') id: string, @Req() req: AuthedRequest) {
-    return this.svc.regenerateBackupCodes(id, req.user?.id ?? null, requireSite(req))
+    return this.svc.regenerateBackupCodes(id, req.user?.id ?? null, scopeSite(req))
   }
 
   /** Force la déconnexion : révoque toutes les sessions actives. */
@@ -107,7 +125,7 @@ export class UtilisateursController {
   @RequirePermissions('utilisateur.reset_password')
   @HttpCode(HttpStatus.OK)
   revokeSessions(@Param('id') id: string, @Req() req: AuthedRequest) {
-    return this.svc.revokeAllSessions(id, req.user?.id ?? null, requireSite(req))
+    return this.svc.revokeAllSessions(id, req.user?.id ?? null, scopeSite(req))
   }
 
   // ── Dérogations de permissions (GRANT / REVOKE par utilisateur) ───────────
@@ -117,20 +135,20 @@ export class UtilisateursController {
   @RequirePermissions('utilisateur.manage_permissions')
   @HttpCode(HttpStatus.OK)
   bulkPermissions(@Body() dto: BulkPermissionDto, @Req() req: AuthedRequest) {
-    return this.svc.bulkSetPermission(dto, req.user?.id ?? null, requireSite(req))
+    return this.svc.bulkSetPermission(dto, req.user?.id ?? null, scopeSite(req))
   }
 
   /** Ventilation des permissions effectives d'un utilisateur */
   @Get(':id/permissions')
   @RequirePermissions('utilisateur.read', 'utilisateur.manage_permissions')
   getPermissions(@Param('id') id: string, @Req() req: AuthedRequest) {
-    return this.svc.getPermissions(id, requireSite(req))
+    return this.svc.getPermissions(id, scopeSite(req))
   }
 
   /** Remplace l'ensemble des dérogations d'un utilisateur */
   @Put(':id/permissions')
   @RequirePermissions('utilisateur.manage_permissions')
   setPermissions(@Param('id') id: string, @Body() dto: SetPermissionOverridesDto, @Req() req: AuthedRequest) {
-    return this.svc.setPermissions(id, dto, req.user?.id ?? null, requireSite(req))
+    return this.svc.setPermissions(id, dto, req.user?.id ?? null, scopeSite(req))
   }
 }

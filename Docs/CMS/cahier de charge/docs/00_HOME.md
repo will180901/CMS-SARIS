@@ -8,7 +8,7 @@
 
 ## Chiffres clés (vérifiés dans le code)
 - **87 tables** Prisma · **110 permissions** · **3 rôles** (ADMIN_SYSTEME, MEDECIN_CHEF, INFIRMIER ; MEDECIN = profession mappée au rôle MEDECIN_CHEF) · **2 sites** (Moutela, Nkayi).
-- **16 modules** métier · ~**374 exigences fonctionnelles (EF)** · ~**113 cas d'usage (CU)** · **23 décisions (D-001→D-023)** · **62 paramètres (PM-01→PM-62)**.
+- **16 modules** métier · ~**376 exigences fonctionnelles (EF)** · ~**114 cas d'usage (CU)** · **23 décisions (D-001→D-023)** · **62 paramètres (PM-01→PM-62)**.
 - **Stack** : React 19 / NestJS 11 / Prisma 6 / PostgreSQL + SQLite / Electron 33. Monorepo pnpm.
 - **Déploiement** : API **Render**, base **Neon**, site web **Render**, desktop **installeur Windows (v1.5.0)**.
 
@@ -36,7 +36,7 @@
 | # | Module | EF | CU |
 |---|--------|----|----|
 | 01 | [[MODULE_01_securite_authentification]] | 40 | 8 |
-| 02 | [[MODULE_02_acces_habilitations]] | 20 | 9 |
+| 02 | [[MODULE_02_acces_habilitations]] | 22 | 10 |
 | 03 | [[MODULE_03_parametres]] | 15 | 5 |
 | 04 | [[MODULE_04_audit_supervision]] | 25 | 10 |
 | 05 | [[MODULE_05_referentiels]] | 15 | 7 |
@@ -79,3 +79,14 @@
 > ✅ Revue de cohérence effectuée : tous les liens `[[...]]` résolvent, chiffres uniformisés (**87 tables / 110 permissions / 3 rôles / 16 modules**), liens copiés de la mémoire dé-liés. Détails : [[rapport_revue_coherence]].
 >
 > ✅ **Mise à jour d'alignement 2026-07-06** : delta app↔doc depuis l'audit du 2026-06-29 (20 commits + travaux en cours) intégré — photo de profil self-service (upload, recadrage façon WhatsApp, annuaire léger, avatar perpétuel partout), refonte de l'écran de supervision synchronisation (sous-onglets, filtres, pagination, détail de poste par identité utilisateur, masquage dynamique, clarification du périmètre sauvegardes), retrait des groupes de navigation « Administration système »/« Système » de la sidebar (déplacés dans Paramètres), salutation du tableau de bord personnalisée par nom, regroupement d'affichage Sécurité + Mot de passe dans Paramètres, desktop **v1.5.0**. Modules/documents touchés : [[MODULE_01_securite_authentification]] (v1.1), [[MODULE_02_acces_habilitations]] (précision), [[MODULE_03_parametres]] (v1.1), [[MODULE_15_dashboard]] (v1.1), [[MODULE_16_synchronisation]] (v1.1), [[modele_donnees_global]] (v1.1, champs `photoUrl`/`dernierUtilisateurId`/`masque`), [[specifications_ecrans]] (v1.1), [[charte_graphique]] (v1.1), [[plan_releases]] (v1.1), [[tracabilite]] (v1.1), [[checklist_mise_en_production]] (v1.1), [[registre_decisions]] (précision), [[rapport_audit_fidelite]] (addendum §7), [[rapport_revue_coherence]] (note de renvoi). Chiffres canoniques **inchangés** sur 87 tables / 110 permissions / 3 rôles (re-vérifiés dans le code) ; **363→374 EF, 111→113 CU** (+11, détail au §Phase 2 et [[tracabilite]]).
+>
+> ✅ **Accès multi-site accordable 2026-07-06** : changement de fond, demandé explicitement par le porteur —
+> le cloisonnement des comptes par site n'est plus absolu. Un détenteur de `utilisateur.create`
+> (ADMIN_SYSTEME de base, ou un MEDECIN_CHEF à qui l'admin l'accorde individuellement) crée et gère désormais
+> les comptes des **deux sites** (Moutela ET Nkayi) — sélecteur de site à la création, liste/édition/actions
+> multi-site, filtre de site. Bâti à cette occasion : le **5ᵉ onglet « Permissions »** du tiroir compte
+> (dérogations individuelles GRANT/REVOKE), UI qui manquait à des endpoints backend déjà prêts mais jamais
+> exposés. Vérifié **de bout en bout via API réelle** (script : octroi → re-login → création cross-site →
+> liste multi-site → non-régression sur un rôle non habilité). [[MODULE_02_acces_habilitations]] (v1.1,
+> RM-02-01 amendée, EF-02-21/22, CU-02-10), [[registre_decisions]] (D-005 amendée). **376 EF / 114 CU**
+> (détail [[tracabilite]]).

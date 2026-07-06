@@ -1,6 +1,6 @@
 # Module 02 — Accès & Habilitations
 
-**Version** 1.0 · **Date** 2026-06-26 · **Statut** Brouillon · **Release** MVP · **Historique** : v1.0 création
+**Version** 1.1 · **Date** 2026-07-06 · **Statut** Brouillon · **Release** MVP · **Historique** : v1.0 création · v1.1 (2026-07-06) : accès **multi-site** pour les détenteurs de `utilisateur.create` (ADMIN_SYSTEME de base, MEDECIN_CHEF si l'admin le lui accorde) — EF-02-01/03/… précisés, RM-02-01 amendée, D-005 amendée en conséquence ([[registre_decisions]])
 
 > Spécification « as-built » (le système est développé et déployé). Elle documente le module
 > d'administration des **comptes utilisateur**, des **rôles** et des **permissions**, ainsi que la
@@ -76,11 +76,18 @@ rôle nominal.
 
 > **Catégories de patient** : sans objet pour ce module (il n'agit pas sur les patients).
 
-**Cloisonnement multi-site** :
-- La gestion des **comptes** est **cloisonnée par site** : un administrateur ne liste, ne crée et ne modifie
-  que les comptes de **son** site (le `siteId` est forcé depuis le JWT ; un compte d'un autre site est traité
-  comme inexistant → 404). Source : `utilisateurs.service.ts` (`requireSite`, `getOrThrow(id, siteId)`).
-- La gestion des **rôles** est de **gouvernance globale** (tous sites) : le catalogue de rôles et le compteur
+**Cloisonnement multi-site** (précisé 2026-07-06) :
+- Par défaut, la gestion des **comptes** reste **cloisonnée par site** : un administrateur ne liste, ne crée
+  et ne modifie que les comptes de **son** site (le `siteId` est forcé depuis le JWT ; un compte d'un autre
+  site est traité comme inexistant → 404).
+- **Exception voulue** : un détenteur de `utilisateur.create` (ADMIN_SYSTEME de base ; ou un MEDECIN_CHEF
+  auquel l'admin a accordé cette permission via une **dérogation individuelle**, cf. CU-02-08/CU-02-10) a un
+  accès **multi-site** sur TOUT le module comptes — liste, détail, création, modification, statut, reset mot
+  de passe/2FA, rôles, dérogations : aucun filtrage par site, et il choisit librement Moutela **ou** Nkayi à
+  la création. Justification métier : un médecin-chef peut superviser les deux sites, et le personnel médical
+  peut être affecté à l'un ou l'autre. Source : `utilisateurs.controller.ts` (`hasCrossSiteAccess`,
+  `scopeSite`), `utilisateurs.service.ts` (paramètre `siteId: string | undefined` = pas de restriction).
+- La gestion des **rôles** reste de **gouvernance globale** (tous sites) : le catalogue de rôles et le compteur
   de détenteurs (`nbUtilisateurs`) sont globaux ; la liste des détenteurs d'un rôle est multi-site. Source :
   `roles.service.ts` (`getUtilisateurs`).
 
@@ -151,6 +158,12 @@ direct ici hormis l'éligibilité aux permissions de gouvernance.
   Permission `role.update`.
 - **EF-02-20** — Le système supprime un rôle, **sauf** s'il est **système** ou **attribué à au moins un
   utilisateur**. Permission `role.delete`.
+- **EF-02-21** *(ajouté 2026-07-06)* — Un appelant détenant `utilisateur.create` (accès multi-site,
+  `hasCrossSiteAccess`) peut créer un compte sur **n'importe quel site existant** (le `siteId` envoyé est
+  validé contre la table `Site` puis utilisé tel quel), au lieu d'être restreint au site de son propre JWT.
+- **EF-02-22** *(ajouté 2026-07-06)* — Un appelant détenant `utilisateur.create` liste, consulte et gère
+  (modification, statut, rôles, dérogations, reset mot de passe/2FA, suppression) les comptes des **deux
+  sites** sans filtrage — la liste accepte en plus un filtre `siteId` optionnel pour n'afficher qu'un site.
 
 ---
 
@@ -284,6 +297,28 @@ direct ici hormis l'éligibilité aux permissions de gouvernance.
   il n'existe plus ; *étant donné* un compte référencé par un journal d'audit, *quand* on tente de le
   supprimer, *alors* l'action est refusée (409) et la désactivation est proposée.
 
+### CU-02-10 — Créer et gérer un compte sur l'autre site *(ajouté 2026-07-06)*
+
+- **Acteur** : ADMIN_SYSTEME, ou MEDECIN_CHEF auquel l'admin a accordé `utilisateur.create` (+ typiquement
+  `utilisateur.read`) via une dérogation individuelle (CU-02-08, onglet « Permissions » du tiroir compte).
+- **Déclencheur** : besoin de créer/gérer un compte pour l'autre site (ex. un médecin-chef de Moutela recrute
+  un infirmier pour Nkayi).
+- **Nominal** : l'écran « Nouveau compte » affiche un **sélecteur de site** (au lieu du site figé habituel) ;
+  l'admin choisit Nkayi, remplit le formulaire, valide. Le compte est créé avec `siteId = Nkayi`. La liste des
+  comptes (avec un filtre de site optionnel) affiche désormais les comptes des **deux sites**, et toutes les
+  actions de gestion (édition, statut, rôles, reset mot de passe/2FA, suppression) restent disponibles quel
+  que soit le site du compte cible.
+- **Erreurs** : un utilisateur **sans** `utilisateur.create` ne voit **aucun** sélecteur (site figé sur le
+  sien, comportement historique inchangé) ; un `siteId` invalide (site inexistant) → **404**.
+- **Critères** :
+  - *Étant donné* un médecin-chef auquel l'admin a accordé `utilisateur.create`, *quand* il crée un compte en
+    choisissant Nkayi alors que son propre compte est sur Moutela, *alors* le nouveau compte a bien
+    `siteId = Nkayi`.
+  - *Étant donné* ce même médecin-chef, *quand* il ouvre la liste des comptes, *alors* il voit les comptes des
+    **deux** sites (et non plus seulement les siens).
+  - *Étant donné* un infirmier (sans `utilisateur.create`), *quand* il regarde l'écran de création (s'il y a
+    accès), *alors* le site reste figé sur le sien, sans sélecteur.
+
 ---
 
 ## 5. Données du module
@@ -317,10 +352,13 @@ manipulées par ce module :
 > Toute valeur chiffrée renvoie à [[parametres_metier]]. Les règles « anti-castration / dernier admin »
 > partagent la **source unique** `VITAL_GOVERNANCE_PERMISSIONS` (`apps/api/src/common/governance.ts`).
 
-- **RM-02-01** — **Cloisonnement des comptes par site** : toute opération sur un compte est restreinte au
-  `siteId` du JWT ; un compte d'un autre site est traité comme **inexistant** (404). Le `siteId` fourni en
-  paramètre est ignoré (liste) ou refusé s'il diverge (création/modification → 400). Source :
-  `utilisateurs.service.ts`.
+- **RM-02-01** — **Cloisonnement des comptes par site, avec exception multi-site accordable** (amendée
+  2026-07-06) : par défaut, toute opération sur un compte est restreinte au `siteId` du JWT ; un compte d'un
+  autre site est traité comme **inexistant** (404) ; le `siteId` fourni en paramètre est ignoré (liste) ou
+  refusé s'il diverge (création/modification → 400). **Sauf** pour un détenteur de `utilisateur.create`
+  (`hasCrossSiteAccess`) : aucune restriction de site sur aucune opération du module comptes, et le `siteId`
+  fourni en paramètre est honoré (choix libre du site à la création/modification). Source :
+  `utilisateurs.controller.ts`, `utilisateurs.service.ts`.
 - **RM-02-02** — **Gouvernance des rôles globale** : le catalogue de rôles, le compteur `nbUtilisateurs` et
   la liste des détenteurs sont **tous sites confondus** (réservés `role.read`). Source : `roles.service.ts`.
 - **RM-02-03** — **Compte créé actif + mot de passe temporaire** : un compte naît ACTIF avec
@@ -428,6 +466,13 @@ manipulées par ce module :
   `ResetPasswordDialog` (`apps/web/src/modules/admin/components`).
 - Les permissions backend sont **distinctes** côté UI (jamais regroupées sous un seul « canWrite ») :
   `canCreate`, `canUpdate`, `canResetPassword`, `canDelete`.
+- *(Ajouté 2026-07-06)* `UtilisateurDrawer.tsx` expose désormais un **5ᵉ onglet « Permissions »**
+  (`PermissionOverridesSection.tsx`, visible si `utilisateur.manage_permissions`) : matrice complète du
+  catalogue, groupée par module, chaque permission cliquable pour Accorder/Révoquer individuellement (GRANT/
+  REVOKE par-dessus le rôle) — l'UI qui manquait aux endpoints `GET/PUT /admin/utilisateurs/:id/permissions`
+  déjà existants (CU-02-08). `CreerUtilisateurDrawer.tsx` affiche un **sélecteur de site** au lieu du site
+  figé si l'appelant détient `utilisateur.create` (CU-02-10) ; `UtilisateursPage.tsx` gagne un **filtre de
+  site** dans la même condition.
 
 ---
 
@@ -463,8 +508,11 @@ manipulées par ce module :
   pas le chiffre — il lit la table `Permission`.
 - **Réduction prévue d'ADMIN_SYSTEME (D-004)** : l'accès clinique complet est **temporaire** ; une réduction
   à la gouvernance pure est prévue. Les permissions vitales de gouvernance resteront le cœur de ce module.
-- **MEDECIN_CHEF et la gouvernance des comptes** : l'éligibilité exacte de MEDECIN_CHEF aux permissions
-  `utilisateur.*` / `role.*` dépend du seed des rôles → **à confirmer** dans [[MODULE_02_acces_habilitations]].
+- **MEDECIN_CHEF et la gouvernance des comptes** : **résolu (2026-07-06)** — MEDECIN_CHEF ne détient **aucune**
+  permission `utilisateur.*`/`role.*` par défaut (seed), volontairement. L'éligibilité est individuelle,
+  décidée au cas par cas par l'admin via une **dérogation** (`utilisateur.create` [+ `utilisateur.read`],
+  onglet « Permissions » du tiroir compte) — c'est ce mécanisme qui porte l'accès **multi-site** (CU-02-10),
+  pas un changement de rôle global.
 - **Comportement hors-ligne des actions de session/2FA** : la révocation de session et le retrait de 2FA
   s'appuient sur le central (sessions, `ConfigurationTotp`) ; leur administrabilité depuis un poste local
   hors-ligne n'est pas spécifiée ici (**à confirmer** côté desktop).

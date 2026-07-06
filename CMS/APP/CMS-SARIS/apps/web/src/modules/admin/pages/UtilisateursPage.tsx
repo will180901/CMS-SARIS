@@ -20,6 +20,7 @@ import { useIsCompact } from '@/hooks/useMediaQuery'
 import { usePermissions } from '@/hooks/usePermissions'
 import { useSessionStore } from '@/stores/session.store'
 import { useUtilisateurs, useRoles, useSetStatut, useDeleteUtilisateur } from '../hooks/useAdmin'
+import { useSites } from '@/modules/referentiels/hooks/useReferentiels'
 import { CreerUtilisateurDrawer } from '../components/CreerUtilisateurDrawer'
 import { UtilisateurDrawer }      from '../components/UtilisateurDrawer'
 import { ResetPasswordDialog }    from '../components/ResetPasswordDialog'
@@ -39,6 +40,11 @@ export function UtilisateursPage({ embedded = false }: { embedded?: boolean } = 
   const [search,    setSearch]    = useState('')
   const [statutF,   setStatutF]   = useState<'' | 'ACTIF' | 'DESACTIVE' | 'BLOQUE'>('')
   const [roleF,     setRoleF]     = useState<string>('')
+  const [siteF,     setSiteF]     = useState<string>('')
+  // Filtre de site : n'a de sens que pour un détenteur de `utilisateur.create`
+  // (accès multi-site, cf. CreerUtilisateurDrawer) — pour les autres, la liste
+  // est déjà cloisonnée au site du JWT côté backend, aucun filtre à proposer.
+  const { data: sites = [] } = useSites()
   const [openCreer, setOpenCreer] = useState(false)
   const [openDetail, setOpenDetail] = useState<string | null>(null)
   const [openReset,  setOpenReset]  = useState<UtilisateurAdmin | null>(null)
@@ -60,6 +66,7 @@ export function UtilisateursPage({ embedded = false }: { embedded?: boolean } = 
     search: search.trim() || undefined,
     statut: statutF || undefined,
     roleId: roleF   || undefined,
+    siteId: canCreate ? (siteF || undefined) : undefined,
   })
   const { data: roles = [] } = useRoles()
 
@@ -172,6 +179,21 @@ export function UtilisateursPage({ embedded = false }: { embedded?: boolean } = 
                       ]}
                     />
                   </div>
+                  {canCreate && (
+                    <div style={{ minWidth: 160 }}>
+                      <SelectBox
+                        size="sm"
+                        value={siteF}
+                        onChange={setSiteF}
+                        placeholder={t('admin.allSites')}
+                        aria-label={t('admin.filterBySite')}
+                        options={[
+                          { value: '', label: t('admin.allSites') },
+                          ...sites.map(s => ({ value: s.id, label: s.libelle })),
+                        ]}
+                      />
+                    </div>
+                  )}
                 </>
               }
             />
@@ -182,7 +204,7 @@ export function UtilisateursPage({ embedded = false }: { embedded?: boolean } = 
         <UserTableSection
           users={users}
           isLoading={isLoading}
-          hasFilters={!!(search || statutF || roleF)}
+          hasFilters={!!(search || statutF || roleF || siteF)}
           canCreate={canCreate}
           canUpdate={canUpdate}
           canResetPassword={canResetPassword}

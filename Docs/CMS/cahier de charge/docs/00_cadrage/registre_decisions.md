@@ -148,6 +148,12 @@ MEDECIN_CHEF), voir D-003.
 - **Règle métier conservée** : **une seule visite ouverte par patient** (globale).
 - **Restent cloisonnés par site** : comptes `Utilisateur` (login hors-ligne), RH opérationnel,
   messagerie.
+  - ⚠️ **Amendement 2026-07-06** : le cloisonnement des comptes reste la **règle par défaut**, mais un
+    détenteur de la permission `utilisateur.create` (ADMIN_SYSTEME de base ; ou un MEDECIN_CHEF à qui l'admin
+    l'accorde individuellement) en est **exempté** — il gère les comptes des **deux sites** (Moutela ET
+    Nkayi), notamment pour créer un compte sur le site où il n'est pas lui-même affecté. Justification :
+    dans la vision réelle du centre, un médecin-chef peut superviser les deux sites, et du personnel médical
+    peut être affecté à l'un ou l'autre. Voir [[MODULE_02_acces_habilitations]] RM-02-01 (amendée), CU-02-10.
 - **Alternatives écartées** : *dossier cloisonné par site* (modèle initial) — provoquait des doublons
   hors-ligne ; *cloisonnement par médecin* — abandonné (voir D-006/D-007 pour la confidentialité réelle).
 - **Justification** : continuité des soins d'un travailleur sur l'ensemble du périmètre SARIS.

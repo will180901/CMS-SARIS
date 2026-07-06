@@ -19,10 +19,11 @@ import {
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from '@workspace/ui/components/sheet'
-import { Button, Field, TextInput, StatusPill } from '@/components/saris'
+import { Button, Field, TextInput, StatusPill, SelectBox } from '@/components/saris'
 import { useCreateUtilisateur, useRoles } from '../hooks/useAdmin'
 import { useSites } from '@/modules/referentiels/hooks/useReferentiels'
 import { useSessionStore } from '@/stores/session.store'
+import { usePermissions } from '@/hooks/usePermissions'
 
 interface Props {
   open:    boolean
@@ -63,10 +64,17 @@ export function CreerUtilisateurDrawer({ open, onClose }: Props) {
   const identityValid = !isClinicalSelected
     || (nom.trim().length >= 2 && prenom.trim().length >= 2 && matricule.trim().length >= 2)
 
-  // Cloisonnement multi-site : un admin ne crée que sur SON propre site (JWT).
-  // Le site est donc figé — aucun sélecteur, pas de choix inter-sites.
-  const siteId    = useSessionStore(s => s.user?.siteId) ?? ''
+  // Cloisonnement multi-site : par défaut un admin crée sur SON propre site
+  // (JWT), site figé sans sélecteur. Un détenteur de `utilisateur.create`
+  // « multi-site » (ADMIN_SYSTEME, ou un MEDECIN_CHEF auquel l'admin a
+  // accordé ce droit) peut en revanche choisir librement Moutela OU Nkayi —
+  // cf. UtilisateursController#hasCrossSiteAccess (backend, même règle).
+  const { has } = usePermissions()
+  const crossSite = has('utilisateur.create')
+  const ownSiteId = useSessionStore(s => s.user?.siteId) ?? ''
+  const [siteId, setSiteId] = useState(ownSiteId)
   const siteLabel = sites.find(s => s.id === siteId)?.libelle ?? '—'
+  const siteOptions = sites.map(s => ({ value: s.id, label: s.libelle }))
 
   // Erreurs par champ (affichées sous chaque champ)
   const loginError = login.length > 0 && (login.length < 3 || login.length > 32 || !LOGIN_REGEX.test(login))
@@ -90,6 +98,7 @@ export function CreerUtilisateurDrawer({ open, onClose }: Props) {
     setStep(1)
     setLogin(''); setEmail(''); setMdp(''); setShowMdp(false)
     setRoleIds([]); setNom(''); setPrenom(''); setMatricule('')
+    setSiteId(ownSiteId)
   }
   function handleClose() { reset(); onClose() }
 
@@ -289,22 +298,33 @@ export function CreerUtilisateurDrawer({ open, onClose }: Props) {
               </Field>
 
               <SectionTitle icon={<Building2 size={14} />} label={t('admin.assignedSite')} />
-              <Field label={t('admin.siteLabel')} hint={t('admin.siteHint')}>
-                {() => (
-                  <div style={{
-                    display: 'flex', alignItems: 'center', gap: 'var(--espace-2)',
-                    padding: 'var(--espace-2) var(--espace-3)',
-                    border: '1px solid var(--bordure-legere)',
-                    borderRadius: 'var(--radius-md)',
-                    background: 'var(--fond-surface-2)',
-                    color: 'var(--texte-secondaire)',
-                    fontSize: 'var(--font-size-sm)',
-                  }}>
-                    <Building2 size={14} style={{ color: 'var(--texte-tertiaire)', flexShrink: 0 }} />
-                    <span style={{ color: 'var(--texte-primaire)', fontWeight: 500 }}>{siteLabel}</span>
-                  </div>
-                )}
-              </Field>
+              {crossSite ? (
+                <Field label={t('admin.siteLabel')} hint={t('admin.siteHintMultiSite')}>
+                  {(id) => (
+                    <SelectBox
+                      id={id} value={siteId} onChange={setSiteId}
+                      options={siteOptions}
+                    />
+                  )}
+                </Field>
+              ) : (
+                <Field label={t('admin.siteLabel')} hint={t('admin.siteHint')}>
+                  {() => (
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 'var(--espace-2)',
+                      padding: 'var(--espace-2) var(--espace-3)',
+                      border: '1px solid var(--bordure-legere)',
+                      borderRadius: 'var(--radius-md)',
+                      background: 'var(--fond-surface-2)',
+                      color: 'var(--texte-secondaire)',
+                      fontSize: 'var(--font-size-sm)',
+                    }}>
+                      <Building2 size={14} style={{ color: 'var(--texte-tertiaire)', flexShrink: 0 }} />
+                      <span style={{ color: 'var(--texte-primaire)', fontWeight: 500 }}>{siteLabel}</span>
+                    </div>
+                  )}
+                </Field>
+              )}
             </>
           )}
 

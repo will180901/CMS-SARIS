@@ -1,6 +1,6 @@
 # Matrice de traçabilité — CMS SARIS
 
-**Version** 1.1 · **Date** 2026-07-06 · **Statut** Brouillon · **Historique** : v1.0 création · v1.1 (2026-07-06) : re-décompte après ajouts EF/CU modules 01/15/16 (photo de profil, salutation par nom, supervision sync) — 363→374 EF, 111→113 CU ; version desktop 1.4.1→1.5.0
+**Version** 1.2 · **Date** 2026-07-06 · **Statut** Brouillon · **Historique** : v1.0 création · v1.1 (2026-07-06) : re-décompte après ajouts EF/CU modules 01/15/16 (photo de profil, salutation par nom, supervision sync) — 363→374 EF, 111→113 CU ; version desktop 1.4.1→1.5.0 · v1.2 (2026-07-06) : + module 02 (accès multi-site accordable) — 374→376 EF, 113→114 CU
 
 > Document « as-built » (le système est développé et déployé — voir [[_SOURCE_systeme]]). Cette matrice
 > **recoupe** les 16 spécifications de module ([[plan_modules]]), le [[plan_releases]], le [[plan_modules]]
@@ -23,7 +23,7 @@
 | # | Module | EF | Plage EF | CU | Plage CU | Release (en-tête spec) | Jalon ([[plan_releases]]) |
 |---|--------|----|----------|----|----------|------------------------|---------------------------|
 | 01 | [[MODULE_01_securite_authentification\|Sécurité & Authentification]] | 40 | EF-01-01 → EF-01-40 | 8 | CU-01-01 → CU-01-08 | MVP | MVP (`security`) |
-| 02 | [[MODULE_02_acces_habilitations\|Accès & Habilitations]] | 20 | EF-02-01 → EF-02-20 | 9 | CU-02-01 → CU-02-09 | MVP | MVP (`admin`) |
+| 02 | [[MODULE_02_acces_habilitations\|Accès & Habilitations]] | 22 | EF-02-01 → EF-02-22 | 10 | CU-02-01 → CU-02-10 | MVP | MVP (`admin`) |
 | 03 | [[MODULE_03_parametres\|Paramètres système]] | 15 | EF-03-01 → EF-03-15 | 5 | CU-03-01 → CU-03-05 | MVP | MVP (`parametres`, support) |
 | 04 | [[MODULE_04_audit_supervision\|Audit & Supervision système]] | 25 | EF-04-01 → EF-04-25 | 10 | CU-04-01 → CU-04-10 | MVP | MVP (accès) + V1/V2 (supervision sync, ré-encryption) |
 | 05 | [[MODULE_05_referentiels\|Référentiels]] | 15 | EF-05-01 → EF-05-15 | 7 | CU-05-01 → CU-05-07 | MVP | MVP (`referentiels`) |
@@ -39,9 +39,10 @@
 | 15 | [[MODULE_15_dashboard\|Tableau de bord & Statistiques]] | 20 | EF-15-01 → EF-15-20 | 5 | CU-15-01 → CU-15-05 | MVP | V1 (`dashboard`) — *écart* |
 | 16 | [[MODULE_16_synchronisation\|Synchronisation offline-first]] | 32 | EF-16-01 → EF-16-32 | 7 | CU-16-01 → CU-16-07 | V1 | V1 (`sync`) + V2 (dossier global) |
 
-**Total global : 374 exigences fonctionnelles (EF) · 113 cas d'utilisation (CU)** sur 16 modules. *(363/111 →
-374/113 au 2026-07-06 : +5 EF/+1 CU module 01 — photo de profil ; +1 EF module 15 — salutation par nom ;
-+5 EF/+1 CU module 16 — supervision sync.)*
+**Total global : 376 exigences fonctionnelles (EF) · 114 cas d'utilisation (CU)** sur 16 modules. *(363/111 →
+374/113 : +5 EF/+1 CU module 01 — photo de profil ; +1 EF module 15 — salutation par nom ; +5 EF/+1 CU
+module 16 — supervision sync. 374/113 → 376/114 : +2 EF/+1 CU module 02 — accès multi-site accordable.
+Tout au 2026-07-06.)*
 
 ### Note d'écart « Release » (en-tête spec ↔ [[plan_releases]])
 
@@ -207,7 +208,7 @@ chaque spec sur le jalon de [[plan_releases]] §5 (ou inversement), au choix de 
 | # | Module | EF présentes ? | Séquence EF | Trous EF | Séquence CU | Trous CU |
 |---|--------|----------------|-------------|----------|-------------|----------|
 | 01 | Sécurité | Oui (40) | 01 → 40 | **aucun** | 01 → 08 | aucun |
-| 02 | Accès & Habilitations | Oui (20) | 01 → 20 | **aucun** | 01 → 09 | aucun |
+| 02 | Accès & Habilitations | Oui (22) | 01 → 22 | **aucun** | 01 → 10 | aucun |
 | 03 | Paramètres | Oui (15) | 01 → 15 | **aucun** | 01 → 05 | aucun |
 | 04 | Audit & Supervision | Oui (25) | 01 → 25 | **aucun** | 01 → 10 | aucun |
 | 05 | Référentiels | Oui (15) | 01 → 15 | **aucun** | 01 → 07 | aucun |
@@ -228,7 +229,7 @@ chaque spec sur le jalon de [[plan_releases]] §5 (ou inversement), au choix de 
 - **Les 16 modules possèdent des EF avec identifiants** `EF-NN-xx` (aucun module sans exigence).
 - **Aucun trou de numérotation** détecté, ni en EF ni en CU : toutes les séquences sont **contiguës** de
   `01` au maximum constaté (contrôle de continuité automatisé sur les 16 fichiers).
-- **Total global vérifié : 374 EF et 113 CU** (au 2026-07-06 ; 363/111 au 2026-06-26). Détail des sous-totaux dans le tableau du §1.
+- **Total global vérifié : 376 EF et 114 CU** (au 2026-07-06 ; 363/111 au 2026-06-26). Détail des sous-totaux dans le tableau du §1.
 - Seul écart résiduel signalé : les **étiquettes de release** d'en-tête de specs divergent de [[plan_releases]]
   pour les modules 10, 11, 14, 15 (cf. §1, note d'écart) — écart **documentaire**, pas un trou d'exigence.
 

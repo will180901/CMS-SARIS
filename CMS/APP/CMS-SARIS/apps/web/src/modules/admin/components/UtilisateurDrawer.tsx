@@ -33,11 +33,12 @@ import {
 import { usePermissions } from '@/hooks/usePermissions'
 import { useSessionStore } from '@/stores/session.store'
 import { labelMetier, labelStatut } from '@/config/labels'
+import { PermissionOverridesSection } from './PermissionOverridesSection'
 import { formatDate as intlFormatDate, formatTime as intlFormatTime } from '@/lib/intl'
 import { getPrimaryRole, ROLE_META } from '@/config/navigation.config'
 import type { Role } from '@cms-saris/types'
 
-type TabKey = 'profil' | 'roles' | 'activite' | 'securite'
+type TabKey = 'profil' | 'roles' | 'permissions' | 'activite' | 'securite'
 
 interface Props {
   utilisateurId: string
@@ -84,6 +85,7 @@ export function UtilisateurDrawer({ utilisateurId, onClose, initialTab }: Props)
   const canAssignRole   = has('utilisateur.assign_role')
   const canUpdate       = has('utilisateur.update')
   const canDelete       = has('utilisateur.delete')
+  const canManagePerms  = has('utilisateur.manage_permissions')
   const meId            = useSessionStore(s => s.user?.id)
 
   const { data: u, isLoading } = useUtilisateur(utilisateurId)
@@ -192,6 +194,7 @@ export function UtilisateurDrawer({ utilisateurId, onClose, initialTab }: Props)
   const TABS: { key: TabKey; label: string }[] = [
     { key: 'profil',      label: t('admin.tabProfile') },
     { key: 'roles',       label: t('admin.tabRolesAccess') },
+    ...(canManagePerms ? [{ key: 'permissions' as const, label: t('admin.tabPermissions') }] : []),
     { key: 'activite',    label: t('admin.tabActivity') },
     { key: 'securite',    label: t('admin.tabSecurity') },
   ]
@@ -347,6 +350,9 @@ export function UtilisateurDrawer({ utilisateurId, onClose, initialTab }: Props)
                 onSave={saveRoles} saving={setRoles.isPending}
                 onCancel={() => { setEditingRoles(false); setRoleSel(u.roles.map(r => r.id)) }}
               />
+            )}
+            {tab === 'permissions' && canManagePerms && (
+              <PermissionOverridesSection utilisateurId={u.id} isSelf={isSelf} />
             )}
             {tab === 'activite' && <ActiviteTab logs={authLogs} t={t} />}
             {tab === 'securite' && (
