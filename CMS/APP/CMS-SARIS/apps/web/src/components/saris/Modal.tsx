@@ -51,6 +51,10 @@ export function Modal({ icon, title, subtitle, onClose, width = 560, footer, bod
         style={{
           position: 'fixed', top: isDesktop ? DESKTOP_TITLEBAR_H : 0, right: 0, bottom: 0, left: 0, zIndex: 1000,
           background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(2px)',
+          // Un Sheet/Dialog Radix déjà ouvert (ex. tiroir détail utilisateur) met
+          // `pointer-events: none` sur <body> pour neutraliser l'arrière-plan — cette
+          // modale, portalée séparément, en hérite sinon et devient incliquable.
+          pointerEvents: 'auto',
         }}
       />
       <div
@@ -67,6 +71,7 @@ export function Modal({ icon, title, subtitle, onClose, width = 560, footer, bod
             : (isMobile ? 'calc(100vh - 18px)' : 'calc(100vh - 32px)'),
           backgroundColor: 'var(--fond-surface)', borderRadius: 'var(--radius-xl)', boxShadow: 'var(--ombre-4)',
           overflow: 'hidden', display: 'flex', flexDirection: 'column',
+          pointerEvents: 'auto',
         }}
       >
         <div style={{
