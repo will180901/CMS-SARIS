@@ -111,6 +111,35 @@ export class MeService {
   }
 
   // ════════════════════════════════════════════════════════════════════════
+  //  ANNUAIRE (photos + identité minimale des comptes du site)
+  // ════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Répertoire léger de TOUS les comptes actifs du site (nom, rôle métier, photo) —
+   * accessible à N'IMPORTE QUEL utilisateur connecté (self-service, pas de permission
+   * dédiée), pour que le frontend puisse afficher la VRAIE photo de profil partout où
+   * un avatar représente un utilisateur (audit, messagerie, listes…), sans avoir à
+   * faire porter `photoUrl` par chaque endpoint métier qui mentionne un utilisateur.
+   */
+  async getAnnuaire(siteId: string) {
+    const users = await this.prisma.utilisateur.findMany({
+      where:  { siteId, statut: 'ACTIF' },
+      select: {
+        id: true, login: true, photoUrl: true,
+        personnelMedical: { select: { nom: true, prenom: true, role: true } },
+      },
+      orderBy: { login: 'asc' },
+    })
+    return users.map(u => ({
+      id:       u.id,
+      nom:      u.personnelMedical?.nom ?? u.login,
+      prenom:   u.personnelMedical?.prenom ?? null,
+      role:     u.personnelMedical?.role ?? null,
+      photoUrl: u.photoUrl,
+    }))
+  }
+
+  // ════════════════════════════════════════════════════════════════════════
   //  SESSIONS
   // ════════════════════════════════════════════════════════════════════════
 

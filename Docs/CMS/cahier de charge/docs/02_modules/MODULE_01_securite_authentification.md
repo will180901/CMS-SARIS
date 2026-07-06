@@ -1,6 +1,6 @@
 # Module 01 — Sécurité & Authentification
 
-**Version** 1.0 · **Date** 2026-06-26 · **Statut** Brouillon · **Release** MVP · **Historique** : v1.0 création
+**Version** 1.1 · **Date** 2026-07-06 · **Statut** Brouillon · **Release** MVP · **Historique** : v1.0 création · v1.1 (2026-07-06) : + photo de profil self-service (upload, recadrage client avant envoi, annuaire léger, affichage transverse) — EF-01-36 à EF-01-40, CU-01-08, RM-01-16
 
 > Spécification « as-built » du module de sécurité (le système est développé et déployé). Les faits techniques renvoient au code réel sous `apps/api/src/modules/security/` (backend NestJS) et `apps/web/src/modules/auth/` (frontend React). Aligné sur le brief [[_SOURCE_systeme]], le [[glossaire]], le [[plan_modules]] (`SecurityModule`, contrats C-9 et C-10), les paramètres [[parametres_metier]] et le [[registre_decisions]] (D-013, D-021, D-004, D-003, D-020). Aucune valeur chiffrée n'est définie ici : toute valeur renvoie à un `PM-xx`.
 
@@ -23,6 +23,7 @@ Il porte aussi le **self-service du compte** (`/me`) : préférences d'affichage
 - Autorisation : gardes JWT, permissions granulaires (`@RequirePermissions`), rôles (`@Roles`).
 - Changement de mot de passe par l'utilisateur connecté (`POST /auth/change-password`) avec application de la politique en vigueur.
 - Profil courant (`GET /auth/me`) et self-service `/me` (préférences, CGU, sessions, enrôlement TOTP + codes de secours).
+- **Photo de profil self-service** : upload (`POST /me/photo`), suppression (`DELETE /me/photo`), et **annuaire léger** (`GET /me/annuaire`) exposant l'identité + la photo de tous les comptes actifs du site, consommé par le frontend pour afficher la **vraie photo partout où un utilisateur est représenté** (sidebar, messagerie, audit, listes de comptes…).
 - Exemption de session unique pour les sessions de **synchronisation desktop** (champ `posteLocalId`) et confiance à la signature côté **backend embarqué** (mode SQLite) — [[registre_decisions]] D-020.
 
 ### 1.3 Hors périmètre (explicite)
@@ -124,6 +125,16 @@ Les catégories de patient (ASSURE_CDI, AYANT_DROIT_CDI, etc.) **ne sont pas per
 - **EF-01-34** — `RolesGuard` autorise selon `@Roles(...)` (au moins un rôle) ; en l'absence d'annotation, accès libre. Refus → 403. Marqué « legacy, à éviter » au profit des permissions (`security.module.ts`).
 - **EF-01-35** — Les permissions effectives injectées dans le JWT sont calculées par `chargerPermissions` : (permissions des rôles ∪ GRANTs individuels) − REVOKEs individuels, le REVOKE l'emportant toujours (RM-01-09).
 
+### 3.7 Photo de profil (self-service, ajouté v1.1)
+
+> Source : `me.controller.ts`, `me.service.ts#setPhoto/removePhoto/getAnnuaire`, frontend `apps/web/src/components/saris/{UserAvatar,PhotoCropModal}.tsx`, `apps/web/src/modules/admin/components/parametres/PersonnelTab.tsx` (`PhotoCard`).
+
+- **EF-01-36** — `POST /me/photo` (multipart, champ `file`, JWT requis) accepte une image JPEG/PNG/WEBP/GIF ≤ 5 Mo (validée côté client par MIME et taille), la traite avec **Sharp** (`rotate()` auto-orientation EXIF, `resize(256,256,{fit:'cover',position:'centre'})`, ré-encodage `jpeg({quality:80,mozjpeg:true})`), et stocke le résultat en **data URL base64** sur `Utilisateur.photoUrl` (aucun fichier sur disque, même convention que `PatientService.setPhoto()`). Une image illisible ou corrompue (mimetype déclaré mais octets invalides) renvoie 400 (« Image illisible ou corrompue ») plutôt qu'une exception non gérée.
+- **EF-01-37** — `DELETE /me/photo` remet `photoUrl` à `null` (repli sur les initiales dans tous les avatars de l'utilisateur).
+- **EF-01-38** — `GET /me/annuaire` (JWT requis, **sans permission dédiée** — self-service transverse) renvoie, pour tous les comptes `ACTIF` du site de l'appelant : `id`, `nom`, `prenom`, `role`, `photoUrl`. Alimente le cache partagé React Query (`useAnnuaire`, TTL 5 min) consommé par le composant `UserAvatar`.
+- **EF-01-39** — **Recadrage côté client avant envoi** (`PhotoCropModal`, façon WhatsApp) : après sélection d'un fichier, l'utilisateur **glisse pour repositionner** et **zoome** (curseur, 1×–3×) l'image sous un masque circulaire avant de confirmer ; le composant exporte un **carré** (canvas 512×512, JPEG qualité 0,92) correspondant à la zone choisie, qui est ensuite envoyé à `POST /me/photo`. Objectif : laisser l'utilisateur choisir **quelle partie** de la photo est gardée, le recadrage serveur (EF-01-36) étant de toute façon un centrage automatique forcé qui, seul, pourrait couper le sujet.
+- **EF-01-40** — **Perpétuité de l'avatar** : le composant `UserAvatar` (utilisé partout où un compte `Utilisateur` est représenté — sidebar, dashboard, messagerie, audit, listes de comptes/rôles) résout **lui-même** la photo réelle via l'annuaire (EF-01-38), indépendamment de ce que l'endpoint métier local renvoie ; un clic ouvre une fenêtre d'agrandissement de la photo (repli sur les initiales si absente). Un contexte peut désactiver le clic (`clickable=false`) si celui-ci a déjà un sens primaire incompatible (ex. sélection d'un contact en messagerie) — la photo reste alors affichée, seule l'ouverture de la fenêtre est désactivée.
+
 ---
 
 ## 4. Cas d'utilisation
@@ -201,6 +212,17 @@ Les catégories de patient (ASSURE_CDI, AYANT_DROIT_CDI, etc.) **ne sont pas per
 - **Critères** :
   - *Étant donné* plusieurs sessions actives, *quand* l'utilisateur révoque les autres, *alors* seule sa session courante demeure.
 
+### CU-01-08 — Modifier sa photo de profil (recadrage façon WhatsApp)
+
+- **Acteur** : utilisateur authentifié.
+- **Déclencheur** : action « Choisir une photo » dans Paramètres › Personnel › Préférences.
+- **Scénario nominal** : 1) l'utilisateur sélectionne un fichier (validation MIME/taille côté client) ; 2) l'écran de recadrage s'ouvre (masque circulaire, glisser + zoom, boutons Annuler/Confirmer) ; 3) à la confirmation, l'image cadrée (512×512) est envoyée à `POST /me/photo` ; 4) le backend la retraite (carré 256×256 centré, Sharp) et la stocke ; 5) la session et l'annuaire partagé sont invalidés, la nouvelle photo apparaît **immédiatement** partout où l'utilisateur est représenté, sans rechargement de page.
+- **Scénarios d'erreur** : format non supporté ou fichier > 5 Mo → toast d'erreur avant même l'ouverture du recadrage ; image illisible côté serveur → 400 (« Image illisible ou corrompue »), le modal de recadrage reste ouvert (l'utilisateur peut réessayer sans re-sélectionner le fichier) ; bouton Confirmer désactivé tant que la zone de recadrage n'est pas encore calculée par le composant.
+- **Hors-ligne** : non spécifié (opération de mutation nécessitant le central joignable ; pas de file de rejeu dédiée à l'upload de fichier).
+- **Critères** :
+  - *Étant donné* une image rectangulaire, *quand* l'utilisateur cadre puis confirme, *alors* la photo enregistrée reflète la zone choisie (et non un centrage automatique de l'image brute).
+  - *Étant donné* une photo déjà définie, *quand* l'utilisateur la retire, *alors* tous ses avatars affichent de nouveau ses initiales.
+
 ---
 
 ## 5. Données du module
@@ -209,7 +231,7 @@ Le module ne définit pas son propre schéma : il agit sur des entités du modè
 
 | Entité | Rôle dans le module |
 |--------|---------------------|
-| `Utilisateur` | Identité (login, `passwordHash`), statut (`ACTIF`/`BLOQUE`/`DESACTIVE`), compteurs `tentativesEchec`/`blocageMinutes`/`blocageJusquA`, `motDePasseTemp`, `siteId`, `personnelMedicalId`, `deletedAt`. |
+| `Utilisateur` | Identité (login, `passwordHash`), statut (`ACTIF`/`BLOQUE`/`DESACTIVE`), compteurs `tentativesEchec`/`blocageMinutes`/`blocageJusquA`, `motDePasseTemp`, `siteId`, `personnelMedicalId`, `deletedAt`, **`photoUrl`** (data URL base64, `String?` — ajouté migration `20260705200000_add_photo_url_utilisateur`). |
 | `UtilisateurRole`, `Role`, `RolePermission`, `Permission` | Source des rôles et permissions héritées (lecture). |
 | `UtilisateurPermission` | Dérogations individuelles `GRANT`/`REVOKE` appliquées par `chargerPermissions`. |
 | `SessionUtilisateur` | Session active (clé `sid`), `refreshTokenHash`, `ipAdresse`, `userAgent`, `expiresAt`, `revokedAt`, `posteLocalId`. |
@@ -242,6 +264,7 @@ Le module ne définit pas son propre schéma : il agit sur des entités du modè
 - **RM-01-13** — Vérification TOTP avec tolérance d'horloge ±30 s (`epochTolerance`).
 - **RM-01-14** — Journalisation de l'authentification **non bloquante** : un échec d'écriture du journal ne casse jamais l'opération principale.
 - **RM-01-15** — CGU versionnées : l'acceptation est rattachée à `CGU_VERSION` ; un bump de version re-déclenche la demande d'acceptation (cohérent front/back).
+- **RM-01-16** — **Le recadrage serveur final (carré 256×256 centré) est toujours imposé**, quel que soit le cadrage choisi côté client (EF-01-39) : le client ne fait que **choisir la zone** envoyée à Sharp, il ne change ni le format de sortie (carré, JPEG) ni la taille finale — ce sont des invariants du backend.
 
 ---
 
@@ -269,7 +292,7 @@ Le module ne définit pas son propre schéma : il agit sur des entités du modè
 
 ### 7.3 Frontend correspondant
 
-`apps/web/src/modules/auth/` : `LoginPage.tsx` (parcours 2 étapes login → TOTP, bascule code de secours, lien CGU), `hooks/useLogin.ts` (mutations login / vérif TOTP), `useRefreshSession.ts`, `useLogout.ts`, `useChangePassword.ts`, `ChangePasswordDialog.tsx`, `SessionBootstrap.tsx`. Schémas de saisie validés côté client (Zod) miroir des DTO backend.
+`apps/web/src/modules/auth/` : `LoginPage.tsx` (parcours 2 étapes login → TOTP, bascule code de secours, lien CGU), `hooks/useLogin.ts` (mutations login / vérif TOTP), `useRefreshSession.ts`, `useLogout.ts`, `useChangePassword.ts`, `ChangePasswordDialog.tsx`, `SessionBootstrap.tsx`. Schémas de saisie validés côté client (Zod) miroir des DTO backend. Photo de profil : `apps/web/src/components/saris/UserAvatar.tsx` (résolution + clic d'agrandissement), `PhotoCropModal.tsx` (recadrage, lib `react-easy-crop`), `apps/web/src/modules/admin/components/parametres/PersonnelTab.tsx` (`PhotoCard`, point d'entrée de l'upload).
 
 ---
 
@@ -293,3 +316,4 @@ Le module ne définit pas son propre schéma : il agit sur des entités du modè
 - **`RolesGuard` legacy** : marqué « à éviter » au profit des permissions ; risque d'incohérence si des routes en dépendent encore. À auditer côté contrôleurs consommateurs.
 - **Réduction prévue d'`ADMIN_SYSTEME` (D-004)** : l'accès clinique complet est temporaire ; sans effet sur ce module mais à garder en tête pour la cohérence des permissions injectées.
 - **Anciens tokens sans `sid`** : tolérés en rétro-compat (EF-01-23) avec une boucle de comparaison imparfaite ; résiduel jusqu'à expiration des sessions historiques.
+- **Valeurs as-built de la photo de profil non formalisées en `PM-xx`** : taille max upload (5 Mo), formats acceptés (JPEG/PNG/WEBP/GIF), sortie carrée serveur (256×256, qualité JPEG 80), plage de zoom du recadrage client (1×–3×), taille d'export du canvas (512×512, qualité 0,92). Valeurs codées en dur côté client (`PersonnelTab.tsx`, `PhotoCropModal.tsx`) et serveur (`me.service.ts`) — **candidates à un `PM-xx` dédié** si elles doivent devenir source unique, cf. convention [[parametres_metier]].

@@ -4,16 +4,16 @@ Ce dossier contient l'**application de bureau (Windows)** de CMS SARIS, prête �
 
 | | |
 |---|---|
-| **Fichier** | `CMS SARIS-Setup-1.4.1.exe` |
-| **Version** | 1.4.1 |
-| **Taille** | ~135 Mo |
+| **Fichier** | `CMS SARIS-Setup-1.5.0.exe` |
+| **Version** | 1.5.0 |
+| **Taille** | ~95 Mo |
 | **Installateur** | sur‑mesure NSIS : **2 barres de progression** (globale + par étape) + zone temps réel des composants installés ; **2‑en‑1** (détecte une install existante → propose désinstaller / mettre à jour) |
 | **Plateforme** | Windows 10 / 11 (64 bits) |
 | **Suivi par** | **Git LFS** (le binaire dépasse la limite GitHub de 100 Mo) |
 
 ## ⬇️ Télécharger & installer
 
-1. Ouvre `CMS SARIS-Setup-1.4.1.exe` (bouton **Download** sur GitHub, ou double‑clic après un `git clone`).
+1. Ouvre `CMS SARIS-Setup-1.5.0.exe` (bouton **Download** sur GitHub, ou double‑clic après un `git clone`).
 2. ⚠️ Windows **SmartScreen** affichera un avertissement (« éditeur inconnu ») car l'installateur **n'est pas signé** (pas de certificat de signature de code). C'est normal pour ce projet : clique **« Informations complémentaires » → « Exécuter quand même »**.
 3. Suis l'assistant d'installation.
 

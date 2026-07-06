@@ -3,6 +3,11 @@
 **Version** 1.0 · **Date** 2026-06-26 · **Statut** Validé · **Portée** : les 39 documents du coffre (Phases 0 à 4 + traçabilité) + [[_SOURCE_systeme]].
 
 > Revue finale exigée par la méthodologie (`methodologie_creation_systeme`, étape 6). Objectif : garantir que le cahier des charges « as-built » est **cohérent, sans contradiction, sans lien cassé, et fidèle au code**.
+>
+> ⚠️ **Volumétrie datée** : les chiffres « ~363 EF / ~111 CU » de ce rapport reflètent l'état du coffre au
+> 2026-06-26. Après le delta d'alignement du 2026-07-06 (cf. [[rapport_audit_fidelite]] §7), les totaux
+> réels sont **374 EF / 113 CU** (cf. [[tracabilite]] §1). Ce rapport n'est **pas** réécrit rétroactivement
+> (il documente une revue passée) — se référer à [[tracabilite]] pour le compte courant.
 
 ---
 

@@ -1,6 +1,6 @@
 # Charte graphique / Design system SARIS — CMS SARIS (as-built)
 
-**Version** 1.0 · **Date** 2026-06-26 · **Statut** Brouillon · **Historique** : v1.0 création
+**Version** 1.1 · **Date** 2026-07-06 · **Statut** Brouillon · **Historique** : v1.0 création · v1.1 (2026-07-06) : + UI-07-06 (avatar perpétuel + recadrage façon WhatsApp)
 
 > Ce document **synthétise** la charte graphique « as-built » du design system SARIS telle
 > qu'**implémentée** dans le code (le système est développé et déployé). Il ne recopie pas les
@@ -159,6 +159,20 @@ Fiches [`CG-05`] (fondamentaux), [`CG-06`] (navigation), [`CG-07`] (données), [
 - **UI-07-05 — Barres de défilement & contrôles natifs.** Scrollbars fines aux couleurs SARIS
   (clair/sombre auto) ; flèches « spinner » des `input[type=number]` masquées (saisie clavier
   conservée). Référence : `@layer base` de `globals.css`.
+- **UI-07-06 — Avatar perpétuel + recadrage façon WhatsApp** (ajouté 2026-07-06 ; `saris/UserAvatar.tsx`,
+  `saris/PhotoCropModal.tsx`). Deux patterns liés :
+  - **Perpétuité** : partout où un compte `Utilisateur` est représenté (sidebar, dashboard, messagerie,
+    audit, listes de comptes/rôles), le composant `UserAvatar` résout **lui-même** la vraie photo via
+    l'annuaire partagé (cache React Query, cf. [[MODULE_01_securite_authentification]] EF-01-38/40) —
+    aucun endpoint métier n'a besoin de porter `photoUrl` pour que la photo s'affiche à jour partout.
+    Un clic ouvre une **fenêtre d'agrandissement** (photo 240 px + nom + rôle, ou repli initiales) ;
+    désactivable (`clickable=false`) si le clic a déjà un sens primaire dans le contexte (sélection
+    de contact, ligne de tableau cliquable).
+  - **Recadrage avant envoi** : à la sélection d'une nouvelle photo de profil, un écran de recadrage
+    s'interpose **avant** l'envoi (masque **circulaire**, glisser pour repositionner, slider zoom
+    1×–3×, boutons Annuler/Confirmer) — bibliothèque `react-easy-crop`, wrapper `Modal`/`Button`/
+    `Slider` du design system. Objectif : laisser l'utilisateur choisir la zone gardée, le backend
+    imposant de toute façon un recadrage carré centré automatique (cf. EF-01-36/39).
 
 ## UI-08 — Iconographie & assets
 
@@ -178,7 +192,7 @@ en tuile `contain`). Emojis de la messagerie = **set Apple auto-hébergé** (spr
 | UI-04 | Espacements / layout | `globals.css` | CG-03 |
 | UI-05 | États | `saris/Skeleton`, `ErrorBoundary`, `connectivity.store` | CG-08, CG-11 |
 | UI-06 | Composants canoniques | `apps/web/src/components/saris/*` | CG-05, CG-06, CG-07, CG-08 |
-| UI-07 | Patterns SARIS | `PrivacyCurtain.tsx`, `labels.ts`, `print/MedicalPrintSheet.tsx` | CG-04, CG-07, CG-11 |
+| UI-07 | Patterns SARIS | `PrivacyCurtain.tsx`, `labels.ts`, `print/MedicalPrintSheet.tsx`, `saris/UserAvatar.tsx`, `saris/PhotoCropModal.tsx` | CG-04, CG-07, CG-11 |
 | UI-08 | Iconographie / assets | lucide-react, `/logo_cms_saris.png` | CG-10 |
 
 > Référence détaillée : **12 fiches HTML** `Docs/CMS/charte graphique/CG-01 … CG-12` (+ `README.md`).

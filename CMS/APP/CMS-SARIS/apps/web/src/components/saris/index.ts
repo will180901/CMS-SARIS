@@ -18,6 +18,8 @@ export { Field, TextInput, Textarea }     from './Field'
 
 export { Modal }                          from './Modal'
 
+export { PhotoCropModal }                 from './PhotoCropModal'
+
 export { MotifDialog }                    from './MotifDialog'
 
 export { Tooltip }                        from './Tooltip'
@@ -31,6 +33,7 @@ export { PageHeader }                     from './PageHeader'
 export { Toolbar }                        from './Toolbar'
 export { StatCard }                       from './StatCard'
 export { Avatar }                         from './Avatar'
+export { UserAvatar }                     from './UserAvatar'
 
 export { SelectBox }                      from './SelectBox'
 export type { SelectOption, SelectGroupDef } from './SelectBox'

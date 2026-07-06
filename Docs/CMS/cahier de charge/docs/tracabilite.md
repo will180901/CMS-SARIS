@@ -1,6 +1,6 @@
 # Matrice de traçabilité — CMS SARIS
 
-**Version** 1.0 · **Date** 2026-06-26 · **Statut** Brouillon · **Historique** : v1.0 création
+**Version** 1.1 · **Date** 2026-07-06 · **Statut** Brouillon · **Historique** : v1.0 création · v1.1 (2026-07-06) : re-décompte après ajouts EF/CU modules 01/15/16 (photo de profil, salutation par nom, supervision sync) — 363→374 EF, 111→113 CU ; version desktop 1.4.1→1.5.0
 
 > Document « as-built » (le système est développé et déployé — voir [[_SOURCE_systeme]]). Cette matrice
 > **recoupe** les 16 spécifications de module ([[plan_modules]]), le [[plan_releases]], le [[plan_modules]]
@@ -22,7 +22,7 @@
 
 | # | Module | EF | Plage EF | CU | Plage CU | Release (en-tête spec) | Jalon ([[plan_releases]]) |
 |---|--------|----|----------|----|----------|------------------------|---------------------------|
-| 01 | [[MODULE_01_securite_authentification\|Sécurité & Authentification]] | 35 | EF-01-01 → EF-01-35 | 7 | CU-01-01 → CU-01-07 | MVP | MVP (`security`) |
+| 01 | [[MODULE_01_securite_authentification\|Sécurité & Authentification]] | 40 | EF-01-01 → EF-01-40 | 8 | CU-01-01 → CU-01-08 | MVP | MVP (`security`) |
 | 02 | [[MODULE_02_acces_habilitations\|Accès & Habilitations]] | 20 | EF-02-01 → EF-02-20 | 9 | CU-02-01 → CU-02-09 | MVP | MVP (`admin`) |
 | 03 | [[MODULE_03_parametres\|Paramètres système]] | 15 | EF-03-01 → EF-03-15 | 5 | CU-03-01 → CU-03-05 | MVP | MVP (`parametres`, support) |
 | 04 | [[MODULE_04_audit_supervision\|Audit & Supervision système]] | 25 | EF-04-01 → EF-04-25 | 10 | CU-04-01 → CU-04-10 | MVP | MVP (accès) + V1/V2 (supervision sync, ré-encryption) |
@@ -36,10 +36,12 @@
 | 12 | [[MODULE_12_evacuations\|Sorties critiques & Évacuations]] | 19 | EF-12-01 → EF-12-19 | 7 | CU-12-01 → CU-12-07 | MVP | MVP (`sorties-critiques`) |
 | 13 | [[MODULE_13_messagerie\|Messagerie interne chiffrée]] | 22 | EF-13-01 → EF-13-22 | 8 | CU-13-01 → CU-13-08 | V1 | V1 (`messagerie`) + V2 (sécurité avancée, médias) |
 | 14 | [[MODULE_14_notifications\|Notifications & Annonces]] | 21 | EF-14-01 → EF-14-21 | 8 | CU-14-01 → CU-14-08 | MVP | V1 (`notification`) + V2 (annonces) — *écart* |
-| 15 | [[MODULE_15_dashboard\|Tableau de bord & Statistiques]] | 19 | EF-15-01 → EF-15-19 | 5 | CU-15-01 → CU-15-05 | MVP | V1 (`dashboard`) — *écart* |
-| 16 | [[MODULE_16_synchronisation\|Synchronisation offline-first]] | 27 | EF-16-01 → EF-16-27 | 6 | CU-16-01 → CU-16-06 | V1 | V1 (`sync`) + V2 (dossier global) |
+| 15 | [[MODULE_15_dashboard\|Tableau de bord & Statistiques]] | 20 | EF-15-01 → EF-15-20 | 5 | CU-15-01 → CU-15-05 | MVP | V1 (`dashboard`) — *écart* |
+| 16 | [[MODULE_16_synchronisation\|Synchronisation offline-first]] | 32 | EF-16-01 → EF-16-32 | 7 | CU-16-01 → CU-16-07 | V1 | V1 (`sync`) + V2 (dossier global) |
 
-**Total global : 363 exigences fonctionnelles (EF) · 111 cas d'utilisation (CU)** sur 16 modules.
+**Total global : 374 exigences fonctionnelles (EF) · 113 cas d'utilisation (CU)** sur 16 modules. *(363/111 →
+374/113 au 2026-07-06 : +5 EF/+1 CU module 01 — photo de profil ; +1 EF module 15 — salutation par nom ;
++5 EF/+1 CU module 16 — supervision sync.)*
 
 ### Note d'écart « Release » (en-tête spec ↔ [[plan_releases]])
 
@@ -53,7 +55,7 @@ rattacher au MVP un module documenté « V1 », ou l'inverse). Divergences const
 - **Module 15 (Dashboard)** : en-tête **MVP**, plan_releases §5 = **V1** (`dashboard`).
 
 Ces étiquettes ne sont **pas** des tags de release réels : [[plan_releases]] §1 rappelle que le seul numéro
-de version existant dans le code est celui de l'app desktop (`apps/desktop/package.json` = **1.4.1**), et que
+de version existant dans le code est celui de l'app desktop (`apps/desktop/package.json` = **1.5.0**), et que
 le découpage MVP/V1/V2 est une lecture de structuration. **À régulariser** : aligner l'étiquette d'en-tête de
 chaque spec sur le jalon de [[plan_releases]] §5 (ou inversement), au choix de l'auteur du cahier des charges.
 
@@ -204,7 +206,7 @@ chaque spec sur le jalon de [[plan_releases]] §5 (ou inversement), au choix de 
 
 | # | Module | EF présentes ? | Séquence EF | Trous EF | Séquence CU | Trous CU |
 |---|--------|----------------|-------------|----------|-------------|----------|
-| 01 | Sécurité | Oui (35) | 01 → 35 | **aucun** | 01 → 07 | aucun |
+| 01 | Sécurité | Oui (40) | 01 → 40 | **aucun** | 01 → 08 | aucun |
 | 02 | Accès & Habilitations | Oui (20) | 01 → 20 | **aucun** | 01 → 09 | aucun |
 | 03 | Paramètres | Oui (15) | 01 → 15 | **aucun** | 01 → 05 | aucun |
 | 04 | Audit & Supervision | Oui (25) | 01 → 25 | **aucun** | 01 → 10 | aucun |
@@ -218,15 +220,15 @@ chaque spec sur le jalon de [[plan_releases]] §5 (ou inversement), au choix de 
 | 12 | Évacuations | Oui (19) | 01 → 19 | **aucun** | 01 → 07 | aucun |
 | 13 | Messagerie | Oui (22) | 01 → 22 | **aucun** | 01 → 08 | aucun |
 | 14 | Notifications | Oui (21) | 01 → 21 | **aucun** | 01 → 08 | aucun |
-| 15 | Dashboard | Oui (19) | 01 → 19 | **aucun** | 01 → 05 | aucun |
-| 16 | Synchronisation | Oui (27) | 01 → 27 | **aucun** | 01 → 06 | aucun |
+| 15 | Dashboard | Oui (20) | 01 → 20 | **aucun** | 01 → 05 | aucun |
+| 16 | Synchronisation | Oui (32) | 01 → 32 | **aucun** | 01 → 07 | aucun |
 
 **Résultat de la vérification :**
 
 - **Les 16 modules possèdent des EF avec identifiants** `EF-NN-xx` (aucun module sans exigence).
 - **Aucun trou de numérotation** détecté, ni en EF ni en CU : toutes les séquences sont **contiguës** de
   `01` au maximum constaté (contrôle de continuité automatisé sur les 16 fichiers).
-- **Total global vérifié : 363 EF et 111 CU.** Détail des sous-totaux dans le tableau du §1.
+- **Total global vérifié : 374 EF et 113 CU** (au 2026-07-06 ; 363/111 au 2026-06-26). Détail des sous-totaux dans le tableau du §1.
 - Seul écart résiduel signalé : les **étiquettes de release** d'en-tête de specs divergent de [[plan_releases]]
   pour les modules 10, 11, 14, 15 (cf. §1, note d'écart) — écart **documentaire**, pas un trou d'exigence.
 
@@ -248,6 +250,7 @@ chaque spec sur le jalon de [[plan_releases]] §5 (ou inversement), au choix de 
 - Spécifications détaillées par module : [[MODULE_01_securite_authentification]] … [[MODULE_16_synchronisation]].
 
 > Tous les comptages et plages d'IDs de ce document ont été extraits mécaniquement des fichiers
-> `02_modules/MODULE_NN_*.md` au 2026-06-26 ; les rattachements ENF/`D-xxx` aux exigences-clés (§2) sont
+> `02_modules/MODULE_NN_*.md`, initialement au 2026-06-26 puis **ré-extraits au 2026-07-06** après les
+> ajouts des modules 01/15/16 (v1.1) ; les rattachements ENF/`D-xxx` aux exigences-clés (§2) sont
 > établis par recoupement de contenu (les specs ne citent pas les `ENF-xx` par identifiant) et signalés
 > « à confirmer » là où aucun identifiant dédié n'existe.

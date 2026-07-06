@@ -198,6 +198,15 @@ export interface TotpStatus  { actif: boolean; enAttente: boolean }
 export interface TotpSetup   { secret: string; otpauthUrl: string; issuer: string }
 export interface TotpActivated { success: boolean; backupCodes: string[] }
 
+/** Répertoire léger (identité + photo) de tous les comptes actifs du site — cf. /me/annuaire. */
+export interface AnnuaireEntry {
+  id:       string
+  nom:      string
+  prenom:   string | null
+  role:     string | null
+  photoUrl: string | null
+}
+
 export interface SyncStatus {
   modules: { module: string; count: number }[]
   journaux: { audit: number; authentifications: number }
@@ -304,6 +313,8 @@ export const adminApi = {
       return api.upload<{ photoUrl: string }>('/me/photo', form)
     },
     removePhoto: () => api.delete<{ photoUrl: null }>('/me/photo'),
+
+    annuaire: () => api.get<AnnuaireEntry[]>('/me/annuaire'),
   },
 
   synchronisation: {

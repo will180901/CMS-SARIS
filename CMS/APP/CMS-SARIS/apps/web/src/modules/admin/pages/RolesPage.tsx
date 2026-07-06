@@ -14,7 +14,7 @@ import {
 } from 'lucide-react'
 import {
   PageHeader, Card, Button, StatCard, StatusPill, EmptyState,
-  IconButton, Skeleton, Field, TextInput, Avatar, SegmentedTabs, Modal,
+  IconButton, Skeleton, Field, TextInput, UserAvatar, SegmentedTabs, Modal,
 } from '@/components/saris'
 import {
   useRoles, usePermissions as useAdminPermissions, useRoleUtilisateurs,
@@ -456,8 +456,8 @@ function RoleEditor({ role, permissions, canUpdate, canDelete, onBack }: {
                     }}
                   >
                     {hasNom
-                      ? <Avatar nom={u.nom ?? ''} prenom={u.prenom ?? ''} size={30} />
-                      : <Avatar nom={u.login} size={30} tone="neutral" />}
+                      ? <UserAvatar userId={u.id} nom={u.nom ?? ''} prenom={u.prenom ?? ''} size={30} />
+                      : <UserAvatar userId={u.id} nom={u.login} size={30} tone="neutral" />}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ margin: 0, fontSize: 'var(--font-size-body-sm)', fontWeight: 600, color: 'var(--texte-primaire)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {nom}

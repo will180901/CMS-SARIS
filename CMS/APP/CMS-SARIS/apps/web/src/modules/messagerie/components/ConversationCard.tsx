@@ -6,7 +6,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Users, MoreVertical, Trash2, LogOut } from 'lucide-react'
-import { Avatar } from '@/components/saris'
+import { Avatar, UserAvatar } from '@/components/saris'
 import { Popover, PopoverContent, PopoverTrigger } from '@workspace/ui/components/popover'
 import { useIsTouch } from '@/hooks/useMediaQuery'
 import { formatTime, formatDate } from '@/lib/intl'
@@ -63,7 +63,9 @@ export function ConversationCard({
     >
       {isGroupe
         ? <div style={{ width: 40, height: 40, borderRadius: 'var(--radius-md)', background: 'var(--ap-100)', color: 'var(--ap-700)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Users size={18} /></div>
-        : <Avatar nom={nom} size={40} />}
+        : conv.interlocuteur
+          ? <UserAvatar userId={conv.interlocuteur.id} nom={nom} size={40} />
+          : <Avatar nom={nom} size={40} />}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
           <span style={{ fontSize: 13, fontWeight: conv.nonLus > 0 ? 700 : 600, color: 'var(--texte-primaire)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

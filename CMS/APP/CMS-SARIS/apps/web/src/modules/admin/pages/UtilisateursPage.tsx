@@ -12,7 +12,7 @@ import {
   Stethoscope, Loader2, ChevronRight, Trash2, AlertTriangle,
 } from 'lucide-react'
 import { PageHeader, Toolbar, Card, Button, StatCard,
-  StatusPill, Avatar, EmptyState, Skeleton, IconButton, SelectBox, PaginationBar, useColumnResize, Modal,
+  StatusPill, UserAvatar, EmptyState, Skeleton, IconButton, SelectBox, PaginationBar, useColumnResize, Modal,
 } from '@/components/saris'
 import { usePagination } from '@/hooks/usePagination'
 import { useRowsPerPage } from '@/hooks/useRowsPerPage'
@@ -439,9 +439,9 @@ function UserRow({
       {/* Compte */}
       <div role="cell" style={{ display: 'flex', alignItems: 'center', gap: 'var(--espace-3)', minWidth: 0 }}>
         {u.personnelMedical ? (
-          <Avatar nom={u.personnelMedical.nom} prenom={u.personnelMedical.prenom} size={34} />
+          <UserAvatar userId={u.id} nom={u.personnelMedical.nom} prenom={u.personnelMedical.prenom} size={34} />
         ) : (
-          <Avatar nom={u.login} size={34} tone="neutral" />
+          <UserAvatar userId={u.id} nom={u.login} size={34} tone="neutral" />
         )}
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{

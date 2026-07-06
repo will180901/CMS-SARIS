@@ -27,7 +27,7 @@ import { formatDateTime } from '@/lib/intl'
 import { useIsCompact } from '@/hooks/useMediaQuery'
 import {
   PageHeader, Card, Button, IconButton, StatusPill,
-  Avatar, EmptyState, Skeleton, Toolbar, SelectBox, DatePicker, PaginationBar, SegmentedTabs,
+  UserAvatar, EmptyState, Skeleton, Toolbar, SelectBox, DatePicker, PaginationBar, SegmentedTabs,
   useColumnResize,
 } from '@/components/saris'
 import type { ColumnResize } from '@/components/saris'
@@ -576,7 +576,7 @@ function ActionsTable({ entries, loading, onOpen }: {
           <Cell>
             {e.utilisateur ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Avatar nom={e.utilisateur.login} size={24} tone="neutral" />
+                <UserAvatar userId={e.utilisateur.id} nom={e.utilisateur.login} size={24} tone="neutral" />
                 <span style={{ fontSize: 'var(--font-size-body-sm)' }}>{e.utilisateur.login}</span>
               </div>
             ) : (
@@ -963,7 +963,7 @@ function ResumeTab({ entry, diff, onSeeChanges, t }: {
         background: 'var(--ap-50)', border: '1px solid var(--ap-200)',
       }}>
         {entry.utilisateur
-          ? <Avatar nom={entry.utilisateur.login} size={36} tone="neutral" />
+          ? <UserAvatar userId={entry.utilisateur.id} nom={entry.utilisateur.login} size={36} tone="neutral" />
           : <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--fond-surface)', border: '1px solid var(--ap-200)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ap-600)', flexShrink: 0 }}><Layers size={16} /></div>}
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ margin: 0, fontSize: 'var(--font-size-body)', fontWeight: 600, color: 'var(--texte-primaire)', lineHeight: 1.45 }}>

@@ -32,16 +32,26 @@ const GROUP_TITLE_KEYS: Record<string, string> = {
   'Notifications':               'settings.genNotifications',
 }
 
-/** Rend UNE section de paramètres système (= un groupe), sélectionnée par la sous-nav. */
-export function GenerauxTab({ canWrite, section }: { canWrite: boolean; section: string }) {
+/**
+ * Rend UN OU PLUSIEURS groupes de paramètres système (sélectionnés par la sous-nav) —
+ * un groupe par carte. Passer un tableau permet de regrouper des groupes proches
+ * (ex. « Sécurité & mot de passe ») sous UNE SEULE entrée de sous-nav, sans les
+ * mélanger visuellement en une carte unique.
+ */
+export function GenerauxTab({ canWrite, section }: { canWrite: boolean; section: string | string[] }) {
   const { t } = useTranslation()
   const { data: parametres = [], isLoading } = useParametres()
-  const params = useMemo(() => parametres.filter(p => p.group === section), [parametres, section])
+  const sectionKeys = Array.isArray(section) ? section : [section]
+  const groups = useMemo(
+    () => sectionKeys.map(key => ({ key, params: parametres.filter(p => p.group === key) })),
+    [parametres, sectionKeys],
+  )
+  const hasParams = groups.some(g => g.params.length > 0)
 
   if (isLoading) {
     return <Skeleton height={220} />
   }
-  if (params.length === 0) {
+  if (!hasParams) {
     return <EmptyState icon={<Settings size={20} />} title={t('admin.emptySectionTitle')} description={t('admin.emptySectionDesc')} />
   }
 
@@ -57,18 +67,20 @@ export function GenerauxTab({ canWrite, section }: { canWrite: boolean; section:
           <Lock size={14} /> {t('admin.readOnlySystemParams')}
         </div>
       )}
-      <Card>
-        <Card.Header
-          icon={GROUP_ICONS[section] ?? <Settings size={15} />}
-          title={GROUP_TITLE_KEYS[section] ? t(GROUP_TITLE_KEYS[section]) : section}
-          subtitle={`${params.length} ${params.length > 1 ? t('admin.parametersPlural') : t('admin.parameterSingular')}`}
-        />
-        <Card.Body padding="none">
-          {params.map((p, i) => (
-            <ParametreRow key={p.cle} param={p} canWrite={canWrite} last={i === params.length - 1} />
-          ))}
-        </Card.Body>
-      </Card>
+      {groups.filter(g => g.params.length > 0).map(g => (
+        <Card key={g.key}>
+          <Card.Header
+            icon={GROUP_ICONS[g.key] ?? <Settings size={15} />}
+            title={GROUP_TITLE_KEYS[g.key] ? t(GROUP_TITLE_KEYS[g.key]) : g.key}
+            subtitle={`${g.params.length} ${g.params.length > 1 ? t('admin.parametersPlural') : t('admin.parameterSingular')}`}
+          />
+          <Card.Body padding="none">
+            {g.params.map((p, i) => (
+              <ParametreRow key={p.cle} param={p} canWrite={canWrite} last={i === g.params.length - 1} />
+            ))}
+          </Card.Body>
+        </Card>
+      ))}
     </div>
   )
 }

@@ -470,8 +470,9 @@ MEDECIN_CHEF), voir D-003.
   gouvernance prévue.
 - **Migrations** (D-009, D-023) : développement sur `db push` ; **re-baseline** des migrations formelles
   à effectuer au déploiement (dérive `add_patient_matricule` + DROP des tables dormantes).
-- **Documentation** : aligner les anciens cahiers des charges (qui mentionnent encore 6/7 rôles) sur le
-  présent registre.
+- **Documentation** : ~~aligner les anciens cahiers des charges (qui mentionnent encore 6/7 rôles) sur le
+  présent registre~~ — **caduc** : l'ancien `CMS/Docs/` (18 CDC) a été **supprimé et remplacé** par ce
+  cahier des charges Obsidian (2026-06-26), qui est déjà à 3 rôles partout (vérifié 2026-07-06).
 
 ---
 

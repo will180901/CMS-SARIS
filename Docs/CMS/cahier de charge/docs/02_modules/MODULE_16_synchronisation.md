@@ -1,6 +1,6 @@
 # Module 16 — Synchronisation offline-first
 
-**Version** 1.0 · **Date** 2026-06-26 · **Statut** Brouillon · **Release** V1 · **Historique** : v1.0 création
+**Version** 1.1 · **Date** 2026-07-06 · **Statut** Brouillon · **Release** V1 · **Historique** : v1.0 création · v1.1 (2026-07-06) : + refonte de l'écran de supervision (sous-onglets, filtres, pagination, détail de poste par identité utilisateur, retrait dynamique) — EF-16-28 à EF-16-32, CU-16-07, RM-16-17 ; clarification du périmètre sauvegardes (bouton manuel retiré du frontend)
 
 > Spécification « as-built » du module de synchronisation offline-first de CMS SARIS. Elle documente ce qui **existe réellement** dans le code (`apps/api/src/modules/sync`, `apps/web/src/lib/sync.ts`, `apps/web/src/hooks/useSyncEngine.ts`, `apps/desktop`) et reste alignée sur le brief canonique [[_SOURCE_systeme]], le [[plan_modules]], le [[modele_donnees_global]], les [[parametres_metier]] et le [[registre_decisions]]. Décisions structurantes portées : D-001, D-005, D-015, D-016, D-020 (cf. [[registre_decisions]]).
 
@@ -35,7 +35,7 @@ Le module couvre deux réalités complémentaires dans le code :
 - **CRDT / merge champ-à-champ généralisé** : explicitement écarté (D-016). Le merge est au niveau enregistrement (le gagnant écrase).
 - **Bascule de runtime central ⇄ local du desktop** : pilotée par le **process Electron** (`apps/desktop/electron`, online-first/offline-fallback — D-020), pas par ce module backend. Elle est documentée ici comme interface consommée, ses paramètres relevant de [[parametres_metier]] (PM-24 à PM-30).
 - **Stockage sécurisé local, auto-update, installeur NSIS** : relèvent du module desktop ([[modele_operationnel]]), hors du moteur de sync.
-- **Sauvegarde / restauration de configuration et volumétrie** : portées par le module `admin`/`parametres` (`SauvegardeSysteme`, permission `synchronisation.restore`) ; l'écran « Synchronisation » côté admin les agrège mais la mécanique de backup n'est pas décrite ici. *(À confirmer : périmètre exact de l'écran admin Synchronisation, hors fichiers `sync/`.)*
+- **Sauvegarde / restauration de configuration et volumétrie** : portées par le module `admin` (`synchronisation.controller.ts`/`synchronisation.service.ts`, entité `SauvegardeSysteme`), **hors des fichiers `sync/`**. Précision (2026-07-06) : le déclenchement existe en **deux voies concurrentes** — un **cron automatique quotidien** (`@Cron(AUTO_BACKUP_CRON)` dans `synchronisation.service.ts`, motif `AUTOMATIQUE`) et un **endpoint manuel** `POST /synchronisation/sauvegardes/manuelle` (`synchronisation.execute`, motif `MANUELLE`) qui **existe toujours côté backend** ; seul le **bouton frontend** de déclenchement manuel a été **retiré** de l'écran Synchronisation (`SauvegardesZone` n'affiche plus que l'historique + la restauration). L'écran « Synchronisation » agrège donc bien cette fonctionnalité **hors module `sync`**, mais uniquement en lecture/restauration côté UI désormais.
 - **Définition des paramètres métier configurables** : centralisée dans [[parametres_metier]] ; ce document ne redéfinit aucune valeur chiffrée.
 
 ---
@@ -83,6 +83,11 @@ Le module couvre deux réalités complémentaires dans le code :
 | **EF-16-25** | À la reconnexion, la file web est **rejouée dans l'ordre** (`ordreLocal` croissant) vers les endpoints réels (réutilisant validation/permissions serveur), chaque mutation portant un `mutationUuid` unique (idempotence). | `sync.ts#syncPush`, `useSyncEngine` |
 | **EF-16-26** | Lors du rejeu web : un 2xx marque APPLIED ; un 4xx (≠ 401) marque REJECTED (rejet métier définitif) ; un 401 suspend le cycle sans rejeter (après une tentative de refresh) ; un 5xx/réseau arrête le cycle en laissant la file intacte. | `sync.ts#syncPush` |
 | **EF-16-27** | L'écran Synchronisation web peut **lister**, **purger** et **rejouer** (REJECTED → PENDING + relance) les mutations de la file locale. | `sync.ts#listMutations/#purgeMutations/#retryRejected` |
+| **EF-16-28** | L'écran de supervision (frontend) est organisé en **sous-onglets** « Postes », « Activité » et « Conflits », chacun affichant un **badge** de comptage (nombre de postes / conflits). | `SynchronisationPage.tsx` (`SupervisionZone`, `SupTab`) |
+| **EF-16-29** | L'onglet « Postes » propose une **recherche texte** (sur le nom d'utilisateur et le libellé du poste) et un **filtre à 3 états** (Tous / En ligne / Hors ligne). Les onglets « Activité » et « Conflits » n'ont **aucun filtre**, uniquement une pagination. | `SynchronisationPage.tsx` (`PostesSection`) |
+| **EF-16-30** | Les trois tableaux (Postes, Activité, Conflits) sont **paginés côté client** (`usePagination` + `PaginationBar`). Il n'y a **pas de vraie pagination serveur** : `GET /sync/supervision` renvoie au plus 200 lignes par liste (`take: 200`), la pagination visible ne fait que découper ce lot déjà chargé. | `sync-supervision.service.ts#getSupervision` ; `SynchronisationPage.tsx` |
+| **EF-16-31** | Un clic sur un poste ouvre une **modale de détail** (`PosteDetailModal`) affichant l'**identité de l'utilisateur** (nom + rôle, résolus via `personnelMedical`/`login`) plutôt qu'un simple identifiant technique de poste, ainsi que le statut en ligne/hors ligne, la date de dernière synchro et la durée de la dernière session connectée. | `GET /sync/supervision/postes/:id` → `sync-supervision.service.ts#getPosteDetail` ; `SynchronisationPage.tsx` |
+| **EF-16-32** | Un administrateur peut **retirer dynamiquement** un poste de la liste de supervision (bouton au survol de la carte). Ce n'est **pas** une suppression physique : le poste est marqué `masque` et exclu des listes tant qu'il ne s'est pas re-synchronisé (auquel cas il réapparaît automatiquement). | `DELETE /sync/supervision/postes/:id` → `sync-supervision.service.ts#masquerPoste` (`updateMany({masque:true})`) |
 
 ---
 
@@ -173,6 +178,17 @@ Le module couvre deux réalités complémentaires dans le code :
   - *Étant donné* un central joignable, *quand* le desktop démarre, *alors* la fenêtre n'apparaît qu'après le 1er pull (pas d'écran « à vide »).
   - *Étant donné* un central injoignable, *quand* le délai d'attente expire, *alors* l'application s'ouvre en mode local.
 
+### CU-16-07 — Consulter et gérer les postes depuis la supervision
+
+- **Acteur** : ADMIN_SYSTEME (ou détenteur de `synchronisation.read`/`synchronisation.execute`).
+- **Déclencheur** : ouverture de l'onglet « Postes » de l'écran Synchronisation.
+- **Scénario nominal** : l'admin recherche un poste par nom d'utilisateur, filtre par statut (En ligne/Hors ligne), clique un poste pour voir son détail (identité de l'utilisateur, dernière synchro, durée de session) dans une modale, puis referme. Si un poste n'est plus utilisé, il le retire (masquage) depuis la carte.
+- **Scénarios d'erreur** : poste retiré alors qu'il vient de se re-synchroniser → il réapparaît au prochain rafraîchissement (le masquage n'est pas définitif) ; permission absente → 403.
+- **Hors-ligne** : fonction du central uniquement (comme CU-16-04).
+- **Critères** :
+  - *Étant donné* plusieurs postes affichés, *quand* l'admin filtre « En ligne », *alors* seuls les postes synchronisés dans les 3 dernières minutes (EF-16-20) restent visibles.
+  - *Étant donné* un poste masqué, *quand* ce poste se synchronise de nouveau, *alors* il réapparaît automatiquement dans la liste.
+
 ---
 
 ## 5. Données du module
@@ -180,7 +196,7 @@ Le module couvre deux réalités complémentaires dans le code :
 Les entités sont définies dans [[modele_donnees_global]] (§3.9 « Synchronisation offline-first »). Entités propres au module et utilisées par le code de `sync/` :
 
 - **`SyncState`** — curseur de synchronisation par couple (`posteLocalId`, `siteId`), champs `lastPulledAt` / `lastPushedAt`. Lu/écrit par `SyncClientService` (poste) et `SyncSupervisionService` (central). Sert aussi de borne anti-résurrection à la purge.
-- **`PosteLocal`** — poste/appareil enregistré (`id`, `siteId`, `libelle`, `derniereSyncAt`). Renseigné par `record()` au central.
+- **`PosteLocal`** — poste/appareil enregistré (`id`, `siteId`, `libelle`, `derniereSyncAt`, **`dernierUtilisateurId`** — pointeur de traçabilité **sans relation FK** (comme `createdBy`/`updatedBy`), écrasé à chaque `record()` : un poste affiche donc l'utilisateur **le plus récent**, pas un historique des utilisateurs successifs —, **`masque`** — booléen de retrait dynamique de la supervision, EF-16-32). Renseigné par `record()` au central.
 - **`JournalSynchronisation`** — trace d'un cycle reçu (`startedAt`, `finishedAt`, `statut` REUSSIE/CONFLITS, `nbMutations`, `nbConflits`).
 - **`ConflitSynchronisation`** — conflit détaillé (`mutationUuid`, `entiteType`, `entiteId`, `typeConflit` LOCAL_GAGNE/SERVEUR_GAGNE, `valeurLocale`, `valeurServeur`, `statut` EN_ATTENTE).
 - **`FileMutation`** — *côté web*, mutation locale rejouable (`mutationUuid`, `module`, `entiteType`, `entiteId`, `action`, `payloadJson` **chiffré**, `statut` PENDING/APPLIED/REJECTED, `ordreLocal`). Persistée dans IndexedDB (`db.file_mutations`), pas en base relationnelle.
@@ -210,6 +226,7 @@ Les entités sont définies dans [[modele_donnees_global]] (§3.9 « Synchronisa
 | **RM-16-14** | Au rejeu web, une **401** ne purge **jamais** la mutation (≠ rejet métier) : la file reste PENDING ; seuls les **4xx métier** marquent REJECTED. | EF-16-26 ; `sync.ts#syncPush` |
 | **RM-16-15** | Le rejeu web respecte l'**ordre** (`ordreLocal` croissant) et l'**idempotence** (`mutationUuid`), et réutilise les endpoints réels (aucun moteur d'application parallèle côté client). | `sync.ts` |
 | **RM-16-16** | Un poste est « en ligne » côté supervision s'il s'est synchronisé dans une fenêtre de **3 minutes**. | EF-16-20 ; `sync-supervision.service.ts` |
+| **RM-16-17** | Le retrait d'un poste de la supervision est un **masquage réversible** (`masque=true`), jamais une suppression physique : `getSupervision` filtre `masque:false` (EF-16-32) et toute nouvelle synchro du poste le réaffiche. | EF-16-32 ; `sync-supervision.service.ts#masquerPoste` |
 
 > Toutes les durées/intervalles/timeouts chiffrés (sonde, filet, backoff, timeout requête, attente 1ʳᵉ synchro, purge, rejeu web) sont définis dans [[parametres_metier]] : **PM-20 à PM-36** (connectivité & synchronisation), **PM-23** (cycle de rejeu web), **PM-45** (chiffrement). Ce document ne les redéfinit pas.
 
@@ -224,6 +241,8 @@ Les entités sont définies dans [[modele_donnees_global]] (§3.9 « Synchronisa
 | GET | `/sync/pull` | `synchronisation.read` | Deltas du site depuis `since` (paginés, tombstones inclus). |
 | POST | `/sync/push` | `synchronisation.execute` | Applique un lot de changements, renvoie applied/skipped/conflicts. |
 | GET | `/sync/supervision` | `synchronisation.read` | Postes, journaux récents, conflits en attente (par site). |
+| GET | `/sync/supervision/postes/:id` | `synchronisation.read` | Détail d'un poste : identité utilisateur (nom+rôle), statut, dernière synchro, durée de session (EF-16-31). |
+| DELETE | `/sync/supervision/postes/:id` | `synchronisation.execute` | Masque un poste de la supervision (réversible, EF-16-32/RM-16-17). |
 | GET | `/sync/status` | `synchronisation.read` | État serveur + client embarqué. |
 | POST | `/sync/run` | `synchronisation.execute` | Déclenche un cycle (mode local embarqué ; no-op sinon). |
 | GET | `/sync/ready` | *(public, loopback)* | Indique si la 1ʳᵉ synchro est faite (ouverture fluide desktop). |
@@ -267,7 +286,7 @@ Les entités sont définies dans [[modele_donnees_global]] (§3.9 « Synchronisa
 - **Valeurs as-built non encore référencées dans [[parametres_metier]]** : fenêtre « poste en ligne » = 3 min (RM-16-16) et rétention tombstones = 90 jours (RM-16-08). À intégrer comme PM dédiés pour respecter la source unique des chiffres.
 - **Pas d'UI de résolution de conflits** : les conflits sont automatiquement tranchés (LWW) et seulement **journalisés/affichés** ; un opérateur ne peut pas arbitrer manuellement (réserve assumée de D-016).
 - **Deux mécanismes de « sync » distincts** : moteur d'entités (backend embarqué) vs file de rejeu de requêtes (web). Ils ne partagent pas le même chemin ; veiller à ne pas les confondre en exploitation (le web ne réplique pas d'entités, il rejoue des requêtes HTTP).
-- **Périmètre de l'écran admin « Synchronisation »** (sauvegardes config, volumétrie, restauration via `synchronisation.restore`) : **à confirmer**, car porté hors des fichiers `sync/` (module `admin`/`parametres`).
+- **Périmètre de l'écran admin « Synchronisation »** (sauvegardes config, volumétrie, restauration via `synchronisation.restore`) : **résolu (2026-07-06)** — porté par le module `admin` (`synchronisation.controller.ts`), hors des fichiers `sync/` ; le bouton de déclenchement manuel a été retiré du frontend (seuls cron auto + restauration restent exposés en UI), l'endpoint manuel backend subsistant sans consommateur frontend actif.
 - **Attribution exacte des permissions `synchronisation.*` par rôle** : à confirmer sur `packages/types/src/permissions.ts` (cf. [[MODULE_02_acces_habilitations]]) ; le décompte global de permissions présente un écart documenté (PM-47, « à confirmer »).
 - **Régularisation migrations** (réserve transverse D-009/D-023) : re-baseline des migrations au déploiement, susceptible d'affecter l'allow-list soft-delete et donc l'ensemble synchronisé.
 

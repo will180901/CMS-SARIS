@@ -15,7 +15,7 @@ import { parseUserAgent } from '@/lib/userAgent'
 import { geoLabel, formatCoords, mapsUrl } from '@/lib/geo'
 import { QRCode } from '@workspace/ui/components/kibo-ui/qr-code'
 import { toast } from '@workspace/ui/components/sonner'
-import { Card, Button, SelectBox, TextInput, StatusPill, Skeleton, SegmentedTabs, TotpCountdown, Avatar } from '@/components/saris'
+import { Card, Button, SelectBox, TextInput, StatusPill, Skeleton, SegmentedTabs, TotpCountdown, UserAvatar, PhotoCropModal } from '@/components/saris'
 import { ChangePasswordDialog } from '@/modules/auth/components/ChangePasswordDialog'
 import { useTheme } from '@/components/theme-provider'
 import { THEME_MAP } from '@/components/PreferencesSync'
@@ -51,6 +51,7 @@ function PhotoCard() {
   const { t } = useTranslation()
   const user = useSessionStore(s => s.user)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [cropSrc, setCropSrc] = useState<string | null>(null)
   const upload = useUploadMyPhoto()
   const remove = useRemoveMyPhoto()
 
@@ -66,7 +67,26 @@ function PhotoCard() {
       toast.error(t('settings.photoTooLarge'))
       return
     }
-    upload.mutate(file)
+    // Étape de recadrage (façon WhatsApp) AVANT l'envoi : le backend recadre de
+    // toute façon en carré centré, autant laisser l'utilisateur choisir la partie
+    // gardée plutôt que de subir un centrage automatique.
+    setCropSrc(URL.createObjectURL(file))
+  }
+
+  function closeCrop() {
+    if (cropSrc) URL.revokeObjectURL(cropSrc)
+    setCropSrc(null)
+  }
+
+  // Filet de sécurité : si l'utilisateur quitte cette section (ex. bascule vers
+  // Sécurité/Sessions) pendant que le recadrage est ouvert, on libère quand même
+  // l'URL objet au démontage plutôt que d'attendre un closeCrop() qui n'arrivera pas.
+  useEffect(() => {
+    return () => { if (cropSrc) URL.revokeObjectURL(cropSrc) }
+  }, [cropSrc])
+
+  function onCropConfirm(blob: Blob) {
+    upload.mutate(new File([blob], 'photo.jpg', { type: 'image/jpeg' }), { onSuccess: closeCrop })
   }
 
   if (!user) return null
@@ -76,7 +96,7 @@ function PhotoCard() {
       <Card.Header icon={<ImageUp size={15} />} title={t('settings.photoTitle')} subtitle={t('settings.photoHint')} />
       <Card.Body padding="md">
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--espace-4)', flexWrap: 'wrap' }}>
-          <Avatar nom={user.login} size={72} tone="accent" photoUrl={user.photoUrl} />
+          <UserAvatar userId={user.id} nom={user.login} size={72} tone="accent" />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--espace-2)' }}>
             <div style={{ display: 'flex', gap: 'var(--espace-2)', flexWrap: 'wrap' }}>
               <Button size="sm" variant="outline" leftIcon={<ImageUp size={13} />} loading={upload.isPending} onClick={() => fileInputRef.current?.click()}>
@@ -96,6 +116,9 @@ function PhotoCard() {
           />
         </div>
       </Card.Body>
+      {cropSrc && (
+        <PhotoCropModal imageSrc={cropSrc} busy={upload.isPending} onConfirm={onCropConfirm} onCancel={closeCrop} />
+      )}
     </Card>
   )
 }

@@ -1,6 +1,6 @@
 # Modèle de données global — CMS SARIS
 
-**Version** 1.0 · **Date** 2026-06-26 · **Statut** Brouillon · **Historique** : v1.0 création
+**Version** 1.1 · **Date** 2026-07-06 · **Statut** Brouillon · **Historique** : v1.0 création · v1.1 (2026-07-06) : + `photoUrl` sur `Utilisateur` (migration `20260705200000_add_photo_url_utilisateur`) ; + `dernierUtilisateurId`/`masque` sur `PosteLocal`
 
 > Document de référence transversal. Il décrit les entités persistées du système
 > **tel que construit** (as-built) et leurs relations clés. Tous les documents de
@@ -67,7 +67,9 @@ fichier Prisma).
 ### 3.1 Sécurité, identité & habilitations
 
 - **`Utilisateur`** — compte de connexion (login/email uniques, `passwordHash`,
-  `statut` ACTIF/DESACTIVE/BLOQUE, gestion des tentatives d'échec et du blocage).
+  `statut` ACTIF/DESACTIVE/BLOQUE, gestion des tentatives d'échec et du blocage,
+  `photoUrl` — photo de profil en data URL base64, `String?`, ajoutée 2026-07-05, cf.
+  [[MODULE_01_securite_authentification]] EF-01-36).
   Rattaché à un **`Site`** (`siteId`) et, optionnellement, à un **`PersonnelMedical`**
   (1-1, `personnelMedicalId` unique). Porte `lastSeenAt` (présence messagerie).
   Relations : rôles (`UtilisateurRole`), dérogations (`UtilisateurPermission`),
@@ -178,7 +180,10 @@ couverte, plafond, période), `MotifConsultation`, `TypeConsultation`,
 
 - **`SyncState`** — **curseur de synchronisation** par poste et par site
   (`lastPulledAt`, `lastPushedAt`), unique sur (`posteLocalId`, `siteId`).
-- **`PosteLocal`** — poste/appareil enregistré.
+- **`PosteLocal`** — poste/appareil enregistré ; porte `dernierUtilisateurId` (pointeur de traçabilité
+  **sans relation FK**, écrasé à chaque synchro — un poste affiche l'utilisateur le plus **récent**, pas
+  un historique) et `masque` (retrait dynamique réversible de l'écran de supervision, cf.
+  [[MODULE_16_synchronisation]] EF-16-31/32).
 - **`FileMutation`** — file de mutations locales à pousser (UUID de mutation,
   `module`/`entiteType`/`entiteId`/`action`, `payloadJson`, `statut`, ordre local).
 - **`JournalSynchronisation` / `ConflitSynchronisation` / `ResolutionConflit`** —
@@ -200,7 +205,7 @@ de sync `updatedAt` / `deletedAt` indiquées par **U** (présent + indexé) et *
 
 | Entité | Rôle | Champs notables | U/D |
 | --- | --- | --- | --- |
-| Utilisateur | Compte de connexion | login·, email·, passwordHash, statut, siteId, personnelMedicalId, lastSeenAt | U · D |
+| Utilisateur | Compte de connexion | login·, email·, passwordHash, statut, siteId, personnelMedicalId, lastSeenAt, photoUrl | U · D |
 | Role | Rôle RBAC | code·, libelle | U |
 | Permission | Permission unitaire | code·, module | U |
 | RolePermission | Rôle↔permission | PK (roleId, permissionId) | U |
@@ -318,7 +323,7 @@ de sync `updatedAt` / `deletedAt` indiquées par **U** (présent + indexé) et *
 | Entité | Rôle | Champs notables | U/D |
 | --- | --- | --- | --- |
 | SyncState | Curseur de sync | posteLocalId, siteId, lastPulledAt, lastPushedAt | (updatedAt) |
-| PosteLocal | Poste/appareil | siteId, libelle, derniereSyncAt | — |
+| PosteLocal | Poste/appareil | siteId, libelle, derniereSyncAt, dernierUtilisateurId, masque | — |
 | FileMutation | Mutation à pousser | mutationUuid·, module, entiteType/Id, action, payloadJson, statut | — |
 | JournalSynchronisation | Session de sync | startedAt, statut, nbMutations, nbConflits | — |
 | ConflitSynchronisation | Conflit détecté | typeConflit, valeurLocale/Serveur, statut | — |

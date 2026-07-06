@@ -32,7 +32,7 @@ import { useIsMobile } from '@/hooks/useMediaQuery'
 import { useUiStore } from '@/stores/ui.store'
 import { isDesktop } from '@/lib/desktop'
 import { DESKTOP_TITLEBAR_H } from './DesktopTitleBar'
-import { Avatar, StatusPill } from '@/components/saris'
+import { UserAvatar, StatusPill } from '@/components/saris'
 import type { Role } from '@cms-saris/types'
 import { useTranslation } from 'react-i18next'
 
@@ -297,7 +297,10 @@ export function Sidebar() {
                 onMouseEnter={e => (e.currentTarget.style.background = 'var(--fond-surface-2)')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
               >
-                <Avatar nom={user.login} size={36} tone="accent" photoUrl={user.photoUrl} />
+                {/* Non cliquable : imbriqué dans le déclencheur du menu, cliquer dessus
+                    doit ouvrir le menu (la photo agrandie reste accessible via la
+                    carte profil ci-dessous, elle, non ambiguë). */}
+                <UserAvatar userId={user.id} nom={user.login} size={36} tone="accent" clickable={false} />
                 {open && (
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{
@@ -349,7 +352,7 @@ export function Sidebar() {
                 background: 'var(--fond-surface-2)',
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--espace-3)' }}>
-                  <Avatar nom={user.login} size={44} tone="accent" photoUrl={user.photoUrl} />
+                  <UserAvatar userId={user.id} nom={user.login} size={44} tone="accent" />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{
                       margin: 0,

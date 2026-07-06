@@ -17,7 +17,7 @@ import {
   Users, Paperclip, ChevronUp, ChevronDown, Clock, Loader2,
   Reply, Copy, Image as ImageIcon, FileText, Sticker, Smile, Info, Music, Mic, ListChecks, Plus, ChevronLeft,
 } from 'lucide-react'
-import { Avatar } from '@/components/saris'
+import { Avatar, UserAvatar } from '@/components/saris'
 import { Popover, PopoverContent, PopoverTrigger } from '@workspace/ui/components/popover'
 import { toast } from '@workspace/ui/components/sonner'
 import { isOfflineQueued } from '@/lib/api'
@@ -344,7 +344,9 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
         )}
         {isGroupe
           ? <div style={{ width: 40, height: 40, borderRadius: 'var(--radius-md)', background: 'var(--ap-100)', color: 'var(--ap-700)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Users size={18} /></div>
-          : <Avatar nom={nom} size={40} />}
+          : conv.interlocuteur
+            ? <UserAvatar userId={conv.interlocuteur.id} nom={nom} size={40} />
+            : <Avatar nom={nom} size={40} />}
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'var(--texte-primaire)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nom}</p>
           <p style={{ margin: '1px 0 0', fontSize: 11, color: 'var(--texte-tertiaire)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -522,7 +524,7 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
                   style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left' }}
                   onMouseEnter={e => (e.currentTarget.style.background = 'var(--fond-surface-2)')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                  <Avatar nom={c.nom} size={24} />
+                  <UserAvatar userId={c.id} nom={c.nom} size={24} clickable={false} />
                   <span style={{ fontSize: 13, color: 'var(--texte-primaire)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.nom}</span>
                   {c.role && <span style={{ fontSize: 10, color: 'var(--texte-tertiaire)', marginLeft: 'auto', flexShrink: 0 }}>{c.role}</span>}
                 </button>

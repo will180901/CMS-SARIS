@@ -25,7 +25,6 @@ const SEG_TKEY: Record<string, string> = {
   audit: 'nav.audit',
   parametres: 'nav.parametres',
   synchronisation: 'nav.synchronisation',
-  admin: 'navGroups.adminSysteme',
 }
 
 // Chemins réellement routés : un crumb n'est cliquable que s'il pointe vers une page existante.
@@ -47,17 +46,23 @@ export function BreadcrumbBar() {
   const canForward = index < length - 1
 
   const segs = location.pathname.split('/').filter(Boolean)
-  const crumbs = segs.map((seg, i) => {
-    const path = '/' + segs.slice(0, i + 1).join('/')
-    const cap  = seg.charAt(0).toUpperCase() + seg.slice(1)
-    const isPatientId = segs[i - 1] === 'patients' && (ID_RE.test(seg) || seg.length > 16)
-    let label: string
-    if (SEG_TKEY[seg])                           label = t(SEG_TKEY[seg], { defaultValue: cap })
-    else if (isPatientId)                        label = t('breadcrumb.dossier')
-    else if (ID_RE.test(seg) || seg.length > 16) label = t('breadcrumb.detail')
-    else                                         label = cap
-    return { label, path, isLink: i < segs.length - 1 && KNOWN_ROUTES.has(path), patientId: isPatientId ? seg : undefined }
-  })
+  const crumbs = segs
+    .map((seg, i) => {
+      const path = '/' + segs.slice(0, i + 1).join('/')
+      const cap  = seg.charAt(0).toUpperCase() + seg.slice(1)
+      const isPatientId = segs[i - 1] === 'patients' && (ID_RE.test(seg) || seg.length > 16)
+      let label: string
+      if (SEG_TKEY[seg])                           label = t(SEG_TKEY[seg], { defaultValue: cap })
+      else if (isPatientId)                        label = t('breadcrumb.dossier')
+      else if (ID_RE.test(seg) || seg.length > 16) label = t('breadcrumb.detail')
+      else                                         label = cap
+      return { seg, label, path, isLink: i < segs.length - 1 && KNOWN_ROUTES.has(path), patientId: isPatientId ? seg : undefined }
+    })
+    // « admin » est un préfixe de route technique (/admin/...), pas une section de menu
+    // réelle depuis le retrait du groupe « Administration système » de la sidebar — ne
+    // s'affiche pas comme cran intermédiaire, tout comme les autres groupes (Clinique,
+    // Administration médicale…) n'apparaissent déjà pas dans le fil d'Ariane.
+    .filter(c => c.seg !== 'admin')
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginRight: 'auto', minWidth: 0 }}>

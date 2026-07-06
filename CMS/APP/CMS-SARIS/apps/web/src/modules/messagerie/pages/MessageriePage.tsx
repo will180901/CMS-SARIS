@@ -15,7 +15,7 @@ import { Button } from '@workspace/ui/components/button'
 import { Input } from '@workspace/ui/components/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@workspace/ui/components/popover'
 import { toast } from '@workspace/ui/components/sonner'
-import { Avatar } from '@/components/saris'
+import { UserAvatar } from '@/components/saris'
 import { isOfflineQueued } from '@/lib/api'
 import { isDesktop } from '@/lib/desktop'
 import { DESKTOP_TITLEBAR_H } from '@/components/layout/DesktopTitleBar'
@@ -323,7 +323,7 @@ function NewConversationPanel({ onStarted }: { onStarted: (conv: ConversationIte
                 style={{ width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: checked ? 'var(--ap-50)' : 'transparent', border: 'none', cursor: 'pointer', borderBottom: '1px solid var(--bordure-legere)' }}
                 onMouseEnter={e => { if (!checked) e.currentTarget.style.background = 'var(--fond-surface-2)' }}
                 onMouseLeave={e => { if (!checked) e.currentTarget.style.background = 'transparent' }}>
-                <Avatar nom={c.nom} size={32} />
+                <UserAvatar userId={c.id} nom={c.nom} size={32} clickable={false} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--texte-primaire)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.nom}</p>
                   {c.role && <p style={{ margin: 0, fontSize: 11, color: 'var(--texte-tertiaire)' }}>{c.role}</p>}

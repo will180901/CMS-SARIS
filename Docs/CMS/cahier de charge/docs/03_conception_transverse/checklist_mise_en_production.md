@@ -1,6 +1,6 @@
 # Checklist de mise en production (« déménagement ») — CMS SARIS
 
-**Version** 1.0 · **Date** 2026-06-26 · **Statut** Vivant · **Lié à** : [[modele_operationnel]], [[modele_menaces]], [[strategie_offline_sync]].
+**Version** 1.1 · **Date** 2026-07-06 · **Statut** Vivant · **Lié à** : [[modele_operationnel]], [[modele_menaces]], [[strategie_offline_sync]]. Historique : v1.0 création (2026-06-26) · v1.1 (2026-07-06) : installeur rebuild 1.5.0 (les preuves de synchro du 2026-06-26 portent sur le moteur de sync, inchangé depuis ; non re-testées sur ce build précis — à refaire avant bascule réelle).
 
 > État franc de la préparation au déploiement réel. Légende : ✅ fait · 🟡 partiel · 🔴 à faire (bloquant prod) · ⬜ à faire (non bloquant).
 
@@ -11,7 +11,7 @@
 - ✅ **API NestJS sur Render** : `https://cms-saris-api.onrender.com` — `/health` + login admin prouvés en ligne.
 - ✅ **Site web sur Render** : `https://cms-saris-web.onrender.com` (HTTP 200, PWA).
 - ✅ **Code à jour poussé** (commit `d38c816`) : annonces de MAJ + badge connectivité → Render redéploie automatiquement.
-- ✅ **Installeur desktop 1.4.1** baké sur l'URL Render + clés de prod + bouton « Télécharger et installer ».
+- 🟡 **Installeur desktop 1.5.0** reconstruit le 2026-07-06 (avatar perpétuel/recadrage photo, refonte Paramètres, salutation dashboard) — build **générique** (URL serveur par défaut **vide** → écran de configuration au 1er lancement), **pas re-baké** avec l'URL Render + clés de prod pour cette version précise (à refaire avant un vrai déploiement, cf. point E). Le bouton « Télécharger et installer » (annonces de MAJ) reste fonctionnel, inchangé depuis 1.4.1.
 
 ## B. Bloquants AVANT une vraie production (🔴)
 1. 🔴 **Plan Render payant (« Starter »)** pour l'API : le plan gratuit **met le service en veille** (~50 s au réveil) et **les tâches planifiées — dont la sauvegarde de config — ne s'exécutent pas pendant la veille**. Un central qui dort n'est pas fiable pour des postes qui synchronisent.
@@ -23,11 +23,11 @@
 - ✅ **Chemin de synchro du poste PROUVÉ (2026-06-26)** : backend embarqué SQLite démarré → **synchronisé 505 enregistrements depuis le central Render/Neon en ligne** (0 conflit) → **connexion locale réussie** (comptes synchronisés) → données servies. Le moteur du poste fonctionne contre le central réel.
 5. 🟡 **Test multi-poste** : 2 postes desktop hors-ligne → modifications locales → reconnexion → réconciliation LWW + supervision des conflits (testé en labo 1 poste, pas 2 postes concurrents).
 6. 🟡 **Flux desktop « Télécharger et installer » la MAJ** : codé + typé, **jamais exécuté sur l'app installée**. À tester une fois.
-7. 🟡 **Coque Electron de l'installeur 1.4.1** : le **backend embarqué** est prouvé ; reste à lancer le **`.exe` installé** pour valider la fenêtre, la bascule en ligne/hors-ligne du renderer et l'écran de 1er lancement.
+7. 🟡 **Coque Electron de l'installeur 1.5.0** : le **backend embarqué** est prouvé (preuve du 2026-06-26, moteur inchangé) ; reste à lancer le **`.exe` installé** de cette version précise pour valider la fenêtre, la bascule en ligne/hors-ligne du renderer et l'écran de 1er lancement.
 8. 🟡 **Sauvegarde / restauration** : définir la stratégie (Neon a une rétention limitée en gratuit ; le cron de sauvegarde de config nécessite l'API éveillée → cf. point 1).
 
 ## D. Procédure par poste (installation desktop)
-- ⬜ Installer `CMS SARIS-Setup-1.4.1.exe` (cliquer au-delà de SmartScreen tant que non signé — cf. point 2).
+- ⬜ Installer `CMS SARIS-Setup-1.5.0.exe` (cliquer au-delà de SmartScreen tant que non signé — cf. point 2).
 - ⬜ Au 1er lancement : **écran de configuration** → saisir l'**URL centrale** (`https://cms-saris-api.onrender.com`) + un **compte de synchro** (admin ou compte dédié avec `synchronisation.read/execute`).
 - ⬜ Attendre la 1ʳᵉ synchro (la base locale se remplit depuis le central), puis l'app s'ouvre.
 

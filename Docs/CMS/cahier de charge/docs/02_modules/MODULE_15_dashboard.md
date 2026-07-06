@@ -1,6 +1,6 @@
 # Module 15 — Tableau de bord & Statistiques
 
-**Version** 1.0 · **Date** 2026-06-26 · **Statut** Brouillon · **Release** MVP · **Historique** : v1.0 création
+**Version** 1.1 · **Date** 2026-07-06 · **Statut** Brouillon · **Release** MVP · **Historique** : v1.0 création · v1.1 (2026-07-06) : + EF-15-20 (salutation d'accueil personnalisée par nom)
 
 > Spécification « as-built » (le système est développé et déployé — voir [[_SOURCE_systeme]]). Tout fait
 > technique renvoie au code réel sous `CMS/APP/CMS-SARIS/`. Les chiffres ne sont jamais redéfinis
@@ -161,6 +161,11 @@ Notes :
   24 h atteignent **5 ou plus**. (`AdminSystemView`)
 - **EF-15-19** — La vue admin système affiche un **aperçu des 8 dernières actions d'audit** si l'utilisateur
   a `audit.read` (réutilisation du module Admin) ; sinon le bloc est masqué. (`AdminSystemView`, `useAuditActions`)
+- **EF-15-20** — L'en-tête (hero) affiche une **salutation contextuelle** (bonjour / bonsoir selon l'heure)
+  suivie du **nom de l'utilisateur connecté** (résolu via l'annuaire partagé `GET /me/annuaire`, cf.
+  [[MODULE_01_securite_authentification]] EF-01-38 ; repli sur le login si l'entrée d'annuaire n'est pas
+  encore chargée), **plutôt que son rôle** — le rôle/titre du persona reste visible juste en dessous, dans
+  le titre de la page (« Pilotage du système » / « Suivi clinique »). (`DashboardPage.tsx`, `useAnnuaire`)
 
 ---
 

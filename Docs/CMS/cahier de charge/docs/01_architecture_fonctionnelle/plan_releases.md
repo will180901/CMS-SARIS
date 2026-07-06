@@ -1,6 +1,6 @@
 # Plan de releases — CMS SARIS
 
-**Version** 1.0 · **Date** 2026-06-26 · **Statut** Brouillon · **Historique** : v1.0 création
+**Version** 1.1 · **Date** 2026-07-06 · **Statut** Brouillon · **Historique** : v1.0 création · v1.1 (2026-07-06) : version desktop mise à jour (1.4.1→1.5.0)
 
 > Document « as-built » (le système est développé et déployé). Il reconstitue **a posteriori** le plan de versions du produit tel qu'il EXISTE aujourd'hui, à partir du code (`apps/api/src/modules`, `apps/web/src`, `apps/desktop/electron`, `packages/db/prisma/schema.prisma`, `packages/types/src/permissions.ts`) et de la traçabilité interne du projet. Il ne planifie pas du « à faire » : il **classe** ce qui est livré par jalon logique et indique l'état réel. Source de vérité : [[_SOURCE_systeme]]. Modules : [[plan_modules]]. Domaines : [[carte_domaines]].
 
@@ -10,7 +10,7 @@
 
 CMS SARIS n'a **pas** été construit selon un plan de versions formel publié à l'avance : c'est un projet de soutenance développé en continu sur une seule branche `main` (la branche `feat/offline-first` a été fusionnée puis supprimée). Ce document **reconstruit** trois jalons cohérents — **MVP**, **V1**, **V2/évolutions** — par regroupement fonctionnel des modules et fonctionnalités réellement présents.
 
-> Honnêteté (as-built) : le découpage MVP / V1 / V2 ci-dessous est une **lecture de structuration a posteriori**, pas une trace de releases taguées. Le numéro de version qui existe réellement dans le code est celui de l'**application desktop** (`apps/desktop/package.json` = **1.4.1** au 2026-06-26) ; il ne recouvre pas le même périmètre que les jalons MVP/V1/V2 de ce plan. Tout élément dont l'appartenance à un jalon est un choix de présentation est signalé.
+> Honnêteté (as-built) : le découpage MVP / V1 / V2 ci-dessous est une **lecture de structuration a posteriori**, pas une trace de releases taguées. Le numéro de version qui existe réellement dans le code est celui de l'**application desktop** (`apps/desktop/package.json` = **1.5.0** au 2026-07-06 ; 1.4.1 au 2026-06-26) ; il ne recouvre pas le même périmètre que les jalons MVP/V1/V2 de ce plan. Tout élément dont l'appartenance à un jalon est un choix de présentation est signalé.
 
 ### 1.1 Convention MoSCoW
 

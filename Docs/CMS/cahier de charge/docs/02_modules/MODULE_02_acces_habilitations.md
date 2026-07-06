@@ -457,8 +457,8 @@ manipulées par ce module :
 - **Nombre de rôles (D-003)** : la constante `SYSTEM_ROLES` liste **3 rôles** d'habilitation
   (ADMIN_SYSTEME, MEDECIN_CHEF, INFIRMIER), cohérent avec l'absence de clé `MEDECIN` au catalogue.
   `MEDECIN` n'est **pas** un rôle mais une **profession** du personnel mappée au rôle `MEDECIN_CHEF`
-  (`seed.ts:379`). Toute mention résiduelle de « 4 rôles » dans [[glossaire]] ou [[_SOURCE_systeme]] est à
-  corriger en **3 rôles** (cf. note de cohérence du [[registre_decisions]]).
+  (`seed.ts:379`). *(Résolu, re-vérifié 2026-07-06 : [[glossaire]] et [[_SOURCE_systeme]] disent déjà
+  correctement 3 rôles, aucun résidu « 4 rôles » trouvé.)*
 - **Décompte de permissions** : `PM-47` retient **110** entrées vérifiées dans le code ; ce module ne fige
   pas le chiffre — il lit la table `Permission`.
 - **Réduction prévue d'ADMIN_SYSTEME (D-004)** : l'accès clinique complet est **temporaire** ; une réduction

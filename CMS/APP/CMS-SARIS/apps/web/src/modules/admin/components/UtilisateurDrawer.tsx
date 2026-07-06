@@ -25,7 +25,7 @@ import {
 } from 'lucide-react'
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@workspace/ui/components/sheet'
 import { toast } from '@workspace/ui/components/sonner'
-import { Button, Avatar, Skeleton, SegmentedTabs, Modal } from '@/components/saris'
+import { Button, UserAvatar, Skeleton, SegmentedTabs, Modal } from '@/components/saris'
 import {
   useUtilisateur, useRoles, useSetRoles, useSetStatut, useAuditAuth, useDeleteUtilisateur,
   useResetTotp, useRegenerateBackupCodes, useRevokeSessions,
@@ -251,8 +251,8 @@ export function UtilisateurDrawer({ utilisateurId, onClose, initialTab }: Props)
           ) : (
             <div style={{ display: 'flex', gap: 'var(--espace-3)', alignItems: 'center' }}>
               {u.personnelMedical
-                ? <Avatar nom={u.personnelMedical.nom} prenom={u.personnelMedical.prenom} size={56} />
-                : <Avatar nom={u.login} size={56} tone="neutral" />}
+                ? <UserAvatar userId={u.id} nom={u.personnelMedical.nom} prenom={u.personnelMedical.prenom} size={56} />
+                : <UserAvatar userId={u.id} nom={u.login} size={56} tone="neutral" />}
 
               <div style={{ flex: 1, minWidth: 0 }}>
                 <h2 style={{
@@ -526,7 +526,7 @@ function ProfilTab({ u, permsCumulees, lastLogin }: {
       {u.personnelMedical ? (
         <Panel icon={<Stethoscope size={14} />} title={t('admin.attachedPersonnel')}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--espace-3)' }}>
-            <Avatar nom={u.personnelMedical.nom} prenom={u.personnelMedical.prenom} size={40} />
+            <UserAvatar userId={u.id} nom={u.personnelMedical.nom} prenom={u.personnelMedical.prenom} size={40} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ margin: 0, fontSize: 'var(--font-size-body-sm)', fontWeight: 600, color: 'var(--texte-primaire)' }}>
                 {u.personnelMedical.prenom} {u.personnelMedical.nom}

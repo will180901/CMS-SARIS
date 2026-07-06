@@ -10,7 +10,7 @@
 import { useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Settings, SlidersHorizontal, UserCog, Bell, ShieldCheck, KeyRound,
+  Settings, SlidersHorizontal, UserCog, Bell, ShieldCheck,
   Palette, MonitorSmartphone, Languages, FileText, Lock, Info, Users, History, RefreshCw,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -27,8 +27,13 @@ type Tab = 'generaux' | 'personnel'
 
 interface SectionItem { key: string; label: string; icon: ReactNode; hint?: string }
 
+/** Groupes système combinés sous UNE entrée de sous-nav « Sécurité & mot de passe »
+ *  (au lieu de 2 entrées séparées) — cf. GenerauxTab, qui rend un groupe par carte. */
+const SECURITY_GROUPS = ['Sécurité & authentification', 'Politique de mot de passe']
+
 export function ParametresPage() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const { has, hasAny } = usePermissions()
   const isCompact = useIsCompact()
   const canReadGeneraux = has('parametre.read')
@@ -43,8 +48,7 @@ export function ParametresPage() {
   // barre latérale (cf. navigation.config.ts) — chacune filtrée par SA permission réelle.
   const generauxSections: SectionItem[] = [
     ...(canReadAcces ? [{ key: 'comptes', label: t('settings.genAccounts'), icon: <Users size={15} />, hint: t('settings.genAccountsHint') }] : []),
-    { key: 'Sécurité & authentification', label: t('settings.genSecurity'), icon: <ShieldCheck size={15} />, hint: t('settings.genSecurityHint') },
-    { key: 'Politique de mot de passe', label: t('settings.genPassword'), icon: <KeyRound size={15} />, hint: t('settings.genPasswordHint') },
+    { key: 'securite-mdp', label: t('settings.genSecurityPassword'), icon: <ShieldCheck size={15} />, hint: t('settings.genSecurityPasswordHint') },
     { key: 'Notifications', label: t('settings.genNotifications'), icon: <Bell size={15} />, hint: t('settings.genNotificationsHint') },
     ...(canReadAudit ? [{ key: 'audit', label: t('settings.genAudit'), icon: <History size={15} />, hint: t('settings.genAuditHint') }] : []),
     ...(canReadSync  ? [{ key: 'sync',  label: t('settings.genSync'),  icon: <RefreshCw size={15} />, hint: t('settings.genSyncHint') }] : []),
@@ -87,10 +91,32 @@ export function ParametresPage() {
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: isCompact ? 'column' : 'row', gap: 'var(--espace-5)', padding: 'var(--espace-4) var(--espace-6) var(--espace-6)' }}>
         <SubNav items={sections} value={sub} onChange={setSub} compact={isCompact} />
         <div style={{ flex: 1, minWidth: 0, minHeight: 0, overflowY: 'auto' }}>
-          {topTab === 'generaux' && canReadGeneraux && sub === 'comptes' && <ComptesAccesShortcut />}
-          {topTab === 'generaux' && canReadGeneraux && sub === 'audit' && <AuditShortcut />}
-          {topTab === 'generaux' && canReadGeneraux && sub === 'sync' && <SyncShortcut />}
-          {topTab === 'generaux' && canReadGeneraux && !['comptes', 'audit', 'sync'].includes(sub) && <GenerauxTab canWrite={canWrite} section={sub} />}
+          {topTab === 'generaux' && canReadGeneraux && sub === 'comptes' && (
+            <NavShortcutCard
+              icon={<Users size={16} />} title={t('settings.accountsTitle')} hint={t('settings.accountsHint')}
+              description={t('settings.accountsDesc')}
+              actions={[
+                { icon: <Users size={14} />, label: t('settings.accountsManage'), onClick: () => navigate('/admin/acces', { state: { tab: 'users' } }) },
+                { icon: <ShieldCheck size={14} />, label: t('settings.accountsRoles'), onClick: () => navigate('/admin/acces', { state: { tab: 'roles' } }) },
+              ]}
+            />
+          )}
+          {topTab === 'generaux' && canReadGeneraux && sub === 'audit' && (
+            <NavShortcutCard
+              icon={<History size={16} />} title={t('settings.auditTitle')} hint={t('settings.auditHint')}
+              description={t('settings.auditDesc')}
+              actions={[{ icon: <History size={14} />, label: t('settings.auditOpen'), onClick: () => navigate('/admin/audit') }]}
+            />
+          )}
+          {topTab === 'generaux' && canReadGeneraux && sub === 'sync' && (
+            <NavShortcutCard
+              icon={<RefreshCw size={16} />} title={t('settings.syncTitle')} hint={t('settings.syncCardHint')}
+              description={t('settings.syncDesc')}
+              actions={[{ icon: <RefreshCw size={14} />, label: t('settings.syncOpen'), onClick: () => navigate('/synchronisation') }]}
+            />
+          )}
+          {topTab === 'generaux' && canReadGeneraux && sub === 'securite-mdp' && <GenerauxTab canWrite={canWrite} section={SECURITY_GROUPS} />}
+          {topTab === 'generaux' && canReadGeneraux && !['comptes', 'audit', 'sync', 'securite-mdp'].includes(sub) && <GenerauxTab canWrite={canWrite} section={sub} />}
           {topTab === 'personnel' && sub === 'legal' && <LegalLangSection />}
           {topTab === 'personnel' && sub !== 'legal' && <PersonnelTab section={sub} />}
         </div>
@@ -130,67 +156,34 @@ function LegalLangSection() {
   )
 }
 
-// ── Raccourci « Comptes & accès » (contrôle admin depuis les Généraux) ────────
+// ── Raccourci générique vers une page dédiée (Comptes/Audit/Sync) ────────────
+// Les 3 raccourcis des Généraux (contrôle admin, journaux, synchro) partagent la
+// même forme : icône + titre + description + 1-2 boutons d'action. Un seul
+// composant paramétré, plutôt que 3 quasi-identiques.
 
-function ComptesAccesShortcut() {
-  const { t } = useTranslation()
-  const navigate = useNavigate()
+interface ShortcutAction { icon: ReactNode; label: string; onClick: () => void }
+
+function NavShortcutCard({ icon, title, hint, description, actions }: {
+  icon: ReactNode; title: string; hint: string; description: string; actions: ShortcutAction[]
+}) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--espace-4)', maxWidth: 640 }}>
-      <SettingCard icon={<Users size={16} />} title={t('settings.accountsTitle')} hint={t('settings.accountsHint')}>
+      <SettingCard icon={icon} title={title} hint={hint}>
         <p style={{ margin: '0 0 var(--espace-3)', fontSize: 13, color: 'var(--texte-secondaire)', lineHeight: 1.5 }}>
-          {t('settings.accountsDesc')}
+          {description}
         </p>
         <div style={{ display: 'flex', gap: 'var(--espace-2)', flexWrap: 'wrap' }}>
-          <button type="button" onClick={() => navigate('/admin/acces', { state: { tab: 'users' } })}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 600, padding: '9px 16px', borderRadius: 'var(--radius-md)', cursor: 'pointer', background: 'var(--ap-400)', color: '#fff', border: 'none' }}>
-            <Users size={14} /> {t('settings.accountsManage')}
-          </button>
-          <button type="button" onClick={() => navigate('/admin/acces', { state: { tab: 'roles' } })}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 600, padding: '9px 16px', borderRadius: 'var(--radius-md)', cursor: 'pointer', background: 'var(--fond-surface-2)', color: 'var(--texte-primaire)', border: '1px solid var(--bordure-legere)' }}>
-            <ShieldCheck size={14} /> {t('settings.accountsRoles')}
-          </button>
+          {actions.map((a, i) => (
+            <button
+              key={i} type="button" onClick={a.onClick}
+              style={i === 0
+                ? { display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 600, padding: '9px 16px', borderRadius: 'var(--radius-md)', cursor: 'pointer', background: 'var(--ap-400)', color: '#fff', border: 'none' }
+                : { display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 600, padding: '9px 16px', borderRadius: 'var(--radius-md)', cursor: 'pointer', background: 'var(--fond-surface-2)', color: 'var(--texte-primaire)', border: '1px solid var(--bordure-legere)' }}
+            >
+              {a.icon} {a.label}
+            </button>
+          ))}
         </div>
-      </SettingCard>
-    </div>
-  )
-}
-
-// ── Raccourci « Journaux d'audit » (ex-groupe « Administration système ») ────
-
-function AuditShortcut() {
-  const { t } = useTranslation()
-  const navigate = useNavigate()
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--espace-4)', maxWidth: 640 }}>
-      <SettingCard icon={<History size={16} />} title={t('settings.auditTitle')} hint={t('settings.auditHint')}>
-        <p style={{ margin: '0 0 var(--espace-3)', fontSize: 13, color: 'var(--texte-secondaire)', lineHeight: 1.5 }}>
-          {t('settings.auditDesc')}
-        </p>
-        <button type="button" onClick={() => navigate('/admin/audit')}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 600, padding: '9px 16px', borderRadius: 'var(--radius-md)', cursor: 'pointer', background: 'var(--ap-400)', color: '#fff', border: 'none' }}>
-          <History size={14} /> {t('settings.auditOpen')}
-        </button>
-      </SettingCard>
-    </div>
-  )
-}
-
-// ── Raccourci « Synchronisation » (ex-groupe « Système ») ────────────────────
-
-function SyncShortcut() {
-  const { t } = useTranslation()
-  const navigate = useNavigate()
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--espace-4)', maxWidth: 640 }}>
-      <SettingCard icon={<RefreshCw size={16} />} title={t('settings.syncTitle')} hint={t('settings.syncCardHint')}>
-        <p style={{ margin: '0 0 var(--espace-3)', fontSize: 13, color: 'var(--texte-secondaire)', lineHeight: 1.5 }}>
-          {t('settings.syncDesc')}
-        </p>
-        <button type="button" onClick={() => navigate('/synchronisation')}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 600, padding: '9px 16px', borderRadius: 'var(--radius-md)', cursor: 'pointer', background: 'var(--ap-400)', color: '#fff', border: 'none' }}>
-          <RefreshCw size={14} /> {t('settings.syncOpen')}
-        </button>
       </SettingCard>
     </div>
   )

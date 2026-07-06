@@ -20,7 +20,7 @@ import {
   Download, Printer,
 } from 'lucide-react'
 import {
-  StatCard, Card, EmptyState, Skeleton, Button, Avatar,
+  StatCard, Card, EmptyState, Skeleton, Button, UserAvatar,
   AreaTrend, MiniBars, DonutChart, SparkLine, CHART_PALETTE,
   type DonutSlice,
 } from '@/components/saris'
@@ -33,10 +33,10 @@ import {
   useAdminSystemStats, useStatistiques,
 } from '../hooks/useDashboard'
 import { exportStatsCsv, exportStatsPdf } from '../lib/statsExport'
-import { useAuditActions } from '@/modules/admin/hooks/useAdmin'
+import { useAuditActions, useAnnuaire } from '@/modules/admin/hooks/useAdmin'
 import { labelAction, labelEntite, labelModule } from '@/config/labels'
 import type { UrgenceVisite } from '../api/dashboard.api'
-import { getPrimaryRole, ROLE_META } from '@/config/navigation.config'
+import { getPrimaryRole } from '@/config/navigation.config'
 import { DelegationsWidget } from '../components/DelegationsWidget'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -89,7 +89,12 @@ export function DashboardPage() {
   const compact = useIsCompact()
 
   const role = user ? getPrimaryRole(user.roles) : null
-  const roleMeta = role ? ROLE_META[role] : null
+
+  // Nom réel de l'utilisateur (annuaire partagé — même source que UserAvatar) :
+  // on salue LA PERSONNE, pas sa fonction (déjà visible plus bas via le titre/rôle).
+  const { data: annuaire } = useAnnuaire()
+  const meEntry = user ? annuaire?.find(u => u.id === user.id) : undefined
+  const displayName = meEntry ? [meEntry.prenom, meEntry.nom].filter(Boolean).join(' ') : user?.login
 
   // Persona = fonction de l'utilisateur. On s'appuie d'abord sur le RÔLE primaire
   // (la fonction réelle), avec repli sur les permissions pour les rôles custom.
@@ -128,13 +133,13 @@ export function DashboardPage() {
         flexShrink: 0,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--espace-4)' }}>
-          {user && <Avatar nom={user.login} size={compact ? 44 : 56} tone={isClinique ? 'accent' : 'gold'} />}
+          {user && <UserAvatar userId={user.id} nom={user.login} size={compact ? 44 : 56} tone={isClinique ? 'accent' : 'gold'} />}
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{
               margin: 0, fontSize: 'var(--font-size-overline)', fontWeight: 700,
               textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--texte-tertiaire)',
             }}>
-              {greeting}{roleMeta && ` · ${roleMeta.label}`}
+              {greeting}{displayName && `, ${displayName}`}
             </p>
             <h1 style={{
               margin: '4px 0 0', fontSize: 'var(--font-size-h1)', fontWeight: 700,

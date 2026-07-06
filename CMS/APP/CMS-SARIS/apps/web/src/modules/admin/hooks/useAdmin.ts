@@ -437,6 +437,7 @@ export const ME_KEYS = {
   preferences: ['me', 'preferences'] as const,
   sessions:    ['me', 'sessions'] as const,
   totp:        ['me', 'totp'] as const,
+  annuaire:    ['me', 'annuaire'] as const,
 }
 
 export function useMyPreferences() {
@@ -468,29 +469,45 @@ export function useAcceptCgu() {
   })
 }
 
-/** Upload de la photo de profil — met aussi à jour la session (affichage immédiat, sans reload). */
+/** Upload de la photo de profil — met aussi à jour la session (affichage immédiat, sans reload)
+ *  ET l'annuaire (pour que TOUS les avatars de cet utilisateur, partout dans l'app, se rafraîchissent). */
 export function useUploadMyPhoto() {
+  const qc = useQueryClient()
   return useMutation({
     mutationFn: (file: File) => adminApi.me.uploadPhoto(file),
     onSuccess: ({ photoUrl }) => {
       const { user, setUser } = useSessionStore.getState()
       if (user) setUser({ ...user, photoUrl })
+      qc.invalidateQueries({ queryKey: ME_KEYS.annuaire })
       toast.success(i18n.t('admin.toastPhotoSaved'))
     },
     onError: toastErr,
   })
 }
 
-/** Retire la photo de profil (repli sur les initiales). */
+/** Retire la photo de profil (repli sur les initiales, partout — cf. useUploadMyPhoto). */
 export function useRemoveMyPhoto() {
+  const qc = useQueryClient()
   return useMutation({
     mutationFn: () => adminApi.me.removePhoto(),
     onSuccess: () => {
       const { user, setUser } = useSessionStore.getState()
       if (user) setUser({ ...user, photoUrl: null })
+      qc.invalidateQueries({ queryKey: ME_KEYS.annuaire })
       toast.success(i18n.t('admin.toastPhotoRemoved'))
     },
     onError: toastErr,
+  })
+}
+
+/** Annuaire (identité + photo) de tous les comptes actifs du site — utilisé par UserAvatar
+ *  pour afficher la VRAIE photo partout où un avatar représente un utilisateur. Long cache
+ *  (les photos changent rarement) ; invalidé explicitement quand JE change la mienne. */
+export function useAnnuaire() {
+  return useQuery({
+    queryKey: ME_KEYS.annuaire,
+    queryFn:  () => adminApi.me.annuaire(),
+    staleTime: 5 * 60_000,
   })
 }
 

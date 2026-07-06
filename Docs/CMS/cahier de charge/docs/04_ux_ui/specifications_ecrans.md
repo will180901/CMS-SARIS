@@ -1,6 +1,6 @@
 # Spécifications des écrans / parcours — CMS SARIS (as-built)
 
-**Version** 1.0 · **Date** 2026-06-26 · **Statut** Brouillon · **Historique** : v1.0 création
+**Version** 1.1 · **Date** 2026-07-06 · **Statut** Brouillon · **Historique** : v1.0 création · v1.1 (2026-07-06) : nav sidebar (Administration système/Système déplacés dans Paramètres), avatar cliquable + perpétuité (EU-00-02), écran Synchronisation (sous-onglets/filtres/pagination/détail poste/masquage, retrait bouton sauvegarde manuelle — EU-06)
 
 > Document « as-built » : il décrit les écrans **réellement présents** dans le frontend React
 > sous `apps/web/src/modules` et `apps/web/src/components/layout`. Chaque parcours est décrit
@@ -47,15 +47,22 @@ ouvert ; sur **mobile**, la sidebar est un **drawer** plein (264 px) coulissant 
 chaque navigation. Source : `Sidebar.tsx` (`open`, `mobileNavOpen`, `useUiStore`).
 
 - **Structure** : en-tête (logo `/icon-192.png` + nom du site abrégé) → navigation **par groupes**
-  (Clinique / Administration médicale / Administration système / Système) → footer carte utilisateur.
+  (Clinique / Administration médicale) → footer carte utilisateur. *(Précision 2026-07-06 : les groupes
+  « Administration système » et « Système » ont été **retirés de la sidebar** — leurs écrans (Comptes &
+  accès, Audit, Synchronisation…) sont désormais accessibles via des raccourcis dans **Paramètres**,
+  cf. [[MODULE_03_parametres]] ; `Sidebar.tsx` (`GROUP_TKEY`) ne définit plus que `clinique` et
+  `administration_medicale`.)*
 - **Items** : filtrés par permission via `useNavigation()` ; item actif = fond `--ap-50`, texte
   `--ap-700`, barre d'accent gauche. Replié : `title` au survol (tooltip natif) et **pastille**
   rouge sur l'icône Messagerie s'il y a des non-lus. Déployé : **badge** numérique de non-lus
   (`99+` au-delà). Source : `Sidebar.tsx` (`messagerieUnread`, `useMessagerieUnread`).
-- **Footer** : carte utilisateur (avatar, login, rôle principal coloré, icône stéthoscope si
-  `personnelMedicalId`) ouvrant un `Popover` (profil étendu : rôles, nombre de permissions ;
-  actions « Paramètres », « Se déconnecter »). `UpdateBubble` (bulle de mise à jour desktop)
-  au-dessus.
+- **Footer** : carte utilisateur — avatar (photo réelle si définie, cf. [[MODULE_01_securite_authentification]]
+  EF-01-40 ; **non cliquable** ici car imbriqué dans le déclencheur du menu), login, rôle principal
+  coloré, icône stéthoscope si `personnelMedicalId` — ouvrant un `Popover` (**carte profil étendue** :
+  avatar **cliquable** cette fois — ouvre la photo en grand —, login, site, rôles, nombre de
+  permissions ; actions « Paramètres », « Se déconnecter »). `UpdateBubble` (bulle de mise à jour
+  desktop) au-dessus. *(Précision 2026-07-06 : deux avatars distincts dans ce composant, un seul est
+  cliquable — l'autre ouvrirait sinon le menu ET la photo au même clic, ambigu.)*
 - **Indicateurs vivants montés ici** : `useServerHealth()` (ping → En ligne/Hors ligne),
   `useSyncEngine()` (rejeu hors-ligne + compteur d'attente).
 
@@ -354,13 +361,19 @@ Module backend : [[plan_modules]] (`SyncModule`, `AdminModule`). Écran :
 
 ### EU-06-01 — Layout
 
-`PageHeader` (icône `RefreshCw`, action « Lancer une sauvegarde » si `synchronisation.execute`) +
-`SegmentedTabs` regroupant **quatre zones** :
+`PageHeader` (icône `RefreshCw`) + `SegmentedTabs` regroupant **quatre zones** : *(précision 2026-07-06 :
+le bouton « Lancer une sauvegarde » a été **retiré** de cet en-tête — voir zone Sauvegardes ci-dessous
+et [[MODULE_16_synchronisation]] §1.3.)*
 
-1. **Supervision** (`SupervisionZone` + `DataSyncZone`) : postes synchronisés (en ligne/hors ligne,
-   dernière synchro), activité récente (journaux), conflits ; badge **« LIVE »** (temps réel). +
-   synchronisation des données mode local (état serveur joignable, dernier pull/push, bouton
-   « Forcer la synchronisation »).
+1. **Supervision** (`SupervisionZone` + `DataSyncZone`) : **sous-onglets** Postes / Activité / Conflits
+   (badges de comptage). Onglet **Postes** : recherche texte + filtre pastille Tous/En ligne/Hors ligne,
+   liste paginée, clic sur un poste → **modale de détail** montrant l'**identité de l'utilisateur**
+   (nom + rôle) plutôt qu'un identifiant technique, avec statut, dernière synchro et durée de session ;
+   bouton au survol pour **retirer** (masquer) dynamiquement un poste, qui réapparaît à sa prochaine
+   synchro. Onglets **Activité** / **Conflits** : tableaux paginés (sans filtre), badge **« LIVE »**
+   (temps réel, SSE `SYNC_ACTIVITY`). + synchronisation des données mode local (état serveur joignable,
+   dernier pull/push, bouton « Forcer la synchronisation »). Détail fonctionnel :
+   [[MODULE_16_synchronisation]] EF-16-28 à EF-16-32, CU-16-07.
 2. **Terrain** (`SyncTerrainZone`) : bandeau d'état (En ligne/Hors ligne, en attente, dernière
    synchro, **Service Worker** actif/inactif) + **file de rejeu IndexedDB** (mutations PENDING/SENT/
    APPLIED/REJECTED/CONFLICT) avec actions « Réessayer les rejetées » / « Purger les rejetées ».

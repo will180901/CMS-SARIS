@@ -1,6 +1,6 @@
 # Rapport d'audit — Fidélité au code & conformité méthodologique
 
-**Version** 1.0 · **Date** 2026-06-29 · **Statut** Validé · **Historique** : v1.0 création
+**Version** 1.1 · **Date** 2026-07-06 · **Statut** Validé (audit initial) + addendum · **Historique** : v1.0 création (2026-06-29) · v1.1 (2026-07-06) : addendum §7 — delta d'alignement post-audit
 **Portée** : cahier des charges `Docs/CMS/cahier de charge/docs` (42 documents) · **Référence de vérité** : le code du monorepo `CMS/APP/CMS-SARIS/` + les deux prompts méthodologiques (`generic_prompt_v2`, `methodologie_creation_systeme`).
 
 > Ce rapport répond à une exigence précise du porteur : **prouver** (et non affirmer) que le
@@ -83,3 +83,37 @@ Ces deux points relèvent d'un **choix de contexte** (soutenance de stage), trai
 > **Verdict global** : le cahier des charges est un **miroir fidèle et méthodologiquement conforme**
 > de l'application construite, avec deux manques **assumés et documentés** (recherche web, statut de
 > validation) qui relèvent d'une décision du porteur, pas d'un défaut de fidélité.
+
+---
+
+## 7. Addendum — Delta d'alignement du 2026-07-06
+
+> Cet addendum ne reprend **pas** l'audit adverse complet (§1-6, toujours valable pour le périmètre qu'il
+> couvrait au 2026-06-29) : il documente le **delta** apparu entre cette date et le 2026-07-06, soit **20
+> commits** applicatifs + les travaux de la session en cours, tous **plus ciblés** que l'audit initial.
+> Méthode : relecture du code réel des zones touchées (commits + travail en cours), correction directe des
+> documents concernés, pas de vérificateur indépendant séparé pour ce delta (proportionné à sa taille).
+
+### 7.1 Écarts trouvés et corrigés
+
+| # | Document(s) | Écart constaté | Correction appliquée |
+|---|-------------|-----------------|------------------------|
+| **E-05** | [[MODULE_01_securite_authentification]] | La **photo de profil self-service** (upload, suppression, annuaire léger `/me/annuaire`) n'était **pas documentée** — fonctionnalité ajoutée au code après le 2026-06-26 (migration `add_photo_url_utilisateur`, 2026-07-05) puis enrichie en session (recadrage client façon WhatsApp, avatar perpétuel affiché partout). | +5 EF (EF-01-36→40), +1 CU (CU-01-08), +1 RM (RM-01-16), §1.2/§5/§9 mis à jour. |
+| **E-06** | [[MODULE_16_synchronisation]], [[specifications_ecrans]] | L'écran de supervision synchronisation documentait une version **antérieure** à sa refonte (pas de sous-onglets/filtres/pagination/détail de poste) ; le bouton « Lancer une sauvegarde » était documenté comme présent dans l'en-tête alors qu'il a été **retiré du frontend** (l'endpoint backend et le cron automatique restent actifs, sans consommateur UI). | +5 EF (EF-16-28→32), +1 CU (CU-16-07), +1 RM (RM-16-17) ; §1.3/§9 de MODULE_16 clarifiés (périmètre sauvegardes résolu) ; EU-06-01 de specifications_ecrans corrigé. |
+| **E-07** | [[specifications_ecrans]] | La sidebar documentait **quatre** groupes de navigation (« Administration système », « Système » inclus) alors que ces deux groupes ont été **retirés** (leurs écrans sont désormais accessibles via Paramètres) — code actuel : deux groupes (`clinique`, `administration_medicale`). | EU-00-02 corrigé ; avatar de la carte utilisateur (footer sidebar) précisé — un seul des deux avatars visibles y est cliquable (l'autre imbriqué dans le déclencheur du menu). |
+| **E-08** | [[MODULE_15_dashboard]] | La salutation du tableau de bord affiche désormais le **nom** de l'utilisateur (résolu via l'annuaire) plutôt que son **rôle** — non documenté. | +1 EF (EF-15-20). |
+| **E-09** | [[charte_graphique]] | Aucune trace du nouveau pattern **avatar perpétuel + recadrage avant envoi** (composants `UserAvatar`/`PhotoCropModal`), pourtant un pattern transverse au même titre que le rideau de confidentialité ou les documents A4. | +UI-07-06. |
+| **E-10** | [[tracabilite]] | Version desktop citée (**1.4.1**) obsolète (build **1.5.0** au 2026-07-06) ; comptages EF/CU (363/111) à re-décompter après E-05/E-06/E-08. | Version corrigée ; comptages re-décomptés mécaniquement → **374 EF / 113 CU** ; tableaux §1 et §4 mis à jour. |
+
+### 7.2 Points vérifiés qui N'ONT PAS bougé (pour éviter une correction inutile)
+
+- **Chiffres canoniques** (87 tables, 110 permissions, **3 rôles**, 62 paramètres) : re-vérifiés dans le code au 2026-07-06, **identiques** à l'audit du 2026-06-29. En particulier, la mémoire projet de session avait provisoirement ré-affirmé « 4 rôles » (confusion avec l'état intermédiaire de la réduction 7→4→3 décrite dans `project_reduction_3_roles`) — **infirmé** par re-lecture directe de `permissions.ts`/`seed.ts` : le système reste à **3 rôles**, aucun résidu introduit dans la doc.
+- **Module 02 (Accès & habilitations)** et **EU-05** (specifications_ecrans) : déjà à jour (4 onglets Utilisateurs/Rôles/Personnel soignant/Délégations vérifiés identiques au code actuel) — aucune correction nécessaire.
+- **Catalogue `PARAMETRES_CATALOGUE`** (MODULE_03) : toujours 3 groupes / 12 paramètres côté backend ; seul le **regroupement d'affichage** frontend a changé (précision apportée à EF-03-13, pas de nouvel EF).
+
+### 7.3 État final (vérifié) après addendum
+
+- **374 EF · 113 CU** sur 16 modules (detail : [[tracabilite]] §1).
+- **0 nouveau lien `[[...]]` cassé** (vérifié sur les 7 fichiers modifiés).
+- **0 régression** sur les chiffres canoniques déjà validés (87 tables / 110 permissions / 3 rôles / 16 modules / 62 paramètres).
+- Desktop : version applicative buildée et référencée **1.5.0** (installeur régénéré le 2026-07-06).
