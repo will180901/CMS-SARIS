@@ -16,6 +16,7 @@ import { useApiEndpointSwitch, useConnectivityStore } from '@/stores/connectivit
 import { isDesktop } from '@/lib/desktop'
 import { NotificationDrawer } from './NotificationDrawer'
 import { BreadcrumbBar } from './BreadcrumbBar'
+import { SiteActifSwitch } from './SiteActifSwitch'
 
 export function TopHeader() {
   const { t } = useTranslation()
@@ -114,6 +115,9 @@ export function TopHeader() {
             </span>
           </Tooltip>
         )}
+
+        {/* Site actif — le personnel médical tourne entre les deux sites */}
+        <SiteActifSwitch />
 
         {/* Interrupteur du rideau de confidentialité (zones de détail) */}
         <Tooltip label={curtain ? t('privacy.disable') : t('privacy.enable')}>

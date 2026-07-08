@@ -11,6 +11,7 @@ import {
 import { PrismaService } from '../../prisma/prisma.service'
 import { NotificationService } from '../notification/notification.service'
 import { computeImc } from '../../common/clinical'
+import { consultationCascadeDeleteOps } from '../consultation/consultation-cascade.util'
 import {
   CreateVisiteDto, UpdateStatutVisiteDto,
   UpdateSoignantVisiteDto, UpdateNotesVisiteDto,
@@ -90,6 +91,14 @@ const VISITE_DETAIL_INCLUDE = {
   motifPrincipal: { select: { id: true, code: true, libelle: true } },
   constantes:     { orderBy: { createdAt: 'desc' as const } },
   evenements:     { orderBy: { createdAt: 'desc' as const } },
+  // Consultation(s) rattachée(s) : juste de quoi afficher un lien + l'impact d'une
+  // suppression en cascade (écran de confirmation), pas le détail clinique complet.
+  consultations: {
+    select: {
+      id: true, statut: true,
+      _count: { select: { diagnostics: true, ordonnances: true, bonsExamen: true, bonsPharmacie: true, certificats: true } },
+    },
+  },
 } as const
 
 const PERSONNEL_SELECT = {
@@ -185,10 +194,19 @@ export class TriageService {
   }
 
   // ── Visites d'un patient (dossier) ────────────────────────────────────────
-  /** Liste BRÈVE des visites d'un patient — pour la chronologie du dossier. */
-  async findByPatient(patientId: string, siteId: string) {
+  /**
+   * Liste BRÈVE des visites d'un patient — pour la chronologie du dossier.
+   * Dossier CENTRALISÉ (comme findPatientDocuments/ConsultationService.findAll côté
+   * patientId) : tous sites confondus, pas de filtre `siteId` — sinon une visite faite
+   * sur l'autre site du patient n'apparaîtrait jamais dans sa chronologie.
+   */
+  async findByPatient(patientId: string, canViewLocked: boolean) {
+    if (!canViewLocked) {
+      const p = await this.prisma.patient.findUnique({ where: { id: patientId }, select: { verrouille: true } })
+      if (p?.verrouille) return []
+    }
     return this.prisma.visite.findMany({
-      where:   { patientId, siteId },
+      where:   { patientId },
       orderBy: { dateOuverture: 'desc' },
       select: {
         id:            true,
@@ -344,46 +362,33 @@ export class TriageService {
    */
   async deleteVisite(id: string, siteId: string) {
     const visite = await this.getVisiteOrThrow(id, siteId)
+    // Suppression réservée aux visites CLÔTURÉES ou ANNULÉES — jamais une visite encore
+    // active (EN_ATTENTE/EN_COURS) : il faut d'abord l'annuler.
+    if (visite.statut === 'EN_ATTENTE' || visite.statut === 'EN_COURS') {
+      throw new ConflictException('Annulez la visite avant de la supprimer')
+    }
     const consults = await this.prisma.consultation.findMany({ where: { visiteId: id }, select: { id: true, statut: true } })
 
-    if (consults.length) {
-      // Une visite NON annulée garde le garde-fou strict (on ne supprime pas une consultation
-      // ouverte/clôturée par ce biais — données médicales réelles).
-      if (visite.statut !== 'ANNULEE') {
-        throw new ConflictException("Cette visite a une consultation rattachée — supprimez d'abord la consultation")
-      }
-      // Visite ANNULÉE : suppression en cascade autorisée, mais SEULEMENT si chaque consultation
-      // est elle-même ANNULÉE et SANS aucun document (ordonnance/bon/évacuation) — traçabilité préservée.
-      for (const c of consults) {
-        if (c.statut !== 'ANNULEE') {
-          throw new ConflictException("Une consultation rattachée n'est pas annulée — impossible de supprimer la visite")
-        }
-        const [ord, bex, bph, evac, suivi, prenat, accident] = await Promise.all([
-          this.prisma.ordonnance.count({ where: { consultationId: c.id } }),
-          this.prisma.bonExamen.count({ where: { consultationId: c.id } }),
-          this.prisma.bonPharmacie.count({ where: { consultationId: c.id } }),
-          this.prisma.evacuation.count({ where: { consultationId: c.id } }),
-          this.prisma.suiviChronique.count({ where: { consultationId: c.id } }),
-          this.prisma.consultationPrenatale.count({ where: { consultationId: c.id } }),
-          this.prisma.accidentTravail.count({ where: { consultationId: c.id } }),
-        ])
-        if (ord + bex + bph + evac + suivi + prenat + accident > 0) {
-          throw new ConflictException('Une consultation rattachée porte des documents — supprimez-les d\'abord')
-        }
+    // Chaque consultation rattachée doit elle-même être CLÔTURÉE ou ANNULÉE (jamais
+    // OUVERTE) — la purge de ses documents est ensuite complète, sans blocage sur le
+    // nombre de documents (cf. consultationCascadeDeleteOps, décision confirmée : purge
+    // irréversible).
+    for (const c of consults) {
+      if (c.statut === 'OUVERTE') {
+        throw new ConflictException("Une consultation rattachée est encore ouverte — clôturez-la ou annulez-la avant de supprimer la visite")
       }
     }
 
     // Suppression réellement DÉFINITIVE : on passe par le client BRUT (this.prisma.raw)
-    // pour contourner l'extension soft-delete. Sinon visite + constantes deviennent des
-    // tombstones (update deletedAt) alors que visiteEvenement — hors allow-list — est, lui,
-    // vraiment hard-deleté → on obtenait une visite fantôme avec son journal d'audit effacé.
-    // L'action de suppression elle-même reste tracée par le journal d'audit global (@Audit).
+    // pour contourner l'extension soft-delete. Sinon visite + constantes + consultations/
+    // documents rattachés deviendraient des tombstones (update deletedAt) alors que
+    // visiteEvenement — hors allow-list — est, lui, vraiment hard-deleté → on obtenait une
+    // visite fantôme avec son journal d'audit effacé. L'action de suppression elle-même
+    // reste tracée par le journal d'audit global (@Audit).
     await this.prisma.raw.$transaction([
-      // Consultations annulées rattachées (+ leurs diagnostics) — cascade ordre FK.
-      ...consults.flatMap(c => [
-        this.prisma.raw.diagnosticConsultation.deleteMany({ where: { consultationId: c.id } }),
-        this.prisma.raw.consultation.delete({ where: { id: c.id } }),
-      ]),
+      // Consultations rattachées + tous leurs documents (cascade ordre FK).
+      ...consults.flatMap(c => consultationCascadeDeleteOps(this.prisma.raw, c.id)),
+      ...consults.map(c => this.prisma.raw.consultation.delete({ where: { id: c.id } })),
       this.prisma.raw.constanteVitale.deleteMany({ where: { visiteId: id } }),
       this.prisma.raw.visiteEvenement.deleteMany({ where: { visiteId: id } }),
       this.prisma.raw.visite.delete({ where: { id } }),

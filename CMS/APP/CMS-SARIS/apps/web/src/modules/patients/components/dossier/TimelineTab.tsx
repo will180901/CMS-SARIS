@@ -14,7 +14,7 @@ import {
 } from 'lucide-react'
 import { EmptyState } from '@/components/saris'
 import { formatDate, formatTime } from '@/lib/intl'
-import { labelDecision } from '@/config/labels'
+import { labelDecision, labelStatut } from '@/config/labels'
 import { usePatientConsultations, usePatientDocuments } from '@/modules/consultation/hooks/useConsultation'
 import { usePatientVisites } from '@/modules/triage/hooks/useTriage'
 import type { PatientDocument } from '@/modules/consultation/api/consultation.api'
@@ -28,6 +28,14 @@ const DOC_META: Record<PatientDocument['type'], { labelKey: string; icon: typeof
   BON_EXAMEN:       { labelKey: 'patients.docBonExamen',       icon: FlaskConical, tint: 'var(--info-accent)',   bg: 'var(--info-fond)' },
   BON_PHARMACIE:    { labelKey: 'patients.docBonPharmacie',    icon: Receipt,      tint: 'var(--succes-accent)', bg: 'var(--succes-fond)' },
   EVACUATION:       { labelKey: 'patients.docEvacuation',      icon: Ambulance,    tint: 'var(--erreur-accent)', bg: 'var(--erreur-fond)' },
+}
+
+// Famille `labelStatut()` par type de document (aligné sur `labels.statut.*`).
+const DOC_STATUT_FAMILLE: Record<PatientDocument['type'], string> = {
+  ORDONNANCE:    'ordonnance',
+  BON_EXAMEN:    'bon_examen',
+  BON_PHARMACIE: 'bon_pharmacie',
+  EVACUATION:    'evacuation',
 }
 
 const STATUT_CONSULT: Record<string, { labelKey: string; tint: string; bg: string }> = {
@@ -120,7 +128,7 @@ export function TimelineTab({ dossier }: { dossier: PatientDossier }) {
       list.push({
         key: `d-${d.type}-${d.id}`, date: d.date, kind: 'DOCUMENT',
         icon: <Icon size={14} />, tint: m.tint, bg: m.bg,
-        title: t(m.labelKey), subtitle: d.details || d.motif, badge: d.statut,
+        title: t(m.labelKey), subtitle: d.details || d.motif, badge: labelStatut(DOC_STATUT_FAMILLE[d.type], d.statut),
         consultationId: d.consultationId,
       })
     }

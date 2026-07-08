@@ -77,14 +77,18 @@ function AllergieCard({ allergie, canWrite, patientId }: { allergie: AllergiePat
   const update = useUpdateAllergie(patientId)
   const remove = useDeleteAllergie(patientId)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const inactive = allergie.statut !== 'ACTIVE'
   return (
-    <div style={{ background: 'var(--fond-surface)', border: '1px solid var(--bordure-legere)', borderRadius: 8, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+    <div style={{ background: 'var(--fond-surface)', border: '1px solid var(--bordure-legere)', borderRadius: 8, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: '12px', opacity: inactive ? 0.6 : 1 }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           <span style={{ fontWeight: '600', fontSize: '13px', color: 'var(--texte-primaire)' }}>{allergie.substance}</span>
           <GraviteBadge gravite={allergie.gravite} type="allergie" />
           {allergie.confirme && (
             <span style={{ fontSize: '10px', color: 'var(--texte-tertiaire)', background: 'var(--fond-surface-2)', padding: '1px 6px', borderRadius: 99 }}>{t('patients.confirmedBadge')}</span>
+          )}
+          {inactive && (
+            <span style={{ fontSize: '10px', color: 'var(--texte-tertiaire)', border: '1px solid var(--bordure-normale)', padding: '1px 6px', borderRadius: 99 }}>{t('patients.deactivatedBadge')}</span>
           )}
         </div>
       </div>
@@ -133,8 +137,9 @@ function AlerteCard({ alerte, canWrite, patientId }: { alerte: AlerteMedicale; c
     ALLERGIE: t('patients.alertTypeAllergie'), PATHOLOGIE_CHRONIQUE: t('patients.alertTypePathologie'),
     CONTRE_INDICATION: t('patients.alertTypeContreIndication'), SURVEILLANCE: t('patients.alertTypeSurveillance'), AUTRE: t('patients.alertTypeAutre'),
   }
+  const inactive = alerte.statut !== 'ACTIVE'
   return (
-    <div style={{ background: 'var(--fond-surface)', border: '1px solid var(--bordure-legere)', borderRadius: 8, padding: '12px 14px' }}>
+    <div style={{ background: 'var(--fond-surface)', border: '1px solid var(--bordure-legere)', borderRadius: 8, padding: '12px 14px', opacity: inactive ? 0.6 : 1 }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
@@ -142,6 +147,9 @@ function AlerteCard({ alerte, canWrite, patientId }: { alerte: AlerteMedicale; c
             <span style={{ fontSize: '11px', color: 'var(--texte-tertiaire)', background: 'var(--fond-surface-2)', padding: '1px 6px', borderRadius: 99 }}>
               {TYPE_LABELS[alerte.type] ?? humanizeCode(alerte.type)}
             </span>
+            {inactive && (
+              <span style={{ fontSize: '10px', color: 'var(--texte-tertiaire)', border: '1px solid var(--bordure-normale)', padding: '1px 6px', borderRadius: 99 }}>{t('patients.deactivatedBadge')}</span>
+            )}
           </div>
           <p style={{ fontSize: '13px', color: 'var(--texte-primaire)', margin: 0, lineHeight: '1.5' }}>{alerte.message}</p>
           <p style={{ fontSize: '11px', color: 'var(--texte-tertiaire)', margin: '4px 0 0' }}>
@@ -219,6 +227,11 @@ export function AlertesTab({ dossier, canWrite }: { dossier: PatientDossier; can
   const { t } = useTranslation()
   const [allergieDrawer, setAllergieDrawer] = useState(false)
   const [alerteDrawer,   setAlerteDrawer]   = useState(false)
+  // Désactivée ≠ perdue : sans ceci, « Réactiver » (menu de chaque carte) n'était jamais
+  // atteignable — la liste ne rendait que les ACTIVE, donc une allergie/alerte désactivée
+  // disparaissait purement et simplement de l'écran.
+  const [showInactiveAllergies, setShowInactiveAllergies] = useState(false)
+  const [showInactiveAlertes,   setShowInactiveAlertes]   = useState(false)
 
   const createAllergie = useCreateAllergie(dossier.id)
   const createAlerte   = useCreateAlerte(dossier.id)
@@ -252,10 +265,21 @@ export function AlertesTab({ dossier, canWrite }: { dossier: PatientDossier; can
         canWrite={canWrite}
         emptyMsg={t('patients.emptyAllergies')}
       >
-        {severeFirst.filter(a => a.statut === 'ACTIVE').map(a => (
+        {severeFirst.filter(a => showInactiveAllergies || a.statut === 'ACTIVE').map(a => (
           <AllergieCard key={a.id} allergie={a} canWrite={canWrite} patientId={dossier.id} />
         ))}
       </Section>
+      {dossier.allergies.some(a => a.statut !== 'ACTIVE') && (
+        <button
+          type="button"
+          onClick={() => setShowInactiveAllergies(v => !v)}
+          style={{ alignSelf: 'flex-start', marginTop: -16, fontSize: '12px', color: 'var(--texte-tertiaire)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+        >
+          {showInactiveAllergies
+            ? t('patients.hideInactive')
+            : t('patients.showInactive', { count: dossier.allergies.filter(a => a.statut !== 'ACTIVE').length })}
+        </button>
+      )}
 
       <div style={{ height: 1, background: 'var(--bordure-legere)' }} />
 
@@ -266,10 +290,21 @@ export function AlertesTab({ dossier, canWrite }: { dossier: PatientDossier; can
         canWrite={canWrite}
         emptyMsg={t('patients.emptyMedicalAlerts')}
       >
-        {critiqueFirst.filter(a => a.statut === 'ACTIVE').map(a => (
+        {critiqueFirst.filter(a => showInactiveAlertes || a.statut === 'ACTIVE').map(a => (
           <AlerteCard key={a.id} alerte={a} canWrite={canWrite} patientId={dossier.id} />
         ))}
       </Section>
+      {dossier.alertesMedicales.some(a => a.statut !== 'ACTIVE') && (
+        <button
+          type="button"
+          onClick={() => setShowInactiveAlertes(v => !v)}
+          style={{ alignSelf: 'flex-start', marginTop: -16, fontSize: '12px', color: 'var(--texte-tertiaire)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+        >
+          {showInactiveAlertes
+            ? t('patients.hideInactive')
+            : t('patients.showInactive', { count: dossier.alertesMedicales.filter(a => a.statut !== 'ACTIVE').length })}
+        </button>
+      )}
 
       {/* Drawer allergie */}
       <DrawerShell

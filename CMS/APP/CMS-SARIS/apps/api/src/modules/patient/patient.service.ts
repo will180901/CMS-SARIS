@@ -300,14 +300,45 @@ export class PatientService {
     })
     if (!dossier) throw new NotFoundException(`Patient ${id} introuvable`)
     await this.assertOwnPatient(id, scope)
+
+    // Le CDI rattaché à un ayant droit se résout par DEUX voies distinctes selon le
+    // flux d'origine : `cdiId` (legacy, sans relation Prisma — lien direct vers un
+    // Patient, posé par le drawer « Ajouter » via rapprochement matricule) ou
+    // `employeId` (registre EmployeSaris, posé lors de la création à la volée d'un
+    // ayant droit — recueil §5, cf. `create()`). On enrichit ici manuellement les
+    // deux cas pour que la carte « Ayant droit CDI » affiche toujours QUI est le
+    // CDI rattaché (nom/matricule), pas seulement un statut.
+    const cdiIds = [...new Set(dossier.rattachementsAD.map(r => r.cdiId).filter((v): v is string => !!v))]
+    const employeIds = [...new Set(dossier.rattachementsAD.map(r => r.employeId).filter((v): v is string => !!v))]
+    const [cdiPatients, employes] = await Promise.all([
+      this.prisma.patient.findMany({
+        where:  { id: { in: cdiIds } },
+        select: { id: true, numeroPatient: true, identite: { select: { nom: true, prenom: true } } },
+      }),
+      this.prisma.employeSaris.findMany({
+        where:  { id: { in: employeIds } },
+        select: { id: true, matricule: true, nom: true, prenom: true },
+      }),
+    ])
+    const cdiPatientMap = new Map(cdiPatients.map(c => [c.id, c]))
+    const employeMap = new Map(employes.map(e => [e.id, e]))
+    const rattachementsAD = dossier.rattachementsAD.map(r => {
+      let cdi: { nom: string; prenom: string; identifiant: string } | null = null
+      const parPatient = r.cdiId ? cdiPatientMap.get(r.cdiId) : null
+      const parEmploye = !parPatient && r.employeId ? employeMap.get(r.employeId) : null
+      if (parPatient) cdi = { nom: parPatient.identite?.nom ?? '', prenom: parPatient.identite?.prenom ?? '', identifiant: parPatient.numeroPatient }
+      else if (parEmploye) cdi = { nom: parEmploye.nom, prenom: parEmploye.prenom, identifiant: parEmploye.matricule }
+      return { ...r, cdi }
+    })
+
     // Verrou de confidentialité (médecin-chef) : pour un utilisateur NON-supervision,
     // le dossier est renvoyé DÉPOUILLÉ de son contenu clinique (identité + indicateur
     // verrouille conservés → le front force le rideau ON, non-survolable). Le vrai
     // contenu ne quitte jamais le serveur.
     if (dossier.verrouille && !scope?.canViewLocked) {
-      return { ...dossier, allergies: [], antecedents: [], alertesMedicales: [], modeVie: null, donneesEmploi: null }
+      return { ...dossier, rattachementsAD, allergies: [], antecedents: [], alertesMedicales: [], modeVie: null, donneesEmploi: null }
     }
-    return dossier
+    return { ...dossier, rattachementsAD }
   }
 
   /** Verrou (médecin-chef) : restreint l'accès au dossier à la supervision. */
@@ -338,10 +369,22 @@ export class PatientService {
   async findConstantes(patientId: string, scope?: { restrictToOwn: boolean; personnelMedicalId: string | null; canViewLocked?: boolean }) {
     await this.assertOwnPatient(patientId, scope)
     if (await this.isCliniqueMasque(patientId, scope?.canViewLocked)) return []
-    return this.prisma.constanteVitale.findMany({
+    const constantes = await this.prisma.constanteVitale.findMany({
       where:   { patientId },   // suit le patient (tous sites)
       orderBy: { createdAt: 'desc' },
     })
+
+    // `saisiePar` = id Utilisateur, sans relation Prisma directe sur ConstanteVitale
+    // → résolu manuellement en nom lisible (soignant + login de secours).
+    const userIds = [...new Set(constantes.map(c => c.saisiePar))]
+    const users = userIds.length
+      ? await this.prisma.utilisateur.findMany({
+          where:  { id: { in: userIds } },
+          select: { id: true, login: true, personnelMedical: { select: { nom: true, prenom: true } } },
+        })
+      : []
+    const userMap = new Map(users.map(u => [u.id, u.personnelMedical ? `${u.personnelMedical.prenom} ${u.personnelMedical.nom}` : u.login]))
+    return constantes.map(c => ({ ...c, saisieParNom: userMap.get(c.saisiePar) ?? null }))
   }
 
   /**
@@ -782,6 +825,10 @@ export class PatientService {
 
   async createRattachementAD(patientId: string, dto: CreateRattachementADDto) {
     await this.assertPatientExists(patientId)
+    // `cdiId` n'a pas de contrainte de clé étrangère en base (legacy, conservé pour compat) —
+    // on vérifie donc explicitement ici qu'il pointe vers un vrai patient existant.
+    const cdi = await this.prisma.patient.findUnique({ where: { id: dto.cdiId }, select: { id: true } })
+    if (!cdi) throw new NotFoundException('Le CDI rattaché est introuvable')
     const { dateDebut, dateFin, ...rest } = dto
     const ratt = await this.prisma.rattachementAyantDroitCdi.create({
       data: {

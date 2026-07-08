@@ -1,13 +1,12 @@
 import { useState, useMemo, useEffect, useRef }  from 'react'
 import { useNavigate }        from 'react-router-dom'
 import { useTranslation }     from 'react-i18next'
-import { Search, X, Plus, Users, AlertTriangle, ChevronRight, ChevronLeft, Camera } from 'lucide-react'
+import { Search, X, Users, AlertTriangle, ChevronRight, ChevronLeft, Camera } from 'lucide-react'
 import { Input }              from '@workspace/ui/components/input'
 import { Button }             from '@workspace/ui/components/button'
 import { SelectBox, PaginationBar, EmptyState } from '@/components/saris'
 import { usePagination }      from '@/hooks/usePagination'
 import { useRowsPerPage }     from '@/hooks/useRowsPerPage'
-import { usePermissions }     from '@/hooks/usePermissions'
 import { useIsCompact }       from '@/hooks/useMediaQuery'
 import { usePersistedState }  from '@/hooks/usePersistedState'
 import { usePatients, useUploadPatientPhoto } from '../hooks/usePatients'
@@ -15,7 +14,6 @@ import { useCategoriesPatient } from '@/modules/referentiels/hooks/useReferentie
 import { CategorieBadge, PatientAvatar }  from '../components/CategorieBadge'
 import { StatutBadge }        from '@/modules/referentiels/components/badges/StatutBadge'
 import type { PatientListItem } from '@cms-saris/types'
-import { CreerPatientDrawer } from '../components/CreerPatientDrawer'
 import { formatDate } from '@/lib/intl'
 import { calcAge } from '@/lib/age'
 import { PrivacyCurtain } from '@/components/PrivacyCurtain'
@@ -283,18 +281,12 @@ function PatientRow({
 export function PatientsPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { has }  = usePermissions()
-  // Création manuelle réservée au rôle administratif (Agent RH) pour les ayants
-  // droit / sous-traitants. Le flux clinique normal crée le dossier au TRIAGE.
-  // `sous_traitant.create` discrimine l'Agent RH (les soignants ne l'ont pas).
-  const canCreate = has('sous_traitant.create')
   const isCompact = useIsCompact()
 
   const [search,    setSearch]   = usePersistedState('patients', 'search', '')
   const [categorie, setCategorie] = usePersistedState('patients', 'categorie', 'all')
   const [statut,    setStatut]   = usePersistedState('patients', 'statut', 'ACTIF')
   const [selected,  setSelected] = usePersistedState<string | null>('patients', 'selected', null)
-  const [drawerOpen, setDrawer]  = useState(false)
 
   const { data: categories = [] } = useCategoriesPatient()
 
@@ -372,16 +364,6 @@ export function PatientsPage() {
               </p>
             </div>
           </div>
-          {canCreate && (
-            <Button
-              size="sm"
-              onClick={() => setDrawer(true)}
-              title={t('patients.newBeneficiaryTooltip')}
-              style={{ background: 'var(--ap-400)', color: '#fff', fontSize: '13px', height: '34px', gap: '6px' }}
-            >
-              <Plus size={14} /> {t('patients.newBeneficiary')}
-            </Button>
-          )}
         </div>
 
         {/* Filtres */}
@@ -462,11 +444,6 @@ export function PatientsPage() {
                   icon={<Users size={20} />}
                   title={search ? t('patients.emptyNoMatch') : categorie !== 'all' ? t('patients.emptyNoneInCategory') : t('patients.emptyNoneRegistered')}
                   description={search ? t('patients.emptySearchHint') : undefined}
-                  action={canCreate && !search ? (
-                    <Button size="sm" onClick={() => setDrawer(true)} style={{ background: 'var(--ap-500)', color: '#fff', fontSize: '12px' }}>
-                      {t('patients.registerPatient')}
-                    </Button>
-                  ) : undefined}
                 />
               </div>
             ) : (
@@ -547,13 +524,6 @@ export function PatientsPage() {
         </div>
         )}
       </div>
-
-      {/* Drawer création */}
-      <CreerPatientDrawer
-        open={drawerOpen}
-        onClose={() => setDrawer(false)}
-        onCreated={id => { setDrawer(false); navigate(`/patients/${id}`) }}
-      />
     </div>
   )
 }

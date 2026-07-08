@@ -8,6 +8,7 @@ import {
   Ip,
   Headers,
   UseGuards,
+  Req,
 } from '@nestjs/common'
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler'
 import { SecurityService }   from './security.service'
@@ -17,7 +18,10 @@ import { LoginDto }          from './dto/login.dto'
 import { TotpVerifyDto }     from './dto/totp-verify.dto'
 import { RefreshDto }        from './dto/refresh.dto'
 import { ChangePasswordDto } from './dto/change-password.dto'
+import { SiteActifDto }      from './dto/site-actif.dto'
 import type { UserSession }  from '@cms-saris/types'
+
+interface AuthedRequest { user?: { id?: string; sid?: string | null } }
 
 /**
  * SecurityController — endpoints d'authentification publics.
@@ -89,6 +93,26 @@ export class SecurityController {
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
   refresh(@Body() dto: RefreshDto) {
     return this.securityService.refresh(dto)
+  }
+
+  /**
+   * POST /auth/site-actif  🔒 JWT requis
+   *
+   * Corps : { siteId: string }
+   *
+   * Change le site actif de la session (le personnel médical tourne entre Moutela
+   * et Nkayi). Réponse identique au login : { accessToken, refreshToken, user }.
+   */
+  @Post('site-actif')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  changerSiteActif(
+    @Body() dto:                    SiteActifDto,
+    @Req()  req:                    AuthedRequest,
+    @Ip()   ip:                     string,
+    @Headers('user-agent') userAgent: string,
+  ) {
+    return this.securityService.changerSiteActif(req.user?.id ?? '', req.user?.sid ?? null, dto.siteId, ip, userAgent)
   }
 
   /**

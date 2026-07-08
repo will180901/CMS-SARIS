@@ -14,6 +14,7 @@ import { formatDateTime } from '@/lib/intl'
 import { VisiteSidebar }  from './VisiteSidebar'
 import { ConstantesForm } from './ConstantesForm'
 import { ActionsCard }    from './ActionsCard'
+import { VisiteArchiveSummary } from './VisiteArchiveSummary'
 import type { VisiteDetail as VisiteDetailType, VisiteEvenement } from '@cms-saris/types'
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
@@ -307,7 +308,11 @@ function AntecedentsTab({ visite }: { visite: VisiteDetailType }) {
   const patientId   = visite.patient?.id ?? ''
 
   const { has } = usePermissions()
-  const canEdit = has('patient.update') && !!patientId
+  // Verrouillé dès que la visite est clôturée/annulée — toute la zone de droite d'une
+  // visite terminée reste en lecture seule, y compris cet onglet (recueil : pas de saisie
+  // possible sur un dossier archivé, même si les antécédents sont des données du patient).
+  const isActive = visite.statut === 'EN_ATTENTE' || visite.statut === 'EN_COURS'
+  const canEdit = has('patient.update') && !!patientId && isActive
   const qc = useQueryClient()
 
   // Mutations (réutilisent les endpoints du dossier patient)
@@ -701,14 +706,18 @@ export function VisiteDetail({ visiteId, onSent }: { visiteId: string; onSent?: 
 
           <div style={{ flex: isCompact ? 'none' : 1, padding: '20px 24px', overflowY: isCompact ? 'visible' : 'auto', background: 'var(--fond-page)' }}>
             {activeTab === 'triage' && (
+              (visite.statut === 'EN_ATTENTE' || visite.statut === 'EN_COURS') ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <MotifCard      visite={visite} />
                 <NotesCard      visite={visite} />
-                {(visite.statut === 'EN_ATTENTE' || visite.statut === 'EN_COURS') && has('visite.update') && (
+                {has('visite.update') && (
                   <ConstantesForm visiteId={visiteId} lastValues={lastConst} />
                 )}
                 <ActionsCard    visite={visite} onSent={onSent} />
               </div>
+              ) : (
+                <VisiteArchiveSummary visite={visite} />
+              )
             )}
             {activeTab === 'antecedents' && <AntecedentsTab visite={visite} />}
             {activeTab === 'historique'  && <HistoriqueTab  visite={visite} />}

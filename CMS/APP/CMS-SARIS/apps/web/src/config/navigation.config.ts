@@ -11,6 +11,7 @@
 import {
   LayoutDashboard,
   HeartPulse,
+  Users,
   ClipboardList,
   AlertTriangle,
   BookOpen,
@@ -60,6 +61,14 @@ export const NAV_GROUPS: NavGroup[] = [
         href:        '/triage',
         permissions: ['visite.read'],
         description: 'File d\'attente et prise en charge initiale',
+      },
+      {
+        key:         'patients',
+        label:       'Patients',
+        icon:        Users,
+        href:        '/patients',
+        permissions: ['patient.read'],
+        description: 'Registre des dossiers patients',
       },
       {
         key:         'consultations',

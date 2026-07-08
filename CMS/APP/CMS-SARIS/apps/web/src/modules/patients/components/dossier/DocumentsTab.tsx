@@ -3,18 +3,20 @@
  * confondues : ordonnances, bons d'examen, fiches d'évacuation.
  *
  * Permet de retrouver tout l'historique documentaire ET de le GÉRER :
- *   - Ouvrir la consultation source (édition / impression dans le contexte clinique)
+ *   - Voir le document en lecture seule (même onglet — via `DocumentViewerModal`,
+ *     qui réutilise les cartes lecture-seule déjà employées dans la consultation ;
+ *     plus de navigation vers /consultations)
  *   - Supprimer un document (confirmation + garde-fous serveur 409-safe)
  * La création / édition se fait dans la consultation (là où vit le cycle clinique).
  */
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from '@workspace/ui/components/sonner'
 import { FileText, Pill, FlaskConical, Ambulance, ChevronRight, Loader2, Trash2, Receipt } from 'lucide-react'
 import { EmptyState, Modal, Button } from '@/components/saris'
-import { usePatientDocuments } from '@/modules/consultation/hooks/useConsultation'
+import { usePatientDocuments, useConsultation } from '@/modules/consultation/hooks/useConsultation'
 import { consultationApi } from '@/modules/consultation/api/consultation.api'
 import { bonExamenApi } from '@/modules/bon-examen/api/bon-examen.api'
 import { bonPharmacieApi } from '@/modules/bon-pharmacie/api/bon-pharmacie.api'
@@ -22,6 +24,12 @@ import { evacuationsApi } from '@/modules/sorties-critiques/api/sorties.api'
 import { ApiError } from '@/lib/api'
 import { usePermissions } from '@/hooks/usePermissions'
 import { formatDate as intlFormatDate } from '@/lib/intl'
+import { labelStatut } from '@/config/labels'
+import { OrdonnanceCard } from '@/modules/consultation/components/OrdonnanceCard'
+import { OrdonnancePrintModal } from '@/modules/consultation/components/OrdonnancePrintModal'
+import { BonExamenCard } from '@/modules/bon-examen/components/BonExamenCard'
+import { BonPharmacieCard } from '@/modules/bon-pharmacie/components/BonPharmacieCard'
+import { EvacuationCard } from '@/modules/sorties-critiques/components/EvacuationCard'
 import type { PatientDocument } from '@/modules/consultation/api/consultation.api'
 import type { PermissionCode } from '@cms-saris/types'
 
@@ -33,20 +41,20 @@ const TYPE_META: Record<PatientDocument['type'], { labelKey: string; icon: typeo
   EVACUATION:       { labelKey: 'patients.docEvacuation',      icon: Ambulance,    tint: 'var(--erreur-accent)', bg: 'var(--erreur-fond)' },
 }
 
+// Famille `labelStatut()` par type de document (aligné sur `labels.statut.*`).
+const STATUT_FAMILLE: Record<PatientDocument['type'], string> = {
+  ORDONNANCE:    'ordonnance',
+  BON_EXAMEN:    'bon_examen',
+  BON_PHARMACIE: 'bon_pharmacie',
+  EVACUATION:    'evacuation',
+}
+
 // Permission requise pour supprimer chaque type (le serveur reste l'arbitre final).
 const DELETE_PERM: Record<PatientDocument['type'], PermissionCode> = {
   ORDONNANCE:       'ordonnance.cancel',
   BON_EXAMEN:       'bon_examen.delete',
   BON_PHARMACIE:    'bon_pharmacie.delete',
   EVACUATION:       'evacuation.delete',
-}
-
-// Type de document -> vue à ouvrir dans la consultation (étape « Documents »).
-const DOC_VIEW: Record<PatientDocument['type'], 'ordonnance' | 'examens-c' | 'sorties'> = {
-  ORDONNANCE:       'ordonnance',
-  BON_EXAMEN:       'examens-c',
-  BON_PHARMACIE:    'ordonnance',
-  EVACUATION:       'sorties',
 }
 
 function formatDate(iso: string) {
@@ -61,14 +69,114 @@ const FILTERS: { key: 'TOUS' | PatientDocument['type']; labelKey: string }[] = [
   { key: 'EVACUATION',       labelKey: 'patients.docFilterEvacuations' },
 ]
 
+/**
+ * Aperçu d'un document EN PLACE (même onglet, aucune navigation vers /consultations) —
+ * réutilise les cartes lecture-seule déjà employées dans `ConsultationArchiveSummary`
+ * plutôt que de réinventer leur affichage. Charge la consultation source (id déjà
+ * connu du document) pour disposer du contexte requis par ces cartes (soignant,
+ * catégorie du patient, lignes de l'ordonnance…).
+ */
+function DocumentViewerModal({ doc, onClose }: { doc: PatientDocument; onClose: () => void }) {
+  const { t } = useTranslation()
+  const { data: consultation, isLoading } = useConsultation(doc.consultationId)
+  const [previewOrdId, setPreviewOrdId] = useState<string | null>(null)
+  const meta = TYPE_META[doc.type]
+  const Icon = meta.icon
+
+  return (
+    <>
+      <Modal
+        icon={<Icon size={16} />}
+        title={t(meta.labelKey)}
+        subtitle={formatDate(doc.date) + (doc.site ? ` · ${doc.site}` : '')}
+        width={640}
+        onClose={onClose}
+      >
+        {isLoading && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 0', gap: 8, color: 'var(--texte-tertiaire)' }}>
+            <Loader2 size={16} className="animate-spin" />
+            <span style={{ fontSize: '13px' }}>{t('patients.loading')}</span>
+          </div>
+        )}
+        {!isLoading && !consultation && (
+          <p style={{ margin: 0, fontSize: 'var(--font-size-body-sm)', color: 'var(--erreur-texte)' }}>
+            {t('patients.docViewerNotFound')}
+          </p>
+        )}
+        {!isLoading && consultation && (() => {
+          const { patient } = consultation.visite
+          switch (doc.type) {
+            case 'ORDONNANCE':
+              return (
+                <OrdonnanceCard
+                  consultationId={doc.consultationId}
+                  consultation={consultation}
+                  ordonnances={consultation.ordonnances}
+                  readonly
+                  onPreview={setPreviewOrdId}
+                />
+              )
+            case 'BON_EXAMEN':
+              return (
+                <BonExamenCard
+                  consultationId={doc.consultationId}
+                  readonly
+                  soignant={consultation.soignant}
+                  categorieLibelle={patient.categoriePatient.libelle}
+                  categorieCode={patient.categoriePatient.code}
+                />
+              )
+            case 'BON_PHARMACIE':
+              return (
+                <BonPharmacieCard
+                  consultationId={doc.consultationId}
+                  readonly
+                  categorieCode={patient.categoriePatient.code}
+                  soignant={consultation.soignant}
+                  categorieLibelle={patient.categoriePatient.libelle}
+                />
+              )
+            case 'EVACUATION':
+              return (
+                <EvacuationCard
+                  consultationId={doc.consultationId}
+                  readonly
+                  patient={{ identite: patient.identite, numeroPatient: patient.numeroPatient, categorieLibelle: patient.categoriePatient.libelle }}
+                  soignant={consultation.soignant}
+                />
+              )
+            default:
+              return null
+          }
+        })()}
+      </Modal>
+      {previewOrdId && consultation && (() => {
+        const ord = consultation.ordonnances.find(o => o.id === previewOrdId)
+        if (!ord) return null
+        // Portalisé + `position:fixed` propre (au-dessus de la Modal, z-index 1100) :
+        // la variante `inline` de MedicalPrintSheet se pose en `position:absolute
+        // inset:0` sur son ancêtre positionné le plus proche — sans ce wrapper porté
+        // dans <body>, elle se retrouverait piégée (invisible) par le rideau de
+        // confidentialité (backdrop-filter) de la zone détail du dossier patient.
+        return createPortal(
+          <div style={{ position: 'fixed', inset: 0, zIndex: 1100 }}>
+            <OrdonnancePrintModal consultation={consultation} ordonnance={ord} onClose={() => setPreviewOrdId(null)} variant="inline" />
+          </div>,
+          document.body,
+        )
+      })()}
+    </>
+  )
+}
+
 export function DocumentsTab({ patientId }: { patientId: string }) {
   const { t } = useTranslation()
-  const navigate = useNavigate()
   const qc = useQueryClient()
   const { has } = usePermissions()
   const { data: documents = [], isLoading } = usePatientDocuments(patientId)
   const [filtre, setFiltre] = useState<'TOUS' | PatientDocument['type']>('TOUS')
   const [confirmDoc, setConfirmDoc] = useState<PatientDocument | null>(null)
+  const [viewingDoc, setViewingDoc] = useState<PatientDocument | null>(null)
 
   const counts = useMemo(() => {
     const c: Record<string, number> = {}
@@ -77,10 +185,6 @@ export function DocumentsTab({ patientId }: { patientId: string }) {
   }, [documents])
 
   const filtered = filtre === 'TOUS' ? documents : documents.filter(d => d.type === filtre)
-
-  function openSource(d: PatientDocument) {
-    navigate('/consultations', { state: { openConsultationId: d.consultationId, openDocView: DOC_VIEW[d.type] } })
-  }
 
   // Suppression — routage par type vers l'endpoint dédié (le serveur applique
   // ses garde-fous : 409 si le document n'est pas dans un état supprimable).
@@ -177,11 +281,11 @@ export function DocumentsTab({ patientId }: { patientId: string }) {
               onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--ap-300)' }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--bordure-legere)' }}
             >
-              {/* Zone cliquable : ouvrir la consultation source */}
+              {/* Zone cliquable : aperçu du document en place (même onglet) */}
               <button
                 type="button"
-                onClick={() => openSource(d)}
-                title={t('patients.openSourceConsultation')}
+                onClick={() => setViewingDoc(d)}
+                title={t('patients.viewDocument')}
                 style={{
                   flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left',
                   padding: '12px 14px', cursor: 'pointer', background: 'transparent', border: 'none', borderRadius: 10,
@@ -214,7 +318,7 @@ export function DocumentsTab({ patientId }: { patientId: string }) {
                   background: 'var(--fond-surface-2)', color: 'var(--texte-secondaire)',
                   border: '1px solid var(--bordure-legere)',
                 }}>
-                  {d.statut}
+                  {labelStatut(STATUT_FAMILLE[d.type], d.statut)}
                 </span>
                 <ChevronRight size={15} style={{ color: 'var(--texte-tertiaire)', flexShrink: 0 }} />
               </button>
@@ -224,7 +328,9 @@ export function DocumentsTab({ patientId }: { patientId: string }) {
                 <button
                   type="button"
                   onClick={() => setConfirmDoc(d)}
-                  title={t('patients.docDelete', { defaultValue: 'Supprimer le document' })}
+                  title={d.type === 'ORDONNANCE'
+                    ? t('patients.docCancel', { defaultValue: "Annuler l'ordonnance" })
+                    : t('patients.docDelete', { defaultValue: 'Supprimer le document' })}
                   style={{
                     flexShrink: 0, width: 34, height: 34, marginRight: 8, borderRadius: 8,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -242,11 +348,15 @@ export function DocumentsTab({ patientId }: { patientId: string }) {
         })}
       </div>
 
-      {/* Confirmation de suppression */}
+      {/* Confirmation de suppression (ou d'annulation, pour une ordonnance — le
+          serveur ne la supprime jamais réellement, il la marque ANNULEE pour
+          conserver la traçabilité de la prescription). */}
       {confirmDoc && (
         <Modal
           icon={<Trash2 size={16} />}
-          title={t('patients.docDeleteTitle', { defaultValue: 'Supprimer ce document ?' })}
+          title={confirmDoc.type === 'ORDONNANCE'
+            ? t('patients.docCancelTitle', { defaultValue: "Annuler cette ordonnance ?" })
+            : t('patients.docDeleteTitle', { defaultValue: 'Supprimer ce document ?' })}
           subtitle={t(TYPE_META[confirmDoc.type].labelKey) + ' · ' + formatDate(confirmDoc.date)}
           width={460}
           onClose={() => { if (!del.isPending) setConfirmDoc(null) }}
@@ -255,14 +365,22 @@ export function DocumentsTab({ patientId }: { patientId: string }) {
               {t('common.cancel', { defaultValue: 'Annuler' })}
             </Button>
             <Button variant="danger" leftIcon={<Trash2 size={14} />} loading={del.isPending} onClick={() => del.mutate(confirmDoc)}>
-              {t('patients.docDeleteConfirm', { defaultValue: 'Supprimer définitivement' })}
+              {confirmDoc.type === 'ORDONNANCE'
+                ? t('patients.docCancelConfirm', { defaultValue: "Annuler l'ordonnance" })
+                : t('patients.docDeleteConfirm', { defaultValue: 'Supprimer définitivement' })}
             </Button>
           </>}
         >
           <p style={{ margin: 0, fontSize: 'var(--font-size-body-sm)', color: 'var(--texte-secondaire)', lineHeight: 1.5 }}>
-            {t('patients.docDeleteWarning', { defaultValue: "Cette action est définitive. Si le document est validé ou verrouillé, le serveur peut refuser la suppression (il faudra d'abord l'annuler dans la consultation)." })}
+            {confirmDoc.type === 'ORDONNANCE'
+              ? t('patients.docCancelWarning', { defaultValue: "L'ordonnance sera marquée annulée (traçabilité conservée) et ne sera plus délivrable. Si elle est verrouillée, le serveur peut refuser l'annulation." })
+              : t('patients.docDeleteWarning', { defaultValue: "Cette action est définitive. Si le document est validé ou verrouillé, le serveur peut refuser la suppression (il faudra d'abord l'annuler dans la consultation)." })}
           </p>
         </Modal>
+      )}
+
+      {viewingDoc && (
+        <DocumentViewerModal doc={viewingDoc} onClose={() => setViewingDoc(null)} />
       )}
     </div>
   )

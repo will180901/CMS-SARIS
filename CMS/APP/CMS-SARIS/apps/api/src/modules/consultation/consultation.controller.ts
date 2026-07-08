@@ -26,7 +26,7 @@ import {
 } from './dto/consultation.dto'
 
 interface AuthedRequest {
-  user?: { id?: string; siteId?: string; roles?: string[]; personnelMedicalId?: string | null }
+  user?: { id?: string; siteId?: string; roles?: string[]; personnelMedicalId?: string | null; permissions?: string[] }
 }
 
 // Rôles « supervision » : voient TOUTES les consultations du site. Les autres
@@ -57,6 +57,7 @@ export class ConsultationController {
     return this.consultationService.findAll(siteId, query, {
       canReadAll,
       personnelMedicalId: req.user?.personnelMedicalId ?? null,
+      canViewLocked: canReadAll,
     })
   }
 
@@ -83,6 +84,7 @@ export class ConsultationController {
       restrictToOwn: false,
       personnelMedicalId: req.user?.personnelMedicalId ?? null,
       canViewLocked: (req.user?.roles ?? []).some(r => SUPERVISION_ROLES.includes(r)),
+      canViewEvacuations: (req.user?.permissions ?? []).includes('evacuation.read'),
     })
   }
 
@@ -91,9 +93,9 @@ export class ConsultationController {
   @Get(':id')
   @RequirePermissions('consultation.read')
   findById(@Param('id') id: string, @Req() req: AuthedRequest) {
-    const { siteId } = requireUser(req)
+    requireUser(req)
     const canReadAll = (req.user?.roles ?? []).some(r => SUPERVISION_ROLES.includes(r))
-    return this.consultationService.findById(id, siteId, {
+    return this.consultationService.findById(id, {
       canReadAll,
       personnelMedicalId: req.user?.personnelMedicalId ?? null,
     })
@@ -238,8 +240,8 @@ export class ConsultationController {
   @Patch(':id/ordonnances/:ordId/annuler')
   @RequirePermissions('ordonnance.cancel')
   annulerOrdonnance(@Param('id') id: string, @Param('ordId') ordId: string, @Req() req: AuthedRequest) {
-    const { id: userId, siteId } = requireUser(req)
-    return this.consultationService.annulerOrdonnance(id, ordId, userId, siteId)
+    requireUser(req)
+    return this.consultationService.annulerOrdonnance(id, ordId)
   }
 
   @Delete(':id/ordonnances/:ordId')

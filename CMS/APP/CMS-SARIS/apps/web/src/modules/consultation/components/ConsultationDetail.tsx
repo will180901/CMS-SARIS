@@ -9,14 +9,14 @@ import { useTranslation } from 'react-i18next'
 import {
   Stethoscope, Pill, CheckCircle2, XCircle, AlertTriangle,
   Clock, Check,
-  FileText, ChevronLeft, ChevronRight, Plus, X, Trash2, ExternalLink,
+  FileText, ChevronLeft, ChevronRight, Plus, X, ExternalLink,
 } from 'lucide-react'
-import { SegmentedTabs, Button, Modal } from '@/components/saris'
+import { SegmentedTabs, Button } from '@/components/saris'
 import { useIsCompact } from '@/hooks/useMediaQuery'
 import { calcAge } from '@/lib/age'
 import {
   useConsultation, useUpdateExamen, useUpdateConclusion,
-  useCloturer, useAnnulerConsultation, useDeleteConsultation, usePrendreEnCharge,
+  useCloturer, useAnnulerConsultation, usePrendreEnCharge,
 } from '../hooks/useConsultation'
 import { useSessionStore } from '@/stores/session.store'
 import { DiagnosticsCard } from './DiagnosticsCard'
@@ -25,6 +25,7 @@ import { OrdonnancePrintModal } from './OrdonnancePrintModal'
 import { CertificatReposPrintModal } from './CertificatReposPrintModal'
 import { PreviewHostContext } from '@/components/print/MedicalPrintSheet'
 import { CertificatCard }  from './CertificatCard'
+import { ConsultationArchiveSummary } from './ConsultationArchiveSummary'
 import { TypeConsultationSelect } from './TypeConsultationSelect'
 import { CategorieBadge }  from '@/modules/patients/components/CategorieBadge'
 import { BonExamenCard }   from '@/modules/bon-examen/components/BonExamenCard'
@@ -33,7 +34,6 @@ import { EvacuationCard }     from '@/modules/sorties-critiques/components/Evacu
 import { FlaskConical, Ambulance } from 'lucide-react'
 import { usePermissions } from '@/hooks/usePermissions'
 import { formatDuree, elapsedMinutes } from '@/lib/duree'
-import { labelDecision } from '@/config/labels'
 import { formatTime as intlFormatTime, formatDateTime } from '@/lib/intl'
 
 // ── Décisions médicales ───────────────────────────────────────────────────────
@@ -235,14 +235,19 @@ export function ConsultationDetail({ consultationId, initialDocView }: Props) {
   const { visite } = consultation
   const patient     = visite.patient
   const isActive    = consultation.statut === 'OUVERTE'
+  // Bons (pharmacie + examen) : délivrés par l'infirmier une fois la consultation
+  // clôturée (recueil §3.2/§4.3) — jamais pendant que le médecin est encore en train
+  // d'examiner, jamais après une annulation.
+  const canDeliverBons = consultation.statut === 'CLOTUREE'
 
   // Compteurs pour les badges d'onglets — « savoir à quoi s'attendre ».
-  const nbDiagnostics = consultation.diagnostics.length
-  const nbOrdonnances = consultation.ordonnances.length
-  const nbBonsExamen  = consultation._count.bonsExamen
-  const evacActive    = !!consultation.evacuation && consultation.evacuation.statut !== 'ANNULE'
-  const nbSorties     = (evacActive ? 1 : 0)
-  const hasDecision   = !!consultation.decisionMedicale
+  const nbDiagnostics   = consultation.diagnostics.length
+  const nbOrdonnances   = consultation.ordonnances.length
+  const nbBonsExamen    = consultation._count.bonsExamen
+  const nbBonsPharmacie = consultation._count.bonsPharmacie
+  const evacActive      = !!consultation.evacuation && consultation.evacuation.statut !== 'ANNULE'
+  const nbSorties       = (evacActive ? 1 : 0)
+  const hasDecision     = !!consultation.decisionMedicale
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: isCompact ? 'column' : 'row', overflow: isCompact ? 'auto' : 'hidden', minWidth: 0, position: 'relative' }}>
@@ -257,7 +262,10 @@ export function ConsultationDetail({ consultationId, initialDocView }: Props) {
       <div ref={setPreviewHost} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: isCompact ? 'visible' : 'hidden', minWidth: 0, position: 'relative' }}>
         <PreviewHostContext.Provider value={previewHost}>
 
-
+      {!isActive ? (
+        <ConsultationArchiveSummary consultationId={consultationId} consultation={consultation} />
+      ) : (
+      <>
       {/* ── Stepper du parcours (scroll horizontal si trop étroit) ────────── */}
       <div style={{
         flexShrink: 0, padding: '14px 20px',
@@ -368,7 +376,7 @@ export function ConsultationDetail({ consultationId, initialDocView }: Props) {
               onChange={k => setDocView(k as DocView)}
               tabs={[
                 { key: 'ordonnance', label: t('consultation.tabPrescription'), icon: <Pill size={13} />,         badge: nbOrdonnances || undefined },
-                { key: 'examens-c',  label: t('consultation.tabExamForm'),     icon: <FlaskConical size={13} />, badge: nbBonsExamen || undefined },
+                { key: 'examens-c',  label: t('consultation.tabExamForm'),     icon: <FlaskConical size={13} />, badge: (nbBonsExamen + nbBonsPharmacie) || undefined },
                 { key: 'sorties',    label: t('consultation.tabCriticalCases'), icon: <Ambulance size={13} />,   badge: nbSorties || undefined },
               ]}
             />
@@ -382,25 +390,28 @@ export function ConsultationDetail({ consultationId, initialDocView }: Props) {
                   readonly={!isActive || !canOrdonnance || heldByOther}
                   onPreview={setPreviewOrdId}
                 />
-                {/* Bon de pharmacie (recueil) : voucher médicaments, CDI + ayants droit */}
+              </div>
+            )}
+
+            {docView === 'examens-c' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--espace-3)' }}>
+                <BonExamenCard
+                  consultationId={consultationId}
+                  readonly={!canDeliverBons}
+                  soignant={consultation.soignant}
+                  categorieLibelle={patient.categoriePatient.libelle}
+                  categorieCode={patient.categoriePatient.code}
+                />
+                {/* Bon de pharmacie (recueil) : voucher médicaments, CDI + ayants droit —
+                    délivré par l'infirmier une fois la consultation clôturée. */}
                 <BonPharmacieCard
                   consultationId={consultationId}
-                  readonly={!isActive}
+                  readonly={!canDeliverBons}
                   categorieCode={patient.categoriePatient.code}
                   soignant={consultation.soignant}
                   categorieLibelle={patient.categoriePatient.libelle}
                 />
               </div>
-            )}
-
-            {docView === 'examens-c' && (
-              <BonExamenCard
-                consultationId={consultationId}
-                readonly={!isActive}
-                soignant={consultation.soignant}
-                categorieLibelle={patient.categoriePatient.libelle}
-                categorieCode={patient.categoriePatient.code}
-              />
             )}
 
             {docView === 'sorties' && (
@@ -452,6 +463,8 @@ export function ConsultationDetail({ consultationId, initialDocView }: Props) {
       })()}
       {step === 2 && previewRepos && (
         <CertificatReposPrintModal consultation={consultation} onClose={() => setPreviewRepos(false)} variant="inline" />
+      )}
+      </>
       )}
         </PreviewHostContext.Provider>
       </div>
@@ -626,9 +639,6 @@ function DecisionSection({ consultationId, consultation, isActive, canClose: can
   const cloturer         = useCloturer(consultationId)
   const annuler          = useAnnulerConsultation(consultationId)
   const updateConclusion = useUpdateConclusion(consultationId)
-  const deleteConsult    = useDeleteConsultation(consultationId)
-  const { has }          = usePermissions()
-  const [confirmDel, setConfirmDel] = useState(false)
 
   // Sync si la consultation change
   useEffect(() => {
@@ -649,91 +659,15 @@ function DecisionSection({ consultationId, consultation, isActive, canClose: can
     }, 1200)
   }
 
-  // État terminal
-  if (!isActive) {
-    return (
-      <div style={{
-        padding: '20px',
-        background: consultation.statut === 'CLOTUREE' ? 'var(--succes-fond)' : 'var(--fond-surface-2)',
-        border: `1px solid ${consultation.statut === 'CLOTUREE' ? 'var(--succes-bordure)' : 'var(--bordure-normale)'}`,
-        borderRadius: 10,
-        display: 'flex', flexDirection: 'column', gap: 10,
-      }}>
-        <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: consultation.statut === 'CLOTUREE' ? 'var(--succes-texte)' : 'var(--texte-secondaire)', display: 'flex', alignItems: 'center', gap: 6 }}>
-          {consultation.statut === 'CLOTUREE' ? <CheckCircle2 size={16} /> : <XCircle size={16} />}
-          {consultation.statut === 'CLOTUREE' ? t('consultation.consultationClosed') : t('consultation.consultationCancelled')}
-        </p>
-        {consultation.statut === 'ANNULEE' && consultation.motifAnnulation && (
-          <p style={{ margin: 0, fontSize: '13px', color: 'var(--texte-secondaire)' }}>
-            {t('consultation.cancellationReasonLabel', { reason: consultation.motifAnnulation })}
-          </p>
-        )}
-        {consultation.decisionMedicale && (() => {
-          const dec = DECISIONS.find(d => d.value === consultation.decisionMedicale)
-          return (
-            <p style={{ margin: 0, fontSize: '13px', color: 'var(--texte-secondaire)' }}>
-              {t('consultation.decisionLabel', { decision: dec ? t(`consultation.${dec.labelKey}`) : labelDecision(consultation.decisionMedicale) })}
-            </p>
-          )
-        })()}
-        {consultation.conclusion && (
-          <p style={{ margin: 0, fontSize: '12px', color: 'var(--texte-secondaire)', fontStyle: 'italic', whiteSpace: 'pre-wrap' }}>
-            {consultation.conclusion}
-          </p>
-        )}
-
-        {/* Suppression définitive (consultation ANNULÉE sans documents) */}
-        {consultation.statut === 'ANNULEE' && has('consultation.delete') && (
-          <button
-            onClick={() => setConfirmDel(true)}
-            disabled={deleteConsult.isPending}
-            style={{
-              alignSelf: 'flex-start', marginTop: 2,
-              height: 32, padding: '0 12px', borderRadius: 6, fontSize: '12px', fontWeight: '500',
-              background: 'transparent', cursor: 'pointer',
-              border: '1px solid var(--erreur-bordure)', color: 'var(--erreur-texte)',
-              display: 'inline-flex', alignItems: 'center', gap: 5,
-            }}
-          >
-            <Trash2 size={13} /> {t('consultation.deletePermanently')}
-          </button>
-        )}
-
-        {confirmDel && (
-          <Modal
-            icon={<Trash2 size={16} />}
-            title={t('consultation.deleteConsultationTitle')}
-            subtitle={t('consultation.deleteConsultationSubtitle')}
-            width={440}
-            onClose={() => setConfirmDel(false)}
-            footer={<>
-              <Button variant="outline" onClick={() => setConfirmDel(false)} disabled={deleteConsult.isPending}>{t('consultation.cancel')}</Button>
-              <Button
-                onClick={() => deleteConsult.mutate(undefined, { onSuccess: () => setConfirmDel(false) })}
-                disabled={deleteConsult.isPending}
-                style={{ background: 'var(--erreur-accent)', color: '#fff', border: 'none', gap: 5 }}
-              >
-                <Trash2 size={14} /> {deleteConsult.isPending ? t('consultation.deleting') : t('consultation.delete')}
-              </Button>
-            </>}
-          >
-            <p style={{ margin: 0, fontSize: '13px', color: 'var(--texte-secondaire)', lineHeight: 1.6 }}>
-              {t('consultation.deleteConsultationBody')}
-            </p>
-          </Modal>
-        )}
-      </div>
-    )
-  }
-
   // Prérequis de clôture, anticipés AVANT le clic (alignés sur les gardes serveur).
   const blockers: string[] = []
   if (consultation.diagnostics.length === 0) blockers.push(t('consultation.blockerDiagnostic'))
   if (!consultation.typeConsultationId) blockers.push(t('consultation.blockerType'))
   if (decision === 'PRESCRIPTION' && !consultation.ordonnances.some(o => o.statut === 'VALIDEE')) blockers.push(t('consultation.blockerOrdonnance'))
-  if (decision === 'EXAMEN_COMPLEMENTAIRE' && consultation._count.bonsExamen === 0) blockers.push(t('consultation.blockerDocument'))
+  // Examen complémentaire : PAS de bon d'examen exigé avant clôture — l'infirmier le
+  // délivre APRÈS, comme le bon de pharmacie.
   if (decision === 'EVACUATION' && (!consultation.evacuation || consultation.evacuation.statut === 'ANNULE')) blockers.push(t('consultation.blockerDocument'))
-  const canClose = !!decision && blockers.length === 0
+  const canClose = isActive && !!decision && blockers.length === 0
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -755,10 +689,12 @@ function DecisionSection({ consultationId, consultation, isActive, canClose: can
               <button
                 key={d.value}
                 onClick={() => onPickDecision(d.value)}
+                disabled={!isActive}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 11,
                   padding: '11px 14px', fontSize: '13px', fontWeight: active ? 700 : 500,
-                  cursor: 'pointer', textAlign: 'left', width: '100%',
+                  cursor: isActive ? 'pointer' : 'not-allowed', textAlign: 'left', width: '100%',
+                  opacity: isActive ? 1 : 0.6,
                   borderLeft: `3px solid ${active ? 'var(--ap-500)' : 'transparent'}`,
                   borderRight: 'none', borderTop: 'none',
                   borderBottom: i < DECISIONS.length - 1 ? '1px solid var(--bordure-legere)' : 'none',
@@ -766,7 +702,7 @@ function DecisionSection({ consultationId, consultation, isActive, canClose: can
                   color: active ? 'var(--ap-700)' : 'var(--texte-secondaire)',
                   transition: 'background 0.12s, color 0.12s',
                 }}
-                onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'var(--fond-surface-2)' }}
+                onMouseEnter={e => { if (!active && isActive) e.currentTarget.style.background = 'var(--fond-surface-2)' }}
                 onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent' }}
               >
                 <span style={{ display: 'flex', flexShrink: 0, color: active ? 'var(--ap-600)' : 'var(--texte-tertiaire)' }}>
@@ -802,6 +738,7 @@ function DecisionSection({ consultationId, consultation, isActive, canClose: can
             value={conclusion}
             maxLength={5000}
             onChange={e => handleConclusionChange(e.target.value)}
+            readOnly={!isActive}
             rows={4}
             placeholder={t('consultation.conclusionPlaceholder')}
             aria-label={t('consultation.conclusionPlaceholder')}
@@ -809,7 +746,7 @@ function DecisionSection({ consultationId, consultation, isActive, canClose: can
               width: '100%', fontSize: '13px', lineHeight: '1.5',
               border: '1px solid var(--bordure-normale)', borderRadius: 6,
               padding: '8px 10px', resize: 'vertical', outline: 'none',
-              background: 'var(--fond-surface)',
+              background: isActive ? 'var(--fond-surface)' : 'var(--fond-surface-2)',
               color: 'var(--texte-primaire)', fontFamily: 'inherit',
               boxSizing: 'border-box',
             }}
@@ -855,12 +792,13 @@ function DecisionSection({ consultationId, consultation, isActive, canClose: can
         {canCancel && (
         <button
           onClick={() => setCancelStep(true)}
-          disabled={annuler.isPending}
+          disabled={annuler.isPending || !isActive}
           style={{
             height: 44, borderRadius: 8, fontSize: '13px', fontWeight: '500',
             background: 'var(--fond-surface)', color: 'var(--erreur-texte)',
             border: '1.5px solid var(--erreur-bordure)',
-            cursor: 'pointer',
+            cursor: isActive ? 'pointer' : 'not-allowed',
+            opacity: isActive ? 1 : 0.6,
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
           }}
         >

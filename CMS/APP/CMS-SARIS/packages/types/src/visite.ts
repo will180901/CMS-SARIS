@@ -17,6 +17,8 @@ export interface Visite {
   soignantId?:      string | null
   notesAccueil?:    string | null
   motifAnnulation?: string | null
+  /** AVEC_CONSULTATION | SANS_CONSULTATION — renseigné uniquement si statut=CLOTUREE. */
+  typeCloture?:     string | null
   createdAt:        string
   creerHorsLigne:   boolean
 }
@@ -58,6 +60,8 @@ export interface ConstanteVitale {
   hydratation?:     string | null
   coloration?:      string | null
   saisiePar:        string
+  /** Nom lisible du soignant ayant saisi la mesure, résolu côté serveur. */
+  saisieParNom?:    string | null
   createdAt:        string
 }
 
@@ -89,9 +93,17 @@ export interface VisiteListItem extends Visite {
   soignant:       SoignantResume | null
 }
 
+/** Résumé minimal d'une consultation rattachée — assez pour un lien + l'impact d'une suppression en cascade. */
+export interface VisiteConsultationResume {
+  id:     string
+  statut: string
+  _count: { diagnostics: number; ordonnances: number; bonsExamen: number; bonsPharmacie: number; certificats: number }
+}
+
 export interface VisiteDetail extends VisiteListItem {
-  constantes: ConstanteVitale[]
-  evenements: VisiteEvenement[]
+  constantes:    ConstanteVitale[]
+  evenements:    VisiteEvenement[]
+  consultations: VisiteConsultationResume[]
 }
 
 // ── Offline ───────────────────────────────────────────────────────────────────

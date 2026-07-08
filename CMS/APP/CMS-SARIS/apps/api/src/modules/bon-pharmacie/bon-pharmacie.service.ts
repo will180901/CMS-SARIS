@@ -73,8 +73,11 @@ export class BonPharmacieService {
       select: { statut: true, visite: { select: { patient: { select: { categoriePatientId: true } } } } },
     })
     if (!consultation) throw new NotFoundException('Consultation introuvable')
-    if (consultation.statut !== 'OUVERTE') {
-      throw new ConflictException('Impossible de créer un bon de pharmacie sur une consultation clôturée')
+    // Le bon de pharmacie est délivré par l'infirmier une fois la consultation
+    // CLÔTURÉE (recueil §3.2/§4.3) — jamais pendant que le médecin est encore en
+    // train d'examiner, jamais après une annulation.
+    if (consultation.statut !== 'CLOTUREE') {
+      throw new ConflictException('Le bon de pharmacie ne peut être créé qu\'une fois la consultation clôturée')
     }
 
     // RÈGLE CENTRALE (recueil) : médicaments réservés aux CDI + ayants droit.
@@ -127,8 +130,14 @@ export class BonPharmacieService {
     return this.getOrThrow(id, siteId)
   }
 
-  async delete(id: string, siteId: string) {
-    await this.getOrThrow(id, siteId)
+  /**
+   * Volontairement SANS filtre de site : la suppression est aussi déclenchée depuis
+   * l'onglet Documents du dossier patient CENTRALISÉ (bons des deux sites) — un
+   * document visible dans le dossier doit rester gérable depuis là.
+   */
+  async delete(id: string) {
+    const bon = await this.prisma.bonPharmacie.findFirst({ where: { id } })
+    if (!bon) throw new NotFoundException('Bon de pharmacie introuvable')
     await this.prisma.$transaction([
       this.prisma.ligneBonPharmacie.deleteMany({ where: { bonId: id } }),
       this.prisma.bonPharmacie.delete({ where: { id } }),

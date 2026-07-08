@@ -147,12 +147,17 @@ export interface HistoriqueRattachement {
 export interface RattachementAyantDroitCdi {
   id:         string
   patientId:  string
-  cdiId:      string
+  /** Legacy — lien direct vers un Patient (posé par le drawer « Ajouter »). */
+  cdiId:      string | null
+  /** Registre EmployeSaris — lien posé à la création à la volée (recueil §5). */
+  employeId:  string | null
   typeLien:   LienParente
   statut:     'ACTIF' | 'INACTIF'
   dateDebut:  string
   dateFin:    string | null
   historiques: HistoriqueRattachement[]
+  /** Identité du CDI rattaché, résolue côté serveur (via cdiId OU employeId). */
+  cdi: { nom: string; prenom: string; identifiant: string } | null
 }
 
 export interface RattachementSousTraitant {

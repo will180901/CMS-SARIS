@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, Logger } from '@nestjs/common'
+import { Injectable, UnauthorizedException, NotFoundException, Logger } from '@nestjs/common'
 import { ModuleRef } from '@nestjs/core'
 import { JwtService } from '@nestjs/jwt'
 import { ConfigService } from '@nestjs/config'
@@ -403,6 +403,53 @@ export class SecurityService {
     }
   }
 
+  // ── POST /auth/site-actif ─────────────────────────────────────────────────
+
+  /**
+   * Change le site actif de la session courante. Le personnel médical tourne entre
+   * Moutela et Nkayi selon un planning de permutation (recueil de l'existant) — un
+   * compte n'est pas figé sur un seul site. Réémet un nouveau couple de tokens
+   * portant le site choisi, en réutilisant EXACTEMENT le mécanisme du login
+   * (`creerSession`) : tout le reste de l'application (Triage, Consultations…) lit
+   * déjà `req.user.siteId` du token, donc rien d'autre à changer une fois le token
+   * réémis. La session appelante est révoquée en base (remplacée) mais SANS notif
+   * SSE « session révoquée » vers elle-même (cf. `excludeSidFromNotify`) — sinon le
+   * client se déconnecterait lui-même en pensant qu'un autre poste a ouvert son compte.
+   */
+  async changerSiteActif(
+    utilisateurId: string,
+    currentSid:    string | null,
+    siteId:        string,
+    ipAdresse?:    string,
+    userAgent?:    string,
+  ): Promise<{ accessToken: string; refreshToken: string; user: Omit<UserSession, 'token'> }> {
+    const site = await this.prisma.site.findUnique({ where: { id: siteId } })
+    if (!site) throw new NotFoundException('Site introuvable')
+
+    const user = await this.prisma.utilisateur.findUniqueOrThrow({
+      where:   { id: utilisateurId },
+      include: { roles: { include: { role: true } } },
+    })
+    const roles       = user.roles.map(ur => ur.role.code) as Role[]
+    const permissions = await chargerPermissions(this.prisma, user.id)
+    const personnelMedicalId = user.personnelMedicalId
+
+    // Préserve le type de session (synchro vs app), comme le fait déjà `refresh`.
+    const currentSession = currentSid
+      ? await this.prisma.sessionUtilisateur.findUnique({ where: { id: currentSid }, select: { posteLocalId: true } })
+      : null
+
+    const tokens = await this.creerSession(
+      user.id, siteId, roles, permissions, personnelMedicalId,
+      ipAdresse, userAgent, currentSession?.posteLocalId ?? null, currentSid ?? undefined,
+    )
+
+    return {
+      ...tokens,
+      user: { id: user.id, login: user.login, siteId, roles, permissions, personnelMedicalId, photoUrl: user.photoUrl },
+    }
+  }
+
   // ── POST /auth/change-password ────────────────────────────────────────────
 
   /**
@@ -451,6 +498,11 @@ export class SecurityService {
     /** Si rempli → session de SYNCHRO (backend embarqué d'un poste) : EXEMPTÉE de la
      *  « session unique » (sinon le login app casserait la synchro du poste). */
     posteLocalId?:      string | null,
+    /** Sid de la session appelante à exclure de la notif SSE « session révoquée » —
+     *  utilisé par le changement de site actif : on révoque bien SA PROPRE session en
+     *  base (remplacée par la nouvelle), mais sans le notifier comme une intrusion —
+     *  c'est le même client qui gère lui-même le remplacement de ses tokens. */
+    excludeSidFromNotify?: string,
   ): Promise<{ accessToken: string; refreshToken: string }> {
     // Identifiant de session pré-généré → embarqué dans le JWT (sid) ET utilisé
     // comme clé primaire de la SessionUtilisateur, pour la gestion des sessions.
@@ -497,10 +549,13 @@ export class SecurityService {
           where: { id: { in: ids } },
           data:  { revokedAt: new Date() },
         })
-        try {
-          this.moduleRef.get(NotificationService, { strict: false }).pushSessionRevoked(utilisateurId, ids)
-        } catch {
-          /* notification best-effort : ne casse jamais le login */
+        const idsToNotify = excludeSidFromNotify ? ids.filter(sidRevoked => sidRevoked !== excludeSidFromNotify) : ids
+        if (idsToNotify.length) {
+          try {
+            this.moduleRef.get(NotificationService, { strict: false }).pushSessionRevoked(utilisateurId, idsToNotify)
+          } catch {
+            /* notification best-effort : ne casse jamais le login */
+          }
         }
       }
     }

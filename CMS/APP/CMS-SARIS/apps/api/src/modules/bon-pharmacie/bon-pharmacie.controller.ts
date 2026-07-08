@@ -63,7 +63,7 @@ export class BonPharmacieController {
   @Delete(':id')
   @RequirePermissions('bon_pharmacie.delete')
   @HttpCode(HttpStatus.OK)
-  remove(@Param('id') id: string, @CurrentUser() user: UserSession) {
-    return this.svc.delete(id, user.siteId)
+  remove(@Param('id') id: string) {
+    return this.svc.delete(id)
   }
 }

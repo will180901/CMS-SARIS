@@ -75,7 +75,7 @@ function DossierSidebar({ dossier, onChangerCategorie, compact }: { dossier: Pat
       {/* Avatar + identité */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', paddingBottom: '16px', borderBottom: '1px solid var(--bordure-legere)' }}>
         {id ? (
-          <PatientAvatar nom={id.nom} prenom={id.prenom} code={dossier.categoriePatient.code} size={56} />
+          <PatientAvatar nom={id.nom} prenom={id.prenom} code={dossier.categoriePatient.code} photoUrl={id.photoUrl} size={56} />
         ) : (
           <div style={{ width: 56, height: 56, borderRadius: 12, background: 'var(--fond-surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Users size={24} style={{ color: 'var(--texte-tertiaire)' }} />

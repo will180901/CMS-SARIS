@@ -199,9 +199,13 @@ export class SortiesCritiquesService {
     return this.getEvacOrThrow(id)
   }
 
-  /** Suppression définitive d'une évacuation + ses suivis (perm evacuation.delete). */
-  async deleteEvacuation(id: string, siteId: string) {
-    await this.getEvacOrThrow(id, siteId)
+  /**
+   * Suppression définitive d'une évacuation + ses suivis (perm evacuation.delete).
+   * Volontairement SANS filtre de site : déclenchée aussi depuis l'onglet Documents du
+   * dossier patient CENTRALISÉ (évacuations des deux sites).
+   */
+  async deleteEvacuation(id: string) {
+    await this.getEvacOrThrow(id)
     await this.prisma.$transaction([
       this.prisma.suiviEvacuation.deleteMany({ where: { evacuationId: id } }),
       this.prisma.evacuation.delete({ where: { id } }),

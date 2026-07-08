@@ -201,6 +201,12 @@ export function ConstantesTab({ patientId }: { patientId: string }) {
               <Th>{t('patients.colHeight')}</Th>
               <Th>{t('patients.colImc')}</Th>
               <Th>{t('patients.colGlycemie')}</Th>
+              <Th>{t('patients.colConscience')}</Th>
+              <Th>{t('patients.colGlasgow')}</Th>
+              <Th>{t('patients.colEtatGeneral')}</Th>
+              <Th>{t('patients.colHydratation')}</Th>
+              <Th>{t('patients.colColoration')}</Th>
+              <Th>{t('patients.colSaisiePar')}</Th>
             </tr>
           </thead>
           <tbody>
@@ -223,6 +229,12 @@ export function ConstantesTab({ patientId }: { patientId: string }) {
                 <Cell>{c.taille != null ? `${c.taille} cm` : null}</Cell>
                 <Cell>{c.imc != null ? c.imc : null}</Cell>
                 <Cell>{c.glycemie != null ? c.glycemie : null}</Cell>
+                <Cell>{c.etatConscience}</Cell>
+                <Cell>{c.scoreGlasgow != null ? c.scoreGlasgow : null}</Cell>
+                <Cell>{c.etatGeneral}</Cell>
+                <Cell>{c.hydratation}</Cell>
+                <Cell>{c.coloration}</Cell>
+                <Cell>{c.saisieParNom}</Cell>
               </tr>
             ))}
           </tbody>

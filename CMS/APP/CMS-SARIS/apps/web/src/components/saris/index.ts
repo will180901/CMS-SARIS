@@ -28,6 +28,7 @@ export { StatusPill }                     from './StatusPill'
 export type { StatusTone }                from './StatusPill'
 
 export { EmptyState }                     from './EmptyState'
+export { InfoSection, InfoRow }           from './InfoRow'
 export { Skeleton }                       from './Skeleton'
 export { PageHeader }                     from './PageHeader'
 export { Toolbar }                        from './Toolbar'

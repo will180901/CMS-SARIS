@@ -1,16 +1,24 @@
 import {
   IsString, IsNotEmpty, IsOptional, IsDateString,
-  IsIn, IsUUID, MaxLength, ValidateNested, IsBoolean,
+  IsIn, IsUUID, MaxLength, ValidateNested, IsBoolean, Matches,
 } from 'class-validator'
 import { Type } from 'class-transformer'
 import { PartialType } from '@nestjs/mapped-types'
+
+// Téléphone (Congo / international) — même règle que le frontend
+// (apps/web/src/lib/validation.ts:isTelephone) : « + » optionnel, chiffres/espaces/
+// points/tirets/parenthèses, 9 à 12 chiffres effectifs. Chaîne vide acceptée ici
+// (les champs optionnels ne sont pas ignorés par @IsOptional() quand la valeur
+// est '' plutôt que undefined) — le caractère requis est porté par @IsNotEmpty().
+const TELEPHONE_REGEX = /^$|^(?=(?:\D*\d){9,12}\D*$)\+?[0-9\s.\-()]+$/
+const TELEPHONE_MESSAGE = 'Numéro de téléphone invalide (9 à 12 chiffres, ex. +242 06 123 45 67)'
 
 // ── Contact urgence ───────────────────────────────────────────────────────────
 
 export class CreateContactUrgenceDto {
   @IsString() @IsNotEmpty() @MaxLength(100) nom:      string
   @IsString() @IsNotEmpty() @MaxLength(100) prenom:   string
-  @IsString() @IsNotEmpty() @MaxLength(20)  telephone: string
+  @IsString() @IsNotEmpty() @MaxLength(20) @Matches(TELEPHONE_REGEX, { message: TELEPHONE_MESSAGE }) telephone: string
   @IsString() @IsNotEmpty() @MaxLength(50)  lien:     string
 }
 
@@ -40,7 +48,7 @@ export class CreatePatientDto {
   @IsIn(['M', 'F'])                         sexe:           string
   @IsUUID()                                 categoriePatientId: string
   @IsUUID()                                 siteCreationId: string
-  @IsOptional() @IsString() @MaxLength(20)  telephone?:    string
+  @IsOptional() @IsString() @MaxLength(20) @Matches(TELEPHONE_REGEX, { message: TELEPHONE_MESSAGE }) telephone?: string
   @IsOptional() @IsString() @MaxLength(200) adresse?:      string
   // Matricule employeur (travailleur CDI) — sert au rattachement des ayants droit.
   @IsOptional() @IsString() @MaxLength(50)  matricule?:    string
@@ -80,7 +88,7 @@ export class UpdateIdentiteDto {
   @IsOptional() @IsString() @MaxLength(100) prenom?:       string
   @IsOptional() @IsDateString()             dateNaissance?: string
   @IsOptional() @IsIn(['M', 'F'])           sexe?:          string
-  @IsOptional() @IsString() @MaxLength(20)  telephone?:    string
+  @IsOptional() @IsString() @MaxLength(20) @Matches(TELEPHONE_REGEX, { message: TELEPHONE_MESSAGE }) telephone?: string
   @IsOptional() @IsString() @MaxLength(200) adresse?:      string
   // Matricule + données professionnelles (CDI/CDD)
   @IsOptional() @IsString() @MaxLength(50)  matricule?:    string

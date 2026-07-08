@@ -352,8 +352,10 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionCode[]> = {
     'consultation.close', 'consultation.cancel', 'consultation.delete',
     'consultation.diagnose', 'consultation.examen',
     'ordonnance.read', 'ordonnance.create', 'ordonnance.validate', 'ordonnance.cancel', 'ordonnance.print',
-    'bon_examen.read', 'bon_examen.create', 'bon_examen.validate', 'bon_examen.cancel', 'bon_examen.delete', 'bon_examen.result',
-    'bon_pharmacie.read', 'bon_pharmacie.create', 'bon_pharmacie.deliver', 'bon_pharmacie.cancel', 'bon_pharmacie.delete',
+    // Bons (pharmacie + examen) : lecture seule pour le médecin-chef (recueil §3.2/§4.3) —
+    // la délivrance des bons est réservée à l'infirmier, une fois la consultation clôturée.
+    'bon_examen.read',
+    'bon_pharmacie.read',
     'evacuation.read', 'evacuation.create', 'evacuation.update', 'evacuation.cancel', 'evacuation.close', 'evacuation.delete',
     'delegation.read', 'delegation.create', 'delegation.update', 'delegation.revoke', 'delegation.delete',
     // Gouvernance médicale (anciennement ADMIN_MEDICAL) : contrôle total des référentiels
@@ -398,6 +400,10 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionCode[]> = {
     'bon_pharmacie.read', 'bon_pharmacie.create', 'bon_pharmacie.cancel',
     // Registre employés : l'infirmière reconnaît/enregistre les travailleurs SARIS à l'accueil
     'employe.read', 'employe.create',
+    // Lecture seule des sociétés sous-traitantes : nécessaire pour renseigner le select du
+    // drawer « Rattachement sous-traitant » (patient.rattachement.manage sans ce droit de
+    // lecture laissait la liste déroulante vide, ajout impossible en pratique).
+    'sous_traitant.read',
     // Enrichissement collaboratif : motifs de triage uniquement
     'referentiel.read', 'referentiel.motif.create',
   ],

@@ -1,12 +1,11 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ChevronRight, XCircle, UserPlus2, UserMinus, AlertCircle, Pencil, Stethoscope, Trash2 } from 'lucide-react'
+import { ChevronRight, XCircle, UserPlus2, UserMinus, AlertCircle, Pencil, Stethoscope } from 'lucide-react'
 import { Button } from '@workspace/ui/components/button'
-import { Modal, Tooltip, SelectBox } from '@/components/saris'
+import { SelectBox } from '@/components/saris'
 import {
   useUpdateStatutVisite,
   useUpdateSoignantVisite,
-  useDeleteVisite,
 } from '../hooks/useTriage'
 import { useSoignants } from '../hooks/useSoignants'
 import { usePermissions } from '@/hooks/usePermissions'
@@ -48,7 +47,6 @@ export function ActionsCard({ visite, onSent }: { visite: VisiteDetail; onSent?:
   const canClose    = has('visite.close')
   const canCancel   = has('visite.cancel')
   const canConsult  = has('consultation.create')
-  const canDelete   = has('visite.delete')
   // « Prendre en charge » = transition EN_ATTENTE→EN_COURS (route statut : update/cancel/close)
   const canTransition = has('visite.update') || canClose || canCancel
 
@@ -56,11 +54,9 @@ export function ActionsCard({ visite, onSent }: { visite: VisiteDetail; onSent?:
   const [motifAnnul,    setMotifAnnul]    = useState<string>('')
   const [motifAutre,    setMotifAutre]    = useState<string>('')
   const [soignantOpen,  setSoignantOpen]  = useState(false)
-  const [confirmDelete, setConfirmDelete] = useState(false)
 
   const updateStatut      = useUpdateStatutVisite(visite.id)
   const updateSoignant    = useUpdateSoignantVisite(visite.id)
-  const deleteVisite      = useDeleteVisite()
   const createConsultation = useCreateConsultation()
 
   function handleEnvoyerConsultation() {
@@ -332,43 +328,6 @@ export function ActionsCard({ visite, onSent }: { visite: VisiteDetail; onSent?:
           </div>
         )}
 
-        {/* État terminal : info */}
-        {!isActive && (
-          <div style={{
-            padding: '10px 12px', borderRadius: 8,
-            background: visite.statut === 'CLOTUREE' ? 'var(--succes-fond)' : 'var(--fond-surface-2)',
-            border:     `1px solid ${visite.statut === 'CLOTUREE' ? 'var(--succes-bordure)' : 'var(--bordure-normale)'}`,
-            fontSize: '12px',
-            color: visite.statut === 'CLOTUREE' ? 'var(--succes-texte)' : 'var(--texte-secondaire)',
-          }}>
-            {visite.statut === 'CLOTUREE'
-              ? t('triage.visiteCloturee')
-              : (visite.motifAnnulation
-                  ? t('triage.visiteAnnuleeMotif', { motif: visite.motifAnnulation })
-                  : t('triage.visiteAnnulee'))}
-          </div>
-        )}
-
-        {/* ── Zone danger : suppression définitive — INTERDITE si clôturée (= archivée) ── */}
-        {canDelete && visite.statut !== 'CLOTUREE' && (
-          <div style={{ marginTop: 4, paddingTop: 10, borderTop: '1px dashed var(--bordure-legere)' }}>
-            <Tooltip label={t('triage.supprimerTooltip')}>
-              <button
-                onClick={() => setConfirmDelete(true)}
-                disabled={deleteVisite.isPending}
-                style={{
-                  width: '100%', height: 32, borderRadius: 6, fontSize: '12px', fontWeight: '500',
-                  background: 'transparent', cursor: 'pointer',
-                  border: '1px solid var(--erreur-bordure)', color: 'var(--erreur-texte)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                }}
-              >
-                <Trash2 size={13} /> {t('triage.supprimerDefinitivement')}
-              </button>
-            </Tooltip>
-          </div>
-        )}
-
       </div>
     </div>
 
@@ -383,31 +342,6 @@ export function ActionsCard({ visite, onSent }: { visite: VisiteDetail; onSent?:
         setSoignantOpen(false)
       }}
     />
-
-    {/* Confirmation de suppression définitive */}
-    {confirmDelete && (
-      <Modal
-        icon={<Trash2 size={16} />}
-        title={t('triage.supprimerVisiteTitle')}
-        subtitle={t('triage.supprimerVisiteSubtitle')}
-        width={440}
-        onClose={() => setConfirmDelete(false)}
-        footer={<>
-          <Button variant="outline" onClick={() => setConfirmDelete(false)} disabled={deleteVisite.isPending}>{t('triage.annuler')}</Button>
-          <Button
-            onClick={() => deleteVisite.mutate(visite.id, { onSuccess: () => setConfirmDelete(false) })}
-            disabled={deleteVisite.isPending}
-            style={{ background: 'var(--erreur-accent)', color: '#fff', border: 'none', gap: 5 }}
-          >
-            <Trash2 size={14} /> {deleteVisite.isPending ? t('triage.suppression') : t('triage.supprimer')}
-          </Button>
-        </>}
-      >
-        <p style={{ margin: 0, fontSize: '13px', color: 'var(--texte-secondaire)', lineHeight: 1.6 }}>
-          {t('triage.supprimerVisiteBody')}
-        </p>
-      </Modal>
-    )}
     </>
   )
 }

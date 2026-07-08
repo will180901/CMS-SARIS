@@ -32,7 +32,7 @@ import { useIsMobile } from '@/hooks/useMediaQuery'
 import { useUiStore } from '@/stores/ui.store'
 import { isDesktop } from '@/lib/desktop'
 import { DESKTOP_TITLEBAR_H } from './DesktopTitleBar'
-import { UserAvatar, StatusPill } from '@/components/saris'
+import { UserAvatar } from '@/components/saris'
 import type { Role } from '@cms-saris/types'
 import { useTranslation } from 'react-i18next'
 
@@ -391,11 +391,6 @@ export function Sidebar() {
                       </span>
                     )
                   })}
-                  {user.permissions && (
-                    <StatusPill tone="neutral" dot={false} size="sm">
-                      {user.permissions.length} permissions
-                    </StatusPill>
-                  )}
                 </div>
               </div>
 

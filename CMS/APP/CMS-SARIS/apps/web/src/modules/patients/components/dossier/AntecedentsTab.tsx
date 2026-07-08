@@ -54,6 +54,9 @@ function AntecedentCard({ ant, canWrite, patientId }: { ant: AntecedentPatient; 
   const update = useUpdateAntecedent(patientId)
   const remove = useDeleteAntecedent(patientId)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
+  const editForm = useForm<Form>({ resolver: zodResolver(makeSchema(t)), values: { type: ant.type, description: ant.description } })
+  const editTypeVal = editForm.watch('type')
   const resolved = ant.statut === 'RESOLU'
   return (
     <div style={{
@@ -78,6 +81,9 @@ function AntecedentCard({ ant, canWrite, patientId }: { ant: AntecedentPatient; 
               <Button variant="ghost" size="icon" style={{ width: 28, height: 28, flexShrink: 0 }}><MoreVertical size={13} /></Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" style={{ fontSize: '13px' }}>
+              <DropdownMenuItem onClick={() => setEditOpen(true)} style={{ cursor: 'pointer' }}>
+                {t('patients.editAntecedent')}
+              </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => update.mutate({ aId: ant.id, data: { statut: ant.statut === 'ACTIF' ? 'RESOLU' : 'ACTIF' } })}
                 style={{ cursor: 'pointer' }}
@@ -104,6 +110,43 @@ function AntecedentCard({ ant, canWrite, patientId }: { ant: AntecedentPatient; 
           onConfirm={async () => { await remove.mutateAsync(ant.id) }}
         />
       )}
+
+      <DrawerShell
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        icon={<ClipboardList size={18} />}
+        title={t('patients.editAntecedent')}
+        description={t('patients.editAntecedentDesc')}
+        onSave={async () => {
+          const ok = await editForm.trigger()
+          if (!ok) return
+          const v = editForm.getValues()
+          await update.mutateAsync({ aId: ant.id, data: { type: v.type, description: v.description } })
+          setEditOpen(false)
+        }}
+        isSaving={update.isPending}
+        isDirty={editForm.formState.isDirty}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+            <Label style={{ fontSize: '12px', fontWeight: '500', color: 'var(--texte-secondaire)' }}>{t('patients.fieldType')}</Label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+              {(Object.entries(TYPE_CFG) as [TypeAntecedent, typeof TYPE_CFG[TypeAntecedent]][]).map(([k, cfg]) => (
+                <button key={k} type="button" onClick={() => editForm.setValue('type', k, { shouldDirty: true })} style={{ padding: '5px 12px', borderRadius: 99, fontSize: '12px', fontWeight: '600', cursor: 'pointer', background: editTypeVal === k ? cfg.bg : 'var(--fond-surface-2)', color: editTypeVal === k ? cfg.text : 'var(--texte-tertiaire)', border: editTypeVal === k ? `1.5px solid ${cfg.border}` : '1px solid var(--bordure-legere)', transition: 'all 0.1s' }}>
+                  {t(cfg.labelKey)}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+            <Label style={{ fontSize: '12px', fontWeight: '500', color: 'var(--texte-secondaire)' }}>{t('patients.fieldDescription')}</Label>
+            <textarea {...editForm.register('description')} placeholder={t('patients.antecedentDescriptionPlaceholder')} style={{ fontSize: '13px', padding: '8px 10px', borderRadius: 6, border: '1px solid var(--bordure-normale)', background: 'var(--fond-surface)', color: 'var(--texte-primaire)', minHeight: 100, resize: 'vertical', fontFamily: 'inherit' }} />
+            {editForm.formState.errors.description && (
+              <p style={{ fontSize: '11px', color: 'var(--erreur-texte)' }}>{editForm.formState.errors.description.message}</p>
+            )}
+          </div>
+        </div>
+      </DrawerShell>
     </div>
   )
 }

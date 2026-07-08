@@ -54,6 +54,25 @@ function makeStSchema(t: (k: string) => string) {
 }
 type STForm = z.infer<ReturnType<typeof makeStSchema>>
 
+// Édition (post-création) : le lien d'identité (cdiId / société) ne se change pas, seuls
+// le type de lien (AD) et les dates de rattachement restent modifiables.
+function makeAdEditSchema(t: (k: string) => string) {
+  return z.object({
+    typeLien:  z.enum(['CONJOINT', 'ENFANT', 'PARENT', 'AUTRE']),
+    dateDebut: z.string().min(1, t('patients.validationRequired')).refine(dateOk, t('patients.validationDateInvalid')),
+    dateFin:   z.string().optional().refine(v => !v || dateOk(v), t('patients.validationDateInvalid')),
+  }).refine(finApresDebut, { message: t('patients.validationEndAfterStart'), path: ['dateFin'] })
+}
+type ADEditForm = z.infer<ReturnType<typeof makeAdEditSchema>>
+
+function makeStEditSchema(t: (k: string) => string) {
+  return z.object({
+    dateDebut: z.string().min(1, t('patients.validationRequired')).refine(dateOk, t('patients.validationDateInvalid')),
+    dateFin:   z.string().optional().refine(v => !v || dateOk(v), t('patients.validationDateInvalid')),
+  }).refine(finApresDebut, { message: t('patients.validationEndAfterStart'), path: ['dateFin'] })
+}
+type STEditForm = z.infer<ReturnType<typeof makeStEditSchema>>
+
 // ── Cards ─────────────────────────────────────────────────────────────────────
 
 function RattachementADCard({ ratt, canWrite, patientId }: { ratt: RattachementAyantDroitCdi; canWrite: boolean; patientId: string }) {
@@ -61,6 +80,12 @@ function RattachementADCard({ ratt, canWrite, patientId }: { ratt: RattachementA
   const update = useUpdateRattachementAD(patientId)
   const remove = useDeleteRattachementAD(patientId)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
+  const editForm = useForm<ADEditForm>({
+    resolver: zodResolver(makeAdEditSchema(t)),
+    values: { typeLien: ratt.typeLien as ADEditForm['typeLien'], dateDebut: ratt.dateDebut.substring(0, 10), dateFin: ratt.dateFin?.substring(0, 10) },
+  })
+  const editTypeLienVal = editForm.watch('typeLien')
   const LIEN_LABELS: Record<string, string> = { CONJOINT: t('patients.relLabelConjoint'), ENFANT: t('patients.relLabelEnfant'), PARENT: t('patients.relLabelParent'), AUTRE: t('patients.relLabelAutre') }
   const actif = ratt.statut === 'ACTIF'
   return (
@@ -78,10 +103,17 @@ function RattachementADCard({ ratt, canWrite, patientId }: { ratt: RattachementA
               {actif ? t('patients.attachActive') : t('patients.attachClosed')}
             </span>
           </div>
+          <p style={{ fontSize: '12px', color: 'var(--texte-secondaire)', margin: '3px 0 0' }}>
+            {ratt.cdi
+              ? t('patients.attachCdiOf', { name: `${ratt.cdi.prenom} ${ratt.cdi.nom}`, numero: ratt.cdi.identifiant })
+              : t('patients.attachCdiUnknown')}
+          </p>
           <p style={{ fontSize: '12px', color: 'var(--texte-tertiaire)', margin: '2px 0 0' }}>
             {ratt.dateFin
               ? t('patients.attachPeriod', { start: formatDate(ratt.dateDebut), end: formatDate(ratt.dateFin) })
-              : t('patients.attachPeriodOngoing', { start: formatDate(ratt.dateDebut) })}
+              : actif
+                ? t('patients.attachPeriodOngoing', { start: formatDate(ratt.dateDebut) })
+                : t('patients.attachPeriodClosedNoDate', { start: formatDate(ratt.dateDebut) })}
           </p>
         </div>
         {canWrite && (
@@ -90,6 +122,9 @@ function RattachementADCard({ ratt, canWrite, patientId }: { ratt: RattachementA
               <Button variant="ghost" size="icon" style={{ width: 28, height: 28 }}><MoreVertical size={13} /></Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" style={{ fontSize: '13px' }}>
+              <DropdownMenuItem onClick={() => setEditOpen(true)} style={{ cursor: 'pointer' }}>
+                {t('patients.editAttachment')}
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => update.mutate({ rId: ratt.id, data: { statut: actif ? 'INACTIF' : 'ACTIF' } })} style={{ cursor: 'pointer', color: actif ? 'var(--erreur-texte)' : 'var(--succes-texte)' }}>
                 {actif ? t('patients.close') : t('patients.reactivate')}
               </DropdownMenuItem>
@@ -111,6 +146,60 @@ function RattachementADCard({ ratt, canWrite, patientId }: { ratt: RattachementA
           onConfirm={async () => { await remove.mutateAsync(ratt.id) }}
         />
       )}
+
+      <DrawerShell
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        icon={<Users size={18} />}
+        title={t('patients.editAttachment')}
+        description={t('patients.editAttachmentAdDesc')}
+        onSave={async () => {
+          const ok = await editForm.trigger()
+          if (!ok) return
+          const v = editForm.getValues()
+          await update.mutateAsync({ rId: ratt.id, data: { typeLien: v.typeLien, dateDebut: v.dateDebut, dateFin: v.dateFin || undefined } })
+          setEditOpen(false)
+        }}
+        isSaving={update.isPending}
+        isDirty={editForm.formState.isDirty}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+            <Label style={{ fontSize: '12px', fontWeight: '500', color: 'var(--texte-secondaire)' }}>{t('patients.fieldRelationshipReqAd')}</Label>
+            <Select value={editTypeLienVal} onValueChange={v => editForm.setValue('typeLien', v as ADEditForm['typeLien'], { shouldDirty: true })}>
+              <SelectTrigger style={{ height: 36, fontSize: '13px', border: '1px solid var(--bordure-normale)' }}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="CONJOINT">{t('patients.relLabelConjoint')}</SelectItem>
+                <SelectItem value="ENFANT">{t('patients.relLabelEnfant')}</SelectItem>
+                <SelectItem value="PARENT">{t('patients.relLabelParent')}</SelectItem>
+                <SelectItem value="AUTRE">{t('patients.relLabelAutre')}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(140px, 100%), 1fr))', gap: '10px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+              <Label style={{ fontSize: '12px', fontWeight: '500', color: 'var(--texte-secondaire)' }}>{t('patients.fieldStart')}</Label>
+              <Controller
+                control={editForm.control}
+                name="dateDebut"
+                render={({ field }) => (
+                  <DatePicker value={field.value} onChange={v => field.onChange(v ?? '')} placeholder={t('patients.startPlaceholder')} max={editForm.watch('dateFin') || undefined} />
+                )}
+              />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+              <Label style={{ fontSize: '12px', fontWeight: '500', color: 'var(--texte-secondaire)' }}>{t('patients.fieldEndOptional')}</Label>
+              <Controller
+                control={editForm.control}
+                name="dateFin"
+                render={({ field }) => (
+                  <DatePicker value={field.value} onChange={v => field.onChange(v ?? '')} placeholder={t('patients.endPlaceholder')} clearable min={editForm.watch('dateDebut') || undefined} />
+                )}
+              />
+            </div>
+          </div>
+        </div>
+      </DrawerShell>
     </div>
   )
 }
@@ -120,6 +209,11 @@ function RattachementSTCard({ ratt, canWrite, patientId }: { ratt: RattachementS
   const update = useUpdateRattachementST(patientId)
   const remove = useDeleteRattachementST(patientId)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
+  const editForm = useForm<STEditForm>({
+    resolver: zodResolver(makeStEditSchema(t)),
+    values: { dateDebut: ratt.dateDebut.substring(0, 10), dateFin: ratt.dateFin?.substring(0, 10) },
+  })
   const actif = ratt.statut === 'ACTIF'
   return (
     <div style={{ background: 'var(--fond-surface)', border: '1px solid var(--bordure-legere)', borderRadius: 8, padding: '12px 14px', opacity: actif ? 1 : 0.6 }}>
@@ -137,7 +231,9 @@ function RattachementSTCard({ ratt, canWrite, patientId }: { ratt: RattachementS
           <p style={{ fontSize: '12px', color: 'var(--texte-tertiaire)', margin: '2px 0 0' }}>
             {ratt.dateFin
               ? t('patients.attachPeriod', { start: formatDate(ratt.dateDebut), end: formatDate(ratt.dateFin) })
-              : t('patients.attachPeriodOngoing', { start: formatDate(ratt.dateDebut) })}
+              : actif
+                ? t('patients.attachPeriodOngoing', { start: formatDate(ratt.dateDebut) })
+                : t('patients.attachPeriodClosedNoDate', { start: formatDate(ratt.dateDebut) })}
           </p>
         </div>
         {canWrite && (
@@ -146,6 +242,9 @@ function RattachementSTCard({ ratt, canWrite, patientId }: { ratt: RattachementS
               <Button variant="ghost" size="icon" style={{ width: 28, height: 28 }}><MoreVertical size={13} /></Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" style={{ fontSize: '13px' }}>
+              <DropdownMenuItem onClick={() => setEditOpen(true)} style={{ cursor: 'pointer' }}>
+                {t('patients.editAttachment')}
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => update.mutate({ rId: ratt.id, data: { statut: actif ? 'INACTIF' : 'ACTIF' } })} style={{ cursor: 'pointer', color: actif ? 'var(--erreur-texte)' : 'var(--succes-texte)' }}>
                 {actif ? t('patients.close') : t('patients.reactivate')}
               </DropdownMenuItem>
@@ -167,6 +266,48 @@ function RattachementSTCard({ ratt, canWrite, patientId }: { ratt: RattachementS
           onConfirm={async () => { await remove.mutateAsync(ratt.id) }}
         />
       )}
+
+      <DrawerShell
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        icon={<Building2 size={18} />}
+        title={t('patients.editAttachment')}
+        description={t('patients.editAttachmentStDesc')}
+        onSave={async () => {
+          const ok = await editForm.trigger()
+          if (!ok) return
+          const v = editForm.getValues()
+          await update.mutateAsync({ rId: ratt.id, data: { dateDebut: v.dateDebut, dateFin: v.dateFin || undefined } })
+          setEditOpen(false)
+        }}
+        isSaving={update.isPending}
+        isDirty={editForm.formState.isDirty}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(140px, 100%), 1fr))', gap: '10px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+              <Label style={{ fontSize: '12px', fontWeight: '500', color: 'var(--texte-secondaire)' }}>{t('patients.fieldStart')}</Label>
+              <Controller
+                control={editForm.control}
+                name="dateDebut"
+                render={({ field }) => (
+                  <DatePicker value={field.value} onChange={v => field.onChange(v ?? '')} placeholder={t('patients.startPlaceholder')} max={editForm.watch('dateFin') || undefined} />
+                )}
+              />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+              <Label style={{ fontSize: '12px', fontWeight: '500', color: 'var(--texte-secondaire)' }}>{t('patients.fieldEndOptional')}</Label>
+              <Controller
+                control={editForm.control}
+                name="dateFin"
+                render={({ field }) => (
+                  <DatePicker value={field.value} onChange={v => field.onChange(v ?? '')} placeholder={t('patients.endPlaceholder')} clearable min={editForm.watch('dateDebut') || undefined} />
+                )}
+              />
+            </div>
+          </div>
+        </div>
+      </DrawerShell>
     </div>
   )
 }
@@ -382,12 +523,16 @@ export function RattementsTab({ dossier, canWrite }: { dossier: PatientDossier; 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <div style={fld}>
             <Label style={lbl}>{t('patients.fieldSubcontractorCompany')}</Label>
-            <Select value={societeVal} onValueChange={v => stForm.setValue('societeId', v)}>
+            <Select value={societeVal} onValueChange={v => { stForm.setValue('societeId', v); stForm.clearErrors('societeId') }}>
               <SelectTrigger style={{ height: 36, fontSize: '13px', border: '1px solid var(--bordure-normale)' }}><SelectValue placeholder={t('patients.selectPlaceholder')} /></SelectTrigger>
               <SelectContent>
                 {societesActives.map(s => <SelectItem key={s.id} value={s.id}>{s.nom}</SelectItem>)}
               </SelectContent>
             </Select>
+            {societesActives.length === 0 && (
+              <p style={{ fontSize: '11px', color: 'var(--avert-texte)', marginTop: 2 }}>{t('patients.noSubcontractorAvailable')}</p>
+            )}
+            {stForm.formState.errors.societeId && <p style={{ fontSize: '11px', color: 'var(--erreur-texte)', marginTop: 2 }}>{stForm.formState.errors.societeId.message}</p>}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(140px, 100%), 1fr))', gap: '10px' }}>
             <div style={fld}>

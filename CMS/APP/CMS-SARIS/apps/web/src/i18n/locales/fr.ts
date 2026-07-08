@@ -99,6 +99,8 @@ export const fr = {
     syncingTooltip: 'Synchronisation en cours…',
     pending: '{{count}} en attente',
     pendingTooltip: '{{count}} action(s) en attente de synchronisation',
+    switchSiteTooltip: 'Basculer vers le site {{site}}',
+    switchingSite: 'Changement de site…',
   },
   settings: {
     title: 'Paramètres',

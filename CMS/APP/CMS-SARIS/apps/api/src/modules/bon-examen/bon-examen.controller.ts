@@ -67,8 +67,8 @@ export class BonExamenController {
   @Delete(':id')
   @RequirePermissions('bon_examen.delete')
   @HttpCode(HttpStatus.OK)
-  remove(@Param('id') id: string, @CurrentUser() user: UserSession) {
-    return this.svc.delete(id, user.siteId)
+  remove(@Param('id') id: string) {
+    return this.svc.delete(id)
   }
 
   @Post(':id/resultats')

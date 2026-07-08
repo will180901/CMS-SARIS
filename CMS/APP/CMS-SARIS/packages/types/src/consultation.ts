@@ -142,6 +142,8 @@ export interface ConsultationDetail extends ConsultationListItem {
     diagnostics:    number
     ordonnances:    number
     bonsExamen:     number
+    bonsPharmacie:  number
+    certificats:    number
   }
   /** Verrou souple : utilisateur qui a la consultation en main (null si libre). */
   priseEnCharge?: PriseEnCharge | null

@@ -92,8 +92,11 @@ export class BonExamenService {
       select: { statut: true, visite: { select: { patient: { select: { categoriePatientId: true } } } } },
     })
     if (!consultation) throw new NotFoundException('Consultation introuvable')
-    if (consultation.statut !== 'OUVERTE') {
-      throw new ConflictException('Impossible de créer un bon d\'examen sur une consultation clôturée')
+    // Le bon d'examen est délivré par l'infirmier une fois la consultation CLÔTURÉE
+    // (recueil §3.2/§4.3) — jamais pendant que le médecin est encore en train
+    // d'examiner, jamais après une annulation.
+    if (consultation.statut !== 'CLOTUREE') {
+      throw new ConflictException('Le bon d\'examen ne peut être créé qu\'une fois la consultation clôturée')
     }
 
     // RÈGLE CENTRALE (recueil) : bon d'examens réservé aux CDI + ayants droit.
@@ -186,8 +189,16 @@ export class BonExamenService {
 
   // ── Supprimer définitivement (perm bon_examen.delete) ──────────────────────
 
-  async delete(id: string, siteId: string) {
-    const bon = await this.getOrThrow(id, siteId)
+  /**
+   * Volontairement SANS filtre de site (contrairement à `getOrThrow`, utilisé par les
+   * autres méthodes de ce service pour le workflow ACTIF) : la suppression est aussi
+   * déclenchée depuis l'onglet Documents du dossier patient CENTRALISÉ, qui montre
+   * des bons des deux sites — un document visible dans le dossier doit rester gérable
+   * depuis là, sans « introuvable » pour un bon créé sur l'autre site.
+   */
+  async delete(id: string) {
+    const bon = await this.prisma.bonExamen.findFirst({ where: { id }, include: BON_INCLUDE })
+    if (!bon) throw new NotFoundException('Bon d\'examen introuvable')
     if (bon.resultats.length > 0) {
       throw new ConflictException(
         'Ce bon possède des résultats enregistrés : annulez-le plutôt que de le supprimer (traçabilité).',

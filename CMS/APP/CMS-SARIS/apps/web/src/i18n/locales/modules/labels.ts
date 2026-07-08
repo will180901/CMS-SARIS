@@ -103,6 +103,7 @@ export const labels = {
         ANNULEE: 'Annulée',
       },
       bon_examen: {
+        EN_ATTENTE: 'En attente',
         EMIS: 'Émis',
         VALIDE: 'Validé',
         ANNULE: 'Annulé',
@@ -503,6 +504,7 @@ export const labels = {
         ANNULEE: 'Cancelled',
       },
       bon_examen: {
+        EN_ATTENTE: 'Pending',
         EMIS: 'Issued',
         VALIDE: 'Validated',
         ANNULE: 'Cancelled',

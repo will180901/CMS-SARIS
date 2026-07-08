@@ -67,8 +67,9 @@ export class TriageController {
   @Get('patient/:patientId')
   @RequirePermissions('visite.read')
   findByPatient(@Param('patientId') patientId: string, @Req() req: AuthedRequest) {
-    const { siteId } = requireUser(req)
-    return this.triageService.findByPatient(patientId, siteId)
+    requireUser(req)
+    const canViewLocked = (req.user?.roles ?? []).some(r => SUPERVISION_ROLES.includes(r))
+    return this.triageService.findByPatient(patientId, canViewLocked)
   }
 
   @Get(':id')

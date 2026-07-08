@@ -11,6 +11,7 @@ import {
 import { PrismaService } from '../../prisma/prisma.service'
 import { NotificationService } from '../notification/notification.service'
 import { assertPeutPrescrire, type PrescriptionScope } from '../../common/prescription'
+import { consultationCascadeDeleteOps } from './consultation-cascade.util'
 import {
   CreateConsultationDto, UpdateExamenCliniqueDto, AddDiagnosticDto,
   UpdateConclusionDto, CloturerConsultationDto, AnnulerConsultationDto,
@@ -85,7 +86,7 @@ const CONSULTATION_DETAIL_INCLUDE = {
   // Présence des sorties critiques 1-1 + compteurs 1-N (badges d'onglets).
   // Les compteurs filtrent les tombstones (soft-delete) pour ne pas sur-compter.
   evacuation:      { select: { id: true, statut: true } },
-  _count: { select: { diagnostics: true, ordonnances: { where: { deletedAt: null } }, bonsExamen: { where: { deletedAt: null } } } },
+  _count: { select: { diagnostics: true, ordonnances: { where: { deletedAt: null } }, bonsExamen: { where: { deletedAt: null } }, bonsPharmacie: { where: { deletedAt: null } }, certificats: { where: { deletedAt: null } } } },
 } as const
 
 // ── Service ───────────────────────────────────────────────────────────────────
@@ -163,18 +164,27 @@ export class ConsultationService {
   async findAll(
     siteId: string,
     query: ConsultationQueryDto,
-    scope?: { canReadAll: boolean; personnelMedicalId: string | null },
+    scope?: { canReadAll: boolean; personnelMedicalId: string | null; canViewLocked?: boolean },
   ) {
-    const where: any = { visite: { siteId } }
+    // Dossier patient (query.patientId) : vue CENTRALISÉE, comme findPatientDocuments —
+    // ni restriction de site, ni restriction « mes consultations seulement ». La file
+    // d'attente générale (sans patientId), elle, garde le cloisonnement site + soignant.
+    const isPatientDossier = !!query.patientId
+    const where: any = isPatientDossier ? { visite: {} } : { visite: { siteId } }
 
-    // Confidentialité : un médecin ne voit QUE les consultations qui LUI sont
-    // assignées ; seule la supervision (canReadAll) voit toutes celles du site.
-    if (scope && !scope.canReadAll) {
+    if (!isPatientDossier && scope && !scope.canReadAll) {
+      // Confidentialité : un médecin ne voit QUE les consultations qui LUI sont
+      // assignées ; seule la supervision (canReadAll) voit toutes celles du site.
       where.soignantId = scope.personnelMedicalId ?? '__aucun_soignant__'
     }
 
-    // Filtre patient (dossier patient — toutes consultations sans restriction statut par défaut)
-    if (query.patientId) {
+    if (isPatientDossier) {
+      // Verrou de confidentialité (médecin-chef) : même règle que findPatientDocuments —
+      // dossier verrouillé + appelant non-supervision → liste vide.
+      if (!scope?.canViewLocked) {
+        const p = await this.prisma.patient.findUnique({ where: { id: query.patientId }, select: { verrouille: true } })
+        if (p?.verrouille) return []
+      }
       where.visite = { ...where.visite, patientId: query.patientId }
     }
 
@@ -198,8 +208,14 @@ export class ConsultationService {
 
   // ── Détail consultation ──────────────────────────────────────────────────
 
-  async findById(id: string, siteId: string, scope?: { canReadAll: boolean; personnelMedicalId: string | null }) {
-    const where: any = { id, visite: { siteId } }
+  /**
+   * Volontairement SANS filtre `siteId` : ouvrir une consultation par id doit marcher
+   * depuis le dossier patient CENTRALISÉ (Chronologie/Documents), qui montre déjà des
+   * consultations/documents des deux sites — sinon cliquer sur un document d'un autre
+   * site que celui actif renvoyait « Consultation introuvable ».
+   */
+  async findById(id: string, scope?: { canReadAll: boolean; personnelMedicalId: string | null }) {
+    const where: any = { id }
     // Confidentialité : un soignant non-superviseur ne peut ouvrir QUE ses propres
     // consultations (cohérent avec findAll qui filtre déjà la liste — un id deviné ne suffit pas).
     if (scope && !scope.canReadAll) {
@@ -243,13 +259,13 @@ export class ConsultationService {
       where: { id },
       data:  { pickedUpById: userId, pickedUpAt: new Date() },
     })
-    return this.findById(id, siteId)
+    return this.findById(id)
   }
 
   // ── Documents générés d'un patient (dossier → onglet Documents) ────────────
   // Agrège tous les actes documentaires de toutes les consultations du patient :
   // ordonnances, bons d'examen, évacuations, accidents du travail.
-  async findPatientDocuments(patientId: string, scope?: { restrictToOwn: boolean; personnelMedicalId: string | null; canViewLocked?: boolean }) {
+  async findPatientDocuments(patientId: string, scope?: { restrictToOwn: boolean; personnelMedicalId: string | null; canViewLocked?: boolean; canViewEvacuations?: boolean }) {
     // Verrou de confidentialité (médecin-chef) : dossier verrouillé + appelant non-supervision
     // → aucun document (cohérent avec patient.findById qui dépouille le dossier).
     if (!scope?.canViewLocked) {
@@ -298,7 +314,10 @@ export class ConsultationService {
         docs.push({ id: bp.id, type: 'BON_PHARMACIE', consultationId: c.id, date: bp.createdAt, statut: bp.statut,
           titre: 'Bon de pharmacie', details: `${n} médicament${n > 1 ? 's' : ''}`, motif, site })
       }
-      if (c.evacuation && c.evacuation.statut !== 'ANNULE') {
+      // N'expose les fiches d'évacuation que si l'appelant a evacuation.read — sinon un
+      // rôle sans aucun droit sur le module Évacuations (ex. INFIRMIER) verrait leur existence
+      // et leur niveau d'urgence dans le dossier patient, puis un onglet cassé au clic.
+      if (scope?.canViewEvacuations && c.evacuation && c.evacuation.statut !== 'ANNULE') {
         docs.push({ id: c.evacuation.id, type: 'EVACUATION', consultationId: c.id, date: c.evacuation.createdAt,
           statut: c.evacuation.statut, titre: 'Fiche d\'évacuation', details: `Urgence : ${c.evacuation.niveauUrgence}`, motif, site })
       }
@@ -514,10 +533,9 @@ export class ConsultationService {
       const n = await this.prisma.ordonnance.count({ where: { consultationId: id, statut: 'VALIDEE' } })
       if (n === 0) throw new BadRequestException('Décision « Prescription » : au moins une ordonnance validée est requise')
     }
-    if (dto.decisionMedicale === 'EXAMEN_COMPLEMENTAIRE') {
-      const n = await this.prisma.bonExamen.count({ where: { consultationId: id } })
-      if (n === 0) throw new BadRequestException('Décision « Examen complémentaire » : créez au moins un bon d\'examen avant de clôturer')
-    }
+    // Décision « Examen complémentaire » : PAS de bon d'examen exigé avant clôture —
+    // c'est l'infirmier qui délivre le bon APRÈS clôture (recueil §3.2/§4.3), au même
+    // titre que le bon de pharmacie.
     if (dto.decisionMedicale === 'EVACUATION') {
       // Une évacuation ANNULÉE ne compte pas (= inexistante) : il faut une fiche active.
       const n = await this.prisma.evacuation.count({ where: { consultationId: id, statut: { not: 'ANNULE' } } })
@@ -593,37 +611,26 @@ export class ConsultationService {
 
   // ── Suppression définitive (consultation.delete) ─────────────────────────
   /**
-   * Supprime DÉFINITIVEMENT une consultation ANNULÉE et sans aucun document
-   * (ordonnance, bon d'examen, évacuation, accident, suivi, prénatale). Une
-   * consultation porteuse de documents ou non annulée n'est pas supprimable
-   * (traçabilité). Réservée à `consultation.delete`.
+   * Supprime DÉFINITIVEMENT une consultation CLÔTURÉE ou ANNULÉE — jamais une
+   * consultation encore OUVERTE (il faut d'abord la clôturer ou l'annuler).
+   * Purge en cascade tous ses documents (ordonnance, bons, évacuation, accident,
+   * suivi, prénatale, certificats, diagnostics) — réservée à `consultation.delete`.
+   * L'appelant (contrôleur) doit avoir présenté à l'utilisateur un écran de
+   * confirmation listant ce qui va être détruit AVANT d'appeler cette méthode.
    */
   async delete(id: string, siteId: string) {
     const c = await this.prisma.consultation.findFirst({ where: { id, visite: { siteId } } })
     if (!c) throw new NotFoundException('Consultation introuvable')
-    if (c.statut !== 'ANNULEE') {
-      throw new ConflictException('Seule une consultation ANNULÉE peut être supprimée (annulez-la d\'abord)')
+    if (c.statut === 'OUVERTE') {
+      throw new ConflictException('Clôturez ou annulez la consultation avant de la supprimer')
     }
-    // Comptes au NIVEAU RACINE sur le client étendu (filtre deletedAt:null) :
-    // un `_count` relationnel / include imbriqué n'est PAS filtré par l'extension
-    // soft-delete et compterait les documents déjà supprimés (tombstones), bloquant
-    // à tort la suppression d'une consultation dont tous les documents vivants ont disparu.
-    const [ordonnances, bonsExamen, bonsPharmacie, suiviChronique, consultationsPrenat, evacuation, accidentTravail] = await Promise.all([
-      this.prisma.ordonnance.count({ where: { consultationId: id } }),
-      this.prisma.bonExamen.count({ where: { consultationId: id } }),
-      this.prisma.bonPharmacie.count({ where: { consultationId: id } }),
-      this.prisma.suiviChronique.count({ where: { consultationId: id } }),
-      this.prisma.consultationPrenatale.count({ where: { consultationId: id } }),
-      this.prisma.evacuation.count({ where: { consultationId: id } }),
-      this.prisma.accidentTravail.count({ where: { consultationId: id } }),
-    ])
-    const docs = ordonnances + bonsExamen + bonsPharmacie + suiviChronique + consultationsPrenat + evacuation + accidentTravail
-    if (docs > 0) {
-      throw new ConflictException('Cette consultation porte des documents — supprimez/annulez-les d\'abord')
-    }
-    await this.prisma.$transaction([
-      this.prisma.diagnosticConsultation.deleteMany({ where: { consultationId: id } }),
-      this.prisma.consultation.delete({ where: { id } }),
+    // Suppression réellement DÉFINITIVE : passe par le client BRUT (`this.prisma.raw`) pour
+    // contourner l'extension soft-delete — sinon Consultation/Ordonnance/BonExamen/… (tous
+    // dans l'allow-list) deviendraient de simples tombstones (update deletedAt) au lieu
+    // d'être vraiment effacés, contredisant la purge « irréversible » voulue ici.
+    await this.prisma.raw.$transaction([
+      ...consultationCascadeDeleteOps(this.prisma.raw, id),
+      this.prisma.raw.consultation.delete({ where: { id } }),
     ])
     return { deleted: true }
   }
@@ -891,8 +898,18 @@ export class ConsultationService {
   }
 
   // ── Ordonnance — annuler (validée → annulée) ──────────────────────────────
-  async annulerOrdonnance(consultationId: string, ordonnanceId: string, userId: string, siteId: string) {
-    await this.assertEditable(consultationId, userId, siteId)
+  /**
+   * Annule une ordonnance. Volontairement SANS `assertEditable` (pas de contrôle de
+   * site ni d'état de la consultation) : cette action est aussi utilisée depuis l'onglet
+   * « Documents » du dossier patient CENTRALISÉ (tous sites, y compris sur une consultation
+   * déjà clôturée) — un document visible dans le dossier doit rester gérable depuis là.
+   * Pour l'édition ACTIVE (OrdonnanceCard), le frontend garde déjà le bouton masqué/désactivé
+   * hors consultation ouverte ou tenue par un autre soignant (readonly), donc aucune perte de
+   * protection sur ce chemin-là.
+   */
+  async annulerOrdonnance(consultationId: string, ordonnanceId: string) {
+    const c = await this.prisma.consultation.findUnique({ where: { id: consultationId }, select: { id: true } })
+    if (!c) throw new NotFoundException('Consultation introuvable')
     const ord = await this.prisma.ordonnance.findUnique({ where: { id: ordonnanceId } })
     if (!ord || ord.consultationId !== consultationId) {
       throw new NotFoundException('Ordonnance introuvable')

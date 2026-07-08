@@ -17,6 +17,7 @@ import { usePatients, useCreatePatient, useFindSimilarPatients } from '@/modules
 import { usePermissions }              from '@/hooks/usePermissions'
 import { useSessionStore }             from '@/stores/session.store'
 import { PatientAvatar, CategorieBadge } from '@/modules/patients/components/CategorieBadge'
+import { SiteActifSwitch } from '@/components/layout/SiteActifSwitch'
 import { nomPersonne, dateNaissance as dateNaissanceSchema, todayISO, minBirthISO } from '@/lib/validation'
 import { calcAge } from '@/lib/age'
 
@@ -273,6 +274,12 @@ export function NouvelleVisitePanel({ onClose, onCreated }: Props) {
             }}>
               {t('triage.drawerSubtitleStart')}
             </p>
+            {/* Site où ce triage/consultation a lieu — le personnel médical tourne
+                entre les deux sites (planning de permutation) ; réutilise le même
+                sélecteur que l'en-tête global, une seule source de vérité. */}
+            <div style={{ marginTop: 6 }}>
+              <SiteActifSwitch />
+            </div>
           </div>
           <button
             aria-label={t('triage.fermerPanneau')}

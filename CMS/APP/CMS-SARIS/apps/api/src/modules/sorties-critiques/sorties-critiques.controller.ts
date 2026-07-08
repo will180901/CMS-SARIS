@@ -79,7 +79,7 @@ export class EvacuationsController {
   @Delete(':id')
   @RequirePermissions('evacuation.delete')
   @HttpCode(HttpStatus.OK)
-  remove(@Param('id') id: string, @Req() req: AuthedRequest) {
-    return this.svc.deleteEvacuation(id, requireSite(req))
+  remove(@Param('id') id: string) {
+    return this.svc.deleteEvacuation(id)
   }
 }
