@@ -16,6 +16,7 @@ import {
   AlertTriangle,
   BookOpen,
   MessageSquare,
+  FileBarChart,
 } from 'lucide-react'
 import type { LucideIcon }     from 'lucide-react'
 import type { PermissionCode, Role } from '@cms-saris/types'
@@ -53,6 +54,14 @@ export const NAV_GROUPS: NavGroup[] = [
         href:        '/dashboard',
         permissions: ['dashboard.read'],
         description: 'Vue d\'ensemble de l\'activité du centre',
+      },
+      {
+        key:         'rapports',
+        label:       'Rapports',
+        icon:        FileBarChart,
+        href:        '/rapports',
+        permissions: ['consultation.read'],
+        description: 'Rapports statistiques générés automatiquement (hebdo/mensuel/annuel)',
       },
       {
         key:         'triage',

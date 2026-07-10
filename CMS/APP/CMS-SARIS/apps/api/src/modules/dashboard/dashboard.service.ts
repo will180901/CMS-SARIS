@@ -298,22 +298,39 @@ export class DashboardService {
       .sort((a, b) => b.count - a.count)
       .slice(0, 15)
 
-    // 3. Par catégorie de patient + repos (agrégation en mémoire)
+    // 3. Par catégorie de patient + département/direction + repos (agrégation en mémoire)
     const consults = await this.prisma.consultation.findMany({
       where:  { visite: { siteId }, createdAt: period },
       select: {
         reposJours: true,
-        visite: { select: { patient: { select: { categoriePatient: { select: { libelle: true } } } } } },
+        visite: {
+          select: {
+            patient: {
+              select: {
+                categoriePatient: { select: { libelle: true } },
+                donneesEmploi:    { select: { departement: true } },
+              },
+            },
+          },
+        },
       },
     })
     const catMap = new Map<string, number>()
+    const deptMap = new Map<string, number>()
     let totalReposJours = 0, consultAvecRepos = 0
     for (const c of consults) {
       const lib = c.visite?.patient?.categoriePatient?.libelle ?? '—'
       catMap.set(lib, (catMap.get(lib) ?? 0) + 1)
+      const dept = c.visite?.patient?.donneesEmploi?.departement ?? '—'
+      deptMap.set(dept, (deptMap.get(dept) ?? 0) + 1)
       if (c.reposJours && c.reposJours > 0) { totalReposJours += c.reposJours; consultAvecRepos++ }
     }
     const parCategorie = [...catMap.entries()]
+      .map(([libelle, count]) => ({ libelle, count }))
+      .sort((a, b) => b.count - a.count)
+    // Écart recueil §9 (segmentation département/direction) : le champ existait
+    // (DonneesEmploi.departement) mais n'était jamais exploité par le dashboard.
+    const parDepartement = [...deptMap.entries()]
       .map(([libelle, count]) => ({ libelle, count }))
       .sort((a, b) => b.count - a.count)
 
@@ -324,6 +341,86 @@ export class DashboardService {
       parType,
       parPathologie,
       parCategorie,
+      parDepartement,
     }
+  }
+
+  /**
+   * Croisement pathologie × catégorie de patient × département (recueil §6.2) —
+   * une ligne par combinaison observée sur la période, triée par volume décroissant.
+   */
+  async getCroisementPathologieCategorieDirection(siteId: string, fromStr?: string, toStr?: string) {
+    const from = fromStr ? new Date(fromStr) : daysAgo(29)
+    from.setHours(0, 0, 0, 0)
+    const toEnd = toStr ? new Date(toStr) : new Date()
+    toEnd.setHours(23, 59, 59, 999)
+
+    const diagnostics = await this.prisma.diagnosticConsultation.findMany({
+      where: {
+        type: 'PRINCIPAL',
+        consultation: { visite: { siteId }, createdAt: { gte: from, lte: toEnd } },
+      },
+      select: {
+        pathologie: { select: { libelle: true } },
+        consultation: {
+          select: {
+            visite: {
+              select: {
+                patient: {
+                  select: {
+                    categoriePatient: { select: { libelle: true } },
+                    donneesEmploi:    { select: { departement: true } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    })
+
+    const crossMap = new Map<string, { pathologie: string; categorie: string; departement: string; count: number }>()
+    for (const d of diagnostics) {
+      const pathologie  = d.pathologie.libelle
+      const categorie   = d.consultation.visite?.patient?.categoriePatient?.libelle ?? '—'
+      const departement = d.consultation.visite?.patient?.donneesEmploi?.departement ?? '—'
+      const key = `${pathologie}::${categorie}::${departement}`
+      const slot = crossMap.get(key)
+      if (slot) slot.count++
+      else crossMap.set(key, { pathologie, categorie, departement, count: 1 })
+    }
+
+    return [...crossMap.values()].sort((a, b) => b.count - a.count)
+  }
+
+  /**
+   * Évolution annuelle mensuelle (recueil §6.2) : consultations et repos maladie,
+   * mois par mois sur l'année demandée — vraie série temporelle, pas un cumul
+   * sur une période glissante comme `getActivityTrend`/`getStatistiques`.
+   */
+  async getEvolutionAnnuelle(siteId: string, annee: number) {
+    const debut = new Date(annee, 0, 1)
+    const fin   = new Date(annee + 1, 0, 1)
+
+    const consultations = await this.prisma.consultation.findMany({
+      where:  { visite: { siteId }, createdAt: { gte: debut, lt: fin } },
+      select: { createdAt: true, reposJours: true },
+    })
+
+    const parMois = new Map<string, { consultations: number; reposJours: number }>()
+    for (let m = 0; m < 12; m++) {
+      const cle = `${annee}-${String(m + 1).padStart(2, '0')}`
+      parMois.set(cle, { consultations: 0, reposJours: 0 })
+    }
+    for (const c of consultations) {
+      const cle = `${c.createdAt.getFullYear()}-${String(c.createdAt.getMonth() + 1).padStart(2, '0')}`
+      const slot = parMois.get(cle)
+      if (slot) {
+        slot.consultations++
+        if (c.reposJours && c.reposJours > 0) slot.reposJours += c.reposJours
+      }
+    }
+
+    return [...parMois.entries()].map(([mois, v]) => ({ mois, ...v }))
   }
 }

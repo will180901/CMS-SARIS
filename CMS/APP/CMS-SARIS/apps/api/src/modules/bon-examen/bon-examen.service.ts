@@ -9,7 +9,6 @@ import {
   Injectable, NotFoundException, ConflictException, BadRequestException,
 } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
-import { assertPeutPrescrire, type PrescriptionScope } from '../../common/prescription'
 import { assertPrestationCouverte } from '../../common/droits-categorie'
 import {
   CreateBonExamenDto, UpdateBonExamenDto, ValiderBonExamenDto,
@@ -82,10 +81,7 @@ export class BonExamenService {
 
   // ── Créer ─────────────────────────────────────────────────────────────────
 
-  async create(dto: CreateBonExamenDto, siteId: string, scope: PrescriptionScope) {
-    // Droit de prescrire (recueil) : médecin chef libre, infirmier seulement si délégué.
-    await assertPeutPrescrire(this.prisma, scope)
-
+  async create(dto: CreateBonExamenDto, siteId: string) {
     // Vérifier consultation (et qu'elle appartient au site de l'appelant)
     const consultation = await this.prisma.consultation.findFirst({
       where:  { id: dto.consultationId, visite: { siteId } },

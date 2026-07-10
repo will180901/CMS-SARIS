@@ -24,6 +24,10 @@ export interface Consultation {
   delegationId?:    string | null
   statut:           StatutConsultation
   examenClinique?:  string | null
+  anamneseDateDebut?: string | null
+  anamneseDuree?:     string | null
+  anamneseModeDebut?: string | null
+  anamneseSymptomes?: string | null
   conclusion?:      string | null
   decisionMedicale?: DecisionMedicale | null
   motifAnnulation?: string | null

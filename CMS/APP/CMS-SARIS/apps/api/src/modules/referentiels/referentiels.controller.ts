@@ -186,6 +186,14 @@ export class ReferentielsController {
     return this.svc.findAllCategoriesPatient(query)
   }
 
+  // Route statique déclarée avant toute route `:id` du groupe pour ne jamais être
+  // capturée par un paramètre id (aucune route GET `:id` ici, gardé par prudence).
+  @Get('categories-patient/droits')
+  @RequirePermissions('referentiel.read')
+  getDroitsCategoriesPatient() {
+    return this.svc.findDroitsCategoriesPatient()
+  }
+
   @Post('categories-patient')
   @RequirePermissions('referentiel.categorie.create')
   @HttpCode(HttpStatus.CREATED)

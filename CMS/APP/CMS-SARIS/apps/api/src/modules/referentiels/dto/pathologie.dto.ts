@@ -31,6 +31,18 @@ export class CreatePathologieDto {
   })
   @IsBoolean()
   chronique?: boolean
+
+  @IsOptional()
+  @Transform(({ obj }) => {
+    const raw = (obj as { confidentialiteRenforcee?: unknown }).confidentialiteRenforcee
+    return raw === true || raw === 'true'
+      ? true
+      : raw === false || raw === 'false'
+        ? false
+        : raw
+  })
+  @IsBoolean()
+  confidentialiteRenforcee?: boolean
 }
 
 // SÉCURITÉ : `statut` retiré — toggle via /pathologies/:id/statut (referentiel.delete).

@@ -9,7 +9,6 @@ import {
   Injectable, NotFoundException, ConflictException, BadRequestException,
 } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
-import { assertPeutPrescrire, type PrescriptionScope } from '../../common/prescription'
 import { assertPrestationCouverte } from '../../common/droits-categorie'
 import {
   CreateBonPharmacieDto, AnnulerBonPharmacieDto, BonPharmacieQueryDto,
@@ -64,10 +63,7 @@ export class BonPharmacieService {
     return this.getOrThrow(id, siteId)
   }
 
-  async create(dto: CreateBonPharmacieDto, siteId: string, scope: PrescriptionScope, prescripteurId: string) {
-    // Droit de prescrire (recueil) : médecin chef libre, infirmier seulement si délégué.
-    await assertPeutPrescrire(this.prisma, scope)
-
+  async create(dto: CreateBonPharmacieDto, siteId: string, prescripteurId: string) {
     const consultation = await this.prisma.consultation.findFirst({
       where:  { id: dto.consultationId, visite: { siteId } },
       select: { statut: true, visite: { select: { patient: { select: { categoriePatientId: true } } } } },
@@ -78,6 +74,16 @@ export class BonPharmacieService {
     // train d'examiner, jamais après une annulation.
     if (consultation.statut !== 'CLOTUREE') {
       throw new ConflictException('Le bon de pharmacie ne peut être créé qu\'une fois la consultation clôturée')
+    }
+
+    // Le bon de pharmacie délivre ce que l'ordonnance a prescrit — il exige donc
+    // qu'une ordonnance VALIDÉE existe pour cette consultation (contrairement au bon
+    // d'examen, indépendant de toute ordonnance).
+    const ordonnanceValidee = await this.prisma.ordonnance.count({
+      where: { consultationId: dto.consultationId, statut: 'VALIDEE' },
+    })
+    if (ordonnanceValidee === 0) {
+      throw new ConflictException('Une ordonnance validée est requise avant de créer un bon de pharmacie')
     }
 
     // RÈGLE CENTRALE (recueil) : médicaments réservés aux CDI + ayants droit.

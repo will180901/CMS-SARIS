@@ -41,11 +41,7 @@ export class BonPharmacieController {
   @RequirePermissions('bon_pharmacie.create')
   @HttpCode(HttpStatus.CREATED)
   create(@Body() dto: CreateBonPharmacieDto, @CurrentUser() user: UserSession) {
-    return this.svc.create(
-      dto, user.siteId,
-      { roles: user.roles, personnelMedicalId: user.personnelMedicalId },
-      user.personnelMedicalId ?? user.id,
-    )
+    return this.svc.create(dto, user.siteId, user.personnelMedicalId ?? user.id)
   }
 
   @Patch(':id/delivrer')

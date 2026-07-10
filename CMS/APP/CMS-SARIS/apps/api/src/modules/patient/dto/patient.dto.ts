@@ -115,6 +115,7 @@ export class UpsertModeVieDto {
   @IsOptional() @IsString() @MaxLength(200) troublesSommeil?:  string
   @IsOptional() @IsString() @MaxLength(200) sedentarite?:      string
   @IsOptional() @IsString() @MaxLength(200) portCharges?:      string
+  @IsOptional() @IsString() @MaxLength(200) automedication?:   string
   @IsOptional() @IsString() @MaxLength(1000) observations?:    string
 }
 

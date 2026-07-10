@@ -164,7 +164,7 @@ export class ConsultationService {
   async findAll(
     siteId: string,
     query: ConsultationQueryDto,
-    scope?: { canReadAll: boolean; personnelMedicalId: string | null; canViewLocked?: boolean },
+    scope?: { canReadAll: boolean; personnelMedicalId: string | null; canViewLocked?: boolean; restreindreHistorique?: boolean },
   ) {
     // Dossier patient (query.patientId) : vue CENTRALISÉE, comme findPatientDocuments —
     // ni restriction de site, ni restriction « mes consultations seulement ». La file
@@ -189,7 +189,11 @@ export class ConsultationService {
     }
 
     // Filtre statut
-    if (query.statut === 'TOUTES') {
+    if (isPatientDossier && scope?.restreindreHistorique) {
+      // Confidentialité (recueil §5) : l'infirmier consultant l'historique d'un patient
+      // n'a accès qu'à la consultation EN COURS, jamais aux consultations passées.
+      where.statut = 'OUVERTE'
+    } else if (query.statut === 'TOUTES') {
       // pas de filtre statut
     } else if (!query.statut || query.statut === 'ACTIVES') {
       where.statut = 'OUVERTE'
@@ -265,7 +269,7 @@ export class ConsultationService {
   // ── Documents générés d'un patient (dossier → onglet Documents) ────────────
   // Agrège tous les actes documentaires de toutes les consultations du patient :
   // ordonnances, bons d'examen, évacuations, accidents du travail.
-  async findPatientDocuments(patientId: string, scope?: { restrictToOwn: boolean; personnelMedicalId: string | null; canViewLocked?: boolean; canViewEvacuations?: boolean }) {
+  async findPatientDocuments(patientId: string, scope?: { restrictToOwn: boolean; personnelMedicalId: string | null; canViewLocked?: boolean; canViewEvacuations?: boolean; restreindreHistorique?: boolean }) {
     // Verrou de confidentialité (médecin-chef) : dossier verrouillé + appelant non-supervision
     // → aucun document (cohérent avec patient.findById qui dépouille le dossier).
     if (!scope?.canViewLocked) {
@@ -285,7 +289,9 @@ export class ConsultationService {
       }
     }
     const consultations = await this.prisma.consultation.findMany({
-      where:   { visite: { patientId } },   // dossier centralisé : tous les documents du patient (tous sites)
+      // dossier centralisé : tous les documents du patient (tous sites) — sauf pour
+      // l'infirmier restreint (recueil §5), limité aux documents de la consultation en cours.
+      where:   scope?.restreindreHistorique ? { visite: { patientId }, statut: 'OUVERTE' } : { visite: { patientId } },
       orderBy: { createdAt: 'desc' },
       include: {
         visite:      { select: { id: true, dateOuverture: true, motifPrincipal: { select: { libelle: true } }, site: { select: { libelle: true } } } },
@@ -350,6 +356,18 @@ export class ConsultationService {
     if (!soignant) throw new NotFoundException('Soignant introuvable')
     if (soignant.statut !== 'ACTIF') throw new ConflictException('Soignant inactif')
 
+    // Un soignant ne peut avoir qu'une seule consultation OUVERTE à la fois (miroir de la
+    // règle « une seule visite EN_COURS » côté triage).
+    const soignantOccupe = await this.prisma.consultation.findFirst({
+      where: { soignantId, statut: 'OUVERTE' },
+      select: { id: true, visite: { select: { patient: { select: { numeroPatient: true } } } } },
+    })
+    if (soignantOccupe) {
+      throw new ConflictException(
+        `Ce soignant a déjà une consultation ouverte (patient ${soignantOccupe.visite.patient.numeroPatient}) — clôturez-la avant d'en ouvrir une nouvelle`,
+      )
+    }
+
     // Pas de consultation ouverte en double
     const existing = await this.prisma.consultation.findFirst({
       where: { visiteId: dto.visiteId, statut: 'OUVERTE' },
@@ -411,7 +429,17 @@ export class ConsultationService {
 
     return this.prisma.consultation.update({
       where: { id },
-      data:  { examenClinique: dto.examenClinique?.trim() || null },
+      // Chaque champ n'est modifié QUE si fourni (undefined = inchangé) — permet un
+      // appel dédié à l'anamnèse sans effacer le texte libre `examenClinique`, et
+      // réciproquement. `null` explicite efface toujours le champ (comportement existant).
+      data:  {
+        ...(dto.examenClinique    !== undefined && { examenClinique:    dto.examenClinique?.trim()    || null }),
+        // Anamnèse structurée (recueil §3.2)
+        ...(dto.anamneseDateDebut !== undefined && { anamneseDateDebut: dto.anamneseDateDebut ? new Date(dto.anamneseDateDebut) : null }),
+        ...(dto.anamneseDuree     !== undefined && { anamneseDuree:     dto.anamneseDuree?.trim()     || null }),
+        ...(dto.anamneseModeDebut !== undefined && { anamneseModeDebut: dto.anamneseModeDebut?.trim() || null }),
+        ...(dto.anamneseSymptomes !== undefined && { anamneseSymptomes: dto.anamneseSymptomes?.trim() || null }),
+      },
     })
   }
 

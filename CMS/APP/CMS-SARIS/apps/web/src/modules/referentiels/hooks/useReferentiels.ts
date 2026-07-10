@@ -36,6 +36,7 @@ export const QUERY_KEYS = {
   pathologies:  ['referentiels', 'pathologies']  as const,
   medicaments:  ['referentiels', 'medicaments']  as const,
   categories:   ['referentiels', 'categories']   as const,
+  categoriesDroits: ['referentiels', 'categories', 'droits'] as const,
   examens:      ['referentiels', 'examens']      as const,
   typesConsultation: ['referentiels', 'types-consultation'] as const,
 }
@@ -257,6 +258,22 @@ export function useCategoriesPatient() {
     queryKey: QUERY_KEYS.categories,
     queryFn:  referentielsApi.categories.list,
     staleTime: 30_000,
+  })
+}
+
+/**
+ * Droits par catégorie (bon d'examen / bon de pharmacie) — à consommer par toute
+ * carte de document au lieu de comparer `categorieCode` en dur (cf.
+ * ReferentielsService.findDroitsCategoriesPatient) : seule source qui reflète
+ * exactement la même règle que le backend applique réellement à la création d'un bon.
+ * `staleTime` long : cette matrice ne change qu'en cas d'évolution de la couverture
+ * médicale (rare), jamais lors d'un simple renommage de catégorie.
+ */
+export function useCategoriesDroits() {
+  return useQuery({
+    queryKey: QUERY_KEYS.categoriesDroits,
+    queryFn:  referentielsApi.categories.droits,
+    staleTime: 5 * 60_000,
   })
 }
 

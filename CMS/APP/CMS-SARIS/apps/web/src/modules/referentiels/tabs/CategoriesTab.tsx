@@ -31,7 +31,7 @@ const catSchema = z.object({
 })
 type CatForm = z.infer<typeof catSchema>
 
-function CatFormFields({ form }: { form: ReturnType<typeof useForm<CatForm>> }) {
+function CatFormFields({ form, isEdit }: { form: ReturnType<typeof useForm<CatForm>>; isEdit: boolean }) {
   const { t } = useTranslation()
   const { register, formState: { errors } } = form
   return (
@@ -40,9 +40,11 @@ function CatFormFields({ form }: { form: ReturnType<typeof useForm<CatForm>> }) 
         <Label style={{ fontSize: '13px', fontWeight: '500', color: 'var(--texte-primaire)', marginBottom: '6px', display: 'block' }}>
           {t('referentiels.fieldCode')} <span style={{ color: 'var(--erreur-texte)' }}>*</span>
         </Label>
-        <Input {...register('code')} placeholder={t('referentiels.catCodePlaceholder')}
-          style={{ fontFamily: 'var(--font-mono)', textTransform: 'uppercase', fontSize: '13px' }} />
-        {errors.code && <p style={{ fontSize: '12px', color: 'var(--erreur-texte)', marginTop: '4px' }}>{errors.code.message}</p>}
+        <Input {...register('code')} placeholder={t('referentiels.catCodePlaceholder')} disabled={isEdit}
+          style={{ fontFamily: 'var(--font-mono)', textTransform: 'uppercase', fontSize: '13px', opacity: isEdit ? 0.6 : 1, cursor: isEdit ? 'not-allowed' : 'text' }} />
+        {isEdit
+          ? <p style={{ fontSize: '11px', color: 'var(--texte-tertiaire)', marginTop: '4px' }}>{t('referentiels.catCodeLocked')}</p>
+          : errors.code && <p style={{ fontSize: '12px', color: 'var(--erreur-texte)', marginTop: '4px' }}>{errors.code.message}</p>}
       </div>
       <div>
         <Label style={{ fontSize: '13px', fontWeight: '500', color: 'var(--texte-primaire)', marginBottom: '6px', display: 'block' }}>
@@ -93,8 +95,16 @@ export function CategoriesTab({ canCreate, canUpdate, canDelete }: { canCreate: 
 
   async function handleSave() {
     const ok = await form.trigger(); if (!ok) return
-    const data = form.getValues()
-    if (editTarget) { await updateCat.mutateAsync({ id: editTarget.id, data }) }
+    // `form.getValues()` renvoie les valeurs BRUTES saisies — le `.toUpperCase()` de
+    // `codeReferentiel()` n'est appliqué par le resolver qu'au moment de la validation,
+    // jamais réécrit dans l'état du formulaire. On repasse donc par le schéma pour que
+    // le code réellement envoyé au serveur (comparé ensuite en dur par
+    // patient.service.ts / droits-categorie.ts) soit bien normalisé en majuscules.
+    const data = catSchema.parse(form.getValues())
+    // `code` est immuable après création (cf. UpdateCategoriePayload) — on ne renvoie
+    // jamais que le libellé à la mise à jour, même si le champ (désactivé) est présent
+    // dans le formulaire.
+    if (editTarget) { await updateCat.mutateAsync({ id: editTarget.id, data: { libelle: data.libelle } }) }
     else { await createCat.mutateAsync(data) }
     closeDrawer()
   }
@@ -142,7 +152,7 @@ export function CategoriesTab({ canCreate, canUpdate, canDelete }: { canCreate: 
       <DrawerShell open={drawerOpen} onClose={closeDrawer} icon={<Users size={18} />}
         title={editTarget ? t('referentiels.editPrefix', { value: editTarget.code }) : t('referentiels.catDrawerNewTitle')}
         onSave={handleSave} isSaving={createCat.isPending || updateCat.isPending} isDirty={form.formState.isDirty}>
-        <CatFormFields form={form} />
+        <CatFormFields form={form} isEdit={!!editTarget} />
       </DrawerShell>
 
       <ConfirmDialog open={!!confirm} onCancel={() => setConfirm(null)}

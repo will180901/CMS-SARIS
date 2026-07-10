@@ -130,6 +130,7 @@ export interface AntecedentPayload {
   type:        string
   description: string
   statut?:     string
+  pathologieId?: string
 }
 
 export interface AlertePayload {
@@ -183,6 +184,53 @@ export interface MatriculeLookup {
   identite:         { nom: string; prenom: string; dateNaissance: string; sexe: string } | null
 }
 
+// Suivi du dossier (traitement, évolution des pathologies chroniques, résultats d'examens).
+export interface SuiviChroniqueItem {
+  pathologieId:      string
+  pathologie:        { id: string; libelle: string }
+  suivi: {
+    id:             string
+    pathologieId:   string
+    frequenceSuivi: string | null
+    objectifs:      string | null
+    statut:         string
+    createdAt:      string
+  } | null
+  occurrences:       number
+  premierDiagnostic: string
+  dernierDiagnostic: string
+}
+
+export interface SuiviTraitementItem {
+  ligneId:          string
+  ordonnanceId:     string
+  consultationId:   string
+  date:             string
+  statutOrdonnance: string
+  medicament:       string
+  posologie:        string
+  duree:            string
+  voieAdmin:        string
+}
+
+export interface SuiviResultatExamenItem {
+  id:             string
+  bonId:          string
+  consultationId: string
+  date:           string
+  laboratoire:    string | null
+  contenu:        string
+  interpretation: string | null
+  statut:         string
+  examens:        string[]
+}
+
+export interface PatientSuivi {
+  chroniques:       SuiviChroniqueItem[]
+  traitements:      SuiviTraitementItem[]
+  resultatsExamens: SuiviResultatExamenItem[]
+}
+
 // ── API ───────────────────────────────────────────────────────────────────────
 
 export const patientsApi = {
@@ -194,6 +242,7 @@ export const patientsApi = {
   constantes: (id: string)               => api.get<ConstanteVitale[]>(`/patients/${id}/constantes`),
   alertesCliniques: (id: string)         => api.get<AlerteClinique[]>(`/patients/${id}/alertes-cliniques`),
   ayantsDroits: (id: string)             => api.get<AyantDroitLien[]>(`/patients/${id}/ayants-droits`),
+  suivi: (id: string)                    => api.get<PatientSuivi>(`/patients/${id}/suivi`),
   byMatricule:  (matricule: string)      => api.get<MatriculeLookup>(`/patients/by-matricule/${encodeURIComponent(matricule)}`),
 
   // Photo (upload fichier)

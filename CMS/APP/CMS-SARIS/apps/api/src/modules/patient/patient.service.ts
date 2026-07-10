@@ -95,7 +95,7 @@ const DOSSIER_INCLUDE = {
   // include imbriqués Prisma ne reçoivent PAS le filtre de l'extension soft-delete, sinon
   // le dossier laisse fuiter les sous-ressources supprimées (tombstones).
   allergies:        { where: { deletedAt: null }, orderBy: { createdAt: 'desc' as const } },
-  antecedents:      { where: { deletedAt: null } },   // AntecedentPatient n'a pas de createdAt
+  antecedents:      { where: { deletedAt: null }, include: { pathologie: { select: { id: true, libelle: true, confidentialiteRenforcee: true } } } },   // AntecedentPatient n'a pas de createdAt
   alertesMedicales: { where: { deletedAt: null }, orderBy: { createdAt: 'desc' as const } },
   historiquesCateg: {
     include:  { nouvelleCategorie: CATEGORIE_SELECT },
@@ -293,13 +293,20 @@ export class PatientService {
     }
   }
 
-  async findById(id: string, scope?: { restrictToOwn: boolean; personnelMedicalId: string | null; canViewLocked?: boolean }) {
+  async findById(id: string, scope?: { restrictToOwn: boolean; personnelMedicalId: string | null; canViewLocked?: boolean; restreindreHistorique?: boolean }) {
     const dossier = await this.prisma.patient.findUnique({
       where:   { id },
       include: DOSSIER_INCLUDE,
     })
     if (!dossier) throw new NotFoundException(`Patient ${id} introuvable`)
     await this.assertOwnPatient(id, scope)
+
+    // Confidentialité renforcée (VIH/SIDA, santé mentale, etc.) : un antécédent lié à
+    // une pathologie marquée `confidentialiteRenforcee` est masqué à l'INFIRMIER, même si
+    // le reste des antécédents (sécurité clinique de base) lui reste visible.
+    const antecedents = scope?.restreindreHistorique
+      ? dossier.antecedents.filter(a => !a.pathologie?.confidentialiteRenforcee)
+      : dossier.antecedents
 
     // Le CDI rattaché à un ayant droit se résout par DEUX voies distinctes selon le
     // flux d'origine : `cdiId` (legacy, sans relation Prisma — lien direct vers un
@@ -338,7 +345,7 @@ export class PatientService {
     if (dossier.verrouille && !scope?.canViewLocked) {
       return { ...dossier, rattachementsAD, allergies: [], antecedents: [], alertesMedicales: [], modeVie: null, donneesEmploi: null }
     }
-    return { ...dossier, rattachementsAD }
+    return { ...dossier, rattachementsAD, antecedents }
   }
 
   /** Verrou (médecin-chef) : restreint l'accès au dossier à la supervision. */
@@ -366,11 +373,15 @@ export class PatientService {
    * de soins) : l'historique suit le patient même s'il a été soigné sur un autre
    * site (ex. travailleur muté). Le cloisonnement ne s'applique plus au dossier.
    */
-  async findConstantes(patientId: string, scope?: { restrictToOwn: boolean; personnelMedicalId: string | null; canViewLocked?: boolean }) {
+  async findConstantes(patientId: string, scope?: { restrictToOwn: boolean; personnelMedicalId: string | null; canViewLocked?: boolean; restreindreHistorique?: boolean }) {
     await this.assertOwnPatient(patientId, scope)
     if (await this.isCliniqueMasque(patientId, scope?.canViewLocked)) return []
     const constantes = await this.prisma.constanteVitale.findMany({
-      where:   { patientId },   // suit le patient (tous sites)
+      // Confidentialité (recueil §5) : l'infirmier n'a accès qu'aux constantes de la
+      // visite EN COURS, pas à l'historique complet (réservé au médecin chef).
+      where: scope?.restreindreHistorique
+        ? { patientId, visite: { statut: { in: ['EN_ATTENTE', 'EN_COURS'] } } }
+        : { patientId },   // suit le patient (tous sites)
       orderBy: { createdAt: 'desc' },
     })
 
@@ -472,6 +483,96 @@ export class PatientService {
     const order: Record<AlerteClinique['gravite'], number> = { CRITIQUE: 0, ELEVE: 1, MODERE: 2 }
     alertes.sort((a, b) => order[a.gravite] - order[b.gravite])
     return alertes
+  }
+
+  /**
+   * Suivi du dossier (onglet Dossier médical → Suivi) — trois axes cliniques,
+   * calculés sur l'historique COMPLET du patient (tous sites — dossier centralisé) :
+   *   1. Évolution des pathologies chroniques (occurrences + suivi formel s'il existe)
+   *   2. Traitement (historique des lignes d'ordonnances validées)
+   *   3. Résultats d'examens (ResultatExamen, jamais exposés dans le dossier avant)
+   */
+  async findSuivi(patientId: string) {
+    await this.assertPatientExists(patientId)
+
+    const [diagnosticsChroniques, suivis, lignesOrdonnance, resultats] = await Promise.all([
+      this.prisma.diagnosticConsultation.findMany({
+        where:  { pathologie: { chronique: true }, consultation: { visite: { patientId } } },
+        select: {
+          pathologieId: true,
+          pathologie:   { select: { id: true, libelle: true } },
+          consultationId: true,
+          consultation: { select: { createdAt: true } },
+        },
+        orderBy: { consultation: { createdAt: 'desc' } },
+      }),
+      this.prisma.suiviChronique.findMany({
+        where:  { OR: [{ patientId }, { consultation: { visite: { patientId } } }] },
+        select: { id: true, pathologieId: true, frequenceSuivi: true, objectifs: true, statut: true, createdAt: true },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.ligneOrdonnance.findMany({
+        where:  { ordonnance: { statut: 'VALIDEE', consultation: { visite: { patientId } } } },
+        select: {
+          id: true, posologie: true, duree: true, voieAdmin: true,
+          medicament:  { select: { nomGenerique: true, nomCommercial: true } },
+          ordonnance:  { select: { id: true, statut: true, consultationId: true, createdAt: true } },
+        },
+        orderBy: { ordonnance: { createdAt: 'desc' } },
+      }),
+      this.prisma.resultatExamen.findMany({
+        where:  { bon: { consultation: { visite: { patientId } } } },
+        select: {
+          id: true, bonId: true, laboratoire: true, contenu: true, interpretation: true, statut: true, createdAt: true,
+          bon: { select: { consultationId: true, lignes: { select: { typeExamen: { select: { libelle: true } } } } } },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+    ])
+
+    // Regrouper les diagnostics chroniques par pathologie (occurrences = évolution).
+    const parPathologie = new Map<string, { pathologie: { id: string; libelle: string }; dates: Date[] }>()
+    for (const d of diagnosticsChroniques) {
+      const entry = parPathologie.get(d.pathologieId) ?? { pathologie: d.pathologie, dates: [] }
+      entry.dates.push(d.consultation.createdAt)
+      parPathologie.set(d.pathologieId, entry)
+    }
+    const suiviMap = new Map(suivis.map(s => [s.pathologieId, s]))
+
+    const chroniques = [...parPathologie.entries()].map(([pathologieId, v]) => ({
+      pathologieId,
+      pathologie:        v.pathologie,
+      suivi:              suiviMap.get(pathologieId) ?? null,
+      occurrences:        v.dates.length,
+      premierDiagnostic:  v.dates[v.dates.length - 1],
+      dernierDiagnostic:  v.dates[0],
+    }))
+
+    const traitements = lignesOrdonnance.map(l => ({
+      ligneId:          l.id,
+      ordonnanceId:     l.ordonnance.id,
+      consultationId:   l.ordonnance.consultationId,
+      date:             l.ordonnance.createdAt,
+      statutOrdonnance: l.ordonnance.statut,
+      medicament:       l.medicament.nomCommercial || l.medicament.nomGenerique,
+      posologie:        l.posologie,
+      duree:            l.duree,
+      voieAdmin:        l.voieAdmin,
+    }))
+
+    const resultatsExamens = resultats.map(r => ({
+      id:             r.id,
+      bonId:          r.bonId,
+      consultationId: r.bon.consultationId,
+      date:           r.createdAt,
+      laboratoire:    r.laboratoire,
+      contenu:        r.contenu,
+      interpretation: r.interpretation,
+      statut:         r.statut,
+      examens:        r.bon.lignes.map(l => l.typeExamen.libelle),
+    }))
+
+    return { chroniques, traitements, resultatsExamens }
   }
 
   // ── Photo du patient ──────────────────────────────────────────────────────
@@ -646,6 +747,73 @@ export class PatientService {
     return dossier
   }
 
+  /**
+   * Dossier patient minimal (même vide — pas de téléphone/adresse/contact urgence)
+   * créé automatiquement quand un employé est enregistré au registre (Référentiels
+   * → Employés) avec date de naissance + sexe renseignés. Miroir de create() dans
+   * l'autre sens : là-bas un patient CDI enregistre son employé à la volée
+   * (ensureByMatricule) ; ici un employé enregistre son dossier patient à la volée.
+   * N'échoue jamais bruyamment (appelé en tâche de fond depuis EmployeService) :
+   * renvoie null si un dossier existe déjà ou si la catégorie/l'identité manque.
+   */
+  async createFromEmploye(employe: {
+    id: string; matricule: string; nom: string; prenom: string
+    dateNaissance: Date | null; sexe: string | null
+    fonction: string | null; sectionPaie: string | null; service: string | null; departement: string | null
+    categorie: string
+  }, siteId: string, createdBy?: string) {
+    if (!employe.dateNaissance || !employe.sexe) return null
+
+    const existing = await this.prisma.patient.findFirst({
+      where:  { OR: [{ employeId: employe.id }, { matricule: employe.matricule }] },
+      select: { id: true },
+    })
+    if (existing) return null
+
+    const categorie = await this.prisma.categoriePatient.findFirst({
+      where: { code: employe.categorie }, select: { id: true },
+    })
+    if (!categorie) return null
+
+    const numeroPatient = await this.generateNumeroPatient(siteId)
+
+    const dossier = await this.prisma.patient.create({
+      data: {
+        numeroPatient,
+        matricule:          employe.matricule,
+        employeId:           employe.id,
+        siteCreationId:      siteId,
+        categoriePatientId:  categorie.id,
+        createdBy:           createdBy ?? null,
+        identite: {
+          create: { nom: employe.nom, prenom: employe.prenom, dateNaissance: employe.dateNaissance, sexe: employe.sexe },
+        },
+        donneesEmploi: {
+          create: {
+            fonction: employe.fonction, sectionPaie: employe.sectionPaie,
+            service:  employe.service,  departement:  employe.departement,
+          },
+        },
+      },
+    })
+
+    await this.notif.emit({
+      type:               'PATIENT_CREE',
+      niveau:             'INFO',
+      category:           'clinique',
+      titre:              'Dossier patient créé automatiquement (registre employé)',
+      message:            `${employe.prenom} ${employe.nom} · ${numeroPatient}`,
+      siteId,
+      requiredPermission: 'patient.read',
+      entiteType:         'patient',
+      entiteId:           dossier.id,
+      lien:               `/patients/${dossier.id}`,
+      createdById:        createdBy ?? null,
+    })
+
+    return dossier
+  }
+
   // ── Mise à jour identité ──────────────────────────────────────────────────
 
   async updateIdentite(id: string, dto: UpdateIdentiteDto) {
@@ -728,6 +896,7 @@ export class PatientService {
       troublesSommeil:  dto.troublesSommeil  ?? null,
       sedentarite:      dto.sedentarite      ?? null,
       portCharges:      dto.portCharges      ?? null,
+      automedication:   dto.automedication   ?? null,
       observations:     dto.observations     ?? null,
     }
     await this.prisma.modeViePatient.upsert({
@@ -789,14 +958,19 @@ export class PatientService {
   async createAntecedent(patientId: string, dto: CreateAntecedentDto) {
     await this.assertPatientExists(patientId)
     return this.prisma.antecedentPatient.create({
-      data: { patientId, ...dto },
+      data:    { patientId, ...dto },
+      include: { pathologie: { select: { id: true, libelle: true } } },
     })
   }
 
   async updateAntecedent(patientId: string, antecedentId: string, dto: UpdateAntecedentDto) {
     const ant = await this.prisma.antecedentPatient.findFirst({ where: { id: antecedentId, patientId } })
     if (!ant) throw new NotFoundException('Antécédent introuvable')
-    return this.prisma.antecedentPatient.update({ where: { id: antecedentId }, data: dto })
+    return this.prisma.antecedentPatient.update({
+      where:   { id: antecedentId },
+      data:    dto,
+      include: { pathologie: { select: { id: true, libelle: true } } },
+    })
   }
 
   // ── Alertes médicales ─────────────────────────────────────────────────────

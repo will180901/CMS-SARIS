@@ -92,6 +92,7 @@ export interface ModeViePatient {
   troublesSommeil?:  string | null
   sedentarite?:      string | null
   portCharges?:      string | null
+  automedication?:   string | null
   observations?:     string | null
 }
 
@@ -111,6 +112,8 @@ export interface AntecedentPatient {
   type:        TypeAntecedent
   description: string
   statut:      'ACTIF' | 'RESOLU'
+  pathologieId?: string | null
+  pathologie?:   { id: string; libelle: string } | null
 }
 
 export interface AlerteMedicale {

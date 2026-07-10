@@ -2,29 +2,22 @@ import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
 import {
-  AlertTriangle, FileText, Stethoscope, History, NotebookPen, Plus, Check,
+  AlertTriangle, FileText, NotebookPen, Plus, Check, ChevronDown,
+  ClipboardList, Stethoscope, ListChecks,
 } from 'lucide-react'
 import { useVisite, useUpdateNotesVisite, visiteKey } from '../hooks/useTriage'
 import { useCreateAntecedent, useCreateAllergie, useCreateAlerte } from '@/modules/patients/hooks/usePatients'
+import { usePathologies } from '@/modules/referentiels/hooks/useReferentiels'
+import { isActif } from '@/modules/referentiels/api/referentiels.api'
 import { usePermissions } from '@/hooks/usePermissions'
 import { useIsCompact } from '@/hooks/useMediaQuery'
-import { SegmentedTabs, SelectBox, Card, Textarea, StatusPill }  from '@/components/saris'
+import { SelectBox, Card, Textarea, StatusPill }  from '@/components/saris'
 import { labelGravite, humanizeCode } from '@/config/labels'
-import { formatDateTime } from '@/lib/intl'
 import { VisiteSidebar }  from './VisiteSidebar'
 import { ConstantesForm } from './ConstantesForm'
 import { ActionsCard }    from './ActionsCard'
 import { VisiteArchiveSummary } from './VisiteArchiveSummary'
-import type { VisiteDetail as VisiteDetailType, VisiteEvenement } from '@cms-saris/types'
-
-// ── Tabs ──────────────────────────────────────────────────────────────────────
-
-const TABS = [
-  { key: 'triage',      labelKey: 'triage.tabTriage',      icon: Stethoscope },
-  { key: 'antecedents', labelKey: 'triage.tabAntecedents', icon: FileText    },
-  { key: 'historique',  labelKey: 'triage.tabHistorique',  icon: History     },
-] as const
-type TabKey = typeof TABS[number]['key']
+import type { VisiteDetail as VisiteDetailType } from '@cms-saris/types'
 
 // ── Bannière critique (calque exact DossierPage.AlerteBanner) ─────────────────
 
@@ -140,6 +133,22 @@ function MotifCard({ visite }: { visite: VisiteDetailType }) {
   )
 }
 
+// ── Bandeau « Triage allégé » (recueil §3.5) ──────────────────────────────────
+
+function TriageAllegeBanner() {
+  const { t } = useTranslation()
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 8,
+      padding: '10px 14px', borderRadius: 8,
+      background: 'var(--info-fond)', border: '1px solid var(--info-bordure)',
+    }}>
+      <FileText size={14} style={{ color: 'var(--info-texte)', flexShrink: 0 }} />
+      <span style={{ fontSize: 12, color: 'var(--info-texte)' }}>{t('triage.triageAllegeBanniere')}</span>
+    </div>
+  )
+}
+
 // ── Card "Notes d'accueil" ────────────────────────────────────────────────────
 
 function NotesCard({ visite }: { visite: VisiteDetailType }) {
@@ -210,7 +219,7 @@ function NotesCard({ visite }: { visite: VisiteDetailType }) {
   )
 }
 
-// ── Onglet Antécédents ────────────────────────────────────────────────────────
+// ── Antécédents, allergies, alertes (fusionné dans le flux de triage) ────────
 
 // Clés i18n des types d'antécédent / alerte (codes Prisma → clé `triage.`)
 const ANTECEDENT_LIBELLE: Record<string, string> = {
@@ -300,7 +309,7 @@ const addBtn = (disabled: boolean) => ({
   border: 'none', cursor: disabled ? 'not-allowed' : 'pointer',
 })
 
-function AntecedentsTab({ visite }: { visite: VisiteDetailType }) {
+function AntecedentsSection({ visite }: { visite: VisiteDetailType }) {
   const { t } = useTranslation()
   const allergies   = visite.patient?.allergies ?? []
   const alertes     = visite.patient?.alertesMedicales ?? []
@@ -325,6 +334,9 @@ function AntecedentsTab({ visite }: { visite: VisiteDetailType }) {
   // Champs antécédent
   const [antType, setAntType] = useState('MEDICAL')
   const [antDesc, setAntDesc] = useState('')
+  const [antPathologieId, setAntPathologieId] = useState('')
+  const { data: pathologies = [] } = usePathologies()
+  const pathologiesActives = pathologies.filter(p => isActif(p.statut))
   // Champs allergie
   const [allSub, setAllSub]   = useState('')
   const [allGrav, setAllGrav] = useState('MODERE')
@@ -335,8 +347,8 @@ function AntecedentsTab({ visite }: { visite: VisiteDetailType }) {
 
   async function submitAnt() {
     if (antDesc.trim().length < 5) return
-    await createAnt.mutateAsync({ type: antType, description: antDesc.trim() })
-    refreshVisite(); setAntDesc('')
+    await createAnt.mutateAsync({ type: antType, description: antDesc.trim(), pathologieId: antPathologieId || undefined })
+    refreshVisite(); setAntDesc(''); setAntPathologieId('')
   }
   async function submitAllergie() {
     if (allSub.trim().length < 2) return
@@ -364,6 +376,11 @@ function AntecedentsTab({ visite }: { visite: VisiteDetailType }) {
               <SelectBox size="md" value={antType} onChange={setAntType} aria-label={t('triage.typeAntecedentAria')}
                 options={Object.entries(ANTECEDENT_LIBELLE).map(([v, l]) => ({ value: v, label: t(l) }))} />
             </div>
+            <div style={{ width: 170, flexShrink: 0 }}>
+              <SelectBox size="md" value={antPathologieId} onChange={setAntPathologieId} aria-label={t('patients.fieldPathologie')}
+                placeholder={t('patients.pathologieNonListeePlaceholder')}
+                options={[{ value: '', label: t('patients.pathologieNonListee') }, ...pathologiesActives.map(p => ({ value: p.id, label: p.libelle }))]} />
+            </div>
             <input
               value={antDesc} maxLength={500}
               onChange={e => setAntDesc(e.target.value)}
@@ -382,6 +399,11 @@ function AntecedentsTab({ visite }: { visite: VisiteDetailType }) {
           return (
             <Puce key={a.id} dot={tone.text}>
               <span style={{ fontSize: '14px', color: 'var(--texte-primaire)', lineHeight: 1.4 }}>{a.description}</span>
+              {a.pathologie && (
+                <span style={{ fontSize: '11px', color: 'var(--ap-700)', fontWeight: 600, marginLeft: 8, background: 'var(--ap-50)', border: '1px solid var(--ap-200)', padding: '1px 7px', borderRadius: 99 }}>
+                  {a.pathologie.libelle}
+                </span>
+              )}
               <span style={{ fontSize: '11px', color: tone.text, fontWeight: 600, marginLeft: 8 }}>{ANTECEDENT_LIBELLE[a.type] ? t(ANTECEDENT_LIBELLE[a.type]) : humanizeCode(a.type)}</span>
             </Puce>
           )
@@ -460,136 +482,130 @@ function AntecedentsTab({ visite }: { visite: VisiteDetailType }) {
   )
 }
 
-// ── Onglet Historique (audit trail réel) ──────────────────────────────────────
+// ── Accordéon du processus de triage ──────────────────────────────────────────
+// Un seul volet ouvert à la fois : ouvrir une étape referme la précédente.
+// L'étape courante reste toujours ré-ouvrable manuellement (clic sur l'en-tête).
 
-type TFunc = (key: string, opts?: Record<string, unknown>) => string
-
-function formatEvent(e: VisiteEvenement, t: TFunc): { label: string; detail?: string; tone: 'info' | 'success' | 'warn' | 'neutral' } {
-  const av = e.ancienneVal ?? '—'
-  const nv = e.nouvelleVal ?? '—'
-  switch (e.type) {
-    case 'STATUT_CHANGE': {
-      const STATUT_LIBS: Record<string, string> = {
-        EN_ATTENTE: t('triage.statutEnAttente'), EN_COURS: t('triage.statutEnCours'),
-        CLOTUREE: t('triage.statutCloturee'), ANNULEE: t('triage.statutAnnulee'),
-      }
-      const tone = nv === 'ANNULEE' ? 'warn' : nv === 'CLOTUREE' ? 'success' : 'info'
-      return {
-        label:  t('triage.statutChangeLabel', { from: STATUT_LIBS[av] ?? av, to: STATUT_LIBS[nv] ?? nv }),
-        detail: e.commentaire ?? undefined,
-        tone,
-      }
-    }
-    case 'PRIORITE_CHANGE':
-      // Conservé pour l'historique des anciennes visites (la priorité n'est plus modifiable).
-      return {
-        label:  t('triage.prioriteChangeLabel', { from: av, to: nv }),
-        tone:   'info',
-      }
-    case 'SOIGNANT_CHANGE':
-      return {
-        label:  e.nouvelleVal ? t('triage.soignantAssigneEvent') : t('triage.soignantRetireEvent'),
-        detail: e.nouvelleVal ? undefined : (e.ancienneVal ? t('triage.precedentDesaffecte') : undefined),
-        tone:   'neutral',
-      }
-    case 'NOTES_UPDATE':
-      return { label: t('triage.notesMisesAJour'), tone: 'neutral' }
-    default:
-      return { label: t('triage.evenement'), tone: 'neutral' }
-  }
+function AccordionStep({
+  index, title, icon, badge, open, onToggle, children,
+}: {
+  index:    number
+  title:    string
+  icon:     React.ReactNode
+  badge?:   React.ReactNode
+  open:     boolean
+  onToggle: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <div style={{ background: 'var(--fond-surface)', border: '1px solid var(--bordure-legere)', borderRadius: 10, overflow: 'hidden' }}>
+      <button
+        type="button"
+        onClick={onToggle}
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+          padding: '12px 16px', background: open ? 'var(--fond-surface-2)' : 'var(--fond-surface)',
+          border: 'none', cursor: 'pointer', textAlign: 'left',
+        }}
+      >
+        <span style={{
+          width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 11, fontWeight: 700,
+          background: open ? 'var(--ap-500)' : 'var(--fond-surface-2)',
+          color:      open ? '#fff' : 'var(--texte-tertiaire)',
+          border:     open ? 'none' : '1px solid var(--bordure-legere)',
+        }}>
+          {index}
+        </span>
+        <span style={{ color: 'var(--ap-600)', display: 'flex', flexShrink: 0 }}>{icon}</span>
+        <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--texte-primaire)' }}>{title}</span>
+        {badge}
+        <ChevronDown size={16} style={{ color: 'var(--texte-tertiaire)', flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+      </button>
+      {open && (
+        <div style={{ padding: '16px', borderTop: '1px solid var(--bordure-legere)' }}>
+          {children}
+        </div>
+      )}
+    </div>
+  )
 }
 
-function HistoriqueTab({ visite }: { visite: VisiteDetailType }) {
+function StepBadge({ children, tone = 'neutral' }: { children: React.ReactNode; tone?: 'neutral' | 'success' }) {
+  return (
+    <span style={{
+      fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 99, flexShrink: 0,
+      background: tone === 'success' ? 'var(--succes-fond)' : 'var(--fond-surface-2)',
+      color:      tone === 'success' ? 'var(--succes-texte)' : 'var(--texte-tertiaire)',
+    }}>
+      {children}
+    </span>
+  )
+}
+
+type StepKey = 'accueil' | 'antecedents' | 'examen' | 'decision'
+
+function TriageAccordion({
+  visite, visiteId, onSent, triageAllege, lastConst, canSaisirConstantes,
+}: {
+  visite: VisiteDetailType
+  visiteId: string
+  onSent?: () => void
+  triageAllege: boolean
+  lastConst: VisiteDetailType['constantes'][number] | null
+  canSaisirConstantes: boolean
+}) {
   const { t } = useTranslation()
-  type TimelineItem = {
-    time:    string
-    label:   string
-    detail?: string
-    actor?:  string
-    tone:    'info' | 'success' | 'warn' | 'neutral'
-  }
+  const [openStep, setOpenStep] = useState<StepKey | null>('accueil')
 
-  const items: TimelineItem[] = []
+  const antecedentsCount = (visite.patient?.antecedents?.length ?? 0)
+    + (visite.patient?.allergies?.length ?? 0)
+    + (visite.patient?.alertesMedicales?.length ?? 0)
 
-  // Événement initial : ouverture
-  items.push({
-    time:  visite.dateOuverture,
-    label: t('triage.visiteOuverte'),
-    detail: visite.motifPrincipal?.libelle,
-    tone: 'info',
-  })
-
-  // Constantes saisies
-  for (const c of visite.constantes ?? []) {
-    const parts = [
-      c.temperature       != null ? `T° ${c.temperature}°C` : null,
-      c.tensionSystolique != null ? `TA ${c.tensionSystolique}/${c.tensionDiastolique ?? '?'}` : null,
-      c.frequenceCardiaque!= null ? `FC ${c.frequenceCardiaque}` : null,
-      c.saturationO2      != null ? `SpO₂ ${c.saturationO2}%`   : null,
-    ].filter(Boolean)
-    items.push({
-      time:   c.createdAt,
-      label:  t('triage.constantesSaisies'),
-      detail: parts.join(' · '),
-      tone:   'success',
-    })
-  }
-
-  // Événements de l'audit trail
-  for (const e of visite.evenements ?? []) {
-    const f = formatEvent(e, t)
-    items.push({
-      time:   e.createdAt,
-      label:  f.label,
-      detail: f.detail,
-      actor:  e.acteur ? `${e.acteur.prenom} ${e.acteur.nom}` : undefined,
-      tone:   f.tone,
-    })
-  }
-
-  // Tri chronologique inverse (plus récent en haut)
-  items.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
-
-  const TONE = {
-    info:    { dot: 'var(--info-accent)'   },
-    success: { dot: 'var(--succes-accent)' },
-    warn:    { dot: 'var(--avert-accent)'  },
-    neutral: { dot: 'var(--texte-tertiaire)' },
-  } as const
+  const steps: { key: StepKey; title: string; icon: React.ReactNode; badge?: React.ReactNode; content: React.ReactNode }[] = [
+    {
+      key: 'accueil', title: t('triage.etapeAccueil'), icon: <FileText size={14} />,
+      content: (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <MotifCard visite={visite} />
+          <NotesCard visite={visite} />
+        </div>
+      ),
+    },
+    ...(!triageAllege ? [{
+      key: 'antecedents' as StepKey, title: t('triage.etapeAntecedents'), icon: <ClipboardList size={14} />,
+      badge: antecedentsCount > 0 ? <StepBadge>{antecedentsCount}</StepBadge> : undefined,
+      content: <AntecedentsSection visite={visite} />,
+    }] : []),
+    ...(!triageAllege && canSaisirConstantes ? [{
+      key: 'examen' as StepKey, title: t('triage.etapeExamenClinique'), icon: <Stethoscope size={14} />,
+      badge: lastConst ? <StepBadge tone="success">{t('triage.etapeSaisies')}</StepBadge> : undefined,
+      content: <ConstantesForm visiteId={visiteId} lastValues={lastConst} />,
+    }] : []),
+    {
+      key: 'decision', title: t('triage.etapeDecision'), icon: <ListChecks size={14} />,
+      badge: visite.soignantId ? <StepBadge tone="success">{t('triage.etapeAssigne')}</StepBadge> : undefined,
+      content: <ActionsCard visite={visite} onSent={onSent} />,
+    },
+  ]
 
   return (
-    <div style={{
-      background:   'var(--fond-surface)',
-      border:       '1px solid var(--bordure-legere)',
-      borderRadius: '10px',
-      boxShadow:    'var(--ombre-1)',
-      padding:      '16px 20px',
-    }}>
-      <p style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--texte-tertiaire)', margin: '0 0 14px' }}>
-        {t('triage.chronologieVisite', { count: items.length })}
-      </p>
-      <div style={{ position: 'relative', paddingLeft: 18 }}>
-        <div style={{ position: 'absolute', left: 5, top: 4, bottom: 4, width: 1, background: 'var(--bordure-legere)' }} />
-        {items.map((it, i) => (
-          <div key={i} style={{ position: 'relative', paddingBottom: i === items.length - 1 ? 0 : 14 }}>
-            <div style={{
-              position: 'absolute', left: -18, top: 3,
-              width: 11, height: 11, borderRadius: '50%',
-              background: TONE[it.tone].dot, border: '2px solid var(--fond-surface)',
-            }} />
-            <p style={{ fontSize: '11px', color: 'var(--texte-tertiaire)', margin: 0, fontVariantNumeric: 'tabular-nums' }}>
-              {formatDateTime(it.time, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-              {it.actor && <span style={{ marginLeft: 8 }}>{t('triage.parActor', { actor: it.actor })}</span>}
-            </p>
-            <p style={{ fontSize: '13px', fontWeight: '600', color: 'var(--texte-primaire)', margin: '2px 0 0' }}>
-              {it.label}
-            </p>
-            {it.detail && (
-              <p style={{ fontSize: '12px', color: 'var(--texte-secondaire)', margin: '2px 0 0' }}>{it.detail}</p>
-            )}
-          </div>
-        ))}
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {triageAllege && <TriageAllegeBanner />}
+      {steps.map((s, i) => (
+        <AccordionStep
+          key={s.key}
+          index={i + 1}
+          title={s.title}
+          icon={s.icon}
+          badge={s.badge}
+          open={openStep === s.key}
+          onToggle={() => setOpenStep(cur => cur === s.key ? null : s.key)}
+        >
+          {s.content}
+        </AccordionStep>
+      ))}
     </div>
   )
 }
@@ -598,7 +614,6 @@ function HistoriqueTab({ visite }: { visite: VisiteDetailType }) {
 
 export function VisiteDetail({ visiteId, onSent }: { visiteId: string; onSent?: () => void }) {
   const { t } = useTranslation()
-  const [activeTab, setActiveTab] = useState<TabKey>('triage')
   const { data: visite, isLoading, isError } = useVisite(visiteId)
   const { has } = usePermissions()
   const isCompact = useIsCompact()
@@ -645,6 +660,9 @@ export function VisiteDetail({ visiteId, onSent }: { visiteId: string; onSent?: 
   }
 
   const lastConst = visite.constantes?.[0] ?? null
+  // Triage allégé (recueil §3.5) : consultation spécialisée (ophtalmo/ORL/stomato)
+  // — l'infirmière ne recueille que statut + identité, pas d'examen clinique complet.
+  const triageAllege = visite.motifPrincipal?.triageAllege === true
 
   return (
     <>
@@ -692,35 +710,19 @@ export function VisiteDetail({ visiteId, onSent }: { visiteId: string; onSent?: 
             <VisiteJourney statut={visite.statut} />
           </div>
 
-          <div style={{
-            borderBottom: '1px solid var(--bordure-legere)',
-            padding: 'var(--espace-3) 24px',
-            flexShrink: 0,
-          }}>
-            <SegmentedTabs
-              value={activeTab}
-              onChange={k => setActiveTab(k as typeof activeTab)}
-              tabs={TABS.map(tab => { const Ic = tab.icon; return { key: tab.key, label: t(tab.labelKey), icon: <Ic size={14} /> } })}
-            />
-          </div>
-
           <div style={{ flex: isCompact ? 'none' : 1, padding: '20px 24px', overflowY: isCompact ? 'visible' : 'auto', background: 'var(--fond-page)' }}>
-            {activeTab === 'triage' && (
-              (visite.statut === 'EN_ATTENTE' || visite.statut === 'EN_COURS') ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                <MotifCard      visite={visite} />
-                <NotesCard      visite={visite} />
-                {has('visite.update') && (
-                  <ConstantesForm visiteId={visiteId} lastValues={lastConst} />
-                )}
-                <ActionsCard    visite={visite} onSent={onSent} />
-              </div>
-              ) : (
-                <VisiteArchiveSummary visite={visite} />
-              )
+            {(visite.statut === 'EN_ATTENTE' || visite.statut === 'EN_COURS') ? (
+              <TriageAccordion
+                visite={visite}
+                visiteId={visiteId}
+                onSent={onSent}
+                triageAllege={triageAllege}
+                lastConst={lastConst}
+                canSaisirConstantes={has('visite.update')}
+              />
+            ) : (
+              <VisiteArchiveSummary visite={visite} />
             )}
-            {activeTab === 'antecedents' && <AntecedentsTab visite={visite} />}
-            {activeTab === 'historique'  && <HistoriqueTab  visite={visite} />}
           </div>
         </div>
       </div>

@@ -1,7 +1,10 @@
 import { useState }           from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation }       from 'react-i18next'
-import { ArrowLeft, Users, Phone, AlertTriangle, MoreVertical, Archive, RotateCcw, Printer, Activity, Trash2, Lock, Unlock } from 'lucide-react'
+import {
+  ArrowLeft, Users, Phone, AlertTriangle, MoreVertical, Archive, RotateCcw, Printer, Activity, Trash2, Lock, Unlock,
+  LayoutGrid, Stethoscope, GitCommitVertical, Building2,
+} from 'lucide-react'
 import { Button }              from '@workspace/ui/components/button'
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -18,11 +21,10 @@ import { IdentiteTab }         from '../components/dossier/IdentiteTab'
 import { AlertesTab }          from '../components/dossier/AlertesTab'
 import { AntecedentsTab }      from '../components/dossier/AntecedentsTab'
 import { RattementsTab }       from '../components/dossier/RattementsTab'
-import { HistoriqueTab }       from '../components/dossier/HistoriqueTab'
 import { TimelineTab }         from '../components/dossier/TimelineTab'
-import { ConsultationsTab }   from '../components/dossier/ConsultationsTab'
 import { ConstantesTab }       from '../components/dossier/ConstantesTab'
 import { DocumentsTab }        from '../components/dossier/DocumentsTab'
+import { SuiviTab }            from '../components/dossier/SuiviTab'
 import { ChangerCategorieModal } from '../components/ChangerCategorieModal'
 import { DossierPrintModal }     from '../components/dossier/DossierPrintModal'
 import { SegmentedTabs, Modal, Textarea } from '@/components/saris'
@@ -31,21 +33,44 @@ import { calcAge } from '@/lib/age'
 
 // Les droits d'écriture sont désormais portés par les permissions granulaires.
 
-// ── Tabs ──────────────────────────────────────────────────────────────────────
-
+// ── Sections ──────────────────────────────────────────────────────────────────
+// 4 groupes cliniques/administratifs (au lieu de 9 onglets à plat) — Chronologie
+// absorbe déjà Consultations et Historique de catégorie (mêmes données, filtrables
+// depuis ses puces internes) ; Documents garde son onglet propre car il porte des
+// actions uniques (aperçu en place + suppression) que Chronologie n'a pas.
 // Libellés via clés i18n (résolues dans le composant, jamais au niveau module).
-const TABS = [
-  { key: 'identite',      labelKey: 'patients.tabIdentity'        },
-  { key: 'alertes',       labelKey: 'patients.tabAlerts'          },
-  { key: 'antecedents',   labelKey: 'patients.tabHistory'         },
-  { key: 'rattachements', labelKey: 'patients.tabAttachments'     },
-  { key: 'chronologie',   labelKey: 'patients.tabChronology'      },
-  { key: 'consultations', labelKey: 'patients.tabConsultations'   },
-  { key: 'constantes',    labelKey: 'patients.tabVitals'          },
-  { key: 'documents',     labelKey: 'patients.tabDocuments'       },
-  { key: 'historique',    labelKey: 'patients.tabCategoryHistory' },
+const SECTIONS = [
+  {
+    key: 'apercu', labelKey: 'patients.sectionOverview', icon: LayoutGrid,
+    subTabs: [
+      { key: 'identite', labelKey: 'patients.tabIdentity' },
+      { key: 'alertes',  labelKey: 'patients.tabAlerts' },
+    ],
+  },
+  {
+    key: 'medical', labelKey: 'patients.sectionMedicalDossier', icon: Stethoscope,
+    subTabs: [
+      { key: 'antecedents', labelKey: 'patients.tabHistory' },
+      { key: 'constantes',  labelKey: 'patients.tabVitals' },
+      { key: 'suivi',       labelKey: 'patients.tabSuivi', clinicalOnly: true },
+    ],
+  },
+  {
+    key: 'parcours', labelKey: 'patients.sectionCareJourney', icon: GitCommitVertical,
+    subTabs: [
+      { key: 'chronologie', labelKey: 'patients.tabChronology' },
+      { key: 'documents',   labelKey: 'patients.tabDocuments', clinicalOnly: true },
+    ],
+  },
+  {
+    key: 'administratif', labelKey: 'patients.sectionAdmin', icon: Building2,
+    subTabs: [
+      { key: 'rattachements', labelKey: 'patients.tabAttachments' },
+    ],
+  },
 ] as const
-type TabKey = typeof TABS[number]['key']
+type SectionKey = typeof SECTIONS[number]['key']
+type SubTabKey  = typeof SECTIONS[number]['subTabs'][number]['key']
 
 // ── Sidebar patient ───────────────────────────────────────────────────────────
 
@@ -311,7 +336,8 @@ export function DossierPage() {
   const roles       = useSessionStore(s => s.user?.roles ?? [])
   const isSupervision = roles.some(r => r === 'ADMIN_SYSTEME' || r === 'MEDECIN_CHEF')
 
-  const [activeTab, setActiveTab]           = usePersistedState<TabKey>('dossier', 'activeTab', 'identite')
+  const [activeSection, setActiveSection]   = usePersistedState<SectionKey>('dossier', 'activeSection', 'apercu')
+  const [activeSubTabRaw, setActiveSubTab]  = usePersistedState<SubTabKey>('dossier', 'activeSubTab', 'identite')
   const [showChangerCateg, setChangerCateg] = useState(false)
   const [showArchiveConfirm, setShowArchive] = useState(false)
   const [showDeleteConfirm, setShowDelete]   = useState(false)
@@ -345,14 +371,25 @@ export function DossierPage() {
   // Dossier verrouillé ET je ne suis pas supervision → contenu masqué (rideau forcé).
   const lockedForMe = dossier.verrouille && !isSupervision
 
-  // Comptes pour les badges d'onglets
-  const tabCounts: Partial<Record<TabKey, number>> = {
+  // Comptes pour les badges d'onglets/sections
+  const tabCounts: Partial<Record<SubTabKey, number>> = {
     alertes:    dossier.allergies.filter(a => a.statut === 'ACTIVE').length +
                 dossier.alertesMedicales.filter(a => a.statut === 'ACTIVE').length,
     antecedents: dossier.antecedents.filter(a => a.statut === 'ACTIF').length,
     rattachements: dossier.rattachementsAD.filter(r => r.statut === 'ACTIF').length +
                    dossier.rattachementsST.filter(r => r.statut === 'ACTIF').length,
   }
+  const sectionBadge: Partial<Record<SectionKey, number>> = {
+    apercu: tabCounts.alertes,
+    medical: tabCounts.antecedents,
+    administratif: tabCounts.rattachements,
+  }
+
+  // Section active + ses sous-onglets, filtrés par permission (onglets cliniques
+  // masqués aux profils sans lecture clinique — ex. délégation sans consultation.read).
+  const currentSection = SECTIONS.find(s => s.key === activeSection) ?? SECTIONS[0]
+  const visibleSubTabs = currentSection.subTabs.filter(t => !('clinicalOnly' in t && t.clinicalOnly) || canViewClinique)
+  const activeSubTab: SubTabKey = visibleSubTabs.some(t => t.key === activeSubTabRaw) ? activeSubTabRaw : visibleSubTabs[0].key
 
   return (
     <>
@@ -393,7 +430,7 @@ export function DossierPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" style={{ fontSize: '13px', minWidth: 180 }}>
-              <DropdownMenuItem onClick={() => setActiveTab('identite')} style={{ cursor: 'pointer' }}>
+              <DropdownMenuItem onClick={() => { setActiveSection('apercu'); setActiveSubTab('identite') }} style={{ cursor: 'pointer' }}>
                 {t('patients.menuEditIdentity')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
@@ -463,33 +500,46 @@ export function DossierPage() {
             <AlerteBanner dossier={dossier} />
             <AlertesCliniquesBanner patientId={dossier.id} enabled={canViewClinique} />
 
-            {/* Onglets */}
+            {/* Sections (niveau 1) */}
             <div style={{ borderBottom: '1px solid var(--bordure-legere)', padding: 'var(--espace-3) 24px', marginTop: '12px', flexShrink: 0, overflowX: 'auto' }}>
               <SegmentedTabs
-                value={activeTab}
-                onChange={k => setActiveTab(k as TabKey)}
-                tabs={TABS
-                  // Onglets cliniques masqués aux profils sans lecture clinique (ex. Agent RH)
-                  .filter(t => canViewClinique || (t.key !== 'consultations' && t.key !== 'documents'))
-                  .map(tab => ({
-                    key: tab.key,
-                    label: t(tab.labelKey),
-                    badge: (tabCounts[tab.key] ?? 0) > 0 ? tabCounts[tab.key] : undefined,
-                  }))}
+                value={activeSection}
+                onChange={k => setActiveSection(k as SectionKey)}
+                tabs={SECTIONS.map(s => ({
+                  key: s.key,
+                  label: t(s.labelKey),
+                  icon: <s.icon size={13} />,
+                  badge: (sectionBadge[s.key] ?? 0) > 0 ? sectionBadge[s.key] : undefined,
+                }))}
               />
             </div>
 
-            {/* Contenu de l'onglet — compact: hauteur naturelle + flux (scroll délégué au corps) */}
+            {/* Sous-onglets (niveau 2) — masqués si la section n'a qu'un seul enfant visible */}
+            {visibleSubTabs.length > 1 && (
+              <div style={{ padding: '12px 24px 0', flexShrink: 0, overflowX: 'auto' }}>
+                <SegmentedTabs
+                  size="sm"
+                  value={activeSubTab}
+                  onChange={k => setActiveSubTab(k as SubTabKey)}
+                  tabs={visibleSubTabs.map(st => ({
+                    key: st.key,
+                    label: t(st.labelKey),
+                    badge: (tabCounts[st.key] ?? 0) > 0 ? tabCounts[st.key] : undefined,
+                  }))}
+                />
+              </div>
+            )}
+
+            {/* Contenu — compact: hauteur naturelle + flux (scroll délégué au corps) */}
             <div style={{ flex: isCompact ? 'none' : 1, padding: '20px 24px', overflowY: isCompact ? 'visible' : 'auto' }}>
-              {activeTab === 'identite'      && <IdentiteTab      dossier={dossier} canWrite={canWrite} />}
-              {activeTab === 'alertes'       && <AlertesTab       dossier={dossier} canWrite={canWrite} />}
-              {activeTab === 'antecedents'   && <AntecedentsTab   dossier={dossier} canWrite={canWrite} />}
-              {activeTab === 'rattachements' && <RattementsTab    dossier={dossier} canWrite={canManageRattachements} />}
-              {activeTab === 'chronologie'   && <TimelineTab      dossier={dossier} />}
-              {activeTab === 'consultations' && <ConsultationsTab patientId={dossier.id} />}
-              {activeTab === 'constantes'    && <ConstantesTab    patientId={dossier.id} />}
-              {activeTab === 'documents'     && <DocumentsTab     patientId={dossier.id} />}
-              {activeTab === 'historique'    && <HistoriqueTab    dossier={dossier} />}
+              {activeSubTab === 'identite'      && <IdentiteTab      dossier={dossier} canWrite={canWrite} />}
+              {activeSubTab === 'alertes'       && <AlertesTab       dossier={dossier} canWrite={canWrite} />}
+              {activeSubTab === 'antecedents'   && <AntecedentsTab   dossier={dossier} canWrite={canWrite} />}
+              {activeSubTab === 'constantes'    && <ConstantesTab    patientId={dossier.id} />}
+              {activeSubTab === 'suivi'         && canViewClinique && <SuiviTab patientId={dossier.id} />}
+              {activeSubTab === 'chronologie'   && <TimelineTab      dossier={dossier} />}
+              {activeSubTab === 'documents'     && canViewClinique && <DocumentsTab patientId={dossier.id} />}
+              {activeSubTab === 'rattachements' && <RattementsTab    dossier={dossier} canWrite={canManageRattachements} />}
             </div>
             </>
             )}

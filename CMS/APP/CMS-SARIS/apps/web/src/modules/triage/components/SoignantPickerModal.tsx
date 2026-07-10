@@ -47,9 +47,12 @@ interface Props {
   currentId:   string | null
   onSelect:    (soignantId: string | null) => void
   pendingId?:  string | null            // soignantId en cours d'enregistrement (loader)
+  /** Restreint la liste à ces rôles cliniques (ex. transfert formalisé → médecin uniquement). */
+  roleFilter?: RolePersonnel[]
+  title?:      string
 }
 
-export function SoignantPickerModal({ open, onClose, currentId, onSelect, pendingId }: Props) {
+export function SoignantPickerModal({ open, onClose, currentId, onSelect, pendingId, roleFilter, title }: Props) {
   const { t } = useTranslation()
   const { data: personnel = [], isLoading } = useSoignants()
   const [search, setSearch] = useState('')
@@ -58,21 +61,21 @@ export function SoignantPickerModal({ open, onClose, currentId, onSelect, pendin
   useEffect(() => { if (!open) setSearch('') }, [open])
 
   const filtered = useMemo(() => {
-    const actifs = personnel.filter(p => p.statut === 'ACTIF')
+    const actifs = personnel.filter(p => p.statut === 'ACTIF' && (!roleFilter || roleFilter.includes(p.role)))
     if (!search.trim()) return actifs
     const q = search.toLowerCase()
     return actifs.filter(p => {
       const full = `${p.nom} ${p.prenom} ${p.matricule} ${t(roleConfig(p.role).labelKey)}`.toLowerCase()
       return full.includes(q)
     })
-  }, [personnel, search, t])
+  }, [personnel, search, roleFilter, t])
 
   if (!open) return null
 
   return (
     <Modal
       icon={<Users size={16} />}
-      title={t('triage.choisirSoignant')}
+      title={title ?? t('triage.choisirSoignant')}
       subtitle={t('triage.personnelActif', { count: filtered.length })}
       width={480}
       onClose={onClose}
@@ -112,7 +115,9 @@ export function SoignantPickerModal({ open, onClose, currentId, onSelect, pendin
         {/* Liste */}
         <div style={{ padding: '8px 0' }}>
 
-          {/* Option "Aucun soignant" — désassigner */}
+          {/* Option "Aucun soignant" — désassigner (masquée en mode filtré, ex. transfert) */}
+          {!roleFilter && (
+          <>
           <SoignantRow
             label={t('triage.aucunSoignantAssigne')}
             sub={t('triage.retirerAffectation')}
@@ -134,6 +139,8 @@ export function SoignantPickerModal({ open, onClose, currentId, onSelect, pendin
 
           {/* Séparateur */}
           <div style={{ borderTop: '1px solid var(--bordure-legere)', margin: '4px 0' }} />
+          </>
+          )}
 
           {/* Personnel */}
           {isLoading && (

@@ -33,6 +33,13 @@ interface AuthedRequest {
 // médecins ne voient que les consultations qui leur sont assignées.
 const SUPERVISION_ROLES = ['ADMIN_SYSTEME', 'MEDECIN_CHEF']
 
+// Confidentialité (recueil §5) : l'infirmier n'a accès qu'à la consultation EN COURS
+// d'un patient, pas à son historique de consultations passées (réservé au médecin chef).
+function isHistoriqueRestreint(req: AuthedRequest): boolean {
+  const roles = req.user?.roles ?? []
+  return roles.includes('INFIRMIER') && !roles.some(r => SUPERVISION_ROLES.includes(r))
+}
+
 function requireUser(req: AuthedRequest): { id: string; siteId: string } {
   const id     = req.user?.id
   const siteId = req.user?.siteId
@@ -58,6 +65,7 @@ export class ConsultationController {
       canReadAll,
       personnelMedicalId: req.user?.personnelMedicalId ?? null,
       canViewLocked: canReadAll,
+      restreindreHistorique: isHistoriqueRestreint(req),
     })
   }
 
@@ -85,6 +93,7 @@ export class ConsultationController {
       personnelMedicalId: req.user?.personnelMedicalId ?? null,
       canViewLocked: (req.user?.roles ?? []).some(r => SUPERVISION_ROLES.includes(r)),
       canViewEvacuations: (req.user?.permissions ?? []).includes('evacuation.read'),
+      restreindreHistorique: isHistoriqueRestreint(req),
     })
   }
 

@@ -17,6 +17,7 @@ import { BonPharmacieModule }  from './modules/bon-pharmacie/bon-pharmacie.modul
 import { EmployeModule }       from './modules/employe/employe.module'
 import { SortiesCritiquesModule } from './modules/sorties-critiques/sorties-critiques.module'
 import { DashboardModule }     from './modules/dashboard/dashboard.module'
+import { RapportsModule }      from './modules/rapports/rapports.module'
 import { NotificationModule }  from './modules/notification/notification.module'
 import { MessagerieModule }    from './modules/messagerie/messagerie.module'
 import { SyncModule }           from './modules/sync/sync.module'
@@ -64,6 +65,7 @@ import { HealthController }     from './health/health.controller'
     SortiesCritiquesModule,   // Module 8 — Évacuations ✅
     AdminModule,              // Administration système (utilisateurs, rôles, audit) ✅
     DashboardModule,          // Dashboard KPIs ✅
+    RapportsModule,           // Rapports statistiques planifiés (recueil §6.1) ✅
     NotificationModule,       // Notifications temps réel (cloche + SSE) ✅
     MessagerieModule,         // Messagerie interne chiffrée entre agents ✅
     SyncModule,               // Module 9 — Synchronisation offline-first ✅

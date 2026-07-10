@@ -190,6 +190,25 @@ export function EmployesTab({ canCreate, canUpdate, canDelete }: { canCreate: bo
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: cols2, gap: '12px' }}>
             <div>
+              <Label style={lbl}>{t('patients.fieldNaissance', { defaultValue: 'Naissance' })}</Label>
+              <Input type="date" value={form.dateNaissance} onChange={e => patch({ dateNaissance: e.target.value })} style={{ fontSize: '13px' }} />
+            </div>
+            <div>
+              <Label style={lbl}>{t('patients.fieldSexe', { defaultValue: 'Sexe' })}</Label>
+              <Select value={form.sexe || undefined} onValueChange={v => patch({ sexe: v })}>
+                <SelectTrigger style={{ height: 36, fontSize: '13px', border: '1px solid var(--bordure-normale)' }}><SelectValue placeholder={t('patients.sexePlaceholder', { defaultValue: 'Non renseigné' })} /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="M">{t('patients.sexeMasculin', { defaultValue: 'Masculin' })}</SelectItem>
+                  <SelectItem value="F">{t('patients.sexeFeminin', { defaultValue: 'Féminin' })}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <p style={{ margin: '-6px 0 0', fontSize: '11px', color: 'var(--texte-tertiaire)' }}>
+            {t('employes.dossierAutoHint', { defaultValue: 'Renseigner la naissance et le sexe crée automatiquement un dossier patient (même vide) pour cet employé.' })}
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: cols2, gap: '12px' }}>
+            <div>
               <Label style={lbl}>{t('patients.fieldFonction', { defaultValue: 'Fonction' })}</Label>
               <Input value={form.fonction} onChange={e => patch({ fonction: e.target.value })} style={{ fontSize: '13px' }} />
             </div>

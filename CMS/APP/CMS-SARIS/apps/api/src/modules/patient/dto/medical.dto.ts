@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsIn, IsBoolean, MaxLength } from 'class-validator'
+import { IsString, IsNotEmpty, IsOptional, IsIn, IsBoolean, IsUUID, MaxLength } from 'class-validator'
 import { PartialType } from '@nestjs/mapped-types'
 
 // ── Allergies ─────────────────────────────────────────────────────────────────
@@ -22,6 +22,8 @@ const TYPES_ANTECEDENT = ['MEDICAL', 'CHIRURGICAL', 'FAMILIAL', 'GYNECO_OBSTETRI
 export class CreateAntecedentDto {
   @IsIn(TYPES_ANTECEDENT)                     type:        string
   @IsString() @IsNotEmpty() @MaxLength(500)   description: string
+  // Pathologie issue de la liste fermée du référentiel (recueil §3.1) — optionnelle.
+  @IsOptional() @IsUUID()                     pathologieId?: string
 }
 
 export class UpdateAntecedentDto extends PartialType(CreateAntecedentDto) {

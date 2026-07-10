@@ -12,7 +12,7 @@ import {
   Card, Button, StatusPill, EmptyState, Field, Textarea, TextInput, SelectBox, Modal, MotifDialog,
 } from '@/components/saris'
 import type { PrintSoignant } from '@/components/print/MedicalPrintSheet'
-import { useMedicaments } from '@/modules/referentiels/hooks/useReferentiels'
+import { useMedicaments, useCategoriesDroits } from '@/modules/referentiels/hooks/useReferentiels'
 import { usePermissions } from '@/hooks/usePermissions'
 import { useIsCompact } from '@/hooks/useMediaQuery'
 import { formatDate } from '@/lib/intl'
@@ -26,17 +26,32 @@ import type { BonPharmacie } from '../api/bon-pharmacie.api'
 interface Props {
   consultationId:    string
   readonly?:         boolean
-  categorieCode?:    string
+  /** Id (stable, jamais le code/libellé) de la catégorie du patient — pour vérifier le droit au bon. */
+  categoriePatientId?: string
   soignant?:         PrintSoignant | null
   categorieLibelle?: string
+  /** Le bon de pharmacie délivre ce que l'ordonnance a prescrit — création bloquée
+   *  tant qu'aucune ordonnance VALIDÉE n'existe pour cette consultation (le backend
+   *  reste de toute façon l'arbitre final). */
+  hasOrdonnanceValidee?: boolean
 }
 
-export function BonPharmacieCard({ consultationId, readonly, categorieCode, soignant, categorieLibelle }: Props) {
+export function BonPharmacieCard({ consultationId, readonly, categoriePatientId, soignant, categorieLibelle, hasOrdonnanceValidee }: Props) {
   const { t } = useTranslation()
   const { has } = usePermissions()
   // RÈGLE CENTRALE (recueil) : médicaments réservés au personnel CDI + ayants droit.
-  const eligible  = !categorieCode || categorieCode === 'ASSURE_CDI' || categorieCode === 'AYANT_DROIT_CDI'
-  const canCreate = has('bon_pharmacie.create') && !readonly && eligible
+  // Dérivé de la même matrice de droits (DroitCategoriePatient, clé sur categorieId)
+  // que le backend applique réellement à la création — jamais un code/libellé qui
+  // pourrait être renommé (le backend reste de toute façon l'arbitre final).
+  // FAIL-CLOSED par défaut (même logique que assertPrestationCouverte côté backend,
+  // qui rejette si aucune ligne couvert=true n'existe) : une catégorie SANS aucun
+  // droit configuré (ex. tout juste créée, jamais couverte par le seed) doit être
+  // NON éligible, pas éligible par défaut — sinon le bouton s'affiche pour une
+  // catégorie que le backend refusera systématiquement (403 à la soumission).
+  const { data: droits = [], isLoading: droitsLoading } = useCategoriesDroits()
+  const droitCategorie = categoriePatientId ? droits.find(d => d.categorieId === categoriePatientId) : undefined
+  const eligible = !categoriePatientId || (!droitsLoading && droitCategorie?.bonPharmacie === true)
+  const canCreate = has('bon_pharmacie.create') && !readonly && eligible && !!hasOrdonnanceValidee
 
   const { data: bons = [], isLoading } = useBonsPharmacie({ consultationId })
   const [openNew, setOpenNew] = useState(false)
@@ -60,12 +75,16 @@ export function BonPharmacieCard({ consultationId, readonly, categorieCode, soig
           {!isLoading && bons.length === 0 ? (
             <EmptyState
               icon={<Pill size={18} />}
-              title={eligible
-                ? t('bonPharmacie.emptyTitle', { defaultValue: 'Aucun bon de pharmacie' })
-                : t('bonPharmacie.notEligibleTitle', { defaultValue: 'Médicaments non pris en charge' })}
-              description={eligible
-                ? t('bonPharmacie.emptyDescription', { defaultValue: 'Aucun médicament délivré pour cette consultation.' })
-                : t('bonPharmacie.notEligibleDesc', { defaultValue: 'Cette catégorie de patient n\'ouvre pas droit à la prise en charge des médicaments (réservé au personnel CDI et à leurs ayants droit).' })}
+              title={!eligible
+                ? t('bonPharmacie.notEligibleTitle', { defaultValue: 'Médicaments non pris en charge' })
+                : !hasOrdonnanceValidee
+                  ? t('bonPharmacie.needsOrdonnanceTitle', { defaultValue: 'Ordonnance requise' })
+                  : t('bonPharmacie.emptyTitle', { defaultValue: 'Aucun bon de pharmacie' })}
+              description={!eligible
+                ? t('bonPharmacie.notEligibleDesc', { defaultValue: 'Cette catégorie de patient n\'ouvre pas droit à la prise en charge des médicaments (réservé au personnel CDI et à leurs ayants droit).' })
+                : !hasOrdonnanceValidee
+                  ? t('bonPharmacie.needsOrdonnanceDesc', { defaultValue: 'Le bon de pharmacie délivre ce que l\'ordonnance a prescrit — validez d\'abord une ordonnance pour cette consultation.' })
+                  : t('bonPharmacie.emptyDescription', { defaultValue: 'Aucun médicament délivré pour cette consultation.' })}
               variant="subtle"
               action={canCreate && (
                 <Button leftIcon={<Plus size={13} />} size="sm" onClick={() => setOpenNew(true)}>

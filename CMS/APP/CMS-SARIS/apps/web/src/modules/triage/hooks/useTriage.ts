@@ -107,7 +107,8 @@ export function useDeleteVisite() {
 export function useUpdateSoignantVisite(visiteId: string) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (soignantId: string | null) => triageApi.updateSoignant(visiteId, soignantId),
+    mutationFn: ({ soignantId, motif }: { soignantId: string | null; motif?: string }) =>
+      triageApi.updateSoignant(visiteId, soignantId, motif),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: VISITES_KEY })
       qc.invalidateQueries({ queryKey: visiteKey(visiteId) })

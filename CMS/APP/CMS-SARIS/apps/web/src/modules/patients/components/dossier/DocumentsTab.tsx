@@ -123,7 +123,7 @@ function DocumentViewerModal({ doc, onClose }: { doc: PatientDocument; onClose: 
                   readonly
                   soignant={consultation.soignant}
                   categorieLibelle={patient.categoriePatient.libelle}
-                  categorieCode={patient.categoriePatient.code}
+                  categoriePatientId={patient.categoriePatient.id}
                 />
               )
             case 'BON_PHARMACIE':
@@ -131,7 +131,7 @@ function DocumentViewerModal({ doc, onClose }: { doc: PatientDocument; onClose: 
                 <BonPharmacieCard
                   consultationId={doc.consultationId}
                   readonly
-                  categorieCode={patient.categoriePatient.code}
+                  categoriePatientId={patient.categoriePatient.id}
                   soignant={consultation.soignant}
                   categorieLibelle={patient.categoriePatient.libelle}
                 />

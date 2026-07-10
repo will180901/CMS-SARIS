@@ -49,6 +49,7 @@ export interface ConstanteVitale {
   tensionSystolique?: number | null
   tensionDiastolique?: number | null
   frequenceCardiaque?: number | null
+  frequenceRespiratoire?: number | null
   saturationO2?:    number | null
   poids?:           number | null
   taille?:          number | null
@@ -83,7 +84,7 @@ export interface VisitePatientResume {
   allergies:       { id: string; substance: string; gravite: string }[]
   alertesMedicales: { id: string; type: string; message: string; gravite: string }[]
   /** Renseigné uniquement sur le détail (findById), pas dans la liste. */
-  antecedents?:    { id: string; type: string; description: string; statut: string }[]
+  antecedents?:    { id: string; type: string; description: string; statut: string; pathologie?: { id: string; libelle: string } | null }[]
 }
 
 export interface VisiteListItem extends Visite {
@@ -101,6 +102,7 @@ export interface VisiteConsultationResume {
 }
 
 export interface VisiteDetail extends VisiteListItem {
+  motifPrincipal: { id: string; code: string; libelle: string; triageAllege?: boolean }
   constantes:    ConstanteVitale[]
   evenements:    VisiteEvenement[]
   consultations: VisiteConsultationResume[]

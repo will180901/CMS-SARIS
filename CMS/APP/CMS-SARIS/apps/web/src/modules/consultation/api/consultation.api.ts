@@ -20,6 +20,13 @@ export interface AddDiagnosticPayload {
   certitude:    'CONFIRME' | 'PROBABLE' | 'SUSPECTE'
 }
 
+export interface AnamnesePayload {
+  anamneseDateDebut?: string | null
+  anamneseDuree?:     string | null
+  anamneseModeDebut?: string | null
+  anamneseSymptomes?: string | null
+}
+
 export interface CloturerPayload {
   decisionMedicale: string
   conclusion?:      string
@@ -82,6 +89,10 @@ export const consultationApi = {
   // Examen clinique
   updateExamen: (id: string, examenClinique: string | null) =>
     api.patch(`/consultations/${id}/examen`, { examenClinique }),
+
+  // Anamnèse structurée (recueil §3.2) — appel dédié, n'affecte pas examenClinique.
+  updateAnamnese: (id: string, data: AnamnesePayload) =>
+    api.patch(`/consultations/${id}/examen`, data),
 
   // Conclusion
   updateConclusion: (id: string, conclusion: string | null) =>

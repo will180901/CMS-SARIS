@@ -53,7 +53,12 @@ export function ConsultationArchiveSummary({ consultationId, consultation }: Pro
   ].filter((x): x is string => !!x)
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div className="cons-archive" style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Sans ça, les enfants (flex-shrink:1 par défaut) se COMPRESSENT pour tenir dans
+          la hauteur disponible au lieu de déborder + faire défiler le conteneur — chaque
+          carte se retrouve alors tronquée par son propre `overflow:hidden` (Card.tsx),
+          sans qu'aucun défilement ne puisse jamais révéler le contenu coupé. */}
+      <style>{`.cons-archive > * { flex-shrink: 0; }`}</style>
 
       <InfoSection
         title={t('consultation.archiveDecisionTitle')}
@@ -101,14 +106,15 @@ export function ConsultationArchiveSummary({ consultationId, consultation }: Pro
         readonly
         soignant={consultation.soignant}
         categorieLibelle={patient.categoriePatient.libelle}
-        categorieCode={patient.categoriePatient.code}
+        categoriePatientId={patient.categoriePatient.id}
       />
       <BonPharmacieCard
         consultationId={consultationId}
         readonly
-        categorieCode={patient.categoriePatient.code}
+        categoriePatientId={patient.categoriePatient.id}
         soignant={consultation.soignant}
         categorieLibelle={patient.categoriePatient.libelle}
+        hasOrdonnanceValidee={consultation.ordonnances.some(o => o.statut === 'VALIDEE')}
       />
       <EvacuationCard
         consultationId={consultationId}

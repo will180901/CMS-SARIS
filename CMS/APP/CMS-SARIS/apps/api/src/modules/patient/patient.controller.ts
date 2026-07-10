@@ -44,6 +44,17 @@ function isSupervision(req: AuthedRequest): boolean {
   return (req.user?.roles ?? []).some(r => SUPERVISION_ROLES.includes(r))
 }
 
+// Confidentialité (recueil §5) : l'infirmier n'a accès qu'au résumé de la visite/
+// consultation EN COURS, pas à l'historique médical complet (réservé au médecin
+// chef / admin système). Les données de sécurité clinique permanentes (allergies,
+// antécédents, alertes) restent visibles à tous — nécessaires à la tâche immédiate.
+// Ce qui est restreint : l'historique des VISITES/CONSULTATIONS passées (voir
+// consultation.controller.ts::findAll/patientDocuments et triage.controller.ts::findByPatient).
+function isHistoriqueRestreint(req: AuthedRequest): boolean {
+  const roles = req.user?.roles ?? []
+  return roles.includes('INFIRMIER') && !isSupervision(req)
+}
+
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('patients')
 @Audit('patient', 'Patient')
@@ -92,6 +103,7 @@ export class PatientController {
       restrictToOwn:      isRestrictedDoctor(req),
       personnelMedicalId: req.user?.personnelMedicalId ?? null,
       canViewLocked:      isSupervision(req),
+      restreindreHistorique: isHistoriqueRestreint(req),
     })
   }
 
@@ -114,6 +126,7 @@ export class PatientController {
       restrictToOwn:      isRestrictedDoctor(req),
       personnelMedicalId: req.user?.personnelMedicalId ?? null,
       canViewLocked:      isSupervision(req),
+      restreindreHistorique: isHistoriqueRestreint(req),
     })
   }
 
@@ -130,6 +143,16 @@ export class PatientController {
       personnelMedicalId: req.user?.personnelMedicalId ?? null,
       canViewLocked:      isSupervision(req),
     })
+  }
+
+  /**
+   * Suivi du dossier (traitement, évolution des pathologies chroniques, résultats
+   * d'examens) — dossier → onglet Dossier médical → Suivi.
+   */
+  @Get(':id/suivi')
+  @RequirePermissions('consultation.read')
+  findSuivi(@Param('id') id: string) {
+    return this.patientService.findSuivi(id)
   }
 
   @Patch(':id/identite')

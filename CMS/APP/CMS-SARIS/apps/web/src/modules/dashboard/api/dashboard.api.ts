@@ -14,7 +14,6 @@ export interface DashboardOverview {
   ordonnancesValideesJour:  number
   bonsExamenAttente:        number
   evacuationsEnCours:       number
-  accidentsTravailOuverts:  number
   suivisChroniquesActifs:   number
 }
 
@@ -68,6 +67,20 @@ export interface StatistiquesActivite {
   parType:            { libelle: string; count: number }[]
   parPathologie:      { libelle: string; count: number }[]
   parCategorie:       { libelle: string; count: number }[]
+  parDepartement:     { libelle: string; count: number }[]
+}
+
+export interface CroisementStat {
+  pathologie:  string
+  categorie:   string
+  departement: string
+  count:       number
+}
+
+export interface EvolutionMensuelle {
+  mois:          string   // YYYY-MM
+  consultations: number
+  reposJours:    number
 }
 
 export const dashboardApi = {
@@ -79,4 +92,8 @@ export const dashboardApi = {
   tendance:     () => api.get<TrendPoint[]>('/dashboard/tendance'),
   affluence:    () => api.get<AffluencePoint[]>('/dashboard/affluence'),
   adminSysteme: () => api.get<AdminSystemStats>('/dashboard/admin-systeme'),
+  croisement:   (params?: { from?: string; to?: string }) =>
+    api.get<CroisementStat[]>('/dashboard/croisement', params as Record<string, string> | undefined),
+  evolutionAnnuelle: (annee?: number) =>
+    api.get<EvolutionMensuelle[]>('/dashboard/evolution-annuelle', annee ? { annee: String(annee) } : undefined),
 }

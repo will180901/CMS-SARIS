@@ -43,7 +43,7 @@ export class BonExamenController {
   @RequirePermissions('bon_examen.create')
   @HttpCode(HttpStatus.CREATED)
   create(@Body() dto: CreateBonExamenDto, @CurrentUser() user: UserSession) {
-    return this.svc.create(dto, user.siteId, { roles: user.roles, personnelMedicalId: user.personnelMedicalId })
+    return this.svc.create(dto, user.siteId)
   }
 
   @Patch(':id')

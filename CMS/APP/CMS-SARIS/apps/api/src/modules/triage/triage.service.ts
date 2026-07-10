@@ -11,7 +11,6 @@ import {
 import { PrismaService } from '../../prisma/prisma.service'
 import { NotificationService } from '../notification/notification.service'
 import { computeImc } from '../../common/clinical'
-import { consultationCascadeDeleteOps } from '../consultation/consultation-cascade.util'
 import {
   CreateVisiteDto, UpdateStatutVisiteDto,
   UpdateSoignantVisiteDto, UpdateNotesVisiteDto,
@@ -75,7 +74,7 @@ const PATIENT_SELECT_DETAIL = {
   },
   antecedents: {
     where:  { statut: 'ACTIF' },
-    select: { id: true, type: true, description: true, statut: true },
+    select: { id: true, type: true, description: true, statut: true, pathologie: { select: { id: true, libelle: true, confidentialiteRenforcee: true } } },
   },
 } as const
 
@@ -88,7 +87,7 @@ const VISITE_LIST_INCLUDE = {
 const VISITE_DETAIL_INCLUDE = {
   patient:        { select: PATIENT_SELECT_DETAIL },
   site:           { select: { id: true, code: true, libelle: true } },
-  motifPrincipal: { select: { id: true, code: true, libelle: true } },
+  motifPrincipal: { select: { id: true, code: true, libelle: true, triageAllege: true } },
   constantes:     { orderBy: { createdAt: 'desc' as const } },
   evenements:     { orderBy: { createdAt: 'desc' as const } },
   // Consultation(s) rattachée(s) : juste de quoi afficher un lien + l'impact d'une
@@ -200,13 +199,15 @@ export class TriageService {
    * patientId) : tous sites confondus, pas de filtre `siteId` — sinon une visite faite
    * sur l'autre site du patient n'apparaîtrait jamais dans sa chronologie.
    */
-  async findByPatient(patientId: string, canViewLocked: boolean) {
+  async findByPatient(patientId: string, canViewLocked: boolean, restreindreHistorique = false) {
     if (!canViewLocked) {
       const p = await this.prisma.patient.findUnique({ where: { id: patientId }, select: { verrouille: true } })
       if (p?.verrouille) return []
     }
     return this.prisma.visite.findMany({
-      where:   { patientId },
+      // Confidentialité (recueil §5) : l'infirmier n'a accès qu'à la visite EN COURS,
+      // pas à l'historique des visites passées (réservé au médecin chef/supervision).
+      where:   restreindreHistorique ? { patientId, statut: { in: ['EN_ATTENTE', 'EN_COURS'] } } : { patientId },
       orderBy: { dateOuverture: 'desc' },
       select: {
         id:            true,
@@ -224,12 +225,18 @@ export class TriageService {
 
   // ── Détail visite ─────────────────────────────────────────────────────────
 
-  async findById(id: string, siteId: string) {
+  async findById(id: string, siteId: string, restreindreHistorique = false) {
     const visite = await this.prisma.visite.findFirst({
       where:   { id, siteId },
       include: VISITE_DETAIL_INCLUDE,
     })
     if (!visite) throw new NotFoundException('Visite introuvable')
+
+    // Confidentialité renforcée (VIH/SIDA, santé mentale, etc.) — miroir de
+    // patient.service.ts::findById : masqué à l'INFIRMIER, visible au médecin chef.
+    if (restreindreHistorique) {
+      visite.patient.antecedents = visite.patient.antecedents.filter(a => !a.pathologie?.confidentialiteRenforcee)
+    }
 
     const soignant = visite.soignantId
       ? await this.prisma.personnelMedical.findUnique({
@@ -320,6 +327,7 @@ export class TriageService {
             tensionSystolique:  c.tensionSystolique   ?? null,
             tensionDiastolique: c.tensionDiastolique  ?? null,
             frequenceCardiaque: c.frequenceCardiaque  ?? null,
+            frequenceRespiratoire: c.frequenceRespiratoire ?? null,
             saturationO2:       c.saturationO2        ?? null,
             poids:              c.poids               ?? null,
             taille:             c.taille              ?? null,
@@ -367,28 +375,27 @@ export class TriageService {
     if (visite.statut === 'EN_ATTENTE' || visite.statut === 'EN_COURS') {
       throw new ConflictException('Annulez la visite avant de la supprimer')
     }
-    const consults = await this.prisma.consultation.findMany({ where: { visiteId: id }, select: { id: true, statut: true } })
 
-    // Chaque consultation rattachée doit elle-même être CLÔTURÉE ou ANNULÉE (jamais
-    // OUVERTE) — la purge de ses documents est ensuite complète, sans blocage sur le
-    // nombre de documents (cf. consultationCascadeDeleteOps, décision confirmée : purge
-    // irréversible).
-    for (const c of consults) {
-      if (c.statut === 'OUVERTE') {
-        throw new ConflictException("Une consultation rattachée est encore ouverte — clôturez-la ou annulez-la avant de supprimer la visite")
-      }
+    // Isolation stricte (décision produit) : la visite ne cascade JAMAIS dans des
+    // documents de consultation (diagnostics, ordonnances, bons) — ceux-ci sont la
+    // responsabilité exclusive de consultation.delete(), avec son propre écran de
+    // confirmation. Une consultation annulée peut encore porter de vrais documents
+    // cliniques (la visite est remise en file à l'annulation d'une consultation,
+    // cf. ConsultationService.annuler — les documents, eux, ne sont PAS purgés) ;
+    // si une consultation est encore rattachée, quel que soit son statut, on bloque.
+    const consultCount = await this.prisma.consultation.count({ where: { visiteId: id } })
+    if (consultCount > 0) {
+      throw new ConflictException(
+        'Une consultation est encore rattachée à cette visite — supprimez-la d\'abord (elle peut contenir des documents cliniques)',
+      )
     }
 
     // Suppression réellement DÉFINITIVE : on passe par le client BRUT (this.prisma.raw)
-    // pour contourner l'extension soft-delete. Sinon visite + constantes + consultations/
-    // documents rattachés deviendraient des tombstones (update deletedAt) alors que
-    // visiteEvenement — hors allow-list — est, lui, vraiment hard-deleté → on obtenait une
-    // visite fantôme avec son journal d'audit effacé. L'action de suppression elle-même
-    // reste tracée par le journal d'audit global (@Audit).
+    // pour contourner l'extension soft-delete. Sinon visite + constantes deviendraient des
+    // tombstones (update deletedAt) alors que visiteEvenement — hors allow-list — est, lui,
+    // vraiment hard-deleté → on obtenait une visite fantôme avec son journal d'audit effacé.
+    // L'action de suppression elle-même reste tracée par le journal d'audit global (@Audit).
     await this.prisma.raw.$transaction([
-      // Consultations rattachées + tous leurs documents (cascade ordre FK).
-      ...consults.flatMap(c => consultationCascadeDeleteOps(this.prisma.raw, c.id)),
-      ...consults.map(c => this.prisma.raw.consultation.delete({ where: { id: c.id } })),
       this.prisma.raw.constanteVitale.deleteMany({ where: { visiteId: id } }),
       this.prisma.raw.visiteEvenement.deleteMany({ where: { visiteId: id } }),
       this.prisma.raw.visite.delete({ where: { id } }),
@@ -416,6 +423,21 @@ export class TriageService {
 
     if (cible === 'ANNULEE' && !dto.motifAnnulation?.trim()) {
       throw new BadRequestException('Un motif d\'annulation est obligatoire')
+    }
+
+    // Un soignant ne peut avoir qu'une seule visite EN_COURS à la fois — il peut être
+    // assigné à plusieurs visites EN_ATTENTE (file d'attente), mais une seule prise en
+    // charge active en simultané.
+    if (cible === 'EN_COURS' && visite.soignantId) {
+      const dejaEnCours = await this.prisma.visite.findFirst({
+        where: { soignantId: visite.soignantId, statut: 'EN_COURS', id: { not: id } },
+        select: { id: true, patient: { select: { numeroPatient: true } } },
+      })
+      if (dejaEnCours) {
+        throw new ConflictException(
+          `Ce soignant a déjà une visite en cours (patient ${dejaEnCours.patient.numeroPatient}) — clôturez-la ou envoyez-la en consultation avant d'en prendre une nouvelle`,
+        )
+      }
     }
 
     // Cohérence : on n'annule pas une visite tant qu'une consultation est ouverte.
@@ -480,6 +502,7 @@ export class TriageService {
           ancienneVal: visite.soignantId,
           nouvelleVal: nouveauId,
           acteurId,
+          commentaire: dto.motif?.trim() || null,
         },
       })
       return updated
@@ -536,6 +559,7 @@ export class TriageService {
         tensionSystolique:  dto.tensionSystolique  ?? null,
         tensionDiastolique: dto.tensionDiastolique ?? null,
         frequenceCardiaque: dto.frequenceCardiaque ?? null,
+        frequenceRespiratoire: dto.frequenceRespiratoire ?? null,
         saturationO2:       dto.saturationO2       ?? null,
         poids:              dto.poids              ?? null,
         taille:             dto.taille             ?? null,

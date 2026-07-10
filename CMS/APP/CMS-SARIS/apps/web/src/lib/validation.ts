@@ -156,6 +156,7 @@ export const VITAL_RANGES = {
   tensionSystolique:  { min: 50,  max: 300, step: 1,    unit: 'mmHg', label: 'Tension systolique' },
   tensionDiastolique: { min: 30,  max: 200, step: 1,    unit: 'mmHg', label: 'Tension diastolique' },
   frequenceCardiaque: { min: 20,  max: 300, step: 1,    unit: 'bpm',  label: 'Fréquence cardiaque' },
+  frequenceRespiratoire: { min: 4, max: 80,  step: 1,    unit: 'cpm',  label: 'Fréquence respiratoire' },
   saturationO2:       { min: 50,  max: 100, step: 0.1,  unit: '%',    label: 'SpO₂' },
   poids:              { min: 0.5, max: 300, step: 0.1,  unit: 'kg',   label: 'Poids' },
   taille:             { min: 30,  max: 250, step: 1,    unit: 'cm',   label: 'Taille' },

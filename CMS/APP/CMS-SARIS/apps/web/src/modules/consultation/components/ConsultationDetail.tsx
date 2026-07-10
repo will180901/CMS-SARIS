@@ -8,14 +8,14 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   Stethoscope, Pill, CheckCircle2, XCircle, AlertTriangle,
-  Clock, Check,
+  Clock, Check, NotebookPen,
   FileText, ChevronLeft, ChevronRight, Plus, X, ExternalLink,
 } from 'lucide-react'
 import { SegmentedTabs, Button } from '@/components/saris'
 import { useIsCompact } from '@/hooks/useMediaQuery'
 import { calcAge } from '@/lib/age'
 import {
-  useConsultation, useUpdateExamen, useUpdateConclusion,
+  useConsultation, useUpdateExamen, useUpdateAnamnese, useUpdateConclusion,
   useCloturer, useAnnulerConsultation, usePrendreEnCharge,
 } from '../hooks/useConsultation'
 import { useSessionStore } from '@/stores/session.store'
@@ -163,6 +163,32 @@ export function ConsultationDetail({ consultationId, initialDocView }: Props) {
   const myUserId = useSessionStore(s => s.user?.id ?? '')
   const prendre   = usePrendreEnCharge(consultationId)
 
+  /* Redimensionnement sidebar patient ↔ contenu (mêmes bornes que VisiteDetail) */
+  const splitRef                    = useRef<HTMLDivElement>(null)
+  const [sidebarWidth, setSWidth]   = useState(296)
+  const [isResizing, setIsResizing] = useState(false)
+
+  useEffect(() => {
+    if (!isResizing) return
+    function onMove(e: MouseEvent) {
+      if (!splitRef.current) return
+      const rect = splitRef.current.getBoundingClientRect()
+      const w = e.clientX - rect.left
+      setSWidth(Math.max(220, Math.min(420, w)))
+    }
+    function onUp() { setIsResizing(false) }
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup',   onUp)
+    document.body.style.cursor     = 'col-resize'
+    document.body.style.userSelect = 'none'
+    return () => {
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup',   onUp)
+      document.body.style.cursor     = ''
+      document.body.style.userSelect = ''
+    }
+  }, [isResizing])
+
   // Permissions granulaires pour différencier les actions selon le rôle
   const canExamen     = has('consultation.examen')
   const canDiagnose   = has('consultation.diagnose')
@@ -250,14 +276,46 @@ export function ConsultationDetail({ consultationId, initialDocView }: Props) {
   const hasDecision     = !!consultation.decisionMedicale
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: isCompact ? 'column' : 'row', overflow: isCompact ? 'auto' : 'hidden', minWidth: 0, position: 'relative' }}>
+    <div ref={splitRef} style={{ flex: 1, display: 'flex', flexDirection: isCompact ? 'column' : 'row', overflow: isCompact ? 'auto' : 'hidden', minWidth: 0, position: 'relative' }}>
+
+      <style>{`
+        .cons-resize:hover           { background: var(--ap-50) !important; }
+        .cons-resize:hover > div     { background: var(--ap-400) !important; }
+      `}</style>
 
       <PatientContextRail
         consultation={consultation}
         consultationId={consultationId}
         isActive={isActive}
         canUpdate={canUpdate}
+        width={sidebarWidth}
       />
+
+      {/* Poignée redimensionnement sidebar ↔ contenu — bureau uniquement */}
+      {!isCompact && (
+        <div
+          onMouseDown={() => setIsResizing(true)}
+          onDoubleClick={() => setSWidth(296)}
+          title={t('consultation.resizeHint')}
+          className="cons-resize"
+          style={{
+            width: 5,
+            flexShrink: 0,
+            cursor: 'col-resize',
+            position: 'relative',
+            background: isResizing ? 'var(--ap-50)' : 'transparent',
+            transition: 'background 0.15s',
+          }}
+        >
+          <div style={{
+            position: 'absolute',
+            left: 2, top: 0, bottom: 0,
+            width: 1,
+            background: isResizing ? 'var(--ap-400)' : 'var(--bordure-legere)',
+            transition: 'background 0.15s',
+          }} />
+        </div>
+      )}
 
       <div ref={setPreviewHost} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: isCompact ? 'visible' : 'hidden', minWidth: 0, position: 'relative' }}>
         <PreviewHostContext.Provider value={previewHost}>
@@ -284,7 +342,10 @@ export function ConsultationDetail({ consultationId, initialDocView }: Props) {
       </div>
 
       {/* ── Contenu de l'étape ─────────────────────────────────────────────── */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div className="cons-step" style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {/* Même piège que ConsultationArchiveSummary : sans flex-shrink:0, les cartes se
+            compressent pour tenir dans la hauteur visible au lieu de déborder + défiler. */}
+        <style>{`.cons-step > * { flex-shrink: 0; }`}</style>
 
         {/* Verrou souple : consultation déjà prise en main par un autre soignant */}
         {isActive && heldByOther && priseEnCharge && (
@@ -331,6 +392,14 @@ export function ConsultationDetail({ consultationId, initialDocView }: Props) {
                 </p>
               </div>
             )}
+            <AnamneseSection
+              consultationId={consultationId}
+              anamneseDateDebut={consultation.anamneseDateDebut ?? ''}
+              anamneseDuree={consultation.anamneseDuree ?? ''}
+              anamneseModeDebut={consultation.anamneseModeDebut ?? ''}
+              anamneseSymptomes={consultation.anamneseSymptomes ?? ''}
+              readonly={!isActive || !canExamen || heldByOther}
+            />
             <ExamenSection
               consultationId={consultationId}
               examenClinique={consultation.examenClinique ?? ''}
@@ -400,16 +469,18 @@ export function ConsultationDetail({ consultationId, initialDocView }: Props) {
                   readonly={!canDeliverBons}
                   soignant={consultation.soignant}
                   categorieLibelle={patient.categoriePatient.libelle}
-                  categorieCode={patient.categoriePatient.code}
+                  categoriePatientId={patient.categoriePatient.id}
                 />
                 {/* Bon de pharmacie (recueil) : voucher médicaments, CDI + ayants droit —
-                    délivré par l'infirmier une fois la consultation clôturée. */}
+                    délivré par l'infirmier une fois la consultation clôturée, et
+                    seulement si une ordonnance validée existe pour cette consultation. */}
                 <BonPharmacieCard
                   consultationId={consultationId}
                   readonly={!canDeliverBons}
-                  categorieCode={patient.categoriePatient.code}
+                  categoriePatientId={patient.categoriePatient.id}
                   soignant={consultation.soignant}
                   categorieLibelle={patient.categoriePatient.libelle}
+                  hasOrdonnanceValidee={consultation.ordonnances.some(o => o.statut === 'VALIDEE')}
                 />
               </div>
             )}
@@ -467,6 +538,89 @@ export function ConsultationDetail({ consultationId, initialDocView }: Props) {
       </>
       )}
         </PreviewHostContext.Provider>
+      </div>
+    </div>
+  )
+}
+
+// ── Anamnèse structurée (recueil §3.2) ────────────────────────────────────────
+
+function AnamneseSection({
+  consultationId, anamneseDateDebut, anamneseDuree, anamneseModeDebut, anamneseSymptomes, readonly,
+}: {
+  consultationId: string
+  anamneseDateDebut: string
+  anamneseDuree: string
+  anamneseModeDebut: string
+  anamneseSymptomes: string
+  readonly?: boolean
+}) {
+  const { t } = useTranslation()
+  const updateAnamnese = useUpdateAnamnese(consultationId)
+  const [dateDebut, setDateDebut] = useState(anamneseDateDebut.slice(0, 10))
+  const [duree,     setDuree]     = useState(anamneseDuree)
+  const [modeDebut, setModeDebut] = useState(anamneseModeDebut)
+  const [symptomes, setSymptomes] = useState(anamneseSymptomes)
+  const [saved, setSaved] = useState(true)
+
+  useEffect(() => {
+    setDateDebut(anamneseDateDebut.slice(0, 10)); setDuree(anamneseDuree)
+    setModeDebut(anamneseModeDebut); setSymptomes(anamneseSymptomes)
+    setSaved(true)
+  }, [anamneseDateDebut, anamneseDuree, anamneseModeDebut, anamneseSymptomes])
+
+  function flush() {
+    if (readonly) return
+    const dirty = dateDebut !== anamneseDateDebut.slice(0, 10) || duree !== anamneseDuree
+      || modeDebut !== anamneseModeDebut || symptomes !== anamneseSymptomes
+    if (!dirty) return
+    setSaved(false)
+    updateAnamnese.mutate({
+      anamneseDateDebut: dateDebut || null,
+      anamneseDuree:     duree.trim() || null,
+      anamneseModeDebut: modeDebut.trim() || null,
+      anamneseSymptomes: symptomes.trim() || null,
+    }, { onSuccess: () => setSaved(true) })
+  }
+
+  const fld = { display: 'flex', flexDirection: 'column' as const, gap: 4 }
+  const lbl = { fontSize: '11px', fontWeight: 600 as const, color: 'var(--texte-tertiaire)', textTransform: 'uppercase' as const, letterSpacing: '0.04em' }
+  const inp = { height: 34, padding: '0 10px', fontSize: '13px', borderRadius: 6, border: '1px solid var(--bordure-normale)', background: readonly ? 'var(--fond-surface-2)' : 'var(--fond-surface)', color: 'var(--texte-primaire)', outline: 'none' }
+
+  return (
+    <div style={{ background: 'var(--fond-surface)', border: '1px solid var(--bordure-legere)', borderRadius: '10px', overflow: 'hidden' }} onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) flush() }}>
+      <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--bordure-legere)', background: 'var(--fond-surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <NotebookPen size={13} style={{ color: 'var(--ap-600)' }} />
+          <p style={{ fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--texte-tertiaire)', margin: 0 }}>
+            {t('consultation.anamneseTitle')}
+          </p>
+        </div>
+        {!readonly && (
+          <span style={{ fontSize: '10px', color: saved ? 'var(--succes-texte)' : 'var(--texte-tertiaire)', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+            {saved && <Check size={11} />}{saved ? t('consultation.saved') : t('consultation.saving')}
+          </span>
+        )}
+      </div>
+      <div style={{ padding: '12px 14px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10 }}>
+        <div style={fld}>
+          <label style={lbl}>{t('consultation.anamneseDateDebut')}</label>
+          <input type="date" value={dateDebut} disabled={readonly} onChange={e => setDateDebut(e.target.value)} style={inp} />
+        </div>
+        <div style={fld}>
+          <label style={lbl}>{t('consultation.anamneseDuree')}</label>
+          <input type="text" value={duree} disabled={readonly} maxLength={100} placeholder={t('consultation.anamneseDureePlaceholder')} onChange={e => setDuree(e.target.value)} style={inp} />
+        </div>
+        <div style={fld}>
+          <label style={lbl}>{t('consultation.anamneseModeDebut')}</label>
+          <input type="text" value={modeDebut} disabled={readonly} maxLength={200} placeholder={t('consultation.anamneseModeDebutPlaceholder')} onChange={e => setModeDebut(e.target.value)} style={inp} />
+        </div>
+        <div style={{ ...fld, gridColumn: '1 / -1' }}>
+          <label style={lbl}>{t('consultation.anamneseSymptomes')}</label>
+          <textarea value={symptomes} disabled={readonly} maxLength={2000} rows={2} placeholder={t('consultation.anamneseSymptomesPlaceholder')}
+            onChange={e => setSymptomes(e.target.value)}
+            style={{ ...inp, height: 'auto', padding: '8px 10px', resize: 'vertical', fontFamily: 'inherit' }} />
+        </div>
       </div>
     </div>
   )
@@ -880,11 +1034,12 @@ function RailVital({ label, value, warn }: { label: string; value: string; warn?
   )
 }
 
-function PatientContextRail({ consultation, consultationId, isActive, canUpdate }: {
+function PatientContextRail({ consultation, consultationId, isActive, canUpdate, width }: {
   consultation: ReturnType<typeof useConsultation>['data'] & {}
   consultationId: string
   isActive: boolean
   canUpdate: boolean
+  width: number
 }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -899,7 +1054,7 @@ function PatientContextRail({ consultation, consultationId, isActive, canUpdate 
 
   return (
     <aside style={{
-      width: isCompact ? '100%' : 296, flexShrink: 0, height: isCompact ? 'auto' : '100%',
+      width: isCompact ? '100%' : width, flexShrink: 0, height: isCompact ? 'auto' : '100%',
       overflowY: isCompact ? 'visible' : 'auto',
       borderRight: isCompact ? 'none' : '1px solid var(--bordure-legere)',
       borderBottom: isCompact ? '1px solid var(--bordure-legere)' : 'none',
@@ -949,7 +1104,7 @@ function PatientContextRail({ consultation, consultationId, isActive, canUpdate 
       {/* Motif + type */}
       <RailSection title={t('consultation.railMotifType')}>
         <p style={{ margin: '0 0 8px', fontSize: '13px', color: 'var(--texte-primaire)', fontWeight: 500 }}>{visite.motifPrincipal.libelle}</p>
-        <TypeConsultationSelect consultationId={consultationId} currentTypeId={consultation.typeConsultation?.id ?? null} readonly={!isActive || !canUpdate} />
+        <TypeConsultationSelect consultationId={consultationId} currentTypeId={consultation.typeConsultation?.id ?? null} readonly={!isActive || !canUpdate} categorieCode={patient.categoriePatient.code} />
       </RailSection>
 
       {/* Notes d'accueil */}

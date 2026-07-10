@@ -11,8 +11,11 @@ import {
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@workspace/ui/components/dropdown-menu'
 import { DrawerShell }        from '@/modules/referentiels/components/DrawerShell'
+import { SelectBox }          from '@/components/saris'
 import { ConfirmDeleteModal } from './ConfirmDeleteModal'
 import { useCreateAntecedent, useUpdateAntecedent, useDeleteAntecedent } from '../../hooks/usePatients'
+import { usePathologies }     from '@/modules/referentiels/hooks/useReferentiels'
+import { isActif }            from '@/modules/referentiels/api/referentiels.api'
 import type { PatientDossier, AntecedentPatient, TypeAntecedent } from '@cms-saris/types'
 
 // ── Config types ──────────────────────────────────────────────────────────────
@@ -43,7 +46,30 @@ function makeSchema(t: (k: string) => string) {
   return z.object({
     type:        z.enum(['MEDICAL', 'CHIRURGICAL', 'FAMILIAL', 'GYNECO_OBSTETRICAL', 'AUTRE']),
     description: z.string().trim().min(5, t('patients.validationMin5')).max(500, t('patients.validationMax500')),
+    pathologieId: z.string().optional(),
   })
+}
+
+// ── Sélecteur de pathologie (liste fermée du référentiel, recueil §3.1) ──────
+
+function PathologiePicker({ value, onChange }: { value: string | undefined; onChange: (v: string) => void }) {
+  const { t } = useTranslation()
+  const { data: pathologies = [] } = usePathologies()
+  const actives = pathologies.filter(p => isActif(p.statut))
+  return (
+    <SelectBox
+      size="md"
+      fullWidth
+      value={value ?? ''}
+      onChange={onChange}
+      placeholder={t('patients.pathologieNonListeePlaceholder')}
+      aria-label={t('patients.fieldPathologie')}
+      options={[
+        { value: '', label: t('patients.pathologieNonListee') },
+        ...actives.map(p => ({ value: p.id, label: p.libelle })),
+      ]}
+    />
+  )
 }
 type Form = z.infer<ReturnType<typeof makeSchema>>
 
@@ -55,8 +81,9 @@ function AntecedentCard({ ant, canWrite, patientId }: { ant: AntecedentPatient; 
   const remove = useDeleteAntecedent(patientId)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
-  const editForm = useForm<Form>({ resolver: zodResolver(makeSchema(t)), values: { type: ant.type, description: ant.description } })
+  const editForm = useForm<Form>({ resolver: zodResolver(makeSchema(t)), values: { type: ant.type, description: ant.description, pathologieId: ant.pathologieId ?? undefined } })
   const editTypeVal = editForm.watch('type')
+  const editPathologieId = editForm.watch('pathologieId')
   const resolved = ant.statut === 'RESOLU'
   return (
     <div style={{
@@ -69,6 +96,11 @@ function AntecedentCard({ ant, canWrite, patientId }: { ant: AntecedentPatient; 
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '6px' }}>
             <TypeBadge type={ant.type} />
+            {ant.pathologie && (
+              <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--ap-700)', background: 'var(--ap-50)', border: '1px solid var(--ap-200)', padding: '1px 8px', borderRadius: 99 }}>
+                {ant.pathologie.libelle}
+              </span>
+            )}
             {resolved && (
               <span style={{ fontSize: '11px', color: 'var(--texte-tertiaire)', background: 'var(--fond-surface-2)', padding: '1px 6px', borderRadius: 99 }}>{t('patients.resolvedBadge')}</span>
             )}
@@ -121,7 +153,7 @@ function AntecedentCard({ ant, canWrite, patientId }: { ant: AntecedentPatient; 
           const ok = await editForm.trigger()
           if (!ok) return
           const v = editForm.getValues()
-          await update.mutateAsync({ aId: ant.id, data: { type: v.type, description: v.description } })
+          await update.mutateAsync({ aId: ant.id, data: { type: v.type, description: v.description, pathologieId: v.pathologieId || undefined } })
           setEditOpen(false)
         }}
         isSaving={update.isPending}
@@ -137,6 +169,10 @@ function AntecedentCard({ ant, canWrite, patientId }: { ant: AntecedentPatient; 
                 </button>
               ))}
             </div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+            <Label style={{ fontSize: '12px', fontWeight: '500', color: 'var(--texte-secondaire)' }}>{t('patients.fieldPathologie')}</Label>
+            <PathologiePicker value={editPathologieId} onChange={v => editForm.setValue('pathologieId', v, { shouldDirty: true })} />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
             <Label style={{ fontSize: '12px', fontWeight: '500', color: 'var(--texte-secondaire)' }}>{t('patients.fieldDescription')}</Label>
@@ -159,6 +195,7 @@ export function AntecedentsTab({ dossier, canWrite }: { dossier: PatientDossier;
   const createAnt = useCreateAntecedent(dossier.id)
   const form = useForm<Form>({ resolver: zodResolver(makeSchema(t)), defaultValues: { type: 'MEDICAL' } })
   const typeVal = form.watch('type')
+  const pathologieIdVal = form.watch('pathologieId')
 
   const actifs  = dossier.antecedents.filter(a => a.statut === 'ACTIF')
   const resolus = dossier.antecedents.filter(a => a.statut === 'RESOLU')
@@ -216,7 +253,8 @@ export function AntecedentsTab({ dossier, canWrite }: { dossier: PatientDossier;
         onSave={async () => {
           const ok = await form.trigger()
           if (!ok) return
-          await createAnt.mutateAsync(form.getValues())
+          const v = form.getValues()
+          await createAnt.mutateAsync({ ...v, pathologieId: v.pathologieId || undefined })
           setDrawer(false); form.reset()
         }}
         isSaving={createAnt.isPending}
@@ -232,6 +270,10 @@ export function AntecedentsTab({ dossier, canWrite }: { dossier: PatientDossier;
                 </button>
               ))}
             </div>
+          </div>
+          <div style={fld}>
+            <Label style={lbl}>{t('patients.fieldPathologie')}</Label>
+            <PathologiePicker value={pathologieIdVal} onChange={v => form.setValue('pathologieId', v)} />
           </div>
           <div style={fld}>
             <Label style={lbl}>{t('patients.fieldDescription')}</Label>

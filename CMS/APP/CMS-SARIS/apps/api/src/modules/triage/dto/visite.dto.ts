@@ -23,6 +23,7 @@ export class CreateConstanteVitaleDto {
   @IsOptional() @IsInt()    @Min(50)  @Max(300) @Type(() => Number) tensionSystolique?:  number
   @IsOptional() @IsInt()    @Min(30)  @Max(200) @Type(() => Number) tensionDiastolique?: number
   @IsOptional() @IsInt()    @Min(20)  @Max(300) @Type(() => Number) frequenceCardiaque?: number
+  @IsOptional() @IsInt()    @Min(4)   @Max(80)  @Type(() => Number) frequenceRespiratoire?: number
   @IsOptional() @IsNumber() @Min(50)  @Max(100) @Type(() => Number) saturationO2?:       number
   @IsOptional() @IsNumber() @Min(0.5) @Max(300) @Type(() => Number) poids?:              number
   @IsOptional() @IsNumber() @Min(30)  @Max(250) @Type(() => Number) taille?:             number
@@ -84,6 +85,13 @@ export class UpdateSoignantVisiteDto {
   @ValidateIf((_o, v) => v !== null)
   @IsUUID()
   soignantId?: string | null
+
+  // Motif de la réaffectation (ex. transfert formalisé « cas complexe → médecin »,
+  // recueil §4.2) — consigné dans l'audit trail VisiteEvenement.commentaire.
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  motif?: string
 }
 
 // ── Filtres liste ─────────────────────────────────────────────────────────────

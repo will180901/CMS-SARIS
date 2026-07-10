@@ -70,4 +70,26 @@ export class DashboardController {
   ) {
     return this.svc.getStatistiques(requireSite(req), from, to)
   }
+
+  /** Croisement pathologie × catégorie × département sur la période (recueil §6.2). */
+  @Get('croisement')
+  @RequirePermissions('consultation.read')
+  croisement(
+    @Req() req: AuthedRequest,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    return this.svc.getCroisementPathologieCategorieDirection(requireSite(req), from, to)
+  }
+
+  /** Évolution mensuelle sur une année complète (recueil §6.2) — ?annee=YYYY (défaut : année en cours). */
+  @Get('evolution-annuelle')
+  @RequirePermissions('consultation.read')
+  evolutionAnnuelle(
+    @Req() req: AuthedRequest,
+    @Query('annee') annee?: string,
+  ) {
+    const anneeNum = annee ? parseInt(annee, 10) : new Date().getFullYear()
+    return this.svc.getEvolutionAnnuelle(requireSite(req), anneeNum)
+  }
 }

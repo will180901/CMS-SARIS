@@ -11,6 +11,8 @@ import { PermissionsGuard }     from '../security/guards/permissions.guard'
 import { RequirePermissions }   from '../../common/decorators/require-permissions.decorator'
 import { LiveRefresh }          from '../../common/decorators/live-refresh.decorator'
 import { Audit }                from '../../common/decorators/audit.decorator'
+import { CurrentUser }          from '../../common/decorators/current-user.decorator'
+import type { UserSession }     from '@cms-saris/types'
 import { CreateEmployeDto, UpdateEmployeDto, EmployeQueryDto } from './dto/employe.dto'
 
 @Controller('employes')
@@ -36,8 +38,8 @@ export class EmployeController {
   @Post()
   @RequirePermissions('employe.create')
   @HttpCode(HttpStatus.CREATED)
-  create(@Body() dto: CreateEmployeDto) {
-    return this.svc.create(dto)
+  create(@Body() dto: CreateEmployeDto, @CurrentUser() user: UserSession) {
+    return this.svc.create(dto, user.siteId, user.id)
   }
 
   @Patch(':id')

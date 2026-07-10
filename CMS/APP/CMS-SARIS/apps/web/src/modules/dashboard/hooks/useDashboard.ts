@@ -67,3 +67,23 @@ export function useStatistiques(enabled: boolean, params?: { from?: string; to?:
     staleTime: 60_000,
   })
 }
+
+/** Croisement pathologie × catégorie × département sur la période. */
+export function useCroisementStats(enabled: boolean, params?: { from?: string; to?: string }) {
+  return useQuery({
+    queryKey: ['dashboard', 'croisement', params?.from ?? '', params?.to ?? ''],
+    queryFn:  () => dashboardApi.croisement(params),
+    enabled,
+    staleTime: 60_000,
+  })
+}
+
+/** Évolution mensuelle sur une année complète (consultations + repos). */
+export function useEvolutionAnnuelle(enabled: boolean, annee: number) {
+  return useQuery({
+    queryKey: ['dashboard', 'evolution-annuelle', annee],
+    queryFn:  () => dashboardApi.evolutionAnnuelle(annee),
+    enabled,
+    staleTime: 120_000,
+  })
+}

@@ -79,8 +79,8 @@ export const triageApi = {
     api.patch<VisiteDetail>(`/triage/visites/${id}/statut`, payload),
 
   // Soignant
-  updateSoignant: (id: string, soignantId: string | null) =>
-    api.patch<VisiteDetail>(`/triage/visites/${id}/soignant`, { soignantId }),
+  updateSoignant: (id: string, soignantId: string | null, motif?: string) =>
+    api.patch<VisiteDetail>(`/triage/visites/${id}/soignant`, { soignantId, motif }),
 
   // Notes d'accueil
   updateNotes: (id: string, notesAccueil: string | null) =>

@@ -15,7 +15,7 @@ import { useNavigate } from 'react-router-dom'
 import { useIsCompact } from '@/hooks/useMediaQuery'
 import {
   Activity, HeartPulse, Stethoscope, Pill, ClipboardList,
-  Clock, Users, FileWarning, Ambulance, HardHat, Clock3, ChevronRight,
+  Clock, Users, FileWarning, Ambulance, Clock3, ChevronRight,
   TrendingUp, BarChart3, ShieldCheck, ShieldAlert, KeyRound,
   Download, Printer,
 } from 'lucide-react'
@@ -30,7 +30,7 @@ import { usePermissions } from '@/hooks/usePermissions'
 import { useSessionStore } from '@/stores/session.store'
 import {
   useOverview, useUrgences, useMotifsJour, useTendance, useAffluence,
-  useAdminSystemStats, useStatistiques,
+  useAdminSystemStats, useStatistiques, useCroisementStats, useEvolutionAnnuelle,
 } from '../hooks/useDashboard'
 import { exportStatsCsv, exportStatsPdf } from '../lib/statsExport'
 import { useAuditActions, useAnnuaire } from '@/modules/admin/hooks/useAdmin'
@@ -299,12 +299,12 @@ function ClinicalView() {
           <StatCard icon={<Pill size={16} />} label={t('dashboard.kpiValidatedPrescriptions')} value={overview.ordonnancesValideesJour} tone="success" hint={t('dashboard.today')} />
           <StatCard icon={<FileWarning size={16} />} label={t('dashboard.kpiExamFormsPending')} value={overview.bonsExamenAttente} tone={overview.bonsExamenAttente > 0 ? 'warning' : 'neutral'} hint={t('dashboard.examFormsHint')} />
           <StatCard icon={<Ambulance size={16} />} label={t('dashboard.kpiEvacuationsInProgress')} value={overview.evacuationsEnCours} tone={overview.evacuationsEnCours > 0 ? 'error' : 'neutral'} />
-          <StatCard icon={<HardHat size={16} />} label={t('dashboard.kpiWorkAccidents')} value={overview.accidentsTravailOuverts} tone={overview.accidentsTravailOuverts > 0 ? 'warning' : 'neutral'} hint={t('dashboard.workAccidentsHint')} />
           <StatCard icon={<Activity size={16} />} label={t('dashboard.kpiChronicFollowups')} value={overview.suivisChroniquesActifs} tone="accent" hint={t('dashboard.chronicFollowupsHint')} />
         </div>
       )}
 
       <StatistiquesSection />
+      <EvolutionAnnuelleSection />
 
       {has('delegation.read') && <DelegationsWidget />}
     </div>
@@ -498,12 +498,109 @@ function StatistiquesSection() {
                   <DonutChart height={170} centerLabel="actes" data={stats.parCategorie.slice(0, 6).map((s): DonutSlice => ({ name: s.libelle, value: s.count }))} />
                 ) : <EmptyMini />}
               </StatBlock>
+              <StatBlock title="Par département / direction">
+                {stats.parDepartement.length ? (
+                  <DonutChart height={170} centerLabel="actes" data={stats.parDepartement.slice(0, 6).map((s): DonutSlice => ({ name: s.libelle, value: s.count }))} />
+                ) : <EmptyMini />}
+              </StatBlock>
             </div>
 
             <StatBlock title="Top pathologies (diagnostic principal)">
               {stats.parPathologie.length ? <RankedBars data={stats.parPathologie.slice(0, 8)} /> : <EmptyMini />}
             </StatBlock>
+
+            <CroisementBlock from={from} to={to} />
           </div>
+        )}
+      </Card.Body>
+    </Card>
+  )
+}
+
+// ── Croisement pathologie × catégorie × département ──────────────────────────
+
+function CroisementBlock({ from, to }: { from: string; to: string }) {
+  const { data: rows = [], isLoading } = useCroisementStats(true, { from, to })
+  if (isLoading) return <Skeleton height={140} />
+  if (rows.length === 0) return null
+  const top = rows.slice(0, 12)
+  return (
+    <StatBlock title="Croisement pathologie × catégorie × département">
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--font-size-body-sm)' }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid var(--bordure-legere)' }}>
+              {['Pathologie', 'Catégorie', 'Département', 'Cas'].map((h, i) => (
+                <th key={h} style={{ textAlign: i === 3 ? 'right' : 'left', padding: '6px 8px', color: 'var(--texte-tertiaire)', fontWeight: 600, fontSize: 'var(--font-size-caption)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {top.map((r, i) => (
+              <tr key={i} style={{ borderBottom: '1px solid var(--bordure-legere)' }}>
+                <td style={{ padding: '7px 8px', color: 'var(--texte-primaire)' }}>{r.pathologie}</td>
+                <td style={{ padding: '7px 8px', color: 'var(--texte-secondaire)' }}>{r.categorie}</td>
+                <td style={{ padding: '7px 8px', color: 'var(--texte-secondaire)' }}>{r.departement}</td>
+                <td style={{ padding: '7px 8px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 700, color: 'var(--texte-primaire)' }}>{r.count}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </StatBlock>
+  )
+}
+
+// ── Évolution annuelle (série mensuelle) ──────────────────────────────────────
+
+function EvolutionAnnuelleSection() {
+  const anneeCourante = new Date().getFullYear()
+  const [annee, setAnnee] = useState(anneeCourante)
+  const { data: points = [], isLoading } = useEvolutionAnnuelle(true, annee)
+  const empty = points.every(p => p.consultations === 0)
+  const totalConsult = points.reduce((s, p) => s + p.consultations, 0)
+
+  return (
+    <Card>
+      <Card.Header
+        icon={<TrendingUp size={15} />}
+        title="Évolution annuelle"
+        subtitle={`${annee} — consultations et repos maladie, mois par mois`}
+        actions={
+          <div style={{ display: 'flex', gap: 4 }}>
+            {[anneeCourante - 1, anneeCourante].map(a => (
+              <button key={a} type="button" onClick={() => setAnnee(a)}
+                style={{ height: 28, padding: '0 10px', borderRadius: 7, fontSize: 12, fontWeight: annee === a ? 700 : 500, cursor: 'pointer',
+                  background: annee === a ? 'var(--ap-50)' : 'var(--fond-surface)', color: annee === a ? 'var(--ap-700)' : 'var(--texte-secondaire)',
+                  border: `1px solid ${annee === a ? 'var(--ap-200)' : 'var(--bordure-normale)'}` }}>
+                {a}
+              </button>
+            ))}
+          </div>
+        }
+      />
+      <Card.Body>
+        {isLoading ? (
+          <Skeleton height={220} />
+        ) : empty ? (
+          <div style={{ minHeight: 160, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <p style={{ margin: 0, fontSize: 'var(--font-size-body-sm)', color: 'var(--texte-tertiaire)', fontStyle: 'italic' }}>
+              Aucune consultation sur {annee}.
+            </p>
+          </div>
+        ) : (
+          <>
+            <AreaTrend
+              data={points} xKey="mois" xTickFormatter={(m: string) => m.slice(5)}
+              series={[
+                { key: 'consultations', label: 'Consultations', color: 'var(--ap-500)' },
+                { key: 'reposJours',    label: 'Jours de repos', color: 'var(--as-600)' },
+              ]}
+            />
+            <p style={{ margin: '10px 0 0', fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)' }}>
+              {totalConsult} consultation{totalConsult > 1 ? 's' : ''} sur {annee}.
+            </p>
+          </>
         )}
       </Card.Body>
     </Card>

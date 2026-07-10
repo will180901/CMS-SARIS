@@ -325,6 +325,7 @@ interface LastValues {
   tensionSystolique?:  number | null
   tensionDiastolique?: number | null
   frequenceCardiaque?: number | null
+  frequenceRespiratoire?: number | null
   saturationO2?:       number | null
   poids?:              number | null
   taille?:             number | null
@@ -352,6 +353,7 @@ export function ConstantesForm({
   const [sys,    setSys]    = useState('')
   const [dia,    setDia]    = useState('')
   const [fc,     setFc]     = useState('')
+  const [freqResp, setFreqResp] = useState('')
   const [spo2,   setSpo2]   = useState('')
   const [poids,  setPoids]  = useState('')
   const [taille, setTaille] = useState('')
@@ -368,7 +370,7 @@ export function ConstantesForm({
 
   // Reset si on change de visite
   useEffect(() => {
-    setTemp(''); setSys(''); setDia(''); setFc('')
+    setTemp(''); setSys(''); setDia(''); setFc(''); setFreqResp('')
     setSpo2(''); setPoids(''); setTaille(''); setGlyc('')
     setConscience(''); setGlasgow(''); setEtatGen(''); setHydra(''); setColora('')
     setSavedSnap('')
@@ -403,11 +405,12 @@ export function ConstantesForm({
     tensionSystolique:  validateVital('tensionSystolique', sys).error,
     tensionDiastolique: validateVital('tensionDiastolique', dia).error,
     frequenceCardiaque: validateVital('frequenceCardiaque', fc).error,
+    frequenceRespiratoire: validateVital('frequenceRespiratoire', freqResp).error,
     saturationO2:       validateVital('saturationO2', spo2).error,
     poids:              validateVital('poids', poids).error,
     taille:             validateVital('taille', taille).error,
     glycemie:           validateVital('glycemie', glyc).error,
-  }), [temp, sys, dia, fc, spo2, poids, taille, glyc])
+  }), [temp, sys, dia, fc, freqResp, spo2, poids, taille, glyc])
 
   const hasError = Object.values(errors).some(Boolean)
   // Cohérence tension : systolique doit être ≥ diastolique
@@ -416,12 +419,12 @@ export function ConstantesForm({
     return !isNaN(s) && !isNaN(d) && s <= d
   }, [sys, dia])
 
-  const hasAnyValue = [temp, sys, dia, fc, spo2, poids, taille, glyc, conscience, glasgow, etatGen, hydra, colora].some(v => v.trim() !== '')
+  const hasAnyValue = [temp, sys, dia, fc, freqResp, spo2, poids, taille, glyc, conscience, glasgow, etatGen, hydra, colora].some(v => v.trim() !== '')
 
   // Empreinte courante des champs → détecte si la mesure a changé depuis le dernier enregistrement.
   const snapshot = useMemo(
-    () => JSON.stringify([temp, sys, dia, fc, spo2, poids, taille, glyc, conscience, glasgow, etatGen, hydra, colora]),
-    [temp, sys, dia, fc, spo2, poids, taille, glyc, conscience, glasgow, etatGen, hydra, colora],
+    () => JSON.stringify([temp, sys, dia, fc, freqResp, spo2, poids, taille, glyc, conscience, glasgow, etatGen, hydra, colora]),
+    [temp, sys, dia, fc, freqResp, spo2, poids, taille, glyc, conscience, glasgow, etatGen, hydra, colora],
   )
   const dirty = snapshot !== savedSnap
 
@@ -430,6 +433,7 @@ export function ConstantesForm({
     setSys(fmt(lastValues?.tensionSystolique) ?? '')
     setDia(fmt(lastValues?.tensionDiastolique) ?? '')
     setFc(fmt(lastValues?.frequenceCardiaque) ?? '')
+    setFreqResp(fmt(lastValues?.frequenceRespiratoire) ?? '')
     setSpo2(fmt(lastValues?.saturationO2) ?? '')
     setPoids(fmt(lastValues?.poids) ?? '')
     setTaille(fmt(lastValues?.taille) ?? '')
@@ -449,6 +453,7 @@ export function ConstantesForm({
       tensionSystolique:  i(sys),
       tensionDiastolique: i(dia),
       frequenceCardiaque: i(fc),
+      frequenceRespiratoire: i(freqResp),
       saturationO2:       n(spo2),
       poids:              n(poids),
       taille:             n(taille),
@@ -530,6 +535,9 @@ export function ConstantesForm({
         <VLine compact={compact} label={t('triage.labelFreqCardiaque')} unit="bpm" value={fc}    onChange={setFc}    step={1}
                min={VITAL_RANGES.frequenceCardiaque.min} max={VITAL_RANGES.frequenceCardiaque.max}
                error={errors.frequenceCardiaque} lastHint={fmt(lastValues?.frequenceCardiaque)} />
+        <VLine compact={compact} label={t('triage.labelFreqRespiratoire')} unit="cpm" value={freqResp} onChange={setFreqResp} step={1}
+               min={VITAL_RANGES.frequenceRespiratoire.min} max={VITAL_RANGES.frequenceRespiratoire.max}
+               error={errors.frequenceRespiratoire} lastHint={fmt(lastValues?.frequenceRespiratoire)} />
 
         {/* Tension — deux champs sur une ligne (responsive) */}
         <TensionLine

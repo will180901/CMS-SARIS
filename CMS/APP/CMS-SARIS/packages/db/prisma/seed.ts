@@ -73,7 +73,7 @@ const PATHOLOGIES = [
   { code: 'DIABETE_TYPE2',       libelle: 'Diabète de type 2',           chronique: true  },
   { code: 'HTA',                 libelle: 'Hypertension artérielle',     chronique: true  },
   { code: 'TUBERCULOSE',         libelle: 'Tuberculose',                 chronique: false },
-  { code: 'VIH_SIDA',            libelle: 'VIH / SIDA',                  chronique: true  },
+  { code: 'VIH_SIDA',            libelle: 'VIH / SIDA',                  chronique: true, confidentialiteRenforcee: true },
   { code: 'DREPANOCYTOSE',       libelle: 'Drépanocytose',               chronique: true  },
   { code: 'ANEMIE',              libelle: 'Anémie',                      chronique: false },
   { code: 'GASTROENTERITE',      libelle: 'Gastroentérite',              chronique: false },
@@ -81,6 +81,13 @@ const PATHOLOGIES = [
   { code: 'INSUFFISANCE_CARD',   libelle: 'Insuffisance cardiaque',      chronique: true  },
   { code: 'GROSSESSE',           libelle: 'Grossesse',                   chronique: false },
   { code: 'TRAUMATISME_PHYSIQUE',libelle: 'Traumatisme physique',        chronique: false },
+  // Liste fermée d'antécédents (recueil §3.1, Médecin Chef & Infirmière) — vient
+  // compléter les pathologies déjà présentes ci-dessus (Diabète, HTA).
+  { code: 'ASTHME',              libelle: 'Asthme',                      chronique: true  },
+  { code: 'MALADIE_CARDIAQUE',   libelle: 'Maladie cardiaque',           chronique: true  },
+  { code: 'ALLERGIE_CHRONIQUE',  libelle: 'Allergie',                    chronique: true  },
+  { code: 'CANCER',              libelle: 'Cancer',                      chronique: true  },
+  { code: 'MALADIE_HEREDITAIRE', libelle: 'Maladie héréditaire',         chronique: true  },
 ]
 
 const MEDICAMENTS = [

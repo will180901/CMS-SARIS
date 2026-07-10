@@ -28,14 +28,10 @@ export function VisiteArchiveSummary({ visite }: Props) {
   const cloturee = visite.statut === 'CLOTUREE'
   const canDelete = has('visite.delete')
   const consultation = visite.consultations?.[0] ?? null
-
-  const impact = consultation ? [
-    consultation._count.diagnostics > 0 && t('triage.archiveImpactDiagnostics', { count: consultation._count.diagnostics }),
-    consultation._count.ordonnances > 0 && t('triage.archiveImpactOrdonnances', { count: consultation._count.ordonnances }),
-    consultation._count.bonsExamen > 0 && t('triage.archiveImpactBonsExamen', { count: consultation._count.bonsExamen }),
-    consultation._count.bonsPharmacie > 0 && t('triage.archiveImpactBonsPharmacie', { count: consultation._count.bonsPharmacie }),
-    consultation._count.certificats > 0 && t('triage.archiveImpactCertificats', { count: consultation._count.certificats }),
-  ].filter((x): x is string => !!x) : []
+  // Isolation stricte : la suppression de visite ne touche jamais les documents de
+  // consultation (diagnostics, ordonnances, bons) — c'est le rôle de consultation.delete().
+  // Tant qu'une consultation reste rattachée (quel que soit son statut), on bloque ici.
+  const blockedByConsultation = !!consultation
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -90,11 +86,18 @@ export function VisiteArchiveSummary({ visite }: Props) {
       )}
 
       {canDelete && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 4 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, paddingTop: 4 }}>
+          {blockedByConsultation && (
+            <p style={{ margin: 0, fontSize: '12px', color: 'var(--texte-tertiaire)', textAlign: 'right' }}>
+              {t('triage.supprimerBloqueParConsultation')}
+            </p>
+          )}
           <Button
             variant="outline"
             leftIcon={<Trash2 size={13} />}
             onClick={() => setConfirmDel(true)}
+            disabled={blockedByConsultation}
+            title={blockedByConsultation ? t('triage.supprimerBloqueParConsultation') : undefined}
             style={{ color: 'var(--erreur-texte)', borderColor: 'var(--erreur-bordure)' }}
           >
             {t('triage.supprimerDefinitivement')}
@@ -120,16 +123,9 @@ export function VisiteArchiveSummary({ visite }: Props) {
             </Button>
           </>}
         >
-          <p style={{ margin: '0 0 10px', fontSize: '13px', color: 'var(--texte-secondaire)', lineHeight: 1.6 }}>
+          <p style={{ margin: 0, fontSize: '13px', color: 'var(--texte-secondaire)', lineHeight: 1.6 }}>
             {t('triage.supprimerVisiteBody')}
           </p>
-          {impact.length > 0 && (
-            <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {impact.map((line, i) => (
-                <li key={i} style={{ fontSize: '13px', color: 'var(--erreur-texte)', fontWeight: 600 }}>{line}</li>
-              ))}
-            </ul>
-          )}
         </Modal>
       )}
     </div>

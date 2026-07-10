@@ -41,8 +41,8 @@ export const sousTraitantsApi = {
 export interface CreateSitePayload    { code: string; libelle: string; localisation?: string }
 export interface UpdateSitePayload    { code?: string; libelle?: string; localisation?: string }
 
-export interface CreateMotifPayload   { code: string; libelle: string }
-export interface UpdateMotifPayload   { code?: string; libelle?: string }
+export interface CreateMotifPayload   { code: string; libelle: string; triageAllege?: boolean }
+export interface UpdateMotifPayload   { code?: string; libelle?: string; triageAllege?: boolean }
 
 export interface CreatePathologiePayload { code: string; libelle: string; chronique?: boolean }
 export interface UpdatePathologiePayload { code?: string; libelle?: string; chronique?: boolean }
@@ -51,7 +51,17 @@ export interface CreateMedicamentPayload { nomGenerique: string; nomCommercial?:
 export interface UpdateMedicamentPayload { nomGenerique?: string; nomCommercial?: string; familleThera?: string }
 
 export interface CreateCategoriePayload  { code: string; libelle: string }
-export interface UpdateCategoriePayload  { code?: string; libelle?: string }
+// `code` volontairement absent : immuable après création (cf. UpdateCategoriePatientDto backend —
+// c'est le seul référentiel dont le code pilote de vraies règles métier : droits par catégorie,
+// obligations de saisie CDI/ayant droit/sous-traitant).
+export interface UpdateCategoriePayload  { libelle?: string }
+
+/** Droits d'une catégorie de patient — calculés depuis `DroitCategoriePatient` (backend). */
+export interface DroitCategoriePatientResume {
+  categorieId:   string
+  bonExamen:     boolean
+  bonPharmacie:  boolean
+}
 
 export interface CreateTypeExamenPayload { code: string; libelle: string; domaine: TypeExamen['domaine'] }
 export interface UpdateTypeExamenPayload { code?: string; libelle?: string; domaine?: TypeExamen['domaine'] }
@@ -102,6 +112,11 @@ export const referentielsApi = {
   // ── Catégories de patients ─────────────────────────────────────────────────
   categories: {
     list:      ()                                  => api.get<CategoriePatient[]>('/referentiels/categories-patient'),
+    // Droits par catégorie (bon d'examen / bon de pharmacie) — source unique déjà
+    // utilisée par le backend pour bloquer réellement la création d'un bon (clé sur
+    // categorieId, jamais un code/libellé). À utiliser à la place de toute comparaison
+    // de `categorieCode` en dur côté frontend.
+    droits:    ()                                  => api.get<DroitCategoriePatientResume[]>('/referentiels/categories-patient/droits'),
     create:    (data: CreateCategoriePayload)      => api.post<CategoriePatient>('/referentiels/categories-patient', data),
     update:    (id: string, data: UpdateCategoriePayload) => api.patch<CategoriePatient>(`/referentiels/categories-patient/${id}`, data),
     setStatut: (id: string, statut: CategoriePatient['statut']) => api.patch<CategoriePatient>(`/referentiels/categories-patient/${id}/statut`, { statut }),

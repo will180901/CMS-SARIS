@@ -67,6 +67,17 @@ export function usePatientAlertesCliniques(id: string, enabled = true) {
   })
 }
 
+// Suivi du dossier (traitement, évolution des pathologies chroniques, résultats d'examens) —
+// calculé sur l'historique complet du patient, tous sites (dossier centralisé).
+export function usePatientSuivi(id: string, enabled = true) {
+  return useQuery({
+    queryKey: ['patients', id, 'suivi'],
+    queryFn:  () => patientsApi.suivi(id),
+    staleTime: 20_000,
+    enabled:  !!id && enabled,
+  })
+}
+
 // Ayants droit (dépendants) d'un travailleur CDI + leur activité récente (traçabilité dossier).
 export function usePatientAyantsDroits(id: string, enabled = true) {
   return useQuery({

@@ -204,6 +204,30 @@ export class ReferentielsService {
     })
   }
 
+  /**
+   * Matrice des droits par catégorie (bon d'examen / bon de pharmacie), calculée à
+   * partir de `DroitCategoriePatient` — SOURCE UNIQUE déjà utilisée par le backend
+   * pour bloquer réellement la création d'un bon (`assertPrestationCouverte`, clé sur
+   * `categorieId`, jamais sur un code ou libellé modifiable). Exposée ici pour que le
+   * FRONTEND cesse de dupliquer la règle via une comparaison de `code` en dur
+   * (`categorieCode === 'ASSURE_CDI'`) — qui, elle, pouvait désynchroniser l'affichage
+   * du bouton si le code d'une catégorie était renommé.
+   */
+  async findDroitsCategoriesPatient() {
+    const droits = await this.prisma.droitCategoriePatient.findMany({
+      where:  { typePrestation: { in: ['EXAMEN', 'MEDICAMENT'] } },
+      select: { categorieId: true, typePrestation: true, couvert: true },
+    })
+    const parCategorie = new Map<string, { bonExamen: boolean; bonPharmacie: boolean }>()
+    for (const d of droits) {
+      const entry = parCategorie.get(d.categorieId) ?? { bonExamen: false, bonPharmacie: false }
+      if (d.typePrestation === 'EXAMEN')     entry.bonExamen    = d.couvert
+      if (d.typePrestation === 'MEDICAMENT') entry.bonPharmacie = d.couvert
+      parCategorie.set(d.categorieId, entry)
+    }
+    return [...parCategorie.entries()].map(([categorieId, droits]) => ({ categorieId, ...droits }))
+  }
+
   async createCategoriePatient(dto: CreateCategoriePatientDto) {
     const existing = await this.prisma.raw.categoriePatient.findUnique({ where: { code: dto.code } })
     if (existing && !existing.deletedAt) throw new ConflictException(`Code catégorie "${dto.code}" déjà utilisé`)

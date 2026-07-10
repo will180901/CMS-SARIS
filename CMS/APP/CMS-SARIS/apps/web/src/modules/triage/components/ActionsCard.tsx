@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ChevronRight, XCircle, UserPlus2, UserMinus, AlertCircle, Pencil, Stethoscope } from 'lucide-react'
+import { ChevronRight, XCircle, UserPlus2, UserMinus, AlertCircle, Pencil, Stethoscope, ArrowUpCircle } from 'lucide-react'
 import { Button } from '@workspace/ui/components/button'
 import { SelectBox } from '@/components/saris'
 import {
@@ -54,6 +54,12 @@ export function ActionsCard({ visite, onSent }: { visite: VisiteDetail; onSent?:
   const [motifAnnul,    setMotifAnnul]    = useState<string>('')
   const [motifAutre,    setMotifAutre]    = useState<string>('')
   const [soignantOpen,  setSoignantOpen]  = useState(false)
+
+  // ── Transfert formalisé « cas complexe → médecin » (recueil §4.2) ────────────
+  // Distinct de la réassignation générique : motif obligatoire + liste restreinte
+  // aux médecins (pas tout le personnel).
+  const [transfertStep, setTransfertStep] = useState<'idle' | 'motif' | 'picker'>('idle')
+  const [transfertMotif, setTransfertMotif] = useState('')
 
   const updateStatut      = useUpdateStatutVisite(visite.id)
   const updateSoignant    = useUpdateSoignantVisite(visite.id)
@@ -121,44 +127,6 @@ export function ActionsCard({ visite, onSent }: { visite: VisiteDetail; onSent?:
       </div>
 
       <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 18 }}>
-
-        {/* ── Action principale ──────────────────────────────────────────── */}
-        {isActive && ((isAttente && canTransition) || (isEnCours && canConsult)) && (
-          <div>
-            <SLabel>{t('triage.actionPrincipale')}</SLabel>
-            {isAttente && canTransition && (
-              <Button
-                onClick={() => updateStatut.mutate({ statut: 'EN_COURS' })}
-                disabled={updateStatut.isPending}
-                style={{ width: '100%', height: 40, fontSize: '13px', gap: 6,
-                         justifyContent: 'center', background: 'var(--ap-400)', color: '#fff' }}
-              >
-                <ChevronRight size={14} />
-                {t('triage.prendreEnCharge')}
-              </Button>
-            )}
-            {isEnCours && canConsult && (
-              <>
-              <Button
-                onClick={handleEnvoyerConsultation}
-                disabled={createConsultation.isPending || !visite.soignantId}
-                title={!visite.soignantId ? t('triage.assignSoignantAvantConsultation') : undefined}
-                style={{ width: '100%', height: 40, fontSize: '13px', gap: 6,
-                         justifyContent: 'center', background: 'var(--ap-400)', color: '#fff',
-                         opacity: !visite.soignantId ? 0.6 : 1 }}
-              >
-                <Stethoscope size={14} />
-                {createConsultation.isPending ? t('triage.ouverture') : t('triage.envoyerEnConsultation')}
-              </Button>
-              {!visite.soignantId && (
-                <p style={{ margin: '6px 0 0', fontSize: '11px', color: 'var(--texte-tertiaire)', textAlign: 'center' }}>
-                  {t('triage.assignSoignantAvantConsultation')}
-                </p>
-              )}
-              </>
-            )}
-          </div>
-        )}
 
         {/* ── Soignant ─────────────────────────────────────────────────────── */}
         <div>
@@ -233,6 +201,117 @@ export function ActionsCard({ visite, onSent }: { visite: VisiteDetail; onSent?:
           </button>
         ) })()}
         </div>
+
+        {/* ── Transfert formalisé cas complexe → médecin ─────────────────────── */}
+        {isActive && canAssign && (
+          <div>
+            <SLabel>{t('triage.transfertCasComplexe')}</SLabel>
+            {transfertStep === 'motif' ? (
+              <div style={{
+                background: 'var(--info-fond)',
+                border: '1px solid var(--info-bordure)',
+                borderRadius: 8, padding: '12px',
+                display: 'flex', flexDirection: 'column', gap: 10,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <ArrowUpCircle size={13} style={{ color: 'var(--info-texte)' }} />
+                  <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--info-texte)' }}>
+                    {t('triage.motifTransfertRequis')}
+                  </span>
+                </div>
+                <input
+                  type="text"
+                  value={transfertMotif}
+                  onChange={e => setTransfertMotif(e.target.value)}
+                  placeholder={t('triage.preciserMotifTransfert')}
+                  maxLength={400}
+                  autoFocus
+                  style={{
+                    height: 32, padding: '0 10px', fontSize: '12px',
+                    background: 'var(--fond-surface)',
+                    border: '1px solid var(--bordure-normale)',
+                    borderRadius: 6, outline: 'none',
+                    color: 'var(--texte-primaire)',
+                  }}
+                />
+                <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                  <button
+                    onClick={() => { setTransfertStep('idle'); setTransfertMotif('') }}
+                    style={{
+                      padding: '5px 12px', borderRadius: 6, fontSize: '12px',
+                      background: 'var(--fond-surface)', color: 'var(--texte-secondaire)',
+                      border: '1px solid var(--bordure-normale)', cursor: 'pointer',
+                    }}
+                  >
+                    {t('triage.retour')}
+                  </button>
+                  <button
+                    onClick={() => setTransfertStep('picker')}
+                    disabled={!transfertMotif.trim()}
+                    style={{
+                      padding: '5px 12px', borderRadius: 6, fontSize: '12px', fontWeight: '600',
+                      background: 'var(--info-accent)', color: '#fff', border: 'none',
+                      cursor: 'pointer', opacity: !transfertMotif.trim() ? 0.5 : 1,
+                    }}
+                  >
+                    {t('triage.choisirMedecin')}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => setTransfertStep('motif')}
+                style={{
+                  height: 34, borderRadius: 6, fontSize: '12px', fontWeight: '500',
+                  background: 'var(--fond-surface)', cursor: 'pointer', width: '100%',
+                  border: '1px solid var(--info-bordure)', color: 'var(--info-texte)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                }}
+              >
+                <ArrowUpCircle size={13} />
+                {t('triage.transfererAuMedecin')}
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* ── Action principale ──────────────────────────────────────────── */}
+        {isActive && ((isAttente && canTransition) || (isEnCours && canConsult)) && (
+          <div>
+            <SLabel>{t('triage.actionPrincipale')}</SLabel>
+            {isAttente && canTransition && (
+              <Button
+                onClick={() => updateStatut.mutate({ statut: 'EN_COURS' })}
+                disabled={updateStatut.isPending}
+                style={{ width: '100%', height: 40, fontSize: '13px', gap: 6,
+                         justifyContent: 'center', background: 'var(--ap-400)', color: '#fff' }}
+              >
+                <ChevronRight size={14} />
+                {t('triage.prendreEnCharge')}
+              </Button>
+            )}
+            {isEnCours && canConsult && (
+              <>
+              <Button
+                onClick={handleEnvoyerConsultation}
+                disabled={createConsultation.isPending || !visite.soignantId}
+                title={!visite.soignantId ? t('triage.assignSoignantAvantConsultation') : undefined}
+                style={{ width: '100%', height: 40, fontSize: '13px', gap: 6,
+                         justifyContent: 'center', background: 'var(--ap-400)', color: '#fff',
+                         opacity: !visite.soignantId ? 0.6 : 1 }}
+              >
+                <Stethoscope size={14} />
+                {createConsultation.isPending ? t('triage.ouverture') : t('triage.envoyerEnConsultation')}
+              </Button>
+              {!visite.soignantId && (
+                <p style={{ margin: '6px 0 0', fontSize: '11px', color: 'var(--texte-tertiaire)', textAlign: 'center' }}>
+                  {t('triage.assignSoignantAvantConsultation')}
+                </p>
+              )}
+              </>
+            )}
+          </div>
+        )}
 
         {/* ── Actions secondaires ──────────────────────────────────────────── */}
         {isActive && canCancel && (
@@ -336,10 +415,24 @@ export function ActionsCard({ visite, onSent }: { visite: VisiteDetail; onSent?:
       open={soignantOpen}
       onClose={() => setSoignantOpen(false)}
       currentId={visite.soignantId ?? null}
-      pendingId={updateSoignant.isPending ? updateSoignant.variables ?? null : undefined}
+      pendingId={updateSoignant.isPending ? updateSoignant.variables?.soignantId ?? null : undefined}
       onSelect={(id) => {
-        updateSoignant.mutate(id)
+        updateSoignant.mutate({ soignantId: id })
         setSoignantOpen(false)
+      }}
+    />
+
+    {/* Transfert formalisé — étape 2 : choix du médecin (liste restreinte) */}
+    <SoignantPickerModal
+      open={transfertStep === 'picker'}
+      onClose={() => setTransfertStep('idle')}
+      currentId={visite.soignantId ?? null}
+      roleFilter={['MEDECIN']}
+      title={t('triage.transfererAuMedecin')}
+      onSelect={(id) => {
+        if (!id) return
+        updateSoignant.mutate({ soignantId: id, motif: t('triage.transfertMotifPrefix', { motif: transfertMotif.trim() }) })
+        setTransfertStep('idle'); setTransfertMotif('')
       }}
     />
     </>

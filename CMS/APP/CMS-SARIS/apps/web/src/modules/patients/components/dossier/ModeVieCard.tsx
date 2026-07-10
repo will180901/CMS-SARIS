@@ -22,6 +22,7 @@ const FIELDS = [
   { key: 'troublesSommeil',  label: 'Troubles du sommeil', ph: '' },
   { key: 'sedentarite',      label: 'Sédentarité',         ph: '' },
   { key: 'portCharges',      label: 'Port de charges',     ph: '' },
+  { key: 'automedication',   label: 'Automédication',      ph: 'Non / Oui : lesquels' },
 ] as const
 
 type ModeVieKey = (typeof FIELDS)[number]['key'] | 'observations'
@@ -44,6 +45,7 @@ export function ModeVieCard({ dossier, canWrite }: { dossier: PatientDossier; ca
     troublesSommeil:  mv?.troublesSommeil  ?? '',
     sedentarite:      mv?.sedentarite      ?? '',
     portCharges:      mv?.portCharges      ?? '',
+    automedication:   mv?.automedication   ?? '',
     observations:     mv?.observations     ?? '',
   })
   const [vals, setVals] = useState<Record<ModeVieKey, string>>(initial)

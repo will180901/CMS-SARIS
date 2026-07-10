@@ -28,6 +28,13 @@ interface AuthedRequest {
 
 const SUPERVISION_ROLES = ['ADMIN_SYSTEME', 'MEDECIN_CHEF']
 
+// Confidentialité (recueil §5) : l'infirmier consultant l'historique complet d'un
+// patient (onglet dossier) n'a accès qu'à la visite EN COURS, pas aux visites passées.
+function isHistoriqueRestreint(req: AuthedRequest): boolean {
+  const roles = req.user?.roles ?? []
+  return roles.includes('INFIRMIER') && !roles.some(r => SUPERVISION_ROLES.includes(r))
+}
+
 function requireUser(req: AuthedRequest): { id: string; siteId: string } {
   const id     = req.user?.id
   const siteId = req.user?.siteId
@@ -69,14 +76,14 @@ export class TriageController {
   findByPatient(@Param('patientId') patientId: string, @Req() req: AuthedRequest) {
     requireUser(req)
     const canViewLocked = (req.user?.roles ?? []).some(r => SUPERVISION_ROLES.includes(r))
-    return this.triageService.findByPatient(patientId, canViewLocked)
+    return this.triageService.findByPatient(patientId, canViewLocked, isHistoriqueRestreint(req))
   }
 
   @Get(':id')
   @RequirePermissions('visite.read')
   findById(@Param('id') id: string, @Req() req: AuthedRequest) {
     const { siteId } = requireUser(req)
-    return this.triageService.findById(id, siteId)
+    return this.triageService.findById(id, siteId, isHistoriqueRestreint(req))
   }
 
   @Delete(':id')

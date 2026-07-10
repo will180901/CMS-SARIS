@@ -28,12 +28,13 @@ import { codeReferentiel, libelle as libelleSchema } from '@/lib/validation'
 const motifSchema = z.object({
   code:     codeReferentiel(2, 30),
   libelle:  libelleSchema('Libellé', 2, 100),
+  triageAllege: z.boolean(),
 })
 type MotifForm = z.infer<typeof motifSchema>
 
 function MotifFormFields({ form }: { form: ReturnType<typeof useForm<MotifForm>> }) {
   const { t } = useTranslation()
-  const { register, formState: { errors } } = form
+  const { register, watch, setValue, formState: { errors } } = form
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       <div>
@@ -51,6 +52,14 @@ function MotifFormFields({ form }: { form: ReturnType<typeof useForm<MotifForm>>
         <Input {...register('libelle')} placeholder={t('referentiels.motifLabelPlaceholder')} style={{ fontSize: '13px' }} />
         {errors.libelle && <p style={{ fontSize: '12px', color: 'var(--erreur-texte)', marginTop: '4px' }}>{errors.libelle.message}</p>}
       </div>
+      <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer' }}>
+        <input type="checkbox" checked={watch('triageAllege')} onChange={e => setValue('triageAllege', e.target.checked, { shouldDirty: true })}
+          style={{ marginTop: 3 }} />
+        <span>
+          <span style={{ fontSize: '13px', fontWeight: '500', color: 'var(--texte-primaire)', display: 'block' }}>{t('referentiels.motifTriageAllege')}</span>
+          <span style={{ fontSize: '12px', color: 'var(--texte-tertiaire)' }}>{t('referentiels.motifTriageAllegeHint')}</span>
+        </span>
+      </label>
     </div>
   )
 }
@@ -70,7 +79,7 @@ export function MotifsTab({ canCreate, canUpdate, canDelete }: { canCreate: bool
   const [confirm, setConfirm]   = useState<MotifConsultation | null>(null)
   const [confirmDel, setConfirmDel] = useState<MotifConsultation | null>(null)
 
-  const form = useForm<MotifForm>({ resolver: zodResolver(motifSchema), defaultValues: { code: '', libelle: '' } })
+  const form = useForm<MotifForm>({ resolver: zodResolver(motifSchema), defaultValues: { code: '', libelle: '', triageAllege: false } })
 
   const filtered = useMemo(() => motifs.filter(m => {
     if (statut === 'actif'   && !isActif(m.statut)) return false
@@ -82,8 +91,8 @@ export function MotifsTab({ canCreate, canUpdate, canDelete }: { canCreate: bool
   const pagination = usePagination(filtered, 5)
   const rz = useColumnResize({ storageKey: 'ref-motifs', ready: !isLoading && filtered.length > 0, cellsSelector: 'thead th' })
 
-  function openCreate() { setEdit(null); form.reset({ code: '', libelle: '' }); setDrawer(true) }
-  function openEdit(m: MotifConsultation) { setEdit(m); form.reset({ code: m.code, libelle: m.libelle }); setDrawer(true) }
+  function openCreate() { setEdit(null); form.reset({ code: '', libelle: '', triageAllege: false }); setDrawer(true) }
+  function openEdit(m: MotifConsultation) { setEdit(m); form.reset({ code: m.code, libelle: m.libelle, triageAllege: !!m.triageAllege }); setDrawer(true) }
   function closeDrawer() { setDrawer(false); setEdit(null); form.reset() }
 
   async function handleSave() {
@@ -177,6 +186,11 @@ function MotifRow({ motif, striped, onEdit, onToggle, onDelete, canUpdate, canDe
       </td>
       <td style={{ padding: 'var(--espace-2) var(--espace-4)' }}>
         <span style={{ fontSize: '13px', fontWeight: '500', color: 'var(--texte-primaire)' }}>{motif.libelle}</span>
+        {motif.triageAllege && (
+          <span style={{ marginLeft: 8, fontSize: '10px', fontWeight: 700, padding: '1px 6px', borderRadius: 99, background: 'var(--info-fond)', color: 'var(--info-texte)' }}>
+            {t('referentiels.motifTriageAllegeBadge')}
+          </span>
+        )}
       </td>
       <td style={{ padding: 'var(--espace-2) var(--espace-4)' }}><StatutBadge statut={motif.statut} /></td>
       <td style={{ padding: 'var(--espace-2) var(--espace-4)', textAlign: 'right', width: '48px' }}>

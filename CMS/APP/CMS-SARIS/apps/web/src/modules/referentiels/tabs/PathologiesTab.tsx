@@ -30,12 +30,13 @@ const pathoSchema = z.object({
   code:      codeReferentiel(2, 30),
   libelle:   libelleSchema('Libellé', 2, 150),
   chronique: z.boolean(),
+  confidentialiteRenforcee: z.boolean(),
 })
 type PathoForm = z.infer<typeof pathoSchema>
 
 function PathoFormFields({ form }: { form: ReturnType<typeof useForm<PathoForm>> }) {
   const { t } = useTranslation()
-  const { register, control, formState: { errors } } = form
+  const { register, control, watch, setValue, formState: { errors } } = form
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       <div>
@@ -78,6 +79,14 @@ function PathoFormFields({ form }: { form: ReturnType<typeof useForm<PathoForm>>
           </div>
         )} />
       </div>
+      <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer' }}>
+        <input type="checkbox" checked={watch('confidentialiteRenforcee')} onChange={e => setValue('confidentialiteRenforcee', e.target.checked, { shouldDirty: true })}
+          style={{ marginTop: 3 }} />
+        <span>
+          <span style={{ fontSize: '13px', fontWeight: '500', color: 'var(--texte-primaire)', display: 'block' }}>{t('referentiels.pathoConfidentialiteRenforcee')}</span>
+          <span style={{ fontSize: '12px', color: 'var(--texte-tertiaire)' }}>{t('referentiels.pathoConfidentialiteRenforceeHint')}</span>
+        </span>
+      </label>
     </div>
   )
 }
@@ -97,7 +106,7 @@ export function PathologiesTab({ canCreate, canUpdate, canDelete }: { canCreate:
   const [confirm, setConfirm]   = useState<PathologieReference | null>(null)
   const [confirmDel, setConfirmDel] = useState<PathologieReference | null>(null)
 
-  const form = useForm<PathoForm>({ resolver: zodResolver(pathoSchema), defaultValues: { chronique: false } })
+  const form = useForm<PathoForm>({ resolver: zodResolver(pathoSchema), defaultValues: { chronique: false, confidentialiteRenforcee: false } })
 
   const filtered = useMemo(() => pathologies.filter(p => {
     if (statut === 'actif'   && !isActif(p.statut)) return false
@@ -109,8 +118,8 @@ export function PathologiesTab({ canCreate, canUpdate, canDelete }: { canCreate:
   const pagination = usePagination(filtered, 5)
   const rz = useColumnResize({ storageKey: 'ref-pathologies', ready: !isLoading && filtered.length > 0, cellsSelector: 'thead th' })
 
-  function openCreate() { setEdit(null); form.reset({ code: '', libelle: '', chronique: false }); setDrawer(true) }
-  function openEdit(p: PathologieReference) { setEdit(p); form.reset({ code: p.code, libelle: p.libelle, chronique: p.chronique }); setDrawer(true) }
+  function openCreate() { setEdit(null); form.reset({ code: '', libelle: '', chronique: false, confidentialiteRenforcee: false }); setDrawer(true) }
+  function openEdit(p: PathologieReference) { setEdit(p); form.reset({ code: p.code, libelle: p.libelle, chronique: p.chronique, confidentialiteRenforcee: !!p.confidentialiteRenforcee }); setDrawer(true) }
   function closeDrawer() { setDrawer(false); setEdit(null); form.reset() }
 
   async function handleSave() {
@@ -201,6 +210,11 @@ function PathoRow({ patho, striped, onEdit, onToggle, onDelete, canUpdate, canDe
       </td>
       <td style={{ padding: 'var(--espace-2) var(--espace-4)' }}>
         <span style={{ fontSize: '13px', fontWeight: '500', color: 'var(--texte-primaire)' }}>{patho.libelle}</span>
+        {patho.confidentialiteRenforcee && (
+          <span style={{ marginLeft: 8, fontSize: '10px', fontWeight: 700, padding: '1px 6px', borderRadius: 99, background: 'var(--erreur-fond)', color: 'var(--erreur-texte)' }}>
+            {t('referentiels.pathoConfidentialiteRenforceeBadge')}
+          </span>
+        )}
       </td>
       <td style={{ padding: 'var(--espace-2) var(--espace-4)' }}><ChroniqueBadge chronique={patho.chronique} /></td>
       <td style={{ padding: 'var(--espace-2) var(--espace-4)' }}><StatutBadge statut={patho.statut} /></td>

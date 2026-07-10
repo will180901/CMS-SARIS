@@ -66,8 +66,6 @@ export const dashboard = {
     kpiExamFormsPending: 'Bons d\'examen en attente',
     examFormsHint: 'À transmettre au laboratoire',
     kpiEvacuationsInProgress: 'Évacuations en cours',
-    kpiWorkAccidents: 'Accidents du travail',
-    workAccidentsHint: 'Dossiers ouverts',
     kpiChronicFollowups: 'Suivis chroniques',
     chronicFollowupsHint: 'Patients en suivi',
 
@@ -227,8 +225,6 @@ export const dashboard = {
     kpiExamFormsPending: 'Exam orders pending',
     examFormsHint: 'To be sent to the laboratory',
     kpiEvacuationsInProgress: 'Evacuations in progress',
-    kpiWorkAccidents: 'Work accidents',
-    workAccidentsHint: 'Open cases',
     kpiChronicFollowups: 'Chronic follow-ups',
     chronicFollowupsHint: 'Patients under follow-up',
 

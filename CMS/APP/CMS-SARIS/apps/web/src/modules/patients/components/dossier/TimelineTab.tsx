@@ -3,10 +3,10 @@
  * documents générés (ordonnances, bons, évacuations, accidents, suivis) et
  * changements de catégorie, fusionnés sur un seul axe temporel décroissant.
  *
- * Chaque événement rattaché à une consultation est cliquable et ouvre celle-ci.
+ * Chaque événement rattaché à une consultation est cliquable et l'ouvre EN PLACE
+ * (modale `ConsultationViewerModal`) — jamais de redirection hors du dossier.
  */
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   GitCommitVertical, Stethoscope, Pill, FlaskConical, Ambulance, Receipt,
@@ -17,6 +17,8 @@ import { formatDate, formatTime } from '@/lib/intl'
 import { labelDecision, labelStatut } from '@/config/labels'
 import { usePatientConsultations, usePatientDocuments } from '@/modules/consultation/hooks/useConsultation'
 import { usePatientVisites } from '@/modules/triage/hooks/useTriage'
+import { useSessionStore } from '@/stores/session.store'
+import { ConsultationViewerModal } from './ConsultationViewerModal'
 import type { PatientDocument } from '@/modules/consultation/api/consultation.api'
 import type { PatientDossier } from '@cms-saris/types'
 
@@ -85,12 +87,18 @@ function fmtTime(iso: string) {
 
 export function TimelineTab({ dossier }: { dossier: PatientDossier }) {
   const { t } = useTranslation()
-  const navigate = useNavigate()
   const patientId = dossier.id
   const { data: consultations = [], isLoading: loadC } = usePatientConsultations(patientId)
   const { data: documents = [],     isLoading: loadD } = usePatientDocuments(patientId)
   const { data: visites = [],       isLoading: loadV } = usePatientVisites(patientId)
   const [filtre, setFiltre] = useState<'TOUS' | Kind>('TOUS')
+  const [viewingId, setViewingId] = useState<string | null>(null)
+
+  // Confidentialité (recueil §5) : l'infirmier n'a accès qu'à la visite/consultation
+  // EN COURS — le backend filtre déjà les données, ce bandeau explique pourquoi
+  // l'historique paraît incomplet plutôt que de laisser croire à une anomalie.
+  const roles = useSessionStore(s => s.user?.roles ?? [])
+  const historiqueRestreint = roles.includes('INFIRMIER') && !roles.some(r => r === 'ADMIN_SYSTEME' || r === 'MEDECIN_CHEF')
 
   const events = useMemo<TLEvent[]>(() => {
     const list: TLEvent[] = []
@@ -165,6 +173,16 @@ export function TimelineTab({ dossier }: { dossier: PatientDossier }) {
         </span>
       </div>
 
+      {historiqueRestreint && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14,
+          padding: '8px 12px', borderRadius: 8,
+          background: 'var(--info-fond)', border: '1px solid var(--info-bordure)',
+        }}>
+          <span style={{ fontSize: 12, color: 'var(--info-texte)' }}>{t('patients.tlHistoriqueRestreint')}</span>
+        </div>
+      )}
+
       {/* Filtres */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 18, flexWrap: 'wrap' }}>
         {FILTERS.map(f => {
@@ -237,7 +255,7 @@ export function TimelineTab({ dossier }: { dossier: PatientDossier }) {
                   <button
                     type="button"
                     disabled={!clickable}
-                    onClick={() => clickable && navigate('/consultations', { state: { openConsultationId: e.consultationId } })}
+                    onClick={() => clickable && setViewingId(e.consultationId!)}
                     title={clickable ? t('patients.openConsultation') : undefined}
                     style={{
                       width: '100%', textAlign: 'left',
@@ -278,6 +296,10 @@ export function TimelineTab({ dossier }: { dossier: PatientDossier }) {
             )
           })}
         </div>
+      )}
+
+      {viewingId && (
+        <ConsultationViewerModal consultationId={viewingId} onClose={() => setViewingId(null)} />
       )}
     </div>
   )

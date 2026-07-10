@@ -352,9 +352,11 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionCode[]> = {
     'consultation.close', 'consultation.cancel', 'consultation.delete',
     'consultation.diagnose', 'consultation.examen',
     'ordonnance.read', 'ordonnance.create', 'ordonnance.validate', 'ordonnance.cancel', 'ordonnance.print',
-    // Bons (pharmacie + examen) : lecture seule pour le médecin-chef (recueil §3.2/§4.3) —
-    // la délivrance des bons est réservée à l'infirmier, une fois la consultation clôturée.
-    'bon_examen.read',
+    // Bon d'examen : le médecin chef le crée directement (pas d'ordonnance requise —
+    // ce n'est pas un acte de prescription médicamenteuse). Bon de pharmacie : lecture
+    // seule pour le médecin-chef — sa création reste réservée à l'infirmier, une fois
+    // l'ordonnance validée (recueil §3.2/§4.3).
+    'bon_examen.read', 'bon_examen.create',
     'bon_pharmacie.read',
     'evacuation.read', 'evacuation.create', 'evacuation.update', 'evacuation.cancel', 'evacuation.close', 'evacuation.delete',
     'delegation.read', 'delegation.create', 'delegation.update', 'delegation.revoke', 'delegation.delete',
@@ -394,8 +396,9 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionCode[]> = {
     // au bout — la clôture en décision « Prescription » exige une ordonnance VALIDÉE
     // (le cloisonnement limite l'infirmier à ses propres consultations).
     'ordonnance.read', 'ordonnance.create', 'ordonnance.validate', 'ordonnance.cancel', 'ordonnance.print',
-    // L'infirmier gère les documents de SES propres consultations déléguées
-    // (créer + annuler ses bons d'examen / de pharmacie en cas d'erreur).
+    // Bons : NE PASSENT PLUS par assertPeutPrescrire (ce n'est pas un acte de
+    // prescription mais la délivrance de routine post-clôture, recueil §3.2/§4.3) —
+    // bon d'examen libre ; bon de pharmacie exige une ordonnance VALIDÉE existante.
     'bon_examen.create', 'bon_examen.cancel',
     'bon_pharmacie.read', 'bon_pharmacie.create', 'bon_pharmacie.cancel',
     // Registre employés : l'infirmière reconnaît/enregistre les travailleurs SARIS à l'accueil

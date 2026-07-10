@@ -19,6 +19,7 @@ export interface MotifConsultation {
   code:      string
   libelle:   string
   statut:    'ACTIF' | 'INACTIF'
+  triageAllege?: boolean
 }
 
 export interface MedicamentReference {
@@ -34,6 +35,7 @@ export interface PathologieReference {
   code:      string
   libelle:   string
   chronique: boolean
+  confidentialiteRenforcee: boolean
   statut:    'ACTIVE' | 'INACTIVE'
 }
 

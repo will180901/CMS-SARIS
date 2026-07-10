@@ -196,6 +196,7 @@ export function ConstantesTab({ patientId }: { patientId: string }) {
               <Th>{t('patients.colTemp')}</Th>
               <Th>{t('patients.colTension')}</Th>
               <Th>{t('patients.colFc')}</Th>
+              <Th>{t('patients.colFreqResp')}</Th>
               <Th>{t('patients.colSpo2')}</Th>
               <Th>{t('patients.colWeight')}</Th>
               <Th>{t('patients.colHeight')}</Th>
@@ -224,6 +225,7 @@ export function ConstantesTab({ patientId }: { patientId: string }) {
                   {c.tensionSystolique != null ? `${c.tensionSystolique}/${c.tensionDiastolique ?? '—'}` : null}
                 </Cell>
                 <Cell sev={fcSev(c.frequenceCardiaque)}>{c.frequenceCardiaque ?? null}</Cell>
+                <Cell>{c.frequenceRespiratoire ?? null}</Cell>
                 <Cell sev={spo2Sev(c.saturationO2)}>{c.saturationO2 != null ? `${c.saturationO2}%` : null}</Cell>
                 <Cell>{c.poids != null ? `${c.poids} kg` : null}</Cell>
                 <Cell>{c.taille != null ? `${c.taille} cm` : null}</Cell>

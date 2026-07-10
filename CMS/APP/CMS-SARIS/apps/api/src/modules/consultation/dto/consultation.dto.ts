@@ -40,6 +40,12 @@ export class UpdateExamenCliniqueDto {
   @IsString()
   @MaxLength(8000)
   examenClinique?: string | null
+
+  // Anamnèse structurée (recueil §3.2) — en complément du texte libre ci-dessus.
+  @IsOptional() @IsDateString()             anamneseDateDebut?: string | null
+  @IsOptional() @IsString() @MaxLength(100) anamneseDuree?:     string | null
+  @IsOptional() @IsString() @MaxLength(200) anamneseModeDebut?: string | null
+  @IsOptional() @IsString() @MaxLength(2000) anamneseSymptomes?: string | null
 }
 
 // ── Ajouter un diagnostic ─────────────────────────────────────────────────────

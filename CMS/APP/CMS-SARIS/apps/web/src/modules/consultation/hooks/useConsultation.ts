@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from '@workspace/ui/components/sonner'
 import { consultationApi } from '../api/consultation.api'
+import type { AnamnesePayload } from '../api/consultation.api'
 import type {
   CreateConsultationPayload, AddDiagnosticPayload,
   CloturerPayload, AddLignePayload, ConsultationQueryParams,
@@ -108,6 +109,19 @@ export function useUpdateExamen(consultationId: string) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (examen: string | null) => consultationApi.updateExamen(consultationId, examen),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: consultationKey(consultationId) })
+    },
+    onError: toastError,
+  })
+}
+
+// ── Anamnèse structurée (recueil §3.2) ────────────────────────────────────────
+
+export function useUpdateAnamnese(consultationId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: AnamnesePayload) => consultationApi.updateAnamnese(consultationId, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: consultationKey(consultationId) })
     },

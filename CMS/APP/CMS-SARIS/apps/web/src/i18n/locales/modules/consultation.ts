@@ -12,6 +12,7 @@ export const consultation = {
     openCountOther: '{{count}} ouvertes',
     searchPlaceholder: 'Rechercher patient, motif…',
     loading: 'Chargement…',
+    resizeHint: 'Glisser pour redimensionner · Double-clic pour réinitialiser',
     noSearchResult: 'Aucun résultat pour « {{search}} »',
     noOpenConsultation: 'Aucune consultation ouverte',
     noSelectionTitle: 'Aucune consultation sélectionnée',
@@ -48,6 +49,16 @@ export const consultation = {
     previous: 'Précédent',
     toDocuments: 'Vers les documents',
     toDecision: 'Vers la décision',
+
+    // ── Anamnèse structurée (recueil §3.2) ───────────────────────────
+    anamneseTitle: 'Anamnèse',
+    anamneseDateDebut: 'Date de début',
+    anamneseDuree: 'Durée',
+    anamneseDureePlaceholder: 'Ex : 3 jours',
+    anamneseModeDebut: 'Mode de début',
+    anamneseModeDebutPlaceholder: 'Ex : brutal, progressif…',
+    anamneseSymptomes: 'Symptômes',
+    anamneseSymptomesPlaceholder: 'Décrire les symptômes rapportés…',
 
     // ── Examen clinique ─────────────────────────────────────────────
     clinicalExam: 'Examen clinique',
@@ -248,6 +259,7 @@ export const consultation = {
     openCountOther: '{{count}} open',
     searchPlaceholder: 'Search patient, reason…',
     loading: 'Loading…',
+    resizeHint: 'Drag to resize · Double-click to reset',
     noSearchResult: 'No result for “{{search}}”',
     noOpenConsultation: 'No open consultation',
     noSelectionTitle: 'No consultation selected',
@@ -284,6 +296,16 @@ export const consultation = {
     previous: 'Previous',
     toDocuments: 'To documents',
     toDecision: 'To decision',
+
+    // ── Structured anamnesis ──────────────────────────────────────────
+    anamneseTitle: 'Anamnesis',
+    anamneseDateDebut: 'Onset date',
+    anamneseDuree: 'Duration',
+    anamneseDureePlaceholder: 'E.g.: 3 days',
+    anamneseModeDebut: 'Onset mode',
+    anamneseModeDebutPlaceholder: 'E.g.: sudden, gradual…',
+    anamneseSymptomes: 'Symptoms',
+    anamneseSymptomesPlaceholder: 'Describe the reported symptoms…',
 
     // ── Clinical exam ───────────────────────────────────────────────
     clinicalExam: 'Clinical exam',

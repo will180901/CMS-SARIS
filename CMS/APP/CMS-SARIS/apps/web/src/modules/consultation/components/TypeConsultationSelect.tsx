@@ -13,13 +13,28 @@ interface Props {
   consultationId: string
   currentTypeId:  string | null
   readonly?:      boolean
+  /** Code (immuable après création, cf. verrouillage CategoriePatient.code) du patient
+   *  — pour ne proposer les types réservés aux employés qu'aux bonnes catégories. */
+  categorieCode?: string
 }
 
-export function TypeConsultationSelect({ consultationId, currentTypeId, readonly }: Props) {
+// Types qui n'ont de sens que pour un EMPLOYÉ SARIS (CDI/CDD) — un bilan obligatoire ou
+// une visite pré-embauche ne concernent jamais un ayant droit, un sous-traitant ou un
+// riverain. Codes @unique et immuables (cf. UpdateCategoriePatientDto) → comparaison sûre.
+const TYPES_RESERVES_EMPLOYE = ['BILAN_OBLIGATOIRE', 'VISITE_PRE_EMBAUCHE']
+
+export function TypeConsultationSelect({ consultationId, currentTypeId, readonly, categorieCode }: Props) {
   const { t } = useTranslation()
   const { data: types = [] } = useTypesConsultation()
   const setType = useSetTypeConsultation(consultationId)
-  const actifs  = types.filter(ty => ty.statut === 'ACTIF')
+  const estEmploye = categorieCode === 'ASSURE_CDI' || categorieCode === 'ASSURE_CDD'
+  // On garde toujours la valeur DÉJÀ choisie dans la liste, même si elle est réservée
+  // employé et que ce patient ne l'est pas (donnée existante) — sinon le combo
+  // s'afficherait vide alors que la consultation a bien un type enregistré.
+  const actifs  = types.filter(ty =>
+    ty.statut === 'ACTIF' &&
+    (estEmploye || !TYPES_RESERVES_EMPLOYE.includes(ty.code) || ty.id === currentTypeId),
+  )
 
   if (readonly) {
     const lib = types.find(ty => ty.id === currentTypeId)?.libelle

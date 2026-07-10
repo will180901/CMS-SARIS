@@ -277,6 +277,22 @@ model SauvegardeSysteme {
   message      String?
 }
 
+// Rapport généré automatiquement (recueil §6.1 : hebdo/mensuel/annuel) — snapshot
+// JSON des statistiques de la période, produit par cron et consultable/exportable
+// sans ressaisie manuelle. Un rapport par (site, type, période).
+model RapportGenere {
+  id             String    @id @default(uuid())
+  siteId         String
+  type           String    // HEBDOMADAIRE | MENSUEL | ANNUEL
+  periodeDebut   DateTime
+  periodeFin     DateTime
+  contenuJson    String    // snapshot JSON (mêmes données que dashboard.statistiques)
+  genereLe       DateTime  @default(now())
+  site           Site      @relation(fields: [siteId], references: [id])
+
+  @@index([siteId, type, periodeDebut])
+}
+
 // ─────────────────────────────────────────────
 // MODULE : RÉFÉRENTIELS
 // ─────────────────────────────────────────────
@@ -294,6 +310,7 @@ model Site {
   utilisateurs Utilisateur[]
   patients     Patient[]
   visites      Visite[]
+  rapports     RapportGenere[]
 
   @@index([updatedAt])
 }
@@ -332,6 +349,10 @@ model MotifConsultation {
   code      String    @unique
   libelle   String
   statut    String    @default("ACTIF")
+  // Triage allégé (recueil §3.5) : pour les motifs de consultation spécialisée
+  // (ophtalmologie, ORL, stomatologie...), le triage ne collecte que statut +
+  // identité — pas d'anamnèse ni d'examen clinique infirmier complet.
+  triageAllege Boolean @default(false)
   visites   Visite[]
 
   @@index([updatedAt])
@@ -357,8 +378,13 @@ model PathologieReference {
   libelle     String
   chronique   Boolean                  @default(false)
   statut      String                   @default("ACTIVE")
+  // Confidentialité renforcée (VIH/SIDA, santé mentale, gynéco-obstétrical sensible...) :
+  // un antécédent lié à cette pathologie est masqué à l'INFIRMIER (accès résumé du jour),
+  // visible seulement au MEDECIN_CHEF/ADMIN_SYSTEME — cf. patient.service.ts::findById.
+  confidentialiteRenforcee Boolean     @default(false)
   diagnostics DiagnosticConsultation[]
   suivis      SuiviChronique[]
+  antecedents AntecedentPatient[]
 
   @@index([updatedAt])
 }
@@ -731,6 +757,7 @@ model ModeViePatient {
   troublesSommeil  String?
   sedentarite      String?
   portCharges      String?
+  automedication   String?
   observations     String?
   patient          Patient   @relation(fields: [patientId], references: [id])
 
@@ -767,14 +794,18 @@ model AllergiePatient {
 }
 
 model AntecedentPatient {
-  updatedAt   DateTime  @default(now()) @updatedAt
-  deletedAt   DateTime?
-  id          String    @id @default(uuid())
-  patientId   String
-  type        String
-  description String
-  statut      String    @default("ACTIF")
-  patient     Patient   @relation(fields: [patientId], references: [id])
+  updatedAt    DateTime             @default(now()) @updatedAt
+  deletedAt    DateTime?
+  id           String               @id @default(uuid())
+  patientId    String
+  type         String
+  // Pathologie issue de la liste fermée du référentiel (recueil §3.1) — optionnelle :
+  // NULL pour les antécédents hors liste, décrits uniquement par `description`.
+  pathologieId String?
+  description  String
+  statut       String               @default("ACTIF")
+  patient      Patient              @relation(fields: [patientId], references: [id])
+  pathologie   PathologieReference? @relation(fields: [pathologieId], references: [id])
 
   @@index([updatedAt])
 }
@@ -940,6 +971,7 @@ model ConstanteVitale {
   tensionSystolique  Int?
   tensionDiastolique Int?
   frequenceCardiaque Int?
+  frequenceRespiratoire Int?
   saturationO2       Float?
   poids              Float?
   taille             Float?
@@ -970,6 +1002,11 @@ model Consultation {
   soignantId       String
   delegationId     String?
   statut           StatutConsultation @default(OUVERTE)
+  // Anamnèse structurée (recueil §3.2) — en complément du texte libre `examenClinique`.
+  anamneseDateDebut DateTime?
+  anamneseDuree     String?
+  anamneseModeDebut String?
+  anamneseSymptomes String?
   examenClinique   String?
   conclusion       String?
   decisionMedicale String?

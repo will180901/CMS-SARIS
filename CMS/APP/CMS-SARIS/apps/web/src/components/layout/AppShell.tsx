@@ -48,6 +48,7 @@ import { ConsultationPage } from '@/modules/consultation/pages/ConsultationPage'
 import { AccesPage }        from '@/modules/admin/pages/AccesPage'
 import { AuditPage }        from '@/modules/admin/pages/AuditPage'
 import { DashboardPage }    from '@/modules/dashboard/pages/DashboardPage'
+import { RapportsPage }     from '@/modules/rapports/pages/RapportsPage'
 import { ParametresPage }   from '@/modules/admin/pages/ParametresPage'
 import { SynchronisationPage } from '@/modules/admin/pages/SynchronisationPage'
 import { SortiesCritiquesPage } from '@/modules/sorties-critiques/pages/SortiesCritiquesPage'
@@ -84,6 +85,16 @@ export function AppShell() {
               </PermissionGate>
             }
           />
+
+          <Route
+            path="/rapports"
+            element={
+              <PermissionGate any={['consultation.read']}>
+                <RapportsPage />
+              </PermissionGate>
+            }
+          />
+
 
           <Route
             path="/patients"

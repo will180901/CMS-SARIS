@@ -61,6 +61,29 @@ function SidebarRow({ label, value, valueNode }: { label: string; value?: string
   )
 }
 
+// Badge doux (fond pastel + texte assorti) — mêmes paires de tons que le reste de l'app.
+function SidebarBadge({ children, bg, text }: { children: React.ReactNode; bg: string; text: string }) {
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center',
+      padding: '2px 9px', borderRadius: 999,
+      fontSize: '11px', fontWeight: 600, lineHeight: 1.6,
+      background: bg, color: text,
+    }}>
+      {children}
+    </span>
+  )
+}
+
+const STATUT_TONE: Record<string, { bg: string; text: string }> = {
+  EN_ATTENTE: { bg: 'var(--avert-fond)',  text: 'var(--avert-texte)'  },
+  EN_COURS:   { bg: 'var(--info-fond)',   text: 'var(--info-texte)'   },
+  CLOTUREE:   { bg: 'var(--succes-fond)', text: 'var(--succes-texte)' },
+  ANNULEE:    { bg: 'var(--erreur-fond)', text: 'var(--erreur-texte)' },
+}
+const NEUTRE_TONE = { bg: 'var(--fond-surface-2)', text: 'var(--texte-secondaire)' }
+const SOIGNANT_TONE = { bg: 'var(--ap-50)', text: 'var(--ap-700)' }
+
 function SidebarCounter({ label, count, danger }: { label: string; count: number; danger?: boolean }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px' }}>
@@ -159,11 +182,21 @@ export function VisiteSidebar({ visite, width = 268, compact }: { visite: Visite
 
       {/* ── Visite en cours ────────────────────────────────────────────────── */}
       <SidebarSection title={t('triage.sidebarVisiteEnCours')} icon={<Clock size={12} style={{ color: 'var(--texte-tertiaire)' }} />}>
-        <SidebarRow label={t('triage.sidebarStatut')} value={STATUT_LABEL[visite.statut] ?? humanizeCode(visite.statut)} />
-        <SidebarRow label={t('triage.sidebarOuverteA')} value={hhmm(visite.dateOuverture)} />
-        <SidebarRow label={t('triage.sidebarDuree')} valueNode={<LiveDuration from={visite.dateOuverture} precis />} />
+        <SidebarRow label={t('triage.sidebarStatut')} valueNode={
+          <SidebarBadge {...(STATUT_TONE[visite.statut] ?? NEUTRE_TONE)}>
+            {STATUT_LABEL[visite.statut] ?? humanizeCode(visite.statut)}
+          </SidebarBadge>
+        } />
+        <SidebarRow label={t('triage.sidebarOuverteA')} valueNode={
+          <SidebarBadge {...NEUTRE_TONE}>{hhmm(visite.dateOuverture)}</SidebarBadge>
+        } />
+        <SidebarRow label={t('triage.sidebarDuree')} valueNode={
+          <SidebarBadge {...NEUTRE_TONE}><LiveDuration from={visite.dateOuverture} precis /></SidebarBadge>
+        } />
         {visite.soignant && (
-          <SidebarRow label={t('triage.sidebarSoignant')} value={`${visite.soignant.prenom} ${visite.soignant.nom}`} />
+          <SidebarRow label={t('triage.sidebarSoignant')} valueNode={
+            <SidebarBadge {...SOIGNANT_TONE}>{`${visite.soignant.prenom} ${visite.soignant.nom}`}</SidebarBadge>
+          } />
         )}
       </SidebarSection>
 

@@ -79,6 +79,13 @@ export const triage = {
     motifAnnulationRequis: 'Motif d\'annulation requis',
     selectionnerMotif: 'Sélectionner un motif…',
     preciserMotif: 'Préciser le motif…',
+    transfertCasComplexe: 'Transfert cas complexe',
+    transfererAuMedecin: 'Transférer au médecin',
+    motifTransfertRequis: 'Motif du transfert requis',
+    preciserMotifTransfert: 'Pourquoi ce cas doit-il être transféré ?',
+    choisirMedecin: 'Choisir le médecin',
+    transfertMotifPrefix: 'Transfert cas complexe : {{motif}}',
+    triageAllegeBanniere: 'Triage allégé — consultation spécialisée : seuls le statut et l\'identité sont requis avant l\'envoi en consultation.',
     retour: 'Retour',
     confirmerAnnulation: 'Confirmer l\'annulation',
     cloturerSansConsultationQuestion: 'Clôturer sans consultation ?',
@@ -104,11 +111,7 @@ export const triage = {
     archiveConsultationTitle: 'Consultation rattachée',
     archiveConsultationStatusLabel: 'Consultation',
     archiveOpenConsultation: 'Voir la consultation',
-    archiveImpactDiagnostics: '{{count}} diagnostic(s)',
-    archiveImpactOrdonnances: '{{count}} ordonnance(s)',
-    archiveImpactBonsExamen: '{{count}} bon(s) d\'examen',
-    archiveImpactBonsPharmacie: '{{count}} bon(s) de pharmacie',
-    archiveImpactCertificats: '{{count}} certificat(s)',
+    supprimerBloqueParConsultation: 'Une consultation est encore rattachée — supprimez-la d\'abord',
 
     // ── Motifs d'annulation ─────────────────────────────────────────
     motifPartiAvant: 'Patient parti avant prise en charge',
@@ -130,6 +133,7 @@ export const triage = {
     derniereHintTension: 'Dernier : {{value}} mmHg',
     labelTemperature: 'Température',
     labelFreqCardiaque: 'Fréq. cardiaque',
+    labelFreqRespiratoire: 'Fréq. respiratoire',
     labelTensionArterielle: 'Tension artérielle',
     labelSpo2: 'SpO₂',
     labelPoids: 'Poids',
@@ -149,10 +153,13 @@ export const triage = {
     enregistrementAutoCarte: 'Enregistrement automatique en quittant la carte',
     constantesEnregistrees: 'Constantes enregistrées',
 
-    // ── VisiteDetail : onglets ──────────────────────────────────────
-    tabTriage: 'Triage',
-    tabAntecedents: 'Antécédents',
-    tabHistorique: 'Historique',
+    // ── VisiteDetail : accordéon du processus ────────────────────────
+    etapeAccueil: 'Accueil',
+    etapeAntecedents: 'Antécédents & sécurité',
+    etapeExamenClinique: 'Examen clinique',
+    etapeSaisies: 'Saisies',
+    etapeDecision: 'Décision',
+    etapeAssigne: 'Assigné',
 
     // ── VisiteDetail : bannière critique ────────────────────────────
     attentionCritique: 'Attention — informations critiques',
@@ -209,22 +216,11 @@ export const triage = {
     graviteCritique: 'Critique',
     messageAlertePlaceholder: 'Message de l\'alerte…',
 
-    // ── VisiteDetail : onglet historique ────────────────────────────
-    chronologieVisite: 'Chronologie de la visite ({{count}})',
-    parActor: '· par {{actor}}',
-    statutChangeLabel: 'Statut : {{from}} → {{to}}',
-    prioriteChangeLabel: 'Priorité modifiée (P{{from}} → P{{to}})',
-    soignantAssigneEvent: 'Soignant assigné',
-    soignantRetireEvent: 'Soignant retiré',
-    precedentDesaffecte: 'Précédent désaffecté',
-    notesMisesAJour: 'Notes d\'accueil mises à jour',
-    evenement: 'Événement',
+    // ── VisiteSidebar : libellés de statut ───────────────────────────
     statutEnAttente: 'En attente',
     statutEnCours: 'En cours',
     statutCloturee: 'Clôturée',
     statutAnnulee: 'Annulée',
-    visiteOuverte: 'Visite ouverte',
-    constantesSaisies: 'Constantes saisies',
 
     // ── VisiteDetail : chargement / erreur ──────────────────────────
     chargementVisite: 'Chargement de la visite…',
@@ -407,6 +403,13 @@ export const triage = {
     motifAnnulationRequis: 'Cancellation reason required',
     selectionnerMotif: 'Select a reason…',
     preciserMotif: 'Specify the reason…',
+    transfertCasComplexe: 'Complex case transfer',
+    transfererAuMedecin: 'Transfer to physician',
+    motifTransfertRequis: 'Transfer reason required',
+    preciserMotifTransfert: 'Why does this case need to be transferred?',
+    choisirMedecin: 'Choose the physician',
+    transfertMotifPrefix: 'Complex case transfer: {{motif}}',
+    triageAllegeBanniere: 'Lightened triage — specialized consultation: only status and identity are required before sending to consultation.',
     retour: 'Back',
     confirmerAnnulation: 'Confirm cancellation',
     cloturerSansConsultationQuestion: 'Close without consultation?',
@@ -432,11 +435,7 @@ export const triage = {
     archiveConsultationTitle: 'Attached consultation',
     archiveConsultationStatusLabel: 'Consultation',
     archiveOpenConsultation: 'View consultation',
-    archiveImpactDiagnostics: '{{count}} diagnosis(es)',
-    archiveImpactOrdonnances: '{{count}} prescription(s)',
-    archiveImpactBonsExamen: '{{count}} exam request(s)',
-    archiveImpactBonsPharmacie: '{{count}} pharmacy voucher(s)',
-    archiveImpactCertificats: '{{count}} certificate(s)',
+    supprimerBloqueParConsultation: 'A consultation is still attached — delete it first',
 
     // ── Motifs d'annulation ─────────────────────────────────────────
     motifPartiAvant: 'Patient left before care',
@@ -458,6 +457,7 @@ export const triage = {
     derniereHintTension: 'Last : {{value}} mmHg',
     labelTemperature: 'Temperature',
     labelFreqCardiaque: 'Heart rate',
+    labelFreqRespiratoire: 'Respiratory rate',
     labelTensionArterielle: 'Blood pressure',
     labelSpo2: 'SpO₂',
     labelPoids: 'Weight',
@@ -477,10 +477,13 @@ export const triage = {
     enregistrementAutoCarte: 'Automatic save when leaving the card',
     constantesEnregistrees: 'Vital signs saved',
 
-    // ── VisiteDetail : onglets ──────────────────────────────────────
-    tabTriage: 'Triage',
-    tabAntecedents: 'History',
-    tabHistorique: 'Timeline',
+    // ── VisiteDetail : process accordion ──────────────────────────────
+    etapeAccueil: 'Intake',
+    etapeAntecedents: 'History & safety',
+    etapeExamenClinique: 'Clinical exam',
+    etapeSaisies: 'Recorded',
+    etapeDecision: 'Decision',
+    etapeAssigne: 'Assigned',
 
     // ── VisiteDetail : bannière critique ────────────────────────────
     attentionCritique: 'Warning — critical information',
@@ -537,22 +540,11 @@ export const triage = {
     graviteCritique: 'Critical',
     messageAlertePlaceholder: 'Alert message…',
 
-    // ── VisiteDetail : onglet historique ────────────────────────────
-    chronologieVisite: 'Visit timeline ({{count}})',
-    parActor: '· by {{actor}}',
-    statutChangeLabel: 'Status: {{from}} → {{to}}',
-    prioriteChangeLabel: 'Priority changed (P{{from}} → P{{to}})',
-    soignantAssigneEvent: 'Caregiver assigned',
-    soignantRetireEvent: 'Caregiver removed',
-    precedentDesaffecte: 'Previous unassigned',
-    notesMisesAJour: 'Reception notes updated',
-    evenement: 'Event',
+    // ── VisiteSidebar : status labels ────────────────────────────────
     statutEnAttente: 'Waiting',
     statutEnCours: 'In progress',
     statutCloturee: 'Closed',
     statutAnnulee: 'Cancelled',
-    visiteOuverte: 'Visit opened',
-    constantesSaisies: 'Vital signs entered',
 
     // ── VisiteDetail : chargement / erreur ──────────────────────────
     chargementVisite: 'Loading the visit…',

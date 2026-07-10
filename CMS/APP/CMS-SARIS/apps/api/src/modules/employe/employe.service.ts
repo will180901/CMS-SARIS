@@ -3,14 +3,18 @@
  * par matricule). DISTINCT des utilisateurs/soignants du CMS et des sociétés sous-traitantes.
  * Construit dynamiquement à l'accueil (reconnaissance / enregistrement par matricule).
  */
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common'
+import { Injectable, Inject, forwardRef, NotFoundException, ConflictException } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
 import { CI } from '../../common/prisma/search'
+import { PatientService } from '../patient/patient.service'
 import type { CreateEmployeDto, UpdateEmployeDto, EmployeQueryDto } from './dto/employe.dto'
 
 @Injectable()
 export class EmployeService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(forwardRef(() => PatientService)) private readonly patients: PatientService,
+  ) {}
 
   async findAll(query: EmployeQueryDto) {
     const where: any = {}
@@ -38,11 +42,18 @@ export class EmployeService {
     return e
   }
 
-  async create(dto: CreateEmployeDto) {
+  /**
+   * `siteId`/`createdBy` : fournis UNIQUEMENT par la création directe au registre
+   * (EmployeController) — déclenche l'auto-création du dossier patient si date de
+   * naissance + sexe sont renseignés. Absents lors de l'appel interne depuis
+   * `ensureByMatricule()` (PatientService crée déjà le patient lui-même dans ce cas
+   * — recréer un dossier ici ferait doublon).
+   */
+  async create(dto: CreateEmployeDto, siteId?: string, createdBy?: string) {
     // Unicité matricule sur le client BRUT (voit les tombstones soft-delete).
     const exists = await this.prisma.raw.employeSaris.findUnique({ where: { matricule: dto.matricule.trim() }, select: { id: true } })
     if (exists) throw new ConflictException(`Le matricule ${dto.matricule.trim()} existe déjà au registre des employés`)
-    return this.prisma.employeSaris.create({
+    const employe = await this.prisma.employeSaris.create({
       data: {
         matricule:     dto.matricule.trim(),
         nom:           dto.nom.trim(),
@@ -56,6 +67,19 @@ export class EmployeService {
         categorie:     dto.categorie,
       },
     })
+
+    if (siteId) {
+      // Dossier patient automatique, en tâche de fond — n'échoue jamais la création
+      // de l'employé (erreurs avalées : le registre reste la source de vérité même
+      // si le dossier n'a pas pu être créé).
+      try {
+        await this.patients.createFromEmploye(employe, siteId, createdBy)
+      } catch {
+        /* best-effort */
+      }
+    }
+
+    return employe
   }
 
   async update(id: string, dto: UpdateEmployeDto) {

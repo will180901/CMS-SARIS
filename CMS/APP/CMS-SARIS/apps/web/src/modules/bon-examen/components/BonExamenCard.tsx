@@ -16,7 +16,7 @@ import {
   Card, Button, StatusPill, EmptyState,
   Field, Textarea, TextInput, Modal, MotifDialog,
 } from '@/components/saris'
-import { useTypesExamen } from '@/modules/referentiels/hooks/useReferentiels'
+import { useTypesExamen, useCategoriesDroits } from '@/modules/referentiels/hooks/useReferentiels'
 import {
   useBonsExamen, useCreateBonExamen, useValiderBonExamen,
   useAnnulerBonExamen, useSaisirResultat,
@@ -34,15 +34,25 @@ interface Props {
   readonly?:        boolean
   soignant?:        PrintSoignant | null
   categorieLibelle?: string
-  categorieCode?:   string
+  /** Id (stable, jamais le code/libellé) de la catégorie du patient — pour vérifier le droit au bon. */
+  categoriePatientId?: string
 }
 
-export function BonExamenCard({ consultationId, readonly, soignant, categorieLibelle, categorieCode }: Props) {
+export function BonExamenCard({ consultationId, readonly, soignant, categorieLibelle, categoriePatientId }: Props) {
   const { t } = useTranslation()
   const { has } = usePermissions()
   // RÈGLE CENTRALE (recueil) : bon d'examens réservé au personnel CDI + ayants droit.
-  // (Le backend reste l'arbitre — ici on masque seulement l'action.)
-  const eligible = !categorieCode || categorieCode === 'ASSURE_CDI' || categorieCode === 'AYANT_DROIT_CDI'
+  // Dérivé de la même matrice de droits (DroitCategoriePatient, clé sur categorieId)
+  // que le backend applique réellement à la création — jamais un code/libellé qui
+  // pourrait être renommé (le backend reste de toute façon l'arbitre final).
+  // FAIL-CLOSED par défaut (même logique que assertPrestationCouverte côté backend,
+  // qui rejette si aucune ligne couvert=true n'existe) : une catégorie SANS aucun
+  // droit configuré (ex. tout juste créée, jamais couverte par le seed) doit être
+  // NON éligible, pas éligible par défaut — sinon le bouton s'affiche pour une
+  // catégorie que le backend refusera systématiquement (403 à la soumission).
+  const { data: droits = [], isLoading: droitsLoading } = useCategoriesDroits()
+  const droitCategorie = categoriePatientId ? droits.find(d => d.categorieId === categoriePatientId) : undefined
+  const eligible = !categoriePatientId || (!droitsLoading && droitCategorie?.bonExamen === true)
   const canCreate    = has('bon_examen.create') && !readonly && eligible
   const canValidate  = has('bon_examen.validate') && !readonly
   const canCancel    = has('bon_examen.cancel') && !readonly
