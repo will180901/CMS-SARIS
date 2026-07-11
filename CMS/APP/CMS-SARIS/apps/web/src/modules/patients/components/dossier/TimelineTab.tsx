@@ -3,8 +3,9 @@
  * documents générés (ordonnances, bons, évacuations, accidents, suivis) et
  * changements de catégorie, fusionnés sur un seul axe temporel décroissant.
  *
- * Chaque événement rattaché à une consultation est cliquable et l'ouvre EN PLACE
- * (modale `ConsultationViewerModal`) — jamais de redirection hors du dossier.
+ * Chaque événement cliquable s'ouvre EN PLACE : page détail interne à l'onglet
+ * (aperçu A4 du document, ou résumé de la consultation) avec bouton retour —
+ * jamais de modale ni de redirection hors du dossier.
  */
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -18,7 +19,8 @@ import { labelDecision, labelStatut } from '@/config/labels'
 import { usePatientConsultations, usePatientDocuments } from '@/modules/consultation/hooks/useConsultation'
 import { usePatientVisites } from '@/modules/triage/hooks/useTriage'
 import { useSessionStore } from '@/stores/session.store'
-import { ConsultationViewerModal } from './ConsultationViewerModal'
+import { DossierDetailPanel, targetForDocument } from './DossierDetailPanel'
+import type { DossierDetailTarget } from './DossierDetailPanel'
 import type { PatientDocument } from '@/modules/consultation/api/consultation.api'
 import type { PatientDossier } from '@cms-saris/types'
 
@@ -67,7 +69,8 @@ interface TLEvent {
   badge?: string
   badgeTint?: string
   badgeBg?: string
-  consultationId?: string
+  /** Cible de la page détail interne (document précis ou consultation). */
+  target?: DossierDetailTarget
 }
 
 const FILTERS: { key: 'TOUS' | Kind; labelKey: string }[] = [
@@ -92,7 +95,7 @@ export function TimelineTab({ dossier }: { dossier: PatientDossier }) {
   const { data: documents = [],     isLoading: loadD } = usePatientDocuments(patientId)
   const { data: visites = [],       isLoading: loadV } = usePatientVisites(patientId)
   const [filtre, setFiltre] = useState<'TOUS' | Kind>('TOUS')
-  const [viewingId, setViewingId] = useState<string | null>(null)
+  const [detail, setDetail] = useState<DossierDetailTarget | null>(null)
 
   // Confidentialité (recueil §5) : l'infirmier n'a accès qu'à la visite/consultation
   // EN COURS — le backend filtre déjà les données, ce bandeau explique pourquoi
@@ -113,7 +116,7 @@ export function TimelineTab({ dossier }: { dossier: PatientDossier }) {
         title: t('patients.tlVisite'),
         subtitle: v.motifPrincipal?.libelle ?? undefined,
         badge: t(cfg.labelKey), badgeTint: cfg.tint, badgeBg: cfg.bg,
-        consultationId: consult?.id,
+        target: consult ? { kind: 'CONSULTATION', consultationId: consult.id } : undefined,
       })
     }
 
@@ -126,7 +129,7 @@ export function TimelineTab({ dossier }: { dossier: PatientDossier }) {
         title: t('patients.tlConsultation'),
         subtitle: c.visite?.motifPrincipal?.libelle + (decision ? t('patients.tlDecisionPrefix', { decision }) : ''),
         badge: t(cfg.labelKey), badgeTint: cfg.tint, badgeBg: cfg.bg,
-        consultationId: c.id,
+        target: { kind: 'CONSULTATION', consultationId: c.id },
       })
     }
 
@@ -137,7 +140,7 @@ export function TimelineTab({ dossier }: { dossier: PatientDossier }) {
         key: `d-${d.type}-${d.id}`, date: d.date, kind: 'DOCUMENT',
         icon: <Icon size={14} />, tint: m.tint, bg: m.bg,
         title: t(m.labelKey), subtitle: d.details || d.motif, badge: labelStatut(DOC_STATUT_FAMILLE[d.type], d.statut),
-        consultationId: d.consultationId,
+        target: targetForDocument(d.type, d.id, d.consultationId),
       })
     }
 
@@ -161,6 +164,9 @@ export function TimelineTab({ dossier }: { dossier: PatientDossier }) {
 
   const filtered = filtre === 'TOUS' ? events : events.filter(e => e.kind === filtre)
   const isLoading = loadC || loadD || loadV
+
+  // Page détail interne : remplace le contenu de l'onglet (pas de modale).
+  if (detail) return <DossierDetailPanel target={detail} onBack={() => setDetail(null)} />
 
   return (
     <div>
@@ -227,7 +233,7 @@ export function TimelineTab({ dossier }: { dossier: PatientDossier }) {
       {!isLoading && filtered.length > 0 && (
         <div style={{ maxWidth: 680 }}>
           {filtered.map((e, i) => {
-            const clickable = !!e.consultationId
+            const clickable = !!e.target
             const isLast = i === filtered.length - 1
             return (
               <div key={e.key} style={{ display: 'flex', gap: 14 }}>
@@ -255,8 +261,8 @@ export function TimelineTab({ dossier }: { dossier: PatientDossier }) {
                   <button
                     type="button"
                     disabled={!clickable}
-                    onClick={() => clickable && setViewingId(e.consultationId!)}
-                    title={clickable ? t('patients.openConsultation') : undefined}
+                    onClick={() => e.target && setDetail(e.target)}
+                    title={clickable ? t(e.target?.kind === 'CONSULTATION' ? 'patients.openConsultation' : 'patients.detailOpen') : undefined}
                     style={{
                       width: '100%', textAlign: 'left',
                       background: 'var(--fond-surface)', border: '1px solid var(--bordure-legere)',
@@ -296,10 +302,6 @@ export function TimelineTab({ dossier }: { dossier: PatientDossier }) {
             )
           })}
         </div>
-      )}
-
-      {viewingId && (
-        <ConsultationViewerModal consultationId={viewingId} onClose={() => setViewingId(null)} />
       )}
     </div>
   )

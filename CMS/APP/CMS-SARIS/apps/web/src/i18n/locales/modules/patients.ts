@@ -447,6 +447,12 @@ export const patients = {
     openConsultation: 'Voir la consultation',
     consultationViewerTitle: 'Consultation',
     consultationViewerNotFound: 'Consultation introuvable.',
+    consultationOpenNotice: 'Cette consultation est encore en cours — son résumé complet sera disponible après sa clôture.',
+    detailBack: 'Retour',
+    detailOpen: 'Voir le détail',
+    suiviResultatTitle: 'Résultat d\'examen',
+    suiviContenu: 'Contenu',
+    suiviVoirBon: 'Voir le bon d\'examen',
 
     // ── Onglet Suivi (traitement, évolution, examens) ────────────────
     tabSuivi: 'Suivi',
@@ -988,6 +994,12 @@ export const patients = {
     openConsultation: 'View the consultation',
     consultationViewerTitle: 'Consultation',
     consultationViewerNotFound: 'Consultation not found.',
+    consultationOpenNotice: 'This consultation is still in progress — its full summary will be available once it is closed.',
+    detailBack: 'Back',
+    detailOpen: 'View details',
+    suiviResultatTitle: 'Exam result',
+    suiviContenu: 'Content',
+    suiviVoirBon: 'View the exam order',
 
     // ── Onglet Suivi (traitement, évolution, examens) ────────────────
     tabSuivi: 'Follow-up',

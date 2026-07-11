@@ -4,7 +4,8 @@
  *   2. Traitement (historique des lignes d'ordonnances validées)
  *   3. Résultats d'examens
  * Calculé sur l'historique COMPLET du patient, tous sites (dossier centralisé) —
- * chaque ligne cliquable ouvre sa consultation d'origine EN PLACE (modale).
+ * chaque ligne cliquable ouvre son document EN PLACE : page détail interne à
+ * l'onglet (aperçu A4 de l'ordonnance, contenu du résultat) avec bouton retour.
  */
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -15,7 +16,8 @@ import { EmptyState, StatusPill } from '@/components/saris'
 import { formatDate, formatTime } from '@/lib/intl'
 import { labelStatut } from '@/config/labels'
 import { usePatientSuivi } from '../../hooks/usePatients'
-import { ConsultationViewerModal } from './ConsultationViewerModal'
+import { DossierDetailPanel } from './DossierDetailPanel'
+import type { DossierDetailTarget } from './DossierDetailPanel'
 import type { SuiviChroniqueItem, SuiviTraitementItem, SuiviResultatExamenItem } from '../../api/patients.api'
 
 // ── Ligne cliquable générique (renvoie vers la consultation d'origine) ─────────
@@ -130,7 +132,10 @@ function EmptySection({ text }: { text: string }) {
 export function SuiviTab({ patientId }: { patientId: string }) {
   const { t } = useTranslation()
   const { data, isLoading } = usePatientSuivi(patientId)
-  const [viewingId, setViewingId] = useState<string | null>(null)
+  const [detail, setDetail] = useState<DossierDetailTarget | null>(null)
+
+  // Page détail interne : remplace le contenu de l'onglet (pas de modale).
+  if (detail) return <DossierDetailPanel target={detail} onBack={() => setDetail(null)} />
 
   if (isLoading) {
     return (
@@ -187,7 +192,7 @@ export function SuiviTab({ patientId }: { patientId: string }) {
                     badge={labelStatut('ordonnance', tr.statutOrdonnance)}
                     badgeTone={tr.statutOrdonnance === 'VALIDEE' ? 'success' : tr.statutOrdonnance === 'ANNULEE' ? 'error' : 'neutral'}
                     date={tr.date}
-                    onClick={() => setViewingId(tr.consultationId)}
+                    onClick={() => setDetail({ kind: 'ORDONNANCE', consultationId: tr.consultationId, ordonnanceId: tr.ordonnanceId })}
                   />
                 ))}
               </div>
@@ -209,17 +214,13 @@ export function SuiviTab({ patientId }: { patientId: string }) {
                     subtitle={[r.laboratoire, r.interpretation].filter(Boolean).join(' · ') || undefined}
                     badge={labelStatut('resultat_examen', r.statut)}
                     date={r.date}
-                    onClick={() => setViewingId(r.consultationId)}
+                    onClick={() => setDetail({ kind: 'RESULTAT', consultationId: r.consultationId, bonId: r.bonId, resultat: r })}
                   />
                 ))}
               </div>
             )}
           </div>
         </div>
-      )}
-
-      {viewingId && (
-        <ConsultationViewerModal consultationId={viewingId} onClose={() => setViewingId(null)} />
       )}
     </div>
   )

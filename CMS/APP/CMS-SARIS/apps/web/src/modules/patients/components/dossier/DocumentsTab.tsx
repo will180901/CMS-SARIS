@@ -3,20 +3,19 @@
  * confondues : ordonnances, bons d'examen, fiches d'évacuation.
  *
  * Permet de retrouver tout l'historique documentaire ET de le GÉRER :
- *   - Voir le document en lecture seule (même onglet — via `DocumentViewerModal`,
- *     qui réutilise les cartes lecture-seule déjà employées dans la consultation ;
- *     plus de navigation vers /consultations)
+ *   - Voir le document en lecture seule EN PLACE : page détail interne à
+ *     l'onglet (aperçu A4, `DossierDetailPanel`) — pas de modale, pas de
+ *     navigation vers /consultations
  *   - Supprimer un document (confirmation + garde-fous serveur 409-safe)
  * La création / édition se fait dans la consultation (là où vit le cycle clinique).
  */
 import { useMemo, useState } from 'react'
-import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from '@workspace/ui/components/sonner'
 import { FileText, Pill, FlaskConical, Ambulance, ChevronRight, Loader2, Trash2, Receipt } from 'lucide-react'
 import { EmptyState, Modal, Button } from '@/components/saris'
-import { usePatientDocuments, useConsultation } from '@/modules/consultation/hooks/useConsultation'
+import { usePatientDocuments } from '@/modules/consultation/hooks/useConsultation'
 import { consultationApi } from '@/modules/consultation/api/consultation.api'
 import { bonExamenApi } from '@/modules/bon-examen/api/bon-examen.api'
 import { bonPharmacieApi } from '@/modules/bon-pharmacie/api/bon-pharmacie.api'
@@ -25,11 +24,8 @@ import { ApiError } from '@/lib/api'
 import { usePermissions } from '@/hooks/usePermissions'
 import { formatDate as intlFormatDate } from '@/lib/intl'
 import { labelStatut } from '@/config/labels'
-import { OrdonnanceCard } from '@/modules/consultation/components/OrdonnanceCard'
-import { OrdonnancePrintModal } from '@/modules/consultation/components/OrdonnancePrintModal'
-import { BonExamenCard } from '@/modules/bon-examen/components/BonExamenCard'
-import { BonPharmacieCard } from '@/modules/bon-pharmacie/components/BonPharmacieCard'
-import { EvacuationCard } from '@/modules/sorties-critiques/components/EvacuationCard'
+import { DossierDetailPanel, targetForDocument } from './DossierDetailPanel'
+import type { DossierDetailTarget } from './DossierDetailPanel'
 import type { PatientDocument } from '@/modules/consultation/api/consultation.api'
 import type { PermissionCode } from '@cms-saris/types'
 
@@ -69,106 +65,6 @@ const FILTERS: { key: 'TOUS' | PatientDocument['type']; labelKey: string }[] = [
   { key: 'EVACUATION',       labelKey: 'patients.docFilterEvacuations' },
 ]
 
-/**
- * Aperçu d'un document EN PLACE (même onglet, aucune navigation vers /consultations) —
- * réutilise les cartes lecture-seule déjà employées dans `ConsultationArchiveSummary`
- * plutôt que de réinventer leur affichage. Charge la consultation source (id déjà
- * connu du document) pour disposer du contexte requis par ces cartes (soignant,
- * catégorie du patient, lignes de l'ordonnance…).
- */
-function DocumentViewerModal({ doc, onClose }: { doc: PatientDocument; onClose: () => void }) {
-  const { t } = useTranslation()
-  const { data: consultation, isLoading } = useConsultation(doc.consultationId)
-  const [previewOrdId, setPreviewOrdId] = useState<string | null>(null)
-  const meta = TYPE_META[doc.type]
-  const Icon = meta.icon
-
-  return (
-    <>
-      <Modal
-        icon={<Icon size={16} />}
-        title={t(meta.labelKey)}
-        subtitle={formatDate(doc.date) + (doc.site ? ` · ${doc.site}` : '')}
-        width={640}
-        onClose={onClose}
-      >
-        {isLoading && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 0', gap: 8, color: 'var(--texte-tertiaire)' }}>
-            <Loader2 size={16} className="animate-spin" />
-            <span style={{ fontSize: '13px' }}>{t('patients.loading')}</span>
-          </div>
-        )}
-        {!isLoading && !consultation && (
-          <p style={{ margin: 0, fontSize: 'var(--font-size-body-sm)', color: 'var(--erreur-texte)' }}>
-            {t('patients.docViewerNotFound')}
-          </p>
-        )}
-        {!isLoading && consultation && (() => {
-          const { patient } = consultation.visite
-          switch (doc.type) {
-            case 'ORDONNANCE':
-              return (
-                <OrdonnanceCard
-                  consultationId={doc.consultationId}
-                  consultation={consultation}
-                  ordonnances={consultation.ordonnances}
-                  readonly
-                  onPreview={setPreviewOrdId}
-                />
-              )
-            case 'BON_EXAMEN':
-              return (
-                <BonExamenCard
-                  consultationId={doc.consultationId}
-                  readonly
-                  soignant={consultation.soignant}
-                  categorieLibelle={patient.categoriePatient.libelle}
-                  categoriePatientId={patient.categoriePatient.id}
-                />
-              )
-            case 'BON_PHARMACIE':
-              return (
-                <BonPharmacieCard
-                  consultationId={doc.consultationId}
-                  readonly
-                  categoriePatientId={patient.categoriePatient.id}
-                  soignant={consultation.soignant}
-                  categorieLibelle={patient.categoriePatient.libelle}
-                />
-              )
-            case 'EVACUATION':
-              return (
-                <EvacuationCard
-                  consultationId={doc.consultationId}
-                  readonly
-                  patient={{ identite: patient.identite, numeroPatient: patient.numeroPatient, categorieLibelle: patient.categoriePatient.libelle }}
-                  soignant={consultation.soignant}
-                />
-              )
-            default:
-              return null
-          }
-        })()}
-      </Modal>
-      {previewOrdId && consultation && (() => {
-        const ord = consultation.ordonnances.find(o => o.id === previewOrdId)
-        if (!ord) return null
-        // Portalisé + `position:fixed` propre (au-dessus de la Modal, z-index 1100) :
-        // la variante `inline` de MedicalPrintSheet se pose en `position:absolute
-        // inset:0` sur son ancêtre positionné le plus proche — sans ce wrapper porté
-        // dans <body>, elle se retrouverait piégée (invisible) par le rideau de
-        // confidentialité (backdrop-filter) de la zone détail du dossier patient.
-        return createPortal(
-          <div style={{ position: 'fixed', inset: 0, zIndex: 1100 }}>
-            <OrdonnancePrintModal consultation={consultation} ordonnance={ord} onClose={() => setPreviewOrdId(null)} variant="inline" />
-          </div>,
-          document.body,
-        )
-      })()}
-    </>
-  )
-}
-
 export function DocumentsTab({ patientId }: { patientId: string }) {
   const { t } = useTranslation()
   const qc = useQueryClient()
@@ -176,7 +72,7 @@ export function DocumentsTab({ patientId }: { patientId: string }) {
   const { data: documents = [], isLoading } = usePatientDocuments(patientId)
   const [filtre, setFiltre] = useState<'TOUS' | PatientDocument['type']>('TOUS')
   const [confirmDoc, setConfirmDoc] = useState<PatientDocument | null>(null)
-  const [viewingDoc, setViewingDoc] = useState<PatientDocument | null>(null)
+  const [detail, setDetail] = useState<DossierDetailTarget | null>(null)
 
   const counts = useMemo(() => {
     const c: Record<string, number> = {}
@@ -211,6 +107,9 @@ export function DocumentsTab({ patientId }: { patientId: string }) {
       toast.error(e instanceof ApiError ? e.serverMessage : t('patients.docDeleteError', { defaultValue: 'Suppression impossible.' }))
     },
   })
+
+  // Page détail interne : remplace le contenu de l'onglet (pas de modale).
+  if (detail) return <DossierDetailPanel target={detail} onBack={() => setDetail(null)} />
 
   return (
     <div>
@@ -284,7 +183,7 @@ export function DocumentsTab({ patientId }: { patientId: string }) {
               {/* Zone cliquable : aperçu du document en place (même onglet) */}
               <button
                 type="button"
-                onClick={() => setViewingDoc(d)}
+                onClick={() => setDetail(targetForDocument(d.type, d.id, d.consultationId))}
                 title={t('patients.viewDocument')}
                 style={{
                   flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left',
@@ -377,10 +276,6 @@ export function DocumentsTab({ patientId }: { patientId: string }) {
               : t('patients.docDeleteWarning', { defaultValue: "Cette action est définitive. Si le document est validé ou verrouillé, le serveur peut refuser la suppression (il faudra d'abord l'annuler dans la consultation)." })}
           </p>
         </Modal>
-      )}
-
-      {viewingDoc && (
-        <DocumentViewerModal doc={viewingDoc} onClose={() => setViewingDoc(null)} />
       )}
     </div>
   )

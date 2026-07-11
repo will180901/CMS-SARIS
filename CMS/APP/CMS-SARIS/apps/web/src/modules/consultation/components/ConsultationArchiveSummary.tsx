@@ -28,9 +28,12 @@ import type { useConsultation } from '../hooks/useConsultation'
 interface Props {
   consultationId: string
   consultation:   NonNullable<ReturnType<typeof useConsultation>['data']>
+  /** Appelé après suppression définitive — défaut : navigation vers /consultations.
+   *  (Le dossier patient passe un retour à l'onglet courant pour ne pas quitter la page.) */
+  onDeleted?:     () => void
 }
 
-export function ConsultationArchiveSummary({ consultationId, consultation }: Props) {
+export function ConsultationArchiveSummary({ consultationId, consultation, onDeleted }: Props) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { has } = usePermissions()
@@ -154,7 +157,7 @@ export function ConsultationArchiveSummary({ consultationId, consultation }: Pro
           footer={<>
             <Button variant="outline" onClick={() => setConfirmDel(false)} disabled={deleteConsult.isPending}>{t('consultation.cancel')}</Button>
             <Button
-              onClick={() => deleteConsult.mutate(undefined, { onSuccess: () => navigate('/consultations') })}
+              onClick={() => deleteConsult.mutate(undefined, { onSuccess: () => onDeleted ? onDeleted() : navigate('/consultations') })}
               disabled={deleteConsult.isPending}
               style={{ background: 'var(--erreur-accent)', color: '#fff', border: 'none', gap: 5 }}
             >
