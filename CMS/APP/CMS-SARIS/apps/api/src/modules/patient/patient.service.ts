@@ -19,6 +19,7 @@ import {
 import { CreateAllergieDto, UpdateAllergieDto } from './dto/medical.dto'
 import { CreateAntecedentDto, UpdateAntecedentDto } from './dto/medical.dto'
 import { CreateAlerteMedicaleDto, UpdateAlerteMedicaleDto } from './dto/medical.dto'
+import { CreateSuiviChroniqueDto, UpdateSuiviChroniqueDto } from './dto/medical.dto'
 import { CreateRattachementADDto, UpdateRattachementADDto } from './dto/rattachement.dto'
 import { CreateRattachementSTDto, UpdateRattachementSTDto } from './dto/rattachement.dto'
 
@@ -537,7 +538,9 @@ export class PatientService {
       entry.dates.push(d.consultation.createdAt)
       parPathologie.set(d.pathologieId, entry)
     }
-    const suiviMap = new Map(suivis.map(s => [s.pathologieId, s]))
+    // On n'expose que le suivi ACTIF par pathologie (un seul garanti par la garde
+    // de création) → la carte propose « Définir un suivi » si aucun n'est actif.
+    const suiviMap = new Map(suivis.filter(s => s.statut === 'ACTIF').map(s => [s.pathologieId, s]))
 
     const chroniques = [...parPathologie.entries()].map(([pathologieId, v]) => ({
       pathologieId,
@@ -573,6 +576,70 @@ export class PatientService {
     }))
 
     return { chroniques, traitements, resultatsExamens }
+  }
+
+  // ── Suivi chronique (onglet Suivi → définir / modifier / clôturer) ───────────
+  // Sélection SANS filtre site (dossier centralisé, cohérent avec findSuivi).
+
+  private readonly suiviSelect = {
+    id: true, pathologieId: true, frequenceSuivi: true, objectifs: true, statut: true, createdAt: true,
+  } as const
+
+  async createSuiviChronique(patientId: string, dto: CreateSuiviChroniqueDto) {
+    await this.assertPatientExists(patientId)
+    const patho = await this.prisma.pathologieReference.findFirst({ where: { id: dto.pathologieId }, select: { id: true, chronique: true } })
+    if (!patho) throw new NotFoundException('Pathologie introuvable')
+    // Un suivi ne se définit que sur une pathologie chronique (sinon il ne serait
+    // jamais restitué par findSuivi, qui n'agrège que les pathologies chroniques).
+    if (!patho.chronique) throw new BadRequestException('Un suivi ne peut être défini que sur une pathologie chronique')
+    // Un seul suivi ACTIF par (patient, pathologie).
+    const dejaActif = await this.prisma.suiviChronique.findFirst({
+      where: { statut: 'ACTIF', pathologieId: dto.pathologieId, OR: [{ patientId }, { consultation: { visite: { patientId } } }] },
+      select: { id: true },
+    })
+    if (dejaActif) throw new ConflictException('Un suivi actif existe déjà pour cette pathologie')
+    return this.prisma.suiviChronique.create({
+      data: {
+        patientId,
+        pathologieId:   dto.pathologieId,
+        frequenceSuivi: dto.frequenceSuivi,
+        objectifs:      dto.objectifs ?? null,
+        statut:         'ACTIF',
+      },
+      select: this.suiviSelect,
+    })
+  }
+
+  /** Vérifie qu'un suivi appartient bien au patient (lien direct OU via consultation). */
+  private async assertSuiviDuPatient(patientId: string, suiviId: string) {
+    const s = await this.prisma.suiviChronique.findFirst({
+      where: { id: suiviId, OR: [{ patientId }, { consultation: { visite: { patientId } } }] },
+      select: { id: true, pathologieId: true },
+    })
+    if (!s) throw new NotFoundException('Suivi chronique introuvable')
+    return s
+  }
+
+  async updateSuiviChronique(patientId: string, suiviId: string, dto: UpdateSuiviChroniqueDto) {
+    const s = await this.assertSuiviDuPatient(patientId, suiviId)
+    // Réactivation : refuser s'il existe déjà un autre suivi actif sur la pathologie.
+    if (dto.statut === 'ACTIF') {
+      const autreActif = await this.prisma.suiviChronique.findFirst({
+        where: { statut: 'ACTIF', pathologieId: s.pathologieId, id: { not: suiviId }, OR: [{ patientId }, { consultation: { visite: { patientId } } }] },
+        select: { id: true },
+      })
+      if (autreActif) throw new ConflictException('Un suivi actif existe déjà pour cette pathologie')
+    }
+    return this.prisma.suiviChronique.update({
+      where: { id: suiviId },
+      data: {
+        ...(dto.frequenceSuivi !== undefined ? { frequenceSuivi: dto.frequenceSuivi } : {}),
+        ...(dto.objectifs      !== undefined ? { objectifs: dto.objectifs || null }   : {}),
+        ...(dto.statut === 'CLOTURE' ? { statut: 'CLOTURE', motifCloture: dto.motifCloture || null, closedAt: new Date() } : {}),
+        ...(dto.statut === 'ACTIF'   ? { statut: 'ACTIF',   motifCloture: null, closedAt: null } : {}),
+      },
+      select: this.suiviSelect,
+    })
   }
 
   // ── Photo du patient ──────────────────────────────────────────────────────

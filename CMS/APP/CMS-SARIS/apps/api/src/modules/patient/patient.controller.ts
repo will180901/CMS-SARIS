@@ -23,6 +23,7 @@ import {
 import { CreateAllergieDto, UpdateAllergieDto }             from './dto/medical.dto'
 import { CreateAntecedentDto, UpdateAntecedentDto }         from './dto/medical.dto'
 import { CreateAlerteMedicaleDto, UpdateAlerteMedicaleDto } from './dto/medical.dto'
+import { CreateSuiviChroniqueDto, UpdateSuiviChroniqueDto } from './dto/medical.dto'
 import { CreateRattachementADDto, UpdateRattachementADDto } from './dto/rattachement.dto'
 import { CreateRattachementSTDto, UpdateRattachementSTDto } from './dto/rattachement.dto'
 
@@ -153,6 +154,26 @@ export class PatientController {
   @RequirePermissions('consultation.read')
   findSuivi(@Param('id') id: string) {
     return this.patientService.findSuivi(id)
+  }
+
+  /**
+   * Suivi chronique — définir / modifier / clôturer un plan de surveillance d'une
+   * pathologie chronique (fréquence + objectifs). Acte clinique → consultation.diagnose.
+   */
+  @Post(':id/suivi-chronique')
+  @RequirePermissions('consultation.diagnose')
+  createSuiviChronique(@Param('id') id: string, @Body() dto: CreateSuiviChroniqueDto) {
+    return this.patientService.createSuiviChronique(id, dto)
+  }
+
+  @Patch(':id/suivi-chronique/:sId')
+  @RequirePermissions('consultation.diagnose')
+  updateSuiviChronique(
+    @Param('id')  id:  string,
+    @Param('sId') sId: string,
+    @Body() dto: UpdateSuiviChroniqueDto,
+  ) {
+    return this.patientService.updateSuiviChronique(id, sId, dto)
   }
 
   @Patch(':id/identite')

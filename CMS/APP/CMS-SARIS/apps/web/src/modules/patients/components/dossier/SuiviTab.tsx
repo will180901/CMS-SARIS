@@ -4,20 +4,24 @@
  *   2. Traitement (historique des lignes d'ordonnances validées)
  *   3. Résultats d'examens
  * Calculé sur l'historique COMPLET du patient, tous sites (dossier centralisé) —
- * chaque ligne cliquable ouvre son document EN PLACE : page détail interne à
- * l'onglet (aperçu A4 de l'ordonnance, contenu du résultat) avec bouton retour.
+ * chaque ligne cliquable ouvre son document dans un TIROIR qui glisse de la
+ * droite (aperçu A4 de l'ordonnance, contenu du résultat), la liste reste visible.
  */
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Activity, TrendingUp, Pill, FlaskConical, Loader2, ChevronRight,
+  Plus, Pencil, CircleCheck, HeartPulse,
 } from 'lucide-react'
-import { EmptyState, StatusPill } from '@/components/saris'
+import { EmptyState, StatusPill, Modal, Button, SelectBox, Textarea } from '@/components/saris'
+import { DrawerShell } from '@/modules/referentiels/components/DrawerShell'
+import { usePermissions } from '@/hooks/usePermissions'
 import { formatDate, formatTime } from '@/lib/intl'
 import { labelStatut } from '@/config/labels'
-import { usePatientSuivi } from '../../hooks/usePatients'
-import { DossierDetailPanel } from './DossierDetailPanel'
+import { usePatientSuivi, useCreateSuiviChronique, useUpdateSuiviChronique } from '../../hooks/usePatients'
+import { DossierDetailDrawer } from './DossierDetailPanel'
 import type { DossierDetailTarget } from './DossierDetailPanel'
+import { FREQUENCES_SUIVI } from '../../api/patients.api'
 import type { SuiviChroniqueItem, SuiviTraitementItem, SuiviResultatExamenItem } from '../../api/patients.api'
 
 // ── Ligne cliquable générique (renvoie vers la consultation d'origine) ─────────
@@ -81,9 +85,29 @@ function ClickableRow({
 
 // ── Section : évolution des pathologies chroniques ──────────────────────────────
 
-function ChroniqueCard({ item }: { item: SuiviChroniqueItem }) {
+function ChroniqueCard({ item, patientId, canManage }: { item: SuiviChroniqueItem; patientId: string; canManage: boolean }) {
   const { t } = useTranslation()
   const suivi = item.suivi
+  const create = useCreateSuiviChronique(patientId)
+  const update = useUpdateSuiviChronique(patientId)
+
+  const [formOpen, setFormOpen]   = useState(false)
+  const [closeOpen, setCloseOpen] = useState(false)
+  const [freq, setFreq]           = useState<string>('Mensuel')
+  const [objectifs, setObjectifs] = useState('')
+  const [motif, setMotif]         = useState('')
+
+  const openForm = () => {
+    setFreq(suivi?.frequenceSuivi ?? 'Mensuel')
+    setObjectifs(suivi?.objectifs ?? '')
+    setFormOpen(true)
+  }
+
+  const lbl = { fontSize: 12, fontWeight: 500 as const, color: 'var(--texte-secondaire)' }
+  const dirty = suivi
+    ? (freq !== (suivi.frequenceSuivi ?? 'Mensuel') || objectifs !== (suivi.objectifs ?? ''))
+    : (freq !== 'Mensuel' || objectifs.trim().length > 0)
+
   return (
     <div style={{
       border: '1px solid var(--bordure-legere)', borderRadius: 8,
@@ -106,11 +130,112 @@ function ChroniqueCard({ item }: { item: SuiviChroniqueItem }) {
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: 14, fontSize: 11, color: 'var(--texte-tertiaire)' }}>
-        <span>{t('patients.suiviPremierDiagnostic')} : {formatDate(item.premierDiagnostic, { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-        <span>{t('patients.suiviDernierDiagnostic')} : {formatDate(item.dernierDiagnostic, { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 14, fontSize: 11, color: 'var(--texte-tertiaire)' }}>
+          <span>{t('patients.suiviPremierDiagnostic')} : {formatDate(item.premierDiagnostic, { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+          <span>{t('patients.suiviDernierDiagnostic')} : {formatDate(item.dernierDiagnostic, { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+        </div>
+
+        {canManage && (
+          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+            {suivi ? (
+              <>
+                <CardAction icon={<Pencil size={12} />} label={t('patients.suiviModifier')} onClick={openForm} />
+                <CardAction icon={<CircleCheck size={12} />} label={t('patients.suiviCloturer')} onClick={() => { setMotif(''); setCloseOpen(true) }} />
+              </>
+            ) : (
+              <CardAction icon={<Plus size={12} />} label={t('patients.suiviDefinir')} accent onClick={openForm} />
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Drawer définir / modifier */}
+      <DrawerShell
+        open={formOpen}
+        onClose={() => setFormOpen(false)}
+        icon={<HeartPulse size={18} />}
+        title={suivi ? t('patients.suiviFormTitleEdit') : t('patients.suiviFormTitleCreate')}
+        description={item.pathologie.libelle}
+        isDirty={dirty}
+        isSaving={create.isPending || update.isPending}
+        onSave={async () => {
+          try {
+            if (suivi) await update.mutateAsync({ sId: suivi.id, data: { frequenceSuivi: freq, objectifs } })
+            else       await create.mutateAsync({ pathologieId: item.pathologieId, frequenceSuivi: freq, objectifs })
+            setFormOpen(false)
+          } catch { /* erreur déjà signalée par le toast du hook ; on garde le drawer ouvert */ }
+        }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            <span style={lbl}>{t('patients.suiviFieldFrequence')}</span>
+            <SelectBox
+              size="md" fullWidth value={freq} onChange={setFreq}
+              aria-label={t('patients.suiviFieldFrequence')}
+              options={FREQUENCES_SUIVI.map(f => ({ value: f, label: f }))}
+            />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            <span style={lbl}>{t('patients.suiviFieldObjectifs')}</span>
+            <Textarea
+              value={objectifs}
+              onChange={e => setObjectifs(e.target.value)}
+              maxLength={500}
+              rows={4}
+              placeholder={t('patients.suiviObjectifsPlaceholder')}
+            />
+          </div>
+        </div>
+      </DrawerShell>
+
+      {/* Modale clôture */}
+      {closeOpen && suivi && (
+        <Modal
+          icon={<CircleCheck size={17} />}
+          title={t('patients.suiviCloturerTitle')}
+          subtitle={item.pathologie.libelle}
+          width={460}
+          onClose={() => setCloseOpen(false)}
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => setCloseOpen(false)} disabled={update.isPending}>{t('common.cancel', { defaultValue: 'Annuler' })}</Button>
+              <Button
+                onClick={async () => { try { await update.mutateAsync({ sId: suivi.id, data: { statut: 'CLOTURE', motifCloture: motif } }); setCloseOpen(false) } catch { /* toast déjà affiché */ } }}
+                loading={update.isPending}
+                leftIcon={<CircleCheck size={14} />}
+              >
+                {t('patients.suiviCloturer')}
+              </Button>
+            </>
+          }
+        >
+          <p style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--texte-secondaire)', lineHeight: 1.6 }}>
+            {t('patients.suiviCloturerBody')}
+          </p>
+          <Textarea value={motif} onChange={e => setMotif(e.target.value)} maxLength={300} rows={2} placeholder={t('patients.suiviMotifCloturePlaceholder')} />
+        </Modal>
+      )}
     </div>
+  )
+}
+
+function CardAction({ icon, label, onClick, accent }: { icon: React.ReactNode; label: string; onClick: () => void; accent?: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 5,
+        padding: '5px 10px', borderRadius: 7, cursor: 'pointer',
+        fontSize: 12, fontWeight: 600,
+        border: `1px solid ${accent ? 'var(--ap-300)' : 'var(--bordure-normale)'}`,
+        background: accent ? 'var(--ap-50)' : 'var(--fond-surface)',
+        color: accent ? 'var(--ap-700)' : 'var(--texte-secondaire)',
+      }}
+    >
+      {icon} {label}
+    </button>
   )
 }
 
@@ -131,11 +256,10 @@ function EmptySection({ text }: { text: string }) {
 
 export function SuiviTab({ patientId }: { patientId: string }) {
   const { t } = useTranslation()
+  const { has } = usePermissions()
+  const canManage = has('consultation.diagnose')
   const { data, isLoading } = usePatientSuivi(patientId)
   const [detail, setDetail] = useState<DossierDetailTarget | null>(null)
-
-  // Page détail interne : remplace le contenu de l'onglet (pas de modale).
-  if (detail) return <DossierDetailPanel target={detail} onBack={() => setDetail(null)} />
 
   if (isLoading) {
     return (
@@ -171,7 +295,7 @@ export function SuiviTab({ patientId }: { patientId: string }) {
               <EmptySection text={t('patients.suiviEmptyChroniques')} />
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {chroniques.map(c => <ChroniqueCard key={c.pathologieId} item={c} />)}
+                {chroniques.map(c => <ChroniqueCard key={c.pathologieId} item={c} patientId={patientId} canManage={canManage} />)}
               </div>
             )}
           </div>
@@ -222,6 +346,9 @@ export function SuiviTab({ patientId }: { patientId: string }) {
           </div>
         </div>
       )}
+
+      {/* Tiroir de détail (glisse de la droite, la liste reste derrière) */}
+      {detail && <DossierDetailDrawer target={detail} onClose={() => setDetail(null)} />}
     </div>
   )
 }

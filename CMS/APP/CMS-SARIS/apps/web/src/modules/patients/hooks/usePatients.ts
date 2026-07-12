@@ -7,6 +7,7 @@ import type {
   RattachementADPayload, RattachementSTPayload,
   UpdateIdentitePayload, ChangerCategoriePayload, ModeViePayload,
   SimilarPatientQuery,
+  CreateSuiviChroniquePayload, UpdateSuiviChroniquePayload,
 } from '../api/patients.api'
 import { ApiError, isOfflineQueued } from '@/lib/api'
 import i18n from '@/i18n/config'
@@ -75,6 +76,29 @@ export function usePatientSuivi(id: string, enabled = true) {
     queryFn:  () => patientsApi.suivi(id),
     staleTime: 20_000,
     enabled:  !!id && enabled,
+  })
+}
+
+// ── Mutations suivi chronique (définir / modifier / clôturer) ────────────────────
+
+const suiviKey = (id: string) => ['patients', id, 'suivi'] as const
+
+export function useCreateSuiviChronique(patientId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: CreateSuiviChroniquePayload) => patientsApi.createSuiviChronique(patientId, data),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: suiviKey(patientId) }); toast.success(i18n.t('patients.toastSuiviCreated')) },
+    onError: toastError,
+  })
+}
+
+export function useUpdateSuiviChronique(patientId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ sId, data }: { sId: string; data: UpdateSuiviChroniquePayload }) =>
+      patientsApi.updateSuiviChronique(patientId, sId, data),
+    onSuccess: (_res, vars) => { qc.invalidateQueries({ queryKey: suiviKey(patientId) }); toast.success(i18n.t(vars.data.statut === 'CLOTURE' ? 'patients.toastSuiviClosed' : 'patients.toastSuiviUpdated')) },
+    onError: toastError,
   })
 }
 

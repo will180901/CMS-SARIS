@@ -231,6 +231,21 @@ export interface PatientSuivi {
   resultatsExamens: SuiviResultatExamenItem[]
 }
 
+export const FREQUENCES_SUIVI = ['Hebdomadaire', 'Mensuel', 'Trimestriel', 'Semestriel', 'Annuel'] as const
+
+export interface CreateSuiviChroniquePayload {
+  pathologieId:   string
+  frequenceSuivi: string
+  objectifs?:     string
+}
+
+export interface UpdateSuiviChroniquePayload {
+  frequenceSuivi?: string
+  objectifs?:      string
+  statut?:         'ACTIF' | 'CLOTURE'
+  motifCloture?:   string
+}
+
 // ── API ───────────────────────────────────────────────────────────────────────
 
 export const patientsApi = {
@@ -244,6 +259,10 @@ export const patientsApi = {
   ayantsDroits: (id: string)             => api.get<AyantDroitLien[]>(`/patients/${id}/ayants-droits`),
   suivi: (id: string)                    => api.get<PatientSuivi>(`/patients/${id}/suivi`),
   byMatricule:  (matricule: string)      => api.get<MatriculeLookup>(`/patients/by-matricule/${encodeURIComponent(matricule)}`),
+
+  // Suivi chronique (définir / modifier / clôturer)
+  createSuiviChronique: (id: string, data: CreateSuiviChroniquePayload)                => api.post<SuiviChroniqueItem['suivi']>(`/patients/${id}/suivi-chronique`, data),
+  updateSuiviChronique: (id: string, sId: string, data: UpdateSuiviChroniquePayload)   => api.patch<SuiviChroniqueItem['suivi']>(`/patients/${id}/suivi-chronique/${sId}`, data),
 
   // Photo (upload fichier)
   uploadPhoto: (id: string, file: File) => {

@@ -3,9 +3,9 @@
  * confondues : ordonnances, bons d'examen, fiches d'évacuation.
  *
  * Permet de retrouver tout l'historique documentaire ET de le GÉRER :
- *   - Voir le document en lecture seule EN PLACE : page détail interne à
- *     l'onglet (aperçu A4, `DossierDetailPanel`) — pas de modale, pas de
- *     navigation vers /consultations
+ *   - Voir le document en lecture seule dans un TIROIR qui glisse de la droite
+ *     (aperçu A4, `DossierDetailDrawer`) — la liste reste visible derrière,
+ *     pas de navigation vers /consultations
  *   - Supprimer un document (confirmation + garde-fous serveur 409-safe)
  * La création / édition se fait dans la consultation (là où vit le cycle clinique).
  */
@@ -24,7 +24,7 @@ import { ApiError } from '@/lib/api'
 import { usePermissions } from '@/hooks/usePermissions'
 import { formatDate as intlFormatDate } from '@/lib/intl'
 import { labelStatut } from '@/config/labels'
-import { DossierDetailPanel, targetForDocument } from './DossierDetailPanel'
+import { DossierDetailDrawer, targetForDocument } from './DossierDetailPanel'
 import type { DossierDetailTarget } from './DossierDetailPanel'
 import type { PatientDocument } from '@/modules/consultation/api/consultation.api'
 import type { PermissionCode } from '@cms-saris/types'
@@ -107,9 +107,6 @@ export function DocumentsTab({ patientId }: { patientId: string }) {
       toast.error(e instanceof ApiError ? e.serverMessage : t('patients.docDeleteError', { defaultValue: 'Suppression impossible.' }))
     },
   })
-
-  // Page détail interne : remplace le contenu de l'onglet (pas de modale).
-  if (detail) return <DossierDetailPanel target={detail} onBack={() => setDetail(null)} />
 
   return (
     <div>
@@ -277,6 +274,9 @@ export function DocumentsTab({ patientId }: { patientId: string }) {
           </p>
         </Modal>
       )}
+
+      {/* Tiroir de détail (glisse de la droite, la liste reste derrière) */}
+      {detail && <DossierDetailDrawer target={detail} onClose={() => setDetail(null)} />}
     </div>
   )
 }

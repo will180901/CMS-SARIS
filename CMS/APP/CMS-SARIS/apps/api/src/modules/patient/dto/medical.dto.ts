@@ -44,3 +44,22 @@ export class CreateAlerteMedicaleDto {
 export class UpdateAlerteMedicaleDto extends PartialType(CreateAlerteMedicaleDto) {
   @IsOptional() @IsIn(['ACTIVE', 'INACTIVE']) statut?: string
 }
+
+// ── Suivi chronique (plan de surveillance d'une pathologie chronique) ───────────
+// Fréquences stockées en clair (libellé) — cohérent avec l'affichage brut du Suivi
+// et les données de seed existantes ("Mensuel").
+
+export const FREQUENCES_SUIVI = ['Hebdomadaire', 'Mensuel', 'Trimestriel', 'Semestriel', 'Annuel'] as const
+
+export class CreateSuiviChroniqueDto {
+  @IsUUID()                                   pathologieId:   string
+  @IsIn(FREQUENCES_SUIVI)                      frequenceSuivi: string
+  @IsOptional() @IsString() @MaxLength(500)   objectifs?:     string
+}
+
+export class UpdateSuiviChroniqueDto {
+  @IsOptional() @IsIn(FREQUENCES_SUIVI)       frequenceSuivi?: string
+  @IsOptional() @IsString() @MaxLength(500)   objectifs?:      string
+  @IsOptional() @IsIn(['ACTIF', 'CLOTURE'])   statut?:         string
+  @IsOptional() @IsString() @MaxLength(300)   motifCloture?:   string
+}

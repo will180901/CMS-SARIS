@@ -3,9 +3,9 @@
  * documents générés (ordonnances, bons, évacuations, accidents, suivis) et
  * changements de catégorie, fusionnés sur un seul axe temporel décroissant.
  *
- * Chaque événement cliquable s'ouvre EN PLACE : page détail interne à l'onglet
- * (aperçu A4 du document, ou résumé de la consultation) avec bouton retour —
- * jamais de modale ni de redirection hors du dossier.
+ * Chaque événement cliquable s'ouvre dans un TIROIR qui glisse de la droite
+ * (aperçu A4 du document, ou résumé de la consultation) — la chronologie reste
+ * visible derrière, jamais de redirection hors du dossier.
  */
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -19,7 +19,7 @@ import { labelDecision, labelStatut } from '@/config/labels'
 import { usePatientConsultations, usePatientDocuments } from '@/modules/consultation/hooks/useConsultation'
 import { usePatientVisites } from '@/modules/triage/hooks/useTriage'
 import { useSessionStore } from '@/stores/session.store'
-import { DossierDetailPanel, targetForDocument } from './DossierDetailPanel'
+import { DossierDetailDrawer, targetForDocument } from './DossierDetailPanel'
 import type { DossierDetailTarget } from './DossierDetailPanel'
 import type { PatientDocument } from '@/modules/consultation/api/consultation.api'
 import type { PatientDossier } from '@cms-saris/types'
@@ -165,9 +165,6 @@ export function TimelineTab({ dossier }: { dossier: PatientDossier }) {
   const filtered = filtre === 'TOUS' ? events : events.filter(e => e.kind === filtre)
   const isLoading = loadC || loadD || loadV
 
-  // Page détail interne : remplace le contenu de l'onglet (pas de modale).
-  if (detail) return <DossierDetailPanel target={detail} onBack={() => setDetail(null)} />
-
   return (
     <div>
       {/* En-tête */}
@@ -303,6 +300,9 @@ export function TimelineTab({ dossier }: { dossier: PatientDossier }) {
           })}
         </div>
       )}
+
+      {/* Tiroir de détail (glisse de la droite, la chronologie reste derrière) */}
+      {detail && <DossierDetailDrawer target={detail} onClose={() => setDetail(null)} />}
     </div>
   )
 }

@@ -1,7 +1,7 @@
 /**
- * DossierDetailPanel — « page » de détail INTERNE aux onglets du dossier patient
- * (Suivi, Chronologie, Documents) : remplace le contenu de l'onglet par le
- * document ciblé, avec bouton retour. AUCUNE modale, aucune redirection.
+ * DossierDetailDrawer — tiroir de détail des onglets du dossier patient (Suivi,
+ * Chronologie, Documents) : glisse de la droite PAR-DESSUS la liste et affiche
+ * le document ciblé. AUCUNE navigation, aucune modale centrée.
  *
  *   - ORDONNANCE / BON_EXAMEN / BON_PHARMACIE / EVACUATION → aperçu A4
  *     (mêmes gabarits `*PrintModal` en variante `inline` que la consultation)
@@ -10,7 +10,10 @@
  */
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ArrowLeft, Loader2, FlaskConical, FileText, Stethoscope } from 'lucide-react'
+import { X, Loader2, FlaskConical, FileText, Stethoscope, Pill, Receipt, Ambulance } from 'lucide-react'
+import {
+  Sheet, SheetContent, SheetHeader, SheetTitle,
+} from '@workspace/ui/components/sheet'
 import { InfoSection, InfoRow, StatusPill, Button } from '@/components/saris'
 import { PreviewHostContext } from '@/components/print/MedicalPrintSheet'
 import { useConsultation } from '@/modules/consultation/hooks/useConsultation'
@@ -59,6 +62,15 @@ const TITLE_KEY: Record<DossierDetailTarget['kind'], string> = {
   RESULTAT:      'patients.suiviResultatTitle',
 }
 
+const KIND_ICON: Record<DossierDetailTarget['kind'], typeof FileText> = {
+  CONSULTATION:  Stethoscope,
+  ORDONNANCE:    Pill,
+  BON_EXAMEN:    FlaskConical,
+  BON_PHARMACIE: Receipt,
+  EVACUATION:    Ambulance,
+  RESULTAT:      FlaskConical,
+}
+
 // ── États partagés ─────────────────────────────────────────────────────────────
 
 function Loading() {
@@ -73,7 +85,7 @@ function Loading() {
 
 function NotFound({ msgKey }: { msgKey: string }) {
   const { t } = useTranslation()
-  return <p style={{ margin: '16px 4px', fontSize: 'var(--font-size-body-sm)', color: 'var(--erreur-texte)' }}>{t(msgKey)}</p>
+  return <p style={{ margin: '16px 20px', fontSize: 'var(--font-size-body-sm)', color: 'var(--erreur-texte)' }}>{t(msgKey)}</p>
 }
 
 // ── Corps par type de cible ────────────────────────────────────────────────────
@@ -88,7 +100,7 @@ function ConsultationBody({ consultationId, onBack }: { consultationId: string; 
   // clôturée/annulée) — on affiche l'essentiel + une note explicative.
   if (consultation.statut === 'OUVERTE') {
     return (
-      <div style={{ flex: 1, overflowY: 'auto', padding: '4px 2px', maxWidth: 680 }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
         <InfoSection title={t('patients.consultationViewerTitle')} icon={<Stethoscope size={14} />}>
           <InfoRow
             label={t('patients.sidebarStatus')}
@@ -182,7 +194,7 @@ function ResultatBody({ consultationId, resultat }: { consultationId: string; re
   if (showBon) return <BonExamenBody consultationId={consultationId} bonId={resultat.bonId} onBack={() => setShowBon(false)} />
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', padding: '4px 2px', maxWidth: 680 }}>
+    <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
       <InfoSection title={t('patients.suiviResultatTitle')} icon={<FlaskConical size={14} />}>
         <InfoRow
           label={t('patients.colDate')}
@@ -220,42 +232,75 @@ function ResultatBody({ consultationId, resultat }: { consultationId: string; re
   )
 }
 
-// ── Panneau principal ──────────────────────────────────────────────────────────
+// ── Tiroir principal (glisse de la droite, par-dessus la liste) ────────────────
 
-export function DossierDetailPanel({ target, onBack }: { target: DossierDetailTarget; onBack: () => void }) {
+export function DossierDetailDrawer({ target, onClose }: { target: DossierDetailTarget; onClose: () => void }) {
   const { t } = useTranslation()
   const [host, setHost] = useState<HTMLDivElement | null>(null)
+  // `open` piloté par un état : on le passe à false pour laisser Radix jouer le
+  // slide-out, puis le parent démonte (onClose) une fois l'animation terminée.
+  const [open, setOpen] = useState(true)
+  const Icon = KIND_ICON[target.kind]
+  const requestClose = () => { setOpen(false); window.setTimeout(onClose, 220) }
 
   return (
-    <div style={{ height: '100%', minHeight: 620, display: 'flex', flexDirection: 'column' }}>
-      {/* Barre retour */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexShrink: 0 }}>
-        <button
-          type="button"
-          onClick={onBack}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600,
-            color: 'var(--texte-secondaire)', background: 'var(--fond-surface)',
-            border: '1px solid var(--bordure-normale)', borderRadius: 8,
-            padding: '6px 12px', cursor: 'pointer',
-          }}
-        >
-          <ArrowLeft size={14} /> {t('patients.detailBack')}
-        </button>
-        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--texte-primaire)' }}>{t(TITLE_KEY[target.kind])}</span>
-      </div>
+    <Sheet open={open} onOpenChange={o => { if (!o) requestClose() }}>
+      <SheetContent
+        side="right"
+        showCloseButton={false}
+        aria-describedby={undefined}
+        style={{
+          width: 860, maxWidth: '95vw', padding: 0, gap: 0,
+          height: '100vh', maxHeight: '100vh',
+          display: 'flex', flexDirection: 'column',
+          background: 'var(--fond-surface)',
+        }}
+      >
+        {/* En-tête */}
+        <SheetHeader style={{
+          position: 'relative', flexShrink: 0,
+          padding: 'var(--espace-4) var(--espace-5)',
+          borderBottom: '1px solid var(--bordure-legere)',
+          display: 'flex', flexDirection: 'row', alignItems: 'center',
+          gap: 'var(--espace-3)', textAlign: 'left',
+        }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: 'var(--radius-lg)',
+            background: 'var(--ap-50)', color: 'var(--ap-600)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          }}>
+            <Icon size={17} />
+          </div>
+          <SheetTitle style={{ margin: 0, flex: 1, minWidth: 0, fontSize: 'var(--font-size-h4)', fontWeight: 700, color: 'var(--texte-primaire)', lineHeight: 1.25 }}>
+            {t(TITLE_KEY[target.kind])}
+          </SheetTitle>
+          <button
+            aria-label={t('common.close', { defaultValue: 'Fermer' })}
+            onClick={requestClose}
+            style={{
+              background: 'transparent', border: 'none', padding: 6,
+              borderRadius: 'var(--radius-md)', color: 'var(--texte-tertiaire)', cursor: 'pointer',
+              transition: 'background 0.12s, color 0.12s', flexShrink: 0,
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--fond-surface-2)'; e.currentTarget.style.color = 'var(--texte-primaire)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--texte-tertiaire)' }}
+          >
+            <X size={16} />
+          </button>
+        </SheetHeader>
 
-      {/* Zone de contenu — hôte positionné : les aperçus A4 `inline` la recouvrent */}
-      <div ref={setHost} style={{ position: 'relative', flex: 1, minHeight: 480, display: 'flex', flexDirection: 'column' }}>
-        <PreviewHostContext.Provider value={host}>
-          {target.kind === 'CONSULTATION'  && <ConsultationBody consultationId={target.consultationId} onBack={onBack} />}
-          {target.kind === 'ORDONNANCE'    && <OrdonnanceBody consultationId={target.consultationId} ordonnanceId={target.ordonnanceId} onBack={onBack} />}
-          {target.kind === 'BON_EXAMEN'    && <BonExamenBody consultationId={target.consultationId} bonId={target.bonId} onBack={onBack} />}
-          {target.kind === 'BON_PHARMACIE' && <BonPharmacieBody consultationId={target.consultationId} bonId={target.bonId} onBack={onBack} />}
-          {target.kind === 'EVACUATION'    && <EvacuationBody consultationId={target.consultationId} evacuationId={target.evacuationId} onBack={onBack} />}
-          {target.kind === 'RESULTAT'      && <ResultatBody consultationId={target.consultationId} resultat={target.resultat} />}
-        </PreviewHostContext.Provider>
-      </div>
-    </div>
+        {/* Corps — hôte positionné : les aperçus A4 `inline` le recouvrent */}
+        <div ref={setHost} style={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <PreviewHostContext.Provider value={host}>
+            {target.kind === 'CONSULTATION'  && <ConsultationBody consultationId={target.consultationId} onBack={requestClose} />}
+            {target.kind === 'ORDONNANCE'    && <OrdonnanceBody consultationId={target.consultationId} ordonnanceId={target.ordonnanceId} onBack={requestClose} />}
+            {target.kind === 'BON_EXAMEN'    && <BonExamenBody consultationId={target.consultationId} bonId={target.bonId} onBack={requestClose} />}
+            {target.kind === 'BON_PHARMACIE' && <BonPharmacieBody consultationId={target.consultationId} bonId={target.bonId} onBack={requestClose} />}
+            {target.kind === 'EVACUATION'    && <EvacuationBody consultationId={target.consultationId} evacuationId={target.evacuationId} onBack={requestClose} />}
+            {target.kind === 'RESULTAT'      && <ResultatBody consultationId={target.consultationId} resultat={target.resultat} />}
+          </PreviewHostContext.Provider>
+        </div>
+      </SheetContent>
+    </Sheet>
   )
 }
