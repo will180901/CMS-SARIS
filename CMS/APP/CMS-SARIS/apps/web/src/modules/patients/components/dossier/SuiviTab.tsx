@@ -1,17 +1,19 @@
 /**
- * SuiviTab — suivi clinique du dossier, sur trois axes (recueil) :
+ * SuiviTab — suivi clinique du dossier, sur quatre axes (recueil) :
  *   1. Évolution des pathologies chroniques (occurrences + suivi formel s'il existe)
  *   2. Traitement (historique des lignes d'ordonnances validées)
- *   3. Résultats d'examens
+ *   3. Résultats en attente de saisie (bons validés sans résultat — point d'entrée
+ *      découvrable vers la saisie, qui vivait avant seulement dans la consultation)
+ *   4. Résultats d'examens déjà reçus
  * Calculé sur l'historique COMPLET du patient, tous sites (dossier centralisé) —
  * chaque ligne cliquable ouvre son document dans un TIROIR qui glisse de la
- * droite (aperçu A4 de l'ordonnance, contenu du résultat), la liste reste visible.
+ * droite (aperçu A4 de l'ordonnance, saisie/contenu du résultat), la liste reste visible.
  */
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Activity, TrendingUp, Pill, FlaskConical, Loader2, ChevronRight,
-  Plus, Pencil, CircleCheck, HeartPulse,
+  Plus, Pencil, CircleCheck, HeartPulse, PenLine,
 } from 'lucide-react'
 import { EmptyState, StatusPill, Modal, Button, SelectBox, Textarea } from '@/components/saris'
 import { DrawerShell } from '@/modules/referentiels/components/DrawerShell'
@@ -22,7 +24,7 @@ import { usePatientSuivi, useCreateSuiviChronique, useUpdateSuiviChronique } fro
 import { DossierDetailDrawer } from './DossierDetailPanel'
 import type { DossierDetailTarget } from './DossierDetailPanel'
 import { FREQUENCES_SUIVI } from '../../api/patients.api'
-import type { SuiviChroniqueItem, SuiviTraitementItem, SuiviResultatExamenItem } from '../../api/patients.api'
+import type { SuiviChroniqueItem, SuiviTraitementItem, SuiviResultatExamenItem, SuiviResultatEnAttenteItem } from '../../api/patients.api'
 
 // ── Ligne cliquable générique (renvoie vers la consultation d'origine) ─────────
 
@@ -270,10 +272,11 @@ export function SuiviTab({ patientId }: { patientId: string }) {
     )
   }
 
-  const chroniques       = data?.chroniques ?? []
+  const chroniques        = data?.chroniques ?? []
   const traitements       = data?.traitements ?? []
   const resultatsExamens  = data?.resultatsExamens ?? []
-  const tout = chroniques.length + traitements.length + resultatsExamens.length
+  const resultatsEnAttente = data?.resultatsEnAttente ?? []
+  const tout = chroniques.length + traitements.length + resultatsExamens.length + resultatsEnAttente.length
 
   return (
     <div>
@@ -323,7 +326,28 @@ export function SuiviTab({ patientId }: { patientId: string }) {
             )}
           </div>
 
-          {/* 3. Résultats d'examens */}
+          {/* 3. Résultats en attente de saisie — le point d'entrée qui manquait :
+              un bon validé n'a rien qui signale qu'il attend un résultat. */}
+          {resultatsEnAttente.length > 0 && (
+            <div>
+              <SectionHeader icon={<PenLine size={14} />} title={t('patients.suiviSectionEnAttente')} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 680 }}>
+                {resultatsEnAttente.map((r: SuiviResultatEnAttenteItem) => (
+                  <ClickableRow
+                    key={r.bonId}
+                    icon={<PenLine size={14} />} tint="var(--avert-texte)" bg="var(--avert-fond)"
+                    title={r.examens.length > 0 ? r.examens.join(', ') : t('patients.suiviExamensRealises')}
+                    badge={t('patients.suiviEnAttenteBadge')}
+                    badgeTone="warning"
+                    date={r.date}
+                    onClick={() => setDetail({ kind: 'BON_EXAMEN_ACTION', consultationId: r.consultationId, bonId: r.bonId })}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 4. Résultats d'examens déjà reçus */}
           <div>
             <SectionHeader icon={<FlaskConical size={14} />} title={t('patients.suiviSectionExamens')} />
             {resultatsExamens.length === 0 ? (

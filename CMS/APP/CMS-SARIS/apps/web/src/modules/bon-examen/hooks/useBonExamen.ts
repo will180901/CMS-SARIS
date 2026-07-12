@@ -98,6 +98,10 @@ export function useSaisirResultat(id: string) {
       qc.invalidateQueries({ queryKey: BONS_EXAMEN_KEY })
       qc.invalidateQueries({ queryKey: bonExamenKey(id) })
       qc.invalidateQueries({ queryKey: ['consultations', bon.consultationId] })
+      // Le Suivi du dossier affiche ce bon en « en attente » tant qu'aucun résultat
+      // n'est saisi — sans cette invalidation, la carte resterait périmée dans
+      // l'onglet Suivi après une saisie faite depuis là (DossierDetailPanel).
+      qc.invalidateQueries({ queryKey: ['patients', bon.consultation.visite.patient.id, 'suivi'] })
       toast.success(i18n.t('bonExamen.toastResultSaved'))
     },
     onError: toastErr,

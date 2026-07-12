@@ -9,8 +9,9 @@
  *   - CONSULTATION  → résumé complet lecture seule (ConsultationArchiveSummary)
  */
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { X, Loader2, FlaskConical, FileText, Stethoscope, Pill, Receipt, Ambulance } from 'lucide-react'
+import { X, Loader2, FlaskConical, FileText, Stethoscope, Pill, Receipt, Ambulance, ArrowUpRight, PenLine } from 'lucide-react'
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from '@workspace/ui/components/sheet'
@@ -20,6 +21,7 @@ import { useConsultation } from '@/modules/consultation/hooks/useConsultation'
 import { ConsultationArchiveSummary } from '@/modules/consultation/components/ConsultationArchiveSummary'
 import { OrdonnancePrintModal } from '@/modules/consultation/components/OrdonnancePrintModal'
 import { useBonsExamen } from '@/modules/bon-examen/hooks/useBonExamen'
+import { BonExamenCard } from '@/modules/bon-examen/components/BonExamenCard'
 import { BonExamenPrintModal } from '@/modules/bon-examen/components/BonExamenPrintModal'
 import { useBonsPharmacie } from '@/modules/bon-pharmacie/hooks/useBonPharmacie'
 import { BonPharmaciePrintModal } from '@/modules/bon-pharmacie/components/BonPharmaciePrintModal'
@@ -32,12 +34,17 @@ import type { SuiviResultatExamenItem } from '../../api/patients.api'
 // ── Cible de la page détail ────────────────────────────────────────────────────
 
 export type DossierDetailTarget =
-  | { kind: 'CONSULTATION';  consultationId: string }
-  | { kind: 'ORDONNANCE';    consultationId: string; ordonnanceId: string }
-  | { kind: 'BON_EXAMEN';    consultationId: string; bonId: string }
-  | { kind: 'BON_PHARMACIE'; consultationId: string; bonId: string }
-  | { kind: 'EVACUATION';    consultationId: string; evacuationId: string }
-  | { kind: 'RESULTAT';      consultationId: string; bonId: string; resultat: SuiviResultatExamenItem }
+  | { kind: 'CONSULTATION';       consultationId: string }
+  | { kind: 'ORDONNANCE';         consultationId: string; ordonnanceId: string }
+  | { kind: 'BON_EXAMEN';         consultationId: string; bonId: string }
+  | { kind: 'BON_PHARMACIE';      consultationId: string; bonId: string }
+  | { kind: 'EVACUATION';         consultationId: string; evacuationId: string }
+  | { kind: 'RESULTAT';           consultationId: string; bonId: string; resultat: SuiviResultatExamenItem }
+  /** Saisie d'un résultat en attente — carte interactive du bon SANS passer par
+   *  useConsultation() (qui applique la restriction confidentialité infirmier sur
+   *  l'historique) : la liste des bons n'est, elle, pas restreinte, et la saisie
+   *  du résultat est un acte propre gardé par sa propre permission (bon_examen.result). */
+  | { kind: 'BON_EXAMEN_ACTION';  consultationId: string; bonId: string }
 
 /** Cible détail pour un document du dossier (Chronologie, Documents). */
 export function targetForDocument(
@@ -54,21 +61,23 @@ export function targetForDocument(
 }
 
 const TITLE_KEY: Record<DossierDetailTarget['kind'], string> = {
-  CONSULTATION:  'patients.consultationViewerTitle',
-  ORDONNANCE:    'patients.docOrdonnance',
-  BON_EXAMEN:    'patients.docBonExamen',
-  BON_PHARMACIE: 'patients.docBonPharmacie',
-  EVACUATION:    'patients.docEvacuation',
-  RESULTAT:      'patients.suiviResultatTitle',
+  CONSULTATION:      'patients.consultationViewerTitle',
+  ORDONNANCE:        'patients.docOrdonnance',
+  BON_EXAMEN:        'patients.docBonExamen',
+  BON_PHARMACIE:     'patients.docBonPharmacie',
+  EVACUATION:        'patients.docEvacuation',
+  RESULTAT:          'patients.suiviResultatTitle',
+  BON_EXAMEN_ACTION: 'patients.docBonExamen',
 }
 
 const KIND_ICON: Record<DossierDetailTarget['kind'], typeof FileText> = {
-  CONSULTATION:  Stethoscope,
-  ORDONNANCE:    Pill,
-  BON_EXAMEN:    FlaskConical,
-  BON_PHARMACIE: Receipt,
-  EVACUATION:    Ambulance,
-  RESULTAT:      FlaskConical,
+  CONSULTATION:      Stethoscope,
+  ORDONNANCE:        Pill,
+  BON_EXAMEN:        FlaskConical,
+  BON_PHARMACIE:     Receipt,
+  EVACUATION:        Ambulance,
+  RESULTAT:          FlaskConical,
+  BON_EXAMEN_ACTION: PenLine,
 }
 
 // ── États partagés ─────────────────────────────────────────────────────────────
@@ -92,12 +101,14 @@ function NotFound({ msgKey }: { msgKey: string }) {
 
 function ConsultationBody({ consultationId, onBack }: { consultationId: string; onBack: () => void }) {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const { data: consultation, isLoading } = useConsultation(consultationId)
   if (isLoading) return <Loading />
   if (!consultation) return <NotFound msgKey="patients.consultationViewerNotFound" />
 
   // Consultation encore OUVERTE : le résumé d'archive n'a pas de sens (il présume
-  // clôturée/annulée) — on affiche l'essentiel + une note explicative.
+  // clôturée/annulée) — on affiche l'essentiel + un lien vers l'espace de travail
+  // actif (seul endroit où la saisie sur une consultation ouverte a lieu).
   if (consultation.statut === 'OUVERTE') {
     return (
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
@@ -120,6 +131,15 @@ function ConsultationBody({ consultationId, onBack }: { consultationId: string; 
         <p style={{ margin: '12px 0 0', fontSize: 12, color: 'var(--texte-tertiaire)', lineHeight: 1.6 }}>
           {t('patients.consultationOpenNotice')}
         </p>
+        <div style={{ marginTop: 12 }}>
+          <Button
+            variant="outline"
+            leftIcon={<ArrowUpRight size={13} />}
+            onClick={() => navigate('/consultations', { state: { openConsultationId: consultationId } })}
+          >
+            {t('patients.consultationOpenGoTo')}
+          </Button>
+        </div>
       </div>
     )
   }
@@ -149,6 +169,21 @@ function BonExamenBody({ consultationId, bonId, onBack }: { consultationId: stri
       variant="inline"
       onClose={onBack}
     />
+  )
+}
+
+/**
+ * Carte INTERACTIVE du bon (bouton « Ajouter résultat ») — volontairement SANS
+ * useConsultation() : la liste des bons (useBonsExamen) n'est pas soumise à la
+ * restriction confidentialité infirmier sur l'historique, et la saisie du
+ * résultat est gardée par sa propre permission (bon_examen.result). C'est le
+ * chemin direct depuis « Résultats en attente » du Suivi.
+ */
+function BonExamenActionBody({ consultationId }: { consultationId: string }) {
+  return (
+    <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
+      <BonExamenCard consultationId={consultationId} />
+    </div>
   )
 }
 
@@ -298,6 +333,7 @@ export function DossierDetailDrawer({ target, onClose }: { target: DossierDetail
             {target.kind === 'BON_PHARMACIE' && <BonPharmacieBody consultationId={target.consultationId} bonId={target.bonId} onBack={requestClose} />}
             {target.kind === 'EVACUATION'    && <EvacuationBody consultationId={target.consultationId} evacuationId={target.evacuationId} onBack={requestClose} />}
             {target.kind === 'RESULTAT'      && <ResultatBody consultationId={target.consultationId} resultat={target.resultat} />}
+            {target.kind === 'BON_EXAMEN_ACTION' && <BonExamenActionBody consultationId={target.consultationId} />}
           </PreviewHostContext.Provider>
         </div>
       </SheetContent>

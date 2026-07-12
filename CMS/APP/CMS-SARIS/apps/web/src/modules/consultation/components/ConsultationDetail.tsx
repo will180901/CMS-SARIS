@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { SegmentedTabs, Button } from '@/components/saris'
 import { useIsCompact } from '@/hooks/useMediaQuery'
+import { useCategoriesDroits } from '@/modules/referentiels/hooks/useReferentiels'
 import { calcAge } from '@/lib/age'
 import {
   useConsultation, useUpdateExamen, useUpdateAnamnese, useUpdateConclusion,
@@ -823,6 +824,17 @@ function DecisionSection({ consultationId, consultation, isActive, canClose: can
   if (decision === 'EVACUATION' && (!consultation.evacuation || consultation.evacuation.statut === 'ANNULE')) blockers.push(t('consultation.blockerDocument'))
   const canClose = isActive && !!decision && blockers.length === 0
 
+  // Avertissement (NON bloquant) : la catégorie du patient n'ouvre pas droit au
+  // document que cette décision présuppose délivrable APRÈS clôture — l'infirmier
+  // ne pourra jamais créer le bon correspondant (audit : cul-de-sac différé).
+  // Fail-closed identique à BonExamenCard/BonPharmacieCard : sans ligne de droit
+  // configurée pour la catégorie, on considère NON éligible (pas l'inverse).
+  const { data: droits = [], isLoading: droitsLoading } = useCategoriesDroits()
+  const categoriePatientId = consultation.visite.patient.categoriePatient.id
+  const droitCategorie = droits.find(d => d.categorieId === categoriePatientId)
+  const categorieNonEligibleExamen    = decision === 'EXAMEN_COMPLEMENTAIRE' && !droitsLoading && droitCategorie?.bonExamen !== true
+  const categorieNonEligiblePharmacie = decision === 'PRESCRIPTION' && !droitsLoading && droitCategorie?.bonPharmacie !== true
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
@@ -907,6 +919,20 @@ function DecisionSection({ consultationId, consultation, isActive, canClose: can
           />
         </div>
       </div>
+
+      {/* Catégorie non éligible au document que cette décision présuppose — NE bloque
+          PAS la clôture (souvent volontaire : prescription faite, dispensation externe),
+          juste un avertissement pour ne pas laisser le patient sans suite en silence. */}
+      {(categorieNonEligibleExamen || categorieNonEligiblePharmacie) && (
+        <div style={{ padding: '10px 12px', borderRadius: 8, background: 'var(--info-fond)', border: '1px solid var(--info-bordure)', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+          <AlertTriangle size={13} style={{ color: 'var(--info-texte)', flexShrink: 0, marginTop: 1 }} />
+          <p style={{ margin: 0, fontSize: 12, color: 'var(--info-texte)', lineHeight: 1.5 }}>
+            {categorieNonEligibleExamen
+              ? t('consultation.decisionCategorieNonEligibleExamen')
+              : t('consultation.decisionCategorieNonEligiblePharmacie')}
+          </p>
+        </div>
+      )}
 
       {/* Prérequis manquants — anticipés avant la clôture (plus d'erreur subie) */}
       {decision && blockers.length > 0 && (

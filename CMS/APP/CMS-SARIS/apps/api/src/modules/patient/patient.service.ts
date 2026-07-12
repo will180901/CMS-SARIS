@@ -496,7 +496,7 @@ export class PatientService {
   async findSuivi(patientId: string) {
     await this.assertPatientExists(patientId)
 
-    const [diagnosticsChroniques, suivis, lignesOrdonnance, resultats] = await Promise.all([
+    const [diagnosticsChroniques, suivis, lignesOrdonnance, resultats, bonsEnAttente] = await Promise.all([
       this.prisma.diagnosticConsultation.findMany({
         where:  { pathologie: { chronique: true }, consultation: { visite: { patientId } } },
         select: {
@@ -526,6 +526,16 @@ export class PatientService {
         select: {
           id: true, bonId: true, laboratoire: true, contenu: true, interpretation: true, statut: true, createdAt: true,
           bon: { select: { consultationId: true, lignes: { select: { typeExamen: { select: { libelle: true } } } } } },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      // Bons d'examen validés mais SANS résultat saisi — le point d'entrée « saisie
+      // en attente » que le Suivi n'exposait pas avant (audit découvrabilité).
+      this.prisma.bonExamen.findMany({
+        where:  { statut: 'VALIDE', resultats: { none: {} }, consultation: { visite: { patientId } } },
+        select: {
+          id: true, consultationId: true, createdAt: true,
+          lignes: { select: { typeExamen: { select: { libelle: true } } } },
         },
         orderBy: { createdAt: 'desc' },
       }),
@@ -575,7 +585,14 @@ export class PatientService {
       examens:        r.bon.lignes.map(l => l.typeExamen.libelle),
     }))
 
-    return { chroniques, traitements, resultatsExamens }
+    const resultatsEnAttente = bonsEnAttente.map(b => ({
+      bonId:          b.id,
+      consultationId: b.consultationId,
+      date:           b.createdAt,
+      examens:        b.lignes.map(l => l.typeExamen.libelle),
+    }))
+
+    return { chroniques, traitements, resultatsExamens, resultatsEnAttente }
   }
 
   // ── Suivi chronique (onglet Suivi → définir / modifier / clôturer) ───────────
@@ -1065,11 +1082,18 @@ export class PatientService {
   // ── Rattachements Ayant Droit CDI ─────────────────────────────────────────
 
   async createRattachementAD(patientId: string, dto: CreateRattachementADDto) {
-    await this.assertPatientExists(patientId)
+    const patient = await this.assertPatientExists(patientId)
+    if (patientId === dto.cdiId) throw new BadRequestException('Un patient ne peut pas être son propre ayant droit')
+    // Ce lien déclare le patient courant COMME ayant droit du CDI ciblé (montant) —
+    // un travailleur CDI (identifié par son matricule, seul discriminant fiable de
+    // ce statut) ne peut donc jamais être lui-même déclaré ayant droit de quelqu'un.
+    if (patient.matricule) throw new ConflictException('Ce patient est lui-même un travailleur CDI (matricule renseigné) — il ne peut pas être déclaré ayant droit')
     // `cdiId` n'a pas de contrainte de clé étrangère en base (legacy, conservé pour compat) —
-    // on vérifie donc explicitement ici qu'il pointe vers un vrai patient existant.
-    const cdi = await this.prisma.patient.findUnique({ where: { id: dto.cdiId }, select: { id: true } })
+    // on vérifie donc explicitement ici qu'il pointe vers un vrai patient existant ET
+    // que c'est bien un travailleur CDI (matricule renseigné), pas n'importe quel patient.
+    const cdi = await this.prisma.patient.findUnique({ where: { id: dto.cdiId }, select: { id: true, matricule: true } })
     if (!cdi) throw new NotFoundException('Le CDI rattaché est introuvable')
+    if (!cdi.matricule) throw new BadRequestException('Le patient ciblé n\'est pas un travailleur CDI (aucun matricule)')
     const { dateDebut, dateFin, ...rest } = dto
     const ratt = await this.prisma.rattachementAyantDroitCdi.create({
       data: {

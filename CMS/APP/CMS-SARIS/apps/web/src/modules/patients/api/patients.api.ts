@@ -225,10 +225,18 @@ export interface SuiviResultatExamenItem {
   examens:        string[]
 }
 
+export interface SuiviResultatEnAttenteItem {
+  bonId:          string
+  consultationId: string
+  date:           string
+  examens:        string[]
+}
+
 export interface PatientSuivi {
-  chroniques:       SuiviChroniqueItem[]
-  traitements:      SuiviTraitementItem[]
-  resultatsExamens: SuiviResultatExamenItem[]
+  chroniques:        SuiviChroniqueItem[]
+  traitements:       SuiviTraitementItem[]
+  resultatsExamens:  SuiviResultatExamenItem[]
+  resultatsEnAttente: SuiviResultatEnAttenteItem[]
 }
 
 export const FREQUENCES_SUIVI = ['Hebdomadaire', 'Mensuel', 'Trimestriel', 'Semestriel', 'Annuel'] as const

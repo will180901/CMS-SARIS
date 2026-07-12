@@ -13,7 +13,7 @@ import { useMotifs, useCreateMotif, useCategoriesPatient } from '@/modules/refer
 import { useSousTraitants } from '@/modules/referentiels/hooks/useSousTraitants'
 import { useEmployeLookup } from '@/modules/referentiels/hooks/useEmployes'
 import { useIsCompact } from '@/hooks/useMediaQuery'
-import { usePatients, useCreatePatient, useFindSimilarPatients } from '@/modules/patients/hooks/usePatients'
+import { usePatients, useCreatePatient, useFindSimilarPatients, usePatientDossier } from '@/modules/patients/hooks/usePatients'
 import { usePermissions }              from '@/hooks/usePermissions'
 import { useSessionStore }             from '@/stores/session.store'
 import { PatientAvatar, CategorieBadge } from '@/modules/patients/components/CategorieBadge'
@@ -54,9 +54,11 @@ const EMPTY_NP: NewPatient = {
 interface Props {
   onClose:    () => void
   onCreated?: (visiteId: string) => void
+  /** Patient déjà connu (arrivée depuis son dossier) — pré-sélectionné, recherche sautée. */
+  initialPatientId?: string
 }
 
-export function NouvelleVisitePanel({ onClose, onCreated }: Props) {
+export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Props) {
   const { t }         = useTranslation()
   const create        = useCreateVisite()
   const createMotif   = useCreateMotif()
@@ -68,8 +70,11 @@ export function NouvelleVisitePanel({ onClose, onCreated }: Props) {
   const mySiteId         = useSessionStore(s => s.user?.siteId ?? '')
 
   const [search,      setSearch]     = useState('')
-  const [patientId,   setPatient]    = useState('')
+  const [patientId,   setPatient]    = useState(initialPatientId ?? '')
   const [submitError, setError]      = useState<string | null>(null)
+  // Fiche du patient pré-sélectionné (arrivée depuis son dossier) — la liste de
+  // recherche `allPatients` ne le contiendrait pas tant qu'aucun terme n'est tapé.
+  const { data: prefillDossier } = usePatientDossier(patientId === initialPatientId ? (initialPatientId ?? '') : '')
 
   // Patient — sous-mode : sélectionner un patient existant OU créer le dossier.
   const [mode, setMode] = useState<'search' | 'create'>('search')
@@ -142,6 +147,7 @@ export function NouvelleVisitePanel({ onClose, onCreated }: Props) {
   const actifsMotifs = useMemo(() => motifs.filter(m => m.statut === 'ACTIF'), [motifs])
 
   const selectedPatient = allPatients.find(p => p.id === patientId)
+    ?? (patientId === initialPatientId && prefillDossier ? prefillDossier : undefined)
   const patientValid = mode === 'create' ? newPatientValid : !!patientId
   const valid        = patientValid && !!motifId
 

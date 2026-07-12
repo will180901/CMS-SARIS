@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Plus, ClipboardList, Search, X, SlidersHorizontal, ChevronLeft } from 'lucide-react'
 import { Button }              from '@workspace/ui/components/button'
@@ -58,6 +59,20 @@ export function TriagePage() {
   const [filter,     setFilter]   = usePersistedState<Filter>('triage', 'filter', 'ACTIVES')
   const [selectedId, setSelected] = usePersistedState<string | null>('triage', 'selectedId', null)
   const [creating, setCreating]   = useState(false)
+
+  // Arrivée depuis le dossier patient (« Nouvelle visite pour ce patient ») : ouvre
+  // directement le panneau de création avec ce patient pré-sélectionné. Capturé une
+  // seule fois au montage (initialisateur) pour survivre au nettoyage du state routeur.
+  const location = useLocation()
+  const navigate = useNavigate()
+  const [prefillPatientId] = useState<string | undefined>(() => (location.state as { prefillPatientId?: string } | null)?.prefillPatientId)
+  useEffect(() => {
+    if (prefillPatientId) {
+      setCreating(true)
+      navigate(location.pathname, { replace: true, state: null })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   /* ── Recherche + filtres globaux (mémorisés au retour sur la page) ─────── */
   const [search,        setSearch]        = usePersistedState('triage', 'search', '')
@@ -622,6 +637,7 @@ export function TriagePage() {
             )}
             {creating ? (
               <NouvelleVisitePanel
+                initialPatientId={prefillPatientId}
                 onClose={() => setCreating(false)}
                 onCreated={(id) => { setCreating(false); setSelected(id) }}
               />

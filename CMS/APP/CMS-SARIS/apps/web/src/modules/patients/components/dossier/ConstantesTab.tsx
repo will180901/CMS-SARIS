@@ -4,12 +4,14 @@
  * d'un tableau chronologique complet, coloré par sévérité clinique.
  */
 import { useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   Activity, Loader2, Thermometer, HeartPulse, Wind, Weight, Ruler, Gauge,
-  TrendingUp, TrendingDown, Minus,
+  TrendingUp, TrendingDown, Minus, Stethoscope,
 } from 'lucide-react'
-import { EmptyState } from '@/components/saris'
+import { EmptyState, Button } from '@/components/saris'
+import { usePermissions } from '@/hooks/usePermissions'
 import { usePatientConstantes } from '../../hooks/usePatients'
 import { formatDate, formatTime } from '@/lib/intl'
 import type { ConstanteVitale } from '@cms-saris/types'
@@ -128,6 +130,10 @@ function Th({ children }: { children: React.ReactNode }) {
 
 export function ConstantesTab({ patientId }: { patientId: string }) {
   const { t } = useTranslation()
+  const navigate = useNavigate()
+  const { has } = usePermissions()
+  const canTriage = has('visite.create')
+  const goToTriage = () => navigate('/triage', { state: { prefillPatientId: patientId } })
   const { data: constantes = [], isLoading } = usePatientConstantes(patientId)
 
   // Séries chronologiques (API renvoie du plus récent au plus ancien → on inverse).
@@ -160,6 +166,11 @@ export function ConstantesTab({ patientId }: { patientId: string }) {
         icon={<Activity size={20} />}
         title={t('patients.vitalsEmptyTitle')}
         description={t('patients.vitalsEmptyDesc')}
+        action={canTriage && (
+          <Button size="sm" variant="outline" onClick={goToTriage} style={{ gap: 5 }}>
+            <Stethoscope size={13} /> {t('patients.vitalsAddCta')}
+          </Button>
+        )}
       />
     )
   }
@@ -175,6 +186,11 @@ export function ConstantesTab({ patientId }: { patientId: string }) {
         <span style={{ fontSize: 11, color: 'var(--texte-tertiaire)', background: 'var(--fond-surface-2)', padding: '1px 7px', borderRadius: 99 }}>
           {t(constantes.length > 1 ? 'patients.measureCountPlural' : 'patients.measureCountSingular', { count: constantes.length })}
         </span>
+        {canTriage && (
+          <Button size="sm" variant="outline" onClick={goToTriage} style={{ marginLeft: 'auto', gap: 5 }}>
+            <Stethoscope size={13} /> {t('patients.vitalsAddCta')}
+          </Button>
+        )}
       </div>
 
       {/* Cartes de synthèse */}
