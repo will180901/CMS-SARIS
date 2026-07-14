@@ -121,8 +121,8 @@ function PreviewPanel({ patient, onOpen, onBack }: { patient: PatientListItem; o
       {/* Infos rapides */}
       {id && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-          <InfoChip label={t('patients.infoAge')} value={t('patients.infoYears', { count: calcAge(id.dateNaissance) })} />
-          <InfoChip label={t('patients.infoSex')} value={id.sexe === 'M' ? t('patients.sexMale') : t('patients.sexFemale')} />
+          {id.dateNaissance && <InfoChip label={t('patients.infoAge')} value={t('patients.infoYears', { count: calcAge(id.dateNaissance) })} />}
+          <InfoChip label={t('patients.infoSex')} value={id.sexe === 'M' ? t('patients.sexMale') : id.sexe === 'F' ? t('patients.sexFemale') : '—'} />
           {id.telephone && <InfoChip label={t('patients.infoPhone')} value={id.telephone} colSpan />}
         </div>
       )}
@@ -265,7 +265,7 @@ function PatientRow({
           <CategorieBadge code={patient.categoriePatient.code} libelle={patient.categoriePatient.libelle} />
         </div>
         <div style={{ fontSize: '11px', color: 'var(--texte-tertiaire)', marginTop: '2px' }}>
-          {id ? t('patients.infoYears', { count: calcAge(id.dateNaissance) }) : '—'}
+          {id?.dateNaissance ? t('patients.infoYears', { count: calcAge(id.dateNaissance) }) : '—'}
           {' · '}
           {patient.siteCreation.libelle.replace('Centre Médico-Social ', '')}
         </div>

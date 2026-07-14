@@ -26,7 +26,7 @@ export interface BonPharmacie {
   lignes:          LigneBonPharmacie[]
   consultation: {
     id: string
-    visite: { patient: { id: string; numeroPatient: string; identite: { nom: string; prenom: string; dateNaissance: string; sexe: string } | null } }
+    visite: { patient: { id: string; numeroPatient: string; identite: { nom: string; prenom: string; dateNaissance: string | null; sexe: string | null } | null } }
   }
 }
 

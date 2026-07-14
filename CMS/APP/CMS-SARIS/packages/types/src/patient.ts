@@ -53,8 +53,10 @@ export interface IdentitePatient {
   patientId:     string
   nom:           string
   prenom:        string
-  dateNaissance: string
-  sexe:          'M' | 'F'
+  // Nullable : dossier CDI créé « vide » en arrière-plan (registre employé, ou lors
+  // de l'enregistrement de son ayant droit) avant que le travailleur ne se présente.
+  dateNaissance: string | null
+  sexe:          'M' | 'F' | null
   telephone?:    string | null
   adresse?:      string | null
   photoUrl?:     string | null

@@ -24,8 +24,7 @@ import { CreateAllergieDto, UpdateAllergieDto }             from './dto/medical.
 import { CreateAntecedentDto, UpdateAntecedentDto }         from './dto/medical.dto'
 import { CreateAlerteMedicaleDto, UpdateAlerteMedicaleDto } from './dto/medical.dto'
 import { CreateSuiviChroniqueDto, UpdateSuiviChroniqueDto } from './dto/medical.dto'
-import { CreateRattachementADDto, UpdateRattachementADDto } from './dto/rattachement.dto'
-import { CreateRattachementSTDto, UpdateRattachementSTDto } from './dto/rattachement.dto'
+import { UpdateRattachementADDto } from './dto/rattachement.dto'
 
 interface AuthedRequest {
   user?: { roles?: string[]; personnelMedicalId?: string | null; siteId?: string }
@@ -298,12 +297,9 @@ export class PatientController {
   }
 
   // ── Rattachements Ayant Droit CDI ─────────────────────────────────────────
-
-  @Post(':id/rattachements-ad')
-  @RequirePermissions('patient.rattachement.manage')
-  createRattachementAD(@Param('id') id: string, @Body() dto: CreateRattachementADDto) {
-    return this.patientService.createRattachementAD(id, dto)
-  }
+  // Création retirée : le rattachement se crée automatiquement à la visite
+  // (PatientService.create(), catégorie AYANT_DROIT_CDI) — seuls l'édition
+  // (type de lien, dates) et la clôture restent des actions manuelles légitimes.
 
   @Patch(':id/rattachements-ad/:rId')
   @RequirePermissions('patient.rattachement.manage')
@@ -319,30 +315,6 @@ export class PatientController {
   @RequirePermissions('patient.rattachement.manage')
   deleteRattachementAD(@Param('id') id: string, @Param('rId') rId: string) {
     return this.patientService.deleteRattachementAD(id, rId)
-  }
-
-  // ── Rattachements Sous-Traitant ───────────────────────────────────────────
-
-  @Post(':id/rattachements-st')
-  @RequirePermissions('patient.rattachement.manage')
-  createRattachementST(@Param('id') id: string, @Body() dto: CreateRattachementSTDto) {
-    return this.patientService.createRattachementST(id, dto)
-  }
-
-  @Patch(':id/rattachements-st/:rId')
-  @RequirePermissions('patient.rattachement.manage')
-  updateRattachementST(
-    @Param('id')  id:  string,
-    @Param('rId') rId: string,
-    @Body()       dto: UpdateRattachementSTDto,
-  ) {
-    return this.patientService.updateRattachementST(id, rId, dto)
-  }
-
-  @Delete(':id/rattachements-st/:rId')
-  @RequirePermissions('patient.rattachement.manage')
-  deleteRattachementST(@Param('id') id: string, @Param('rId') rId: string) {
-    return this.patientService.deleteRattachementST(id, rId)
   }
 
   // ── Suppression définitive du dossier ─────────────────────────────────────

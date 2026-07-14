@@ -716,8 +716,11 @@ model IdentitePatient {
   patientId     String    @unique
   nom           String
   prenom        String
-  dateNaissance DateTime
-  sexe          String
+  // Nullable : un dossier CDI peut être créé « vide » (registre employé, ou en
+  // arrière-plan lors de l'enregistrement de son ayant droit) avant que le
+  // travailleur ne se présente lui-même et complète sa propre identité.
+  dateNaissance DateTime?
+  sexe          String?
   telephone     String?
   adresse       String?
   photoUrl      String?

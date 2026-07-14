@@ -120,7 +120,7 @@ export interface VisiteResume {
   patient: {
     id:              string
     numeroPatient:   string
-    identite:        { nom: string; prenom: string; dateNaissance: string; sexe: string } | null
+    identite:        { nom: string; prenom: string; dateNaissance: string | null; sexe: string | null } | null
     categoriePatient: { id: string; code: string; libelle: string }
     allergies:        { id: string; substance: string; gravite: string }[]
     alertesMedicales: { id: string; type: string; message: string; gravite: string }[]

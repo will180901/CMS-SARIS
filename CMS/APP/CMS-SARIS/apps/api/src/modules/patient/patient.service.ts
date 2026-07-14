@@ -6,7 +6,7 @@
  */
 
 import { Injectable, NotFoundException, ConflictException, ForbiddenException, BadRequestException } from '@nestjs/common'
-import { StatutPatient } from '@prisma/client'
+import { StatutPatient, Prisma, type EmployeSaris } from '@prisma/client'
 import sharp from 'sharp'
 import { PrismaService } from '../../prisma/prisma.service'
 import { CI } from '../../common/prisma/search'
@@ -20,8 +20,7 @@ import { CreateAllergieDto, UpdateAllergieDto } from './dto/medical.dto'
 import { CreateAntecedentDto, UpdateAntecedentDto } from './dto/medical.dto'
 import { CreateAlerteMedicaleDto, UpdateAlerteMedicaleDto } from './dto/medical.dto'
 import { CreateSuiviChroniqueDto, UpdateSuiviChroniqueDto } from './dto/medical.dto'
-import { CreateRattachementADDto, UpdateRattachementADDto } from './dto/rattachement.dto'
-import { CreateRattachementSTDto, UpdateRattachementSTDto } from './dto/rattachement.dto'
+import { UpdateRattachementADDto } from './dto/rattachement.dto'
 
 // ── Alertes cliniques calculées ─────────────────────────────────────────────────
 
@@ -129,7 +128,12 @@ export class PatientService {
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
-  private async generateNumeroPatient(siteCreationId: string): Promise<string> {
+  // `floorNum` : plus petit numéro déjà réservé dans CETTE requête (pas encore commité,
+  // donc invisible à `.raw`) — évite la collision quand deux dossiers du même site sont
+  // créés dans la même transaction (ex. ayant droit + dossier vide de son CDI, create()
+  // ci-dessous) : le `.raw` ne voit pas le premier tant que la transaction n'est pas
+  // validée, donc sans ce plancher les deux calculeraient le même « prochain numéro ».
+  private async generateNumeroPatient(siteCreationId: string, floorNum = 0): Promise<string> {
     const site = await this.prisma.site.findUniqueOrThrow({
       where:  { id: siteCreationId },
       select: { code: true },
@@ -144,7 +148,7 @@ export class PatientService {
       orderBy: { numeroPatient: 'desc' },
       select:  { numeroPatient: true },
     })
-    const lastNum = last ? (parseInt(last.numeroPatient.slice(-5), 10) || 0) : 0
+    const lastNum = Math.max(last ? (parseInt(last.numeroPatient.slice(-5), 10) || 0) : 0, floorNum)
     return `PAT-${prefix}-${String(lastNum + 1).padStart(5, '0')}`
   }
 
@@ -166,6 +170,7 @@ export class PatientService {
         ...(search && {
           OR: [
             { numeroPatient: { contains: search, ...CI } },
+            { matricule:     { contains: search, ...CI } },
             { identite: { nom:    { contains: search, ...CI } } },
             { identite: { prenom: { contains: search, ...CI } } },
           ],
@@ -722,6 +727,9 @@ export class PatientService {
     // ── Registre des employés SARIS : reconnaissance / enregistrement dynamique par matricule ──
     let patientEmployeId: string | null = null   // le patient EST un employé (CDI/CDD)
     let rattEmployeId:    string | null = null   // ayant droit : l'employé CDI rattaché
+    // CDI rattaché résolu (reconnu ou créé à la volée) — utilisé après la création du
+    // patient courant pour lui garantir un dossier, s'il n'en a pas déjà un (cas 4).
+    let rattEmploye: EmployeSaris | null = null
     if (isCdiCdd) {
       // Le patient est un employé : reconnu par matricule, ou enregistré au registre à la volée.
       const emp = await this.employes.ensureByMatricule({
@@ -738,6 +746,7 @@ export class PatientService {
       const existing = await this.employes.findByMatricule(cdiMatricule.trim())
       if (existing) {
         rattEmployeId = existing.id   // CDI reconnu au registre
+        rattEmploye   = existing
       } else {
         // CDI inconnu → on l'enregistre à la volée avec l'identité fournie.
         if (!nouvelEmploye?.nom?.trim() || !nouvelEmploye?.prenom?.trim()) {
@@ -756,6 +765,7 @@ export class PatientService {
           categorie:     'ASSURE_CDI',
         })
         rattEmployeId = emp.id
+        rattEmploye   = emp
       }
     }
 
@@ -803,6 +813,14 @@ export class PatientService {
           data: { patientId: p.id, employeId: rattEmployeId, typeLien: typeLien!, dateDebut: new Date() },
         })
         await tx.historiqueRattachementAyantDroit.create({ data: { rattachementId: ratt.id, evenement: 'CREATION' } })
+        // Le CDI rattaché doit être trouvable comme patient dès l'enregistrement de son
+        // ayant droit, même s'il n'est jamais venu lui-même — dossier vide créé à la
+        // volée (naissance/sexe inconnus tant qu'il ne se présente pas en personne).
+        // floorNum = numéro du patient qu'on vient de créer ci-dessus (p) : encore
+        // invisible à `generateNumeroPatient` (lecture `.raw`, hors transaction) tant
+        // que cette transaction n'a pas validé — sans ce plancher les deux dossiers
+        // calculeraient le même « prochain numéro » et entreraient en collision.
+        if (rattEmploye) await this.createFromEmploye(rattEmploye, siteCreationId, createdBy, tx, parseInt(numeroPatient.slice(-5), 10) || 0)
       }
       if (code === 'SOUS_TRAITANT' && societeId) {
         const ratt = await tx.rattachementSousTraitant.create({
@@ -833,35 +851,35 @@ export class PatientService {
 
   /**
    * Dossier patient minimal (même vide — pas de téléphone/adresse/contact urgence)
-   * créé automatiquement quand un employé est enregistré au registre (Référentiels
-   * → Employés) avec date de naissance + sexe renseignés. Miroir de create() dans
-   * l'autre sens : là-bas un patient CDI enregistre son employé à la volée
-   * (ensureByMatricule) ; ici un employé enregistre son dossier patient à la volée.
-   * N'échoue jamais bruyamment (appelé en tâche de fond depuis EmployeService) :
-   * renvoie null si un dossier existe déjà ou si la catégorie/l'identité manque.
+   * créé automatiquement pour un employé CDI/CDD qui n'en a pas encore : soit
+   * depuis le registre (Référentiels → Employés), soit en arrière-plan quand son
+   * ayant droit est enregistré à la visite (`create()` ci-dessus, cas 4). Date de
+   * naissance/sexe sont facultatifs — le travailleur les complétera lui-même à sa
+   * première visite (IdentitePatient les accepte nuls). `client` permet de
+   * l'appeler dans une transaction existante (cas ayant droit) ou en dehors
+   * (registre employé) : renvoie null si un dossier existe déjà ou si la
+   * catégorie manque, jamais bruyamment.
    */
   async createFromEmploye(employe: {
     id: string; matricule: string; nom: string; prenom: string
     dateNaissance: Date | null; sexe: string | null
     fonction: string | null; sectionPaie: string | null; service: string | null; departement: string | null
     categorie: string
-  }, siteId: string, createdBy?: string) {
-    if (!employe.dateNaissance || !employe.sexe) return null
-
-    const existing = await this.prisma.patient.findFirst({
+  }, siteId: string, createdBy?: string, client: Prisma.TransactionClient = this.prisma, floorNum = 0) {
+    const existing = await client.patient.findFirst({
       where:  { OR: [{ employeId: employe.id }, { matricule: employe.matricule }] },
       select: { id: true },
     })
     if (existing) return null
 
-    const categorie = await this.prisma.categoriePatient.findFirst({
+    const categorie = await client.categoriePatient.findFirst({
       where: { code: employe.categorie }, select: { id: true },
     })
     if (!categorie) return null
 
-    const numeroPatient = await this.generateNumeroPatient(siteId)
+    const numeroPatient = await this.generateNumeroPatient(siteId, floorNum)
 
-    const dossier = await this.prisma.patient.create({
+    const dossier = await client.patient.create({
       data: {
         numeroPatient,
         matricule:          employe.matricule,
@@ -1080,34 +1098,9 @@ export class PatientService {
   }
 
   // ── Rattachements Ayant Droit CDI ─────────────────────────────────────────
-
-  async createRattachementAD(patientId: string, dto: CreateRattachementADDto) {
-    const patient = await this.assertPatientExists(patientId)
-    if (patientId === dto.cdiId) throw new BadRequestException('Un patient ne peut pas être son propre ayant droit')
-    // Ce lien déclare le patient courant COMME ayant droit du CDI ciblé (montant) —
-    // un travailleur CDI (identifié par son matricule, seul discriminant fiable de
-    // ce statut) ne peut donc jamais être lui-même déclaré ayant droit de quelqu'un.
-    if (patient.matricule) throw new ConflictException('Ce patient est lui-même un travailleur CDI (matricule renseigné) — il ne peut pas être déclaré ayant droit')
-    // `cdiId` n'a pas de contrainte de clé étrangère en base (legacy, conservé pour compat) —
-    // on vérifie donc explicitement ici qu'il pointe vers un vrai patient existant ET
-    // que c'est bien un travailleur CDI (matricule renseigné), pas n'importe quel patient.
-    const cdi = await this.prisma.patient.findUnique({ where: { id: dto.cdiId }, select: { id: true, matricule: true } })
-    if (!cdi) throw new NotFoundException('Le CDI rattaché est introuvable')
-    if (!cdi.matricule) throw new BadRequestException('Le patient ciblé n\'est pas un travailleur CDI (aucun matricule)')
-    const { dateDebut, dateFin, ...rest } = dto
-    const ratt = await this.prisma.rattachementAyantDroitCdi.create({
-      data: {
-        patientId,
-        ...rest,
-        dateDebut: new Date(dateDebut),
-        dateFin:   dateFin ? new Date(dateFin) : null,
-      },
-    })
-    await this.prisma.historiqueRattachementAyantDroit.create({
-      data: { rattachementId: ratt.id, evenement: 'CREATION' },
-    })
-    return ratt
-  }
+  // Création retirée : le rattachement se crée automatiquement à la visite
+  // (create(), catégorie AYANT_DROIT_CDI) — un seul point d'entrée, plus de
+  // création manuelle possible depuis le dossier (cf. plan validé avec l'utilisateur).
 
   async updateRattachementAD(patientId: string, rattId: string, dto: UpdateRattachementADDto) {
     const ratt = await this.prisma.rattachementAyantDroitCdi.findFirst({ where: { id: rattId, patientId } })
@@ -1127,48 +1120,10 @@ export class PatientService {
     return updated
   }
 
-  // ── Rattachements Sous-Traitant ───────────────────────────────────────────
-
-  async createRattachementST(patientId: string, dto: CreateRattachementSTDto) {
-    await this.assertPatientExists(patientId)
-    // Vérifier que la société est active
-    const societe = await this.prisma.societeSousTraitante.findFirst({
-      where: { id: dto.societeId, statut: 'ACTIVE' },
-    })
-    if (!societe) throw new ConflictException('Société introuvable ou inactive')
-
-    const { dateDebut, dateFin, ...rest } = dto
-    const ratt = await this.prisma.rattachementSousTraitant.create({
-      data: {
-        patientId,
-        ...rest,
-        dateDebut: new Date(dateDebut),
-        dateFin:   dateFin ? new Date(dateFin) : null,
-      },
-    })
-    await this.prisma.historiqueRattachementSousTraitant.create({
-      data: { rattachementId: ratt.id, evenement: 'CREATION' },
-    })
-    return ratt
-  }
-
-  async updateRattachementST(patientId: string, rattId: string, dto: UpdateRattachementSTDto) {
-    const ratt = await this.prisma.rattachementSousTraitant.findFirst({ where: { id: rattId, patientId } })
-    if (!ratt) throw new NotFoundException('Rattachement sous-traitant introuvable')
-    const { dateDebut, dateFin, ...rest } = dto
-    const updated = await this.prisma.rattachementSousTraitant.update({
-      where: { id: rattId },
-      data: {
-        ...rest,
-        ...(dateDebut && { dateDebut: new Date(dateDebut) }),
-        ...(dateFin !== undefined && { dateFin: dateFin ? new Date(dateFin) : null }),
-      },
-    })
-    await this.prisma.historiqueRattachementSousTraitant.create({
-      data: { rattachementId: rattId, evenement: dto.statut === 'INACTIF' ? 'CLOTURE' : 'MODIFICATION' },
-    })
-    return updated
-  }
+  // Rattachements Sous-Traitant : gestion manuelle retirée. Le lien se crée
+  // automatiquement à la visite (create(), catégorie SOUS_TRAITANT) ; ces patients
+  // n'ont plus d'onglet Administratif du tout (DossierPage.tsx), donc plus aucune
+  // UI ne consomme create/update/delete pour ce rattachement.
 
   // ── Suppression des sous-entités du dossier (perm patient.update) ──────────
 
@@ -1199,16 +1154,6 @@ export class PatientService {
     await this.prisma.$transaction([
       this.prisma.historiqueRattachementAyantDroit.deleteMany({ where: { rattachementId: rattId } }),
       this.prisma.rattachementAyantDroitCdi.delete({ where: { id: rattId } }),
-    ])
-    return { id: rattId, deleted: true }
-  }
-
-  async deleteRattachementST(patientId: string, rattId: string) {
-    const r = await this.prisma.rattachementSousTraitant.findFirst({ where: { id: rattId, patientId } })
-    if (!r) throw new NotFoundException('Rattachement sous-traitant introuvable')
-    await this.prisma.$transaction([
-      this.prisma.historiqueRattachementSousTraitant.deleteMany({ where: { rattachementId: rattId } }),
-      this.prisma.rattachementSousTraitant.delete({ where: { id: rattId } }),
     ])
     return { id: rattId, deleted: true }
   }

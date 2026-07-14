@@ -43,7 +43,7 @@ export interface BonExamen {
       patient: {
         id: string
         numeroPatient: string
-        identite: { nom: string; prenom: string; dateNaissance: string; sexe: string } | null
+        identite: { nom: string; prenom: string; dateNaissance: string | null; sexe: string | null } | null
       }
     }
   }

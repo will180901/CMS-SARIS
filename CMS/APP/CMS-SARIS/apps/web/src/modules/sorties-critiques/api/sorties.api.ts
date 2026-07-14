@@ -27,7 +27,7 @@ export interface Evacuation {
   createdAt:        string
   consultation: {
     id: string; createdAt: string
-    visite: { patient: { id: string; numeroPatient: string; identite: { nom: string; prenom: string; dateNaissance: string; sexe: string } | null } }
+    visite: { patient: { id: string; numeroPatient: string; identite: { nom: string; prenom: string; dateNaissance: string | null; sexe: string | null } | null } }
   }
   etablissement: { id: string; nom: string; type: string } | null
   suivi:        SuiviEvacuation[]

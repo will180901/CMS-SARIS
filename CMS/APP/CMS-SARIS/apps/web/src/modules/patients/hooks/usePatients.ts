@@ -4,7 +4,7 @@ import { patientsApi } from '../api/patients.api'
 import type {
   CreatePatientPayload, PatientQueryParams,
   AllergiePayload, AntecedentPayload, AlertePayload,
-  RattachementADPayload, RattachementSTPayload,
+  UpdateRattachementADPayload,
   UpdateIdentitePayload, ChangerCategoriePayload, ModeViePayload,
   SimilarPatientQuery,
   CreateSuiviChroniquePayload, UpdateSuiviChroniquePayload,
@@ -274,41 +274,16 @@ export function useUpdateAlerte(patientId: string) {
 }
 
 // ── Mutations rattachements ───────────────────────────────────────────────────
-
-export function useCreateRattachementAD(patientId: string) {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (data: RattachementADPayload) => patientsApi.createRattachementAD(patientId, data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: dossierKey(patientId) }); toast.success(i18n.t('patients.toastAttachmentAdCreated')) },
-    onError: toastError,
-  })
-}
+// Création retirée : le rattachement (ayant droit CDI ou sous-traitant) se crée
+// automatiquement à la visite. Seule l'édition d'un rattachement AD existant
+// reste possible depuis le dossier (type de lien, dates, clôture).
 
 export function useUpdateRattachementAD(patientId: string) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ rId, data }: { rId: string; data: Partial<RattachementADPayload> }) =>
+    mutationFn: ({ rId, data }: { rId: string; data: UpdateRattachementADPayload }) =>
       patientsApi.updateRattachementAD(patientId, rId, data),
     onSuccess: () => { qc.invalidateQueries({ queryKey: dossierKey(patientId) }); toast.success(i18n.t('patients.toastAttachmentAdUpdated')) },
-    onError: toastError,
-  })
-}
-
-export function useCreateRattachementST(patientId: string) {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (data: RattachementSTPayload) => patientsApi.createRattachementST(patientId, data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: dossierKey(patientId) }); toast.success(i18n.t('patients.toastAttachmentStCreated')) },
-    onError: toastError,
-  })
-}
-
-export function useUpdateRattachementST(patientId: string) {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: ({ rId, data }: { rId: string; data: Partial<RattachementSTPayload> }) =>
-      patientsApi.updateRattachementST(patientId, rId, data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: dossierKey(patientId) }); toast.success(i18n.t('patients.toastAttachmentStUpdated')) },
     onError: toastError,
   })
 }
@@ -347,15 +322,6 @@ export function useDeleteRattachementAD(patientId: string) {
   return useMutation({
     mutationFn: (rId: string) => patientsApi.deleteRattachementAD(patientId, rId),
     onSuccess: () => { qc.invalidateQueries({ queryKey: dossierKey(patientId) }); toast.success(i18n.t('patients.toastAttachmentAdDeleted')) },
-    onError: toastError,
-  })
-}
-
-export function useDeleteRattachementST(patientId: string) {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (rId: string) => patientsApi.deleteRattachementST(patientId, rId),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: dossierKey(patientId) }); toast.success(i18n.t('patients.toastAttachmentStDeleted')) },
     onError: toastError,
   })
 }

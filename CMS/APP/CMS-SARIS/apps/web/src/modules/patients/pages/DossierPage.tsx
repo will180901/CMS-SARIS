@@ -115,7 +115,8 @@ function DossierSidebar({ dossier, onChangerCategorie, compact }: { dossier: Pat
           </p>
           {id && (
             <p style={{ fontSize: '12px', color: 'var(--texte-secondaire)', margin: '2px 0 0' }}>
-              {t('patients.infoYears', { count: calcAge(id.dateNaissance) })} · {id.sexe === 'M' ? t('patients.sexMale') : t('patients.sexFemale')}
+              {id.dateNaissance && <>{t('patients.infoYears', { count: calcAge(id.dateNaissance) })} · </>}
+              {id.sexe === 'M' ? t('patients.sexMale') : id.sexe === 'F' ? t('patients.sexFemale') : '—'}
             </p>
           )}
         </div>
@@ -371,13 +372,20 @@ export function DossierPage() {
   // Dossier verrouillé ET je ne suis pas supervision → contenu masqué (rideau forcé).
   const lockedForMe = dossier.verrouille && !isSupervision
 
+  // Onglet Administratif (rattachements) : uniquement pertinent pour un CDI (voit ses
+  // ayants droit) ou un ayant droit (voit le CDI dont il dépend) — le rattachement se
+  // crée désormais automatiquement à la visite, aucune autre catégorie n'en a besoin
+  // (sous-traitant/riverain/retraité/agent fonctionnaire/patient externe/CDD n'ont pas
+  // ce privilège, cf. DroitCategoriePatient qui les exclut déjà tous de la couverture).
+  const hasRattachements = dossier.categoriePatient.code === 'ASSURE_CDI' || dossier.categoriePatient.code === 'AYANT_DROIT_CDI'
+  const visibleSections   = SECTIONS.filter(s => s.key !== 'administratif' || hasRattachements)
+
   // Comptes pour les badges d'onglets/sections
   const tabCounts: Partial<Record<SubTabKey, number>> = {
     alertes:    dossier.allergies.filter(a => a.statut === 'ACTIVE').length +
                 dossier.alertesMedicales.filter(a => a.statut === 'ACTIVE').length,
     antecedents: dossier.antecedents.filter(a => a.statut === 'ACTIF').length,
-    rattachements: dossier.rattachementsAD.filter(r => r.statut === 'ACTIF').length +
-                   dossier.rattachementsST.filter(r => r.statut === 'ACTIF').length,
+    rattachements: dossier.rattachementsAD.filter(r => r.statut === 'ACTIF').length,
   }
   const sectionBadge: Partial<Record<SectionKey, number>> = {
     apercu: tabCounts.alertes,
@@ -386,8 +394,9 @@ export function DossierPage() {
   }
 
   // Section active + ses sous-onglets, filtrés par permission (onglets cliniques
-  // masqués aux profils sans lecture clinique — ex. délégation sans consultation.read).
-  const currentSection = SECTIONS.find(s => s.key === activeSection) ?? SECTIONS[0]
+  // masqués aux profils sans lecture clinique — ex. délégation sans consultation.read)
+  // et par catégorie (Administratif absent des catégories sans rattachement possible).
+  const currentSection = visibleSections.find(s => s.key === activeSection) ?? visibleSections[0]
   const visibleSubTabs = currentSection.subTabs.filter(t => !('clinicalOnly' in t && t.clinicalOnly) || canViewClinique)
   const activeSubTab: SubTabKey = visibleSubTabs.some(t => t.key === activeSubTabRaw) ? activeSubTabRaw : visibleSubTabs[0].key
 
@@ -505,7 +514,7 @@ export function DossierPage() {
               <SegmentedTabs
                 value={activeSection}
                 onChange={k => setActiveSection(k as SectionKey)}
-                tabs={SECTIONS.map(s => ({
+                tabs={visibleSections.map(s => ({
                   key: s.key,
                   label: t(s.labelKey),
                   icon: <s.icon size={13} />,

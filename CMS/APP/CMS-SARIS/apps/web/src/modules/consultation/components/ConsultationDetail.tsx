@@ -1098,7 +1098,7 @@ function PatientContextRail({ consultation, consultationId, isActive, canUpdate,
           </p>
           <p style={{ margin: '3px 0 0', fontSize: '11px', color: 'var(--texte-tertiaire)' }}>
             <span style={{ fontFamily: 'monospace' }}>{patient.numeroPatient}</span>
-            {identite && <> · {identite.sexe === 'M' ? t('consultation.sexM') : t('consultation.sexF')} · {t('consultation.ageYears', { age: calcAge(identite.dateNaissance) })}</>}
+            {identite && <> · {identite.sexe === 'M' ? t('consultation.sexM') : identite.sexe === 'F' ? t('consultation.sexF') : '—'}{identite.dateNaissance && <> · {t('consultation.ageYears', { age: calcAge(identite.dateNaissance) })}</>}</>}
           </p>
         </div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center' }}>

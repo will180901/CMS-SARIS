@@ -43,7 +43,7 @@ function formatDate(iso: string) {
   return intlFormatDate(iso, { day: '2-digit', month: 'long', year: 'numeric' })
 }
 export interface PrintPatient {
-  identite:          { nom: string; prenom: string; dateNaissance: string; sexe: string } | null
+  identite:          { nom: string; prenom: string; dateNaissance: string | null; sexe: string | null } | null
   numeroPatient:     string
   categorieLibelle?: string
 }
@@ -202,7 +202,7 @@ export function MedicalPrintSheet({
       <div style={{ padding: '16px 40px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 28 }}>
         <IdentityBlock title="Patient" rows={[
           ['Nom & prénom', identite ? `${identite.nom.toUpperCase()} ${identite.prenom}` : '—'],
-          ['Naissance', identite ? `${formatDate(identite.dateNaissance)} · ${calcAge(identite.dateNaissance)} ans` : '—'],
+          ['Naissance', identite?.dateNaissance ? `${formatDate(identite.dateNaissance)} · ${calcAge(identite.dateNaissance)} ans` : '—'],
           ['Sexe', identite?.sexe === 'M' ? 'Masculin' : identite?.sexe === 'F' ? 'Féminin' : '—'],
           ['N° dossier', patient.numeroPatient, true],
           ...(patient.categorieLibelle ? [['Catégorie', patient.categorieLibelle] as [string, string]] : []),

@@ -6,7 +6,7 @@ import { api } from '@/lib/api'
 import type {
   PatientListItem, PatientDossier,
   AllergiePatient, AntecedentPatient, AlerteMedicale,
-  RattachementAyantDroitCdi, RattachementSousTraitant,
+  RattachementAyantDroitCdi,
   ConstanteVitale,
 } from '@cms-saris/types'
 
@@ -106,7 +106,7 @@ export interface SimilarPatientQuery {
 export interface SimilarPatient {
   id:            string
   numeroPatient: string
-  identite:      { nom: string; prenom: string; dateNaissance: string; sexe: string } | null
+  identite:      { nom: string; prenom: string; dateNaissance: string | null; sexe: string | null } | null
   categoriePatient: { id: string; code: string; libelle: string } | null
   correspondanceDate:   boolean
   correspondanceExacte: boolean
@@ -140,19 +140,13 @@ export interface AlertePayload {
   statut?: string
 }
 
-export interface RattachementADPayload {
-  cdiId:    string
-  typeLien: string
-  dateDebut: string
-  dateFin?:  string
-  statut?:  string
-}
-
-export interface RattachementSTPayload {
-  societeId: string
-  dateDebut: string
-  dateFin?:  string
-  statut?:   string
+// Création retirée (le rattachement se crée automatiquement à la visite) — seule
+// l'édition d'un rattachement AD déjà existant reste possible.
+export interface UpdateRattachementADPayload {
+  typeLien?:  string
+  dateDebut?: string
+  dateFin?:   string
+  statut?:    string
 }
 
 // Ayant droit (dépendant) d'un travailleur CDI + son activité médicale récente.
@@ -164,7 +158,7 @@ export interface AyantDroitLien {
     id:               string
     numeroPatient:    string
     categoriePatient: { code: string; libelle: string }
-    identite:         { nom: string; prenom: string; dateNaissance: string; sexe: string } | null
+    identite:         { nom: string; prenom: string; dateNaissance: string | null; sexe: string | null } | null
     visites: Array<{
       id:             string
       dateOuverture:  string
@@ -181,7 +175,7 @@ export interface MatriculeLookup {
   numeroPatient:    string
   matricule:        string | null
   categoriePatient: { code: string; libelle: string }
-  identite:         { nom: string; prenom: string; dateNaissance: string; sexe: string } | null
+  identite:         { nom: string; prenom: string; dateNaissance: string | null; sexe: string | null } | null
 }
 
 // Suivi du dossier (traitement, évolution des pathologies chroniques, résultats d'examens).
@@ -302,13 +296,8 @@ export const patientsApi = {
   updateAlerte: (id: string, aId: string, data: Partial<AlertePayload>) => api.patch<AlerteMedicale>(`/patients/${id}/alertes/${aId}`, data),
   deleteAlerte: (id: string, aId: string)                              => api.delete<{ id: string; deleted: true }>(`/patients/${id}/alertes/${aId}`),
 
-  // Rattachements ayant droit CDI
-  createRattachementAD: (id: string, data: RattachementADPayload)                         => api.post<RattachementAyantDroitCdi>(`/patients/${id}/rattachements-ad`, data),
-  updateRattachementAD: (id: string, rId: string, data: Partial<RattachementADPayload>)   => api.patch<RattachementAyantDroitCdi>(`/patients/${id}/rattachements-ad/${rId}`, data),
-  deleteRattachementAD: (id: string, rId: string)                                         => api.delete<{ id: string; deleted: true }>(`/patients/${id}/rattachements-ad/${rId}`),
-
-  // Rattachements sous-traitant
-  createRattachementST: (id: string, data: RattachementSTPayload)                         => api.post<RattachementSousTraitant>(`/patients/${id}/rattachements-st`, data),
-  updateRattachementST: (id: string, rId: string, data: Partial<RattachementSTPayload>)   => api.patch<RattachementSousTraitant>(`/patients/${id}/rattachements-st/${rId}`, data),
-  deleteRattachementST: (id: string, rId: string)                                         => api.delete<{ id: string; deleted: true }>(`/patients/${id}/rattachements-st/${rId}`),
+  // Rattachements ayant droit CDI — création automatique à la visite, seule
+  // l'édition/clôture d'un rattachement existant reste possible depuis le dossier.
+  updateRattachementAD: (id: string, rId: string, data: UpdateRattachementADPayload) => api.patch<RattachementAyantDroitCdi>(`/patients/${id}/rattachements-ad/${rId}`, data),
+  deleteRattachementAD: (id: string, rId: string)                                    => api.delete<{ id: string; deleted: true }>(`/patients/${id}/rattachements-ad/${rId}`),
 }

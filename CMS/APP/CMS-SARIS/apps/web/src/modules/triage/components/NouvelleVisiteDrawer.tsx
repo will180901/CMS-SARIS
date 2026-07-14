@@ -364,7 +364,7 @@ export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Pr
                             </span>
                             <div style={{ display: 'flex', gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
                               <span style={{ fontSize: '10px', fontFamily: 'monospace', color: 'var(--texte-tertiaire)' }}>{s.numeroPatient}</span>
-                              {s.identite && <span style={{ fontSize: '10px', color: 'var(--texte-tertiaire)' }}>· {t('triage.ageAns', { age: calcAge(s.identite.dateNaissance) })}</span>}
+                              {s.identite?.dateNaissance && <span style={{ fontSize: '10px', color: 'var(--texte-tertiaire)' }}>· {t('triage.ageAns', { age: calcAge(s.identite.dateNaissance) })}</span>}
                               {s.correspondanceDate && <span style={{ fontSize: '10px', color: 'var(--avert-texte)', fontWeight: 600 }}>{t('triage.memeDateNaissance')}</span>}
                             </div>
                           </div>
@@ -402,7 +402,7 @@ export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Pr
                     <span style={{ fontSize: '11px', color: 'var(--texte-tertiaire)', fontFamily: 'monospace' }}>
                       {selectedPatient.numeroPatient}
                     </span>
-                    {selectedPatient.identite && (
+                    {selectedPatient.identite?.dateNaissance && (
                       <>
                         <span style={{ fontSize: '11px', color: 'var(--texte-tertiaire)' }}>·</span>
                         <span style={{ fontSize: '11px', color: 'var(--texte-tertiaire)' }}>

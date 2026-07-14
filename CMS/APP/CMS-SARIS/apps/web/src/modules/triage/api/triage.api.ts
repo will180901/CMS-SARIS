@@ -12,6 +12,7 @@ export interface ConstantesPayload {
   tensionSystolique?:  number
   tensionDiastolique?: number
   frequenceCardiaque?: number
+  frequenceRespiratoire?: number
   saturationO2?:       number
   poids?:              number
   taille?:             number
