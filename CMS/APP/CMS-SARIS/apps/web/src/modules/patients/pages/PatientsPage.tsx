@@ -300,7 +300,7 @@ export function PatientsPage() {
       if (statut !== 'all' && p.statut !== statut) return false
       if (search) {
         const q    = search.toLowerCase()
-        const full = `${p.identite?.nom ?? ''} ${p.identite?.prenom ?? ''} ${p.numeroPatient}`.toLowerCase()
+        const full = `${p.identite?.nom ?? ''} ${p.identite?.prenom ?? ''} ${p.numeroPatient} ${p.matricule ?? ''}`.toLowerCase()
         if (!full.includes(q)) return false
       }
       return true

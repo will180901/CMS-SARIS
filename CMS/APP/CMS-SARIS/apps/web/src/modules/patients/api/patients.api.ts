@@ -73,6 +73,12 @@ export interface UpdateIdentitePayload {
 export interface ChangerCategoriePayload {
   nouvelleCategId: string
   motif:           string
+  // Obligatoires uniquement si la nouvelle catégorie est CDI/CDD (recueil §5).
+  matricule?:      string
+  fonction?:       string
+  sectionPaie?:    string
+  service?:        string
+  departement?:    string
 }
 
 // Mode de vie (recueil) — toutes catégories

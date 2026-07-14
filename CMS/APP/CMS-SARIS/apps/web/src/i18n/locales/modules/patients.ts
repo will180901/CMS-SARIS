@@ -97,7 +97,9 @@ export const patients = {
     categoryNew: 'Nouvelle',
     categoryNotSelected: 'Non sélectionnée',
     newCategoryLabel: 'Nouvelle catégorie *',
-    changeImpactNotice: 'Cette modification mettra à jour l\'affiliation du patient. Les rattachements existants ne seront pas affectés.',
+    changeImpactNotice: 'Si ce patient quitte le statut Ayant droit CDI ou Sous-traitant, son rattachement en cours sera automatiquement clôturé.',
+    categoryChangeLockedHint: 'Ayant droit CDI et Sous-traitant ne sont pas proposés ici — ces statuts se créent uniquement à la visite.',
+    categoryChangeCdiDataTitle: 'Données professionnelles (obligatoires)',
     changeReasonLabel: 'Motif du changement *',
     changeReasonPlaceholder: 'Ex : Départ à la retraite, fin de contrat CDI, mariage...',
 
@@ -642,7 +644,9 @@ export const patients = {
     categoryNew: 'New',
     categoryNotSelected: 'Not selected',
     newCategoryLabel: 'New category *',
-    changeImpactNotice: 'This change will update the patient\'s affiliation. Existing attachments will not be affected.',
+    changeImpactNotice: 'If this patient leaves the CDI beneficiary or Subcontractor status, their current attachment will be automatically closed.',
+    categoryChangeLockedHint: 'CDI beneficiary and Subcontractor are not offered here — these statuses can only be created at intake.',
+    categoryChangeCdiDataTitle: 'Employment data (required)',
     changeReasonLabel: 'Reason for the change *',
     changeReasonPlaceholder: 'E.g.: Retirement, end of permanent contract, marriage...',
 

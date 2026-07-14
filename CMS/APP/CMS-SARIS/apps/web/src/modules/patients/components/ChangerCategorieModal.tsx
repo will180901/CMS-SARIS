@@ -4,6 +4,7 @@ import { z }                 from 'zod'
 import { useTranslation }    from 'react-i18next'
 import { ArrowRight, ArrowRightLeft, AlertCircle, Check } from 'lucide-react'
 import { Label }             from '@workspace/ui/components/label'
+import { Input }             from '@workspace/ui/components/input'
 import { Button }            from '@workspace/ui/components/button'
 import { Modal }             from '@/components/saris'
 import { useCategoriesPatient } from '@/modules/referentiels/hooks/useReferentiels'
@@ -11,14 +12,28 @@ import { CategorieBadge, getCategConfig } from './CategorieBadge'
 import { useChangerCategorie } from '../hooks/usePatients'
 import type { PatientDossier } from '@cms-saris/types'
 
+// Destinations interdites depuis ce formulaire : elles exigent un matricule de CDI
+// rattaché (ayant droit) ou une société (sous-traitant), jamais collectés ici — le
+// seul point d'entrée pour ces rattachements est la visite (PatientService.create()).
+const CATEGORIES_INTERDITES = ['AYANT_DROIT_CDI', 'SOUS_TRAITANT']
+const CATEGORIES_CDI_CDD    = ['ASSURE_CDI', 'ASSURE_CDD']
+
 // ── Schéma ────────────────────────────────────────────────────────────────────
 // Fabrique de schéma : reçoit `t` pour traduire les messages visibles.
 // (Jamais de t() au niveau module — les hooks ne tournent que dans un composant.)
+// matricule/fonction/sectionPaie/service/departement : optionnels au niveau du
+// schéma zod, leur obligation (uniquement si la nouvelle catégorie est CDI/CDD)
+// est vérifiée séparément via `cdiDataValid`, même pattern que NouvelleVisiteDrawer.
 
 function makeSchema(t: (k: string) => string) {
   return z.object({
     nouvelleCategId: z.string().uuid(t('patients.validationSelectCategory')),
     motif:           z.string().trim().min(5, t('patients.validationReasonRequired')).max(300, t('patients.validationMax300')),
+    matricule:       z.string().optional(),
+    fonction:        z.string().optional(),
+    sectionPaie:     z.string().optional(),
+    service:         z.string().optional(),
+    departement:     z.string().optional(),
   })
 }
 type Form = z.infer<ReturnType<typeof makeSchema>>
@@ -96,17 +111,34 @@ export function ChangerCategorieModal({
 
   const form = useForm<Form>({
     resolver: zodResolver(makeSchema(t)),
-    defaultValues: { nouvelleCategId: '', motif: '' },
+    defaultValues: { nouvelleCategId: '', motif: '', matricule: '', fonction: '', sectionPaie: '', service: '', departement: '' },
   })
   const { register, watch, setValue, reset, formState: { errors } } = form
 
-  const selectedId   = watch('nouvelleCategId')
+  const selectedId    = watch('nouvelleCategId')
   const selectedCateg = categories.find(c => c.id === selectedId)
+  const isCdiCddTarget = !!selectedCateg && CATEGORIES_CDI_CDD.includes(selectedCateg.code)
+  const [matriculeVal, fonctionVal, sectionPaieVal, serviceVal, departementVal] =
+    watch(['matricule', 'fonction', 'sectionPaie', 'service', 'departement'])
+  const cdiDataValid = !isCdiCddTarget || !!(
+    matriculeVal?.trim() && fonctionVal?.trim() && sectionPaieVal?.trim() && serviceVal?.trim() && departementVal?.trim()
+  )
 
   async function handleSave() {
     const ok = await form.trigger()
-    if (!ok) return
-    await changer.mutateAsync(form.getValues())
+    if (!ok || !cdiDataValid) return
+    const v = form.getValues()
+    await changer.mutateAsync({
+      nouvelleCategId: v.nouvelleCategId,
+      motif:           v.motif,
+      ...(isCdiCddTarget ? {
+        matricule:   v.matricule!.trim(),
+        fonction:    v.fonction!.trim(),
+        sectionPaie: v.sectionPaie!.trim(),
+        service:     v.service!.trim(),
+        departement: v.departement!.trim(),
+      } : {}),
+    })
     reset()
     onClose()
   }
@@ -146,7 +178,7 @@ export function ChangerCategorieModal({
           <Button
             size="sm"
             onClick={handleSave}
-            disabled={changer.isPending || !selectedId}
+            disabled={changer.isPending || !selectedId || !cdiDataValid}
             style={{ fontSize: '13px', height: 34, gap: '5px' }}
           >
             <Check size={13} />
@@ -199,12 +231,47 @@ export function ChangerCategorieModal({
                   code={c.code}
                   libelle={c.libelle}
                   selected={selectedId === c.id}
-                  disabled={c.code === currentCode}
+                  disabled={c.code === currentCode || CATEGORIES_INTERDITES.includes(c.code)}
                   onClick={() => setValue('nouvelleCategId', c.id, { shouldValidate: true })}
                 />
               ))}
             </div>
+            <p style={{ fontSize: '11px', color: 'var(--texte-tertiaire)', margin: '6px 0 0', lineHeight: 1.5 }}>
+              {t('patients.categoryChangeLockedHint')}
+            </p>
           </div>
+
+          {/* Données CDI/CDD obligatoires (recueil §5) — la nouvelle catégorie exige
+              matricule + poste, comme à la visite. */}
+          {isCdiCddTarget && (
+            <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '10px', padding: '12px', borderRadius: 8, border: '1px solid var(--bordure-legere)', background: 'var(--fond-surface-2)' }}>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--texte-secondaire)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                {t('patients.categoryChangeCdiDataTitle')}
+              </span>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(150px, 100%), 1fr))', gap: '10px' }}>
+                <div style={fld}>
+                  <Label style={lbl}>{t('patients.fieldMatricule')} *</Label>
+                  <Input {...register('matricule')} style={{ fontSize: '13px' }} />
+                </div>
+                <div style={fld}>
+                  <Label style={lbl}>{t('patients.fieldFonction')} *</Label>
+                  <Input {...register('fonction')} style={{ fontSize: '13px' }} />
+                </div>
+                <div style={fld}>
+                  <Label style={lbl}>{t('patients.fieldSectionPaie')} *</Label>
+                  <Input {...register('sectionPaie')} style={{ fontSize: '13px' }} />
+                </div>
+                <div style={fld}>
+                  <Label style={lbl}>{t('patients.fieldService')} *</Label>
+                  <Input {...register('service')} style={{ fontSize: '13px' }} />
+                </div>
+                <div style={fld}>
+                  <Label style={lbl}>{t('patients.fieldDepartement')} *</Label>
+                  <Input {...register('departement')} style={{ fontSize: '13px' }} />
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Avertissement impact */}
           {selectedCateg && selectedCateg.code !== currentCode && (

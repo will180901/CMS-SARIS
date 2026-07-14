@@ -181,6 +181,7 @@ export interface RattachementSousTraitant {
 export interface PatientListItem {
   id:               string
   numeroPatient:    string
+  matricule:        string | null
   statut:           StatutPatient
   createdAt:        string
   categoriePatient: CategorieResume

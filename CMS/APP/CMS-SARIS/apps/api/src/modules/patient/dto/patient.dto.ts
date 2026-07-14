@@ -126,10 +126,19 @@ export class VerrouPatientDto {
 }
 
 // ── Changement de catégorie ───────────────────────────────────────────────────
+// AYANT_DROIT_CDI/SOUS_TRAITANT sont exclus des destinations possibles (le seul
+// point d'entrée pour ces rattachements est la visite) — voir changerCategorie().
+// Si la nouvelle catégorie est ASSURE_CDI/ASSURE_CDD, ces données deviennent
+// obligatoires (mêmes champs qu'à la création, imposé côté service).
 
 export class ChangerCategorieDto {
   @IsUUID()                      nouvelleCategId: string
   @IsString() @IsNotEmpty() @MaxLength(500) motif: string
+  @IsOptional() @IsString() @MaxLength(50)  matricule?:    string
+  @IsOptional() @IsString() @MaxLength(100) fonction?:     string
+  @IsOptional() @IsString() @MaxLength(100) sectionPaie?:  string
+  @IsOptional() @IsString() @MaxLength(100) service?:      string
+  @IsOptional() @IsString() @MaxLength(100) departement?:  string
 }
 
 // ── Changement de statut ──────────────────────────────────────────────────────

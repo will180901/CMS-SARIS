@@ -1010,11 +1010,84 @@ export class PatientService {
   }
 
   // ── Changement de catégorie ───────────────────────────────────────────────
+  // Règles (alignées sur create() — la visite reste le seul point d'entrée pour
+  // les rattachements) :
+  //  1. AYANT_DROIT_CDI / SOUS_TRAITANT sont des destinations INTERDITES ici —
+  //     elles exigent un matricule de CDI rattaché / une société, jamais collectés
+  //     par ce formulaire ; les créer sans ça reproduirait l'incohérence corrigée
+  //     dans create() (ayant droit sans sponsor, etc.).
+  //  2. Un CDI/CDD qui sponsorise encore des ayants droit actifs (via employeId)
+  //     ne peut pas changer de catégorie tant que ces rattachements existent —
+  //     sinon des ayants droit se retrouveraient couverts par quelqu'un qui n'est
+  //     plus CDI, sans que personne ne le voie (le rattachement, lui, resterait actif).
+  //  3. À l'inverse, quitter AYANT_DROIT_CDI/SOUS_TRAITANT clôture automatiquement
+  //     le rattachement PROPRE au patient (celui qui ne concerne que lui) — pas
+  //     besoin de bloquer, juste de ne pas laisser un rattachement actif orphelin.
+  //  4. Devenir ASSURE_CDI/ASSURE_CDD exige les mêmes données obligatoires qu'à la
+  //     visite (matricule/fonction/section/service/département), pour que ce
+  //     patient devienne un sponsor valide et retrouvable au registre employé.
 
   async changerCategorie(id: string, dto: ChangerCategorieDto, userId?: string) {
-    await this.assertPatientExists(id)
+    const patient = await this.prisma.patient.findUnique({
+      where:   { id },
+      include: { categoriePatient: { select: { code: true } }, identite: true },
+    })
+    if (!patient) throw new NotFoundException(`Patient ${id} introuvable`)
+
+    const nouvelleCategorie = await this.prisma.categoriePatient.findUnique({
+      where: { id: dto.nouvelleCategId }, select: { code: true },
+    })
+    if (!nouvelleCategorie) throw new BadRequestException('Catégorie de patient invalide')
+
+    const ancienCode  = patient.categoriePatient.code
+    const nouveauCode = nouvelleCategorie.code
+
+    if (nouveauCode === 'AYANT_DROIT_CDI' || nouveauCode === 'SOUS_TRAITANT') {
+      throw new ConflictException('Pour rattacher ce patient à un CDI ou une société, passez par une nouvelle visite — ce statut ne peut pas être attribué depuis le changement de catégorie.')
+    }
+
+    if ((ancienCode === 'ASSURE_CDI' || ancienCode === 'ASSURE_CDD') && patient.employeId) {
+      const ayantsDroitActifs = await this.prisma.rattachementAyantDroitCdi.count({
+        where: { employeId: patient.employeId, statut: 'ACTIF' },
+      })
+      if (ayantsDroitActifs > 0) {
+        throw new ConflictException(`Ce patient a encore ${ayantsDroitActifs} ayant(s) droit rattaché(s) — clôturez d'abord leurs rattachements avant de changer sa catégorie.`)
+      }
+    }
+
+    // Devenir CDI/CDD : mêmes données obligatoires qu'à la visite (recueil §5).
+    let patientEmployeId = patient.employeId
+    let matriculePropre  = patient.matricule
+    const isCdiCdd = nouveauCode === 'ASSURE_CDI' || nouveauCode === 'ASSURE_CDD'
+    if (isCdiCdd) {
+      const manquants: string[] = []
+      if (!dto.matricule?.trim())   manquants.push('matricule')
+      if (!dto.fonction?.trim())    manquants.push('fonction')
+      if (!dto.sectionPaie?.trim()) manquants.push('section de paie')
+      if (!dto.service?.trim())     manquants.push('service')
+      if (!dto.departement?.trim()) manquants.push('département')
+      if (manquants.length) {
+        throw new BadRequestException(`Données obligatoires manquantes pour « ${nouvelleCategorie.code} » : ${manquants.join(', ')}`)
+      }
+      matriculePropre = dto.matricule!.trim()
+      if (matriculePropre !== patient.matricule) {
+        const clash = await this.prisma.patient.findFirst({ where: { matricule: matriculePropre, id: { not: id } }, select: { id: true } })
+        if (clash) throw new ConflictException(`Le matricule ${matriculePropre} est déjà attribué à un patient`)
+      }
+      const emp = await this.employes.ensureByMatricule({
+        matricule:     matriculePropre,
+        nom:           patient.identite?.nom    ?? '',
+        prenom:        patient.identite?.prenom ?? '',
+        dateNaissance: patient.identite?.dateNaissance?.toISOString() ?? undefined,
+        sexe:          patient.identite?.sexe ?? undefined,
+        fonction:      dto.fonction!.trim(), sectionPaie: dto.sectionPaie!.trim(),
+        service:       dto.service!.trim(),  departement: dto.departement!.trim(),
+        categorie:     nouveauCode,
+      })
+      patientEmployeId = emp.id
+    }
+
     return this.prisma.$transaction(async (tx) => {
-      const patient = await tx.patient.findUniqueOrThrow({ where: { id } })
       await tx.historiqueCategoriePatient.create({
         data: {
           patientId:       id,
@@ -1025,9 +1098,36 @@ export class PatientService {
           createdBy:       userId ?? null,
         },
       })
+
+      if (ancienCode === 'AYANT_DROIT_CDI') {
+        const ratt = await tx.rattachementAyantDroitCdi.findFirst({ where: { patientId: id, statut: 'ACTIF' } })
+        if (ratt) {
+          await tx.rattachementAyantDroitCdi.update({ where: { id: ratt.id }, data: { statut: 'INACTIF' } })
+          await tx.historiqueRattachementAyantDroit.create({ data: { rattachementId: ratt.id, evenement: 'CLOTURE' } })
+        }
+      }
+      if (ancienCode === 'SOUS_TRAITANT') {
+        const ratt = await tx.rattachementSousTraitant.findFirst({ where: { patientId: id, statut: 'ACTIF' } })
+        if (ratt) {
+          await tx.rattachementSousTraitant.update({ where: { id: ratt.id }, data: { statut: 'INACTIF' } })
+          await tx.historiqueRattachementSousTraitant.create({ data: { rattachementId: ratt.id, evenement: 'CLOTURE' } })
+        }
+      }
+
+      if (isCdiCdd) {
+        await tx.donneesEmploi.upsert({
+          where:  { patientId: id },
+          update: { fonction: dto.fonction!.trim(), sectionPaie: dto.sectionPaie!.trim(), service: dto.service!.trim(), departement: dto.departement!.trim() },
+          create: { patientId: id, fonction: dto.fonction!.trim(), sectionPaie: dto.sectionPaie!.trim(), service: dto.service!.trim(), departement: dto.departement!.trim() },
+        })
+      }
+
       return tx.patient.update({
         where:   { id },
-        data:    { categoriePatientId: dto.nouvelleCategId },
+        data:    {
+          categoriePatientId: dto.nouvelleCategId,
+          ...(isCdiCdd ? { matricule: matriculePropre, employeId: patientEmployeId } : {}),
+        },
         include: { categoriePatient: CATEGORIE_SELECT, siteCreation: SITE_SELECT, identite: true },
       })
     })
