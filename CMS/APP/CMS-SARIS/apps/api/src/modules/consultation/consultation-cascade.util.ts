@@ -27,8 +27,6 @@ export function consultationCascadeDeleteOps(
     prisma.bonPharmacie.deleteMany({ where }),
     prisma.suiviEvacuation.deleteMany({ where: { evacuation: where } }),
     prisma.evacuation.deleteMany({ where }),
-    prisma.suiviAccidentTravail.deleteMany({ where: { accident: where } }),
-    prisma.accidentTravail.deleteMany({ where }),
     prisma.suiviChronique.deleteMany({ where }),
     prisma.consultationPrenatale.deleteMany({ where }),
     prisma.certificatMedical.deleteMany({ where }),

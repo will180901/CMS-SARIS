@@ -497,13 +497,23 @@ export class PatientService {
    *   1. Évolution des pathologies chroniques (occurrences + suivi formel s'il existe)
    *   2. Traitement (historique des lignes d'ordonnances validées)
    *   3. Résultats d'examens (ResultatExamen, jamais exposés dans le dossier avant)
+   *
+   * Confidentialité alignée sur findConstantes/findAlertesCliniques : verrou
+   * médecin-chef (retourne un résultat vide) + restriction infirmier (recueil §5,
+   * limité à la visite EN_ATTENTE/EN_COURS).
    */
-  async findSuivi(patientId: string) {
+  async findSuivi(patientId: string, scope?: { restrictToOwn: boolean; personnelMedicalId: string | null; canViewLocked?: boolean; restreindreHistorique?: boolean }) {
     await this.assertPatientExists(patientId)
+    await this.assertOwnPatient(patientId, scope)
+    if (await this.isCliniqueMasque(patientId, scope?.canViewLocked)) {
+      return { chroniques: [], traitements: [], resultatsExamens: [], resultatsEnAttente: [] }
+    }
 
     const [diagnosticsChroniques, suivis, lignesOrdonnance, resultats, bonsEnAttente] = await Promise.all([
       this.prisma.diagnosticConsultation.findMany({
-        where:  { pathologie: { chronique: true }, consultation: { visite: { patientId } } },
+        where: scope?.restreindreHistorique
+          ? { pathologie: { chronique: true }, consultation: { visite: { patientId, statut: { in: ['EN_ATTENTE', 'EN_COURS'] } } } }
+          : { pathologie: { chronique: true }, consultation: { visite: { patientId } } },
         select: {
           pathologieId: true,
           pathologie:   { select: { id: true, libelle: true } },
@@ -518,7 +528,9 @@ export class PatientService {
         orderBy: { createdAt: 'desc' },
       }),
       this.prisma.ligneOrdonnance.findMany({
-        where:  { ordonnance: { statut: 'VALIDEE', consultation: { visite: { patientId } } } },
+        where: scope?.restreindreHistorique
+          ? { ordonnance: { statut: 'VALIDEE', consultation: { visite: { patientId, statut: { in: ['EN_ATTENTE', 'EN_COURS'] } } } } }
+          : { ordonnance: { statut: 'VALIDEE', consultation: { visite: { patientId } } } },
         select: {
           id: true, posologie: true, duree: true, voieAdmin: true,
           medicament:  { select: { nomGenerique: true, nomCommercial: true } },
@@ -527,7 +539,9 @@ export class PatientService {
         orderBy: { ordonnance: { createdAt: 'desc' } },
       }),
       this.prisma.resultatExamen.findMany({
-        where:  { bon: { consultation: { visite: { patientId } } } },
+        where: scope?.restreindreHistorique
+          ? { bon: { consultation: { visite: { patientId, statut: { in: ['EN_ATTENTE', 'EN_COURS'] } } } } }
+          : { bon: { consultation: { visite: { patientId } } } },
         select: {
           id: true, bonId: true, laboratoire: true, contenu: true, interpretation: true, statut: true, createdAt: true,
           bon: { select: { consultationId: true, lignes: { select: { typeExamen: { select: { libelle: true } } } } } },
@@ -537,7 +551,9 @@ export class PatientService {
       // Bons d'examen validés mais SANS résultat saisi — le point d'entrée « saisie
       // en attente » que le Suivi n'exposait pas avant (audit découvrabilité).
       this.prisma.bonExamen.findMany({
-        where:  { statut: 'VALIDE', resultats: { none: {} }, consultation: { visite: { patientId } } },
+        where: scope?.restreindreHistorique
+          ? { statut: 'VALIDE', resultats: { none: {} }, consultation: { visite: { patientId, statut: { in: ['EN_ATTENTE', 'EN_COURS'] } } } }
+          : { statut: 'VALIDE', resultats: { none: {} }, consultation: { visite: { patientId } } },
         select: {
           id: true, consultationId: true, createdAt: true,
           lignes: { select: { typeExamen: { select: { libelle: true } } } },

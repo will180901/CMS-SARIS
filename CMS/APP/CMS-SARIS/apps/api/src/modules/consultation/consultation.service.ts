@@ -267,7 +267,7 @@ export class ConsultationService {
 
   // ── Documents générés d'un patient (dossier → onglet Documents) ────────────
   // Agrège tous les actes documentaires de toutes les consultations du patient :
-  // ordonnances, bons d'examen, évacuations, accidents du travail.
+  // ordonnances, bons d'examen, bons de pharmacie, évacuations.
   async findPatientDocuments(patientId: string, scope?: { restrictToOwn: boolean; personnelMedicalId: string | null; canViewLocked?: boolean; canViewEvacuations?: boolean; restreindreHistorique?: boolean }) {
     // Verrou de confidentialité (médecin-chef) : dossier verrouillé + appelant non-supervision
     // → aucun document (cohérent avec patient.findById qui dépouille le dossier).

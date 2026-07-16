@@ -151,8 +151,13 @@ export class PatientController {
    */
   @Get(':id/suivi')
   @RequirePermissions('consultation.read')
-  findSuivi(@Param('id') id: string) {
-    return this.patientService.findSuivi(id)
+  findSuivi(@Param('id') id: string, @Req() req: AuthedRequest) {
+    return this.patientService.findSuivi(id, {
+      restrictToOwn:      isRestrictedDoctor(req),
+      personnelMedicalId: req.user?.personnelMedicalId ?? null,
+      canViewLocked:      isSupervision(req),
+      restreindreHistorique: isHistoriqueRestreint(req),
+    })
   }
 
   /**

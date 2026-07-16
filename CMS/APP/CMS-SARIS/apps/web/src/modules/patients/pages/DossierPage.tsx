@@ -58,7 +58,7 @@ const SECTIONS = [
   {
     key: 'parcours', labelKey: 'patients.sectionCareJourney', icon: GitCommitVertical,
     subTabs: [
-      { key: 'chronologie', labelKey: 'patients.tabChronology' },
+      { key: 'chronologie', labelKey: 'patients.tabChronology', clinicalOnly: true },
       { key: 'documents',   labelKey: 'patients.tabDocuments', clinicalOnly: true },
     ],
   },
@@ -546,7 +546,7 @@ export function DossierPage() {
               {activeSubTab === 'antecedents'   && <AntecedentsTab   dossier={dossier} canWrite={canWrite} />}
               {activeSubTab === 'constantes'    && <ConstantesTab    patientId={dossier.id} />}
               {activeSubTab === 'suivi'         && canViewClinique && <SuiviTab patientId={dossier.id} />}
-              {activeSubTab === 'chronologie'   && <TimelineTab      dossier={dossier} />}
+              {activeSubTab === 'chronologie'   && canViewClinique && <TimelineTab dossier={dossier} />}
               {activeSubTab === 'documents'     && canViewClinique && <DocumentsTab patientId={dossier.id} />}
               {activeSubTab === 'rattachements' && <RattementsTab    dossier={dossier} canWrite={canManageRattachements} />}
             </div>

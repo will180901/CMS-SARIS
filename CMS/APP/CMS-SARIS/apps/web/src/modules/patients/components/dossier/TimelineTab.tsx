@@ -1,7 +1,7 @@
 /**
  * TimelineTab — parcours chronologique unifié du patient : consultations,
- * documents générés (ordonnances, bons, évacuations, accidents, suivis) et
- * changements de catégorie, fusionnés sur un seul axe temporel décroissant.
+ * documents générés (ordonnances, bons, évacuations) et changements de
+ * catégorie, fusionnés sur un seul axe temporel décroissant.
  *
  * Chaque événement cliquable s'ouvre dans un TIROIR qui glisse de la droite
  * (aperçu A4 du document, ou résumé de la consultation) — la chronologie reste
@@ -91,9 +91,9 @@ function fmtTime(iso: string) {
 export function TimelineTab({ dossier }: { dossier: PatientDossier }) {
   const { t } = useTranslation()
   const patientId = dossier.id
-  const { data: consultations = [], isLoading: loadC } = usePatientConsultations(patientId)
-  const { data: documents = [],     isLoading: loadD } = usePatientDocuments(patientId)
-  const { data: visites = [],       isLoading: loadV } = usePatientVisites(patientId)
+  const { data: consultations = [], isLoading: loadC, isError: errC } = usePatientConsultations(patientId)
+  const { data: documents = [],     isLoading: loadD, isError: errD } = usePatientDocuments(patientId)
+  const { data: visites = [],       isLoading: loadV, isError: errV } = usePatientVisites(patientId)
   const [filtre, setFiltre] = useState<'TOUS' | Kind>('TOUS')
   const [detail, setDetail] = useState<DossierDetailTarget | null>(null)
 
@@ -164,6 +164,7 @@ export function TimelineTab({ dossier }: { dossier: PatientDossier }) {
 
   const filtered = filtre === 'TOUS' ? events : events.filter(e => e.kind === filtre)
   const isLoading = loadC || loadD || loadV
+  const isError   = errC || errD || errV
 
   return (
     <div>
@@ -211,14 +212,20 @@ export function TimelineTab({ dossier }: { dossier: PatientDossier }) {
         })}
       </div>
 
-      {isLoading && (
+      {isError && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 0', color: 'var(--erreur-texte)', fontSize: 13 }}>
+          {t('patients.erreurChargement')}
+        </div>
+      )}
+
+      {!isError && isLoading && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 0', gap: 8, color: 'var(--texte-tertiaire)' }}>
           <Loader2 size={16} className="animate-spin" />
           <span style={{ fontSize: 13 }}>{t('patients.loading')}</span>
         </div>
       )}
 
-      {!isLoading && filtered.length === 0 && (
+      {!isError && !isLoading && filtered.length === 0 && (
         <EmptyState
           icon={<GitCommitVertical size={20} />}
           title={filtre !== 'TOUS' ? t('patients.tlEmptyTyped') : t('patients.tlEmpty')}
@@ -227,7 +234,7 @@ export function TimelineTab({ dossier }: { dossier: PatientDossier }) {
       )}
 
       {/* Timeline */}
-      {!isLoading && filtered.length > 0 && (
+      {!isError && !isLoading && filtered.length > 0 && (
         <div style={{ maxWidth: 680 }}>
           {filtered.map((e, i) => {
             const clickable = !!e.target

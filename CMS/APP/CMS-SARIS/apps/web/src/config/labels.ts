@@ -127,15 +127,6 @@ export function labelDecision(code: string | null | undefined): string {
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
-//  TYPES DE SUIVI D'ACCIDENT DU TRAVAIL (SuiviAccidentTravail.type)
-// ════════════════════════════════════════════════════════════════════════════════
-
-export function labelSuiviAccident(code: string | null | undefined): string {
-  if (!code) return ''
-  return i18n.t(`labels.suiviAccident.${code}`, { defaultValue: humanize(code) })
-}
-
-// ════════════════════════════════════════════════════════════════════════════════
 //  TYPES D'ANTÉCÉDENT (AntecedentPatient.type)
 // ════════════════════════════════════════════════════════════════════════════════
 

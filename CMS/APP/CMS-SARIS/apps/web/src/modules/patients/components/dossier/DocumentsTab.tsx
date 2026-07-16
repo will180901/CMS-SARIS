@@ -19,9 +19,9 @@ import { usePatientDocuments } from '@/modules/consultation/hooks/useConsultatio
 import { consultationApi } from '@/modules/consultation/api/consultation.api'
 import { bonExamenApi } from '@/modules/bon-examen/api/bon-examen.api'
 import { bonPharmacieApi } from '@/modules/bon-pharmacie/api/bon-pharmacie.api'
-import { evacuationsApi } from '@/modules/sorties-critiques/api/sorties.api'
 import { ApiError } from '@/lib/api'
 import { usePermissions } from '@/hooks/usePermissions'
+import { useSessionStore } from '@/stores/session.store'
 import { formatDate as intlFormatDate } from '@/lib/intl'
 import { labelStatut } from '@/config/labels'
 import { DossierDetailDrawer, targetForDocument } from './DossierDetailPanel'
@@ -69,10 +69,16 @@ export function DocumentsTab({ patientId }: { patientId: string }) {
   const { t } = useTranslation()
   const qc = useQueryClient()
   const { has } = usePermissions()
-  const { data: documents = [], isLoading } = usePatientDocuments(patientId)
+  const { data: documents = [], isLoading, isError } = usePatientDocuments(patientId)
   const [filtre, setFiltre] = useState<'TOUS' | PatientDocument['type']>('TOUS')
   const [confirmDoc, setConfirmDoc] = useState<PatientDocument | null>(null)
   const [detail, setDetail] = useState<DossierDetailTarget | null>(null)
+
+  // Confidentialité (recueil §5) : la même restriction serveur qu'en Chronologie
+  // s'applique ici (l'infirmier n'a accès qu'à la consultation EN COURS) — le
+  // bandeau évite de laisser croire à un historique documentaire anormalement court.
+  const roles = useSessionStore(s => s.user?.roles ?? [])
+  const historiqueRestreint = roles.includes('INFIRMIER') && !roles.some(r => r === 'ADMIN_SYSTEME' || r === 'MEDECIN_CHEF')
 
   const counts = useMemo(() => {
     const c: Record<string, number> = {}
@@ -84,13 +90,15 @@ export function DocumentsTab({ patientId }: { patientId: string }) {
 
   // Suppression — routage par type vers l'endpoint dédié (le serveur applique
   // ses garde-fous : 409 si le document n'est pas dans un état supprimable).
+  // EVACUATION exclue : gérable uniquement depuis la carte interactive (annulation,
+  // suivi, suppression) ouverte par le clic sur la ligne — un seul endroit qui gère
+  // tout son cycle de vie, plutôt que deux commandes de suppression concurrentes.
   const del = useMutation({
     mutationFn: async (d: PatientDocument) => {
       switch (d.type) {
         case 'ORDONNANCE':       await consultationApi.annulerOrdonnance(d.consultationId, d.id); return
         case 'BON_EXAMEN':       await bonExamenApi.remove(d.id); return
         case 'BON_PHARMACIE':    await bonPharmacieApi.remove(d.id); return
-        case 'EVACUATION':       await evacuationsApi.supprimer(d.id); return
         default:                 throw new Error('Type non supprimable')
       }
     },
@@ -99,7 +107,6 @@ export function DocumentsTab({ patientId }: { patientId: string }) {
       qc.invalidateQueries({ queryKey: ['consultations', d.consultationId] })
       qc.invalidateQueries({ queryKey: ['bons-examen'] })
       qc.invalidateQueries({ queryKey: ['bons-pharmacie'] })
-      qc.invalidateQueries({ queryKey: ['evacuations'] })
       setConfirmDoc(null)
       toast.success(t('patients.docDeleted', { defaultValue: 'Document supprimé.' }))
     },
@@ -120,6 +127,16 @@ export function DocumentsTab({ patientId }: { patientId: string }) {
           {t('patients.totalCount', { count: documents.length })}
         </span>
       </div>
+
+      {historiqueRestreint && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14,
+          padding: '8px 12px', borderRadius: 8,
+          background: 'var(--info-fond)', border: '1px solid var(--info-bordure)',
+        }}>
+          <span style={{ fontSize: 12, color: 'var(--info-texte)' }}>{t('patients.tlHistoriqueRestreint')}</span>
+        </div>
+      )}
 
       {/* Filtres par type */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
@@ -146,14 +163,20 @@ export function DocumentsTab({ patientId }: { patientId: string }) {
         })}
       </div>
 
-      {isLoading && (
+      {isError && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 0', color: 'var(--erreur-texte)', fontSize: '13px' }}>
+          {t('patients.erreurChargement')}
+        </div>
+      )}
+
+      {!isError && isLoading && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 0', gap: 8, color: 'var(--texte-tertiaire)' }}>
           <Loader2 size={16} className="animate-spin" />
           <span style={{ fontSize: '13px' }}>{t('patients.loading')}</span>
         </div>
       )}
 
-      {!isLoading && filtered.length === 0 && (
+      {!isError && !isLoading && filtered.length === 0 && (
         <EmptyState
           icon={<FileText size={20} />}
           title={filtre !== 'TOUS' ? t('patients.emptyDocumentsTyped') : t('patients.emptyDocuments')}
@@ -165,7 +188,9 @@ export function DocumentsTab({ patientId }: { patientId: string }) {
         {filtered.map(d => {
           const meta = TYPE_META[d.type]
           const Icon = meta.icon
-          const canDelete = has(DELETE_PERM[d.type])
+          // EVACUATION exclue : suppression/annulation gérées depuis la carte
+          // interactive ouverte au clic (un seul chemin de suppression, pas deux).
+          const canDelete = d.type !== 'EVACUATION' && has(DELETE_PERM[d.type])
           return (
             <div
               key={`${d.type}-${d.id}`}

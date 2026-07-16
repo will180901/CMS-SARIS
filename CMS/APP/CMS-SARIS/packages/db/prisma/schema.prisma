@@ -1032,7 +1032,6 @@ model Consultation {
   bonsPharmacie       BonPharmacie[]
   suiviChronique      SuiviChronique[]
   evacuation          Evacuation?
-  accidentTravail     AccidentTravail?
   consultationsPrenat ConsultationPrenatale[]
   typeConsultation    TypeConsultation?        @relation(fields: [typeConsultationId], references: [id])
   certificats         CertificatMedical[]
@@ -1242,42 +1241,6 @@ model SuiviEvacuation {
   createdAt    DateTime   @default(now())
   createdBy    String?
   evacuation   Evacuation @relation(fields: [evacuationId], references: [id])
-}
-
-model AccidentTravail {
-  updatedAt       DateTime               @default(now()) @updatedAt
-  deletedAt       DateTime?
-  id              String                 @id @default(uuid())
-  consultationId  String                 @unique
-  dateAccident    DateTime
-  heureAccident   String?
-  lieu            String
-  circonstances   String
-  lesions         String
-  gravite         String
-  temoins         String?
-  statut          String                 @default("OUVERT")
-  motifAnnulation String?
-  createdAt       DateTime               @default(now())
-  consultation    Consultation           @relation(fields: [consultationId], references: [id])
-  suivi           SuiviAccidentTravail[]
-
-  @@index([updatedAt])
-}
-
-model SuiviAccidentTravail {
-  id               String          @id @default(uuid())
-  accidentId       String
-  type             String
-  dateDebut        DateTime?
-  dateFin          DateTime?
-  dateReevaluation DateTime?
-  sequelles        Boolean?
-  descriptionSeq   String?
-  tauxIncapacite   Float?
-  createdAt        DateTime        @default(now())
-  createdBy        String?
-  accident         AccidentTravail @relation(fields: [accidentId], references: [id])
 }
 
 // ─────────────────────────────────────────────
