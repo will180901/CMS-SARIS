@@ -13,7 +13,6 @@ import {
   HeartPulse,
   Users,
   ClipboardList,
-  AlertTriangle,
   BookOpen,
   MessageSquare,
   FileBarChart,
@@ -86,14 +85,6 @@ export const NAV_GROUPS: NavGroup[] = [
         href:        '/consultations',
         permissions: ['consultation.read'],
         description: 'Consultations cliniques et prescriptions',
-      },
-      {
-        key:         'sorties',
-        label:       'Évacuations',
-        icon:        AlertTriangle,
-        href:        '/sorties-critiques',
-        permissions: ['evacuation.read'],
-        description: 'Évacuations médicales décidées en consultation',
       },
       {
         key:         'messagerie',

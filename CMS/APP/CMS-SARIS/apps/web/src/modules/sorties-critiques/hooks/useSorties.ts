@@ -64,18 +64,6 @@ export function useAnnulerEvacuation(id: string) {
   })
 }
 
-export function useCloturerEvacuation(id: string) {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: () => evacuationsApi.cloturer(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: EVACUATIONS_KEY })
-      toast.success(i18n.t('sorties.toastEvacuationCloturee'))
-    },
-    onError: toastErr,
-  })
-}
-
 export function useDeleteEvacuation(id: string) {
   const qc = useQueryClient()
   return useMutation({

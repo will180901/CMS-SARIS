@@ -51,7 +51,6 @@ import { DashboardPage }    from '@/modules/dashboard/pages/DashboardPage'
 import { RapportsPage }     from '@/modules/rapports/pages/RapportsPage'
 import { ParametresPage }   from '@/modules/admin/pages/ParametresPage'
 import { SynchronisationPage } from '@/modules/admin/pages/SynchronisationPage'
-import { SortiesCritiquesPage } from '@/modules/sorties-critiques/pages/SortiesCritiquesPage'
 import { MessageriePage }    from '@/modules/messagerie/pages/MessageriePage'
 
 // ── Shell principal ───────────────────────────────────────────────────────────
@@ -128,15 +127,6 @@ export function AppShell() {
             element={
               <PermissionGate any={['consultation.read']}>
                 <ConsultationPage />
-              </PermissionGate>
-            }
-          />
-
-          <Route
-            path="/sorties-critiques"
-            element={
-              <PermissionGate any={['evacuation.read']}>
-                <SortiesCritiquesPage />
               </PermissionGate>
             }
           />

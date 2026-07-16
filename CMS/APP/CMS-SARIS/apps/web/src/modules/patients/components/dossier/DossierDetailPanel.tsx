@@ -3,8 +3,11 @@
  * Chronologie, Documents) : glisse de la droite PAR-DESSUS la liste et affiche
  * le document ciblé. AUCUNE navigation, aucune modale centrée.
  *
- *   - ORDONNANCE / BON_EXAMEN / BON_PHARMACIE / EVACUATION → aperçu A4
+ *   - ORDONNANCE / BON_EXAMEN / BON_PHARMACIE → aperçu A4
  *     (mêmes gabarits `*PrintModal` en variante `inline` que la consultation)
+ *   - EVACUATION    → carte interactive complète (EvacuationCard, comme dans la
+ *     consultation active) : statut, historique de suivi, ajout d'étape/clôture,
+ *     annulation, impression — gérable même après clôture de la consultation.
  *   - RESULTAT      → contenu du résultat + accès au bon d'examen A4
  *   - CONSULTATION  → résumé complet lecture seule (ConsultationArchiveSummary)
  */
@@ -25,8 +28,7 @@ import { BonExamenCard } from '@/modules/bon-examen/components/BonExamenCard'
 import { BonExamenPrintModal } from '@/modules/bon-examen/components/BonExamenPrintModal'
 import { useBonsPharmacie } from '@/modules/bon-pharmacie/hooks/useBonPharmacie'
 import { BonPharmaciePrintModal } from '@/modules/bon-pharmacie/components/BonPharmaciePrintModal'
-import { useEvacuations } from '@/modules/sorties-critiques/hooks/useSorties'
-import { EvacuationPrintModal } from '@/modules/sorties-critiques/components/EvacuationPrintModal'
+import { EvacuationCard } from '@/modules/sorties-critiques/components/EvacuationCard'
 import { formatDate, formatTime } from '@/lib/intl'
 import { labelStatut } from '@/config/labels'
 import type { SuiviResultatExamenItem } from '../../api/patients.api'
@@ -204,21 +206,26 @@ function BonPharmacieBody({ consultationId, bonId, onBack }: { consultationId: s
   )
 }
 
-function EvacuationBody({ consultationId, evacuationId, onBack }: { consultationId: string; evacuationId: string; onBack: () => void }) {
-  const { data: consultation, isLoading: loadC } = useConsultation(consultationId)
-  const { data: evacuations = [], isLoading: loadE } = useEvacuations({ consultationId })
-  if (loadC || loadE) return <Loading />
-  const evacuation = evacuations.find(e => e.id === evacuationId)
-  if (!consultation || !evacuation) return <NotFound msgKey="patients.docViewerNotFound" />
+/**
+ * Carte INTERACTIVE de l'évacuation (statut, historique de suivi, ajout d'étape,
+ * annulation, impression) — même composant que celui utilisé dans la consultation
+ * active, réutilisé ici pour rester gérable depuis le dossier même après clôture
+ * de la consultation d'origine (ex. ajouter une étape de suivi, clôturer via
+ * l'étape « Clôturé »). Remplace l'ancien aperçu A4 lecture seule.
+ */
+function EvacuationBody({ consultationId }: { consultationId: string; evacuationId: string; onBack: () => void }) {
+  const { data: consultation, isLoading } = useConsultation(consultationId)
+  if (isLoading) return <Loading />
+  if (!consultation) return <NotFound msgKey="patients.docViewerNotFound" />
   const p = consultation.visite.patient
   return (
-    <EvacuationPrintModal
-      evacuation={evacuation}
-      patient={{ identite: p.identite, numeroPatient: p.numeroPatient, categorieLibelle: p.categoriePatient.libelle }}
-      soignant={consultation.soignant}
-      variant="inline"
-      onClose={onBack}
-    />
+    <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
+      <EvacuationCard
+        consultationId={consultationId}
+        patient={{ identite: p.identite, numeroPatient: p.numeroPatient, categorieLibelle: p.categoriePatient.libelle }}
+        soignant={consultation.soignant}
+      />
+    </div>
   )
 }
 

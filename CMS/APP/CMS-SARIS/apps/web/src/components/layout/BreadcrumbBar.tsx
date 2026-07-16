@@ -17,7 +17,6 @@ const SEG_TKEY: Record<string, string> = {
   patients: 'nav.patients',
   triage: 'nav.triage',
   consultations: 'nav.consultations',
-  'sorties-critiques': 'nav.sortiesCritiques',
   messagerie: 'nav.messagerie',
   referentiels: 'nav.referentiels',
   utilisateurs: 'nav.utilisateurs',
@@ -29,7 +28,7 @@ const SEG_TKEY: Record<string, string> = {
 
 // Chemins réellement routés : un crumb n'est cliquable que s'il pointe vers une page existante.
 const KNOWN_ROUTES = new Set([
-  '/dashboard', '/patients', '/triage', '/consultations', '/sorties-critiques',
+  '/dashboard', '/patients', '/triage', '/consultations',
   '/messagerie', '/referentiels', '/synchronisation',
   '/admin/utilisateurs', '/admin/roles', '/admin/audit', '/admin/parametres',
 ])

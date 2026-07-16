@@ -55,6 +55,5 @@ export const evacuationsApi = {
   create:   (data: CreateEvacuationPayload) => api.post<Evacuation>('/evacuations', data),
   addSuivi: (id: string, data: AddSuiviEvacuationPayload) => api.post<Evacuation>(`/evacuations/${id}/suivi`, data),
   annuler:  (id: string, motif: string) => api.patch<Evacuation>(`/evacuations/${id}/annuler`, { motifAnnulation: motif }),
-  cloturer: (id: string) => api.patch<Evacuation>(`/evacuations/${id}/cloturer`),
   supprimer: (id: string) => api.delete<{ id: string; deleted: boolean }>(`/evacuations/${id}`),
 }
