@@ -37,6 +37,8 @@ export const suiviTraitement = {
     resultatPlaceholder: 'Résultat d\'un examen de contrôle réalisé ce jour…',
 
     addFiche: 'Ajouter une fiche',
+    editFiche: 'Modifier',
+    editFicheTitle: 'Modifier cette fiche',
     newFicheConstantes: 'Constantes (facultatif)',
     cancelForm: 'Annuler',
     save: 'Enregistrer',
@@ -69,6 +71,7 @@ export const suiviTraitement = {
     toastErreur: 'Une erreur est survenue.',
     toastOuvert: 'Suivi de traitement ouvert.',
     toastFicheAjoutee: 'Fiche de suivi ajoutée.',
+    toastFicheModifiee: 'Fiche de suivi modifiée.',
     toastCloture: 'Suivi de traitement clôturé.',
     toastAnnule: 'Suivi de traitement annulé.',
     toastSupprime: 'Suivi de traitement supprimé.',
@@ -105,6 +108,8 @@ export const suiviTraitement = {
     resultatPlaceholder: 'Result of a check-up test performed today…',
 
     addFiche: 'Add entry',
+    editFiche: 'Edit',
+    editFicheTitle: 'Edit this entry',
     newFicheConstantes: 'Vital signs (optional)',
     cancelForm: 'Cancel',
     save: 'Save',
@@ -137,6 +142,7 @@ export const suiviTraitement = {
     toastErreur: 'An error occurred.',
     toastOuvert: 'Treatment follow-up opened.',
     toastFicheAjoutee: 'Follow-up entry added.',
+    toastFicheModifiee: 'Follow-up entry updated.',
     toastCloture: 'Treatment follow-up closed.',
     toastAnnule: 'Treatment follow-up cancelled.',
     toastSupprime: 'Treatment follow-up deleted.',

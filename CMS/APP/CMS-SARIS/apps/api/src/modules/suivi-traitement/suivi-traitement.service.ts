@@ -160,6 +160,41 @@ export class SuiviTraitementService {
     return this.getOrThrow(id)
   }
 
+  /**
+   * Corrige une fiche déjà enregistrée (erreur de saisie, champ oublié) SANS
+   * créer de doublon — contrairement à addFiche, la date (createdAt) et l'auteur
+   * d'origine (createdBy) ne changent pas. L'historique jour par jour (une fiche
+   * par passage) reste donc intact ; seule la fiche visée est corrigée en place.
+   */
+  async updateFiche(id: string, ficheId: string, dto: AddFicheSuiviDto) {
+    const s = await this.getOrThrow(id)
+    if (s.statut === 'CLOTURE' || s.statut === 'ANNULE') {
+      throw new ConflictException('Suivi de traitement déjà ' + s.statut.toLowerCase())
+    }
+    const fiche = await this.prisma.ficheSuiviTraitement.findFirst({ where: { id: ficheId, suiviTraitementId: id } })
+    if (!fiche) throw new NotFoundException('Fiche de suivi introuvable')
+    if (!FICHE_FIELDS.some(f => dto[f] !== undefined && dto[f] !== null && dto[f] !== '')) {
+      throw new BadRequestException('Une fiche de suivi doit contenir au moins une information (constante, note, médicament ou résultat)')
+    }
+
+    await this.prisma.ficheSuiviTraitement.update({
+      where: { id: ficheId },
+      data: {
+        temperature:            dto.temperature ?? null,
+        tensionSystolique:      dto.tensionSystolique ?? null,
+        tensionDiastolique:     dto.tensionDiastolique ?? null,
+        frequenceCardiaque:     dto.frequenceCardiaque ?? null,
+        frequenceRespiratoire:  dto.frequenceRespiratoire ?? null,
+        saturationO2:           dto.saturationO2 ?? null,
+        poids:                  dto.poids ?? null,
+        noteEvolution:          dto.noteEvolution?.trim() || null,
+        medicamentsAdministres: dto.medicamentsAdministres?.trim() || null,
+        resultatExamen:         dto.resultatExamen?.trim() || null,
+      },
+    })
+    return this.getOrThrow(id)
+  }
+
   async cloturer(id: string, dto: CloturerSuiviTraitementDto) {
     const s = await this.getOrThrow(id)
     if (s.statut !== 'EN_COURS') {

@@ -65,6 +65,7 @@ export const suiviTraitementApi = {
   findById: (id: string) => api.get<SuiviTraitement>(`/suivi-traitement/${id}`),
   create:   (data: CreateSuiviTraitementPayload) => api.post<SuiviTraitement>('/suivi-traitement', data),
   addFiche: (id: string, data: AddFicheSuiviPayload) => api.post<SuiviTraitement>(`/suivi-traitement/${id}/fiches`, data),
+  updateFiche: (id: string, ficheId: string, data: AddFicheSuiviPayload) => api.patch<SuiviTraitement>(`/suivi-traitement/${id}/fiches/${ficheId}`, data),
   cloturer: (id: string, motifCloture?: string) => api.patch<SuiviTraitement>(`/suivi-traitement/${id}/cloturer`, { motifCloture }),
   annuler:  (id: string, motif: string) => api.patch<SuiviTraitement>(`/suivi-traitement/${id}/annuler`, { motifAnnulation: motif }),
   supprimer: (id: string) => api.delete<{ id: string; deleted: boolean }>(`/suivi-traitement/${id}`),

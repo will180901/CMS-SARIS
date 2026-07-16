@@ -52,6 +52,18 @@ export function useAddFicheSuivi(id: string) {
   })
 }
 
+export function useUpdateFicheSuivi(id: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ ficheId, data }: { ficheId: string; data: AddFicheSuiviPayload }) => suiviTraitementApi.updateFiche(id, ficheId, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: SUIVI_TRAITEMENT_KEY })
+      toast.success(i18n.t('suiviTraitement.toastFicheModifiee'))
+    },
+    onError: toastErr,
+  })
+}
+
 export function useCloturerSuiviTraitement(id: string) {
   const qc = useQueryClient()
   return useMutation({

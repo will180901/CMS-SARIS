@@ -83,7 +83,7 @@ export function ConsultationsTab({ patientId }: { patientId: string }) {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--texte-primaire)' }}>
-                      {c.visite?.motifPrincipal?.libelle ?? t('patients.consultationsTitle')}
+                      {c.soignant ? t('consultation.doctorPrefix', { name: c.soignant.nom }) : (c.visite?.motifPrincipal?.libelle ?? t('patients.consultationsTitle'))}
                     </span>
                     <span style={{
                       fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.03em',
@@ -94,6 +94,7 @@ export function ConsultationsTab({ patientId }: { patientId: string }) {
                   </div>
                   <p style={{ margin: '3px 0 0', fontSize: 12, color: 'var(--texte-secondaire)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {formatDate(c.createdAt, { day: '2-digit', month: 'long', year: 'numeric' })} · {formatTime(c.createdAt, { hour: '2-digit', minute: '2-digit' })}
+                    {c.visite?.motifPrincipal?.libelle ? ` · ${c.visite.motifPrincipal.libelle}` : ''}
                     {decision ? ` · ${decision}` : ''}
                   </p>
                 </div>

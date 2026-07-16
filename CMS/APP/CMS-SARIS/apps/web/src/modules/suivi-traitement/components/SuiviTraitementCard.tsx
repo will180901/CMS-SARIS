@@ -11,7 +11,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Activity, Plus, Thermometer, HeartPulse, Wind, Weight, Gauge,
-  Check, Ban, XCircle, Trash2, CircleCheck,
+  Check, Ban, XCircle, Trash2, CircleCheck, Pencil,
 } from 'lucide-react'
 import {
   Card, Button, StatusPill, EmptyState,
@@ -19,11 +19,11 @@ import {
 } from '@/components/saris'
 import { usePermissions } from '@/hooks/usePermissions'
 import {
-  useSuivisTraitement, useCreateSuiviTraitement, useAddFicheSuivi,
+  useSuivisTraitement, useCreateSuiviTraitement, useAddFicheSuivi, useUpdateFicheSuivi,
   useCloturerSuiviTraitement, useAnnulerSuiviTraitement, useDeleteSuiviTraitement,
 } from '../hooks/useSuiviTraitement'
 import { formatDateTime } from '@/lib/intl'
-import type { SuiviTraitement } from '../api/suivi-traitement.api'
+import type { SuiviTraitement, FicheSuiviTraitement } from '../api/suivi-traitement.api'
 
 interface Props {
   consultationId: string
@@ -109,12 +109,14 @@ function SuiviDetail({ suivi, canUpdate, canClose, canCancel, canDelete }: {
   suivi: SuiviTraitement; canUpdate: boolean; canClose: boolean; canCancel: boolean; canDelete: boolean
 }) {
   const { t } = useTranslation()
-  const addFiche  = useAddFicheSuivi(suivi.id)
-  const cloturer  = useCloturerSuiviTraitement(suivi.id)
-  const annuler   = useAnnulerSuiviTraitement(suivi.id)
-  const del       = useDeleteSuiviTraitement(suivi.id)
+  const addFiche    = useAddFicheSuivi(suivi.id)
+  const updateFiche = useUpdateFicheSuivi(suivi.id)
+  const cloturer    = useCloturerSuiviTraitement(suivi.id)
+  const annuler     = useAnnulerSuiviTraitement(suivi.id)
+  const del         = useDeleteSuiviTraitement(suivi.id)
 
   const [showAddFiche, setShowAddFiche] = useState(false)
+  const [editingFicheId, setEditingFicheId] = useState<string | null>(null)
   const [showCloturer, setShowCloturer] = useState(false)
   const [showAnnuler, setShowAnnuler]   = useState(false)
   const [showDelete, setShowDelete]     = useState(false)
@@ -123,15 +125,40 @@ function SuiviDetail({ suivi, canUpdate, canClose, canCancel, canDelete }: {
 
   const isClosed = suivi.statut === 'CLOTURE' || suivi.statut === 'ANNULE'
   const ficheDirty = Object.values(fiche).some(v => v.trim() !== '')
+  const savingFiche = addFiche.isPending || updateFiche.isPending
 
   function setF<K extends keyof typeof EMPTY_FICHE>(key: K, value: string) {
     setFiche(f => ({ ...f, [key]: value }))
   }
 
-  async function handleAddFiche() {
+  function closeFicheForm() {
+    setShowAddFiche(false); setEditingFicheId(null); setFiche(EMPTY_FICHE)
+  }
+
+  // Ouvre le formulaire pré-rempli avec les valeurs déjà enregistrées — corrige
+  // la fiche EN PLACE (même date, même auteur d'origine) plutôt que d'en créer
+  // une nouvelle en doublon pour le même passage.
+  function openEditFiche(f: FicheSuiviTraitement) {
+    setFiche({
+      temperature:            f.temperature?.toString() ?? '',
+      tensionSystolique:      f.tensionSystolique?.toString() ?? '',
+      tensionDiastolique:     f.tensionDiastolique?.toString() ?? '',
+      frequenceCardiaque:     f.frequenceCardiaque?.toString() ?? '',
+      frequenceRespiratoire:  f.frequenceRespiratoire?.toString() ?? '',
+      saturationO2:           f.saturationO2?.toString() ?? '',
+      poids:                  f.poids?.toString() ?? '',
+      noteEvolution:          f.noteEvolution ?? '',
+      medicamentsAdministres: f.medicamentsAdministres ?? '',
+      resultatExamen:         f.resultatExamen ?? '',
+    })
+    setEditingFicheId(f.id)
+    setShowAddFiche(true)
+  }
+
+  async function handleSaveFiche() {
     if (!ficheDirty) return
     const num = (v: string) => (v.trim() === '' ? undefined : Number(v))
-    await addFiche.mutateAsync({
+    const data = {
       temperature:            num(fiche.temperature),
       tensionSystolique:      num(fiche.tensionSystolique),
       tensionDiastolique:     num(fiche.tensionDiastolique),
@@ -142,8 +169,10 @@ function SuiviDetail({ suivi, canUpdate, canClose, canCancel, canDelete }: {
       noteEvolution:          fiche.noteEvolution.trim() || undefined,
       medicamentsAdministres: fiche.medicamentsAdministres.trim() || undefined,
       resultatExamen:         fiche.resultatExamen.trim() || undefined,
-    })
-    setFiche(EMPTY_FICHE); setShowAddFiche(false)
+    }
+    if (editingFicheId) await updateFiche.mutateAsync({ ficheId: editingFicheId, data })
+    else                await addFiche.mutateAsync(data)
+    closeFicheForm()
   }
 
   function handleAnnuler(motif: string) {
@@ -195,10 +224,24 @@ function SuiviDetail({ suivi, canUpdate, canClose, canCancel, canDelete }: {
                 <div style={{ width: 24, height: 24, borderRadius: 'var(--radius-md)', background: 'var(--ap-50)', color: 'var(--ap-600)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <Activity size={11} />
                 </div>
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <span style={{ fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)' }}>
-                    {formatDateTime(f.createdAt, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                  </span>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                    <span style={{ fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)' }}>
+                      {formatDateTime(f.createdAt, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                    {!isClosed && canUpdate && (
+                      <button
+                        type="button"
+                        onClick={() => openEditFiche(f)}
+                        title={t('suiviTraitement.editFiche')}
+                        style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--texte-tertiaire)', fontSize: 'var(--font-size-caption)', padding: 0 }}
+                        onMouseEnter={e => { e.currentTarget.style.color = 'var(--ap-600)' }}
+                        onMouseLeave={e => { e.currentTarget.style.color = 'var(--texte-tertiaire)' }}
+                      >
+                        <Pencil size={11} /> {t('suiviTraitement.editFiche')}
+                      </button>
+                    )}
+                  </div>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     {f.temperature != null && <FicheChip label={t('suiviTraitement.fieldTemperature')} value={`${f.temperature}°C`} />}
                     {f.tensionSystolique != null && <FicheChip label={t('suiviTraitement.fieldTensionSys')} value={`${f.tensionSystolique}/${f.tensionDiastolique ?? '—'}`} />}
@@ -236,7 +279,7 @@ function SuiviDetail({ suivi, canUpdate, canClose, canCancel, canDelete }: {
           ) : (
             <div style={{ padding: 'var(--espace-3)', background: 'var(--fond-surface)', border: '1px solid var(--ap-300)', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column', gap: 'var(--espace-2)' }}>
               <p style={{ margin: 0, fontSize: 'var(--font-size-caption)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--texte-tertiaire)' }}>
-                {t('suiviTraitement.newFicheConstantes')}
+                {editingFicheId ? t('suiviTraitement.editFicheTitle') : t('suiviTraitement.newFicheConstantes')}
               </p>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 'var(--espace-2)' }}>
                 {CONST_FIELDS.map(cf => (
@@ -257,8 +300,8 @@ function SuiviDetail({ suivi, canUpdate, canClose, canCancel, canDelete }: {
                 {(id) => <Textarea id={id} rows={2} maxLength={1000} value={fiche.resultatExamen} onChange={e => setF('resultatExamen', e.target.value)} placeholder={t('suiviTraitement.resultatPlaceholder')} />}
               </Field>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--espace-2)' }}>
-                <Button size="sm" variant="ghost" onClick={() => { setShowAddFiche(false); setFiche(EMPTY_FICHE) }}>{t('suiviTraitement.cancelForm')}</Button>
-                <Button size="sm" variant="primary" leftIcon={<Check size={13} />} loading={addFiche.isPending} disabled={!ficheDirty} onClick={handleAddFiche}>{t('suiviTraitement.save')}</Button>
+                <Button size="sm" variant="ghost" onClick={closeFicheForm}>{t('suiviTraitement.cancelForm')}</Button>
+                <Button size="sm" variant="primary" leftIcon={<Check size={13} />} loading={savingFiche} disabled={!ficheDirty} onClick={handleSaveFiche}>{t('suiviTraitement.save')}</Button>
               </div>
             </div>
           )}

@@ -51,6 +51,12 @@ export class SuiviTraitementController {
     return this.svc.addFiche(id, dto, req.user?.id ?? 'unknown')
   }
 
+  @Patch(':id/fiches/:ficheId')
+  @RequirePermissions('suivi_traitement.update')
+  updateFiche(@Param('id') id: string, @Param('ficheId') ficheId: string, @Body() dto: AddFicheSuiviDto) {
+    return this.svc.updateFiche(id, ficheId, dto)
+  }
+
   @Patch(':id/cloturer')
   @RequirePermissions('suivi_traitement.close')
   cloturer(@Param('id') id: string, @Body() dto: CloturerSuiviTraitementDto) {
