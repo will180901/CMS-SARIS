@@ -44,7 +44,7 @@ function requireUser(req: AuthedRequest): { id: string; siteId: string } {
 
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('triage/visites')
-@LiveRefresh('LIVE_TRIAGE', { siteScoped: true })
+@LiveRefresh('LIVE_TRIAGE')
 @Audit('visite', 'Visite')
 export class TriageController {
   constructor(private readonly triageService: TriageService) {}
@@ -52,11 +52,10 @@ export class TriageController {
   @Get()
   @RequirePermissions('visite.read')
   findAll(@Query() query: VisiteQueryDto, @Req() req: AuthedRequest) {
-    const { siteId } = requireUser(req)
-    // Le siteId est FORCÉ depuis la session : impossible de lire un autre site
-    // via ?siteId=… (cloisonnement multi-site).
+    requireUser(req)
+    // Multi-site sans restriction : file de triage partagée entre les deux sites.
     // Phase C : l'historique (clôturées/annulées) est scopé à l'initiateur, sauf supervision.
-    return this.triageService.findAll({ ...query, siteId }, {
+    return this.triageService.findAll(query, {
       canReadAll:         (req.user?.roles ?? []).some(r => SUPERVISION_ROLES.includes(r)),
       personnelMedicalId: req.user?.personnelMedicalId ?? null,
     })
@@ -82,16 +81,16 @@ export class TriageController {
   @Get(':id')
   @RequirePermissions('visite.read')
   findById(@Param('id') id: string, @Req() req: AuthedRequest) {
-    const { siteId } = requireUser(req)
-    return this.triageService.findById(id, siteId, isHistoriqueRestreint(req))
+    requireUser(req)
+    return this.triageService.findById(id, isHistoriqueRestreint(req))
   }
 
   @Delete(':id')
   @RequirePermissions('visite.delete')
   @HttpCode(HttpStatus.OK)
   deleteVisite(@Param('id') id: string, @Req() req: AuthedRequest) {
-    const { siteId } = requireUser(req)
-    return this.triageService.deleteVisite(id, siteId)
+    requireUser(req)
+    return this.triageService.deleteVisite(id)
   }
 
   @Patch(':id/statut')
@@ -101,8 +100,8 @@ export class TriageController {
     @Body() dto: UpdateStatutVisiteDto,
     @Req() req: AuthedRequest,
   ) {
-    const { id: acteurId, siteId } = requireUser(req)
-    return this.triageService.updateStatut(id, dto, acteurId, siteId)
+    const { id: acteurId } = requireUser(req)
+    return this.triageService.updateStatut(id, dto, acteurId)
   }
 
   @Patch(':id/soignant')
@@ -112,8 +111,8 @@ export class TriageController {
     @Body() dto: UpdateSoignantVisiteDto,
     @Req() req: AuthedRequest,
   ) {
-    const { id: acteurId, siteId } = requireUser(req)
-    return this.triageService.updateSoignant(id, dto, acteurId, siteId)
+    const { id: acteurId } = requireUser(req)
+    return this.triageService.updateSoignant(id, dto, acteurId)
   }
 
   @Patch(':id/notes')
@@ -123,8 +122,8 @@ export class TriageController {
     @Body() dto: UpdateNotesVisiteDto,
     @Req() req: AuthedRequest,
   ) {
-    const { id: acteurId, siteId } = requireUser(req)
-    return this.triageService.updateNotes(id, dto, acteurId, siteId)
+    const { id: acteurId } = requireUser(req)
+    return this.triageService.updateNotes(id, dto, acteurId)
   }
 
   @Post(':id/constantes')
@@ -135,7 +134,7 @@ export class TriageController {
     @Body() dto: CreateConstanteVitaleDto,
     @Req() req: AuthedRequest,
   ) {
-    const { id: saisiePar, siteId } = requireUser(req)
-    return this.triageService.createConstantes(id, dto, saisiePar, siteId)
+    const { id: saisiePar } = requireUser(req)
+    return this.triageService.createConstantes(id, dto, saisiePar)
   }
 }

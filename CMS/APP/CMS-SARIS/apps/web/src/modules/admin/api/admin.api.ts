@@ -231,7 +231,7 @@ export interface SauvegardeSysteme {
 export const adminApi = {
 
   utilisateurs: {
-    list: (params?: { search?: string; statut?: string; siteId?: string; roleId?: string }) =>
+    list: (params?: { search?: string; statut?: string; roleId?: string }) =>
       api.get<UtilisateurAdmin[]>('/admin/utilisateurs', params as Record<string, string>),
     findById: (id: string) =>
       api.get<UtilisateurAdmin>(`/admin/utilisateurs/${id}`),

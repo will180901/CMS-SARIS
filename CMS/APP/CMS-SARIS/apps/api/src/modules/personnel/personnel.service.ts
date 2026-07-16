@@ -27,7 +27,6 @@ export class PersonnelService {
       where: {
         ...(query.statut && { statut: query.statut }),
         ...(query.role   && { role:   query.role }),
-        ...(query.siteId && { siteId: query.siteId }),
         ...(query.search && {
           OR: [
             { nom:       { contains: query.search, ...CI } },

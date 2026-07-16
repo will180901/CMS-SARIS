@@ -66,7 +66,7 @@ async function refreshCurrentSessionIfNeeded(condition: boolean, qc: QueryClient
 //  UTILISATEURS
 // ══════════════════════════════════════════════════════════════════════════════
 
-export function useUtilisateurs(params?: { search?: string; statut?: string; siteId?: string; roleId?: string }) {
+export function useUtilisateurs(params?: { search?: string; statut?: string; roleId?: string }) {
   return useQuery({
     queryKey: [...ADMIN_KEYS.utilisateurs, params],
     queryFn:  () => adminApi.utilisateurs.list(params),

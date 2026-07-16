@@ -113,8 +113,8 @@ export class ConsultationService {
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
-  private async getOrThrow(id: string, siteId: string) {
-    const c = await this.prisma.consultation.findFirst({ where: { id, visite: { siteId } } })
+  private async getOrThrow(id: string) {
+    const c = await this.prisma.consultation.findUnique({ where: { id } })
     if (!c) throw new NotFoundException('Consultation introuvable')
     return c
   }
@@ -133,8 +133,8 @@ export class ConsultationService {
    * AUTRE soignant. Pour reprendre la main, l'appelant doit d'abord `prendreEnCharge`.
    * C'est ce qui empêche deux soignants d'écraser le même acte (last-write-wins).
    */
-  private async assertEditable(id: string, userId: string, siteId: string) {
-    const c = await this.getOrThrow(id, siteId)
+  private async assertEditable(id: string, userId: string) {
+    const c = await this.getOrThrow(id)
     this.assertModifiable(c.statut)
     if (c.pickedUpById && c.pickedUpById !== userId) {
       const holder = await this.resolvePriseEnCharge(c.pickedUpById, c.pickedUpAt)
@@ -162,15 +162,14 @@ export class ConsultationService {
   // ── Liste consultations ──────────────────────────────────────────────────
 
   async findAll(
-    siteId: string,
     query: ConsultationQueryDto,
     scope?: { canReadAll: boolean; personnelMedicalId: string | null; canViewLocked?: boolean; restreindreHistorique?: boolean },
   ) {
-    // Dossier patient (query.patientId) : vue CENTRALISÉE, comme findPatientDocuments —
-    // ni restriction de site, ni restriction « mes consultations seulement ». La file
-    // d'attente générale (sans patientId), elle, garde le cloisonnement site + soignant.
+    // Multi-site sans restriction : la file de consultation est partagée entre les deux
+    // sites (comme le dossier patient centralisé) — seules les permissions/la confidentialité
+    // médecin gouvernent l'accès (cf. bloc `scope` ci-dessous).
     const isPatientDossier = !!query.patientId
-    const where: any = isPatientDossier ? { visite: {} } : { visite: { siteId } }
+    const where: any = { visite: {} }
 
     if (!isPatientDossier && scope && !scope.canReadAll) {
       // Confidentialité : un médecin ne voit QUE les consultations qui LUI sont
@@ -256,8 +255,8 @@ export class ConsultationService {
   }
 
   /** Verrou souple : marque la consultation comme prise en main par l'utilisateur. */
-  async prendreEnCharge(id: string, userId: string, siteId: string) {
-    const c = await this.getOrThrow(id, siteId)
+  async prendreEnCharge(id: string, userId: string) {
+    const c = await this.getOrThrow(id)
     this.assertModifiable(c.statut)
     await this.prisma.consultation.update({
       where: { id },
@@ -334,9 +333,10 @@ export class ConsultationService {
 
   // ── Ouvrir une consultation ──────────────────────────────────────────────
 
-  async create(dto: CreateConsultationDto, acteurUserId: string, siteId: string) {
-    // Vérifier la visite
-    const visite = await this.prisma.visite.findFirst({ where: { id: dto.visiteId, siteId } })
+  async create(dto: CreateConsultationDto, acteurUserId: string) {
+    // Vérifier la visite — multi-site sans restriction : n'importe quel soignant
+    // autorisé peut ouvrir une consultation sur une visite de n'importe quel site.
+    const visite = await this.prisma.visite.findUnique({ where: { id: dto.visiteId } })
     if (!visite) throw new NotFoundException('Visite introuvable')
     if (visite.statut !== 'EN_COURS') {
       throw new ConflictException('Seule une visite EN_COURS peut avoir une consultation ouverte')
@@ -410,8 +410,8 @@ export class ConsultationService {
       titre:              'Consultation en attente',
       message:            'Un nouveau dossier vous a été affecté — consultation en attente',
       destinataireId:     medecinUser?.id ?? null,
-      siteId:             visite.siteId,
-      // Repli en diffusion site uniquement si le médecin n'a pas de compte lié.
+      siteId:             null,
+      // Repli en diffusion globale (tous sites) si le médecin n'a pas de compte lié.
       requiredPermission: medecinUser ? null : 'consultation.read',
       entiteType:         'consultation',
       entiteId:           consultation.id,
@@ -424,8 +424,8 @@ export class ConsultationService {
 
   // ── Examen clinique ──────────────────────────────────────────────────────
 
-  async updateExamen(id: string, dto: UpdateExamenCliniqueDto, userId: string, siteId: string) {
-    await this.assertEditable(id, userId, siteId)
+  async updateExamen(id: string, dto: UpdateExamenCliniqueDto, userId: string) {
+    await this.assertEditable(id, userId)
 
     return this.prisma.consultation.update({
       where: { id },
@@ -445,8 +445,8 @@ export class ConsultationService {
 
   // ── Conclusion ───────────────────────────────────────────────────────────
 
-  async updateConclusion(id: string, dto: UpdateConclusionDto, userId: string, siteId: string) {
-    await this.assertEditable(id, userId, siteId)
+  async updateConclusion(id: string, dto: UpdateConclusionDto, userId: string) {
+    await this.assertEditable(id, userId)
 
     return this.prisma.consultation.update({
       where: { id },
@@ -456,8 +456,8 @@ export class ConsultationService {
 
   // ── Diagnostics ──────────────────────────────────────────────────────────
 
-  async addDiagnostic(id: string, dto: AddDiagnosticDto, userId: string, siteId: string) {
-    await this.assertEditable(id, userId, siteId)
+  async addDiagnostic(id: string, dto: AddDiagnosticDto, userId: string) {
+    await this.assertEditable(id, userId)
 
     const pathologie = await this.prisma.pathologieReference.findUnique({
       where: { id: dto.pathologieId },
@@ -492,8 +492,8 @@ export class ConsultationService {
     })
   }
 
-  async removeDiagnostic(consultationId: string, diagId: string, userId: string, siteId: string) {
-    await this.assertEditable(consultationId, userId, siteId)
+  async removeDiagnostic(consultationId: string, diagId: string, userId: string) {
+    await this.assertEditable(consultationId, userId)
 
     const diag = await this.prisma.diagnosticConsultation.findUnique({ where: { id: diagId } })
     if (!diag || diag.consultationId !== consultationId) {
@@ -507,8 +507,8 @@ export class ConsultationService {
 
   // ── Type de consultation ──────────────────────────────────────────────────
 
-  async setType(id: string, typeConsultationId: string | null, userId: string, siteId: string) {
-    await this.assertEditable(id, userId, siteId)
+  async setType(id: string, typeConsultationId: string | null, userId: string) {
+    await this.assertEditable(id, userId)
     if (typeConsultationId) {
       const t = await this.prisma.typeConsultation.findUnique({ where: { id: typeConsultationId } })
       if (!t) throw new NotFoundException('Type de consultation introuvable')
@@ -522,8 +522,8 @@ export class ConsultationService {
 
   // ── Repos maladie (PEC supplémentaire) ─────────────────────────────────────
 
-  async setRepos(id: string, dto: UpdateReposDto, userId: string, siteId: string) {
-    await this.assertEditable(id, userId, siteId)
+  async setRepos(id: string, dto: UpdateReposDto, userId: string) {
+    await this.assertEditable(id, userId)
     const dateReprise = dto.dateReprise ? new Date(dto.dateReprise) : null
     return this.prisma.consultation.update({
       where: { id },
@@ -536,8 +536,8 @@ export class ConsultationService {
     })
   }
 
-  async cloturer(id: string, dto: CloturerConsultationDto, userId: string, siteId: string) {
-    const c = await this.assertEditable(id, userId, siteId)
+  async cloturer(id: string, dto: CloturerConsultationDto, userId: string) {
+    const c = await this.assertEditable(id, userId)
 
     // Validation métier : au moins un diagnostic obligatoire
     const nbDiagnostics = await this.prisma.diagnosticConsultation.count({
@@ -594,14 +594,13 @@ export class ConsultationService {
       return updated
     })
 
-    const v = await this.prisma.visite.findUnique({ where: { id: c.visiteId }, select: { siteId: true } })
     await this.notif.emit({
       type:               'CONSULTATION_CLOTUREE',
       niveau:             'SUCCES',
       category:           'clinique',
       titre:              'Consultation clôturée',
       message:            `Décision : ${(dto.decisionMedicale ?? '—').replace(/_/g, ' ').toLowerCase()}`,
-      siteId:             v?.siteId ?? null,
+      siteId:             null,
       requiredPermission: 'consultation.read',
       entiteType:         'consultation',
       entiteId:           id,
@@ -614,8 +613,8 @@ export class ConsultationService {
 
   // ── Annuler ───────────────────────────────────────────────────────────────
 
-  async annuler(id: string, dto: AnnulerConsultationDto, userId: string, siteId: string) {
-    const c = await this.assertEditable(id, userId, siteId)
+  async annuler(id: string, dto: AnnulerConsultationDto, userId: string) {
+    const c = await this.assertEditable(id, userId)
 
     // Annulation APRÈS envoi : la consultation est annulée ET la visite est REMISE
     // EN FILE (rouverte EN_ATTENTE, clôture triage effacée) — on ne perd jamais le
@@ -646,8 +645,8 @@ export class ConsultationService {
    * L'appelant (contrôleur) doit avoir présenté à l'utilisateur un écran de
    * confirmation listant ce qui va être détruit AVANT d'appeler cette méthode.
    */
-  async delete(id: string, siteId: string) {
-    const c = await this.prisma.consultation.findFirst({ where: { id, visite: { siteId } } })
+  async delete(id: string) {
+    const c = await this.prisma.consultation.findUnique({ where: { id } })
     if (!c) throw new NotFoundException('Consultation introuvable')
     if (c.statut === 'OUVERTE') {
       throw new ConflictException('Clôturez ou annulez la consultation avant de la supprimer')
@@ -665,8 +664,8 @@ export class ConsultationService {
 
   // ── Ordonnance — créer ────────────────────────────────────────────────────
 
-  async createOrdonnance(consultationId: string, prescripteurUserId: string, dto: CreateOrdonnanceDto, siteId: string, scope: PrescriptionScope) {
-    const c = await this.assertEditable(consultationId, prescripteurUserId, siteId)
+  async createOrdonnance(consultationId: string, prescripteurUserId: string, dto: CreateOrdonnanceDto, scope: PrescriptionScope) {
+    const c = await this.assertEditable(consultationId, prescripteurUserId)
 
     // Droit de prescrire (recueil) : médecin chef libre, infirmier seulement si délégué.
     // Retourne l'id de la délégation active (traçabilité) ou null.
@@ -714,11 +713,10 @@ export class ConsultationService {
     ordonnanceId:   string,
     dto:            AddLigneOrdonnanceDto,
     userId:         string,
-    siteId:         string,
     scope:          PrescriptionScope,
     acknowledgeWarnings = false,
   ) {
-    const c = await this.assertEditable(consultationId, userId, siteId)
+    const c = await this.assertEditable(consultationId, userId)
     // Droit de prescrire (recueil) : infirmier uniquement si délégation active.
     await assertPeutPrescrire(this.prisma, scope)
 
@@ -846,8 +844,8 @@ export class ConsultationService {
 
   // ── Ordonnance — retirer ligne ────────────────────────────────────────────
 
-  async removeLigneOrdonnance(consultationId: string, ordonnanceId: string, ligneId: string, userId: string, siteId: string) {
-    await this.assertEditable(consultationId, userId, siteId)
+  async removeLigneOrdonnance(consultationId: string, ordonnanceId: string, ligneId: string, userId: string) {
+    await this.assertEditable(consultationId, userId)
 
     const ligne = await this.prisma.ligneOrdonnance.findUnique({ where: { id: ligneId } })
     if (!ligne || ligne.ordonnanceId !== ordonnanceId) {
@@ -865,8 +863,8 @@ export class ConsultationService {
    * se supprime pas : elle s'annule (traçabilité). Hard-delete des lignes + entête
    * dans une transaction.
    */
-  async deleteOrdonnance(consultationId: string, ordonnanceId: string, userId: string, siteId: string) {
-    await this.assertEditable(consultationId, userId, siteId)
+  async deleteOrdonnance(consultationId: string, ordonnanceId: string, userId: string) {
+    await this.assertEditable(consultationId, userId)
 
     const ordonnance = await this.prisma.ordonnance.findUnique({ where: { id: ordonnanceId } })
     if (!ordonnance || ordonnance.consultationId !== consultationId) {
@@ -885,8 +883,8 @@ export class ConsultationService {
 
   // ── Ordonnance — valider ──────────────────────────────────────────────────
 
-  async validerOrdonnance(consultationId: string, ordonnanceId: string, acteurId: string, siteId: string) {
-    const c = await this.assertEditable(consultationId, acteurId, siteId)
+  async validerOrdonnance(consultationId: string, ordonnanceId: string, acteurId: string) {
+    const c = await this.assertEditable(consultationId, acteurId)
 
     const ordonnance = await this.prisma.ordonnance.findUnique({
       where:   { id: ordonnanceId },
@@ -908,14 +906,13 @@ export class ConsultationService {
       include: { lignes: { include: LIGNE_INCLUDE } },
     })
 
-    const v = await this.prisma.visite.findUnique({ where: { id: c.visiteId }, select: { siteId: true } })
     await this.notif.emit({
       type:               'ORDONNANCE_VALIDEE',
       niveau:             'SUCCES',
       category:           'clinique',
       titre:              'Ordonnance validée',
       message:            `${result.lignes.length} médicament${result.lignes.length > 1 ? 's' : ''} prescrit${result.lignes.length > 1 ? 's' : ''}`,
-      siteId:             v?.siteId ?? null,
+      siteId:             null,
       requiredPermission: 'ordonnance.read',
       entiteType:         'ordonnance',
       entiteId:           ordonnanceId,

@@ -49,7 +49,7 @@ function requireUser(req: AuthedRequest): { id: string; siteId: string } {
 
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('consultations')
-@LiveRefresh('LIVE_CONSULTATION', { siteScoped: true })
+@LiveRefresh('LIVE_CONSULTATION')
 @Audit('consultation', 'Consultation')
 export class ConsultationController {
   constructor(private readonly consultationService: ConsultationService) {}
@@ -59,9 +59,9 @@ export class ConsultationController {
   @Get()
   @RequirePermissions('consultation.read')
   findAll(@Query() query: ConsultationQueryDto, @Req() req: AuthedRequest) {
-    const { siteId } = requireUser(req)
+    requireUser(req)
     const canReadAll = (req.user?.roles ?? []).some(r => SUPERVISION_ROLES.includes(r))
-    return this.consultationService.findAll(siteId, query, {
+    return this.consultationService.findAll(query, {
       canReadAll,
       personnelMedicalId: req.user?.personnelMedicalId ?? null,
       canViewLocked: canReadAll,
@@ -75,8 +75,8 @@ export class ConsultationController {
   @RequirePermissions('consultation.create')
   @HttpCode(HttpStatus.CREATED)
   create(@Body() dto: CreateConsultationDto, @Req() req: AuthedRequest) {
-    const { id: acteurUserId, siteId } = requireUser(req)
-    return this.consultationService.create(dto, acteurUserId, siteId)
+    const { id: acteurUserId } = requireUser(req)
+    return this.consultationService.create(dto, acteurUserId)
   }
 
   // ── Documents générés d'un patient (dossier) ───────────────────────────────
@@ -115,8 +115,8 @@ export class ConsultationController {
   @Patch(':id/examen')
   @RequirePermissions('consultation.examen')
   updateExamen(@Param('id') id: string, @Body() dto: UpdateExamenCliniqueDto, @Req() req: AuthedRequest) {
-    const { id: userId, siteId } = requireUser(req)
-    return this.consultationService.updateExamen(id, dto, userId, siteId)
+    const { id: userId } = requireUser(req)
+    return this.consultationService.updateExamen(id, dto, userId)
   }
 
   // ── Conclusion ────────────────────────────────────────────────────────────
@@ -124,8 +124,8 @@ export class ConsultationController {
   @Patch(':id/conclusion')
   @RequirePermissions('consultation.update')
   updateConclusion(@Param('id') id: string, @Body() dto: UpdateConclusionDto, @Req() req: AuthedRequest) {
-    const { id: userId, siteId } = requireUser(req)
-    return this.consultationService.updateConclusion(id, dto, userId, siteId)
+    const { id: userId } = requireUser(req)
+    return this.consultationService.updateConclusion(id, dto, userId)
   }
 
   // ── Type de consultation ──────────────────────────────────────────────────
@@ -133,8 +133,8 @@ export class ConsultationController {
   @Patch(':id/type')
   @RequirePermissions('consultation.update')
   setType(@Param('id') id: string, @Body() dto: SetTypeConsultationDto, @Req() req: AuthedRequest) {
-    const { id: userId, siteId } = requireUser(req)
-    return this.consultationService.setType(id, dto.typeConsultationId ?? null, userId, siteId)
+    const { id: userId } = requireUser(req)
+    return this.consultationService.setType(id, dto.typeConsultationId ?? null, userId)
   }
 
   // ── Repos maladie ─────────────────────────────────────────────────────────
@@ -142,8 +142,8 @@ export class ConsultationController {
   @Patch(':id/repos')
   @RequirePermissions('consultation.update')
   setRepos(@Param('id') id: string, @Body() dto: UpdateReposDto, @Req() req: AuthedRequest) {
-    const { id: userId, siteId } = requireUser(req)
-    return this.consultationService.setRepos(id, dto, userId, siteId)
+    const { id: userId } = requireUser(req)
+    return this.consultationService.setRepos(id, dto, userId)
   }
 
   // ── Diagnostics ───────────────────────────────────────────────────────────
@@ -152,16 +152,16 @@ export class ConsultationController {
   @RequirePermissions('consultation.diagnose')
   @HttpCode(HttpStatus.CREATED)
   addDiagnostic(@Param('id') id: string, @Body() dto: AddDiagnosticDto, @Req() req: AuthedRequest) {
-    const { id: userId, siteId } = requireUser(req)
-    return this.consultationService.addDiagnostic(id, dto, userId, siteId)
+    const { id: userId } = requireUser(req)
+    return this.consultationService.addDiagnostic(id, dto, userId)
   }
 
   @Delete(':id/diagnostics/:diagId')
   @RequirePermissions('consultation.diagnose')
   @HttpCode(HttpStatus.NO_CONTENT)
   removeDiagnostic(@Param('id') id: string, @Param('diagId') diagId: string, @Req() req: AuthedRequest) {
-    const { id: userId, siteId } = requireUser(req)
-    return this.consultationService.removeDiagnostic(id, diagId, userId, siteId)
+    const { id: userId } = requireUser(req)
+    return this.consultationService.removeDiagnostic(id, diagId, userId)
   }
 
   // ── Clôturer / Annuler ────────────────────────────────────────────────────
@@ -169,23 +169,23 @@ export class ConsultationController {
   @Patch(':id/cloturer')
   @RequirePermissions('consultation.close')
   cloturer(@Param('id') id: string, @Body() dto: CloturerConsultationDto, @Req() req: AuthedRequest) {
-    const { id: userId, siteId } = requireUser(req)
-    return this.consultationService.cloturer(id, dto, userId, siteId)
+    const { id: userId } = requireUser(req)
+    return this.consultationService.cloturer(id, dto, userId)
   }
 
   @Patch(':id/annuler')
   @RequirePermissions('consultation.cancel')
   annuler(@Param('id') id: string, @Body() dto: AnnulerConsultationDto, @Req() req: AuthedRequest) {
-    const { id: userId, siteId } = requireUser(req)
-    return this.consultationService.annuler(id, dto, userId, siteId)
+    const { id: userId } = requireUser(req)
+    return this.consultationService.annuler(id, dto, userId)
   }
 
   @Delete(':id')
   @RequirePermissions('consultation.delete')
   @HttpCode(HttpStatus.OK)
   deleteConsultation(@Param('id') id: string, @Req() req: AuthedRequest) {
-    const { siteId } = requireUser(req)
-    return this.consultationService.delete(id, siteId)
+    requireUser(req)
+    return this.consultationService.delete(id)
   }
 
   // ── Verrou souple : prise en charge de la consultation ─────────────────────
@@ -193,8 +193,8 @@ export class ConsultationController {
   @RequirePermissions('consultation.update')
   @HttpCode(HttpStatus.OK)
   prendreEnCharge(@Param('id') id: string, @Req() req: AuthedRequest) {
-    const { id: userId, siteId } = requireUser(req)
-    return this.consultationService.prendreEnCharge(id, userId, siteId)
+    const { id: userId } = requireUser(req)
+    return this.consultationService.prendreEnCharge(id, userId)
   }
 
   // ── Ordonnances ───────────────────────────────────────────────────────────
@@ -207,9 +207,9 @@ export class ConsultationController {
     @Body() dto: CreateOrdonnanceDto,
     @Req() req: AuthedRequest,
   ) {
-    const { id: prescripteurId, siteId } = requireUser(req)
+    const { id: prescripteurId } = requireUser(req)
     const scope = { roles: req.user?.roles ?? [], personnelMedicalId: req.user?.personnelMedicalId ?? null }
-    return this.consultationService.createOrdonnance(id, prescripteurId, dto, siteId, scope)
+    return this.consultationService.createOrdonnance(id, prescripteurId, dto, scope)
   }
 
   @Post(':id/ordonnances/:ordId/lignes')
@@ -221,9 +221,9 @@ export class ConsultationController {
     @Body() dto: AddLigneOrdonnanceDto,
     @Req() req: AuthedRequest,
   ) {
-    const { id: userId, siteId } = requireUser(req)
+    const { id: userId } = requireUser(req)
     const scope = { roles: req.user?.roles ?? [], personnelMedicalId: req.user?.personnelMedicalId ?? null }
-    return this.consultationService.addLigneOrdonnance(id, ordId, dto, userId, siteId, scope, !!dto.acknowledgeWarnings)
+    return this.consultationService.addLigneOrdonnance(id, ordId, dto, userId, scope, !!dto.acknowledgeWarnings)
   }
 
   @Delete(':id/ordonnances/:ordId/lignes/:ligneId')
@@ -235,15 +235,15 @@ export class ConsultationController {
     @Param('ligneId') ligneId: string,
     @Req() req: AuthedRequest,
   ) {
-    const { id: userId, siteId } = requireUser(req)
-    return this.consultationService.removeLigneOrdonnance(id, ordId, ligneId, userId, siteId)
+    const { id: userId } = requireUser(req)
+    return this.consultationService.removeLigneOrdonnance(id, ordId, ligneId, userId)
   }
 
   @Patch(':id/ordonnances/:ordId/valider')
   @RequirePermissions('ordonnance.validate')
   validerOrdonnance(@Param('id') id: string, @Param('ordId') ordId: string, @Req() req: AuthedRequest) {
-    const { id: userId, siteId } = requireUser(req)
-    return this.consultationService.validerOrdonnance(id, ordId, userId, siteId)
+    const { id: userId } = requireUser(req)
+    return this.consultationService.validerOrdonnance(id, ordId, userId)
   }
 
   @Patch(':id/ordonnances/:ordId/annuler')
@@ -257,7 +257,7 @@ export class ConsultationController {
   @RequirePermissions('ordonnance.create')
   @HttpCode(HttpStatus.NO_CONTENT)
   deleteOrdonnance(@Param('id') id: string, @Param('ordId') ordId: string, @Req() req: AuthedRequest) {
-    const { id: userId, siteId } = requireUser(req)
-    return this.consultationService.deleteOrdonnance(id, ordId, userId, siteId)
+    const { id: userId } = requireUser(req)
+    return this.consultationService.deleteOrdonnance(id, ordId, userId)
   }
 }

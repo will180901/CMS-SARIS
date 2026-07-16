@@ -27,33 +27,33 @@ export class BonPharmacieController {
 
   @Get()
   @RequirePermissions('bon_pharmacie.read')
-  findAll(@Query() query: BonPharmacieQueryDto, @CurrentUser() user: UserSession) {
-    return this.svc.findAll(query, user.siteId)
+  findAll(@Query() query: BonPharmacieQueryDto) {
+    return this.svc.findAll(query)
   }
 
   @Get(':id')
   @RequirePermissions('bon_pharmacie.read')
-  findById(@Param('id') id: string, @CurrentUser() user: UserSession) {
-    return this.svc.findById(id, user.siteId)
+  findById(@Param('id') id: string) {
+    return this.svc.findById(id)
   }
 
   @Post()
   @RequirePermissions('bon_pharmacie.create')
   @HttpCode(HttpStatus.CREATED)
   create(@Body() dto: CreateBonPharmacieDto, @CurrentUser() user: UserSession) {
-    return this.svc.create(dto, user.siteId, user.personnelMedicalId ?? user.id)
+    return this.svc.create(dto, user.personnelMedicalId ?? user.id)
   }
 
   @Patch(':id/delivrer')
   @RequirePermissions('bon_pharmacie.deliver')
-  deliver(@Param('id') id: string, @Body() dto: DelivrerBonPharmacieDto, @CurrentUser() user: UserSession) {
-    return this.svc.deliver(id, user.siteId, dto.delivrePar ?? null)
+  deliver(@Param('id') id: string, @Body() dto: DelivrerBonPharmacieDto) {
+    return this.svc.deliver(id, dto.delivrePar ?? null)
   }
 
   @Patch(':id/annuler')
   @RequirePermissions('bon_pharmacie.cancel')
-  annuler(@Param('id') id: string, @Body() dto: AnnulerBonPharmacieDto, @CurrentUser() user: UserSession) {
-    return this.svc.annuler(id, dto, user.siteId)
+  annuler(@Param('id') id: string, @Body() dto: AnnulerBonPharmacieDto) {
+    return this.svc.annuler(id, dto)
   }
 
   @Delete(':id')

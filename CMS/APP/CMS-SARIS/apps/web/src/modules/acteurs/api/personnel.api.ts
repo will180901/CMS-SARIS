@@ -29,7 +29,6 @@ export interface PersonnelQueryParams {
   search?: string
   role?:   string
   statut?: string
-  siteId?: string
 }
 
 export const personnelApi = {

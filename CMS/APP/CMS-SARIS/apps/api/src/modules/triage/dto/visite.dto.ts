@@ -96,10 +96,9 @@ export class UpdateSoignantVisiteDto {
 
 // ── Filtres liste ─────────────────────────────────────────────────────────────
 // Note : la recherche texte, le tri par heure d'arrivée et le filtre soignant/motif
-// sont gérés côté client (queue chargée par statut + site est compacte). Si le volume
-// grossit, ajouter `search` + indexation pgtrgm côté backend.
+// sont gérés côté client (queue chargée par statut, multi-site, est compacte). Si le
+// volume grossit, ajouter `search` + indexation pgtrgm côté backend.
 
 export class VisiteQueryDto {
-  @IsOptional() @IsUUID()                              siteId?: string
   @IsOptional() @IsIn([...STATUTS_VISITE, 'ACTIVES'])  statut?: string
 }

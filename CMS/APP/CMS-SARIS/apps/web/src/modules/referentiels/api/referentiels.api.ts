@@ -38,9 +38,6 @@ export const sousTraitantsApi = {
 
 // ── Payload types (ce qu'on envoie au backend) ────────────────────────────────
 
-export interface CreateSitePayload    { code: string; libelle: string; localisation?: string }
-export interface UpdateSitePayload    { code?: string; libelle?: string; localisation?: string }
-
 export interface CreateMotifPayload   { code: string; libelle: string; triageAllege?: boolean }
 export interface UpdateMotifPayload   { code?: string; libelle?: string; triageAllege?: boolean }
 
@@ -74,12 +71,11 @@ export interface UpdateTypeConsultationPayload { code?: string; libelle?: string
 export const referentielsApi = {
 
   // ── Sites ──────────────────────────────────────────────────────────────────
+  // Lecture seule : un site est enregistré une seule fois, à la première
+  // installation du poste desktop — plus de création/modification/suppression
+  // depuis l'interface.
   sites: {
-    list:      ()                                  => api.get<Site[]>('/referentiels/sites'),
-    create:    (data: CreateSitePayload)           => api.post<Site>('/referentiels/sites', data),
-    update:    (id: string, data: UpdateSitePayload) => api.patch<Site>(`/referentiels/sites/${id}`, data),
-    setStatut: (id: string, statut: Site['statut']) => api.patch<Site>(`/referentiels/sites/${id}/statut`, { statut }),
-    remove:    (id: string)                        => api.delete<{ id: string; deleted: true }>(`/referentiels/sites/${id}`),
+    list: () => api.get<Site[]>('/referentiels/sites'),
   },
 
   // ── Motifs de consultation ─────────────────────────────────────────────────

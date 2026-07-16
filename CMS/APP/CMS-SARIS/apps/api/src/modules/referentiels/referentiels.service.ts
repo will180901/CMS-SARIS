@@ -2,7 +2,6 @@ import { Injectable, NotFoundException, ConflictException, BadRequestException }
 import { PrismaService } from '../../prisma/prisma.service'
 import { CI } from '../../common/prisma/search'
 import type { ListQueryDto }             from './dto/list-query.dto'
-import type { CreateSiteDto, UpdateSiteDto }                         from './dto/site.dto'
 import type { CreateMotifDto, UpdateMotifDto }                       from './dto/motif.dto'
 import type { CreatePathologieDto, UpdatePathologieDto }             from './dto/pathologie.dto'
 import type { CreateMedicamentDto, UpdateMedicamentDto }             from './dto/medicament.dto'
@@ -31,7 +30,7 @@ export class ReferentielsService {
   constructor(private readonly prisma: PrismaService) {}
 
   // ══════════════════════════════════════════════════════════════════════════
-  //  SITES
+  //  SITES — lecture seule (enregistrement unique à l'installation du poste)
   // ══════════════════════════════════════════════════════════════════════════
 
   findAllSites(query: ListQueryDto = {}) {
@@ -54,23 +53,6 @@ export class ReferentielsService {
     const site = await this.prisma.site.findUnique({ where: { id } })
     if (!site) throw new NotFoundException(`Site ${id} introuvable`)
     return site
-  }
-
-  async createSite(dto: CreateSiteDto) {
-    const existing = await this.prisma.raw.site.findUnique({ where: { code: dto.code } })
-    if (existing && !existing.deletedAt) throw new ConflictException(`Code site "${dto.code}" déjà utilisé`)
-    if (existing) return this.prisma.site.update({ where: { id: existing.id }, data: { ...dto, deletedAt: null } })
-    return this.prisma.site.create({ data: dto })
-  }
-
-  async updateSite(id: string, dto: UpdateSiteDto) {
-    await this.findSiteById(id)
-    return this.prisma.site.update({ where: { id }, data: dto })
-  }
-
-  async setStatutSite(id: string, statut: string) {
-    await this.findSiteById(id)
-    return this.prisma.site.update({ where: { id }, data: { statut: toEnumActifInactif(statut) } })
   }
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -341,12 +323,6 @@ export class ReferentielsService {
       }
       throw e
     }
-  }
-
-  async deleteSite(id: string) {
-    if (!await this.prisma.site.findUnique({ where: { id } })) throw new NotFoundException(`Site ${id} introuvable`)
-    await this.hardDelete('ce site', () => this.prisma.site.delete({ where: { id } }))
-    return { id, deleted: true }
   }
 
   async deleteMotif(id: string) {

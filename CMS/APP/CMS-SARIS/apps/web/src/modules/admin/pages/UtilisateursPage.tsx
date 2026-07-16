@@ -41,9 +41,9 @@ export function UtilisateursPage({ embedded = false }: { embedded?: boolean } = 
   const [statutF,   setStatutF]   = useState<'' | 'ACTIF' | 'DESACTIVE' | 'BLOQUE'>('')
   const [roleF,     setRoleF]     = useState<string>('')
   const [siteF,     setSiteF]     = useState<string>('')
-  // Filtre de site : n'a de sens que pour un détenteur de `utilisateur.create`
-  // (accès multi-site, cf. CreerUtilisateurDrawer) — pour les autres, la liste
-  // est déjà cloisonnée au site du JWT côté backend, aucun filtre à proposer.
+  // Filtre de site : la liste backend est désormais globale (multi-site sans
+  // restriction) — ce filtre est purement une commodité d'affichage côté client,
+  // appliqué après réception de la liste complète (pas de paramètre serveur).
   const { data: sites = [] } = useSites()
   const [openCreer, setOpenCreer] = useState(false)
   const [openDetail, setOpenDetail] = useState<string | null>(null)
@@ -62,12 +62,17 @@ export function UtilisateursPage({ embedded = false }: { embedded?: boolean } = 
     }
   }
 
-  const { data: users = [], isLoading } = useUtilisateurs({
+  const { data: allUsers = [], isLoading } = useUtilisateurs({
     search: search.trim() || undefined,
     statut: statutF || undefined,
     roleId: roleF   || undefined,
-    siteId: canCreate ? (siteF || undefined) : undefined,
   })
+  // Filtre de site : purement client-side (commodité d'affichage), la liste
+  // reçue est déjà globale (multi-site sans restriction).
+  const users = useMemo(
+    () => (canCreate && siteF ? allUsers.filter(u => u.siteId === siteF) : allUsers),
+    [allUsers, canCreate, siteF],
+  )
   const { data: roles = [] } = useRoles()
 
   // KPI rapides

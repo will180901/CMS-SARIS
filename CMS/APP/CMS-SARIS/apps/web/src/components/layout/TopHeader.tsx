@@ -116,7 +116,7 @@ export function TopHeader() {
           </Tooltip>
         )}
 
-        {/* Site actif — le personnel médical tourne entre les deux sites */}
+        {/* Site auquel ce poste est rattaché (repère de traçabilité, pas un filtre) */}
         <SiteActifSwitch />
 
         {/* Interrupteur du rideau de confidentialité (zones de détail) */}

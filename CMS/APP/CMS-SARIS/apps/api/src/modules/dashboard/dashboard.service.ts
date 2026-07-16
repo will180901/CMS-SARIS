@@ -1,10 +1,12 @@
 /**
  * DashboardService — données du tableau de bord, adaptées au persona.
  *
- * Toutes les requêtes cliniques héritent du siteId du JWT. Chaque méthode
- * alimente un bloc précis du dashboard (KPI, séries temporelles, répartitions).
- * Les méthodes admin (système / médical) sont gardées par permission côté
- * contrôleur → un persona ne charge QUE les données qui le concernent.
+ * Les données sont globales (multi-site) — le CMS centralise les deux sites et
+ * aucune donnée clinique n'est restreinte par site (seules les permissions de
+ * rôle gouvernent l'accès). Chaque méthode alimente un bloc précis du dashboard
+ * (KPI, séries temporelles, répartitions). Les méthodes admin (système /
+ * médical) sont gardées par permission côté contrôleur → un persona ne charge
+ * QUE les données qui le concernent.
  */
 
 import { Injectable } from '@nestjs/common'
@@ -41,7 +43,7 @@ export class DashboardService {
   // ════════════════════════════════════════════════════════════════════════
 
   /** KPI cliniques instantanés du jour (+ tendance vs hier). */
-  async getOverview(siteId: string) {
+  async getOverview() {
     const startOfDay = startOfToday()
     const startOfYesterday = daysAgo(1)
 
@@ -53,22 +55,22 @@ export class DashboardService {
       evacEnCours,
       visitesHier,
     ] = await Promise.all([
-      this.prisma.visite.count({ where: { siteId, statut: 'EN_ATTENTE' } }),
-      this.prisma.visite.count({ where: { siteId, statut: 'EN_COURS'   } }),
-      this.prisma.visite.count({ where: { siteId, statut: 'CLOTUREE', dateOuverture: { gte: startOfDay } } }),
-      this.prisma.visite.count({ where: { siteId, statut: 'ANNULEE',  dateOuverture: { gte: startOfDay } } }),
+      this.prisma.visite.count({ where: { statut: 'EN_ATTENTE' } }),
+      this.prisma.visite.count({ where: { statut: 'EN_COURS'   } }),
+      this.prisma.visite.count({ where: { statut: 'CLOTUREE', dateOuverture: { gte: startOfDay } } }),
+      this.prisma.visite.count({ where: { statut: 'ANNULEE',  dateOuverture: { gte: startOfDay } } }),
 
-      this.prisma.consultation.count({ where: { statut: 'OUVERTE', visite: { siteId } } }),
-      this.prisma.consultation.count({ where: { statut: 'CLOTUREE', closedAt: { gte: startOfDay }, visite: { siteId } } }),
+      this.prisma.consultation.count({ where: { statut: 'OUVERTE' } }),
+      this.prisma.consultation.count({ where: { statut: 'CLOTUREE', closedAt: { gte: startOfDay } } }),
 
-      this.prisma.ordonnance.count({ where: { statut: 'VALIDEE', createdAt: { gte: startOfDay }, consultation: { visite: { siteId } } } }),
+      this.prisma.ordonnance.count({ where: { statut: 'VALIDEE', createdAt: { gte: startOfDay } } }),
 
-      this.prisma.bonExamen.count({ where: { statut: 'EN_ATTENTE', consultation: { visite: { siteId } } } }),
+      this.prisma.bonExamen.count({ where: { statut: 'EN_ATTENTE' } }),
 
-      this.prisma.evacuation.count({ where: { statut: 'EN_COURS', consultation: { visite: { siteId } } } }),
+      this.prisma.evacuation.count({ where: { statut: 'EN_COURS' } }),
 
       this.prisma.visite.count({
-        where: { siteId, dateOuverture: { gte: startOfYesterday, lt: startOfDay } },
+        where: { dateOuverture: { gte: startOfYesterday, lt: startOfDay } },
       }),
     ])
 
@@ -76,7 +78,7 @@ export class DashboardService {
 
     // ── Temps moyen d'attente (min) sur les visites clôturées du jour ──
     const visitesCloAvecDate = await this.prisma.visite.findMany({
-      where:  { siteId, statut: 'CLOTUREE', dateCloture: { not: null, gte: startOfDay } },
+      where:  { statut: 'CLOTUREE', dateCloture: { not: null, gte: startOfDay } },
       select: { dateOuverture: true, dateCloture: true },
     })
     const tempsAttenteMoyenMin = visitesCloAvecDate.length === 0
@@ -101,10 +103,10 @@ export class DashboardService {
   }
 
   /** Série temporelle : nombre de visites par jour sur `jours` jours (incl. aujourd'hui). */
-  async getActivityTrend(siteId: string, jours = 14) {
+  async getActivityTrend(jours = 14) {
     const debut = daysAgo(jours - 1)
     const visites = await this.prisma.visite.findMany({
-      where:  { siteId, dateOuverture: { gte: debut } },
+      where:  { dateOuverture: { gte: debut } },
       select: { dateOuverture: true, statut: true },
     })
 
@@ -131,10 +133,10 @@ export class DashboardService {
   }
 
   /** Affluence du jour par tranche horaire (0h→23h) — anticipation des pics. */
-  async getHourlyAffluence(siteId: string) {
+  async getHourlyAffluence() {
     const startOfDay = startOfToday()
     const visites = await this.prisma.visite.findMany({
-      where:  { siteId, dateOuverture: { gte: startOfDay } },
+      where:  { dateOuverture: { gte: startOfDay } },
       select: { dateOuverture: true },
     })
 
@@ -155,11 +157,11 @@ export class DashboardService {
   }
 
   /** Top 5 motifs du jour (pour donut / barres). */
-  async getMotifsDuJour(siteId: string) {
+  async getMotifsDuJour() {
     const startOfDay = startOfToday()
     const rows = await this.prisma.visite.groupBy({
       by: ['motifPrincipalId'],
-      where: { siteId, dateOuverture: { gte: startOfDay } },
+      where: { dateOuverture: { gte: startOfDay } },
       _count: { _all: true },
       orderBy: { _count: { motifPrincipalId: 'desc' } },
       take: 5,
@@ -179,9 +181,9 @@ export class DashboardService {
   }
 
   /** File d'attente : visites en attente, par ordre d'arrivée (plus ancienne d'abord). */
-  async getUrgences(siteId: string) {
+  async getUrgences() {
     return this.prisma.visite.findMany({
-      where: { siteId, statut: 'EN_ATTENTE' },
+      where: { statut: 'EN_ATTENTE' },
       include: {
         patient: {
           select: { numeroPatient: true, identite: { select: { nom: true, prenom: true } } },
@@ -197,29 +199,29 @@ export class DashboardService {
   //  ADMIN SYSTÈME (gouvernance) — gardé par `utilisateur.read`
   // ════════════════════════════════════════════════════════════════════════
 
-  async getAdminSystemStats(siteId: string) {
+  async getAdminSystemStats() {
     const since24h = new Date(Date.now() - 24 * 60 * 60_000)
     const since7j  = daysAgo(6)
 
     const [comptesActifs, comptesBloques, comptesDesactives, totalRoles, echecs24h, totalSessions] =
       await Promise.all([
-        this.prisma.utilisateur.count({ where: { siteId, statut: 'ACTIF' } }),
-        this.prisma.utilisateur.count({ where: { siteId, statut: 'BLOQUE' } }),
-        this.prisma.utilisateur.count({ where: { siteId, statut: 'DESACTIVE' } }),
+        this.prisma.utilisateur.count({ where: { statut: 'ACTIF' } }),
+        this.prisma.utilisateur.count({ where: { statut: 'BLOQUE' } }),
+        this.prisma.utilisateur.count({ where: { statut: 'DESACTIVE' } }),
         this.prisma.role.count(),
         this.prisma.journalAuthentification.count({
           // Les résultats sont préfixés : SUCCES_LOGIN, ECHEC_MOT_DE_PASSE, etc.
           // Un échec = code commençant par « ECHEC » (≠ tout ce qui n'est pas SUCCES).
-          where: { resultat: { startsWith: 'ECHEC' }, createdAt: { gte: since24h }, utilisateur: { siteId } },
+          where: { resultat: { startsWith: 'ECHEC' }, createdAt: { gte: since24h } },
         }),
         this.prisma.sessionUtilisateur.count({
-          where: { revokedAt: null, expiresAt: { gt: new Date() }, utilisateur: { siteId } },
+          where: { revokedAt: null, expiresAt: { gt: new Date() } },
         }),
       ])
 
-    // Série 7 jours : authentifications réussies vs échouées (utilisateurs du site)
+    // Série 7 jours : authentifications réussies vs échouées (tous sites confondus)
     const auths = await this.prisma.journalAuthentification.findMany({
-      where:  { createdAt: { gte: since7j }, utilisateur: { siteId } },
+      where:  { createdAt: { gte: since7j } },
       select: { createdAt: true, resultat: true },
     })
     const parJour = new Map<string, { succes: number; echecs: number }>()
@@ -255,12 +257,12 @@ export class DashboardService {
   // ════════════════════════════════════════════════════════════════════════
 
   /**
-   * Agrégation des consultations sur une période (défaut : 30 derniers jours),
-   * site-scopée : répartition par type de consultation, par pathologie (diagnostic
-   * principal) et par catégorie de patient, + repos maladie. Remplace le comptage
-   * Excel manuel du système « Jeannette ».
+   * Agrégation des consultations sur une période (défaut : 30 derniers jours) —
+   * répartition par type de consultation, par pathologie (diagnostic principal)
+   * et par catégorie de patient, + repos maladie. Remplace le comptage Excel
+   * manuel du système « Jeannette ». Multi-site : agrège les deux sites.
    */
-  async getStatistiques(siteId: string, fromStr?: string, toStr?: string) {
+  async getStatistiques(fromStr?: string, toStr?: string) {
     const from = fromStr ? new Date(fromStr) : daysAgo(29)
     from.setHours(0, 0, 0, 0)
     const toEnd = toStr ? new Date(toStr) : new Date()
@@ -270,7 +272,7 @@ export class DashboardService {
     // 1. Par type de consultation
     const parTypeRows = await this.prisma.consultation.groupBy({
       by:     ['typeConsultationId'],
-      where:  { visite: { siteId }, createdAt: period },
+      where:  { createdAt: period },
       _count: { _all: true },
     })
     const typeIds = parTypeRows.map(r => r.typeConsultationId).filter((x): x is string => !!x)
@@ -285,7 +287,7 @@ export class DashboardService {
     // 2. Par pathologie (diagnostic principal)
     const parPathoRows = await this.prisma.diagnosticConsultation.groupBy({
       by:     ['pathologieId'],
-      where:  { type: 'PRINCIPAL', consultation: { visite: { siteId }, createdAt: period } },
+      where:  { type: 'PRINCIPAL', consultation: { createdAt: period } },
       _count: { _all: true },
     })
     const pathoIds = parPathoRows.map(r => r.pathologieId)
@@ -300,7 +302,7 @@ export class DashboardService {
 
     // 3. Par catégorie de patient + département/direction + repos (agrégation en mémoire)
     const consults = await this.prisma.consultation.findMany({
-      where:  { visite: { siteId }, createdAt: period },
+      where:  { createdAt: period },
       select: {
         reposJours: true,
         visite: {
@@ -349,7 +351,7 @@ export class DashboardService {
    * Croisement pathologie × catégorie de patient × département (recueil §6.2) —
    * une ligne par combinaison observée sur la période, triée par volume décroissant.
    */
-  async getCroisementPathologieCategorieDirection(siteId: string, fromStr?: string, toStr?: string) {
+  async getCroisementPathologieCategorieDirection(fromStr?: string, toStr?: string) {
     const from = fromStr ? new Date(fromStr) : daysAgo(29)
     from.setHours(0, 0, 0, 0)
     const toEnd = toStr ? new Date(toStr) : new Date()
@@ -358,7 +360,7 @@ export class DashboardService {
     const diagnostics = await this.prisma.diagnosticConsultation.findMany({
       where: {
         type: 'PRINCIPAL',
-        consultation: { visite: { siteId }, createdAt: { gte: from, lte: toEnd } },
+        consultation: { createdAt: { gte: from, lte: toEnd } },
       },
       select: {
         pathologie: { select: { libelle: true } },
@@ -398,12 +400,12 @@ export class DashboardService {
    * mois par mois sur l'année demandée — vraie série temporelle, pas un cumul
    * sur une période glissante comme `getActivityTrend`/`getStatistiques`.
    */
-  async getEvolutionAnnuelle(siteId: string, annee: number) {
+  async getEvolutionAnnuelle(annee: number) {
     const debut = new Date(annee, 0, 1)
     const fin   = new Date(annee + 1, 0, 1)
 
     const consultations = await this.prisma.consultation.findMany({
-      where:  { visite: { siteId }, createdAt: { gte: debut, lt: fin } },
+      where:  { createdAt: { gte: debut, lt: fin } },
       select: { createdAt: true, reposJours: true },
     })
 

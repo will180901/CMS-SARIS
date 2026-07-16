@@ -280,17 +280,17 @@ model SauvegardeSysteme {
 // Rapport généré automatiquement (recueil §6.1 : hebdo/mensuel/annuel) — snapshot
 // JSON des statistiques de la période, produit par cron et consultable/exportable
 // sans ressaisie manuelle. Un rapport par (site, type, période).
+// Rapport GLOBAL (multi-site sans restriction — le CMS centralise les données,
+// un seul rapport par période, plus de génération dupliquée par site).
 model RapportGenere {
   id             String    @id @default(uuid())
-  siteId         String
   type           String    // HEBDOMADAIRE | MENSUEL | ANNUEL
   periodeDebut   DateTime
   periodeFin     DateTime
   contenuJson    String    // snapshot JSON (mêmes données que dashboard.statistiques)
   genereLe       DateTime  @default(now())
-  site           Site      @relation(fields: [siteId], references: [id])
 
-  @@index([siteId, type, periodeDebut])
+  @@index([type, periodeDebut])
 }
 
 // ─────────────────────────────────────────────
@@ -310,7 +310,6 @@ model Site {
   utilisateurs Utilisateur[]
   patients     Patient[]
   visites      Visite[]
-  rapports     RapportGenere[]
 
   @@index([updatedAt])
 }

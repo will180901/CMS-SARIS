@@ -37,7 +37,6 @@ export interface CreateVisitePayload {
 export type ConstanteVitalePayload = ConstantesPayload
 
 export interface VisiteQueryParams {
-  siteId?: string
   statut?: string
 }
 

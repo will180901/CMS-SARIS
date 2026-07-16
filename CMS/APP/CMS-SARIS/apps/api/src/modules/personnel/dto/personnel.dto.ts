@@ -54,10 +54,6 @@ export class PersonnelQueryDto {
   role?: string
 
   @IsOptional()
-  @IsString()
-  siteId?: string
-
-  @IsOptional()
   @IsIn(['ACTIF', 'INACTIF'])
   statut?: string
 }

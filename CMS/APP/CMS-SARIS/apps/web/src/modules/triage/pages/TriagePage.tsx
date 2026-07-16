@@ -8,7 +8,6 @@ import { SelectBox }          from '@/components/saris'
 import {
   Popover, PopoverContent, PopoverTrigger,
 } from '@workspace/ui/components/popover'
-import { useSessionStore }     from '@/stores/session.store'
 import { usePermissions }      from '@/hooks/usePermissions'
 import { useIsCompact }        from '@/hooks/useMediaQuery'
 import { usePersistedState }   from '@/hooks/usePersistedState'
@@ -52,7 +51,6 @@ export function TriagePage() {
     CLOTUREE:   t('triage.filterCloturees'),
     ANNULEE:    t('triage.filterAnnulees'),
   }
-  const siteId = useSessionStore(s => s.user?.siteId ?? '')
   const { has } = usePermissions()
   const canCreateVisite = has('visite.create')
 
@@ -127,21 +125,17 @@ export function TriagePage() {
   }, [isResizing])
 
   const { data: visites = [], isLoading } = useVisites({
-    siteId: siteId || undefined,
     statut: filter,
   })
 
   /* Compteurs live — toujours chargés en parallèle, indépendamment du filtre courant */
   const { data: allActives = [] } = useVisites({
-    siteId: siteId || undefined,
     statut: 'ACTIVES',
   })
   const { data: allCloturees = [] } = useVisites({
-    siteId: siteId || undefined,
     statut: 'CLOTUREE',
   })
   const { data: allAnnulees = [] } = useVisites({
-    siteId: siteId || undefined,
     statut: 'ANNULEE',
   })
 

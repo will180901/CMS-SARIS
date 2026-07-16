@@ -101,8 +101,7 @@ export const en: Resources = {
     syncingTooltip: 'Synchronization in progress…',
     pending: '{{count}} pending',
     pendingTooltip: '{{count}} action(s) pending synchronization',
-    switchSiteTooltip: 'Switch to {{site}} site',
-    switchingSite: 'Switching site…',
+    currentSiteTooltip: 'Workstation registered to {{site}} site',
   },
   settings: {
     title: 'Settings',

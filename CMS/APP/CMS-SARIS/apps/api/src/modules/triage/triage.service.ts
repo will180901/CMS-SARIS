@@ -130,10 +130,11 @@ export class TriageService {
     }))
   }
 
-  /** Charge la visite, garantit qu'elle existe ET qu'elle appartient au site
-   *  de l'utilisateur (cloisonnement multi-site — pas de modification cross-site). */
-  private async getVisiteOrThrow(id: string, siteId: string) {
-    const visite = await this.prisma.visite.findFirst({ where: { id, siteId } })
+  /** Charge la visite, garantit qu'elle existe. Multi-site sans restriction :
+   *  n'importe quel soignant autorisé peut agir sur une visite de n'importe quel
+   *  site (le CMS centralise les données, seules les permissions gouvernent). */
+  private async getVisiteOrThrow(id: string) {
+    const visite = await this.prisma.visite.findUnique({ where: { id } })
     if (!visite) throw new NotFoundException('Visite introuvable')
     return visite
   }
@@ -155,8 +156,10 @@ export class TriageService {
   // ── File d'attente ────────────────────────────────────────────────────────
 
   async findAll(query: VisiteQueryDto, scope?: { canReadAll: boolean; personnelMedicalId: string | null }) {
+    // Multi-site sans restriction : la file de triage est partagée entre tous les
+    // sites (le CMS centralise les données) — seules les permissions de rôle
+    // gouvernent l'accès, plus aucun cloisonnement par site.
     const where: any = {}
-    if (query.siteId) where.siteId = query.siteId
 
     const isHistory = !!query.statut && query.statut !== 'ACTIVES'   // CLOTUREE / ANNULEE
     if (!query.statut || query.statut === 'ACTIVES') {
@@ -172,7 +175,7 @@ export class TriageService {
 
     // Phase C — confidentialité : l'HISTORIQUE (clôturées / annulées) n'est visible
     // que de son INITIATEUR (soignantId) pour les non-supervision. La supervision
-    // (ADMIN_SYSTEME / MEDECIN_CHEF) voit tout l'historique du site.
+    // (ADMIN_SYSTEME / MEDECIN_CHEF) voit tout l'historique, tous sites confondus.
     if (isHistory && scope && !scope.canReadAll) {
       where.soignantId = scope.personnelMedicalId ?? '__aucun_soignant__'
     }
@@ -225,9 +228,9 @@ export class TriageService {
 
   // ── Détail visite ─────────────────────────────────────────────────────────
 
-  async findById(id: string, siteId: string, restreindreHistorique = false) {
-    const visite = await this.prisma.visite.findFirst({
-      where:   { id, siteId },
+  async findById(id: string, restreindreHistorique = false) {
+    const visite = await this.prisma.visite.findUnique({
+      where:   { id },
       include: VISITE_DETAIL_INCLUDE,
     })
     if (!visite) throw new NotFoundException('Visite introuvable')
@@ -368,8 +371,8 @@ export class TriageService {
    * si une consultation y est rattachée (la supprimer d'abord). Réservée aux
    * détenteurs de `visite.delete` — contrôle CRUD total côté gouvernance.
    */
-  async deleteVisite(id: string, siteId: string) {
-    const visite = await this.getVisiteOrThrow(id, siteId)
+  async deleteVisite(id: string) {
+    const visite = await this.getVisiteOrThrow(id)
     // Suppression réservée aux visites CLÔTURÉES ou ANNULÉES — jamais une visite encore
     // active (EN_ATTENTE/EN_COURS) : il faut d'abord l'annuler.
     if (visite.statut === 'EN_ATTENTE' || visite.statut === 'EN_COURS') {
@@ -405,9 +408,9 @@ export class TriageService {
 
   // ── Changement statut ─────────────────────────────────────────────────────
 
-  async updateStatut(id: string, dto: UpdateStatutVisiteDto, acteurId: string, siteId: string) {
+  async updateStatut(id: string, dto: UpdateStatutVisiteDto, acteurId: string) {
     this.assertActor(acteurId)
-    const visite  = await this.getVisiteOrThrow(id, siteId)
+    const visite  = await this.getVisiteOrThrow(id)
     const courant = visite.statut as StatutVisite
     const cible   = dto.statut as StatutVisite
 
@@ -477,9 +480,9 @@ export class TriageService {
 
   // ── Assignation soignant ──────────────────────────────────────────────────
 
-  async updateSoignant(id: string, dto: UpdateSoignantVisiteDto, acteurId: string, siteId: string) {
+  async updateSoignant(id: string, dto: UpdateSoignantVisiteDto, acteurId: string) {
     this.assertActor(acteurId)
-    const visite = await this.getVisiteOrThrow(id, siteId)
+    const visite = await this.getVisiteOrThrow(id)
     this.assertModifiable(visite.statut)
 
     const nouveauId = dto.soignantId ?? null
@@ -511,9 +514,9 @@ export class TriageService {
 
   // ── Notes d'accueil ───────────────────────────────────────────────────────
 
-  async updateNotes(id: string, dto: UpdateNotesVisiteDto, acteurId: string, siteId: string) {
+  async updateNotes(id: string, dto: UpdateNotesVisiteDto, acteurId: string) {
     this.assertActor(acteurId)
-    const visite = await this.getVisiteOrThrow(id, siteId)
+    const visite = await this.getVisiteOrThrow(id)
     this.assertModifiable(visite.statut)
 
     const nouvelle = dto.notesAccueil?.trim() || null
@@ -535,9 +538,9 @@ export class TriageService {
 
   // ── Constantes vitales ────────────────────────────────────────────────────
 
-  async createConstantes(id: string, dto: CreateConstanteVitaleDto, saisiePar: string, siteId: string) {
+  async createConstantes(id: string, dto: CreateConstanteVitaleDto, saisiePar: string) {
     this.assertActor(saisiePar)
-    const visite = await this.getVisiteOrThrow(id, siteId)
+    const visite = await this.getVisiteOrThrow(id)
     this.assertModifiable(visite.statut)
 
     // Au moins une valeur doit être renseignée

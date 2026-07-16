@@ -84,12 +84,12 @@ function assertSafeBinary(buf: Buffer | undefined, nom: string): void {
 export class MessagerieController {
   constructor(private readonly svc: MessagerieService) {}
 
-  /** Liste des agents contactables (même site). */
+  /** Liste des agents contactables (tous sites — gouverné par permission). */
   @Get('contacts')
   @RequirePermissions('messagerie.read')
   contacts(@Req() req: AuthedRequest) {
-    const { userId, siteId } = requireUser(req)
-    return this.svc.listContacts(userId, siteId)
+    const { userId } = requireUser(req)
+    return this.svc.listContacts(userId)
   }
 
   /** Liste de mes conversations (avec aperçu + non-lus). */

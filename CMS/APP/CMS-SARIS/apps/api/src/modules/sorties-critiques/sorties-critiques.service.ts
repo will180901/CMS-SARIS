@@ -45,22 +45,21 @@ export class SortiesCritiquesService {
   //  ÉVACUATIONS
   // ══════════════════════════════════════════════════════════════════════════
 
-  // Cloisonnement multi-site : `siteId` (JWT) restreint aux sorties dont la
-  // consultation d'origine appartient au site de l'utilisateur. Une sortie d'un
-  // autre site est traitée comme inexistante (404) — pas de fuite ni d'IDOR.
-  private async getEvacOrThrow(id: string, siteId?: string) {
+  // Volontairement SANS filtre de site : l'accès est gouverné uniquement par les
+  // permissions (evacuation.read/update/cancel/close), pas par le site.
+  private async getEvacOrThrow(id: string) {
     const e = await this.prisma.evacuation.findFirst({
-      where:   siteId ? { id, consultation: { visite: { siteId } } } : { id },
+      where:   { id },
       include: EVACUATION_INCLUDE,
     })
     if (!e) throw new NotFoundException('Évacuation introuvable')
     return e
   }
 
-  async findAllEvacuations(query: EvacuationQueryDto, siteId: string) {
-    const visiteWhere: any = { siteId }
-    if (query.patientId) visiteWhere.patientId = query.patientId
-    const where: any = { consultation: { visite: visiteWhere } }
+  async findAllEvacuations(query: EvacuationQueryDto) {
+    // Volontairement SANS filtre de site (accès gouverné par permission).
+    const where: any = {}
+    if (query.patientId) where.consultation = { visite: { patientId: query.patientId } }
     if (query.consultationId) where.consultationId = query.consultationId
     if (query.statut && query.statut !== 'TOUS') where.statut = query.statut
 
@@ -71,12 +70,12 @@ export class SortiesCritiquesService {
     })
   }
 
-  async findEvacuationById(id: string, siteId: string) { return this.getEvacOrThrow(id, siteId) }
+  async findEvacuationById(id: string) { return this.getEvacOrThrow(id) }
 
-  async createEvacuation(dto: CreateEvacuationDto, siteId: string, acteurId?: string) {
-    // Vérifier consultation + cloisonnement (la visite doit être du site)
+  async createEvacuation(dto: CreateEvacuationDto, acteurId?: string) {
+    // Vérifier consultation (volontairement SANS filtre de site)
     const c = await this.prisma.consultation.findFirst({
-      where: { id: dto.consultationId, visite: { siteId } },
+      where: { id: dto.consultationId },
     })
     if (!c) throw new NotFoundException('Consultation introuvable')
 
@@ -128,7 +127,7 @@ export class SortiesCritiquesService {
       category:           'sortie',
       titre:              'Évacuation médicale initiée',
       message:            `Urgence ${dto.niveauUrgence.toLowerCase()} — transfert en cours`,
-      siteId,
+      siteId:             null,
       requiredPermission: 'evacuation.read',
       entiteType:         'evacuation',
       entiteId:           created.id,
@@ -138,8 +137,8 @@ export class SortiesCritiquesService {
     return this.getEvacOrThrow(created.id)
   }
 
-  async updateEvacuation(id: string, dto: UpdateEvacuationDto, siteId: string) {
-    const e = await this.getEvacOrThrow(id, siteId)
+  async updateEvacuation(id: string, dto: UpdateEvacuationDto) {
+    const e = await this.getEvacOrThrow(id)
     if (e.statut === 'CLOTURE' || e.statut === 'ANNULE') {
       throw new ConflictException('Évacuation déjà ' + e.statut.toLowerCase())
     }
@@ -154,8 +153,8 @@ export class SortiesCritiquesService {
     return this.getEvacOrThrow(id)
   }
 
-  async addSuiviEvacuation(id: string, dto: AddSuiviEvacuationDto, acteurId: string, siteId: string) {
-    const e = await this.getEvacOrThrow(id, siteId)
+  async addSuiviEvacuation(id: string, dto: AddSuiviEvacuationDto, acteurId: string) {
+    const e = await this.getEvacOrThrow(id)
     if (e.statut === 'CLOTURE' || e.statut === 'ANNULE') {
       throw new ConflictException('Évacuation déjà ' + e.statut.toLowerCase())
     }
@@ -177,8 +176,8 @@ export class SortiesCritiquesService {
     return this.getEvacOrThrow(id)
   }
 
-  async annulerEvacuation(id: string, dto: AnnulerEvacuationDto, siteId: string) {
-    const e = await this.getEvacOrThrow(id, siteId)
+  async annulerEvacuation(id: string, dto: AnnulerEvacuationDto) {
+    const e = await this.getEvacOrThrow(id)
     if (e.statut !== 'EN_COURS') {
       throw new ConflictException('Seule une évacuation EN_COURS peut être annulée')
     }
@@ -190,8 +189,8 @@ export class SortiesCritiquesService {
   }
 
   /** Clôture directe d'une évacuation (perm evacuation.close). */
-  async cloturerEvacuation(id: string, siteId: string) {
-    const e = await this.getEvacOrThrow(id, siteId)
+  async cloturerEvacuation(id: string) {
+    const e = await this.getEvacOrThrow(id)
     if (e.statut !== 'EN_COURS') {
       throw new ConflictException('Seule une évacuation EN_COURS peut être clôturée')
     }

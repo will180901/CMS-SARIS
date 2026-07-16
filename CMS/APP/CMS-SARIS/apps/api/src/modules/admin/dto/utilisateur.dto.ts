@@ -114,9 +114,5 @@ export class UtilisateurQueryDto {
 
   @IsOptional()
   @IsUUID()
-  siteId?: string
-
-  @IsOptional()
-  @IsUUID()
   roleId?: string
 }

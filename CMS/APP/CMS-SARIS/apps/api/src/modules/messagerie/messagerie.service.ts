@@ -103,11 +103,11 @@ export class MessagerieService {
     this.prisma.utilisateur.update({ where: { id: userId }, data: { lastSeenAt: new Date() } }).catch(() => { /* best-effort */ })
   }
 
-  // ── Contacts (autres agents du même site) ──────────────────────────────────
+  // ── Contacts (tous les agents actifs — gouverné par permission, pas par site) ──
 
-  async listContacts(userId: string, siteId: string) {
+  async listContacts(userId: string) {
     const users = await this.prisma.utilisateur.findMany({
-      where:   { id: { not: userId }, statut: 'ACTIF', siteId },
+      where:   { id: { not: userId }, statut: 'ACTIF' },
       select:  USER_SELECT,
       orderBy: { login: 'asc' },
     })
@@ -209,9 +209,10 @@ export class MessagerieService {
   async getOrCreateDirect(userId: string, destinataireId: string, siteId: string) {
     if (userId === destinataireId) throw new BadRequestException('Impossible de démarrer une conversation avec soi-même')
     const dest = await this.prisma.utilisateur.findUnique({ where: { id: destinataireId } })
-    // Cloisonnement par site (anti-IDOR cross-site) : on ne peut écrire qu'à un agent
-    // ACTIF du MÊME site. Message d'erreur uniforme pour ne pas révéler l'existence d'un compte.
-    if (!dest || dest.statut !== 'ACTIF' || dest.siteId !== siteId) throw new NotFoundException('Destinataire introuvable')
+    // N'importe quel agent ACTIF (tous sites) peut être contacté directement — l'accès est
+    // gouverné par permission, pas par site. Message d'erreur uniforme pour ne pas révéler
+    // l'existence d'un compte.
+    if (!dest || dest.statut !== 'ACTIF') throw new NotFoundException('Destinataire introuvable')
 
     const mesConv = await this.prisma.conversationParticipant.findMany({
       where:  { utilisateurId: userId, conversation: { type: 'DIRECT' } },
@@ -244,11 +245,11 @@ export class MessagerieService {
     if (uniques.length > 50) throw new BadRequestException('Un groupe est limité à 50 participants')
 
     const membres = await this.prisma.utilisateur.findMany({
-      where:  { id: { in: uniques }, statut: 'ACTIF', siteId },
+      where:  { id: { in: uniques }, statut: 'ACTIF' },
       select: { id: true },
     })
     if (membres.length !== uniques.length) {
-      throw new BadRequestException('Un ou plusieurs participants sont introuvables ou hors de votre site')
+      throw new BadRequestException('Un ou plusieurs participants sont introuvables')
     }
 
     const conv = await this.prisma.conversation.create({

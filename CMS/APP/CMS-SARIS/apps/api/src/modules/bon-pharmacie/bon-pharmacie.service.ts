@@ -37,20 +37,21 @@ const BON_INCLUDE = {
 export class BonPharmacieService {
   constructor(private readonly prisma: PrismaService) {}
 
-  // Cloisonnement SITE : le bon → consultation → visite → siteId (anti-IDOR cross-site).
-  private async getOrThrow(id: string, siteId: string) {
+  // Volontairement SANS filtre de site : l'accès est gouverné uniquement par les
+  // permissions (bon_pharmacie.read/create/deliver/cancel), pas par le site.
+  private async getOrThrow(id: string) {
     const bon = await this.prisma.bonPharmacie.findFirst({
-      where: { id, consultation: { visite: { siteId } } },
+      where: { id },
       include: BON_INCLUDE,
     })
     if (!bon) throw new NotFoundException('Bon de pharmacie introuvable')
     return bon
   }
 
-  async findAll(query: BonPharmacieQueryDto, siteId: string) {
-    const visiteWhere: any = { siteId }
-    if (query.patientId) visiteWhere.patientId = query.patientId
-    const where: any = { consultation: { visite: visiteWhere } }
+  async findAll(query: BonPharmacieQueryDto) {
+    // Volontairement SANS filtre de site (accès gouverné par permission).
+    const where: any = {}
+    if (query.patientId) where.consultation = { visite: { patientId: query.patientId } }
     if (query.consultationId) where.consultationId = query.consultationId
     if (query.statut && query.statut !== 'TOUS') where.statut = query.statut
 
@@ -59,13 +60,14 @@ export class BonPharmacieService {
     })
   }
 
-  async findById(id: string, siteId: string) {
-    return this.getOrThrow(id, siteId)
+  async findById(id: string) {
+    return this.getOrThrow(id)
   }
 
-  async create(dto: CreateBonPharmacieDto, siteId: string, prescripteurId: string) {
+  async create(dto: CreateBonPharmacieDto, prescripteurId: string) {
+    // Vérifier consultation (volontairement SANS filtre de site)
     const consultation = await this.prisma.consultation.findFirst({
-      where:  { id: dto.consultationId, visite: { siteId } },
+      where:  { id: dto.consultationId },
       select: { statut: true, visite: { select: { patient: { select: { categoriePatientId: true } } } } },
     })
     if (!consultation) throw new NotFoundException('Consultation introuvable')
@@ -109,11 +111,11 @@ export class BonPharmacieService {
       })
       return created
     })
-    return this.getOrThrow(bon.id, siteId)
+    return this.getOrThrow(bon.id)
   }
 
-  async deliver(id: string, siteId: string, delivrePar: string | null) {
-    const bon = await this.getOrThrow(id, siteId)
+  async deliver(id: string, delivrePar: string | null) {
+    const bon = await this.getOrThrow(id)
     if (bon.statut !== 'EN_ATTENTE') {
       throw new ConflictException('Seul un bon en attente peut être marqué délivré')
     }
@@ -121,11 +123,11 @@ export class BonPharmacieService {
       where: { id },
       data:  { statut: 'DELIVRE', delivreLe: new Date(), delivrePar: delivrePar ?? null },
     })
-    return this.getOrThrow(id, siteId)
+    return this.getOrThrow(id)
   }
 
-  async annuler(id: string, dto: AnnulerBonPharmacieDto, siteId: string) {
-    const bon = await this.getOrThrow(id, siteId)
+  async annuler(id: string, dto: AnnulerBonPharmacieDto) {
+    const bon = await this.getOrThrow(id)
     if (bon.statut === 'ANNULE') throw new ConflictException('Bon déjà annulé')
     if (bon.statut === 'DELIVRE') throw new ConflictException('Un bon déjà délivré ne peut être annulé')
     if (!dto.motifAnnulation?.trim()) throw new BadRequestException('Motif d\'annulation requis')
@@ -133,7 +135,7 @@ export class BonPharmacieService {
       where: { id },
       data:  { statut: 'ANNULE', motifAnnulation: dto.motifAnnulation.trim() },
     })
-    return this.getOrThrow(id, siteId)
+    return this.getOrThrow(id)
   }
 
   /**

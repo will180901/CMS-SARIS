@@ -53,10 +53,10 @@ export class MeController {
     return this.svc.removePhoto(req.user.id)
   }
 
-  // ── Annuaire (photos + identité minimale, tous les comptes du site) ───────
+  // ── Annuaire (photos + identité minimale, tous les comptes actifs) ────────
   @Get('annuaire')
-  annuaire(@Req() req: any) {
-    return this.svc.getAnnuaire(req.user.siteId)
+  annuaire() {
+    return this.svc.getAnnuaire()
   }
 
   // ── Conditions d'utilisation ──────────────────────────────────────────────

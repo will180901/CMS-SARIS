@@ -280,9 +280,9 @@ export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Pr
             }}>
               {t('triage.drawerSubtitleStart')}
             </p>
-            {/* Site où ce triage/consultation a lieu — le personnel médical tourne
-                entre les deux sites (planning de permutation) ; réutilise le même
-                sélecteur que l'en-tête global, une seule source de vérité. */}
+            {/* Site où ce triage/consultation a lieu (repère de traçabilité) ;
+                réutilise le même affichage que l'en-tête global, une seule
+                source de vérité. */}
             <div style={{ marginTop: 6 }}>
               <SiteActifSwitch />
             </div>

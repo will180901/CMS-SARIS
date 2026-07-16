@@ -41,12 +41,11 @@ export class BonExamenService {
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
-  // Cloisonnement SITE : un bon n'est accessible que si sa consultation appartient
-  // au site de l'appelant (BonExamen → consultation → visite → siteId). Sécurise
-  // toutes les lectures ET écritures qui passent par ce helper (anti-IDOR cross-site).
-  private async getOrThrow(id: string, siteId: string) {
+  // Volontairement SANS filtre de site : l'accès est gouverné uniquement par les
+  // permissions (bon_examen.read/create/validate/cancel/result), pas par le site.
+  private async getOrThrow(id: string) {
     const bon = await this.prisma.bonExamen.findFirst({
-      where: { id, consultation: { visite: { siteId } } },
+      where: { id },
       include: BON_INCLUDE,
     })
     if (!bon) throw new NotFoundException('Bon d\'examen introuvable')
@@ -55,12 +54,10 @@ export class BonExamenService {
 
   // ── Liste ─────────────────────────────────────────────────────────────────
 
-  async findAll(query: BonExamenQueryDto, siteId: string) {
-    // Cloisonnement SITE systématique (le bon → consultation → visite → site).
-    const visiteWhere: any = { siteId }
-    if (query.patientId) visiteWhere.patientId = query.patientId
-    const where: any = { consultation: { visite: visiteWhere } }
-
+  async findAll(query: BonExamenQueryDto) {
+    // Volontairement SANS filtre de site (accès gouverné par permission).
+    const where: any = {}
+    if (query.patientId) where.consultation = { visite: { patientId: query.patientId } }
     if (query.consultationId) where.consultationId = query.consultationId
     if (query.statut && query.statut !== 'TOUS') {
       where.statut = query.statut
@@ -75,16 +72,16 @@ export class BonExamenService {
 
   // ── Détail ────────────────────────────────────────────────────────────────
 
-  async findById(id: string, siteId: string) {
-    return this.getOrThrow(id, siteId)
+  async findById(id: string) {
+    return this.getOrThrow(id)
   }
 
   // ── Créer ─────────────────────────────────────────────────────────────────
 
-  async create(dto: CreateBonExamenDto, siteId: string) {
-    // Vérifier consultation (et qu'elle appartient au site de l'appelant)
+  async create(dto: CreateBonExamenDto) {
+    // Vérifier consultation (volontairement SANS filtre de site)
     const consultation = await this.prisma.consultation.findFirst({
-      where:  { id: dto.consultationId, visite: { siteId } },
+      where:  { id: dto.consultationId },
       select: { statut: true, visite: { select: { patient: { select: { categoriePatientId: true } } } } },
     })
     if (!consultation) throw new NotFoundException('Consultation introuvable')
@@ -123,13 +120,13 @@ export class BonExamenService {
       return created
     })
 
-    return this.getOrThrow(bon.id, siteId)
+    return this.getOrThrow(bon.id)
   }
 
   // ── Modifier (brouillon uniquement) ───────────────────────────────────────
 
-  async update(id: string, dto: UpdateBonExamenDto, siteId: string) {
-    const bon = await this.getOrThrow(id, siteId)
+  async update(id: string, dto: UpdateBonExamenDto) {
+    const bon = await this.getOrThrow(id)
     if (bon.statut !== 'EN_ATTENTE') {
       throw new ConflictException('Seul un bon EN_ATTENTE peut être modifié')
     }
@@ -141,13 +138,13 @@ export class BonExamenService {
         etablissementId:  dto.etablissementId !== undefined ? dto.etablissementId : bon.etablissementId,
       },
     })
-    return this.getOrThrow(id, siteId)
+    return this.getOrThrow(id)
   }
 
   // ── Valider / Annuler ─────────────────────────────────────────────────────
 
-  async validerOuAnnuler(id: string, dto: ValiderBonExamenDto, siteId: string) {
-    const bon = await this.getOrThrow(id, siteId)
+  async validerOuAnnuler(id: string, dto: ValiderBonExamenDto) {
+    const bon = await this.getOrThrow(id)
     if (bon.statut !== 'EN_ATTENTE') {
       throw new ConflictException('Statut non modifiable depuis ' + bon.statut)
     }
@@ -163,13 +160,13 @@ export class BonExamenService {
         motifAnnulation: dto.statut === 'ANNULE' ? dto.motifAnnulation!.trim() : null,
       },
     })
-    return this.getOrThrow(id, siteId)
+    return this.getOrThrow(id)
   }
 
   // ── Annuler (perm bon_examen.cancel — couvre aussi un bon déjà VALIDE) ──────
 
-  async annuler(id: string, motifAnnulation: string, siteId: string) {
-    const bon = await this.getOrThrow(id, siteId)
+  async annuler(id: string, motifAnnulation: string) {
+    const bon = await this.getOrThrow(id)
     if (bon.statut !== 'EN_ATTENTE' && bon.statut !== 'VALIDE') {
       throw new ConflictException('Seul un bon en attente ou validé peut être annulé')
     }
@@ -180,7 +177,7 @@ export class BonExamenService {
       where: { id },
       data:  { statut: 'ANNULE', motifAnnulation: motifAnnulation.trim() },
     })
-    return this.getOrThrow(id, siteId)
+    return this.getOrThrow(id)
   }
 
   // ── Supprimer définitivement (perm bon_examen.delete) ──────────────────────
@@ -209,8 +206,8 @@ export class BonExamenService {
 
   // ── Saisir un résultat ────────────────────────────────────────────────────
 
-  async saisirResultat(bonId: string, dto: SaisirResultatDto, acteurId: string, siteId: string) {
-    const bon = await this.getOrThrow(bonId, siteId)
+  async saisirResultat(bonId: string, dto: SaisirResultatDto, acteurId: string) {
+    const bon = await this.getOrThrow(bonId)
     if (bon.statut !== 'VALIDE') {
       throw new ConflictException('Seul un bon validé peut recevoir un résultat')
     }
@@ -225,6 +222,6 @@ export class BonExamenService {
         saisiePar:      acteurId,
       },
     })
-    return this.getOrThrow(bonId, siteId)
+    return this.getOrThrow(bonId)
   }
 }

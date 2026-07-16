@@ -9,7 +9,6 @@ import { RequirePermissions }        from '../../common/decorators/require-permi
 import { LiveRefresh }               from '../../common/decorators/live-refresh.decorator'
 import { Audit }                      from '../../common/decorators/audit.decorator'
 import { ListQueryDto }              from './dto/list-query.dto'
-import { CreateSiteDto, UpdateSiteDto }                         from './dto/site.dto'
 import { CreateMotifDto, UpdateMotifDto }                       from './dto/motif.dto'
 import { CreatePathologieDto, UpdatePathologieDto }             from './dto/pathologie.dto'
 import { CreateMedicamentDto, UpdateMedicamentDto }             from './dto/medicament.dto'
@@ -41,6 +40,9 @@ export class ReferentielsController {
   constructor(private readonly svc: ReferentielsService) {}
 
   // ── Sites ─────────────────────────────────────────────────────────────────
+  // Lecture seule : un site est enregistré une seule fois, à la première
+  // installation du poste desktop — plus de création/modification/suppression
+  // depuis l'interface (cf. pivot multi-site sans restriction).
 
   @Get('sites')
   @RequirePermissions('referentiel.read')
@@ -52,31 +54,6 @@ export class ReferentielsController {
   @RequirePermissions('referentiel.read')
   getSite(@Param('id') id: string) {
     return this.svc.findSiteById(id)
-  }
-
-  @Post('sites')
-  @RequirePermissions('referentiel.site.create')
-  @HttpCode(HttpStatus.CREATED)
-  createSite(@Body() dto: CreateSiteDto) {
-    return this.svc.createSite(dto)
-  }
-
-  @Patch('sites/:id')
-  @RequirePermissions('referentiel.site.update')
-  updateSite(@Param('id') id: string, @Body() dto: UpdateSiteDto) {
-    return this.svc.updateSite(id, dto)
-  }
-
-  @Patch('sites/:id/statut')
-  @RequirePermissions('referentiel.site.delete')
-  setStatutSite(@Param('id') id: string, @Body() dto: ToggleStatutReferentielDto) {
-    return this.svc.setStatutSite(id, dto.statut)
-  }
-
-  @Delete('sites/:id')
-  @RequirePermissions('referentiel.site.delete')
-  deleteSite(@Param('id') id: string) {
-    return this.svc.deleteSite(id)
   }
 
   // ── Motifs de consultation ────────────────────────────────────────────────

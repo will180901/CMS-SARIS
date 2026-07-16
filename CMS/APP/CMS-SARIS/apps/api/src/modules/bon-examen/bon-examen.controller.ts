@@ -29,39 +29,39 @@ export class BonExamenController {
 
   @Get()
   @RequirePermissions('bon_examen.read')
-  findAll(@Query() query: BonExamenQueryDto, @CurrentUser() user: UserSession) {
-    return this.svc.findAll(query, user.siteId)
+  findAll(@Query() query: BonExamenQueryDto) {
+    return this.svc.findAll(query)
   }
 
   @Get(':id')
   @RequirePermissions('bon_examen.read')
-  findById(@Param('id') id: string, @CurrentUser() user: UserSession) {
-    return this.svc.findById(id, user.siteId)
+  findById(@Param('id') id: string) {
+    return this.svc.findById(id)
   }
 
   @Post()
   @RequirePermissions('bon_examen.create')
   @HttpCode(HttpStatus.CREATED)
-  create(@Body() dto: CreateBonExamenDto, @CurrentUser() user: UserSession) {
-    return this.svc.create(dto, user.siteId)
+  create(@Body() dto: CreateBonExamenDto) {
+    return this.svc.create(dto)
   }
 
   @Patch(':id')
   @RequirePermissions('bon_examen.create')
-  update(@Param('id') id: string, @Body() dto: UpdateBonExamenDto, @CurrentUser() user: UserSession) {
-    return this.svc.update(id, dto, user.siteId)
+  update(@Param('id') id: string, @Body() dto: UpdateBonExamenDto) {
+    return this.svc.update(id, dto)
   }
 
   @Patch(':id/statut')
   @RequirePermissions('bon_examen.validate')
-  validerOuAnnuler(@Param('id') id: string, @Body() dto: ValiderBonExamenDto, @CurrentUser() user: UserSession) {
-    return this.svc.validerOuAnnuler(id, dto, user.siteId)
+  validerOuAnnuler(@Param('id') id: string, @Body() dto: ValiderBonExamenDto) {
+    return this.svc.validerOuAnnuler(id, dto)
   }
 
   @Patch(':id/annuler')
   @RequirePermissions('bon_examen.cancel')
-  annuler(@Param('id') id: string, @Body() dto: AnnulerBonExamenDto, @CurrentUser() user: UserSession) {
-    return this.svc.annuler(id, dto.motifAnnulation, user.siteId)
+  annuler(@Param('id') id: string, @Body() dto: AnnulerBonExamenDto) {
+    return this.svc.annuler(id, dto.motifAnnulation)
   }
 
   @Delete(':id')
@@ -75,6 +75,6 @@ export class BonExamenController {
   @RequirePermissions('bon_examen.result')
   @HttpCode(HttpStatus.CREATED)
   saisirResultat(@Param('id') id: string, @Body() dto: SaisirResultatDto, @CurrentUser() user: UserSession) {
-    return this.svc.saisirResultat(id, dto, user.id, user.siteId)
+    return this.svc.saisirResultat(id, dto, user.id)
   }
 }

@@ -5,10 +5,12 @@ import { SetMetadata } from '@nestjs/common'
  * dont les mutations réussies (POST/PATCH/PUT/DELETE) diffusent un événement
  * TEMPS RÉEL SILENCIEUX pour rafraîchir les listes des clients (sans cloche/son).
  *
- * `siteScoped: true`  → l'événement n'est diffusé qu'aux clients du MÊME site
- *                       (données cloisonnées : triage, consultations).
- * `siteScoped: false` (défaut) → diffusion GLOBALE (catalogues partagés :
- *                       référentiels, acteurs, bons d'examen…).
+ * `siteScoped: true`  → l'événement n'est diffusé qu'aux clients du MÊME site.
+ *                       Plus utilisé pour triage/consultations depuis la
+ *                       suppression du cloisonnement par site (multi-site sans
+ *                       restriction — seules les permissions gouvernent l'accès) ;
+ *                       conservé pour un futur usage réellement site-spécifique.
+ * `siteScoped: false` (défaut) → diffusion GLOBALE.
  *
  * Le `type` est consommé par le frontend (map LIVE_INVALIDATIONS dans
  * useNotifications.ts).

@@ -2,7 +2,8 @@
  * Registre des modèles synchronisables (offline-first) : nom Prisma, délégué client,
  * et filtre de SCOPE (ce qu'un poste reçoit/envoie).
  *
- * Politique de scope (décision 2026-06-26 — dossier patient CENTRALISÉ) :
+ * Politique de scope (pivot multi-site sans restriction — plus de cloisonnement
+ * par site sur les données, seules les permissions gouvernent l'accès) :
  *  - référentiels partagés          → GLOBAL (aucun filtre)
  *  - DOSSIER PATIENT + PARCOURS DE SOIN → GLOBAL : chaque poste détient TOUS les
  *    patients + tout l'historique clinique de tous les sites. C'est ce qui rend la
@@ -12,9 +13,16 @@
  *    compris sur le backend local. Cf. [[project_audit_predeploiement]] (Phase A/B).
  *  - PERSONNEL MÉDICAL              → GLOBAL : pour résoudre le soignant des actes
  *    cliniques d'un autre site (affichage « Dr X »).
- *  - COMPTES / RH opérationnel / MESSAGERIE → PAR SITE : { siteId } ou via relation.
- *    Les comptes restent locaux au site (connexion hors-ligne) ; planning/présence/
- *    délégation et messagerie sont propres à chaque site.
+ *  - COMPTES (Utilisateur + rôles/permissions) → GLOBAL : un agent qui tourne entre
+ *    les deux sites doit pouvoir se connecter hors-ligne sur N'IMPORTE QUEL poste,
+ *    pas seulement celui de son site d'origine — sinon la connexion hors-ligne casse
+ *    dès qu'il change de site (cf. pivot « aucune restriction par site »).
+ *  - MESSAGERIE → GLOBAL : une conversation peut désormais réunir des agents des
+ *    deux sites (le cloisonnement par site a été retiré de `messagerie.service.ts`) ;
+ *    rester en PAR SITE ferait manquer la conversation aux participants dont le
+ *    poste est rattaché à l'autre site que celui du créateur.
+ *  - PLANNING / PRÉSENCE / DÉLÉGATION → PAR SITE : opérationnel, propre à chaque
+ *    site (non concerné par ce pivot — pas de restriction retirée sur ces modules).
  *
  * Scopes par site dérivés des clés étrangères réelles + noms de relations vérifiés
  * dans schema.prisma.
@@ -69,11 +77,12 @@ export const SYNC_MODELS: readonly SyncModelDef[] = [
   def('DelegationPrescription', 'delegationPrescription', VIA((s) => ({ medecinChef: { siteId: s } }))),
 
   // ── Comptes & habilitations (AVANT les entités qui les référencent : createdBy…) ──
-  // Indispensable aussi à la connexion HORS-LIGNE (les comptes vivent en local).
-  def('Utilisateur', 'utilisateur', BY_SITE),
+  // GLOBAL : un agent qui tourne entre les deux sites doit pouvoir se connecter
+  // hors-ligne sur n'importe quel poste (indispensable à la connexion HORS-LIGNE).
+  def('Utilisateur', 'utilisateur', GLOBAL),
   def('RolePermission', 'rolePermission', GLOBAL, ['roleId', 'permissionId']),
-  def('UtilisateurRole', 'utilisateurRole', VIA((s) => ({ utilisateur: { siteId: s } })), ['utilisateurId', 'roleId']),
-  def('UtilisateurPermission', 'utilisateurPermission', VIA((s) => ({ utilisateur: { siteId: s } }))),
+  def('UtilisateurRole', 'utilisateurRole', GLOBAL, ['utilisateurId', 'roleId']),
+  def('UtilisateurPermission', 'utilisateurPermission', GLOBAL),
 
   // ── Patients & dossier — GLOBAL (dossier centralisé, continuité cross-site) ─
   // Chaque poste détient tous les patients + tout le dossier, même hors-ligne.

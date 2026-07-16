@@ -111,19 +111,20 @@ export class MeService {
   }
 
   // ════════════════════════════════════════════════════════════════════════
-  //  ANNUAIRE (photos + identité minimale des comptes du site)
+  //  ANNUAIRE (photos + identité minimale de TOUS les comptes actifs, tous sites)
   // ════════════════════════════════════════════════════════════════════════
 
   /**
-   * Répertoire léger de TOUS les comptes actifs du site (nom, rôle métier, photo) —
+   * Répertoire léger de TOUS les comptes actifs (nom, rôle métier, photo) — tous
+   * sites confondus, l'accès est gouverné par permission pas par site —
    * accessible à N'IMPORTE QUEL utilisateur connecté (self-service, pas de permission
    * dédiée), pour que le frontend puisse afficher la VRAIE photo de profil partout où
    * un avatar représente un utilisateur (audit, messagerie, listes…), sans avoir à
    * faire porter `photoUrl` par chaque endpoint métier qui mentionne un utilisateur.
    */
-  async getAnnuaire(siteId: string) {
+  async getAnnuaire() {
     const users = await this.prisma.utilisateur.findMany({
-      where:  { siteId, statut: 'ACTIF' },
+      where:  { statut: 'ACTIF' },
       select: {
         id: true, login: true, photoUrl: true,
         personnelMedical: { select: { nom: true, prenom: true, role: true } },

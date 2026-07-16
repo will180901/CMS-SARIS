@@ -50,12 +50,11 @@ export class UtilisateursService {
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
-  // Cloisonnement multi-site : `siteId` (issu du JWT) restreint l'accès aux
-  // seuls comptes du site de l'administrateur. Un compte d'un autre site est
-  // traité comme inexistant (404) — pas de fuite inter-sites ni d'IDOR.
-  private async getOrThrow(id: string, siteId?: string) {
+  // Volontairement SANS filtre de site : l'accès est gouverné uniquement par les
+  // permissions (utilisateur.read/update/delete/...), pas par le site.
+  private async getOrThrow(id: string) {
     const u = await this.prisma.utilisateur.findFirst({
-      where:   siteId ? { id, siteId } : { id },
+      where:   { id },
       include: UTILISATEUR_INCLUDE,
     })
     if (!u) throw new NotFoundException('Utilisateur introuvable')
@@ -107,12 +106,9 @@ export class UtilisateursService {
 
   // ── Liste ─────────────────────────────────────────────────────────────────
 
-  async findAll(query: UtilisateurQueryDto, siteId: string | undefined) {
-    // Cloisonnement : `siteId` vaut `undefined` pour un appelant multi-site
-    // (détenteur de `utilisateur.create`, cf. controller#hasCrossSiteAccess) —
-    // dans ce cas on ne filtre pas par site (sauf si `query.siteId` demande un
-    // site précis). Sinon, on force le site du JWT et `query.siteId` est ignoré.
-    const where: any = siteId ? { siteId } : (query.siteId ? { siteId: query.siteId } : {})
+  async findAll(query: UtilisateurQueryDto) {
+    // Volontairement SANS filtre de site (accès gouverné par permission).
+    const where: any = {}
 
     if (query.statut) where.statut = query.statut
     if (query.roleId) where.roles  = { some: { roleId: query.roleId } }
@@ -138,8 +134,8 @@ export class UtilisateursService {
 
   // ── Détail ────────────────────────────────────────────────────────────────
 
-  async findById(id: string, siteId: string | undefined) {
-    const u = await this.getOrThrow(id, siteId)
+  async findById(id: string) {
+    const u = await this.getOrThrow(id)
     const totp = await this.prisma.configurationTotp.findUnique({
       where: { utilisateurId: id }, select: { actif: true },
     })
@@ -257,7 +253,7 @@ export class UtilisateursService {
       category:           'administratif',
       titre:              'Nouveau compte utilisateur',
       message:            `Le compte « ${dto.login} » a été créé.`,
-      siteId,
+      siteId:             null,
       requiredPermission: 'utilisateur.read',
       entiteType:         'utilisateur',
       entiteId:           created.id,
@@ -271,7 +267,7 @@ export class UtilisateursService {
   // ── Modifier ──────────────────────────────────────────────────────────────
 
   async update(id: string, dto: UpdateUtilisateurDto, acteurId: string | null, callerSiteId: string, crossSite: boolean) {
-    const avant = await this.getOrThrow(id, crossSite ? undefined : callerSiteId)
+    const avant = await this.getOrThrow(id)
 
     // Cloisonnement : interdit de déplacer un compte vers un autre site, sauf
     // pour un appelant multi-site (`crossSite`, cf. create()).
@@ -322,8 +318,8 @@ export class UtilisateursService {
 
   // ── Attribuer / changer les rôles ─────────────────────────────────────────
 
-  async setRoles(id: string, dto: SetRolesDto, acteurId: string | null, siteId: string | undefined) {
-    const avant = await this.getOrThrow(id, siteId)
+  async setRoles(id: string, dto: SetRolesDto, acteurId: string | null) {
+    const avant = await this.getOrThrow(id)
 
     const roles = await this.prisma.role.findMany({ where: { id: { in: dto.roleIds } } })
     if (roles.length !== dto.roleIds.length) {
@@ -381,8 +377,8 @@ export class UtilisateursService {
 
   // ── Changer le statut (activer/désactiver/débloquer) ──────────────────────
 
-  async setStatut(id: string, dto: SetStatutDto, acteurId: string | null, siteId: string | undefined) {
-    const avant = await this.getOrThrow(id, siteId)
+  async setStatut(id: string, dto: SetStatutDto, acteurId: string | null) {
+    const avant = await this.getOrThrow(id)
 
     // Garde-fou : on ne peut pas se désactiver soi-même.
     // Un autre administrateur doit s'en charger pour éviter le risque de
@@ -436,7 +432,7 @@ export class UtilisateursService {
         category:           'administratif',
         titre:              desactive ? 'Compte désactivé' : 'Compte réactivé',
         message:            `Le compte « ${after.login} » a été ${desactive ? 'désactivé' : 'réactivé'}.`,
-        siteId:             after.siteId,
+        siteId:             null,
         requiredPermission: 'utilisateur.read',
         entiteType:         'utilisateur',
         entiteId:           id,
@@ -450,8 +446,8 @@ export class UtilisateursService {
 
   // ── Réinitialiser le mot de passe (par un admin) ──────────────────────────
 
-  async resetPassword(id: string, dto: ResetPasswordDto, acteurId: string | null, siteId: string | undefined) {
-    await this.getOrThrow(id, siteId)
+  async resetPassword(id: string, dto: ResetPasswordDto, acteurId: string | null) {
+    await this.getOrThrow(id)
     await this.params.assertPasswordValid(dto.nouveauMotDePasse)
     const hash = await bcrypt.hash(dto.nouveauMotDePasse, 12)
 
@@ -483,8 +479,8 @@ export class UtilisateursService {
 
   /** Retire la double authentification d'un utilisateur qui a perdu son téléphone :
    *  il pourra se reconnecter sans 2FA puis la reconfigurer. */
-  async resetTotp(id: string, acteurId: string | null, siteId: string | undefined) {
-    await this.getOrThrow(id, siteId)
+  async resetTotp(id: string, acteurId: string | null) {
+    await this.getOrThrow(id)
     const cfg = await this.prisma.configurationTotp.findUnique({ where: { utilisateurId: id } })
     if (!cfg) throw new BadRequestException("Cet utilisateur n'a pas de double authentification configurée.")
     await this.prisma.$transaction(async tx => {
@@ -497,8 +493,8 @@ export class UtilisateursService {
 
   /** Régénère les codes de secours (2FA active requise). Les codes en clair ne sont
    *  renvoyés QU'UNE fois, à remettre à l'utilisateur. */
-  async regenerateBackupCodes(id: string, acteurId: string | null, siteId: string | undefined) {
-    await this.getOrThrow(id, siteId)
+  async regenerateBackupCodes(id: string, acteurId: string | null) {
+    await this.getOrThrow(id)
     const cfg = await this.prisma.configurationTotp.findUnique({ where: { utilisateurId: id } })
     if (!cfg || !cfg.actif) throw new BadRequestException("Cet utilisateur n'a pas de double authentification active.")
     const codes = Array.from({ length: 8 }, () => {
@@ -516,8 +512,8 @@ export class UtilisateursService {
   }
 
   /** Force la déconnexion : révoque toutes les sessions actives de l'utilisateur. */
-  async revokeAllSessions(id: string, acteurId: string | null, siteId: string | undefined) {
-    await this.getOrThrow(id, siteId)
+  async revokeAllSessions(id: string, acteurId: string | null) {
+    await this.getOrThrow(id)
     const res = await this.prisma.sessionUtilisateur.updateMany({
       where: { utilisateurId: id, revokedAt: null },
       data:  { revokedAt: new Date() },
@@ -537,9 +533,9 @@ export class UtilisateursService {
    *   - revokes   : retirées individuellement
    *   - effective : résultat final = (fromRoles ∪ grants) − revokes
    */
-  async getPermissions(id: string, siteId?: string) {
+  async getPermissions(id: string) {
     const u = await this.prisma.utilisateur.findFirst({
-      where:   siteId ? { id, siteId } : { id },
+      where:   { id },
       include: {
         roles: { include: { role: { include: { permissions: { include: { permission: true } } } } } },
         permissionsOverrides: { include: { permission: true } },
@@ -573,8 +569,8 @@ export class UtilisateursService {
    * Remplace l'ENSEMBLE des dérogations d'un utilisateur (PUT idempotent).
    * Le front envoie l'état complet souhaité (grants + revokes).
    */
-  async setPermissions(id: string, dto: SetPermissionOverridesDto, acteurId: string | null, siteId: string | undefined) {
-    await this.getOrThrow(id, siteId)
+  async setPermissions(id: string, dto: SetPermissionOverridesDto, acteurId: string | null) {
+    await this.getOrThrow(id)
     const avant = await this.getPermissions(id)
 
     const grants  = [...new Set(dto.grants  ?? [])]
@@ -625,14 +621,14 @@ export class UtilisateursService {
    * Répond au besoin « accorder / révoquer un droit pour un ou plusieurs
    * utilisateurs ». RESET supprime toute dérogation (retour au rôle).
    */
-  async bulkSetPermission(dto: BulkPermissionDto, acteurId: string | null, siteId: string | undefined) {
+  async bulkSetPermission(dto: BulkPermissionDto, acteurId: string | null) {
     const perm = await this.prisma.permission.findUnique({ where: { code: dto.code } })
     if (!perm) throw new BadRequestException('Permission inconnue')
 
-    // Cloisonnement : toutes les cibles doivent appartenir au site du JWT, sauf
-    // pour un appelant multi-site (`siteId` alors `undefined`, cf. controller).
+    // Volontairement SANS filtre de site : toutes les cibles sont éligibles, l'accès
+    // est gouverné par permission (utilisateur.manage_permissions), pas par site.
     const ids   = [...new Set(dto.utilisateurIds)]
-    const users = await this.prisma.utilisateur.findMany({ where: { id: { in: ids }, ...(siteId ? { siteId } : {}) }, select: { id: true } })
+    const users = await this.prisma.utilisateur.findMany({ where: { id: { in: ids } }, select: { id: true } })
     if (users.length !== ids.length) {
       throw new BadRequestException('Un ou plusieurs utilisateurs sont introuvables')
     }
@@ -699,8 +695,8 @@ export class UtilisateursService {
   //  SUPPRESSION DÉFINITIVE D'UN COMPTE
   // ════════════════════════════════════════════════════════════════════════
 
-  async delete(id: string, acteurId: string | null, siteId: string | undefined) {
-    const target = await this.getOrThrow(id, siteId)
+  async delete(id: string, acteurId: string | null) {
+    const target = await this.getOrThrow(id)
 
     // Garde-fou : pas d'auto-suppression.
     if (acteurId && acteurId === id) {
@@ -743,7 +739,7 @@ export class UtilisateursService {
       category:           'administratif',
       titre:              'Compte supprimé',
       message:            `Le compte « ${target.login} » a été supprimé définitivement.`,
-      siteId:             target.siteId,
+      siteId:             null,
       requiredPermission: 'utilisateur.read',
       entiteType:         'utilisateur',
       entiteId:           id,
