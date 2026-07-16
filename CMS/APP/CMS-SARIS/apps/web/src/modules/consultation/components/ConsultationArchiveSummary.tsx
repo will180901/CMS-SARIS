@@ -23,6 +23,7 @@ import { CertificatCard } from './CertificatCard'
 import { BonExamenCard } from '@/modules/bon-examen/components/BonExamenCard'
 import { BonPharmacieCard } from '@/modules/bon-pharmacie/components/BonPharmacieCard'
 import { EvacuationCard } from '@/modules/sorties-critiques/components/EvacuationCard'
+import { SuiviTraitementCard } from '@/modules/suivi-traitement/components/SuiviTraitementCard'
 import type { useConsultation } from '../hooks/useConsultation'
 
 interface Props {
@@ -125,6 +126,7 @@ export function ConsultationArchiveSummary({ consultationId, consultation, onDel
         patient={{ identite: patient.identite, numeroPatient: patient.numeroPatient, categorieLibelle: patient.categoriePatient.libelle }}
         soignant={consultation.soignant}
       />
+      <SuiviTraitementCard consultationId={consultationId} readonly />
       <CertificatCard
         consultationId={consultationId}
         reposJours={consultation.reposJours ?? null}

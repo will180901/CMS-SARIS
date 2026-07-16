@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Users, Activity, AlertTriangle, ExternalLink, Clock } from 'lucide-react'
+import { Users, Activity, AlertTriangle, ExternalLink, Clock, MapPin } from 'lucide-react'
 import { PatientAvatar, CategorieBadge } from '@/modules/patients/components/CategorieBadge'
 import { LiveDuration } from '@/components/saris'
 import { humanizeCode } from '@/config/labels'
@@ -199,6 +199,9 @@ export function VisiteSidebar({ visite, width = 268, compact }: { visite: Visite
             <SidebarBadge {...SOIGNANT_TONE}>{`${visite.soignant.prenom} ${visite.soignant.nom}`}</SidebarBadge>
           } />
         )}
+        <SidebarRow label={t('triage.sidebarSite')} valueNode={
+          <SidebarBadge {...NEUTRE_TONE}><MapPin size={10} style={{ marginRight: 3, verticalAlign: -1 }} />{visite.site.libelle.replace('Centre Médico-Social ', '')}</SidebarBadge>
+        } />
       </SidebarSection>
 
       {/* ── Dernières constantes ───────────────────────────────────────────── */}

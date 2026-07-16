@@ -11,6 +11,7 @@ export const DECISIONS_MEDICALES = [
   'PRESCRIPTION',
   'EXAMEN_COMPLEMENTAIRE',
   'EVACUATION',
+  'SUIVI_TRAITEMENT',
 ] as const
 
 // ── Créer une consultation ────────────────────────────────────────────────────

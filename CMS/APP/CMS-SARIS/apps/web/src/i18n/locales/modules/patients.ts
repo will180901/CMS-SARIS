@@ -120,16 +120,18 @@ export const patients = {
     tabAlerts: 'Alertes',
     tabHistory: 'Antécédents',
     tabAttachments: 'Rattachements',
-    tabChronology: 'Chronologie',
-    tabVitals: 'Constantes',
+    tabCategoryHistory: 'Historique de catégorie',
     tabDocuments: 'Documents',
+    tabVisites: 'Visites',
+    tabConsultations: 'Consultations',
+    tabSuiviTraitement: 'Suivi de traitement',
     // Sections de niveau 1 (regroupement des onglets ci-dessus)
     sectionOverview: 'Vue d\'ensemble',
     sectionMedicalDossier: 'Dossier médical',
     sectionCareJourney: 'Parcours de soins',
     sectionAdmin: 'Administratif',
     sectionAssignment: 'Dossier',
-    sidebarSite: 'Site',
+    sidebarSite: 'Créé depuis le site de',
     sidebarStatus: 'Statut',
     statusActiveValue: 'Actif',
     statusArchivedValue: 'Archivé',
@@ -272,13 +274,9 @@ export const patients = {
     docViewerNotFound: 'Ce document est introuvable ou a été supprimé.',
     viewDocument: 'Voir le document',
 
-    // ── Onglet Constantes ───────────────────────────────────────────
+    // ── Onglet Constantes (section du Suivi de traitement) ──────────
     vitalsEmptyTitle: 'Aucune constante enregistrée',
-    vitalsEmptyDesc: 'Les constantes vitales saisies au triage apparaîtront ici.',
-    vitalsAddCta: 'Ajouter une mesure (triage)',
     vitalsTitle: 'Constantes vitales',
-    measureCountSingular: '{{count}} mesure',
-    measureCountPlural: '{{count}} mesures',
     vitalTemperature: 'Température',
     vitalTensionSys: 'Tension sys.',
     vitalHeartRate: 'Fréq. card.',
@@ -301,6 +299,10 @@ export const patients = {
     colHydratation: 'Hydratation',
     colColoration: 'Coloration',
     colSaisiePar: 'Saisi par',
+
+    // ── Onglet Visites ───────────────────────────────────────────────
+    visitesTitle: 'Visites au triage',
+    visitesEmpty: 'Aucune visite enregistrée pour ce patient.',
 
     // ── Onglet Consultations ────────────────────────────────────────
     consultStatusOpen: 'En cours',
@@ -408,27 +410,14 @@ export const patients = {
     fieldEndOptional: 'Fin (optionnelle)',
     endPlaceholder: 'Date de fin',
 
-    // ── Onglet Chronologie ──────────────────────────────────────────
-    tlConsultation: 'Consultation',
-    tlVisite: 'Visite au triage',
-    tlFilterVisites: 'Visites',
+    // ── Visites / Historique catégorie (libellés partagés) ──────────
     visiteEnAttente: 'En attente',
     visiteEnCours: 'En cours',
     visiteCloturee: 'Clôturée',
     visiteAnnulee: 'Annulée',
-    tlDecisionPrefix: ' · décision : {{decision}}',
     tlCategoryChange: 'Changement de catégorie',
     tlInitialCategory: 'Catégorie initiale',
-    tlFilterAll: 'Tout',
-    tlFilterConsultations: 'Consultations',
-    tlFilterDocuments: 'Documents',
-    tlFilterCategory: 'Catégorie',
     tlHistoriqueRestreint: 'Accès limité à la visite et à la consultation en cours — l\'historique complet est réservé au médecin chef.',
-    chronologyTitle: 'Chronologie du patient',
-    eventCountSingular: '{{count}} événement',
-    eventCountPlural: '{{count}} événements',
-    tlEmptyTyped: 'Aucun événement de ce type dans le parcours',
-    tlEmpty: 'Aucun événement dans le parcours',
     openConsultation: 'Voir la consultation',
     consultationViewerTitle: 'Consultation',
     consultationViewerNotFound: 'Consultation introuvable.',
@@ -439,10 +428,7 @@ export const patients = {
     suiviContenu: 'Contenu',
     suiviVoirBon: 'Voir le bon d\'examen',
 
-    // ── Onglet Suivi (traitement, évolution, examens) ────────────────
-    tabSuivi: 'Suivi',
-    suiviTitle: 'Suivi clinique',
-    suiviIntro: 'Vue longitudinale du dossier — traitement, évolution des pathologies chroniques et résultats d\'examens, tous sites confondus.',
+    // ── Onglet Suivi de traitement (traitement, évolution, examens) ──
     suiviSectionChroniques: 'Évolution des pathologies chroniques',
     suiviSectionTraitements: 'Traitement',
     suiviSectionEnAttente: 'Résultats en attente de saisie',
@@ -665,16 +651,18 @@ export const patients = {
     tabAlerts: 'Alerts',
     tabHistory: 'History',
     tabAttachments: 'Attachments',
-    tabChronology: 'Timeline',
-    tabVitals: 'Vitals',
+    tabCategoryHistory: 'Category history',
     tabDocuments: 'Documents',
+    tabVisites: 'Visits',
+    tabConsultations: 'Consultations',
+    tabSuiviTraitement: 'Treatment follow-up',
     // Sections de niveau 1 (regroupement des onglets ci-dessus)
     sectionOverview: 'Overview',
     sectionMedicalDossier: 'Medical record',
     sectionCareJourney: 'Care journey',
     sectionAdmin: 'Administrative',
     sectionAssignment: 'Record',
-    sidebarSite: 'Site',
+    sidebarSite: 'Created at',
     sidebarStatus: 'Status',
     statusActiveValue: 'Active',
     statusArchivedValue: 'Archived',
@@ -817,13 +805,9 @@ export const patients = {
     docViewerNotFound: 'This document could not be found or was deleted.',
     viewDocument: 'View document',
 
-    // ── Onglet Constantes ───────────────────────────────────────────
+    // ── Onglet Constantes (section du Suivi de traitement) ──────────
     vitalsEmptyTitle: 'No vitals recorded',
-    vitalsEmptyDesc: 'Vital signs recorded at triage will appear here.',
-    vitalsAddCta: 'Add a measurement (triage)',
     vitalsTitle: 'Vital signs',
-    measureCountSingular: '{{count}} measurement',
-    measureCountPlural: '{{count}} measurements',
     vitalTemperature: 'Temperature',
     vitalTensionSys: 'Systolic BP',
     vitalHeartRate: 'Heart rate',
@@ -846,6 +830,10 @@ export const patients = {
     colHydratation: 'Hydration',
     colColoration: 'Skin color',
     colSaisiePar: 'Recorded by',
+
+    // ── Onglet Visites ───────────────────────────────────────────────
+    visitesTitle: 'Triage visits',
+    visitesEmpty: 'No visit recorded for this patient.',
 
     // ── Onglet Consultations ────────────────────────────────────────
     consultStatusOpen: 'In progress',
@@ -953,27 +941,14 @@ export const patients = {
     fieldEndOptional: 'End (optional)',
     endPlaceholder: 'End date',
 
-    // ── Onglet Chronologie ──────────────────────────────────────────
-    tlConsultation: 'Consultation',
-    tlVisite: 'Triage visit',
-    tlFilterVisites: 'Visits',
+    // ── Visites / Historique catégorie (libellés partagés) ──────────
     visiteEnAttente: 'Waiting',
     visiteEnCours: 'In progress',
     visiteCloturee: 'Closed',
     visiteAnnulee: 'Cancelled',
-    tlDecisionPrefix: ' · decision: {{decision}}',
     tlCategoryChange: 'Category change',
     tlInitialCategory: 'Initial category',
-    tlFilterAll: 'All',
-    tlFilterConsultations: 'Consultations',
-    tlFilterDocuments: 'Documents',
-    tlFilterCategory: 'Category',
     tlHistoriqueRestreint: 'Access limited to the visit and consultation in progress — full history is reserved for the chief physician.',
-    chronologyTitle: 'Patient timeline',
-    eventCountSingular: '{{count}} event',
-    eventCountPlural: '{{count}} events',
-    tlEmptyTyped: 'No event of this type in the timeline',
-    tlEmpty: 'No event in the timeline',
     openConsultation: 'View the consultation',
     consultationViewerTitle: 'Consultation',
     consultationViewerNotFound: 'Consultation not found.',
@@ -984,10 +959,7 @@ export const patients = {
     suiviContenu: 'Content',
     suiviVoirBon: 'View the exam order',
 
-    // ── Onglet Suivi (traitement, évolution, examens) ────────────────
-    tabSuivi: 'Follow-up',
-    suiviTitle: 'Clinical follow-up',
-    suiviIntro: 'Longitudinal view of the record — treatment, chronic disease evolution and exam results, across all sites.',
+    // ── Onglet Suivi de traitement (traitement, évolution, examens) ──
     suiviSectionChroniques: 'Chronic disease evolution',
     suiviSectionTraitements: 'Treatment',
     suiviSectionEnAttente: 'Results pending entry',

@@ -10,6 +10,7 @@ export type DecisionMedicale =
   | 'PRESCRIPTION'
   | 'EXAMEN_COMPLEMENTAIRE'
   | 'EVACUATION'
+  | 'SUIVI_TRAITEMENT'
 
 export type TypeDiagnostic = 'PRINCIPAL' | 'ASSOCIE'
 export type CertitudeDiagnostic = 'CONFIRME' | 'PROBABLE' | 'SUSPECTE'
@@ -127,6 +128,7 @@ export interface VisiteResume {
   }
   motifPrincipal: { id: string; code: string; libelle: string }
   constantes:     ConstanteVitale[]
+  site:           { libelle: string }
 }
 
 export interface ConsultationListItem extends Consultation {

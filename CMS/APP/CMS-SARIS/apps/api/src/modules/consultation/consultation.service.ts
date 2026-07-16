@@ -54,6 +54,7 @@ const VISITE_RESUME = {
   },
   motifPrincipal: { select: { id: true, code: true, libelle: true } },
   constantes:     { orderBy: { createdAt: 'desc' as const }, take: 1 },
+  site:           { select: { libelle: true } },
 } as const
 
 const DIAGNOSTIC_INCLUDE = {
@@ -568,6 +569,11 @@ export class ConsultationService {
       // Une évacuation ANNULÉE ne compte pas (= inexistante) : il faut une fiche active.
       const n = await this.prisma.evacuation.count({ where: { consultationId: id, statut: { not: 'ANNULE' } } })
       if (n === 0) throw new BadRequestException('Décision « Évacuation médicale » : créez la fiche d\'évacuation avant de clôturer')
+    }
+    if (dto.decisionMedicale === 'SUIVI_TRAITEMENT') {
+      // Un suivi ANNULÉ ne compte pas (= inexistant) : il faut un épisode actif.
+      const n = await this.prisma.suiviTraitement.count({ where: { consultationId: id, statut: { not: 'ANNULE' } } })
+      if (n === 0) throw new BadRequestException('Décision « Suivi de traitement » : ouvrez le suivi avant de clôturer')
     }
     // CLOTURE_SIMPLE : décision « simple » qui
     // n'exige AUCUN document séparé (l'acte est entièrement consigné dans la

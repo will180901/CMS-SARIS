@@ -1032,6 +1032,7 @@ model Consultation {
   bonsPharmacie       BonPharmacie[]
   suiviChronique      SuiviChronique[]
   evacuation          Evacuation?
+  suiviTraitement     SuiviTraitement?
   consultationsPrenat ConsultationPrenatale[]
   typeConsultation    TypeConsultation?        @relation(fields: [typeConsultationId], references: [id])
   certificats         CertificatMedical[]
@@ -1241,6 +1242,48 @@ model SuiviEvacuation {
   createdAt    DateTime   @default(now())
   createdBy    String?
   evacuation   Evacuation @relation(fields: [evacuationId], references: [id])
+}
+
+// ─────────────────────────────────────────────
+// MODULE : SUIVI DE TRAITEMENT
+// ─────────────────────────────────────────────
+// Épisode de suivi (contrôle d'état de santé, évolution d'une maladie, traitement
+// en cours) ouvert depuis une consultation clôturée (décision SUIVI_TRAITEMENT,
+// comme EVACUATION) — les fiches datées s'ajoutent ensuite depuis le dossier
+// patient, sans repasser par le triage ou la consultation.
+model SuiviTraitement {
+  updatedAt       DateTime               @default(now()) @updatedAt
+  deletedAt       DateTime?
+  id              String                 @id @default(uuid())
+  consultationId  String                 @unique
+  motif           String
+  statut          String                 @default("EN_COURS")
+  motifCloture    String?
+  motifAnnulation String?
+  createdAt       DateTime               @default(now())
+  closedAt        DateTime?
+  consultation    Consultation           @relation(fields: [consultationId], references: [id])
+  fiches          FicheSuiviTraitement[]
+
+  @@index([updatedAt])
+}
+
+model FicheSuiviTraitement {
+  id                     String          @id @default(uuid())
+  suiviTraitementId      String
+  temperature            Float?
+  tensionSystolique      Int?
+  tensionDiastolique     Int?
+  frequenceCardiaque     Int?
+  frequenceRespiratoire  Int?
+  saturationO2           Int?
+  poids                  Float?
+  noteEvolution          String?
+  medicamentsAdministres String?
+  resultatExamen         String?
+  createdAt              DateTime        @default(now())
+  createdBy              String?
+  suiviTraitement        SuiviTraitement @relation(fields: [suiviTraitementId], references: [id])
 }
 
 // ─────────────────────────────────────────────

@@ -14,7 +14,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { X, Loader2, FlaskConical, FileText, Stethoscope, Pill, Receipt, Ambulance, ArrowUpRight, PenLine } from 'lucide-react'
+import { X, Loader2, FlaskConical, FileText, Stethoscope, Pill, Receipt, Ambulance, ArrowUpRight, PenLine, Activity } from 'lucide-react'
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from '@workspace/ui/components/sheet'
@@ -29,6 +29,7 @@ import { BonExamenPrintModal } from '@/modules/bon-examen/components/BonExamenPr
 import { useBonsPharmacie } from '@/modules/bon-pharmacie/hooks/useBonPharmacie'
 import { BonPharmaciePrintModal } from '@/modules/bon-pharmacie/components/BonPharmaciePrintModal'
 import { EvacuationCard } from '@/modules/sorties-critiques/components/EvacuationCard'
+import { SuiviTraitementCard } from '@/modules/suivi-traitement/components/SuiviTraitementCard'
 import { formatDate, formatTime } from '@/lib/intl'
 import { labelStatut } from '@/config/labels'
 import type { SuiviResultatExamenItem } from '../../api/patients.api'
@@ -41,6 +42,7 @@ export type DossierDetailTarget =
   | { kind: 'BON_EXAMEN';         consultationId: string; bonId: string }
   | { kind: 'BON_PHARMACIE';      consultationId: string; bonId: string }
   | { kind: 'EVACUATION';         consultationId: string; evacuationId: string }
+  | { kind: 'SUIVI_TRAITEMENT';   consultationId: string }
   | { kind: 'RESULTAT';           consultationId: string; bonId: string; resultat: SuiviResultatExamenItem }
   /** Saisie d'un résultat en attente — carte interactive du bon SANS passer par
    *  useConsultation() (qui applique la restriction confidentialité infirmier sur
@@ -68,6 +70,7 @@ const TITLE_KEY: Record<DossierDetailTarget['kind'], string> = {
   BON_EXAMEN:        'patients.docBonExamen',
   BON_PHARMACIE:     'patients.docBonPharmacie',
   EVACUATION:        'patients.docEvacuation',
+  SUIVI_TRAITEMENT:  'suiviTraitement.cardTitle',
   RESULTAT:          'patients.suiviResultatTitle',
   BON_EXAMEN_ACTION: 'patients.docBonExamen',
 }
@@ -78,6 +81,7 @@ const KIND_ICON: Record<DossierDetailTarget['kind'], typeof FileText> = {
   BON_EXAMEN:        FlaskConical,
   BON_PHARMACIE:     Receipt,
   EVACUATION:        Ambulance,
+  SUIVI_TRAITEMENT:  Activity,
   RESULTAT:          FlaskConical,
   BON_EXAMEN_ACTION: PenLine,
 }
@@ -229,6 +233,20 @@ function EvacuationBody({ consultationId }: { consultationId: string; evacuation
   )
 }
 
+/**
+ * Carte INTERACTIVE du suivi de traitement (fiches datées, clôture, annulation) —
+ * même composant que celui utilisé dans la consultation active, réutilisé ici
+ * pour rester gérable depuis le dossier même après clôture de la consultation
+ * d'origine (c'est là que vivent les fiches suivantes, jamais depuis triage/consultation).
+ */
+function SuiviTraitementBody({ consultationId }: { consultationId: string }) {
+  return (
+    <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
+      <SuiviTraitementCard consultationId={consultationId} />
+    </div>
+  )
+}
+
 function ResultatBody({ consultationId, resultat }: { consultationId: string; resultat: SuiviResultatExamenItem }) {
   const { t } = useTranslation()
   const [showBon, setShowBon] = useState(false)
@@ -339,6 +357,7 @@ export function DossierDetailDrawer({ target, onClose }: { target: DossierDetail
             {target.kind === 'BON_EXAMEN'    && <BonExamenBody consultationId={target.consultationId} bonId={target.bonId} onBack={requestClose} />}
             {target.kind === 'BON_PHARMACIE' && <BonPharmacieBody consultationId={target.consultationId} bonId={target.bonId} onBack={requestClose} />}
             {target.kind === 'EVACUATION'    && <EvacuationBody consultationId={target.consultationId} evacuationId={target.evacuationId} onBack={requestClose} />}
+            {target.kind === 'SUIVI_TRAITEMENT' && <SuiviTraitementBody consultationId={target.consultationId} />}
             {target.kind === 'RESULTAT'      && <ResultatBody consultationId={target.consultationId} resultat={target.resultat} />}
             {target.kind === 'BON_EXAMEN_ACTION' && <BonExamenActionBody consultationId={target.consultationId} />}
           </PreviewHostContext.Provider>

@@ -16,6 +16,7 @@ import { BonExamenModule }     from './modules/bon-examen/bon-examen.module'
 import { BonPharmacieModule }  from './modules/bon-pharmacie/bon-pharmacie.module'
 import { EmployeModule }       from './modules/employe/employe.module'
 import { SortiesCritiquesModule } from './modules/sorties-critiques/sorties-critiques.module'
+import { SuiviTraitementModule } from './modules/suivi-traitement/suivi-traitement.module'
 import { DashboardModule }     from './modules/dashboard/dashboard.module'
 import { RapportsModule }      from './modules/rapports/rapports.module'
 import { NotificationModule }  from './modules/notification/notification.module'
@@ -63,6 +64,7 @@ import { HealthController }     from './health/health.controller'
     BonPharmacieModule,       // Module 7 ter — Bons de pharmacie (recueil) ✅
     EmployeModule,            // Registre des employés SARIS (main-d'œuvre patiente) ✅
     SortiesCritiquesModule,   // Module 8 — Évacuations ✅
+    SuiviTraitementModule,    // Suivi de traitement (contrôle d'état de santé) ✅
     AdminModule,              // Administration système (utilisateurs, rôles, audit) ✅
     DashboardModule,          // Dashboard KPIs ✅
     RapportsModule,           // Rapports statistiques planifiés (recueil §6.1) ✅

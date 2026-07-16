@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   Stethoscope, Pill, CheckCircle2, XCircle, AlertTriangle,
-  Clock, Check, NotebookPen,
+  Clock, Check, NotebookPen, MapPin,
   FileText, ChevronLeft, ChevronRight, Plus, X, ExternalLink,
 } from 'lucide-react'
 import { SegmentedTabs, Button } from '@/components/saris'
@@ -32,7 +32,8 @@ import { CategorieBadge }  from '@/modules/patients/components/CategorieBadge'
 import { BonExamenCard }   from '@/modules/bon-examen/components/BonExamenCard'
 import { BonPharmacieCard } from '@/modules/bon-pharmacie/components/BonPharmacieCard'
 import { EvacuationCard }     from '@/modules/sorties-critiques/components/EvacuationCard'
-import { FlaskConical, Ambulance } from 'lucide-react'
+import { SuiviTraitementCard } from '@/modules/suivi-traitement/components/SuiviTraitementCard'
+import { FlaskConical, Ambulance, Activity } from 'lucide-react'
 import { usePermissions } from '@/hooks/usePermissions'
 import { formatDuree, elapsedMinutes } from '@/lib/duree'
 import { formatTime as intlFormatTime, formatDateTime } from '@/lib/intl'
@@ -45,6 +46,7 @@ const DECISIONS = [
   { value: 'PRESCRIPTION',           labelKey: 'decisionPrescription'         },
   { value: 'EXAMEN_COMPLEMENTAIRE',  labelKey: 'decisionExamenComplementaire' },
   { value: 'EVACUATION',             labelKey: 'decisionEvacuation'           },
+  { value: 'SUIVI_TRAITEMENT',       labelKey: 'decisionSuiviTraitement'      },
 ] as const
 
 const DECISION_ICON: Record<string, React.ReactNode> = {
@@ -52,16 +54,18 @@ const DECISION_ICON: Record<string, React.ReactNode> = {
   PRESCRIPTION:          <Pill size={16} />,
   EXAMEN_COMPLEMENTAIRE: <FlaskConical size={16} />,
   EVACUATION:            <Ambulance size={16} />,
+  SUIVI_TRAITEMENT:      <Activity size={16} />,
 }
 
 // ── Onglets ───────────────────────────────────────────────────────────────────
 
-type DocView = 'ordonnance' | 'examens-c' | 'sorties'
+type DocView = 'ordonnance' | 'examens-c' | 'sorties' | 'suivi-traitement'
 
 /** Choix intelligent du document par défaut selon la décision médicale. */
 function defaultDocView(decision?: string | null): DocView {
   if (decision === 'EXAMEN_COMPLEMENTAIRE') return 'examens-c'
   if (decision === 'EVACUATION') return 'sorties'
+  if (decision === 'SUIVI_TRAITEMENT') return 'suivi-traitement'
   return 'ordonnance'
 }
 
@@ -74,6 +78,7 @@ function docViewForDecision(decision: string): DocView | null {
     case 'PRESCRIPTION':           return 'ordonnance'
     case 'EXAMEN_COMPLEMENTAIRE':  return 'examens-c'
     case 'EVACUATION':             return 'sorties'
+    case 'SUIVI_TRAITEMENT':       return 'suivi-traitement'
     default:                       return null
   }
 }
@@ -493,6 +498,15 @@ export function ConsultationDetail({ consultationId, initialDocView }: Props) {
                   readonly={!isActive}
                   patient={{ identite: patient.identite, numeroPatient: patient.numeroPatient, categorieLibelle: patient.categoriePatient.libelle }}
                   soignant={consultation.soignant}
+                />
+              </div>
+            )}
+
+            {docView === 'suivi-traitement' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--espace-3)' }}>
+                <SuiviTraitementCard
+                  consultationId={consultationId}
+                  readonly={!isActive}
                 />
               </div>
             )}
@@ -1110,6 +1124,9 @@ function PatientContextRail({ consultation, consultationId, isActive, canUpdate,
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '11px', color: elapsedMinutes(visite.dateOuverture) > 45 ? '#dc2626' : 'var(--texte-tertiaire)' }}>
           <Clock size={11} /> {formatTime(visite.dateOuverture)} · {formatDuree(visite.dateOuverture)}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '11px', color: 'var(--texte-tertiaire)' }}>
+          <MapPin size={11} /> {t('consultation.railSite', { site: visite.site.libelle })}
         </div>
       </div>
 

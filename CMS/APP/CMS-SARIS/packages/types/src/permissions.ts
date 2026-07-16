@@ -76,6 +76,16 @@ export const PERMISSIONS = {
   EVACUATION_CLOSE:        'evacuation.close',
   EVACUATION_DELETE:       'evacuation.delete',
 
+  // Suivi de traitement (contrôle d'état de santé, évolution d'une maladie,
+  // traitement en cours) — épisode ouvert depuis une consultation clôturée,
+  // fiches datées ajoutées ensuite depuis le dossier patient.
+  SUIVI_TRAITEMENT_READ:   'suivi_traitement.read',
+  SUIVI_TRAITEMENT_CREATE: 'suivi_traitement.create',
+  SUIVI_TRAITEMENT_UPDATE: 'suivi_traitement.update',
+  SUIVI_TRAITEMENT_CANCEL: 'suivi_traitement.cancel',
+  SUIVI_TRAITEMENT_CLOSE:  'suivi_traitement.close',
+  SUIVI_TRAITEMENT_DELETE: 'suivi_traitement.delete',
+
   // Référentiels — lecture globale + écriture GRANULAIRE par service.
   // Cette séparation permet d'accorder la création/édition d'un seul service
   // (ex: motifs) sans donner accès aux autres (sites, médicaments…).
@@ -238,6 +248,14 @@ export const PERMISSION_META: Record<PermissionCode, { libelle: string; module: 
   'evacuation.close':            { libelle: 'Clôturer une évacuation', module: 'evacuation' },
   'evacuation.delete':           { libelle: 'Supprimer définitivement une évacuation', module: 'evacuation' },
 
+  // Suivi de traitement
+  'suivi_traitement.read':       { libelle: 'Consulter les suivis de traitement', module: 'suivi_traitement' },
+  'suivi_traitement.create':     { libelle: 'Ouvrir un suivi de traitement', module: 'suivi_traitement' },
+  'suivi_traitement.update':     { libelle: 'Ajouter une fiche de suivi', module: 'suivi_traitement' },
+  'suivi_traitement.cancel':     { libelle: 'Annuler un suivi de traitement', module: 'suivi_traitement' },
+  'suivi_traitement.close':      { libelle: 'Clôturer un suivi de traitement', module: 'suivi_traitement' },
+  'suivi_traitement.delete':     { libelle: 'Supprimer définitivement un suivi de traitement', module: 'suivi_traitement' },
+
   // Référentiels — lecture globale + écriture par service
   'referentiel.read':                { libelle: 'Consulter les référentiels', module: 'referentiel' },
   'referentiel.site.create':         { libelle: 'Créer un site', module: 'referentiel' },
@@ -359,6 +377,10 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionCode[]> = {
     'bon_examen.read', 'bon_examen.create',
     'bon_pharmacie.read',
     'evacuation.read', 'evacuation.create', 'evacuation.update', 'evacuation.cancel', 'evacuation.close', 'evacuation.delete',
+    // Suivi de traitement : ouvrable par le médecin chef (comme l'évacuation) ET
+    // par l'infirmier (voir INFIRMIER ci-dessous) — contrôle de suivi partagé.
+    'suivi_traitement.read', 'suivi_traitement.create', 'suivi_traitement.update',
+    'suivi_traitement.cancel', 'suivi_traitement.close', 'suivi_traitement.delete',
     'delegation.read', 'delegation.create', 'delegation.update', 'delegation.revoke', 'delegation.delete',
     // Gouvernance médicale (anciennement ADMIN_MEDICAL) : contrôle total des référentiels
     'referentiel.read',
@@ -401,6 +423,10 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionCode[]> = {
     // bon d'examen libre ; bon de pharmacie exige une ordonnance VALIDÉE existante.
     'bon_examen.create', 'bon_examen.cancel',
     'bon_pharmacie.read', 'bon_pharmacie.create', 'bon_pharmacie.cancel',
+    // Suivi de traitement : l'infirmier ouvre/gère les épisodes de suivi au même
+    // titre que le médecin chef (contrôle d'état de santé, fiches datées).
+    'suivi_traitement.read', 'suivi_traitement.create', 'suivi_traitement.update',
+    'suivi_traitement.cancel', 'suivi_traitement.close', 'suivi_traitement.delete',
     // Registre employés : l'infirmière reconnaît/enregistre les travailleurs SARIS à l'accueil
     'employe.read', 'employe.create',
     // Lecture seule des sociétés sous-traitantes : nécessaire pour renseigner le select du

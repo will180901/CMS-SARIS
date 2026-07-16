@@ -123,7 +123,7 @@ export const SOFT_DELETE_MODELS: ReadonlySet<string> = new Set<string>([
   'PreSaisieMedicale', 'SuiviGrossesse', 'ConsultationPrenatale', 'ConstanteVitale',
   'Consultation', 'Ordonnance', 'LigneOrdonnance', 'BonExamen', 'ResultatExamen',
   'BonPharmacie', 'LigneBonPharmacie',
-  'SuiviChronique', 'CertificatMedical', 'Evacuation', 'MessageReaction', 'MessagePieceJointe',
+  'SuiviChronique', 'CertificatMedical', 'Evacuation', 'SuiviTraitement', 'MessageReaction', 'MessagePieceJointe',
   'PlanningPermutation', 'PresenceJournaliere', 'AbsencePersonnel', 'DelegationPrescription',
   'RattachementAyantDroitCdi', 'RattachementSousTraitant', 'Message',
 ])

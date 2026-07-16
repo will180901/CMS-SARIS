@@ -21,10 +21,11 @@ import { IdentiteTab }         from '../components/dossier/IdentiteTab'
 import { AlertesTab }          from '../components/dossier/AlertesTab'
 import { AntecedentsTab }      from '../components/dossier/AntecedentsTab'
 import { RattementsTab }       from '../components/dossier/RattementsTab'
-import { TimelineTab }         from '../components/dossier/TimelineTab'
-import { ConstantesTab }       from '../components/dossier/ConstantesTab'
 import { DocumentsTab }        from '../components/dossier/DocumentsTab'
-import { SuiviTab }            from '../components/dossier/SuiviTab'
+import { VisitesTab }          from '../components/dossier/VisitesTab'
+import { ConsultationsTab }    from '../components/dossier/ConsultationsTab'
+import { SuiviTraitementTab }  from '../components/dossier/SuiviTraitementTab'
+import { HistoriqueCategorieTab } from '../components/dossier/HistoriqueCategorieTab'
 import { ChangerCategorieModal } from '../components/ChangerCategorieModal'
 import { DossierPrintModal }     from '../components/dossier/DossierPrintModal'
 import { SegmentedTabs, Modal, Textarea } from '@/components/saris'
@@ -34,10 +35,12 @@ import { calcAge } from '@/lib/age'
 // Les droits d'écriture sont désormais portés par les permissions granulaires.
 
 // ── Sections ──────────────────────────────────────────────────────────────────
-// 4 groupes cliniques/administratifs (au lieu de 9 onglets à plat) — Chronologie
-// absorbe déjà Consultations et Historique de catégorie (mêmes données, filtrables
-// depuis ses puces internes) ; Documents garde son onglet propre car il porte des
-// actions uniques (aperçu en place + suppression) que Chronologie n'a pas.
+// 4 groupes cliniques/administratifs — Dossier médical porte les données stables
+// (antécédents, documents générés) ; Parcours de soins porte le fil temporel en
+// 3 onglets séparés (Visites / Consultations / Suivi de traitement, chacun un
+// onglet simple sans filtre puisqu'il n'affiche qu'un seul type d'événement) ;
+// Administratif porte les rattachements ET l'historique de catégorie (nature
+// administrative, pas clinique).
 // Libellés via clés i18n (résolues dans le composant, jamais au niveau module).
 const SECTIONS = [
   {
@@ -51,21 +54,22 @@ const SECTIONS = [
     key: 'medical', labelKey: 'patients.sectionMedicalDossier', icon: Stethoscope,
     subTabs: [
       { key: 'antecedents', labelKey: 'patients.tabHistory' },
-      { key: 'constantes',  labelKey: 'patients.tabVitals' },
-      { key: 'suivi',       labelKey: 'patients.tabSuivi', clinicalOnly: true },
+      { key: 'documents',   labelKey: 'patients.tabDocuments', clinicalOnly: true },
     ],
   },
   {
     key: 'parcours', labelKey: 'patients.sectionCareJourney', icon: GitCommitVertical,
     subTabs: [
-      { key: 'chronologie', labelKey: 'patients.tabChronology', clinicalOnly: true },
-      { key: 'documents',   labelKey: 'patients.tabDocuments', clinicalOnly: true },
+      { key: 'visites',         labelKey: 'patients.tabVisites',        clinicalOnly: true },
+      { key: 'consultations',   labelKey: 'patients.tabConsultations',  clinicalOnly: true },
+      { key: 'suiviTraitement', labelKey: 'patients.tabSuiviTraitement', clinicalOnly: true },
     ],
   },
   {
     key: 'administratif', labelKey: 'patients.sectionAdmin', icon: Building2,
     subTabs: [
-      { key: 'rattachements', labelKey: 'patients.tabAttachments' },
+      { key: 'rattachements',       labelKey: 'patients.tabAttachments', requiresRattachement: true },
+      { key: 'historiqueCategorie', labelKey: 'patients.tabCategoryHistory' },
     ],
   },
 ] as const
@@ -372,13 +376,15 @@ export function DossierPage() {
   // Dossier verrouillé ET je ne suis pas supervision → contenu masqué (rideau forcé).
   const lockedForMe = dossier.verrouille && !isSupervision
 
-  // Onglet Administratif (rattachements) : uniquement pertinent pour un CDI (voit ses
-  // ayants droit) ou un ayant droit (voit le CDI dont il dépend) — le rattachement se
+  // Sous-onglet Rattachements : uniquement pertinent pour un CDI (voit ses ayants
+  // droit) ou un ayant droit (voit le CDI dont il dépend) — le rattachement se
   // crée désormais automatiquement à la visite, aucune autre catégorie n'en a besoin
   // (sous-traitant/riverain/retraité/agent fonctionnaire/patient externe/CDD n'ont pas
   // ce privilège, cf. DroitCategoriePatient qui les exclut déjà tous de la couverture).
+  // La section Administratif reste visible pour tous (l'historique de catégorie
+  // s'applique à toute catégorie de patient), seul le sous-onglet est filtré.
   const hasRattachements = dossier.categoriePatient.code === 'ASSURE_CDI' || dossier.categoriePatient.code === 'AYANT_DROIT_CDI'
-  const visibleSections   = SECTIONS.filter(s => s.key !== 'administratif' || hasRattachements)
+  const visibleSections   = SECTIONS
 
   // Comptes pour les badges d'onglets/sections
   const tabCounts: Partial<Record<SubTabKey, number>> = {
@@ -395,9 +401,12 @@ export function DossierPage() {
 
   // Section active + ses sous-onglets, filtrés par permission (onglets cliniques
   // masqués aux profils sans lecture clinique — ex. délégation sans consultation.read)
-  // et par catégorie (Administratif absent des catégories sans rattachement possible).
+  // et par catégorie (Rattachements absent des catégories sans rattachement possible).
   const currentSection = visibleSections.find(s => s.key === activeSection) ?? visibleSections[0]
-  const visibleSubTabs = currentSection.subTabs.filter(t => !('clinicalOnly' in t && t.clinicalOnly) || canViewClinique)
+  const visibleSubTabs = currentSection.subTabs.filter(t =>
+    (!('clinicalOnly' in t && t.clinicalOnly) || canViewClinique) &&
+    (!('requiresRattachement' in t && t.requiresRattachement) || hasRattachements),
+  )
   const activeSubTab: SubTabKey = visibleSubTabs.some(t => t.key === activeSubTabRaw) ? activeSubTabRaw : visibleSubTabs[0].key
 
   return (
@@ -541,14 +550,15 @@ export function DossierPage() {
 
             {/* Contenu — compact: hauteur naturelle + flux (scroll délégué au corps) */}
             <div style={{ flex: isCompact ? 'none' : 1, padding: '20px 24px', overflowY: isCompact ? 'visible' : 'auto' }}>
-              {activeSubTab === 'identite'      && <IdentiteTab      dossier={dossier} canWrite={canWrite} />}
-              {activeSubTab === 'alertes'       && <AlertesTab       dossier={dossier} canWrite={canWrite} />}
-              {activeSubTab === 'antecedents'   && <AntecedentsTab   dossier={dossier} canWrite={canWrite} />}
-              {activeSubTab === 'constantes'    && <ConstantesTab    patientId={dossier.id} />}
-              {activeSubTab === 'suivi'         && canViewClinique && <SuiviTab patientId={dossier.id} />}
-              {activeSubTab === 'chronologie'   && canViewClinique && <TimelineTab dossier={dossier} />}
-              {activeSubTab === 'documents'     && canViewClinique && <DocumentsTab patientId={dossier.id} />}
-              {activeSubTab === 'rattachements' && <RattementsTab    dossier={dossier} canWrite={canManageRattachements} />}
+              {activeSubTab === 'identite'            && <IdentiteTab      dossier={dossier} canWrite={canWrite} />}
+              {activeSubTab === 'alertes'             && <AlertesTab       dossier={dossier} canWrite={canWrite} />}
+              {activeSubTab === 'antecedents'         && <AntecedentsTab   dossier={dossier} canWrite={canWrite} />}
+              {activeSubTab === 'documents'           && canViewClinique && <DocumentsTab patientId={dossier.id} />}
+              {activeSubTab === 'visites'             && canViewClinique && <VisitesTab patientId={dossier.id} />}
+              {activeSubTab === 'consultations'       && canViewClinique && <ConsultationsTab patientId={dossier.id} />}
+              {activeSubTab === 'suiviTraitement'     && canViewClinique && <SuiviTraitementTab patientId={dossier.id} />}
+              {activeSubTab === 'rattachements'       && <RattementsTab    dossier={dossier} canWrite={canManageRattachements} />}
+              {activeSubTab === 'historiqueCategorie' && <HistoriqueCategorieTab dossier={dossier} />}
             </div>
             </>
             )}
