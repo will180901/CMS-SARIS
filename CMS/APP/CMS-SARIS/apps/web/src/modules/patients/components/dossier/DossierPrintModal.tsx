@@ -9,6 +9,8 @@ import { MedicalPrintSheet, PrintSection, PRINT_ACCENT, PRINT_INK, PRINT_MUTED, 
 import { labelAlerteType, labelAntecedentType, labelGravite, labelStatut } from '@/config/labels'
 import { usePatientConstantes } from '../../hooks/usePatients'
 import { usePatientConsultations, usePatientDocuments } from '@/modules/consultation/hooks/useConsultation'
+import { useAnnuaire } from '@/modules/admin/hooks/useAdmin'
+import { useSessionStore } from '@/stores/session.store'
 import { formatDate as intlFormatDate } from '@/lib/intl'
 import type { PatientDossier } from '@cms-saris/types'
 import type { PatientDocument } from '@/modules/consultation/api/consultation.api'
@@ -38,6 +40,13 @@ export function DossierPrintModal({ dossier, onClose }: { dossier: PatientDossie
   const { data: consultations = [] } = usePatientConsultations(patientId)
   const { data: documents = [] } = usePatientDocuments(patientId)
 
+  // Pas de prescripteur unique pour une synthèse (elle couvre tout le dossier, pas
+  // une consultation) : on identifie plutôt qui l'a générée — le soignant connecté.
+  const moiId = useSessionStore(s => s.user?.id)
+  const { data: annuaire = [] } = useAnnuaire()
+  const moi = annuaire.find(a => a.id === moiId)
+  const emetteur = moi ? { nom: moi.nom, prenom: moi.prenom ?? undefined, role: moi.role } : null
+
   const allergies   = dossier.allergies.filter(a => a.statut === 'ACTIVE')
   const alertes     = dossier.alertesMedicales.filter(a => a.statut === 'ACTIVE')
   const antecedents = dossier.antecedents.filter(a => a.statut === 'ACTIF')
@@ -55,7 +64,7 @@ export function DossierPrintModal({ dossier, onClose }: { dossier: PatientDossie
         numeroPatient: dossier.numeroPatient,
         categorieLibelle: dossier.categoriePatient?.libelle,
       }}
-      soignant={null}
+      soignant={emetteur}
       secondSignatureLabel={t('patients.printSecondSignature')}
       onClose={onClose}
     >
