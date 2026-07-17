@@ -19,9 +19,14 @@ export const LIMITS: Record<MediaKind, number> = {
 }
 
 export function fileKind(file: File): MediaKind {
-  if (file.type.startsWith('image/')) return 'image'
-  if (file.type.startsWith('video/')) return 'video'
-  if (file.type.startsWith('audio/')) return 'audio'
+  return mimeKind(file.type)
+}
+
+/** Même classement que `fileKind`, mais à partir d'un type MIME brut (pièce jointe déjà reçue). */
+export function mimeKind(mime: string): MediaKind {
+  if (mime.startsWith('image/')) return 'image'
+  if (mime.startsWith('video/')) return 'video'
+  if (mime.startsWith('audio/')) return 'audio'
   return 'document'
 }
 

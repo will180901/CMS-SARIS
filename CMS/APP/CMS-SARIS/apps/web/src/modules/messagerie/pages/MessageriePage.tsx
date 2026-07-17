@@ -22,6 +22,7 @@ import { DESKTOP_TITLEBAR_H } from '@/components/layout/DesktopTitleBar'
 import { formatTime } from '@/lib/intl'
 import { useIsCompact } from '@/hooks/useMediaQuery'
 import { useConversations, useContacts, useStartConversation, useCreateGroup, useLeaveConversation } from '../hooks/useMessagerie'
+import { useLeaveGroupFlow } from '../hooks/useLeaveGroupFlow'
 import { ConversationCard } from '../components/ConversationCard'
 import { MessageThread } from '../components/MessageThread'
 import { PrivacyCurtain } from '@/components/PrivacyCurtain'
@@ -103,15 +104,25 @@ export function MessageriePage() {
     setSelectedId(null); setPendingConv(null)
   }
 
+  const groupLeaveFlow = useLeaveGroupFlow((leftId) => {
+    if (selectedId === leftId) { setSelectedId(null); setPendingConv(null) }
+  })
+
+  // Le groupe passe par le flux avec succession d'admin ([[useLeaveGroupFlow]]) ;
+  // une conversation DIRECTE reste une simple confirmation « supprimer ».
+  function handleCardAction(conv: ConversationItem) {
+    if (conv.type === 'GROUPE') void groupLeaveFlow.requestLeave({ id: conv.id, titre: conv.titre })
+    else setDeleteTarget(conv)
+  }
+
   async function confirmDeleteConversation() {
     const conv = deleteTarget
     if (!conv) return
     setDeleteTarget(null)
-    const isGroupe = conv.type === 'GROUPE'
     try {
-      await leaveMut.mutateAsync(conv.id)
+      await leaveMut.mutateAsync({ conversationId: conv.id })
       if (selectedId === conv.id) { setSelectedId(null); setPendingConv(null) }
-      toast.success(isGroupe ? t('messagerie.groupLeft') : t('messagerie.conversationDeleted'))
+      toast.success(t('messagerie.conversationDeleted'))
     } catch (e) {
       if (!isOfflineQueued(e)) toast.error(t('messagerie.actionImpossible'))
     }
@@ -181,7 +192,7 @@ export function MessageriePage() {
                   <p style={{ fontSize: 11, color: 'var(--texte-tertiaire)', margin: 0 }}>{search ? t('messagerie.tryAnotherName') : t('messagerie.startWithNew')}</p>
                 </div>
               ) : (
-                filtered.map(c => <ConversationCard key={c.id} conv={c} selected={c.id === selectedId} onClick={() => handleSelect(c.id)} onDelete={setDeleteTarget} />)
+                filtered.map(c => <ConversationCard key={c.id} conv={c} selected={c.id === selectedId} onClick={() => handleSelect(c.id)} onDelete={handleCardAction} />)
               )}
             </div>
           </div>
@@ -211,11 +222,9 @@ export function MessageriePage() {
           style={{ position: 'fixed', top: isDesktop ? DESKTOP_TITLEBAR_H : 0, right: 0, bottom: 0, left: 0, zIndex: 2000, background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <div onClick={e => e.stopPropagation()} role="dialog" aria-modal="true"
             style={{ width: 380, maxWidth: '100%', background: 'var(--fond-surface)', borderRadius: 14, border: '1px solid var(--bordure-legere)', boxShadow: '0 24px 60px rgba(15,23,42,0.28)', padding: '20px 22px' }}>
-            <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--texte-primaire)' }}>
-              {deleteTarget.type === 'GROUPE' ? t('messagerie.leaveGroupTitle') : t('messagerie.deleteConversationTitle')}
-            </p>
+            <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--texte-primaire)' }}>{t('messagerie.deleteConversationTitle')}</p>
             <p style={{ margin: '8px 0 0', fontSize: 13, color: 'var(--texte-secondaire)', lineHeight: 1.5 }}>
-              {deleteTarget.type === 'GROUPE' ? t('messagerie.confirmLeaveGroup', { titre: deleteTarget.titre }) : t('messagerie.confirmDeleteConversation', { titre: deleteTarget.titre })}
+              {t('messagerie.confirmDeleteConversation', { titre: deleteTarget.titre })}
             </p>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 18 }}>
               <button onClick={() => setDeleteTarget(null)}
@@ -224,13 +233,14 @@ export function MessageriePage() {
               </button>
               <button onClick={confirmDeleteConversation}
                 style={{ fontSize: 13, fontWeight: 600, padding: '8px 16px', borderRadius: 9999, background: 'var(--erreur-accent)', color: '#fff', border: 'none', cursor: 'pointer' }}>
-                {deleteTarget.type === 'GROUPE' ? t('messagerie.leaveGroup') : t('messagerie.delete')}
+                {t('messagerie.delete')}
               </button>
             </div>
           </div>
         </div>,
         document.body,
       )}
+      {groupLeaveFlow.modal}
     </>
   )
 }
@@ -257,10 +267,10 @@ function NewConversationPanel({ onStarted }: { onStarted: (conv: ConversationIte
     try {
       const res = await startMut.mutateAsync(c.id)
       onStarted({
-        id: res.id, type: 'DIRECT', titre: c.nom,
+        id: res.id, type: 'DIRECT', titre: c.nom, photoUrl: null,
         interlocuteur: { id: c.id, nom: c.nom, role: c.role },
         participants: [c.nom], nbParticipants: 2,
-        dernierMessage: null, nonLus: 0, updatedAt: new Date().toISOString(),
+        dernierMessage: null, nonLus: 0, muted: false, updatedAt: new Date().toISOString(),
       })
     } catch (e) { if (!isOfflineQueued(e)) toast.error(t('messagerie.startConversationError')) }
   }
@@ -276,9 +286,9 @@ function NewConversationPanel({ onStarted }: { onStarted: (conv: ConversationIte
       const res = await groupMut.mutateAsync({ titre: titre.trim(), participantIds: ids })
       const noms = contacts.filter(c => selected.has(c.id)).map(c => c.nom)
       onStarted({
-        id: res.id, type: 'GROUPE', titre: titre.trim(), interlocuteur: null,
+        id: res.id, type: 'GROUPE', titre: titre.trim(), photoUrl: null, interlocuteur: null,
         participants: noms, nbParticipants: ids.length + 1,
-        dernierMessage: null, nonLus: 0, updatedAt: new Date().toISOString(),
+        dernierMessage: null, nonLus: 0, muted: false, updatedAt: new Date().toISOString(),
       })
     } catch (e) { if (!isOfflineQueued(e)) toast.error(t('messagerie.createGroupError')) }
   }

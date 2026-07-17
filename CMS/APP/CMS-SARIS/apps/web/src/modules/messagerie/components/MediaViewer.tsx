@@ -7,8 +7,10 @@
  */
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import { X, Download, Loader2, AlertTriangle, FileText } from 'lucide-react'
+import { X, Download, Loader2, AlertTriangle, FileText, FolderOpen, Save } from 'lucide-react'
+import { isDesktop } from '@/lib/desktop'
 import { messagerieApi, type PieceJointeMeta } from '../api/messagerie.api'
+import { useDesktopDownload } from '../hooks/useDesktopDownload'
 import { formatBytes } from './mediaUtils'
 
 const C = {
@@ -28,6 +30,7 @@ export function MediaViewer({ pj, onClose }: { pj: PieceJointeMeta; onClose: () 
   const isVideo = mime.startsWith('video/')
   const isImage = mime.startsWith('image/')
   const isAudio = mime.startsWith('audio/')
+  const desktopDl = useDesktopDownload(pj.id, pj.nomFichier, pj.mimeType)
 
   function download() {
     if (!data) return
@@ -45,7 +48,20 @@ export function MediaViewer({ pj, onClose }: { pj: PieceJointeMeta; onClose: () 
           <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: C.txt, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{pj.nomFichier}</p>
           <p style={{ margin: 0, fontSize: 11, color: C.txt3 }}>{formatBytes(pj.taille)}</p>
         </div>
-        <button onClick={download} disabled={!data} title={t('messagerie.downloadAction')} style={{ ...iconBtn, color: C.txt2 }}><Download size={18} /></button>
+        {isDesktop ? (
+          desktopDl.stage === 'downloaded' ? (
+            <>
+              <button onClick={desktopDl.open} title={t('messagerie.openFile')} style={{ ...iconBtn, color: C.txt2 }}><FolderOpen size={18} /></button>
+              <button onClick={() => void desktopDl.saveAs()} title={t('messagerie.saveAs')} style={{ ...iconBtn, color: C.txt2 }}><Save size={18} /></button>
+            </>
+          ) : (
+            <button onClick={() => void desktopDl.download()} disabled={!data || desktopDl.stage === 'downloading'} title={t('messagerie.downloadAction')} style={{ ...iconBtn, color: C.txt2 }}>
+              {desktopDl.stage === 'downloading' ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
+            </button>
+          )
+        ) : (
+          <button onClick={download} disabled={!data} title={t('messagerie.downloadAction')} style={{ ...iconBtn, color: C.txt2 }}><Download size={18} /></button>
+        )}
       </div>
 
       {/* Stage */}
@@ -72,9 +88,26 @@ export function MediaViewer({ pj, onClose }: { pj: PieceJointeMeta; onClose: () 
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, padding: '32px 40px', borderRadius: 18, background: C.modal, border: `1px solid ${C.border}` }}>
             <div style={{ width: 96, height: 96, borderRadius: 20, background: C.accent, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FileText size={42} /></div>
             <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: C.txt }}>{pj.nomFichier}</p>
-            <button onClick={download} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 16px', borderRadius: 9999, background: C.accent, color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
-              <Download size={15} /> {t('messagerie.downloadAction')}
-            </button>
+            {isDesktop ? (
+              desktopDl.stage === 'downloaded' ? (
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button onClick={desktopDl.open} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 16px', borderRadius: 9999, background: C.accent, color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+                    <FolderOpen size={15} /> {t('messagerie.openFile')}
+                  </button>
+                  <button onClick={() => void desktopDl.saveAs()} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 16px', borderRadius: 9999, background: C.field, color: C.txt, border: `1px solid ${C.border}`, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+                    <Save size={15} /> {t('messagerie.saveAs')}
+                  </button>
+                </div>
+              ) : (
+                <button onClick={() => void desktopDl.download()} disabled={desktopDl.stage === 'downloading'} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 16px', borderRadius: 9999, background: C.accent, color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+                  {desktopDl.stage === 'downloading' ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />} {t('messagerie.downloadAction')}
+                </button>
+              )
+            ) : (
+              <button onClick={download} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 16px', borderRadius: 9999, background: C.accent, color: '#fff', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+                <Download size={15} /> {t('messagerie.downloadAction')}
+              </button>
+            )}
           </div>
         )}
       </div>

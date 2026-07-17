@@ -1,15 +1,7 @@
 /**
- * Stickers + utilitaires emoji pour la messagerie. Les stickers (et tous les
- * emojis) sont rendus en images Twemoji depuis le sprite local (cf. twemoji.tsx).
+ * Utilitaires emoji pour la messagerie. Les emojis sont rendus en images
+ * Twemoji depuis le sprite local (cf. twemoji.tsx).
  */
-
-/** Stickers = emojis envoyés en un clic, rendus en grand (image Twemoji). */
-export const STICKERS: string[] = [
-  '👍','🙏','❤️','😂','🎉','👏','💪','🔥','✅','💯',
-  '🤝','🥳','😍','😎','🙌','👌','🤞','✨','⭐','🏆',
-  '🩺','💊','🚑','⛑️','😷','🤒','🆗','⚠️','❗','⏰',
-  '😴','☕','🍀','🌟','💐','🎂','🤗','🫶','😇','🤩',
-]
 
 /** Découpe une chaîne en graphèmes (emojis composés inclus). */
 export function splitGraphemes(text: string): string[] {

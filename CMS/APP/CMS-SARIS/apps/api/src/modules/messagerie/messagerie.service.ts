@@ -71,8 +71,12 @@ type ReplyRow = {
   piecesJointes: { id: string }[]
 } | null
 
-/** Aperçu du contenu d'un message pour une notification (texte tronqué ou type de média, façon WhatsApp). */
-function contentPreview(texteBrut: string, fichiers: UploadedPiece[]): string {
+/**
+ * Aperçu du contenu d'un message (texte tronqué ou type de média, façon WhatsApp) —
+ * utilisé pour les notifications ET l'aperçu de la liste des conversations, pour
+ * ne jamais exposer un nom de fichier technique brut (ex. `note-vocale-0m38s.webm`).
+ */
+function contentPreview(texteBrut: string, fichiers: { nomFichier: string; mimeType: string }[]): string {
   const texte = humanizeMentions(texteBrut)
   if (texte) return texte.length > 80 ? `${texte.slice(0, 80)}…` : texte
   const f = fichiers[0]
@@ -228,10 +232,9 @@ export class MessagerieService {
       if (dernier) {
         if (dernier.type === 'SYSTEME') {
           apercu = dernier.contenuChiffre ? decryptMessage(dernier.contenuChiffre) : ''
-        } else if (dernier.piecesJointes.length && !dernier.contenuChiffre) {
-          apercu = `📎 ${dernier.piecesJointes[0]!.nomFichier}`
         } else {
-          apercu = decryptMessage(dernier.contenuChiffre).slice(0, 80)
+          const texte = dernier.contenuChiffre ? decryptMessage(dernier.contenuChiffre) : ''
+          apercu = contentPreview(texte, dernier.piecesJointes)
         }
       }
 
@@ -328,11 +331,45 @@ export class MessagerieService {
     return { id: conv.id, created: true }
   }
 
-  /** Quitter une conversation (retire le participant). Interdit le DIRECT vide inutilement. */
-  async leaveConversation(conversationId: string, userId: string) {
+  /**
+   * Quitter une conversation (retire le participant).
+   *
+   * Succession d'administrateur principal : le CRÉATEUR d'un groupe qui compte
+   * encore d'autres membres ne peut pas simplement partir (groupe orphelin sans
+   * admin principal). Il doit d'abord désigner un administrateur SECONDAIRE
+   * existant (`newPrincipalId`) qui hérite du rôle — jamais un simple membre,
+   * jamais automatique. Sans successeur valide fourni, on bloque explicitement
+   * (le frontend guide alors vers la promotion d'un admin ou le choix d'un successeur).
+   */
+  async leaveConversation(conversationId: string, userId: string, newPrincipalId?: string) {
     await this.assertParticipant(conversationId, userId)
     const conv = await this.prisma.conversation.findUnique({ where: { id: conversationId } })
+    if (!conv) throw new NotFoundException('Conversation introuvable')
     const actorName = displayName(await this.getUserLite(userId))
+
+    if (conv.type === 'GROUPE' && conv.createdById === userId) {
+      const autresCount = await this.prisma.conversationParticipant.count({
+        where: { conversationId, utilisateurId: { not: userId } },
+      })
+      if (autresCount > 0) {
+        if (!newPrincipalId) {
+          throw new BadRequestException('SUCCESSION_REQUISE : désignez un administrateur secondaire avant de quitter le groupe')
+        }
+        if (newPrincipalId === userId) {
+          throw new BadRequestException('Choisissez un autre membre pour hériter du rôle')
+        }
+        const successeur = await this.prisma.conversationParticipant.findUnique({
+          where: { conversationId_utilisateurId: { conversationId, utilisateurId: newPrincipalId } },
+        })
+        if (!successeur) throw new BadRequestException('Le membre choisi ne fait pas partie du groupe')
+        if (!successeur.estAdmin) throw new BadRequestException('Le nouvel administrateur principal doit déjà être administrateur secondaire')
+
+        await this.prisma.conversation.update({ where: { id: conversationId }, data: { createdById: newPrincipalId } })
+        const successeurName = displayName(await this.getUserLite(newPrincipalId))
+        await this.systemMessage(conversationId, userId, `${actorName} a transmis le rôle d'administrateur principal à ${successeurName}`)
+      }
+    }
+
     await this.prisma.conversationParticipant.delete({
       where: { conversationId_utilisateurId: { conversationId, utilisateurId: userId } },
     })

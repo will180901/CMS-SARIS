@@ -164,7 +164,8 @@ export const messagerieApi = {
   start:         (destinataireId: string) => api.post<{ id: string; created: boolean }>('/messagerie/conversations', { destinataireId }),
   createGroup:   (titre: string, participantIds: string[]) =>
                    api.post<{ id: string; created: boolean }>('/messagerie/groupes', { titre, participantIds }),
-  leave:         (conversationId: string) => api.post<{ left: boolean }>(`/messagerie/conversations/${conversationId}/quitter`, {}),
+  leave:         (conversationId: string, newPrincipalId?: string) =>
+                    api.post<{ left: boolean }>(`/messagerie/conversations/${conversationId}/quitter`, { newPrincipalId }),
   typing:        (conversationId: string, kind?: 'audio') =>
                    api.post<void>(`/messagerie/conversations/${conversationId}/typing${kind === 'audio' ? '?kind=audio' : ''}`, {}),
 

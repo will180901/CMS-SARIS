@@ -16,7 +16,7 @@ import { isDesktop } from '@/lib/desktop'
 import { DESKTOP_TITLEBAR_H } from '@/components/layout/DesktopTitleBar'
 import {
   useGroupInfo, useUpdateGroup, useUploadGroupPhoto, useRemoveGroupPhoto,
-  useAddParticipants, useRemoveParticipant, useSetAdmin, useLeaveConversation, useContacts,
+  useAddParticipants, useRemoveParticipant, useSetAdmin, useContacts,
 } from '../hooks/useMessagerie'
 
 const PHOTO_MAX_BYTES = 5 * 1024 * 1024
@@ -28,7 +28,7 @@ const iconBtn: React.CSSProperties = {
   cursor: 'pointer', color: 'var(--texte-secondaire)', flexShrink: 0,
 }
 
-export function GroupInfoPanel({ conversationId, onClose, onLeft }: { conversationId: string; onClose: () => void; onLeft?: () => void }) {
+export function GroupInfoPanel({ conversationId, onClose, onRequestLeave }: { conversationId: string; onClose: () => void; onRequestLeave: () => void }) {
   const { t } = useTranslation()
   const { data: info, isLoading } = useGroupInfo(conversationId)
   const updateGroup    = useUpdateGroup(conversationId)
@@ -36,7 +36,6 @@ export function GroupInfoPanel({ conversationId, onClose, onLeft }: { conversati
   const removePhoto     = useRemoveGroupPhoto(conversationId)
   const removeParticipant = useRemoveParticipant(conversationId)
   const setAdminMut     = useSetAdmin(conversationId)
-  const leaveMut        = useLeaveConversation()
 
   const [editingTitre, setEditingTitre] = useState(false)
   const [titreDraft, setTitreDraft]     = useState('')
@@ -81,12 +80,6 @@ export function GroupInfoPanel({ conversationId, onClose, onLeft }: { conversati
     if (!window.confirm(t('messagerie.confirmRemoveMember'))) return
     try { await removeParticipant.mutateAsync(userId) } catch { toast.error(t('messagerie.groupUpdateError')) }
   }
-  async function leave() {
-    if (!window.confirm(t('messagerie.confirmLeaveGroup'))) return
-    try { await leaveMut.mutateAsync(conversationId); onClose(); onLeft?.() }
-    catch { toast.error(t('messagerie.leaveError')) }
-  }
-
   return (
     <div onClick={onClose} style={{ position: 'fixed', top: isDesktop ? DESKTOP_TITLEBAR_H : 0, right: 0, bottom: 0, left: 0, background: 'rgba(15,23,42,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: 16 }}>
       <div onClick={e => e.stopPropagation()} style={{ width: 420, maxWidth: '94vw', maxHeight: '86vh', display: 'flex', flexDirection: 'column', background: 'var(--fond-surface)', borderRadius: 14, boxShadow: '0 20px 60px rgba(0,0,0,0.32)', overflow: 'hidden' }}>
@@ -189,7 +182,7 @@ export function GroupInfoPanel({ conversationId, onClose, onLeft }: { conversati
               </div>
             </div>
 
-            <button onClick={leave}
+            <button onClick={onRequestLeave}
               style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0 0', color: 'var(--erreur-accent)', fontSize: 13, fontWeight: 600, background: 'none', border: 'none', borderTop: '1px solid var(--bordure-legere)', cursor: 'pointer' }}>
               <LogOut size={15} /> {t('messagerie.leaveGroup')}
             </button>

@@ -88,6 +88,14 @@ export class MuteDto {
   muted!: boolean
 }
 
+export class LeaveConversationDto {
+  // Requis uniquement quand le créateur quitte un groupe qui a d'autres membres :
+  // désigne l'administrateur secondaire qui hérite du rôle d'administrateur principal.
+  @IsOptional()
+  @IsUUID()
+  newPrincipalId?: string
+}
+
 export class ForwardMessageDto {
   @IsArray()
   @ArrayMinSize(1, { message: 'Sélectionnez au moins une conversation' })

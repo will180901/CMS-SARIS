@@ -15,8 +15,8 @@ import type { TFunction } from 'i18next'
 import {
   Send, Pencil, Trash2, Check, CheckCheck, X, ShieldCheck,
   Users, Paperclip, ChevronUp, ChevronDown, Clock, Loader2,
-  Reply, Copy, Image as ImageIcon, FileText, Sticker, Smile, Info, Music, Mic, ListChecks, Plus, ChevronLeft,
-  Pin, PinOff, Forward,
+  Reply, Copy, Image as ImageIcon, FileText, Smile, Info, Music, Mic, ListChecks, Plus, ChevronLeft,
+  Pin, PinOff, Forward, MoreVertical, Bell, BellOff, LogOut,
 } from 'lucide-react'
 import { Avatar, UserAvatar } from '@/components/saris'
 import { Popover, PopoverContent, PopoverTrigger } from '@workspace/ui/components/popover'
@@ -28,7 +28,9 @@ import {
   useMessagesThread, flattenThread,
   useSendMessage, useUpdateMessage, useDeleteMessage, useHideMessage, useToggleReaction, useMessageDetails,
   useBatchDeleteMessages, useTogglePin, usePinnedMessages, useForwardMessage, useReactionDetails, useConversations,
+  useSetMuted,
 } from '../hooks/useMessagerie'
+import { useLeaveGroupFlow } from '../hooks/useLeaveGroupFlow'
 import { messagerieApi, EDIT_DELETE_WINDOW_MS, type ConversationItem, type MessageItem, type ReplyPreview, type PieceJointeMeta } from '../api/messagerie.api'
 import { PieceJointe, MediaThumb } from './PieceJointe'
 import { MediaPreview } from './MediaPreview'
@@ -38,9 +40,10 @@ import { GroupInfoPanel } from './GroupInfoPanel'
 import { playSound } from '@/lib/sounds'
 import { formatTime, formatDate, formatDateTime } from '@/lib/intl'
 import { useTypingStore } from '@/stores/typing.store'
+import { useAudioPlaybackStore } from '@/stores/audioPlayback.store'
 import { EmojiPicker } from './EmojiPicker'
 import { Twemoji, renderRich } from './twemoji'
-import { STICKERS, isEmojiOnly, splitGraphemes } from './emojiData'
+import { isEmojiOnly, splitGraphemes } from './emojiData'
 
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏']
 
@@ -124,12 +127,14 @@ function formatLastSeen(iso: string, t: TFunction): string {
 }
 
 export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem; onLeft?: () => void; onBack?: () => void }) {
-  void onLeft
   const { t } = useTranslation()
   const conversationId = conv.id
   const isGroupe = conv.type === 'GROUPE'
   const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useMessagesThread(conversationId)
   const messages = flattenThread(data?.pages)
+  const muteMut = useSetMuted(conversationId)
+  const [threadMenuOpen, setThreadMenuOpen] = useState(false)
+  const groupLeaveFlow = useLeaveGroupFlow(() => { setGroupInfoOpen(false); onLeft?.() })
 
   const sendMut   = useSendMessage(conversationId)
   const updateMut = useUpdateMessage(conversationId)
@@ -148,8 +153,8 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
   const [editText, setEditText] = useState('')
   const [replyTo, setReplyTo]   = useState<ReplyPreview | null>(null)
   const [showScrollDown, setShowScrollDown] = useState(false)
+  const [newMessagesCount, setNewMessagesCount] = useState(0)
   const [emojiOpen, setEmojiOpen]   = useState(false)
-  const [stickerOpen, setStickerOpen] = useState(false)
   const [attachOpen, setAttachOpen] = useState(false)
   const [detailsId, setDetailsId]   = useState<string | null>(null)
   const [delTarget, setDelTarget]   = useState<MessageItem | null>(null)
@@ -204,6 +209,12 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
   const scrollRef   = useRef<HTMLDivElement>(null)
   const distFromBottomRef = useRef(0)
   const loadingOlderRef   = useRef(false)
+  // Suivi façon WhatsApp : tant qu'on est proche du bas, un nouveau message fait
+  // défiler automatiquement ; sinon (en train de relire l'historique) on garde la
+  // position et on compte les messages ratés pour le badge du bouton « Descendre ».
+  const nearBottomRef = useRef(true)
+  const prevMsgCountRef = useRef(0)
+  const prevConvIdRef = useRef(conversationId)
 
   const nom = isGroupe ? conv.titre : (conv.interlocuteur?.nom ?? conv.titre)
   const lastOwnId = [...messages].reverse().find(m => m.deMoi && !m.pending)?.id ?? null
@@ -271,8 +282,24 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
   useLayoutEffect(() => {
     const el = scrollRef.current
     if (!el) return
-    if (loadingOlderRef.current) { el.scrollTop = el.scrollHeight - distFromBottomRef.current; loadingOlderRef.current = false }
-    else el.scrollTop = el.scrollHeight
+    const isNewConversation = prevConvIdRef.current !== conversationId
+    prevConvIdRef.current = conversationId
+
+    if (loadingOlderRef.current) {
+      el.scrollTop = el.scrollHeight - distFromBottomRef.current
+      loadingOlderRef.current = false
+    } else if (isNewConversation || nearBottomRef.current || messages[messages.length - 1]?.deMoi) {
+      // Déjà en bas (ou j'envoie moi-même, ou nouveau fil) → on suit, comme WhatsApp.
+      el.scrollTop = el.scrollHeight
+      nearBottomRef.current = true
+      setNewMessagesCount(0)
+    } else {
+      // En train de relire l'historique : on NE bouge PAS le fil, on compte juste
+      // les nouveaux messages ratés pour le badge du bouton flottant.
+      const delta = messages.length - prevMsgCountRef.current
+      if (delta > 0) setNewMessagesCount(n => n + delta)
+    }
+    prevMsgCountRef.current = messages.length
   }, [messages.length, conversationId])
 
   // Si la bulle « en train d'écrire » apparaît alors qu'on est déjà en bas du fil, on
@@ -285,13 +312,38 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
 
   const onScroll = useCallback(() => {
     const el = scrollRef.current
-    if (el) setShowScrollDown(el.scrollHeight - el.scrollTop - el.clientHeight > 220)
+    if (!el) return
+    const away = el.scrollHeight - el.scrollTop - el.clientHeight
+    nearBottomRef.current = away <= 220
+    setShowScrollDown(away > 220)
+    if (nearBottomRef.current) setNewMessagesCount(0)
   }, [])
 
-  function scrollToBottom() { const el = scrollRef.current; if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' }) }
+  function scrollToBottom() {
+    const el = scrollRef.current
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
+    nearBottomRef.current = true
+    setNewMessagesCount(0)
+  }
   function scrollToMessage(id: string) {
     const el = document.getElementById(`msg-${id}`)
     if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.style.transition = 'background 0.2s'; el.style.background = 'var(--ap-50)'; setTimeout(() => { el.style.background = '' }, 900) }
+  }
+
+  /**
+   * Enchaînement audio façon WhatsApp : à la fin d'une note vocale / d'un audio,
+   * si le message SUIVANT est lui-même purement audio (aucun texte, aucune autre
+   * pièce), on demande sa lecture automatique. Un message « normal » (texte,
+   * image, document…) interposé casse la chaîne.
+   */
+  function handleAudioEnded(currentMessageId: string) {
+    const idx = messages.findIndex(mm => mm.id === currentMessageId)
+    if (idx === -1) return
+    const next = messages[idx + 1]
+    if (!next || next.type !== 'TEXTE' || next.contenu) return
+    const pieces = next.piecesJointes
+    if (!pieces.length || !pieces.every(p => p.mimeType.startsWith('audio/'))) return
+    useAudioPlaybackStore.getState().requestAutoPlay(pieces[0]!.id)
   }
   function loadMore() {
     const el = scrollRef.current
@@ -339,12 +391,6 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
     setDraft(''); setMentionSpans([]); setReplyTo(null); setMention(null)
     try { await sendMut.mutateAsync({ contenu: wireText, fichiers: [], replyToId: rep?.id, replyPreview: rep }) }
     catch (e) { if (!isOfflineQueued(e)) { toast.error(t('messagerie.sendError')); setDraft(raw); setMentionSpans(spansSnapshot); setReplyTo(rep) } }
-  }
-
-  async function sendSticker(emoji: string) {
-    setStickerOpen(false)
-    try { await sendMut.mutateAsync({ contenu: emoji, fichiers: [] }) }
-    catch (e) { if (!isOfflineQueued(e)) toast.error(t('messagerie.sendError')) }
   }
 
   async function handleUpdate() {
@@ -429,6 +475,39 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
             </p>
           </div>
         </div>
+
+        {/* ── Menu ⋮ du fil (façon WhatsApp) ─────────────────────────── */}
+        {isGroupe && (
+          <Popover open={threadMenuOpen} onOpenChange={setThreadMenuOpen}>
+            <PopoverTrigger asChild>
+              <button title={t('messagerie.threadMenu')} aria-label={t('messagerie.threadMenu')}
+                style={{ width: 34, height: 34, flexShrink: 0, borderRadius: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--texte-secondaire)' }}>
+                <MoreVertical size={19} />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="end" sideOffset={4} style={{ width: 230, padding: 4, background: 'var(--fond-surface)', border: '1px solid var(--bordure-legere)', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.14)' }}>
+              <button onClick={() => { setThreadMenuOpen(false); setGroupInfoOpen(true) }}
+                style={menuItemStyle('var(--texte-secondaire)')}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--fond-surface-2)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                <Info size={14} /> {t('messagerie.groupInfo')}
+              </button>
+              <button onClick={() => { setThreadMenuOpen(false); muteMut.mutate(!conv.muted, { onError: () => toast.error(t('messagerie.groupUpdateError')) }) }}
+                style={menuItemStyle('var(--texte-secondaire)')}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--fond-surface-2)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                {conv.muted ? <Bell size={14} /> : <BellOff size={14} />}
+                {conv.muted ? t('messagerie.unmuteConversation') : t('messagerie.muteConversation')}
+              </button>
+              <button onClick={() => { setThreadMenuOpen(false); void groupLeaveFlow.requestLeave({ id: conversationId, titre: conv.titre ?? nom }) }}
+                style={menuItemStyle('var(--erreur-accent)')}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--erreur-fond)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                <LogOut size={14} /> {t('messagerie.leaveGroup')}
+              </button>
+            </PopoverContent>
+          </Popover>
+        )}
       </div>
 
       {/* ── Bandeau messages épinglés ──────────────────────────────────── */}
@@ -485,6 +564,7 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
               onDetails={(m) => setDetailsId(m.id)} onOpenMedia={setViewerPj}
               onTogglePin={togglePin} onForward={(m) => setForwardTarget(m)} onShowReactionDetails={setReactionDetailsId}
               selectMode={selectMode} selectedIds={selectedIds} onToggleSelect={toggleSelect} onEnterSelect={enterSelect}
+              onAudioEnded={handleAudioEnded}
             />
           </>
         )}
@@ -517,9 +597,15 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
       </div>
 
       {showScrollDown && (
-        <button onClick={scrollToBottom} title={t('messagerie.scrollDown')}
+        <button onClick={scrollToBottom}
+          title={newMessagesCount > 0 ? t('messagerie.newMessagesBelow', { count: newMessagesCount }) : t('messagerie.scrollDown')}
           style={{ position: 'absolute', right: 24, bottom: replyTo ? 150 : 86, width: 38, height: 38, borderRadius: 9999, background: 'var(--fond-surface)', border: '1px solid var(--bordure-normale)', boxShadow: '0 4px 12px rgba(0,0,0,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--texte-secondaire)', zIndex: 5 }}>
           <ChevronDown size={18} />
+          {newMessagesCount > 0 && (
+            <span style={{ position: 'absolute', top: -6, right: -6, minWidth: 19, height: 19, padding: '0 5px', borderRadius: 9999, background: 'var(--ap-400)', color: '#fff', fontSize: 10.5, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, boxShadow: '0 1px 3px rgba(0,0,0,0.25)' }}>
+              {newMessagesCount > 99 ? '99+' : newMessagesCount}
+            </span>
+          )}
         </button>
       )}
 
@@ -572,29 +658,6 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
           </PopoverTrigger>
           <PopoverContent align="start" side="top" sideOffset={8} style={{ padding: 0, background: 'transparent', border: 'none', boxShadow: 'none', width: 'auto' }}>
             <EmojiPicker onPick={insertEmoji} />
-          </PopoverContent>
-        </Popover>
-
-        {/* Stickers */}
-        <Popover open={stickerOpen} onOpenChange={setStickerOpen}>
-          <PopoverTrigger asChild>
-            <button title={t('messagerie.stickers')} style={composerBtn}><Sticker size={18} /></button>
-          </PopoverTrigger>
-          <PopoverContent align="start" side="top" sideOffset={8} style={{ ...popoverBox, width: 300 }}>
-            <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--bordure-legere)', fontSize: 12, fontWeight: 600, color: 'var(--texte-primaire)' }}>{t('messagerie.stickers')}</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 4, padding: 10, maxHeight: 240, overflowY: 'auto' }}>
-              {STICKERS.map((s, i) => (
-                <button key={s + i} onClick={() => sendSticker(s)} title={t('messagerie.send')}
-                  style={{ height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, cursor: 'pointer', background: 'transparent', border: 'none', transition: 'transform .08s, background .12s' }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--fond-surface-2)'; e.currentTarget.style.transform = 'scale(1.12)' }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.transform = 'scale(1)' }}>
-                  <Twemoji emoji={s} size={34} />
-                </button>
-              ))}
-            </div>
-            <div style={{ padding: '5px 10px', borderTop: '1px solid var(--bordure-legere)', fontSize: 9, color: 'var(--texte-tertiaire)', textAlign: 'center' }}>
-              {t('messagerie.emojiCredit')}
-            </div>
           </PopoverContent>
         </Popover>
 
@@ -663,7 +726,11 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
 
       {detailsId && <MessageDetailsModal messageId={detailsId} onClose={() => setDetailsId(null)} />}
       {reactionDetailsId && <ReactionDetailsModal messageId={reactionDetailsId} onClose={() => setReactionDetailsId(null)} />}
-      {groupInfoOpen && isGroupe && <GroupInfoPanel conversationId={conversationId} onClose={() => setGroupInfoOpen(false)} onLeft={onLeft} />}
+      {groupInfoOpen && isGroupe && (
+        <GroupInfoPanel conversationId={conversationId} onClose={() => setGroupInfoOpen(false)}
+          onRequestLeave={() => void groupLeaveFlow.requestLeave({ id: conversationId, titre: conv.titre ?? nom })} />
+      )}
+      {groupLeaveFlow.modal}
       {forwardTarget && <ForwardPickerModal message={forwardTarget} currentConversationId={conversationId} onClose={() => setForwardTarget(null)} />}
       {delTarget && (
         <DeleteChoiceDialog
@@ -718,6 +785,7 @@ function MessageList(props: {
   onOpenMedia: (pj: PieceJointeMeta) => void
   onTogglePin: (m: MessageItem) => void; onForward: (m: MessageItem) => void; onShowReactionDetails: (id: string) => void
   selectMode: boolean; selectedIds: Set<string>; onToggleSelect: (id: string) => void; onEnterSelect: (id: string) => void
+  onAudioEnded: (messageId: string) => void
 }) {
   const { t, messages, lastOwnId } = props
   // Regroupement par jour → sections avec en-tête de date STICKY (façon WhatsApp).
@@ -782,7 +850,7 @@ function Bubble({
   t, m, isGroupe, grouped, isLastOwn, editId, editText, setEditText,
   onStartEdit, onCancelEdit, onSaveEdit, onDelete, onReply, onCopy, onQuoteClick, onReact, onDetails, onOpenMedia,
   onTogglePin, onForward, onShowReactionDetails,
-  selectMode, selectedIds, onToggleSelect, onEnterSelect,
+  selectMode, selectedIds, onToggleSelect, onEnterSelect, onAudioEnded,
 }: {
   t: TFunction
   m: MessageItem; isGroupe: boolean; grouped: boolean; isLastOwn: boolean
@@ -793,6 +861,7 @@ function Bubble({
   onOpenMedia: (pj: PieceJointeMeta) => void
   onTogglePin: (m: MessageItem) => void; onForward: (m: MessageItem) => void; onShowReactionDetails: (id: string) => void
   selectMode: boolean; selectedIds: Set<string>; onToggleSelect: (id: string) => void; onEnterSelect: (id: string) => void
+  onAudioEnded: (messageId: string) => void
 }) {
   const [hover, setHover] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -868,7 +937,7 @@ function Bubble({
               {/* Pièces non visuelles (audio / document) */}
               {!m.pending && others.length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: 8 }}>
-                  {others.map(pj => <PieceJointe key={pj.id} pj={pj} mine={mine} onOpen={onOpenMedia} />)}
+                  {others.map(pj => <PieceJointe key={pj.id} pj={pj} mine={mine} onOpen={onOpenMedia} onAudioEnded={() => onAudioEnded(m.id)} />)}
                 </div>
               )}
 
@@ -1027,6 +1096,10 @@ function MenuRow({ icon, label, onClick, tone }: { icon: React.ReactNode; label:
 
 function iconBtn(color: string): React.CSSProperties {
   return { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', cursor: 'pointer', padding: 2, color }
+}
+
+function menuItemStyle(color: string): React.CSSProperties {
+  return { width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 7, fontSize: 13, color, background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left' }
 }
 
 // ── Modale « Détails du message » ────────────────────────────────────────────

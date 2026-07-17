@@ -9,12 +9,22 @@ import { useEffect } from 'react'
 import { useTheme } from '@/components/theme-provider'
 import { useMyPreferences } from '@/modules/admin/hooks/useAdmin'
 import { setLanguage } from '@/i18n/config'
+import { desktopBridge, isDesktop } from '@/lib/desktop'
+import { useSessionStore } from '@/stores/session.store'
 
 export const THEME_MAP = { clair: 'light', sombre: 'dark', auto: 'system' } as const
 
 export function PreferencesSync() {
   const { data: pref } = useMyPreferences()
   const { setTheme } = useTheme()
+  const userId = useSessionStore(s => s.user?.id)
+
+  // Provisionne l'espace de fichiers PROPRE au compte connecté (façon WhatsApp
+  // Desktop) — dossiers Documents/Images/Vidéos/Audio dédiés, jamais partagés
+  // entre comptes sur un même poste. Desktop uniquement, sans effet en web/PWA.
+  useEffect(() => {
+    if (isDesktop && userId) void desktopBridge()?.media.ensureDirs(userId)
+  }, [userId])
 
   // IMPORTANT : on dépend des VALEURS, pas de l'objet `pref`. Sinon un simple
   // refetch de la query (déclenché p.ex. en ouvrant l'onglet Personnel après

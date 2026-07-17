@@ -98,7 +98,8 @@ export function useCreateGroup() {
 export function useLeaveConversation() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (conversationId: string) => messagerieApi.leave(conversationId),
+    mutationFn: ({ conversationId, newPrincipalId }: { conversationId: string; newPrincipalId?: string }) =>
+      messagerieApi.leave(conversationId, newPrincipalId),
     onSuccess:  () => { qc.invalidateQueries({ queryKey: MSG_KEY }) },
   })
 }

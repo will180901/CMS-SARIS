@@ -12,11 +12,15 @@
 import { useState, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import { FileText, Download, Loader2, Play, Pause } from 'lucide-react'
+import { FileText, Download, Loader2, Play, Pause, FolderOpen, Save } from 'lucide-react'
+import { isDesktop } from '@/lib/desktop'
+import { playSound } from '@/lib/sounds'
+import { useAudioPlaybackStore } from '@/stores/audioPlayback.store'
 import { messagerieApi, type PieceJointeMeta } from '../api/messagerie.api'
+import { useDesktopDownload } from '../hooks/useDesktopDownload'
 import { formatBytes, formatDuration } from './mediaUtils'
 
-export function PieceJointe({ pj, mine, pending, onOpen }: { pj: PieceJointeMeta; mine: boolean; pending?: boolean; onOpen?: (pj: PieceJointeMeta) => void }) {
+export function PieceJointe({ pj, mine, pending, onOpen, onAudioEnded }: { pj: PieceJointeMeta; mine: boolean; pending?: boolean; onOpen?: (pj: PieceJointeMeta) => void; onAudioEnded?: () => void }) {
   const { t } = useTranslation()
   if (pending) {
     return (
@@ -29,7 +33,7 @@ export function PieceJointe({ pj, mine, pending, onOpen }: { pj: PieceJointeMeta
   const mime = pj.mimeType
   if (mime.startsWith('image/')) return <ImagePiece pj={pj} onOpen={onOpen} />
   if (mime.startsWith('video/')) return <VideoPiece pj={pj} onOpen={onOpen} />
-  if (mime.startsWith('audio/')) return <VoiceNotePlayer pj={pj} mine={mine} />
+  if (mime.startsWith('audio/')) return <VoiceNotePlayer pj={pj} mine={mine} onEnded={onAudioEnded} />
   return <DocPiece pj={pj} mine={mine} />
 }
 
@@ -104,7 +108,7 @@ async function decodePeaks(dataUrl: string, bars: number): Promise<{ peaks: numb
   return { peaks: raw.map(v => (max > 0 ? Math.min(1, v / max) : 0)), duration: audio.duration }
 }
 
-function VoiceNotePlayer({ pj, mine }: { pj: PieceJointeMeta; mine: boolean }) {
+function VoiceNotePlayer({ pj, mine, onEnded }: { pj: PieceJointeMeta; mine: boolean; onEnded?: () => void }) {
   const { t } = useTranslation()
   const { data, isLoading, isError } = usePiece(pj, true)
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -114,6 +118,9 @@ function VoiceNotePlayer({ pj, mine }: { pj: PieceJointeMeta; mine: boolean }) {
   const [playing, setPlay]  = useState(false)
   const [frac, setFrac]     = useState(0)
   const [speedIdx, setSpeed] = useState(0)
+
+  const storePlayingId = useAudioPlaybackStore(s => s.playingId)
+  const autoPlayId     = useAudioPlaybackStore(s => s.autoPlayId)
 
   useEffect(() => {
     if (!data?.dataUrl) return
@@ -125,6 +132,16 @@ function VoiceNotePlayer({ pj, mine }: { pj: PieceJointeMeta; mine: boolean }) {
   }, [data?.dataUrl])
   useEffect(() => () => { cancelAnimationFrame(rafRef.current); try { audioRef.current?.pause() } catch { /* noop */ } }, [])
 
+  // Lecture EXCLUSIVE : dès qu'une AUTRE pièce devient le lecteur actif, je me coupe.
+  useEffect(() => {
+    if (playing && storePlayingId !== pj.id) {
+      const a = audioRef.current
+      if (a) a.pause()
+      setPlay(false)
+      cancelAnimationFrame(rafRef.current)
+    }
+  }, [storePlayingId, playing, pj.id])
+
   function loop() {
     const a = audioRef.current
     if (a && !a.paused) {
@@ -133,11 +150,31 @@ function VoiceNotePlayer({ pj, mine }: { pj: PieceJointeMeta; mine: boolean }) {
       rafRef.current = requestAnimationFrame(loop)
     }
   }
+  function start() {
+    const a = audioRef.current; if (!a) return
+    useAudioPlaybackStore.getState().play(pj.id)
+    playSound('tap')
+    a.playbackRate = VOICE_SPEEDS[speedIdx]
+    a.play().then(() => { setPlay(true); loop() }).catch(() => { /* noop */ })
+  }
+  function pause() {
+    const a = audioRef.current; if (!a) return
+    a.pause(); setPlay(false); cancelAnimationFrame(rafRef.current)
+    useAudioPlaybackStore.getState().stop(pj.id)
+  }
   function toggle() {
     const a = audioRef.current; if (!a) return
-    if (a.paused) { a.playbackRate = VOICE_SPEEDS[speedIdx]; a.play().then(() => { setPlay(true); loop() }).catch(() => { /* noop */ }) }
-    else { a.pause(); setPlay(false); cancelAnimationFrame(rafRef.current) }
+    if (a.paused) start(); else pause()
   }
+
+  // Enchaînement : le message audio suivant (s'il y en a un) demande MA lecture.
+  useEffect(() => {
+    if (autoPlayId !== pj.id || !data?.dataUrl) return
+    useAudioPlaybackStore.getState().consumeAutoPlay()
+    start()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoPlayId, data?.dataUrl])
+
   function cycleSpeed(e: React.MouseEvent) {
     e.stopPropagation()
     const n = (speedIdx + 1) % VOICE_SPEEDS.length
@@ -185,7 +222,11 @@ function VoiceNotePlayer({ pj, mine }: { pj: PieceJointeMeta; mine: boolean }) {
         </button>
       )}
 
-      {data && <audio ref={audioRef} src={data.dataUrl} preload="metadata" onEnded={() => { setPlay(false); setFrac(0); cancelAnimationFrame(rafRef.current) }} style={{ display: 'none' }} />}
+      {data && <audio ref={audioRef} src={data.dataUrl} preload="metadata" onEnded={() => {
+        setPlay(false); setFrac(0); cancelAnimationFrame(rafRef.current)
+        useAudioPlaybackStore.getState().stop(pj.id)
+        onEnded?.()
+      }} style={{ display: 'none' }} />}
     </div>
   )
 }
@@ -193,7 +234,9 @@ function VoiceNotePlayer({ pj, mine }: { pj: PieceJointeMeta; mine: boolean }) {
 function DocPiece({ pj, mine }: { pj: PieceJointeMeta; mine: boolean }) {
   const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
-  async function download() {
+  const desktopDl = useDesktopDownload(pj.id, pj.nomFichier, pj.mimeType)
+
+  async function downloadWeb() {
     if (loading) return
     setLoading(true)
     try {
@@ -203,8 +246,39 @@ function DocPiece({ pj, mine }: { pj: PieceJointeMeta; mine: boolean }) {
       document.body.appendChild(a); a.click(); a.remove()
     } finally { setLoading(false) }
   }
+
+  // Bureau : cycle « Télécharger → Ouvrir / Enregistrer sous » (façon WhatsApp Desktop).
+  if (isDesktop) {
+    if (desktopDl.stage === 'downloaded') {
+      return (
+        <Card mine={mine}>
+          <IconTile mine={mine}><FileText size={18} /></IconTile>
+          <Texts name={pj.nomFichier} sub={formatBytes(pj.taille)} />
+          <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+            <button onClick={desktopDl.open} title={t('messagerie.openFile')}
+              style={{ width: 26, height: 26, borderRadius: 7, border: 'none', cursor: 'pointer', background: 'transparent', color: 'var(--ap-600)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <FolderOpen size={14} />
+            </button>
+            <button onClick={() => void desktopDl.saveAs()} title={t('messagerie.saveAs')}
+              style={{ width: 26, height: 26, borderRadius: 7, border: 'none', cursor: 'pointer', background: 'transparent', color: 'var(--ap-600)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Save size={14} />
+            </button>
+          </div>
+        </Card>
+      )
+    }
+    return (
+      <Card mine={mine} onClick={() => void desktopDl.download()} title={t('messagerie.download', { nom: pj.nomFichier })}>
+        <IconTile mine={mine}>{desktopDl.stage === 'downloading' ? <Loader2 size={18} className="animate-spin" /> : <FileText size={18} />}</IconTile>
+        <Texts name={pj.nomFichier} sub={formatBytes(pj.taille)} />
+        <Download size={15} style={{ flexShrink: 0, color: 'var(--texte-tertiaire)' }} />
+      </Card>
+    )
+  }
+
+  // Web/PWA : téléchargement navigateur classique, inchangé.
   return (
-    <Card mine={mine} onClick={download} title={t('messagerie.download', { nom: pj.nomFichier })}>
+    <Card mine={mine} onClick={downloadWeb} title={t('messagerie.download', { nom: pj.nomFichier })}>
       <IconTile mine={mine}>{loading ? <Loader2 size={18} className="animate-spin" /> : <FileText size={18} />}</IconTile>
       <Texts name={pj.nomFichier} sub={formatBytes(pj.taille)} />
       <Download size={15} style={{ flexShrink: 0, color: 'var(--texte-tertiaire)' }} />

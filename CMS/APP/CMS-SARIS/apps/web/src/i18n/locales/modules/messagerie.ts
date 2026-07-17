@@ -66,6 +66,8 @@ export const messagerie = {
     conversationStart: 'Début de la conversation',
     previousMessages: 'Messages précédents',
     scrollDown: 'Descendre',
+    newMessagesBelow_one: '{{count}} nouveau message',
+    newMessagesBelow_other: '{{count}} nouveaux messages',
 
     // ── Barre de réponse ────────────────────────────────────────────
     replyTo: 'Réponse à {{auteur}}',
@@ -81,8 +83,6 @@ export const messagerie = {
 
     // ── Composeur ───────────────────────────────────────────────────
     emoji: 'Emoji',
-    stickers: 'Stickers',
-    emojiCredit: 'Emojis : Twemoji (CC-BY 4.0)',
     attach: 'Joindre',
     photosAndVideos: 'Photos & vidéos',
     audio: 'Audio',
@@ -166,6 +166,8 @@ export const messagerie = {
     pause: 'Pause',
     listen: 'Écouter',
     playbackSpeed: 'Vitesse de lecture',
+    openFile: 'Ouvrir',
+    saveAs: 'Enregistrer sous…',
 
     // ── Lecteur média (MediaViewer) ─────────────────────────────────
     openMediaError: "Impossible d'ouvrir ce média",
@@ -216,12 +218,18 @@ export const messagerie = {
     demoteAdmin: "Retirer les droits d'administrateur",
     removeMember: 'Retirer du groupe',
     confirmRemoveMember: 'Retirer ce membre du groupe ?',
-    confirmLeaveGroup: 'Quitter ce groupe ?',
-    leaveGroup: 'Quitter le groupe',
     leaveError: 'Impossible de quitter le groupe',
     groupUpdateError: 'Une erreur est survenue',
     photoInvalidFormat: 'Format invalide — image JPEG, PNG, WEBP ou GIF attendue',
     photoTooLarge: 'Fichier trop volumineux (5 Mo maximum)',
+
+    // ── Succession d'administrateur principal (avant de quitter) ────────
+    noSecondaryAdminToInherit: "Vous êtes le seul administrateur du groupe. Nommez d'abord un administrateur secondaire avant de quitter.",
+    pickSuccessorTitle: "Transmettre le rôle d'administrateur principal",
+    pickSuccessorBody: 'Avant de quitter « {{titre}} », choisissez un administrateur qui héritera de votre rôle.',
+
+    // ── Menu ⋮ du fil (façon WhatsApp) ────────────────────────────────
+    threadMenu: 'Menu',
 
     // ── Épinglage ─────────────────────────────────────────────────────
     pin: 'Épingler',
@@ -311,6 +319,8 @@ export const messagerie = {
     conversationStart: 'Start of the conversation',
     previousMessages: 'Previous messages',
     scrollDown: 'Scroll down',
+    newMessagesBelow_one: '{{count}} new message',
+    newMessagesBelow_other: '{{count}} new messages',
 
     // ── Barre de réponse ────────────────────────────────────────────
     replyTo: 'Reply to {{auteur}}',
@@ -326,8 +336,6 @@ export const messagerie = {
 
     // ── Composeur ───────────────────────────────────────────────────
     emoji: 'Emoji',
-    stickers: 'Stickers',
-    emojiCredit: 'Emojis: Twemoji (CC-BY 4.0)',
     attach: 'Attach',
     photosAndVideos: 'Photos & videos',
     audio: 'Audio',
@@ -411,6 +419,8 @@ export const messagerie = {
     pause: 'Pause',
     listen: 'Listen',
     playbackSpeed: 'Playback speed',
+    openFile: 'Open',
+    saveAs: 'Save as…',
 
     // ── Lecteur média (MediaViewer) ─────────────────────────────────
     openMediaError: 'Unable to open this media',
@@ -461,12 +471,18 @@ export const messagerie = {
     demoteAdmin: 'Remove as admin',
     removeMember: 'Remove from group',
     confirmRemoveMember: 'Remove this member from the group?',
-    confirmLeaveGroup: 'Leave this group?',
-    leaveGroup: 'Leave group',
     leaveError: 'Unable to leave the group',
     groupUpdateError: 'Something went wrong',
     photoInvalidFormat: 'Invalid format — JPEG, PNG, WEBP or GIF image expected',
     photoTooLarge: 'File too large (5 MB maximum)',
+
+    // ── Principal admin succession (before leaving) ──────────────────
+    noSecondaryAdminToInherit: 'You are the only admin. Make someone a secondary admin before leaving.',
+    pickSuccessorTitle: 'Hand over the principal admin role',
+    pickSuccessorBody: 'Before leaving “{{titre}}”, choose an admin to inherit your role.',
+
+    // ── ⋮ thread menu (WhatsApp-style) ────────────────────────────────
+    threadMenu: 'Menu',
 
     // ── Pinning ─────────────────────────────────────────────────────────
     pin: 'Pin',

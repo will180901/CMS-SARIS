@@ -21,7 +21,7 @@ import { UserThrottlerGuard } from '../security/guards/user-throttler.guard'
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator'
 import {
   StartConversationDto, CreateGroupDto, SendMessageDto, UpdateMessageDto, ReactDto,
-  AddParticipantsDto, SetAdminDto, UpdateGroupDto, MuteDto, ForwardMessageDto,
+  AddParticipantsDto, SetAdminDto, UpdateGroupDto, MuteDto, ForwardMessageDto, LeaveConversationDto,
 } from './dto/messagerie.dto'
 import { BatchIdsDto } from '../../common/dto/batch-ids.dto'
 
@@ -138,12 +138,16 @@ export class MessagerieController {
     return this.svc.createGroup(userId, dto.titre, dto.participantIds, siteId)
   }
 
-  /** Quitter une conversation. */
+  /**
+   * Quitter une conversation. Pour un groupe dont on est le CRÉATEUR (admin
+   * principal) avec d'autres membres restants : `newPrincipalId` (un administrateur
+   * secondaire) est OBLIGATOIRE — succession avant de sortir, jamais de groupe orphelin.
+   */
   @Post('conversations/:id/quitter')
   @RequirePermissions('messagerie.read')
   @HttpCode(HttpStatus.OK)
-  leave(@Param('id') id: string, @Req() req: AuthedRequest) {
-    return this.svc.leaveConversation(id, requireUser(req).userId)
+  leave(@Param('id') id: string, @Body() dto: LeaveConversationDto, @Req() req: AuthedRequest) {
+    return this.svc.leaveConversation(id, requireUser(req).userId, dto.newPrincipalId)
   }
 
   // ── Gestion de groupe ───────────────────────────────────────────────────────

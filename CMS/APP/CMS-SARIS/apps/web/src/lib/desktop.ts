@@ -44,6 +44,18 @@ export interface SarisDesktopBridge {
     set: (key: string, value: string) => Promise<void>
     del: (key: string) => Promise<void>
   }
+  /**
+   * Espace de fichiers PAR UTILISATEUR (façon WhatsApp Desktop) pour les pièces
+   * jointes de la messagerie — dossier dédié au compte connecté, jamais partagé
+   * entre comptes sur un même poste. `category` : 'documents' | 'images' | 'videos' | 'audio'.
+   */
+  media: {
+    ensureDirs: (userId: string) => Promise<{ ok: boolean; dirs?: Record<string, string>; error?: string }>
+    save: (params: { userId: string; category: string; nomFichier: string; dataUrl: string }) => Promise<{ ok: boolean; path?: string; error?: string }>
+    openPath: (filePath: string) => Promise<{ ok: boolean; error?: string }>
+    saveAs: (params: { dataUrl: string; suggestedName: string }) => Promise<{ ok: boolean; canceled?: boolean; path?: string; error?: string }>
+    showInFolder: (filePath: string) => Promise<void>
+  }
 }
 
 declare global {
