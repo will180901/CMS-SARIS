@@ -6,7 +6,7 @@
  *  - Aucun gradient, coins arrondis ≤ 10px, tooltips thématisés maison.
  *  - Responsive (ResponsiveContainer) ; hauteur pilotée par prop.
  *
- * Composants : AreaTrend · DonutChart · MiniBars · SparkLine.
+ * Composants : AreaTrend · DonutChart · MiniBars · RankedBars · SparkLine.
  */
 
 import type { ReactNode } from 'react'
@@ -219,6 +219,29 @@ export function DonutChart({
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+//  RankedBars — classement horizontal (top pathologies, etc.)
+// ════════════════════════════════════════════════════════════════════════════
+
+export interface RankedBarRow { libelle: string; count: number }
+
+export function RankedBars({ data }: { data: RankedBarRow[] }) {
+  const max = Math.max(1, ...data.map(d => d.count))
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {data.map((d, i) => (
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--font-size-body-sm)', color: 'var(--texte-primaire)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.libelle}</span>
+          <div style={{ width: 160, height: 8, borderRadius: 9999, background: 'var(--fond-surface-2)', overflow: 'hidden', flexShrink: 0 }}>
+            <div style={{ width: `${(d.count / max) * 100}%`, height: '100%', background: 'var(--ap-400)', borderRadius: 9999 }} />
+          </div>
+          <span style={{ minWidth: 28, textAlign: 'right', fontSize: 'var(--font-size-body-sm)', fontVariantNumeric: 'tabular-nums', color: 'var(--texte-secondaire)', flexShrink: 0, fontWeight: 700 }}>{d.count}</span>
+        </div>
+      ))}
     </div>
   )
 }

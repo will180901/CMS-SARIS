@@ -7,11 +7,11 @@
  * ressaisie, comme demandé (§6.1 : « rapports produits par le CMS »).
  */
 import { useState } from 'react'
-import { FileBarChart, Download, Printer, Calendar } from 'lucide-react'
-import { Card, Skeleton, EmptyState } from '@/components/saris'
+import { FileBarChart, Download, Printer, Calendar, Stethoscope, BedSingle } from 'lucide-react'
+import { Card, Skeleton, EmptyState, StatCard, DonutChart, RankedBars, type DonutSlice } from '@/components/saris'
 import { formatDate } from '@/lib/intl'
 import { useRapports, useRapport } from '../hooks/useRapports'
-import { exportStatsCsv, exportStatsPdf } from '@/modules/dashboard/lib/statsExport'
+import { exportStatsXlsx, exportStatsPdf } from '@/modules/dashboard/lib/statsExport'
 import type { TypeRapport } from '../api/rapports.api'
 
 const TYPE_LABEL: Record<TypeRapport, string> = {
@@ -87,7 +87,7 @@ export function RapportsPage() {
                       </span>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: 'var(--texte-primaire)' }}>
-                          {formatDate(r.periodeDebut, { day: '2-digit', month: 'short' })} → {formatDate(r.periodeFin, { day: '2-digit', month: 'short', year: 'numeric' })}
+                          {formatDate(r.periodeDebut, { day: '2-digit', month: 'short', year: 'numeric' })} → {formatDate(r.periodeFin, { day: '2-digit', month: 'short', year: 'numeric' })}
                         </p>
                         <p style={{ margin: '2px 0 0', fontSize: 10, color: 'var(--texte-tertiaire)' }}>
                           Généré le {formatDate(r.genereLe, { day: '2-digit', month: '2-digit', year: 'numeric' })}
@@ -116,7 +116,7 @@ export function RapportsPage() {
                 subtitle={`${detail.contenu.totalConsultations} consultation${detail.contenu.totalConsultations > 1 ? 's' : ''} · ${detail.contenu.repos.totalJours} jour(s) de repos prescrits`}
                 actions={
                   <div style={{ display: 'flex', gap: 6 }}>
-                    <button type="button" onClick={() => exportStatsCsv(detail.contenu)} style={rapportExportBtn}>
+                    <button type="button" onClick={() => void exportStatsXlsx(detail.contenu)} style={rapportExportBtn}>
                       <Download size={12} /> Excel
                     </button>
                     <button type="button" onClick={() => exportStatsPdf(detail.contenu)} style={rapportExportBtn}>
@@ -125,11 +125,22 @@ export function RapportsPage() {
                   </div>
                 }
               />
-              <div style={{ flex: 1, overflowY: 'auto', padding: '0 var(--espace-5) var(--espace-5)' }}>
-                <RapportBreakdown title="Par type de consultation" rows={detail.contenu.parType} />
-                <RapportBreakdown title="Par pathologie (diagnostic principal)" rows={detail.contenu.parPathologie} />
-                <RapportBreakdown title="Par catégorie de patient" rows={detail.contenu.parCategorie} />
-                <RapportBreakdown title="Par département / direction" rows={detail.contenu.parDepartement} />
+              <div style={{ flex: 1, overflowY: 'auto', padding: '0 var(--espace-5) var(--espace-5)', display: 'flex', flexDirection: 'column', gap: 'var(--espace-5)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 'var(--espace-3)' }}>
+                  <StatCard icon={<Stethoscope size={18} />} label="Consultations" value={detail.contenu.totalConsultations} tone="accent" />
+                  <StatCard icon={<BedSingle size={18} />} label="Jours de repos prescrits" value={detail.contenu.repos.totalJours} tone="gold"
+                    hint={`${detail.contenu.repos.consultationsAvecRepos} consultation(s) avec repos`} />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: 'var(--espace-5)' }}>
+                  <RapportDonutBlock title="Par type de consultation" rows={detail.contenu.parType} />
+                  <RapportDonutBlock title="Par catégorie de patient" rows={detail.contenu.parCategorie} />
+                  <RapportDonutBlock title="Par département / direction" rows={detail.contenu.parDepartement} />
+                </div>
+
+                <RapportBlock title="Top pathologies (diagnostic principal)" empty={detail.contenu.parPathologie.length === 0}>
+                  <RankedBars data={detail.contenu.parPathologie.slice(0, 10)} />
+                </RapportBlock>
               </div>
             </>
           )}
@@ -146,23 +157,21 @@ const rapportExportBtn: React.CSSProperties = {
   border: '1px solid var(--bordure-normale)',
 }
 
-function RapportBreakdown({ title, rows }: { title: string; rows: { libelle: string; count: number }[] }) {
-  if (rows.length === 0) return null
-  const max = Math.max(1, ...rows.map(r => r.count))
+function RapportBlock({ title, empty, children }: { title: string; empty: boolean; children: React.ReactNode }) {
   return (
-    <div style={{ marginTop: 'var(--espace-4)' }}>
-      <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--texte-tertiaire)' }}>{title}</p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        {rows.slice(0, 10).map((r, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ flex: 1, minWidth: 0, fontSize: 12, color: 'var(--texte-primaire)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.libelle}</span>
-            <div style={{ width: 120, height: 6, borderRadius: 99, background: 'var(--fond-surface-2)', overflow: 'hidden' }}>
-              <div style={{ width: `${(r.count / max) * 100}%`, height: '100%', background: 'var(--ap-400)' }} />
-            </div>
-            <span style={{ minWidth: 24, textAlign: 'right', fontSize: 12, fontWeight: 700, color: 'var(--texte-secondaire)', fontVariantNumeric: 'tabular-nums' }}>{r.count}</span>
-          </div>
-        ))}
-      </div>
+    <div>
+      <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--texte-tertiaire)' }}>{title}</p>
+      {empty ? (
+        <p style={{ margin: 0, fontSize: 12, color: 'var(--texte-tertiaire)', fontStyle: 'italic' }}>Aucune donnée sur la période.</p>
+      ) : children}
     </div>
+  )
+}
+
+function RapportDonutBlock({ title, rows }: { title: string; rows: { libelle: string; count: number }[] }) {
+  return (
+    <RapportBlock title={title} empty={rows.length === 0}>
+      <DonutChart height={170} centerLabel="actes" data={rows.slice(0, 6).map((r): DonutSlice => ({ name: r.libelle, value: r.count }))} />
+    </RapportBlock>
   )
 }

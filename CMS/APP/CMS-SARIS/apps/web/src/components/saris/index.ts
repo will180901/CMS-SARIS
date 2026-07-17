@@ -54,7 +54,7 @@ export type { DataColumn }                 from './DataTable'
 export { useColumnResize }                 from './useColumnResize'
 export type { ColumnResize }               from './useColumnResize'
 
-export { AreaTrend, MiniBars, DonutChart, SparkLine, CHART_PALETTE } from './Charts'
-export type { AreaSeries, DonutSlice }     from './Charts'
+export { AreaTrend, MiniBars, DonutChart, RankedBars, SparkLine, CHART_PALETTE } from './Charts'
+export type { AreaSeries, DonutSlice, RankedBarRow } from './Charts'
 
 export { LiveDuration }                    from './LiveDuration'

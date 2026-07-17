@@ -21,7 +21,7 @@ import {
 } from 'lucide-react'
 import {
   StatCard, Card, EmptyState, Skeleton, Button, UserAvatar,
-  AreaTrend, MiniBars, DonutChart, SparkLine, CHART_PALETTE,
+  AreaTrend, MiniBars, DonutChart, RankedBars, SparkLine, CHART_PALETTE,
   type DonutSlice,
 } from '@/components/saris'
 import { formatDuree, elapsedMinutes } from '@/lib/duree'
@@ -32,7 +32,7 @@ import {
   useOverview, useUrgences, useMotifsJour, useTendance, useAffluence,
   useAdminSystemStats, useStatistiques, useCroisementStats, useEvolutionAnnuelle,
 } from '../hooks/useDashboard'
-import { exportStatsCsv, exportStatsPdf } from '../lib/statsExport'
+import { exportStatsXlsx, exportStatsPdf } from '../lib/statsExport'
 import { useAuditActions, useAnnuaire } from '@/modules/admin/hooks/useAdmin'
 import { labelAction, labelEntite, labelModule } from '@/config/labels'
 import type { UrgenceVisite } from '../api/dashboard.api'
@@ -411,23 +411,6 @@ function StatBlock({ title, children }: { title: string; children: React.ReactNo
   )
 }
 
-function RankedBars({ data }: { data: { libelle: string; count: number }[] }) {
-  const max = Math.max(1, ...data.map(d => d.count))
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {data.map((d, i) => (
-        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--font-size-body-sm)', color: 'var(--texte-primaire)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.libelle}</span>
-          <div style={{ width: 160, height: 8, borderRadius: 9999, background: 'var(--fond-surface-2)', overflow: 'hidden', flexShrink: 0 }}>
-            <div style={{ width: `${(d.count / max) * 100}%`, height: '100%', background: 'var(--ap-400)', borderRadius: 9999 }} />
-          </div>
-          <span style={{ minWidth: 28, textAlign: 'right', fontSize: 'var(--font-size-body-sm)', fontVariantNumeric: 'tabular-nums', color: 'var(--texte-secondaire)', flexShrink: 0, fontWeight: 700 }}>{d.count}</span>
-        </div>
-      ))}
-    </div>
-  )
-}
-
 function StatistiquesSection() {
   const [days, setDays] = useState(30)
   const { from, to } = useMemo(() => {
@@ -464,7 +447,7 @@ function StatistiquesSection() {
             })}
           </div>
           <div style={{ flex: 1 }} />
-          <button type="button" onClick={() => stats && exportStatsCsv(stats)} disabled={empty} style={statExportBtn(empty)} title="Exporter en CSV (Excel)">
+          <button type="button" onClick={() => stats && void exportStatsXlsx(stats)} disabled={empty} style={statExportBtn(empty)} title="Exporter en Excel (.xlsx)">
             <Download size={13} /> Excel
           </button>
           <button type="button" onClick={() => stats && exportStatsPdf(stats)} disabled={empty} style={statExportBtn(empty)} title="Exporter / imprimer en PDF">
