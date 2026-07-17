@@ -35,6 +35,9 @@ export interface EmitInput {
   entiteId?:           string | null
   lien?:               string | null
   createdById?:        string | null
+  /** PersonnelMedical.id des personnes directement impliquées (ex. soignant
+   *  assigné) — distingue « me concerne » de la diffusion large côté feed. */
+  concernedPersonnelIds?: string[]
 }
 
 export interface NotifAudience {
@@ -47,6 +50,7 @@ interface NotifRow {
   id: string; createdAt: Date; destinataireId: string | null; siteId: string | null
   requiredPermission: string | null; type: string; niveau: string; titre: string; message: string
   entiteType: string | null; entiteId: string | null; lien: string | null; createdById: string | null
+  concernedPersonnelIds: string[]
 }
 
 @Injectable()
@@ -97,6 +101,7 @@ export class NotificationService {
           entiteId:           input.entiteId ?? null,
           lien:               input.lien ?? null,
           createdById:        input.createdById ?? null,
+          concernedPersonnelIds: input.concernedPersonnelIds ?? [],
         },
       })
       this.stream$.next(n as NotifRow)
@@ -271,7 +276,7 @@ export class NotificationService {
       id: `live-${type}`, createdAt: new Date(), destinataireId: null,
       siteId: opts?.siteId ?? null, requiredPermission: opts?.requiredPermission ?? null,
       type, niveau: 'INFO', titre: '', message: '', entiteType: null, entiteId: null,
-      lien: null, createdById: null,
+      lien: null, createdById: null, concernedPersonnelIds: [],
     } as NotifRow)
   }
 
@@ -284,7 +289,7 @@ export class NotificationService {
       id: `live-${type}`, createdAt: new Date(), destinataireId,
       siteId: null, requiredPermission: null, type, niveau: 'INFO',
       titre: '', message: '', entiteType: 'conversation', entiteId: entiteId ?? null,
-      lien: null, createdById: null,
+      lien: null, createdById: null, concernedPersonnelIds: [],
     } as NotifRow)
   }
 
@@ -303,6 +308,7 @@ export class NotificationService {
       siteId: null, requiredPermission: null, type: 'SESSION_REVOKED', niveau: 'CRITIQUE',
       titre: 'Session fermée', message: 'Votre compte a été ouvert sur un autre poste.',
       entiteType: 'session', entiteId: revokedSids.join(','), lien: null, createdById: null,
+      concernedPersonnelIds: [],
     } as NotifRow)
   }
 

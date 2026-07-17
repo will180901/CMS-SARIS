@@ -20,6 +20,7 @@ export interface NotificationItem {
   entiteId:           string | null
   lien:               string | null
   createdById:        string | null
+  concernedPersonnelIds: string[]
   lu:                 boolean
 }
 

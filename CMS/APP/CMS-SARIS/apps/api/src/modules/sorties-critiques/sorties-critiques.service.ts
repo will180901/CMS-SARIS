@@ -131,8 +131,9 @@ export class SortiesCritiquesService {
       requiredPermission: 'evacuation.read',
       entiteType:         'evacuation',
       entiteId:           created.id,
-      lien:               '/sorties-critiques',
+      lien:               '/patients',
       createdById:        acteurId ?? null,
+      concernedPersonnelIds: c.soignantId ? [c.soignantId] : [],
     })
     return this.getEvacOrThrow(created.id)
   }

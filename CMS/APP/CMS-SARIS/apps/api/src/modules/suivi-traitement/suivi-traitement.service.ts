@@ -128,6 +128,7 @@ export class SuiviTraitementService {
       entiteId:           created.id,
       lien:               '/patients',
       createdById:        acteurId ?? null,
+      concernedPersonnelIds: c.soignantId ? [c.soignantId] : [],
     })
     return this.getOrThrow(created.id)
   }

@@ -43,6 +43,7 @@ const SSE_INVALIDATIONS: Record<string, readonly (readonly string[])[]> = {
   ORDONNANCE_VALIDEE:       [['consultations'], ['bons-examen']],
   SUIVI_CHRONIQUE_OUVERT:   [['suivis-chroniques'], ['dashboard']],
   EVACUATION_INITIEE:       [['evacuations'], ['dashboard']],
+  SUIVI_TRAITEMENT_OUVERT:  [['suivi-traitement'], ['dashboard']],
   UTILISATEUR_CREE:         [['admin', 'utilisateurs'], ['acteurs']],
   UTILISATEUR_DESACTIVE:    [['admin', 'utilisateurs'], ['acteurs']],
   UTILISATEUR_REACTIVE:     [['admin', 'utilisateurs'], ['acteurs']],

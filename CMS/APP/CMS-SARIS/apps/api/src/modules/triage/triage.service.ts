@@ -360,6 +360,7 @@ export class TriageService {
       entiteId:           visite.id,
       lien:               '/triage',
       createdById:        saisiePar,
+      concernedPersonnelIds: dto.soignantId ? [dto.soignantId] : [],
     })
 
     return { ...visite, soignant: null }

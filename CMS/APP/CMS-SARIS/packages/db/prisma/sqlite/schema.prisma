@@ -89,6 +89,10 @@ model Notification {
   entiteId           String?
   lien               String? // route frontend (navigation au clic)
   createdById        String? // acteur à l'origine
+  // PersonnelMedical.id des personnes directement impliquées dans le dossier concerné
+  // (ex. soignant assigné à la visite/consultation) — sert à distinguer, côté feed,
+  // « me concerne personnellement » de la diffusion large par permission/site.
+  concernedPersonnelIds String[]           @default([])
   lectures           NotificationLecture[]
 
   @@index([destinataireId])

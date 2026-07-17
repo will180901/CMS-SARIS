@@ -612,6 +612,7 @@ export class ConsultationService {
       entiteId:           id,
       lien:               '/consultations',
       createdById:        userId,
+      concernedPersonnelIds: result.soignantId ? [result.soignantId] : [],
     })
 
     return result

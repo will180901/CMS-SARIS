@@ -21,6 +21,7 @@ import {
   useCreateAnnonce,
 } from '@/modules/notifications/hooks/useNotifications'
 import { usePermissions } from '@/hooks/usePermissions'
+import { useSessionStore } from '@/stores/session.store'
 import { playSound } from '@/lib/sounds'
 import type { NotificationItem, NiveauNotif } from '@/modules/notifications/api/notifications.api'
 
@@ -48,6 +49,16 @@ export function NotificationDrawer({ open, onClose }: { open: boolean; onClose: 
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { data: items = [], isLoading } = useNotificationsFeed(open)
+  // Le soignant assigné à la visite/consultation d'un événement clinique (ou tout
+  // acteur ayant déjà touché le dossier) est marqué « me concerne » côté serveur
+  // (concernedPersonnelIds) — distingue ce qui m'implique personnellement du
+  // reste de la diffusion par permission (visible par toute l'équipe habilitée).
+  // Une notification individuelle (destinataireId) concerne TOUJOURS son destinataire
+  // (si elle est dans le feed, c'est forcément la mienne — cf. whereFor() côté serveur).
+  const myPersonnelId = useSessionStore(s => s.user?.personnelMedicalId ?? null)
+  const isConcerned = (n: NotificationItem) => !!n.destinataireId || (!!myPersonnelId && n.concernedPersonnelIds.includes(myPersonnelId))
+  const concernedItems = items.filter(isConcerned)
+  const teamItems      = items.filter(n => !isConcerned(n))
   const markAll   = useMarkAllRead()
   const markRead  = useMarkNotificationRead()
   const dismissOne  = useDismissNotification()
@@ -111,6 +122,63 @@ export function NotificationDrawer({ open, onClose }: { open: boolean; onClose: 
   }
 
   const allSelected = items.length > 0 && selected.size === items.length
+
+  function renderRow(n: NotificationItem) {
+    const cfg = NIVEAU[n.niveau] ?? NIVEAU.INFO
+    const Icon = cfg.icon
+    const isSel = selected.has(n.id)
+    const hovered = hoveredId === n.id
+    return (
+      <div
+        key={n.id}
+        role="button"
+        tabIndex={0}
+        onClick={() => handleClick(n)}
+        onMouseEnter={() => setHoveredId(n.id)}
+        onMouseLeave={() => setHoveredId(h => (h === n.id ? null : h))}
+        style={{
+          position: 'relative', width: '100%', textAlign: 'left', display: 'flex', gap: 11, alignItems: 'flex-start',
+          padding: '12px 16px', cursor: selecting ? 'pointer' : (n.lien && n.lien.startsWith('/')) ? 'pointer' : 'default',
+          borderBottom: '1px solid var(--bordure-legere)',
+          background: isSel ? 'var(--ap-100)' : n.lu ? (hovered ? 'var(--fond-surface-2)' : 'transparent') : (hovered ? 'var(--ap-100)' : 'var(--ap-50)'),
+          borderLeft: `3px solid ${n.lu ? 'transparent' : 'var(--ap-400)'}`,
+          transition: 'background 0.12s',
+        }}
+      >
+        {selecting && (
+          <span style={{ width: 18, height: 18, marginTop: 7, flexShrink: 0, borderRadius: 5, border: `1.5px solid ${isSel ? 'var(--ap-400)' : 'var(--bordure-normale)'}`, background: isSel ? 'var(--ap-400)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+            {isSel && <Check size={12} />}
+          </span>
+        )}
+        <div style={{ width: 30, height: 30, borderRadius: 'var(--radius-md)', flexShrink: 0, background: cfg.bg, color: cfg.tint, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1 }}>
+          <Icon size={15} />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+            <span style={{ fontSize: 13, fontWeight: n.lu ? 600 : 700, color: 'var(--texte-primaire)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.titre}</span>
+            <span style={{ fontSize: 10, color: 'var(--texte-tertiaire)', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{tempsRelatif(n.createdAt)}</span>
+          </div>
+          <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--texte-secondaire)', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as 'vertical' }}>{n.message}</p>
+          {n.entiteType === 'MISE_A_JOUR' && n.lien && (
+            <button onClick={(e) => installUpdate(n, e)}
+              style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, border: 'none', background: 'var(--ap-600)', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+              <Download size={13} />
+              {isDesktop ? t('shell.updateInstall', { defaultValue: 'Télécharger et installer' }) : t('shell.updateDownload', { defaultValue: 'Télécharger' })}
+              {n.entiteId && <span style={{ opacity: 0.85, fontWeight: 500 }}>· v{n.entiteId}</span>}
+            </button>
+          )}
+        </div>
+        {/* Corbeille au survol (suppression rapide pour moi) */}
+        {!selecting && hovered && (
+          <button onClick={(e) => deleteOne(n.id, e)} title={t('shell.deleteForMe')} aria-label={t('shell.deleteNotificationAria')}
+            style={{ position: 'absolute', top: 8, right: 10, width: 26, height: 26, borderRadius: 7, border: '1px solid var(--bordure-legere)', background: 'var(--fond-surface)', color: 'var(--erreur-accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+            <Trash2 size={13} />
+          </button>
+        )}
+        {!selecting && !hovered && n.lien && n.lien.startsWith('/') && <ChevronRight size={15} style={{ color: 'var(--texte-tertiaire)', flexShrink: 0, alignSelf: 'center' }} />}
+      </div>
+    )
+  }
 
   return (
     <>
@@ -183,62 +251,18 @@ export function NotificationDrawer({ open, onClose }: { open: boolean; onClose: 
               <EmptyState icon={<Bell size={20} />} title={t('shell.emptyTitle')} description={t('shell.emptyDescription')} variant="subtle" />
             </div>
           )}
-          {items.map(n => {
-            const cfg = NIVEAU[n.niveau] ?? NIVEAU.INFO
-            const Icon = cfg.icon
-            const isSel = selected.has(n.id)
-            const hovered = hoveredId === n.id
-            return (
-              <div
-                key={n.id}
-                role="button"
-                tabIndex={0}
-                onClick={() => handleClick(n)}
-                onMouseEnter={() => setHoveredId(n.id)}
-                onMouseLeave={() => setHoveredId(h => (h === n.id ? null : h))}
-                style={{
-                  position: 'relative', width: '100%', textAlign: 'left', display: 'flex', gap: 11, alignItems: 'flex-start',
-                  padding: '12px 16px', cursor: selecting ? 'pointer' : (n.lien && n.lien.startsWith('/')) ? 'pointer' : 'default',
-                  borderBottom: '1px solid var(--bordure-legere)',
-                  background: isSel ? 'var(--ap-100)' : n.lu ? (hovered ? 'var(--fond-surface-2)' : 'transparent') : (hovered ? 'var(--ap-100)' : 'var(--ap-50)'),
-                  borderLeft: `3px solid ${n.lu ? 'transparent' : 'var(--ap-400)'}`,
-                  transition: 'background 0.12s',
-                }}
-              >
-                {selecting && (
-                  <span style={{ width: 18, height: 18, marginTop: 7, flexShrink: 0, borderRadius: 5, border: `1.5px solid ${isSel ? 'var(--ap-400)' : 'var(--bordure-normale)'}`, background: isSel ? 'var(--ap-400)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
-                    {isSel && <Check size={12} />}
-                  </span>
-                )}
-                <div style={{ width: 30, height: 30, borderRadius: 'var(--radius-md)', flexShrink: 0, background: cfg.bg, color: cfg.tint, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1 }}>
-                  <Icon size={15} />
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                    <span style={{ fontSize: 13, fontWeight: n.lu ? 600 : 700, color: 'var(--texte-primaire)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.titre}</span>
-                    <span style={{ fontSize: 10, color: 'var(--texte-tertiaire)', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{tempsRelatif(n.createdAt)}</span>
-                  </div>
-                  <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--texte-secondaire)', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as 'vertical' }}>{n.message}</p>
-                  {n.entiteType === 'MISE_A_JOUR' && n.lien && (
-                    <button onClick={(e) => installUpdate(n, e)}
-                      style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, border: 'none', background: 'var(--ap-600)', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-                      <Download size={13} />
-                      {isDesktop ? t('shell.updateInstall', { defaultValue: 'Télécharger et installer' }) : t('shell.updateDownload', { defaultValue: 'Télécharger' })}
-                      {n.entiteId && <span style={{ opacity: 0.85, fontWeight: 500 }}>· v{n.entiteId}</span>}
-                    </button>
-                  )}
-                </div>
-                {/* Corbeille au survol (suppression rapide pour moi) */}
-                {!selecting && hovered && (
-                  <button onClick={(e) => deleteOne(n.id, e)} title={t('shell.deleteForMe')} aria-label={t('shell.deleteNotificationAria')}
-                    style={{ position: 'absolute', top: 8, right: 10, width: 26, height: 26, borderRadius: 7, border: '1px solid var(--bordure-legere)', background: 'var(--fond-surface)', color: 'var(--erreur-accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                    <Trash2 size={13} />
-                  </button>
-                )}
-                {!selecting && !hovered && n.lien && n.lien.startsWith('/') && <ChevronRight size={15} style={{ color: 'var(--texte-tertiaire)', flexShrink: 0, alignSelf: 'center' }} />}
-              </div>
-            )
-          })}
+          {concernedItems.length > 0 && (
+            <>
+              <GroupHeader label={t('shell.notifGroupConcerned')} />
+              {concernedItems.map(n => renderRow(n))}
+            </>
+          )}
+          {teamItems.length > 0 && (
+            <>
+              {concernedItems.length > 0 && <GroupHeader label={t('shell.notifGroupTeam')} />}
+              {teamItems.map(n => renderRow(n))}
+            </>
+          )}
         </div>
       </aside>
     </>
@@ -358,5 +382,18 @@ function Chip({ children, onClick, disabled, tone }: { children: React.ReactNode
       }}>
       {children}
     </button>
+  )
+}
+
+/** Sépare « me concerne » (soignant assigné au dossier) de la diffusion large. */
+function GroupHeader({ label }: { label: string }) {
+  return (
+    <p style={{
+      margin: 0, padding: '9px 16px 5px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
+      letterSpacing: '0.05em', color: 'var(--texte-tertiaire)', background: 'var(--fond-surface)',
+      position: 'sticky', top: 0, zIndex: 1,
+    }}>
+      {label}
+    </p>
   )
 }

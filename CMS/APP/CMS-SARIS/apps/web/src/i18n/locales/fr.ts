@@ -307,6 +307,8 @@ export const fr = {
     unreadCount_one: '{{count}} non lue',
     unreadCount_other: '{{count}} non lues',
     allUpToDate: 'Tout est à jour',
+    notifGroupConcerned: 'Vous concerne',
+    notifGroupTeam: 'Équipe',
     close: 'Fermer',
     selectNone: 'Aucune',
     selectAll: 'Tout',

@@ -309,6 +309,8 @@ export const en: Resources = {
     unreadCount_one: '{{count}} unread',
     unreadCount_other: '{{count}} unread',
     allUpToDate: 'All caught up',
+    notifGroupConcerned: 'Concerns you',
+    notifGroupTeam: 'Team',
     close: 'Close',
     selectNone: 'None',
     selectAll: 'All',
