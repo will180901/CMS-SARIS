@@ -59,6 +59,43 @@ function addCustomReaction(emoji: string): string[] {
   try { localStorage.setItem(CUSTOM_REACT_KEY, JSON.stringify(next)) } catch { /* noop */ }
   return next
 }
+// ── Mentions dans le composeur : texte AFFICHÉ toujours propre (« @Nom »), jamais
+// le token technique `@[Nom](id)` — celui-ci n'est reconstruit qu'au moment de
+// l'envoi, à partir d'une liste de « mentions suivies » parallèle au texte.
+interface MentionSpan { start: number; end: number; id: string; nom: string }
+
+/** Décale les mentions suivies après une édition du texte (diff préfixe/suffixe commun) ;
+ * abandonne (repasse en texte brut) celles que l'édition a directement touchées. */
+function adjustMentionSpans(oldText: string, newText: string, spans: MentionSpan[]): MentionSpan[] {
+  if (oldText === newText || spans.length === 0) return spans
+  let prefix = 0
+  const maxCommon = Math.min(oldText.length, newText.length)
+  while (prefix < maxCommon && oldText[prefix] === newText[prefix]) prefix++
+  let suffix = 0
+  const maxSuffix = maxCommon - prefix
+  while (suffix < maxSuffix && oldText[oldText.length - 1 - suffix] === newText[newText.length - 1 - suffix]) suffix++
+  const oldChangeStart = prefix
+  const oldChangeEnd = oldText.length - suffix
+  const delta = newText.length - oldText.length
+  const next: MentionSpan[] = []
+  for (const s of spans) {
+    if (s.end <= oldChangeStart) next.push(s)
+    else if (s.start >= oldChangeEnd) next.push({ ...s, start: s.start + delta, end: s.end + delta })
+    // sinon : l'édition chevauche cette mention → abandonnée (redevient texte brut).
+  }
+  return next
+}
+
+/** Reconstruit le texte « fil » (tokens `@[Nom](id)` que le backend sait parser, cf.
+ * `parseMentionIds`) à partir du texte propre affiché + des mentions suivies. */
+function mentionsToWireText(text: string, spans: MentionSpan[]): string {
+  if (spans.length === 0) return text
+  const sorted = [...spans].sort((a, b) => b.start - a.start)
+  let out = text
+  for (const s of sorted) out = out.slice(0, s.start) + `@[${s.nom}](${s.id})` + out.slice(s.end)
+  return out
+}
+
 const ACCEPT_MEDIA = 'image/*,video/*'
 const ACCEPT_AUDIO = 'audio/*'
 const ACCEPT_DOC = '.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,application/pdf'
@@ -172,10 +209,16 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
   const lastOwnId = [...messages].reverse().find(m => m.deMoi && !m.pending)?.id ?? null
 
   // ── @mentions (groupes) — picker de participants dans le composer ────────────
-  // Candidats = contacts du même site, restreints aux MEMBRES du groupe (même
-  // displayName que conv.participants). On insère un token stable `@[Nom](userId)`
-  // que le serveur parse pour notifier le mentionné (cf. parseMentionIds back).
+  // Candidats = contacts du même site, restreints aux MEMBRES du groupe. Le texte
+  // AFFICHÉ reste toujours propre (« @Nom ») — le token technique `@[Nom](userId)`
+  // que le serveur parse (cf. parseMentionIds back) n'est reconstruit qu'à l'envoi,
+  // à partir de `mentionSpans` (position, id, nom) tenue à jour à chaque frappe.
   const [mention, setMention] = useState<{ q: string; start: number } | null>(null)
+  const [mentionSpans, setMentionSpans] = useState<MentionSpan[]>([])
+  function updateDraft(next: string) {
+    setMentionSpans(prev => adjustMentionSpans(draft, next, prev))
+    setDraft(next)
+  }
   const { data: contacts = [] } = useQuery({
     queryKey: ['messagerie', 'contacts'],
     queryFn:  () => messagerieApi.contacts(),
@@ -202,7 +245,7 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
   }
   function onComposerChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
     const value = e.target.value
-    setDraft(value)
+    updateDraft(value)
     if (value) pingTyping()
     detectMention(value, e.target.selectionStart ?? value.length)
   }
@@ -210,13 +253,17 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
     const ta = composerRef.current
     const caret = ta?.selectionStart ?? draft.length
     if (!mention) return
-    const token = `@[${c.nom}](${c.id}) `
-    const next = draft.slice(0, mention.start) + token + draft.slice(caret)
+    const display = `@${c.nom} ` // texte PROPRE affiché — jamais l'id visible
+    const next = draft.slice(0, mention.start) + display + draft.slice(caret)
+    setMentionSpans(prev => [
+      ...adjustMentionSpans(draft, next, prev),
+      { start: mention.start, end: mention.start + `@${c.nom}`.length, id: c.id, nom: c.nom },
+    ])
     setDraft(next)
     setMention(null)
     requestAnimationFrame(() => {
       if (!ta) return
-      const pos = mention.start + token.length
+      const pos = mention.start + display.length
       ta.focus(); ta.setSelectionRange(pos, pos)
     })
   }
@@ -276,20 +323,22 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
 
   function insertEmoji(emoji: string) {
     const ta = composerRef.current
-    if (!ta) { setDraft(d => d + emoji); return }
+    if (!ta) { updateDraft(draft + emoji); return }
     const start = ta.selectionStart ?? draft.length
     const end = ta.selectionEnd ?? draft.length
-    setDraft(draft.slice(0, start) + emoji + draft.slice(end))
+    updateDraft(draft.slice(0, start) + emoji + draft.slice(end))
     requestAnimationFrame(() => { ta.focus(); const pos = start + emoji.length; ta.setSelectionRange(pos, pos) })
   }
 
   async function handleSend() {
-    const texte = draft.trim()
-    if (!texte || sendMut.isPending) return
+    const raw = draft
+    if (!raw.trim() || sendMut.isPending) return
     const rep = replyTo
-    setDraft(''); setReplyTo(null); setMention(null)
-    try { await sendMut.mutateAsync({ contenu: texte, fichiers: [], replyToId: rep?.id, replyPreview: rep }) }
-    catch (e) { if (!isOfflineQueued(e)) { toast.error(t('messagerie.sendError')); setDraft(texte); setReplyTo(rep) } }
+    const spansSnapshot = mentionSpans
+    const wireText = mentionsToWireText(raw, spansSnapshot).trim()
+    setDraft(''); setMentionSpans([]); setReplyTo(null); setMention(null)
+    try { await sendMut.mutateAsync({ contenu: wireText, fichiers: [], replyToId: rep?.id, replyPreview: rep }) }
+    catch (e) { if (!isOfflineQueued(e)) { toast.error(t('messagerie.sendError')); setDraft(raw); setMentionSpans(spansSnapshot); setReplyTo(rep) } }
   }
 
   async function sendSticker(emoji: string) {
