@@ -323,7 +323,7 @@ export class DashboardService {
     for (const c of consults) {
       const lib = c.visite?.patient?.categoriePatient?.libelle ?? '—'
       catMap.set(lib, (catMap.get(lib) ?? 0) + 1)
-      const dept = c.visite?.patient?.donneesEmploi?.departement ?? '—'
+      const dept = c.visite?.patient?.donneesEmploi?.departement ?? 'Non renseigné'
       deptMap.set(dept, (deptMap.get(dept) ?? 0) + 1)
       if (c.reposJours && c.reposJours > 0) { totalReposJours += c.reposJours; consultAvecRepos++ }
     }
