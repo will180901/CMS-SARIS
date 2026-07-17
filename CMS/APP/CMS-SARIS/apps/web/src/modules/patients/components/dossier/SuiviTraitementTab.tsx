@@ -20,7 +20,7 @@ import {
   CircleCheck, HeartPulse, PenLine, Thermometer, Wind, Weight, Ruler, Gauge,
   TrendingDown, Minus,
 } from 'lucide-react'
-import { StatusPill, Modal, Button, SelectBox, Textarea } from '@/components/saris'
+import { StatusPill, Modal, Button, SelectBox, Textarea, SegmentedTabs } from '@/components/saris'
 import { DrawerShell } from '@/modules/referentiels/components/DrawerShell'
 import { usePermissions } from '@/hooks/usePermissions'
 import { formatDate, formatTime } from '@/lib/intl'
@@ -475,12 +475,23 @@ function ChroniqueCard({ item, patientId, canManage }: { item: SuiviChroniqueIte
 
 // ── Composant principal ───────────────────────────────────────────────────────
 
+type SubView = 'episodes' | 'constantes' | 'chroniques' | 'traitement' | 'resultats'
+
+const SUB_TABS: { key: SubView; labelKey: string }[] = [
+  { key: 'episodes',   labelKey: 'suiviTraitement.subTabEpisodes' },
+  { key: 'constantes', labelKey: 'suiviTraitement.subTabConstantes' },
+  { key: 'chroniques', labelKey: 'suiviTraitement.subTabChroniques' },
+  { key: 'traitement', labelKey: 'suiviTraitement.subTabTraitement' },
+  { key: 'resultats',  labelKey: 'suiviTraitement.subTabResultats' },
+]
+
 export function SuiviTraitementTab({ patientId }: { patientId: string }) {
   const { t } = useTranslation()
   const { has } = usePermissions()
   const canManage = has('consultation.diagnose')
   const { data, isLoading } = usePatientSuivi(patientId)
   const [detail, setDetail] = useState<DossierDetailTarget | null>(null)
+  const [subView, setSubView] = useState<SubView>('episodes')
 
   const chroniques         = data?.chroniques ?? []
   const traitements        = data?.traitements ?? []
@@ -489,104 +500,111 @@ export function SuiviTraitementTab({ patientId }: { patientId: string }) {
 
   return (
     <div>
-      {/* En-tête */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
-        <Activity size={15} style={{ color: 'var(--ap-600)' }} />
-        <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--texte-primaire)' }}>{t('suiviTraitement.cardTitle')}</span>
+      {/* Sous-onglets */}
+      <div style={{ marginBottom: 20 }}>
+        <SegmentedTabs
+          size="sm"
+          value={subView}
+          onChange={k => setSubView(k as SubView)}
+          tabs={SUB_TABS.map(st => ({ key: st.key, label: t(st.labelKey) }))}
+        />
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
-        {/* 1. Épisodes de suivi de traitement */}
-        <EpisodesSection patientId={patientId} onOpen={setDetail} />
+      {subView === 'episodes'   && <EpisodesSection patientId={patientId} onOpen={setDetail} />}
+      {subView === 'constantes' && <ConstantesSection patientId={patientId} />}
 
-        {/* 2. Constantes vitales */}
-        <ConstantesSection patientId={patientId} />
-
-        {isLoading ? (
+      {(subView === 'chroniques' || subView === 'traitement' || subView === 'resultats') && (
+        isLoading ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--texte-tertiaire)' }}>
             <Loader2 size={14} className="animate-spin" /> <span style={{ fontSize: 13 }}>{t('patients.loading')}</span>
           </div>
         ) : (
           <>
-            {/* 3. Évolution des pathologies chroniques */}
-            <div>
-              <SectionHeader icon={<TrendingUp size={14} />} title={t('patients.suiviSectionChroniques')} />
-              {chroniques.length === 0 ? (
-                <EmptySection text={t('patients.suiviEmptyChroniques')} />
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {chroniques.map(c => <ChroniqueCard key={c.pathologieId} item={c} patientId={patientId} canManage={canManage} />)}
-                </div>
-              )}
-            </div>
-
-            {/* 4. Traitement */}
-            <div>
-              <SectionHeader icon={<Pill size={14} />} title={t('patients.suiviSectionTraitements')} />
-              {traitements.length === 0 ? (
-                <EmptySection text={t('patients.suiviEmptyTraitements')} />
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 680 }}>
-                  {traitements.map((tr: SuiviTraitementItem) => (
-                    <ClickableRow
-                      key={tr.ligneId}
-                      icon={<Pill size={14} />} tint="var(--ap-600)" bg="var(--ap-50)"
-                      title={tr.medicament}
-                      subtitle={`${tr.posologie} · ${tr.duree} · ${tr.voieAdmin}`}
-                      badge={labelStatut('ordonnance', tr.statutOrdonnance)}
-                      badgeTone={tr.statutOrdonnance === 'VALIDEE' ? 'success' : tr.statutOrdonnance === 'ANNULEE' ? 'error' : 'neutral'}
-                      date={tr.date}
-                      onClick={() => setDetail({ kind: 'ORDONNANCE', consultationId: tr.consultationId, ordonnanceId: tr.ordonnanceId })}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* 5. Résultats en attente de saisie */}
-            {resultatsEnAttente.length > 0 && (
+            {subView === 'chroniques' && (
               <div>
-                <SectionHeader icon={<PenLine size={14} />} title={t('patients.suiviSectionEnAttente')} />
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 680 }}>
-                  {resultatsEnAttente.map((r: SuiviResultatEnAttenteItem) => (
-                    <ClickableRow
-                      key={r.bonId}
-                      icon={<PenLine size={14} />} tint="var(--avert-texte)" bg="var(--avert-fond)"
-                      title={r.examens.length > 0 ? r.examens.join(', ') : t('patients.suiviExamensRealises')}
-                      badge={t('patients.suiviEnAttenteBadge')}
-                      badgeTone="warning"
-                      date={r.date}
-                      onClick={() => setDetail({ kind: 'BON_EXAMEN_ACTION', consultationId: r.consultationId, bonId: r.bonId })}
-                    />
-                  ))}
-                </div>
+                <SectionHeader icon={<TrendingUp size={14} />} title={t('patients.suiviSectionChroniques')} />
+                {chroniques.length === 0 ? (
+                  <EmptySection text={t('patients.suiviEmptyChroniques')} />
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {chroniques.map(c => <ChroniqueCard key={c.pathologieId} item={c} patientId={patientId} canManage={canManage} />)}
+                  </div>
+                )}
               </div>
             )}
 
-            {/* 6. Résultats d'examens déjà reçus */}
-            <div>
-              <SectionHeader icon={<FlaskConical size={14} />} title={t('patients.suiviSectionExamens')} />
-              {resultatsExamens.length === 0 ? (
-                <EmptySection text={t('patients.suiviEmptyExamens')} />
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 680 }}>
-                  {resultatsExamens.map((r: SuiviResultatExamenItem) => (
-                    <ClickableRow
-                      key={r.id}
-                      icon={<FlaskConical size={14} />} tint="var(--info-accent)" bg="var(--info-fond)"
-                      title={r.examens.length > 0 ? r.examens.join(', ') : t('patients.suiviExamensRealises')}
-                      subtitle={[r.laboratoire, r.interpretation].filter(Boolean).join(' · ') || undefined}
-                      badge={labelStatut('resultat_examen', r.statut)}
-                      date={r.date}
-                      onClick={() => setDetail({ kind: 'RESULTAT', consultationId: r.consultationId, bonId: r.bonId, resultat: r })}
-                    />
-                  ))}
+            {subView === 'traitement' && (
+              <div>
+                <SectionHeader icon={<Pill size={14} />} title={t('patients.suiviSectionTraitements')} />
+                {traitements.length === 0 ? (
+                  <EmptySection text={t('patients.suiviEmptyTraitements')} />
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 680 }}>
+                    {traitements.map((tr: SuiviTraitementItem) => (
+                      <ClickableRow
+                        key={tr.ligneId}
+                        icon={<Pill size={14} />} tint="var(--ap-600)" bg="var(--ap-50)"
+                        title={tr.medicament}
+                        subtitle={`${tr.posologie} · ${tr.duree} · ${tr.voieAdmin}`}
+                        badge={labelStatut('ordonnance', tr.statutOrdonnance)}
+                        badgeTone={tr.statutOrdonnance === 'VALIDEE' ? 'success' : tr.statutOrdonnance === 'ANNULEE' ? 'error' : 'neutral'}
+                        date={tr.date}
+                        onClick={() => setDetail({ kind: 'ORDONNANCE', consultationId: tr.consultationId, ordonnanceId: tr.ordonnanceId })}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {subView === 'resultats' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+                {/* Résultats en attente de saisie */}
+                {resultatsEnAttente.length > 0 && (
+                  <div>
+                    <SectionHeader icon={<PenLine size={14} />} title={t('patients.suiviSectionEnAttente')} />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 680 }}>
+                      {resultatsEnAttente.map((r: SuiviResultatEnAttenteItem) => (
+                        <ClickableRow
+                          key={r.bonId}
+                          icon={<PenLine size={14} />} tint="var(--avert-texte)" bg="var(--avert-fond)"
+                          title={r.examens.length > 0 ? r.examens.join(', ') : t('patients.suiviExamensRealises')}
+                          badge={t('patients.suiviEnAttenteBadge')}
+                          badgeTone="warning"
+                          date={r.date}
+                          onClick={() => setDetail({ kind: 'BON_EXAMEN_ACTION', consultationId: r.consultationId, bonId: r.bonId })}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Résultats d'examens déjà reçus */}
+                <div>
+                  <SectionHeader icon={<FlaskConical size={14} />} title={t('patients.suiviSectionExamens')} />
+                  {resultatsExamens.length === 0 ? (
+                    <EmptySection text={t('patients.suiviEmptyExamens')} />
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 680 }}>
+                      {resultatsExamens.map((r: SuiviResultatExamenItem) => (
+                        <ClickableRow
+                          key={r.id}
+                          icon={<FlaskConical size={14} />} tint="var(--info-accent)" bg="var(--info-fond)"
+                          title={r.examens.length > 0 ? r.examens.join(', ') : t('patients.suiviExamensRealises')}
+                          subtitle={[r.laboratoire, r.interpretation].filter(Boolean).join(' · ') || undefined}
+                          badge={labelStatut('resultat_examen', r.statut)}
+                          date={r.date}
+                          onClick={() => setDetail({ kind: 'RESULTAT', consultationId: r.consultationId, bonId: r.bonId, resultat: r })}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </>
-        )}
-      </div>
+        )
+      )}
 
       {/* Tiroir de détail (glisse de la droite, la liste reste derrière) */}
       {detail && <DossierDetailDrawer target={detail} onClose={() => setDetail(null)} />}

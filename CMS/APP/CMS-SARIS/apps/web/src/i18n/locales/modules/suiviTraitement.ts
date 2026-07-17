@@ -5,6 +5,13 @@
  */
 export const suiviTraitement = {
   fr: {
+    // ── Sous-onglets (onglet dossier « Suivi de traitement ») ────────
+    subTabEpisodes: 'Épisodes',
+    subTabConstantes: 'Constantes',
+    subTabChroniques: 'Pathologies chroniques',
+    subTabTraitement: 'Traitement',
+    subTabResultats: 'Résultats d\'examens',
+
     // ── Carte (consultation + dossier) ───────────────────────────────
     cardTitle: 'Suivi de traitement',
     cardNone: 'Aucun suivi en cours',
@@ -77,6 +84,13 @@ export const suiviTraitement = {
     toastSupprime: 'Suivi de traitement supprimé.',
   },
   en: {
+    // ── Sub-tabs (dossier tab "Treatment follow-up") ─────────────────
+    subTabEpisodes: 'Episodes',
+    subTabConstantes: 'Vitals',
+    subTabChroniques: 'Chronic conditions',
+    subTabTraitement: 'Treatment',
+    subTabResultats: 'Test results',
+
     cardTitle: 'Treatment follow-up',
     cardNone: 'No follow-up in progress',
     loading: 'Loading…',
