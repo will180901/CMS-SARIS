@@ -114,6 +114,10 @@
             <input id="url" type="url" placeholder="http://192.168.1.10:3000" autocomplete="off" spellcheck="false" />
           </div>
           <div class="field">
+            <label for="posteLibelle">Nom de ce poste</label>
+            <input id="posteLibelle" type="text" placeholder="ex. Bureau Accueil" autocomplete="off" spellcheck="false" maxlength="80" />
+          </div>
+          <div class="field">
             <label for="login">Identifiant</label>
             <input id="login" type="text" autocomplete="username" spellcheck="false" placeholder="ex. admin" />
           </div>
@@ -158,11 +162,12 @@
       function setBusy(b) {
         busy = b
         $('go').disabled = b
-        ;['url', 'login', 'password', 'totp'].forEach((id) => { const e = $(id); if (e) e.disabled = b })
+        ;['url', 'posteLibelle', 'login', 'password', 'totp'].forEach((id) => { const e = $(id); if (e) e.disabled = b })
       }
       function setBtn(t) { $('go').querySelector('span').textContent = t }
 
       $('url').value = (window.saris && window.saris.serverUrl) || ''
+      $('posteLibelle').value = (window.saris && window.saris.posteLibelleDefault) || ''
       ;($('url').value ? $('login') : $('url')).focus()
 
       $('toggle').onclick = () => {
@@ -185,6 +190,7 @@
       async function submit() {
         if (busy) return
         const serverUrl = clean($('url').value)
+        const posteLibelle = clean($('posteLibelle').value)
         const login = clean($('login').value)
         const password = $('password').value
         const totpCode = clean($('totp').value)
@@ -196,7 +202,7 @@
         setBusy(true)
         setStatus(tempToken ? 'Vérification du code…' : 'Connexion au serveur…', '', true)
         try {
-          const res = await window.saris.syncSetup({ serverUrl, login, password, totpCode, tempToken })
+          const res = await window.saris.syncSetup({ serverUrl, login, password, totpCode, tempToken, posteLibelle })
           if (res && res.requireTotp) {
             tempToken = res.tempToken
             $('totpField').classList.remove('hidden'); $('totp').focus()
@@ -211,7 +217,7 @@
       }
 
       $('go').onclick = submit
-      ;['url', 'login', 'password', 'totp'].forEach((id) =>
+      ;['url', 'posteLibelle', 'login', 'password', 'totp'].forEach((id) =>
         $(id).addEventListener('keydown', (e) => { if (e.key === 'Enter') submit() }))
     </script>
   </body>

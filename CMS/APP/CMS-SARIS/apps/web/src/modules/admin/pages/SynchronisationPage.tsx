@@ -19,7 +19,7 @@ import {
   HardDrive, CheckCircle2, AlertTriangle, Loader2, CloudUpload, Trash2,
   RotateCcw, Users, Stethoscope, Pill, Ambulance, FlaskConical, HardHat, ClipboardList,
   CalendarClock, MonitorSmartphone, Activity, GitMerge, Radio, LayoutGrid, List, Search,
-  X, Clock, LogIn,
+  X, Clock, LogIn, Pencil, User,
 } from 'lucide-react'
 import {
   PageHeader, Card, Button, StatusPill, Skeleton, EmptyState, Tooltip, Modal, SegmentedTabs,
@@ -41,7 +41,7 @@ import {
   useSyncStatus, useSauvegardes, useRestaurerSauvegarde,
 } from '../hooks/useAdmin'
 import {
-  useSyncStatus as useDataSyncStatus, useSyncRun, useSyncSupervision, usePosteDetail, useMasquerPoste,
+  useSyncStatus as useDataSyncStatus, useSyncRun, useSyncSupervision, usePosteDetail, useMasquerPoste, useRenamePoste,
 } from '../hooks/useSync'
 import type { SauvegardeSysteme } from '../api/admin.api'
 import type {
@@ -271,7 +271,7 @@ function PostesSection({ postes, enLigne, loading, canExecute }: {
     if (filtre === 'horsligne' && p.enLigne) return false
     if (search.trim()) {
       const q = search.trim().toLowerCase()
-      const nom  = (p.utilisateurNom ?? p.libelle).toLowerCase()
+      const nom  = `${p.libelle} ${p.utilisateurNom ?? ''}`.toLowerCase()
       const role = p.utilisateurRole ? labelRole(p.utilisateurRole).toLowerCase() : ''
       if (!nom.includes(q) && !role.includes(q)) return false
     }
@@ -415,12 +415,12 @@ function PosteCard({ poste, onOpenDetail, onMasquer }: {
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <p style={{ margin: 0, fontSize: 'var(--font-size-body-sm)', fontWeight: 600, color: 'var(--texte-primaire)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {/* Nom du dernier utilisateur connecté depuis ce poste (repli sur l'identifiant
-              machine si aucun utilisateur n'a encore synchronisé avec cette version). */}
-          {poste.utilisateurNom ?? poste.libelle}
+          {/* Nom du POSTE lui-même (identité stable) — le dernier utilisateur connecté est
+              affiché en second, à titre indicatif seulement. */}
+          {poste.libelle}
         </p>
-        <p style={{ margin: '1px 0 0', fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)' }}>
-          {poste.utilisateurRole && `${labelRole(poste.utilisateurRole)} · `}
+        <p style={{ margin: '1px 0 0', fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {poste.utilisateurNom && `${poste.utilisateurNom} · `}
           {t('admin.supLastSync')} · {relative(poste.derniereSyncAt)}
         </p>
       </div>
@@ -450,7 +450,7 @@ function PosteCard({ poste, onOpenDetail, onMasquer }: {
   )
 }
 
-/** Modale de détail d'un poste : identité + dernière session connectée (début → fin, durée). */
+/** Modale de détail d'un poste : identité (renommable) + dernière session connectée. */
 function PosteDetailModal({ id, onClose }: { id: string; onClose: () => void }) {
   const { t } = useTranslation()
   const { data, isLoading } = usePosteDetail(id)
@@ -458,8 +458,7 @@ function PosteDetailModal({ id, onClose }: { id: string; onClose: () => void }) 
   return (
     <Modal
       icon={<MonitorSmartphone size={18} />}
-      title={data?.utilisateurNom ?? data?.libelle ?? t('admin.supPosteDetailTitle')}
-      subtitle={data?.utilisateurRole ? labelRole(data.utilisateurRole) : undefined}
+      title={data?.libelle ?? t('admin.supPosteDetailTitle')}
       width={440}
       onClose={onClose}
     >
@@ -467,11 +466,19 @@ function PosteDetailModal({ id, onClose }: { id: string; onClose: () => void }) 
         <div>{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} height={48} style={{ marginBottom: 6 }} />)}</div>
       ) : (
         <>
+          <RenamePosteField posteId={id} currentLibelle={data.libelle} />
           <DetailRow
-            icon={<StatusPill tone={data.enLigne ? 'success' : 'neutral'} size="sm">{data.enLigne ? t('admin.supOnline') : t('admin.supOffline')}</StatusPill>}
+            icon={<span style={{ width: 8, height: 8, borderRadius: '50%', display: 'block', background: data.enLigne ? 'var(--succes-accent)' : 'var(--texte-tertiaire)' }} />}
             label={t('admin.supDetailStatus')}
-            value=""
+            value={data.enLigne ? t('admin.supOnline') : t('admin.supOffline')}
           />
+          {data.utilisateurNom && (
+            <DetailRow
+              icon={<User size={14} />}
+              label={t('admin.supDetailLastUser')}
+              value={data.utilisateurRole ? `${data.utilisateurNom} · ${labelRole(data.utilisateurRole)}` : data.utilisateurNom}
+            />
+          )}
           <DetailRow
             icon={<LogIn size={14} />}
             label={t('admin.supDetailLastConnection')}
@@ -489,6 +496,54 @@ function PosteDetailModal({ id, onClose }: { id: string; onClose: () => void }) 
         </>
       )}
     </Modal>
+  )
+}
+
+/** Champ de renommage du poste — nom UNIQUE par site, validé côté serveur. */
+function RenamePosteField({ posteId, currentLibelle }: { posteId: string; currentLibelle: string }) {
+  const { t } = useTranslation()
+  const [editing, setEditing] = useState(false)
+  const [value, setValue] = useState(currentLibelle)
+  const rename = useRenamePoste()
+
+  useEffect(() => { setValue(currentLibelle) }, [currentLibelle])
+
+  async function save() {
+    const trimmed = value.trim()
+    if (!trimmed) { toast.error(t('admin.supPosteRenameRequired')); return }
+    if (trimmed === currentLibelle) { setEditing(false); return }
+    try {
+      await rename.mutateAsync({ id: posteId, libelle: trimmed })
+      toast.success(t('admin.supPosteRenamed'))
+      setEditing(false)
+    } catch {
+      toast.error(t('admin.supPosteRenameDuplicate'))
+    }
+  }
+  function cancel() { setValue(currentLibelle); setEditing(false) }
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--espace-2)', marginBottom: 'var(--espace-3)' }}>
+      {editing ? (
+        <>
+          <input
+            value={value} onChange={(e) => setValue(e.target.value)} maxLength={80} autoFocus
+            onKeyDown={(e) => { if (e.key === 'Enter') void save(); if (e.key === 'Escape') cancel() }}
+            style={{
+              flex: 1, padding: '7px 10px', borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--bordure-normale)', fontSize: 'var(--font-size-body-sm)',
+              color: 'var(--texte-primaire)', background: 'var(--fond-surface)',
+            }}
+          />
+          <Button size="sm" onClick={() => void save()} disabled={rename.isPending}>{t('admin.save')}</Button>
+          <Button size="sm" variant="ghost" onClick={cancel}>{t('admin.cancel')}</Button>
+        </>
+      ) : (
+        <Button size="sm" variant="ghost" onClick={() => setEditing(true)} style={{ gap: 6 }}>
+          <Pencil size={13} /> {t('admin.supPosteRename')}
+        </Button>
+      )}
+    </div>
   )
 }
 

@@ -70,4 +70,6 @@ export const syncApi = {
   supervision: () => api.get<SyncSupervision>('/sync/supervision'),
   posteDetail: (id: string) => api.get<SyncSupervisionPosteDetail>(`/sync/supervision/postes/${id}`),
   masquerPoste: (id: string) => api.delete<{ ok: boolean }>(`/sync/supervision/postes/${id}`),
+  renamePoste: (id: string, libelle: string) =>
+    api.patch<{ libelle: string }>(`/sync/supervision/postes/${id}`, { libelle }),
 }

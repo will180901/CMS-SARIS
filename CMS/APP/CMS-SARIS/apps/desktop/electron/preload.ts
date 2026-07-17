@@ -15,6 +15,8 @@ interface BootConfig {
   platform: string
   /** Serveur central déjà configuré (mode local) — pour pré-remplir l'écran de config. */
   serverUrl: string
+  /** Nom de poste par défaut (hostname) — pré-remplit le champ « Nom de ce poste ». */
+  posteLibelleDefault: string
 }
 
 const boot = ipcRenderer.sendSync('saris:config') as BootConfig
@@ -31,6 +33,7 @@ contextBridge.exposeInMainWorld('saris', {
   appVersion: boot.appVersion,
   platform: boot.platform,
   serverUrl: boot.serverUrl,
+  posteLibelleDefault: boot.posteLibelleDefault,
   /** Enregistre l'URL du serveur puis relance l'application. */
   setApiUrl: (url: string): Promise<{ ok: boolean }> => ipcRenderer.invoke('saris:set-api-url', url),
   /**
@@ -39,7 +42,7 @@ contextBridge.exposeInMainWorld('saris', {
    * la 1ère synchro, puis recharge vers l'application.
    */
   syncSetup: (params: {
-    serverUrl: string; login: string; password: string; totpCode?: string; tempToken?: string
+    serverUrl: string; login: string; password: string; totpCode?: string; tempToken?: string; posteLibelle?: string
   }): Promise<{ ok: boolean; error?: string; requireTotp?: boolean; tempToken?: string }> =>
     ipcRenderer.invoke('saris:sync-setup', params),
   /** Progression après « Connecter » : { step: 'backend'|'done'|'error', message }. */
@@ -96,5 +99,23 @@ contextBridge.exposeInMainWorld('saris', {
     get: (key: string): Promise<string | null> => ipcRenderer.invoke('saris:secure-get', key),
     set: (key: string, value: string): Promise<void> => ipcRenderer.invoke('saris:secure-set', key, value),
     del: (key: string): Promise<void> => ipcRenderer.invoke('saris:secure-del', key),
+  },
+  /**
+   * Espace de fichiers PAR UTILISATEUR (façon WhatsApp Desktop) pour les pièces
+   * jointes de la messagerie : téléchargement dans un dossier dédié au compte
+   * connecté (jamais partagé entre comptes sur un même poste), ouverture avec
+   * l'application par défaut du système, ou « Enregistrer sous… » (dialogue natif,
+   * hors de l'espace géré par l'app).
+   */
+  media: {
+    ensureDirs: (userId: string): Promise<{ ok: boolean; dirs?: Record<string, string>; error?: string }> =>
+      ipcRenderer.invoke('saris:media-ensure-dirs', userId),
+    save: (params: { userId: string; category: string; nomFichier: string; dataUrl: string }): Promise<{ ok: boolean; path?: string; error?: string }> =>
+      ipcRenderer.invoke('saris:media-save', params),
+    openPath: (filePath: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('saris:media-open-path', filePath),
+    saveAs: (params: { dataUrl: string; suggestedName: string }): Promise<{ ok: boolean; canceled?: boolean; path?: string; error?: string }> =>
+      ipcRenderer.invoke('saris:media-save-as', params),
+    showInFolder: (filePath: string): Promise<void> => ipcRenderer.invoke('saris:media-show-in-folder', filePath),
   },
 })

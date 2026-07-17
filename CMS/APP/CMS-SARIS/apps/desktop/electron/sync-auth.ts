@@ -15,6 +15,7 @@ import { app } from 'electron'
 import path from 'node:path'
 import fs from 'node:fs'
 import crypto from 'node:crypto'
+import os from 'node:os'
 import { readConfig, writeConfig, secureGet, secureSet, secureDel } from './config'
 
 const REFRESH_KEY = 'cms-saris-sync-refresh' // clé DPAPI du refresh token
@@ -31,6 +32,22 @@ export function getPosteLocalId(): string {
   const id = crypto.randomUUID()
   writeConfig({ posteLocalId: id })
   return id
+}
+
+/** Nom lisible du poste — par défaut le nom de la machine (hostname), modifiable (cf.
+ *  écran de configuration). Persisté une fois, réutilisé aux lancements suivants. */
+export function getPosteLibelle(): string {
+  const cfg = readConfig()
+  if (cfg.posteLibelle) return cfg.posteLibelle
+  const hostname = os.hostname().trim().slice(0, 80) || 'Poste'
+  writeConfig({ posteLibelle: hostname })
+  return hostname
+}
+
+/** Renomme le poste localement (ex. modifié à l'écran de configuration). */
+export function setPosteLibelle(libelle: string): void {
+  const trimmed = libelle.trim().slice(0, 80)
+  if (trimmed) writeConfig({ posteLibelle: trimmed })
 }
 
 /** Le poste est-il configuré (serveur central + site + refresh token présents) ? */
@@ -61,6 +78,7 @@ export async function setupSync(
   password: string,
   totpCode?: string,
   tempToken?: string,
+  posteLibelle?: string,
 ): Promise<SetupResult> {
   const server = trimUrl(serverUrl)
   if (!/^https?:\/\//i.test(server)) return { ok: false, error: 'L’adresse doit commencer par http:// ou https://' }
@@ -94,6 +112,8 @@ export async function setupSync(
     secureSet(REFRESH_KEY, refreshToken)
     fs.writeFileSync(syncTokenFilePath(), accessToken, 'utf8')
     getPosteLocalId()
+    if (posteLibelle) setPosteLibelle(posteLibelle)
+    else getPosteLibelle() // assure un nom par défaut (hostname) même si le champ a été laissé vide
     return { ok: true }
   } catch (e) {
     return { ok: false, error: 'Serveur injoignable : ' + (e as Error).message }

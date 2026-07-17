@@ -52,3 +52,12 @@ export function useMasquerPoste() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'sync', 'supervision'] }),
   })
 }
+
+/** Renomme un poste (nom unique par site) — supervision admin. */
+export function useRenamePoste() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, libelle }: { id: string; libelle: string }) => syncApi.renamePoste(id, libelle),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'sync', 'supervision'] }),
+  })
+}

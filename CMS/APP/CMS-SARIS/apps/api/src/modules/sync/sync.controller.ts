@@ -1,11 +1,11 @@
-import { Body, Controller, Delete, Get, Param, Post, Query, Req, UnauthorizedException, UseGuards } from '@nestjs/common'
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UnauthorizedException, UseGuards } from '@nestjs/common'
 import { JwtAuthGuard } from '../security/guards/jwt-auth.guard'
 import { PermissionsGuard } from '../security/guards/permissions.guard'
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator'
 import { SyncService } from './sync.service'
 import { SyncClientService } from './sync-client.service'
 import { SyncSupervisionService } from './sync-supervision.service'
-import { SyncPullQueryDto, SyncPushDto } from './sync.dto'
+import { SyncPullQueryDto, SyncPushDto, SyncHeartbeatDto, RenamePosteDto } from './sync.dto'
 
 interface AuthedRequest {
   user?: { id?: string; siteId?: string }
@@ -43,6 +43,26 @@ export class SyncController {
   push(@Req() req: AuthedRequest, @Body() body: SyncPushDto) {
     const { userId, siteId } = requireUser(req)
     return this.svc.push(siteId, userId, body.posteLocalId, body.changes)
+  }
+
+  /**
+   * Battement de vie périodique d'un poste (indépendant de toute donnée à pousser) : fait
+   * apparaître le poste dès l'installation et rend le statut en ligne/hors ligne réellement vivant.
+   */
+  @Post('heartbeat')
+  @RequirePermissions('synchronisation.execute')
+  async heartbeat(@Req() req: AuthedRequest, @Body() body: SyncHeartbeatDto) {
+    const { siteId } = requireUser(req)
+    await this.supervision.heartbeat(siteId, body.posteLocalId, body.libelle)
+    return { ok: true }
+  }
+
+  /** Renomme un poste (nom unique par site) — supervision admin. */
+  @Patch('supervision/postes/:id')
+  @RequirePermissions('synchronisation.execute')
+  renamePoste(@Req() req: AuthedRequest, @Param('id') id: string, @Body() dto: RenamePosteDto) {
+    const { siteId } = requireUser(req)
+    return this.supervision.renamePoste(siteId, id, dto.libelle)
   }
 
   /** Supervision (serveur central) : postes, activité récente, conflits — scope par site. */

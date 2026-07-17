@@ -51,6 +51,30 @@ export class SyncClientService implements OnApplicationBootstrap {
     // Filet de sécurité espacé : rattrape un éventuel changement non détecté par la sonde.
     const safetySec = Number(process.env['SYNC_SAFETY_SEC'] ?? '300')
     setInterval(() => void this.triggerSync('filet'), Math.max(60, safetySec) * 1000)
+    // Battement de vie : signale la présence du poste INDÉPENDAMMENT de toute donnée à
+    // pousser — fait apparaître le poste dès l'installation et rend le statut en ligne
+    // vivant (fenêtre ONLINE_WINDOW_MS = 90 s côté supervision, cf. sync-supervision.service).
+    void this.heartbeat()
+    const heartbeatSec = Number(process.env['SYNC_HEARTBEAT_SEC'] ?? '30')
+    setInterval(() => void this.heartbeat(), Math.max(10, heartbeatSec) * 1000)
+  }
+
+  private get libelle(): string {
+    return process.env['POSTE_LIBELLE'] ?? ''
+  }
+
+  /** Battement de vie best-effort (jamais bloquant, jamais d'erreur remontée). */
+  private async heartbeat(): Promise<void> {
+    if (!this.enabled) return
+    try {
+      await fetch(`${this.serverUrl}/sync/heartbeat`, {
+        method: 'POST',
+        headers: this.headers(),
+        body: JSON.stringify({ posteLocalId: this.posteLocalId, libelle: this.libelle || undefined }),
+      })
+    } catch {
+      // best-effort — le prochain battement retentera
+    }
   }
 
   /** Sonde la joignabilité du serveur ; sur la transition hors-ligne → EN LIGNE, lance une

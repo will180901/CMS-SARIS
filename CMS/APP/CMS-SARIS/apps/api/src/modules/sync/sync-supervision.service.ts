@@ -11,7 +11,7 @@
  *  - getPosteDetail() : détail d'un poste (modale) — dernière session connectée (début/fin).
  *  - masquerPoste()   : retire un poste de la liste (dismiss) ; réapparaît à sa prochaine synchro.
  */
-import { Injectable, Logger, NotFoundException } from '@nestjs/common'
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
 import { NotificationService } from '../notification/notification.service'
 
@@ -33,8 +33,10 @@ export interface SyncRecordInput {
   conflicts: SyncConflictDetail[]
 }
 
-/** Un poste est considéré « en ligne » s'il s'est synchronisé dans les 3 dernières minutes. */
-const ONLINE_WINDOW_MS = 3 * 60_000
+/** Un poste est considéré « en ligne » s'il a donné signe de vie (battement ou synchro) dans
+ *  les 90 dernières secondes — aligné sur le battement du poste (~30 s, cf. sync-client.service),
+ *  avec une marge de 2 battements manqués avant de basculer « hors ligne ». */
+const ONLINE_WINDOW_MS = 90_000
 
 /** Ordre de priorité d'affichage quand un utilisateur porte plusieurs rôles (même ordre que
  *  `getPrimaryRole` côté web, apps/web/src/config/navigation.config.ts). */
@@ -67,7 +69,7 @@ export class SyncSupervisionService {
       await this.prisma.posteLocal.upsert({
         where:  { id: posteLocalId },
         update: { derniereSyncAt: now, siteId, dernierUtilisateurId: userId, masque: false },
-        create: { id: posteLocalId, siteId, libelle: `Poste ${posteLocalId.slice(0, 8)}`, derniereSyncAt: now, dernierUtilisateurId: userId },
+        create: { id: posteLocalId, siteId, libelle: this.defaultLibelle(posteLocalId), derniereSyncAt: now, dernierUtilisateurId: userId },
       })
 
       // 2. Journal du cycle (réussi / avec conflits).
@@ -110,6 +112,52 @@ export class SyncSupervisionService {
 
     // 5. Temps réel : rafraîchit l'écran de supervision des administrateurs.
     this.notifications.broadcastLive('SYNC_ACTIVITY', { requiredPermission: 'synchronisation.read' })
+  }
+
+  /** Nom par défaut d'un poste jamais nommé (ni par lui-même, ni par un admin). */
+  private defaultLibelle(posteLocalId: string): string {
+    return `Poste ${posteLocalId.slice(0, 8)}`
+  }
+
+  /**
+   * Battement de vie d'un poste (no-op sur un poste local SQLite) — INDÉPENDANT de toute
+   * donnée à synchroniser : c'est ce qui fait apparaître le poste dès l'installation (avant
+   * même son premier push) et rend le statut en ligne/hors ligne réellement vivant.
+   *
+   * `libelle` ne sert QU'À LA CRÉATION — jamais d'écrasement d'un nom déjà connu, pour ne
+   * jamais effacer un renommage fait depuis la supervision (cf. renamePoste()).
+   */
+  async heartbeat(siteId: string, posteLocalId: string, libelle?: string): Promise<void> {
+    if (this.isSqlite) return
+    const now = new Date()
+    try {
+      await this.prisma.posteLocal.upsert({
+        where:  { id: posteLocalId },
+        update: { derniereSyncAt: now, siteId, masque: false },
+        create: { id: posteLocalId, siteId, libelle: libelle?.trim() || this.defaultLibelle(posteLocalId), derniereSyncAt: now },
+      })
+    } catch (e) {
+      this.logger.warn(`heartbeat() ignoré : ${(e as Error).message}`)
+    }
+    this.notifications.broadcastLive('SYNC_ACTIVITY', { requiredPermission: 'synchronisation.read' })
+  }
+
+  /** Renomme un poste (supervision admin) — nom UNIQUE au sein du site. */
+  async renamePoste(siteId: string, posteId: string, libelle: string): Promise<{ libelle: string }> {
+    const trimmed = libelle.trim()
+    if (!trimmed) throw new BadRequestException('Le nom du poste est requis')
+
+    const poste = await this.prisma.posteLocal.findFirst({ where: { id: posteId, siteId } })
+    if (!poste) throw new NotFoundException('Poste introuvable')
+
+    const doublon = await this.prisma.posteLocal.findFirst({
+      where: { siteId, libelle: trimmed, id: { not: posteId } },
+    })
+    if (doublon) throw new BadRequestException('Ce nom est déjà utilisé par un autre poste')
+
+    await this.prisma.posteLocal.update({ where: { id: posteId }, data: { libelle: trimmed } })
+    this.notifications.broadcastLive('SYNC_ACTIVITY', { requiredPermission: 'synchronisation.read' })
+    return { libelle: trimmed }
   }
 
   /** Données de l'écran de supervision (scope par site). Postes masqués (dismiss) exclus.

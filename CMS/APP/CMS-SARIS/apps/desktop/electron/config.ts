@@ -25,6 +25,10 @@ interface SarisConfig {
   siteId?: string
   /** Identifiant STABLE du poste local — généré au 1er lancement, persistant. */
   posteLocalId?: string
+  /** Nom lisible du poste (« Bureau Accueil », etc.) — par défaut le nom de la machine,
+   *  modifiable à la configuration. Sert UNIQUEMENT à la création côté serveur (jamais
+   *  d'écrasement d'un renommage fait depuis la supervision admin). */
+  posteLibelle?: string
 }
 
 function configPath(): string {

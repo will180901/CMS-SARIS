@@ -18,7 +18,7 @@ import { startBackend, findFreePort, stopBackend } from './backend'
 import { ensureDb } from './db-init'
 import {
   isSyncConfigured, setupSync, refreshAccessToken, startRefreshTimer, stopRefreshTimer,
-  clearSync, getPosteLocalId, syncTokenFilePath,
+  clearSync, getPosteLocalId, getPosteLibelle, syncTokenFilePath,
 } from './sync-auth'
 
 const APP_SCHEME = 'app'
@@ -212,6 +212,55 @@ function createMainWindow(): void {
   else loadServerConfig()
 }
 
+// ── Espace de fichiers PAR UTILISATEUR (façon WhatsApp Desktop) ────────────────
+// Chaque compte CMS SARIS a son propre sous-dossier — deux agents sur le MÊME
+// poste partagé ne voient jamais les téléchargements l'un de l'autre. Racine :
+// %APPDATA%\CMS SARIS\Utilisateurs\<userId>\{Documents,Images,Vidéos,Audio}.
+const MEDIA_CATEGORY_DIR: Record<string, string> = {
+  document: 'Documents', image: 'Images', video: 'Vidéos', audio: 'Audio',
+}
+
+/** Nettoie un identifiant pour en faire un nom de dossier sûr (défense en profondeur —
+ *  les userId sont des UUID, mais on ne fait jamais confiance à une entrée renderer). */
+function sanitizeFolderName(id: string): string {
+  return (id || 'compte').replace(/[\x00-\x1f<>:"/\\|?*]/g, '').trim().slice(0, 100) || 'compte'
+}
+
+function userMediaRoot(userId: string): string {
+  return path.join(app.getPath('userData'), 'Utilisateurs', sanitizeFolderName(userId))
+}
+
+function ensureUserMediaDirs(userId: string): Record<string, string> {
+  const root = userMediaRoot(userId)
+  const dirs: Record<string, string> = {}
+  for (const [key, label] of Object.entries(MEDIA_CATEGORY_DIR)) {
+    const dir = path.join(root, label)
+    fs.mkdirSync(dir, { recursive: true })
+    dirs[key] = dir
+  }
+  return dirs
+}
+
+/** Ajoute « (2) », « (3) »… si le nom existe déjà dans le dossier (convention Explorer/WhatsApp). */
+function uniqueDestPath(dir: string, filename: string): string {
+  const ext  = path.extname(filename)
+  const base = path.basename(filename, ext)
+  let candidate = path.join(dir, filename)
+  let i = 1
+  while (fs.existsSync(candidate)) {
+    i++
+    candidate = path.join(dir, `${base} (${i})${ext}`)
+  }
+  return candidate
+}
+
+/** Décode un `data:<mime>;base64,<...>` en octets bruts. */
+function decodeDataUrl(dataUrl: string): Buffer {
+  const comma = dataUrl.indexOf(',')
+  if (comma < 0) throw new Error('Data URL invalide')
+  return Buffer.from(dataUrl.slice(comma + 1), 'base64')
+}
+
 let appMenu: Menu | null = null
 
 /**
@@ -252,6 +301,8 @@ function registerIpc(): void {
       appVersion: app.getVersion(),
       platform: process.platform,
       serverUrl: resolveServerUrl(),
+      // Nom de poste par défaut (hostname) — pré-remplit le champ de l'écran de configuration.
+      posteLibelleDefault: getPosteLibelle(),
     }
   })
   ipcMain.handle('saris:get-config', () => ({ apiUrl: resolveApiUrl(), appVersion: app.getVersion() }))
@@ -265,9 +316,9 @@ function registerIpc(): void {
   // le backend embarqué (qui lance la 1ère synchro) puis charge l'application.
   ipcMain.handle('saris:sync-setup', async (
     _e,
-    params: { serverUrl: string; login: string; password: string; totpCode?: string; tempToken?: string },
+    params: { serverUrl: string; login: string; password: string; totpCode?: string; tempToken?: string; posteLibelle?: string },
   ) => {
-    const res = await setupSync(params.serverUrl, params.login, params.password, params.totpCode, params.tempToken)
+    const res = await setupSync(params.serverUrl, params.login, params.password, params.totpCode, params.tempToken, params.posteLibelle)
     // On répond TOUT DE SUITE (l'écran affiche la progression via saris:setup-status), puis
     // on démarre le backend local + on charge l'app — ou on signale l'erreur, sans bloquer.
     if (res.ok) setImmediate(() => { void completeLocalStartup() })
@@ -338,6 +389,49 @@ function registerIpc(): void {
   ipcMain.handle('saris:open-menu', () => {
     if (appMenu && mainWindow) appMenu.popup({ window: mainWindow })
   })
+
+  // ── Espace de fichiers par utilisateur (pièces jointes messagerie) ───────────
+  // Provisionne les dossiers dédiés au compte (idempotent — appelé après connexion).
+  ipcMain.handle('saris:media-ensure-dirs', (_e, userId: string) => {
+    try { return { ok: true, dirs: ensureUserMediaDirs(String(userId ?? '')) } }
+    catch (e) { return { ok: false, error: (e as Error).message } }
+  })
+  // Écrit une pièce jointe déchiffrée (dataUrl fourni par le renderer, déjà obtenu via
+  // l'API) dans le dossier dédié de l'utilisateur — jamais de fichier « orphelin » en
+  // dehors de son espace. Retourne le chemin final (collisions gérées).
+  ipcMain.handle('saris:media-save', (_e, params: { userId: string; category: string; nomFichier: string; dataUrl: string }) => {
+    try {
+      const dirs = ensureUserMediaDirs(String(params.userId ?? ''))
+      const dir = dirs[params.category] ?? dirs['document']!
+      const dest = uniqueDestPath(dir, params.nomFichier || 'fichier')
+      fs.writeFileSync(dest, decodeDataUrl(params.dataUrl))
+      return { ok: true, path: dest }
+    } catch (e) {
+      return { ok: false, error: (e as Error).message }
+    }
+  })
+  // Ouvre un fichier déjà téléchargé avec l'application par défaut du système.
+  ipcMain.handle('saris:media-open-path', async (_e, filePath: string) => {
+    const err = await shell.openPath(String(filePath ?? ''))
+    return err ? { ok: false, error: err } : { ok: true }
+  })
+  // « Enregistrer sous… » façon WhatsApp : dialogue natif, HORS de l'espace géré par
+  // l'app (l'utilisateur choisit librement l'emplacement, p. ex. Bureau/Documents perso).
+  ipcMain.handle('saris:media-save-as', async (_e, params: { dataUrl: string; suggestedName: string }) => {
+    if (!mainWindow) return { ok: false, canceled: true }
+    const res = await dialog.showSaveDialog(mainWindow, { defaultPath: params.suggestedName })
+    if (res.canceled || !res.filePath) return { ok: false, canceled: true }
+    try {
+      fs.writeFileSync(res.filePath, decodeDataUrl(params.dataUrl))
+      return { ok: true, path: res.filePath }
+    } catch (e) {
+      return { ok: false, error: (e as Error).message }
+    }
+  })
+  // Révèle le fichier dans l'explorateur (Poste de travail / Finder).
+  ipcMain.handle('saris:media-show-in-folder', (_e, filePath: string) => {
+    shell.showItemInFolder(String(filePath ?? ''))
+  })
 }
 
 /**
@@ -382,6 +476,7 @@ async function startLocalBackend(): Promise<void> {
       serverUrl: resolveServerUrl(),
       siteId: readConfig().siteId,
       posteLocalId: getPosteLocalId(),
+      posteLibelle: getPosteLibelle(),
       syncTokenFile: syncTokenFilePath(),
       ...bakedSecrets(), // JWT_SECRET (requis) + TOTP/MESSAGE keys (alignées au central)
       logFile: path.join(userData, 'backend.log'),
@@ -526,6 +621,10 @@ if (!app.requestSingleInstanceLock()) {
 
   app.whenReady().then(async () => {
     nativeTheme.themeSource = 'system' // suit l'OS jusqu'à ce que l'app synchronise son thème
+    // Racine de l'espace de fichiers par utilisateur (pièces jointes messagerie) —
+    // créée dès le démarrage ; les sous-dossiers par compte sont provisionnés à la
+    // connexion (ensureUserMediaDirs), pas ici (on ne connaît pas encore l'utilisateur).
+    try { fs.mkdirSync(path.join(app.getPath('userData'), 'Utilisateurs'), { recursive: true }) } catch { /* best-effort */ }
     registerAppProtocol()
     registerIpc()
     buildAppMenu()
