@@ -184,6 +184,19 @@ export function useUploadPatientPhoto(patientId: string) {
   })
 }
 
+export function useRemovePatientPhoto(patientId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => patientsApi.removePhoto(patientId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: PATIENTS_KEY })
+      qc.invalidateQueries({ queryKey: dossierKey(patientId) })
+      toast.success(i18n.t('patients.toastPhotoRemoved'))
+    },
+    onError: toastError,
+  })
+}
+
 export function useChangerCategorie(patientId: string) {
   const qc = useQueryClient()
   return useMutation({

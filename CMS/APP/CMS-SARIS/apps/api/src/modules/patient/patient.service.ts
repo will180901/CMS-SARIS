@@ -704,6 +704,13 @@ export class PatientService {
     return { photoUrl }
   }
 
+  /** Retire la photo du patient (repli sur les initiales — cf. setPhoto). */
+  async removePhoto(id: string) {
+    await this.assertPatientExists(id)
+    await this.prisma.identitePatient.update({ where: { patientId: id }, data: { photoUrl: null } })
+    return { photoUrl: null }
+  }
+
   // ── Création patient ──────────────────────────────────────────────────────
 
   async create(dto: CreatePatientDto, createdBy?: string) {

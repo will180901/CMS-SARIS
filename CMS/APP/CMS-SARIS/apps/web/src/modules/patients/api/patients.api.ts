@@ -278,6 +278,7 @@ export const patientsApi = {
     form.append('file', file)
     return api.upload<{ photoUrl: string }>(`/patients/${id}/photo`, form)
   },
+  removePhoto: (id: string) => api.delete<{ photoUrl: null }>(`/patients/${id}/photo`),
 
   // Identité & catégorie
   updateIdentite:   (id: string, data: UpdateIdentitePayload)     => api.patch<PatientDossier>(`/patients/${id}/identite`, data),

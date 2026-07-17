@@ -210,6 +210,12 @@ export class PatientController {
     return this.patientService.setPhoto(id, file.buffer)
   }
 
+  @Delete(':id/photo')
+  @RequirePermissions('patient.update')
+  removePhoto(@Param('id') id: string) {
+    return this.patientService.removePhoto(id)
+  }
+
   @Patch(':id/categorie')
   @RequirePermissions('patient.change_category')
   changerCategorie(@Param('id') id: string, @Body() dto: ChangerCategorieDto, @Req() req: any) {
