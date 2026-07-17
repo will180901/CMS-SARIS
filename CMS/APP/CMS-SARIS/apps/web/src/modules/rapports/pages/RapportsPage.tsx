@@ -5,13 +5,18 @@
  * Chef : un cron serveur (RapportsService) produit un snapshot par période et
  * par site ; cette page les liste et permet de les consulter/exporter sans
  * ressaisie, comme demandé (§6.1 : « rapports produits par le CMS »).
+ *
+ * Gabarit calqué sur Triage/Patients : en-tête plein, panneau liste ↔ détail
+ * redimensionnable (poignée glissable), filtres en pastilles arrondies.
  */
-import { useState } from 'react'
-import { FileBarChart, Download, Printer, Calendar, Stethoscope, BedSingle } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { FileBarChart, Download, Calendar, Stethoscope, BedSingle, ChevronRight, ChevronLeft } from 'lucide-react'
 import { Card, Skeleton, EmptyState, StatCard, DonutChart, RankedBars, type DonutSlice } from '@/components/saris'
+import { useIsCompact } from '@/hooks/useMediaQuery'
+import { usePersistedState } from '@/hooks/usePersistedState'
 import { formatDate } from '@/lib/intl'
 import { useRapports, useRapport } from '../hooks/useRapports'
-import { exportStatsXlsx, exportStatsPdf } from '@/modules/dashboard/lib/statsExport'
+import { exportStatsXlsx } from '@/modules/dashboard/lib/statsExport'
 import type { TypeRapport } from '../api/rapports.api'
 
 const TYPE_LABEL: Record<TypeRapport, string> = {
@@ -26,113 +31,206 @@ const TYPE_TINT: Record<TypeRapport, { bg: string; text: string }> = {
   ANNUEL:       { bg: 'var(--succes-fond)', text: 'var(--succes-texte)' },
 }
 
+const LIST_MIN = 260, LIST_MAX = 420, LIST_DEFAULT = 320
+
 export function RapportsPage() {
-  const [filtreType, setFiltreType] = useState<TypeRapport | undefined>(undefined)
-  const { data: rapports = [], isLoading } = useRapports(filtreType)
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const isCompact = useIsCompact()
+  const [filtreType, setFiltreType] = usePersistedState<TypeRapport | 'ALL'>('rapports', 'filtreType', 'ALL')
+  const { data: rapports = [], isLoading } = useRapports()
+  const [selectedId, setSelectedId] = usePersistedState<string | null>('rapports', 'selectedId', null)
   const { data: detail, isLoading: loadingDetail } = useRapport(selectedId)
 
+  const filtered = filtreType === 'ALL' ? rapports : rapports.filter(r => r.type === filtreType)
+
+  /* Redimensionnement panneau liste (même mécanisme que Triage) */
+  const splitRef = useRef<HTMLDivElement>(null)
+  const [listWidth, setListWidth] = usePersistedState('rapports', 'listWidth', LIST_DEFAULT)
+  const [isResizing, setIsResizing] = useState(false)
+
+  useEffect(() => {
+    if (!isResizing) return
+    function onMove(e: MouseEvent) {
+      if (!splitRef.current) return
+      const rect = splitRef.current.getBoundingClientRect()
+      setListWidth(Math.max(LIST_MIN, Math.min(LIST_MAX, e.clientX - rect.left)))
+    }
+    function onUp() { setIsResizing(false) }
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+    return () => {
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+  }, [isResizing])
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--espace-4)', height: '100%', overflow: 'hidden' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <FileBarChart size={18} style={{ color: 'var(--ap-600)' }} />
-        <div>
-          <h1 style={{ fontSize: 16, fontWeight: 700, color: 'var(--texte-primaire)', margin: 0 }}>Rapports</h1>
-          <p style={{ fontSize: 12, color: 'var(--texte-tertiaire)', margin: '2px 0 0' }}>
-            Générés automatiquement — hebdomadaire, mensuel, annuel
-          </p>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+      <style>{`
+        .rap-resize:hover           { background: var(--ap-50) !important; }
+        .rap-resize:hover > div     { background: var(--ap-400) !important; }
+      `}</style>
+
+      {/* ── En-tête (calque Triage/Patients) ───────────────────────────── */}
+      <div style={{ padding: 'var(--espace-4) var(--espace-6) 0', flexShrink: 0, borderBottom: '1px solid var(--bordure-legere)', background: 'var(--fond-surface)' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--ap-50)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
+              <FileBarChart size={16} style={{ color: 'var(--ap-600)' }} />
+            </div>
+            <div>
+              <h1 style={{ fontSize: 'var(--font-size-h2)', fontWeight: 600, color: 'var(--texte-primaire)', margin: 0 }}>Rapports</h1>
+              <p style={{ fontSize: 13, color: 'var(--texte-tertiaire)', margin: '2px 0 0' }}>
+                {isLoading ? '…' : `${rapports.length} rapport${rapports.length > 1 ? 's' : ''}`} · Générés automatiquement
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 340px) 1fr', gap: 'var(--espace-4)', flex: 1, minHeight: 0 }}>
-        {/* Liste */}
-        <Card style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-          <Card.Header
-            title="Générés"
-            subtitle={`${rapports.length} rapport${rapports.length > 1 ? 's' : ''}`}
-          />
-          <div style={{ padding: '0 12px 8px', display: 'flex', gap: 4 }}>
-            {(['HEBDOMADAIRE', 'MENSUEL', 'ANNUEL'] as TypeRapport[]).map(t => {
-              const active = filtreType === t
-              return (
-                <button key={t} type="button" onClick={() => setFiltreType(active ? undefined : t)}
-                  style={{ height: 26, padding: '0 9px', borderRadius: 7, fontSize: 11, fontWeight: active ? 700 : 500, cursor: 'pointer',
-                    background: active ? 'var(--ap-50)' : 'var(--fond-surface)', color: active ? 'var(--ap-700)' : 'var(--texte-secondaire)',
-                    border: `1px solid ${active ? 'var(--ap-200)' : 'var(--bordure-normale)'}` }}>
-                  {TYPE_LABEL[t]}
-                </button>
-              )
-            })}
+      {/* ── Corps split panel ─────────────────────────────────────────── */}
+      <div ref={splitRef} style={{ flex: 1, display: 'flex', minHeight: 0, overflow: 'hidden' }}>
+
+        {/* Panneau liste */}
+        {(!isCompact || !selectedId) && (
+        <div style={{ width: isCompact ? '100%' : `${listWidth}px`, flexShrink: 0, display: 'flex', flexDirection: 'column', minHeight: 0, background: 'var(--fond-surface)' }}>
+
+          {/* Filtres — pastilles arrondies (même style que Triage) */}
+          <div style={{ padding: '10px 12px', borderBottom: '1px solid var(--bordure-legere)', flexShrink: 0, background: 'var(--fond-surface)' }}>
+            <div role="tablist" aria-label="Type de rapport" style={{ display: 'flex', gap: 6, overflowX: 'auto' }}>
+              {(['ALL', 'HEBDOMADAIRE', 'MENSUEL', 'ANNUEL'] as const).map(key => {
+                const active = filtreType === key
+                const count  = key === 'ALL' ? rapports.length : rapports.filter(r => r.type === key).length
+                return (
+                  <button key={key} type="button" role="tab" aria-selected={active}
+                    onClick={() => setFiltreType(key)}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0,
+                      height: 28, padding: '0 10px', borderRadius: 9999, cursor: 'pointer',
+                      fontSize: 12, fontWeight: active ? 600 : 500, whiteSpace: 'nowrap',
+                      background: active ? 'var(--ap-50)' : 'var(--fond-surface)',
+                      color: active ? 'var(--ap-700)' : 'var(--texte-secondaire)',
+                      border: `1px solid ${active ? 'var(--ap-200)' : 'var(--bordure-normale)'}`,
+                      transition: 'all 0.1s',
+                    }}>
+                    {key === 'ALL' ? 'Tous' : TYPE_LABEL[key]}
+                    <span style={{
+                      minWidth: 16, height: 16, borderRadius: 8, padding: '0 4px',
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 10, fontWeight: 700,
+                      background: active ? 'var(--ap-400)' : 'var(--fond-surface-2)',
+                      color: active ? '#fff' : 'var(--texte-tertiaire)',
+                    }}>
+                      {count}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
           </div>
-          <div style={{ flex: 1, overflowY: 'auto', padding: '4px 8px 8px' }}>
+
+          {/* Liste scrollable */}
+          <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
             {isLoading ? (
-              <Skeleton height={200} />
-            ) : rapports.length === 0 ? (
-              <EmptyState icon={<FileBarChart size={24} />} title="Aucun rapport" description="Le premier rapport apparaîtra après la prochaine génération planifiée." />
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {rapports.map(r => {
-                  const tint = TYPE_TINT[r.type]
-                  const selected = r.id === selectedId
-                  return (
-                    <button key={r.id} type="button" onClick={() => setSelectedId(r.id)}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px', borderRadius: 8,
-                        border: `1px solid ${selected ? 'var(--ap-300)' : 'transparent'}`,
-                        background: selected ? 'var(--ap-50)' : 'transparent',
-                        cursor: 'pointer', textAlign: 'left',
-                      }}>
-                      <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 99, background: tint.bg, color: tint.text, flexShrink: 0 }}>
-                        {TYPE_LABEL[r.type]}
-                      </span>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: 'var(--texte-primaire)' }}>
-                          {formatDate(r.periodeDebut, { day: '2-digit', month: 'short', year: 'numeric' })} → {formatDate(r.periodeFin, { day: '2-digit', month: 'short', year: 'numeric' })}
-                        </p>
-                        <p style={{ margin: '2px 0 0', fontSize: 10, color: 'var(--texte-tertiaire)' }}>
-                          Généré le {formatDate(r.genereLe, { day: '2-digit', month: '2-digit', year: 'numeric' })}
-                        </p>
-                      </div>
-                    </button>
-                  )
-                })}
+              <div style={{ padding: 12 }}><Skeleton height={200} /></div>
+            ) : filtered.length === 0 ? (
+              <div style={{ padding: '60px 32px' }}>
+                <EmptyState icon={<FileBarChart size={24} />} title="Aucun rapport" description="Le premier rapport apparaîtra après la prochaine génération planifiée." />
               </div>
+            ) : (
+              filtered.map(r => {
+                const tint = TYPE_TINT[r.type]
+                const selected = r.id === selectedId
+                return (
+                  <div key={r.id} role="button" tabIndex={0} aria-pressed={selected}
+                    onClick={() => setSelectedId(r.id)}
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedId(r.id) } }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', cursor: 'pointer',
+                      borderBottom: '1px solid var(--bordure-legere)',
+                      background: selected ? 'var(--ap-50)' : 'transparent',
+                      borderLeft: `3px solid ${selected ? 'var(--ap-500)' : 'transparent'}`,
+                      transition: 'background 0.1s',
+                    }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 99, background: tint.bg, color: tint.text, flexShrink: 0 }}>
+                      {TYPE_LABEL[r.type]}
+                    </span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--texte-primaire)' }}>
+                        {formatDate(r.periodeDebut, { day: '2-digit', month: 'short', year: 'numeric' })} → {formatDate(r.periodeFin, { day: '2-digit', month: 'short', year: 'numeric' })}
+                      </p>
+                      <p style={{ margin: '3px 0 0', fontSize: 11, color: 'var(--texte-tertiaire)' }}>
+                        Généré le {formatDate(r.genereLe, { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                      </p>
+                    </div>
+                    <ChevronRight size={13} style={{ color: 'var(--texte-tertiaire)', flexShrink: 0 }} />
+                  </div>
+                )
+              })
             )}
           </div>
-        </Card>
+        </div>
+        )}
 
-        {/* Détail */}
-        <Card style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
+        {/* Poignée de redimensionnement — bureau uniquement */}
+        {!isCompact && (
+        <div
+          onMouseDown={() => setIsResizing(true)}
+          onDoubleClick={() => setListWidth(LIST_DEFAULT)}
+          title="Glisser pour redimensionner — double-clic pour réinitialiser"
+          className="rap-resize"
+          style={{
+            width: 5, flexShrink: 0, cursor: 'col-resize', position: 'relative',
+            background: isResizing ? 'var(--ap-50)' : 'transparent',
+            transition: 'background 0.15s',
+          }}
+        >
+          <div style={{
+            position: 'absolute', left: 2, top: 0, bottom: 0, width: 1,
+            background: isResizing ? 'var(--ap-400)' : 'var(--bordure-legere)',
+            transition: 'background 0.15s',
+          }} />
+        </div>
+        )}
+
+        {/* Panneau détail */}
+        {(!isCompact || selectedId) && (
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, background: 'var(--fond-page)' }}>
+          {isCompact && selectedId && (
+            <button onClick={() => setSelectedId(null)}
+              style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, padding: '9px 12px', borderBottom: '1px solid var(--bordure-legere)', background: 'var(--fond-surface)', border: 'none', cursor: 'pointer', color: 'var(--texte-secondaire)', fontSize: 13, fontWeight: 600, textAlign: 'left' }}>
+              <ChevronLeft size={18} /> Retour
+            </button>
+          )}
+
           {!selectedId ? (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <EmptyState icon={<Calendar size={24} />} title="Sélectionnez un rapport" description="Choisissez un rapport dans la liste pour en voir le contenu." />
             </div>
           ) : loadingDetail || !detail ? (
-            <Card.Body><Skeleton height={300} /></Card.Body>
+            <div style={{ padding: 'var(--espace-6)' }}><Skeleton height={300} /></div>
           ) : (
             <>
               <Card.Header
                 title={`${TYPE_LABEL[detail.type]} — ${formatDate(detail.periodeDebut, { day: '2-digit', month: 'long', year: 'numeric' })} → ${formatDate(detail.periodeFin, { day: '2-digit', month: 'long', year: 'numeric' })}`}
                 subtitle={`${detail.contenu.totalConsultations} consultation${detail.contenu.totalConsultations > 1 ? 's' : ''} · ${detail.contenu.repos.totalJours} jour(s) de repos prescrits`}
                 actions={
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <button type="button" onClick={() => void exportStatsXlsx(detail.contenu)} style={rapportExportBtn}>
-                      <Download size={12} /> Excel
-                    </button>
-                    <button type="button" onClick={() => exportStatsPdf(detail.contenu)} style={rapportExportBtn}>
-                      <Printer size={12} /> PDF
-                    </button>
-                  </div>
+                  <button type="button" onClick={() => void exportStatsXlsx(detail.contenu)} style={rapportExportBtn}>
+                    <Download size={12} /> Excel
+                  </button>
                 }
               />
-              <div style={{ flex: 1, overflowY: 'auto', padding: '0 var(--espace-5) var(--espace-5)', display: 'flex', flexDirection: 'column', gap: 'var(--espace-5)' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 'var(--espace-3)' }}>
+              <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--espace-6)', display: 'flex', flexDirection: 'column', gap: 'var(--espace-6)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 'var(--espace-4)' }}>
                   <StatCard icon={<Stethoscope size={18} />} label="Consultations" value={detail.contenu.totalConsultations} tone="accent" />
                   <StatCard icon={<BedSingle size={18} />} label="Jours de repos prescrits" value={detail.contenu.repos.totalJours} tone="gold"
                     hint={`${detail.contenu.repos.consultationsAvecRepos} consultation(s) avec repos`} />
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: 'var(--espace-5)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: 'var(--espace-6)' }}>
                   <RapportDonutBlock title="Par type de consultation" rows={detail.contenu.parType} />
                   <RapportDonutBlock title="Par catégorie de patient" rows={detail.contenu.parCategorie} />
                   <RapportDonutBlock title="Par département / direction" rows={detail.contenu.parDepartement} />
@@ -144,7 +242,8 @@ export function RapportsPage() {
               </div>
             </>
           )}
-        </Card>
+        </div>
+        )}
       </div>
     </div>
   )
@@ -160,7 +259,7 @@ const rapportExportBtn: React.CSSProperties = {
 function RapportBlock({ title, empty, children }: { title: string; empty: boolean; children: React.ReactNode }) {
   return (
     <div>
-      <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--texte-tertiaire)' }}>{title}</p>
+      <p style={{ margin: '0 0 12px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--texte-tertiaire)' }}>{title}</p>
       {empty ? (
         <p style={{ margin: 0, fontSize: 12, color: 'var(--texte-tertiaire)', fontStyle: 'italic' }}>Aucune donnée sur la période.</p>
       ) : children}
