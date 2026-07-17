@@ -1375,6 +1375,8 @@ model Conversation {
   id           String                    @id @default(uuid())
   type         String                    @default("DIRECT") // DIRECT | GROUPE
   titre        String? // titre des conversations de groupe
+  description  String? // description du groupe
+  photoUrl     String? // photo du groupe (data URL Base64, même convention que les autres photos)
   siteId       String?
   createdById  String?
   createdAt    DateTime                  @default(now())
@@ -1390,6 +1392,8 @@ model ConversationParticipant {
   id             String       @id @default(uuid())
   conversationId String
   utilisateurId  String
+  estAdmin       Boolean      @default(false) // admin de groupe (le créateur est identifié via Conversation.createdById, pas dupliqué ici)
+  muted          Boolean      @default(false) // notifications de CETTE conversation désactivées pour cet utilisateur
   lastReadAt     DateTime?
   joinedAt       DateTime     @default(now())
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
@@ -1404,8 +1408,11 @@ model Message {
   id             String               @id @default(uuid())
   conversationId String
   expediteurId   String
+  type           String               @default("TEXTE") // TEXTE | SYSTEME (événement de groupe : ajout/retrait/promotion/renommage/départ)
   contenuChiffre String // contenu AES-256-GCM (jamais en clair)
   replyToId      String? // message cité (réponse)
+  epingle        Boolean              @default(false)
+  transfere      Boolean              @default(false) // transféré depuis une autre conversation
   createdAt      DateTime             @default(now())
   updatedAt      DateTime             @updatedAt
   editedAt       DateTime?

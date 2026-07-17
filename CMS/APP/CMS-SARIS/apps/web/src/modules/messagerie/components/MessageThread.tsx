@@ -16,6 +16,7 @@ import {
   Send, Pencil, Trash2, Check, CheckCheck, X, ShieldCheck,
   Users, Paperclip, ChevronUp, ChevronDown, Clock, Loader2,
   Reply, Copy, Image as ImageIcon, FileText, Sticker, Smile, Info, Music, Mic, ListChecks, Plus, ChevronLeft,
+  Pin, PinOff, Forward,
 } from 'lucide-react'
 import { Avatar, UserAvatar } from '@/components/saris'
 import { Popover, PopoverContent, PopoverTrigger } from '@workspace/ui/components/popover'
@@ -26,13 +27,14 @@ import { DESKTOP_TITLEBAR_H } from '@/components/layout/DesktopTitleBar'
 import {
   useMessagesThread, flattenThread,
   useSendMessage, useUpdateMessage, useDeleteMessage, useHideMessage, useToggleReaction, useMessageDetails,
-  useBatchDeleteMessages,
+  useBatchDeleteMessages, useTogglePin, usePinnedMessages, useForwardMessage, useReactionDetails, useConversations,
 } from '../hooks/useMessagerie'
 import { messagerieApi, EDIT_DELETE_WINDOW_MS, type ConversationItem, type MessageItem, type ReplyPreview, type PieceJointeMeta } from '../api/messagerie.api'
 import { PieceJointe, MediaThumb } from './PieceJointe'
 import { MediaPreview } from './MediaPreview'
 import { MediaViewer } from './MediaViewer'
 import { VoiceRecorder } from './VoiceRecorder'
+import { GroupInfoPanel } from './GroupInfoPanel'
 import { playSound } from '@/lib/sounds'
 import { formatTime, formatDate, formatDateTime } from '@/lib/intl'
 import { useTypingStore } from '@/stores/typing.store'
@@ -98,6 +100,8 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
   const hideMut   = useHideMessage(conversationId)
   const reactMut  = useToggleReaction(conversationId)
   const batchMut  = useBatchDeleteMessages(conversationId)
+  const pinMut    = useTogglePin(conversationId)
+  const { data: pinned = [] } = usePinnedMessages(conversationId)
 
   const [draft, setDraft]       = useState('')
   const [mediaFiles, setMediaFiles] = useState<File[]>([])
@@ -115,6 +119,10 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
   const [selectMode, setSelectMode]   = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [multiDel, setMultiDel]       = useState(false)
+  const [groupInfoOpen, setGroupInfoOpen]   = useState(false)
+  const [forwardTarget, setForwardTarget]   = useState<MessageItem | null>(null)
+  const [reactionDetailsId, setReactionDetailsId] = useState<string | null>(null)
+  const [pinnedIdx, setPinnedIdx]           = useState(0)
 
   // ── « En train d'écrire / d'enregistrer » (temps réel, façon WhatsApp) ──────
   // Réception : bulle animée tant que le TTL court (réarmé par l'événement SSE).
@@ -310,6 +318,9 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
   }
   async function copyMessage(m: MessageItem) { try { await navigator.clipboard.writeText(m.contenu); toast.success(t('messagerie.copied')) } catch { /* ignore */ } }
   function react(m: MessageItem, emoji: string) { reactMut.mutate({ messageId: m.id, emoji }) }
+  async function togglePin(m: MessageItem) {
+    try { await pinMut.mutateAsync(m.id) } catch (e: any) { toast.error(e?.serverMessage || t('messagerie.pinError')) }
+  }
 
   // ── Sélection multiple (suppression en lot) ─────────────────────────────────
   function enterSelect(id: string) { setSelectMode(true); setSelectedIds(new Set([id])) }
@@ -342,24 +353,58 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
             <ChevronLeft size={22} />
           </button>
         )}
-        {isGroupe
-          ? <div style={{ width: 40, height: 40, borderRadius: 'var(--radius-md)', background: 'var(--ap-100)', color: 'var(--ap-700)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Users size={18} /></div>
-          : conv.interlocuteur
-            ? <UserAvatar userId={conv.interlocuteur.id} nom={nom} size={40} />
-            : <Avatar nom={nom} size={40} />}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'var(--texte-primaire)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nom}</p>
-          <p style={{ margin: '1px 0 0', fontSize: 11, color: 'var(--texte-tertiaire)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {isGroupe
-              ? t('messagerie.groupHeaderParticipants', { count: conv.nbParticipants, noms: conv.participants.join(', ') })
-              : conv.interlocuteur?.enLigne
-                ? <span style={{ color: 'var(--succes-accent)', fontWeight: 600 }}>{t('messagerie.online')}</span>
-                : conv.interlocuteur?.vuLe
-                  ? formatLastSeen(conv.interlocuteur.vuLe, t)
-                  : (conv.interlocuteur?.role ?? '')}
-          </p>
+        <div
+          role={isGroupe ? 'button' : undefined}
+          tabIndex={isGroupe ? 0 : undefined}
+          onClick={isGroupe ? () => setGroupInfoOpen(true) : undefined}
+          onKeyDown={isGroupe ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setGroupInfoOpen(true) } } : undefined}
+          style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0, cursor: isGroupe ? 'pointer' : 'default', background: 'none', border: 'none', textAlign: 'left', padding: 0 }}
+        >
+          {isGroupe
+            ? (conv.photoUrl
+                ? <img src={conv.photoUrl} alt={nom} style={{ width: 40, height: 40, borderRadius: 'var(--radius-md)', objectFit: 'cover', flexShrink: 0 }} />
+                : <div style={{ width: 40, height: 40, borderRadius: 'var(--radius-md)', background: 'var(--ap-100)', color: 'var(--ap-700)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Users size={18} /></div>)
+            : conv.interlocuteur
+              ? <UserAvatar userId={conv.interlocuteur.id} nom={nom} size={40} />
+              : <Avatar nom={nom} size={40} />}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'var(--texte-primaire)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nom}</p>
+            <p style={{ margin: '1px 0 0', fontSize: 11, color: 'var(--texte-tertiaire)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {isGroupe
+                ? t('messagerie.groupHeaderParticipants', { count: conv.nbParticipants, noms: conv.participants.join(', ') })
+                : conv.interlocuteur?.enLigne
+                  ? <span style={{ color: 'var(--succes-accent)', fontWeight: 600 }}>{t('messagerie.online')}</span>
+                  : conv.interlocuteur?.vuLe
+                    ? formatLastSeen(conv.interlocuteur.vuLe, t)
+                    : (conv.interlocuteur?.role ?? '')}
+            </p>
+          </div>
         </div>
       </div>
+
+      {/* ── Bandeau messages épinglés ──────────────────────────────────── */}
+      {pinned.length > 0 && (() => {
+        const p = pinned[Math.min(pinnedIdx, pinned.length - 1)]!
+        return (
+          <div onClick={() => scrollToMessage(p.id)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 20px', borderBottom: '1px solid var(--bordure-legere)', background: 'var(--ap-50)', cursor: 'pointer', flexShrink: 0 }}>
+            <Pin size={14} style={{ color: 'var(--ap-600)', flexShrink: 0 }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: 'var(--ap-700)' }}>
+                {pinned.length > 1 ? t('messagerie.pinnedMessages', { count: pinned.length }) : t('messagerie.pinnedMessage')}
+              </p>
+              <p style={{ margin: 0, fontSize: 12, color: 'var(--texte-secondaire)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <strong>{p.expediteur}: </strong>{renderRich(p.contenu)}
+              </p>
+            </div>
+            {pinned.length > 1 && (
+              <button onClick={e => { e.stopPropagation(); setPinnedIdx(i => (i + 1) % pinned.length) }} title={t('messagerie.pinnedMessages', { count: pinned.length })}
+                style={{ flexShrink: 0, width: 24, height: 24, borderRadius: 6, background: 'var(--fond-surface)', border: '1px solid var(--ap-200)', color: 'var(--ap-700)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                <ChevronDown size={13} />
+              </button>
+            )}
+          </div>
+        )
+      })()}
 
       {/* ── Fil ──────────────────────────────────────────────────────────── */}
       <div ref={scrollRef} onScroll={onScroll} className="saris-grain" style={{ flex: 1, overflowY: 'auto', minHeight: 0, padding: '16px 20px', background: 'var(--fond-page)', position: 'relative' }}>
@@ -389,6 +434,7 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
               onSaveEdit={handleUpdate} onDelete={(m) => setDelTarget(m)}
               onReply={startReply} onCopy={copyMessage} onQuoteClick={scrollToMessage} onReact={react}
               onDetails={(m) => setDetailsId(m.id)} onOpenMedia={setViewerPj}
+              onTogglePin={togglePin} onForward={(m) => setForwardTarget(m)} onShowReactionDetails={setReactionDetailsId}
               selectMode={selectMode} selectedIds={selectedIds} onToggleSelect={toggleSelect} onEnterSelect={enterSelect}
             />
           </>
@@ -434,7 +480,7 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
           <div style={{ width: 3, alignSelf: 'stretch', borderRadius: 2, background: 'var(--ap-400)', flexShrink: 0 }} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: 'var(--ap-700)' }}>{t('messagerie.replyTo', { auteur: replyTo.auteur })}</p>
-            <p style={{ margin: '1px 0 0', fontSize: 12, color: 'var(--texte-tertiaire)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{replyTo.apercu}</p>
+            <p style={{ margin: '1px 0 0', fontSize: 12, color: 'var(--texte-tertiaire)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{renderRich(replyTo.apercu)}</p>
           </div>
           <button onClick={() => setReplyTo(null)} title={t('messagerie.cancel')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--texte-tertiaire)', display: 'flex', padding: 4 }}><X size={15} /></button>
         </div>
@@ -567,6 +613,9 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
       )}
 
       {detailsId && <MessageDetailsModal messageId={detailsId} onClose={() => setDetailsId(null)} />}
+      {reactionDetailsId && <ReactionDetailsModal messageId={reactionDetailsId} onClose={() => setReactionDetailsId(null)} />}
+      {groupInfoOpen && isGroupe && <GroupInfoPanel conversationId={conversationId} onClose={() => setGroupInfoOpen(false)} onLeft={onLeft} />}
+      {forwardTarget && <ForwardPickerModal message={forwardTarget} currentConversationId={conversationId} onClose={() => setForwardTarget(null)} />}
       {delTarget && (
         <DeleteChoiceDialog
           message={delTarget}
@@ -618,6 +667,7 @@ function MessageList(props: {
   onReply: (m: MessageItem) => void; onCopy: (m: MessageItem) => void; onQuoteClick: (id: string) => void
   onReact: (m: MessageItem, emoji: string) => void; onDetails: (m: MessageItem) => void
   onOpenMedia: (pj: PieceJointeMeta) => void
+  onTogglePin: (m: MessageItem) => void; onForward: (m: MessageItem) => void; onShowReactionDetails: (id: string) => void
   selectMode: boolean; selectedIds: Set<string>; onToggleSelect: (id: string) => void; onEnterSelect: (id: string) => void
 }) {
   const { t, messages, lastOwnId } = props
@@ -639,8 +689,17 @@ function MessageList(props: {
             </span>
           </div>
           {sec.items.map((m, idx) => {
+            if (m.type === 'SYSTEME') {
+              return (
+                <div key={m.id} id={`msg-${m.id}`} style={{ display: 'flex', justifyContent: 'center', margin: idx === 0 ? '0 0 10px' : '10px 0' }}>
+                  <span style={{ fontSize: 11.5, fontWeight: 500, color: 'var(--texte-tertiaire)', background: 'var(--fond-surface-2)', padding: '5px 12px', borderRadius: 9999, textAlign: 'center', maxWidth: '80%' }}>
+                    {m.contenu}
+                  </span>
+                </div>
+              )
+            }
             const prev = sec.items[idx - 1]
-            const grouped = !!prev && prev.expediteurId === m.expediteurId && prev.deMoi === m.deMoi &&
+            const grouped = !!prev && prev.type === 'TEXTE' && prev.expediteurId === m.expediteurId && prev.deMoi === m.deMoi &&
               (new Date(m.createdAt).getTime() - new Date(prev.createdAt).getTime() < 4 * 60 * 1000)
             return (
               <div key={m.id} id={`msg-${m.id}`} style={{ marginTop: idx === 0 ? 0 : grouped ? 2 : 10, borderRadius: 6 }}>
@@ -673,6 +732,7 @@ function MediaGrid({ items, onOpen }: { items: PieceJointeMeta[]; onOpen: (pj: P
 function Bubble({
   t, m, isGroupe, grouped, isLastOwn, editId, editText, setEditText,
   onStartEdit, onCancelEdit, onSaveEdit, onDelete, onReply, onCopy, onQuoteClick, onReact, onDetails, onOpenMedia,
+  onTogglePin, onForward, onShowReactionDetails,
   selectMode, selectedIds, onToggleSelect, onEnterSelect,
 }: {
   t: TFunction
@@ -682,6 +742,7 @@ function Bubble({
   onDelete: (m: MessageItem) => void; onReply: (m: MessageItem) => void; onCopy: (m: MessageItem) => void
   onQuoteClick: (id: string) => void; onReact: (m: MessageItem, emoji: string) => void; onDetails: (m: MessageItem) => void
   onOpenMedia: (pj: PieceJointeMeta) => void
+  onTogglePin: (m: MessageItem) => void; onForward: (m: MessageItem) => void; onShowReactionDetails: (id: string) => void
   selectMode: boolean; selectedIds: Set<string>; onToggleSelect: (id: string) => void; onEnterSelect: (id: string) => void
 }) {
   const [hover, setHover] = useState(false)
@@ -710,7 +771,7 @@ function Bubble({
         {giant ? (
           <div style={{ position: 'relative', display: 'flex', gap: 2, padding: '2px 6px' }}>
             {splitGraphemes(m.contenu).map((g, i) => <Twemoji key={i} emoji={g} size={46} />)}
-            <ChevronMenu {...{ t, m, mine, hover, menuOpen, setMenuOpen, canEdit, onStartEdit, onCopy, onReply, onDelete, onReact, onDetails, onEnterSelect }} giant />
+            <ChevronMenu {...{ t, m, mine, hover, menuOpen, setMenuOpen, canEdit, onStartEdit, onCopy, onReply, onDelete, onReact, onDetails, onEnterSelect, onTogglePin, onForward }} giant />
           </div>
         ) : (() => {
           const isVisual = (pj: PieceJointeMeta) => pj.mimeType.startsWith('image/') || pj.mimeType.startsWith('video/')
@@ -727,6 +788,15 @@ function Bubble({
               border: mine ? 'none' : '1px solid var(--bordure-legere)', opacity: m.pending ? 0.75 : 1,
               boxShadow: mine ? 'none' : '0 1px 1px rgba(0,0,0,0.04)', maxWidth: hasMedia ? 320 : undefined,
             }}>
+              {/* Épinglé / Transféré — indicateur discret en haut de la bulle */}
+              {(m.epingle || m.transfere) && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, margin: hasMedia || m.replyTo ? '6px 6px 0' : '6px 8px 0', fontSize: 10, fontWeight: 600, opacity: 0.8 }}>
+                  {m.epingle && <><Pin size={10} /> {t('messagerie.pinnedLabel')}</>}
+                  {m.epingle && m.transfere && <span>·</span>}
+                  {m.transfere && <><Forward size={10} /> {t('messagerie.forwarded')}</>}
+                </div>
+              )}
+
               {/* Réponse citée */}
               {m.replyTo && (
                 <div onClick={() => onQuoteClick(m.replyTo!.id)} title={t('messagerie.goToMessage')}
@@ -734,7 +804,7 @@ function Bubble({
                   <div style={{ width: 3, alignSelf: 'stretch', borderRadius: 2, background: mine ? 'rgba(255,255,255,0.6)' : 'var(--ap-400)', flexShrink: 0 }} />
                   <div style={{ minWidth: 0 }}>
                     <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: mine ? 'rgba(255,255,255,0.9)' : 'var(--ap-700)' }}>{m.replyTo.deMoi ? t('messagerie.you') : m.replyTo.auteur}</p>
-                    <p style={{ margin: 0, fontSize: 11, opacity: 0.85, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 260 }}>{m.replyTo.apercu}</p>
+                    <p style={{ margin: 0, fontSize: 11, opacity: 0.85, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 260 }}>{renderRich(m.replyTo.apercu)}</p>
                   </div>
                 </div>
               )}
@@ -768,20 +838,24 @@ function Bubble({
                 <div style={{ padding: hasMedia ? '5px 10px 7px' : '8px 12px', fontSize: 13, lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{renderRich(m.contenu)}</div>
               ) : null}
 
-              {!isEditing && <ChevronMenu {...{ t, m, mine, hover, menuOpen, setMenuOpen, canEdit, onStartEdit, onCopy, onReply, onDelete, onReact, onDetails, onEnterSelect }} />}
+              {!isEditing && <ChevronMenu {...{ t, m, mine, hover, menuOpen, setMenuOpen, canEdit, onStartEdit, onCopy, onReply, onDelete, onReact, onDetails, onEnterSelect, onTogglePin, onForward }} />}
             </div>
           )
         })()}
 
         {/* Réactions */}
         {m.reactions.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 1 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 1, alignItems: 'center' }}>
             {m.reactions.map(r => (
               <button key={r.emoji} onClick={() => onReact(m, r.emoji)} title={r.mine ? t('messagerie.removeReaction') : t('messagerie.react')}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 4, height: 22, padding: '0 7px', borderRadius: 9999, fontSize: 12, cursor: 'pointer', background: r.mine ? 'var(--ap-50)' : 'var(--fond-surface-2)', border: `1px solid ${r.mine ? 'var(--ap-200)' : 'var(--bordure-legere)'}`, color: 'var(--texte-secondaire)' }}>
                 <Twemoji emoji={r.emoji} size={15} /><span style={{ fontSize: 10, fontWeight: 600 }}>{r.count}</span>
               </button>
             ))}
+            <button onClick={() => onShowReactionDetails(m.id)} title={t('messagerie.reactionDetails')}
+              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, borderRadius: 9999, background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--texte-tertiaire)' }}>
+              <Info size={12} />
+            </button>
           </div>
         )}
 
@@ -815,14 +889,14 @@ function Bubble({
 
 function ChevronMenu({
   t, m, mine, hover, menuOpen, setMenuOpen, canEdit, giant,
-  onStartEdit, onCopy, onReply, onDelete, onReact, onDetails, onEnterSelect,
+  onStartEdit, onCopy, onReply, onDelete, onReact, onDetails, onEnterSelect, onTogglePin, onForward,
 }: {
   t: TFunction
   m: MessageItem; mine: boolean; hover: boolean; menuOpen: boolean; setMenuOpen: (b: boolean) => void
   canEdit: boolean; giant?: boolean
   onStartEdit: (m: MessageItem) => void; onCopy: (m: MessageItem) => void; onReply: (m: MessageItem) => void
   onDelete: (m: MessageItem) => void; onReact: (m: MessageItem, emoji: string) => void; onDetails: (m: MessageItem) => void
-  onEnterSelect: (id: string) => void
+  onEnterSelect: (id: string) => void; onTogglePin: (m: MessageItem) => void; onForward: (m: MessageItem) => void
 }) {
   const [pickerOpen, setPickerOpen] = useState(false)
   const [custom, setCustom] = useState<string[]>(getCustomReactions)
@@ -876,6 +950,8 @@ function ChevronMenu({
               <div style={{ padding: 4 }}>
                 <MenuRow icon={<Reply size={14} />} label={t('messagerie.reply')} onClick={() => { onReply(m); setMenuOpen(false) }} />
                 {!!m.contenu && <MenuRow icon={<Copy size={14} />} label={t('messagerie.copy')} onClick={() => { onCopy(m); setMenuOpen(false) }} />}
+                <MenuRow icon={<Forward size={14} />} label={t('messagerie.forward')} onClick={() => { onForward(m); setMenuOpen(false) }} />
+                <MenuRow icon={m.epingle ? <PinOff size={14} /> : <Pin size={14} />} label={m.epingle ? t('messagerie.unpin') : t('messagerie.pin')} onClick={() => { onTogglePin(m); setMenuOpen(false) }} />
                 <MenuRow icon={<Info size={14} />} label={t('messagerie.details')} onClick={() => { onDetails(m); setMenuOpen(false) }} />
                 <MenuRow icon={<ListChecks size={14} />} label={t('messagerie.select')} onClick={() => { setMenuOpen(false); onEnterSelect(m.id) }} />
                 {canEdit && <MenuRow icon={<Pencil size={14} />} label={t('messagerie.edit')} onClick={() => { onStartEdit(m); setMenuOpen(false) }} />}
@@ -957,6 +1033,86 @@ function DetailRow({ label, value }: { label: string; value: string }) {
     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 13 }}>
       <span style={{ color: 'var(--texte-tertiaire)' }}>{label}</span>
       <span style={{ fontWeight: 500, color: 'var(--texte-primaire)', textAlign: 'right' }}>{value}</span>
+    </div>
+  )
+}
+
+// ── Modale « Qui a réagi » ────────────────────────────────────────────────────
+
+function ReactionDetailsModal({ messageId, onClose }: { messageId: string; onClose: () => void }) {
+  const { t } = useTranslation()
+  const { data = [], isLoading } = useReactionDetails(messageId, true)
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', top: isDesktop ? DESKTOP_TITLEBAR_H : 0, right: 0, bottom: 0, left: 0, background: 'rgba(15,23,42,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: 16 }}>
+      <div onClick={e => e.stopPropagation()} style={{ width: 320, maxWidth: '92vw', maxHeight: '70vh', overflowY: 'auto', background: 'var(--fond-surface)', borderRadius: 14, boxShadow: '0 20px 60px rgba(0,0,0,0.32)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: '1px solid var(--bordure-legere)', position: 'sticky', top: 0, background: 'var(--fond-surface)' }}>
+          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--texte-primaire)' }}>{t('messagerie.reactionDetails')}</span>
+          <button onClick={onClose} title={t('messagerie.close')} style={iconBtn('var(--texte-tertiaire)')}><X size={17} /></button>
+        </div>
+        {isLoading ? (
+          <p style={{ padding: 24, textAlign: 'center', fontSize: 13, color: 'var(--texte-tertiaire)' }}>{t('messagerie.loading')}</p>
+        ) : data.length === 0 ? (
+          <p style={{ padding: 24, textAlign: 'center', fontSize: 13, color: 'var(--texte-tertiaire)' }}>{t('messagerie.noReaction')}</p>
+        ) : (
+          <div style={{ padding: 8 }}>
+            {data.map((r, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 8px' }}>
+                <Twemoji emoji={r.emoji} size={20} />
+                <span style={{ fontSize: 13, color: 'var(--texte-primaire)', fontWeight: 500 }}>{r.mine ? t('messagerie.you') : r.nom}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── Modale « Transférer » ─────────────────────────────────────────────────────
+
+function ForwardPickerModal({ message, currentConversationId, onClose }: { message: MessageItem; currentConversationId: string; onClose: () => void }) {
+  const { t } = useTranslation()
+  const { data: conversations = [] } = useConversations()
+  const forwardMut = useForwardMessage()
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const candidates = conversations.filter(c => c.id !== currentConversationId)
+
+  function toggle(id: string) { setSelected(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n }) }
+  async function submit() {
+    if (!selected.size) return
+    try { await forwardMut.mutateAsync({ messageId: message.id, conversationIds: [...selected] }); toast.success(t('messagerie.forwarded')); onClose() }
+    catch { toast.error(t('messagerie.forwardError')) }
+  }
+
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', top: isDesktop ? DESKTOP_TITLEBAR_H : 0, right: 0, bottom: 0, left: 0, background: 'rgba(15,23,42,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: 16 }}>
+      <div onClick={e => e.stopPropagation()} style={{ width: 360, maxWidth: '92vw', maxHeight: '76vh', display: 'flex', flexDirection: 'column', background: 'var(--fond-surface)', borderRadius: 14, boxShadow: '0 20px 60px rgba(0,0,0,0.32)', overflow: 'hidden' }}>
+        <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--bordure-legere)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--texte-primaire)' }}>{t('messagerie.forwardTo')}</span>
+          <button onClick={onClose} title={t('messagerie.close')} style={iconBtn('var(--texte-tertiaire)')}><X size={16} /></button>
+        </div>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '4px 8px' }}>
+          {candidates.map(c => (
+            <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 8px', borderRadius: 8, cursor: 'pointer' }}>
+              <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} />
+              {c.type === 'GROUPE'
+                ? (c.photoUrl
+                    ? <img src={c.photoUrl} alt={c.titre} style={{ width: 30, height: 30, borderRadius: 'var(--radius-md)', objectFit: 'cover' }} />
+                    : <div style={{ width: 30, height: 30, borderRadius: 'var(--radius-md)', background: 'var(--ap-100)', color: 'var(--ap-700)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Users size={14} /></div>)
+                : c.interlocuteur
+                  ? <UserAvatar userId={c.interlocuteur.id} nom={c.titre} size={30} clickable={false} />
+                  : <Avatar nom={c.titre} size={30} />}
+              <span style={{ fontSize: 13, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--texte-primaire)' }}>{c.titre}</span>
+            </label>
+          ))}
+        </div>
+        <div style={{ padding: 12, borderTop: '1px solid var(--bordure-legere)', flexShrink: 0 }}>
+          <button onClick={submit} disabled={!selected.size || forwardMut.isPending}
+            style={{ width: '100%', padding: '9px', borderRadius: 9999, background: 'var(--ap-400)', color: '#fff', border: 'none', fontSize: 13, fontWeight: 600, cursor: selected.size ? 'pointer' : 'not-allowed', opacity: selected.size ? 1 : 0.6 }}>
+            {t('messagerie.forwardSend', { count: selected.size })}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

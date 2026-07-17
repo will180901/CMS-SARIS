@@ -21,16 +21,22 @@ export interface ConversationItem {
   id:    string
   type:  ConversationType
   titre: string
+  /** Photo de groupe (DIRECT reste `null` — l'avatar utilise l'interlocuteur). */
+  photoUrl: string | null
   interlocuteur: { id: string; nom: string; role: string | null; enLigne?: boolean; vuLe?: string | null } | null
   participants:   string[]
   nbParticipants: number
   dernierMessage: {
+    /** SYSTEME : pas de préfixe "auteur :", le texte est déjà une phrase complète. */
+    type:      'TEXTE' | 'SYSTEME'
     apercu:    string | null
     auteur:    string
     createdAt: string
     deMoi:     boolean
   } | null
   nonLus:    number
+  /** Notifications de CETTE conversation coupées pour l'utilisateur courant. */
+  muted:     boolean
   updatedAt: string
 }
 
@@ -59,11 +65,15 @@ export const EDIT_DELETE_WINDOW_MS = 15 * 60 * 1000
 
 export interface MessageItem {
   id:            string
+  /** SYSTEME = événement de groupe (ajout/retrait/promotion/renommage…) : rendu en pastille centrée, pas en bulle. */
+  type:          'TEXTE' | 'SYSTEME'
   contenu:       string
   expediteurId:  string
   expediteur:    string
   deMoi:         boolean
   edite:         boolean
+  epingle:       boolean
+  transfere:     boolean
   createdAt:     string
   piecesJointes: PieceJointeMeta[]
   reactions:     ReactionAgg[]
@@ -111,6 +121,42 @@ export interface PieceJointeContenu {
   dataUrl:    string
 }
 
+// ── Gestion de groupe ─────────────────────────────────────────────────────────
+
+export interface GroupMember {
+  id:          string
+  nom:         string
+  role:        string | null
+  estAdmin:    boolean
+  estCreateur: boolean
+  enLigne:     boolean
+}
+
+export interface GroupInfo {
+  id:          string
+  titre:       string | null
+  description: string | null
+  photoUrl:    string | null
+  createdById: string | null
+  monRole:     { estAdmin: boolean; estCreateur: boolean }
+  membres:     GroupMember[]
+}
+
+export interface ReactionDetail {
+  emoji:         string
+  utilisateurId: string
+  nom:           string
+  mine:          boolean
+  createdAt:     string
+}
+
+export interface PinnedMessage {
+  id:         string
+  contenu:    string
+  expediteur: string
+  createdAt:  string
+}
+
 export const messagerieApi = {
   contacts:      ()                       => api.get<Contact[]>('/messagerie/contacts'),
   conversations: ()                       => api.get<ConversationItem[]>('/messagerie/conversations'),
@@ -144,6 +190,32 @@ export const messagerieApi = {
                    api.post<{ emoji: string; active: boolean }>(`/messagerie/messages/${messageId}/reactions`, { emoji }),
   details:       (messageId: string) => api.get<MessageDetails>(`/messagerie/messages/${messageId}/details`),
   piece:         (pieceId: string)   => api.get<PieceJointeContenu>(`/messagerie/pieces-jointes/${pieceId}`),
+
+  // ── Gestion de groupe ─────────────────────────────────────────────────────
+  groupInfo:        (conversationId: string) => api.get<GroupInfo>(`/messagerie/conversations/${conversationId}/groupe`),
+  addParticipants:  (conversationId: string, participantIds: string[]) =>
+                      api.post<{ added: number }>(`/messagerie/conversations/${conversationId}/participants`, { participantIds }),
+  removeParticipant: (conversationId: string, userId: string) =>
+                      api.delete<{ removed: boolean }>(`/messagerie/conversations/${conversationId}/participants/${userId}`),
+  setAdmin:         (conversationId: string, userId: string, estAdmin: boolean) =>
+                      api.patch<{ estAdmin: boolean }>(`/messagerie/conversations/${conversationId}/participants/${userId}/admin`, { estAdmin }),
+  updateGroup:      (conversationId: string, dto: { titre?: string; description?: string }) =>
+                      api.patch<GroupInfo>(`/messagerie/conversations/${conversationId}`, dto),
+  uploadGroupPhoto: (conversationId: string, file: File) => {
+    const fd = new FormData()
+    fd.append('file', file)
+    return api.upload<{ photoUrl: string }>(`/messagerie/conversations/${conversationId}/photo`, fd)
+  },
+  removeGroupPhoto: (conversationId: string) => api.delete<{ photoUrl: null }>(`/messagerie/conversations/${conversationId}/photo`),
+  setMuted:         (conversationId: string, muted: boolean) =>
+                      api.patch<{ muted: boolean }>(`/messagerie/conversations/${conversationId}/mute`, { muted }),
+
+  // ── Fil avancé : réactions détaillées, épinglage, transfert ───────────────
+  reactionDetails:  (messageId: string) => api.get<ReactionDetail[]>(`/messagerie/messages/${messageId}/reactions`),
+  togglePin:        (messageId: string) => api.post<{ epingle: boolean }>(`/messagerie/messages/${messageId}/epingler`, {}),
+  pinned:           (conversationId: string) => api.get<PinnedMessage[]>(`/messagerie/conversations/${conversationId}/epingles`),
+  forward:          (messageId: string, conversationIds: string[]) =>
+                      api.post<{ forwarded: number }>(`/messagerie/messages/${messageId}/transferer`, { conversationIds }),
 }
 
 /** URL absolue d'une pièce jointe (réservé à un usage authentifié via fetch). */

@@ -8,6 +8,7 @@
  * - Messages paginés (curseur), pièces jointes servies à la demande.
  */
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common'
+import sharp from 'sharp'
 import { PrismaService } from '../../prisma/prisma.service'
 import { NotificationService } from '../notification/notification.service'
 import { PresenceService } from '../notification/presence.service'
@@ -56,11 +57,31 @@ function parseMentionIds(texte: string): Set<string> {
   return ids
 }
 
+// Même token que MENTION_TOKEN, mais capture le NOM plutôt que l'id — pour les
+// contextes texte BRUT (notification OS) qui ne peuvent pas styliser le token
+// comme le fait `renderRich` côté front : on l'humanise en `@Nom`.
+const MENTION_DISPLAY = /@\[([^\]]+)\]\([0-9a-fA-F-]{36}\)/g
+function humanizeMentions(texte: string): string {
+  return texte.replace(MENTION_DISPLAY, (_m, nom: string) => `@${nom}`)
+}
+
 type ReplyRow = {
   id: string; expediteurId: string; contenuChiffre: string; deletedAt: Date | null
   expediteur: UserLite | null
   piecesJointes: { id: string }[]
 } | null
+
+/** Aperçu du contenu d'un message pour une notification (texte tronqué ou type de média, façon WhatsApp). */
+function contentPreview(texteBrut: string, fichiers: UploadedPiece[]): string {
+  const texte = humanizeMentions(texteBrut)
+  if (texte) return texte.length > 80 ? `${texte.slice(0, 80)}…` : texte
+  const f = fichiers[0]
+  if (!f) return ''
+  if (f.mimeType.startsWith('image/')) return '📷 Photo'
+  if (f.mimeType.startsWith('video/')) return '🎥 Vidéo'
+  if (f.mimeType.startsWith('audio/')) return '🎤 Message vocal'
+  return `📎 ${f.nomFichier}`
+}
 
 /** Agrège les réactions d'un message par emoji (avec compteur + "mine"). */
 function aggregateReactions(rows: { emoji: string; utilisateurId: string }[], userId: string) {
@@ -124,6 +145,44 @@ export class MessagerieService {
     return part
   }
 
+  private async getUserLite(userId: string): Promise<UserLite> {
+    const u = await this.prisma.utilisateur.findUnique({ where: { id: userId }, select: USER_SELECT })
+    return (u as UserLite | null) ?? { id: userId, login: 'Utilisateur', personnelMedical: null }
+  }
+
+  /**
+   * Un membre est habilité à administrer le groupe (ajouter/retirer/promouvoir,
+   * renommer, changer photo/description) s'il est le CRÉATEUR (toujours admin
+   * implicite, non dupliqué dans `estAdmin`) ou marqué `estAdmin`. Volontairement
+   * plus strict que WhatsApp par défaut : toute gestion du groupe est réservée
+   * aux administrateurs (pas de délégation aux simples membres), plus adapté à
+   * un usage professionnel.
+   */
+  private async assertGroupAdmin(conversationId: string, userId: string) {
+    const conv = await this.prisma.conversation.findUnique({ where: { id: conversationId } })
+    if (!conv || conv.type !== 'GROUPE') throw new NotFoundException('Groupe introuvable')
+    const part = await this.assertParticipant(conversationId, userId)
+    const isCreateur = conv.createdById === userId
+    if (!isCreateur && !part.estAdmin) throw new ForbiddenException('Réservé aux administrateurs du groupe')
+    return { conv, part, isCreateur }
+  }
+
+  /**
+   * Insère un message SYSTÈME (événement de groupe : ajout/retrait/promotion/
+   * renommage/photo/départ) — jamais exposé en écriture directe au client, donc
+   * personne ne peut forger un faux événement. Chiffré comme un message normal
+   * (même colonne) ; c'est le champ `type` qui commande son rendu spécial côté
+   * frontend (pastille centrée, pas de bulle).
+   */
+  private async systemMessage(conversationId: string, actorId: string, texte: string) {
+    await this.prisma.message.create({
+      data: { conversationId, expediteurId: actorId, type: 'SYSTEME', contenuChiffre: encryptMessage(texte) },
+    })
+    await this.prisma.conversation.update({ where: { id: conversationId }, data: { updatedAt: new Date() } })
+    const parts = await this.prisma.conversationParticipant.findMany({ where: { conversationId }, select: { utilisateurId: true } })
+    for (const p of parts) this.notif.pushLive(p.utilisateurId, 'MESSAGE_NEW', conversationId)
+  }
+
   /** Non-lus par conversation pour un utilisateur, en UNE requête (pas de N+1). */
   private async unreadByConversation(userId: string): Promise<Map<string, number>> {
     const rows = await this.prisma.$queryRaw<{ conversationId: string; unread: bigint }[]>`
@@ -167,7 +226,9 @@ export class MessagerieService {
 
       let apercu: string | null = null
       if (dernier) {
-        if (dernier.piecesJointes.length && !dernier.contenuChiffre) {
+        if (dernier.type === 'SYSTEME') {
+          apercu = dernier.contenuChiffre ? decryptMessage(dernier.contenuChiffre) : ''
+        } else if (dernier.piecesJointes.length && !dernier.contenuChiffre) {
           apercu = `📎 ${dernier.piecesJointes[0]!.nomFichier}`
         } else {
           apercu = decryptMessage(dernier.contenuChiffre).slice(0, 80)
@@ -178,6 +239,7 @@ export class MessagerieService {
         id:    conv.id,
         type:  conv.type,
         titre: isGroupe ? (conv.titre ?? 'Groupe') : displayName(interlocuteur ?? null),
+        photoUrl: isGroupe ? conv.photoUrl : null,
         interlocuteur: !isGroupe && interlocuteur
           ? {
               id: interlocuteur.id, nom: displayName(interlocuteur), role: interlocuteur.personnelMedical?.role ?? null,
@@ -187,12 +249,14 @@ export class MessagerieService {
         participants: autres.map(cp => displayName(cp.utilisateur as UserLite)),
         nbParticipants: conv.participants.length,
         dernierMessage: dernier ? {
+          type:      dernier.type as 'TEXTE' | 'SYSTEME',
           apercu,
           auteur:    displayName(dernier.expediteur as UserLite),
           createdAt: dernier.createdAt,
           deMoi:     dernier.expediteurId === userId,
         } : null,
         nonLus:    unread.get(conv.id) ?? 0,
+        muted:     p.muted,
         updatedAt: conv.updatedAt,
       }
     })
@@ -267,6 +331,8 @@ export class MessagerieService {
   /** Quitter une conversation (retire le participant). Interdit le DIRECT vide inutilement. */
   async leaveConversation(conversationId: string, userId: string) {
     await this.assertParticipant(conversationId, userId)
+    const conv = await this.prisma.conversation.findUnique({ where: { id: conversationId } })
+    const actorName = displayName(await this.getUserLite(userId))
     await this.prisma.conversationParticipant.delete({
       where: { conversationId_utilisateurId: { conversationId, utilisateurId: userId } },
     })
@@ -279,8 +345,199 @@ export class MessagerieService {
         this.prisma.message.deleteMany({ where: { conversationId } }),
         this.prisma.conversation.delete({ where: { id: conversationId } }),
       ])
+    } else if (conv?.type === 'GROUPE') {
+      await this.systemMessage(conversationId, userId, `${actorName} a quitté le groupe`)
     }
     return { left: true }
+  }
+
+  // ── Gestion de groupe (membres, rôles, infos) ────────────────────────────────
+
+  /** Infos du groupe + membres (visible par TOUT participant, pas seulement les admins). */
+  async getGroupInfo(conversationId: string, userId: string) {
+    await this.assertParticipant(conversationId, userId)
+    const conv = await this.prisma.conversation.findUnique({
+      where:   { id: conversationId },
+      include: { participants: { include: { utilisateur: { select: USER_SELECT } } } },
+    })
+    if (!conv || conv.type !== 'GROUPE') throw new NotFoundException('Groupe introuvable')
+
+    const membres = conv.participants
+      .map(p => {
+        const u = p.utilisateur as UserLite
+        return {
+          id:          p.utilisateurId,
+          nom:         displayName(u),
+          role:        u.personnelMedical?.role ?? null,
+          estAdmin:    p.estAdmin,
+          estCreateur: p.utilisateurId === conv.createdById,
+          enLigne:     this.presence.isOnline(p.utilisateurId),
+        }
+      })
+      .sort((a, b) =>
+        Number(b.estCreateur) - Number(a.estCreateur)
+        || Number(b.estAdmin) - Number(a.estAdmin)
+        || a.nom.localeCompare(b.nom),
+      )
+
+    const moi = conv.participants.find(p => p.utilisateurId === userId)
+    return {
+      id:          conv.id,
+      titre:       conv.titre,
+      description: conv.description,
+      photoUrl:    conv.photoUrl,
+      createdById: conv.createdById,
+      monRole: {
+        estAdmin:    !!moi?.estAdmin || conv.createdById === userId,
+        estCreateur: conv.createdById === userId,
+      },
+      membres,
+    }
+  }
+
+  /** Ajoute des membres à un groupe existant (admins uniquement). */
+  async addParticipants(conversationId: string, actorId: string, participantIds: string[]) {
+    const { conv } = await this.assertGroupAdmin(conversationId, actorId)
+    const uniques = [...new Set(participantIds.filter(Boolean))]
+    if (!uniques.length) throw new BadRequestException('Sélectionnez au moins un participant')
+
+    const existants = await this.prisma.conversationParticipant.findMany({ where: { conversationId }, select: { utilisateurId: true } })
+    const existantsIds = new Set(existants.map(e => e.utilisateurId))
+    const aAjouter = uniques.filter(id => !existantsIds.has(id))
+    if (!aAjouter.length) throw new BadRequestException('Ces utilisateurs sont déjà membres du groupe')
+    if (existants.length + aAjouter.length > 50) throw new BadRequestException('Un groupe est limité à 50 participants')
+
+    const membres = await this.prisma.utilisateur.findMany({ where: { id: { in: aAjouter }, statut: 'ACTIF' }, select: USER_SELECT })
+    if (membres.length !== aAjouter.length) throw new BadRequestException('Un ou plusieurs participants sont introuvables')
+
+    await this.prisma.conversationParticipant.createMany({ data: aAjouter.map(id => ({ conversationId, utilisateurId: id })) })
+
+    const actorName = displayName(await this.getUserLite(actorId))
+    for (const m of membres) {
+      await this.systemMessage(conversationId, actorId, `${actorName} a ajouté ${displayName(m as UserLite)}`)
+    }
+    for (const id of aAjouter) {
+      await this.notif.emit({
+        type: 'MESSAGE', niveau: 'INFO', titre: conv.titre ?? 'Groupe',
+        message: `${actorName} vous a ajouté au groupe « ${conv.titre} »`,
+        destinataireId: id, entiteType: 'conversation', entiteId: conversationId,
+        lien: `/messagerie?c=${conversationId}`, createdById: actorId,
+      }).catch(() => { /* notif best-effort */ })
+    }
+    return { added: aAjouter.length }
+  }
+
+  /** Retire un membre d'un groupe (admins uniquement). Le créateur est protégé. */
+  async removeParticipant(conversationId: string, actorId: string, targetUserId: string) {
+    const { conv } = await this.assertGroupAdmin(conversationId, actorId)
+    if (targetUserId === conv.createdById) throw new ForbiddenException('Le créateur du groupe ne peut pas être retiré')
+    if (targetUserId === actorId) throw new BadRequestException('Utilisez « Quitter le groupe » pour vous retirer vous-même')
+
+    const target = await this.prisma.conversationParticipant.findUnique({
+      where:   { conversationId_utilisateurId: { conversationId, utilisateurId: targetUserId } },
+      include: { utilisateur: { select: USER_SELECT } },
+    })
+    if (!target) throw new NotFoundException('Ce membre ne fait pas partie du groupe')
+
+    await this.prisma.conversationParticipant.delete({ where: { id: target.id } })
+    const actorName = displayName(await this.getUserLite(actorId))
+    await this.systemMessage(conversationId, actorId, `${actorName} a retiré ${displayName(target.utilisateur as UserLite)}`)
+    await this.notif.emit({
+      type: 'MESSAGE', niveau: 'AVERTISSEMENT', titre: conv.titre ?? 'Groupe',
+      message: `${actorName} vous a retiré du groupe « ${conv.titre} »`,
+      destinataireId: targetUserId, entiteType: 'conversation', entiteId: conversationId,
+      lien: '/messagerie', createdById: actorId,
+    }).catch(() => { /* notif best-effort */ })
+    return { removed: true }
+  }
+
+  /** Promeut/rétrograde un admin de groupe (admins uniquement). Le créateur est protégé. */
+  async setAdmin(conversationId: string, actorId: string, targetUserId: string, estAdmin: boolean) {
+    const { conv } = await this.assertGroupAdmin(conversationId, actorId)
+    if (targetUserId === conv.createdById) throw new ForbiddenException('Le créateur est déjà administrateur et ne peut pas être rétrogradé')
+
+    const target = await this.prisma.conversationParticipant.findUnique({
+      where:   { conversationId_utilisateurId: { conversationId, utilisateurId: targetUserId } },
+      include: { utilisateur: { select: USER_SELECT } },
+    })
+    if (!target) throw new NotFoundException('Ce membre ne fait pas partie du groupe')
+    if (target.estAdmin === estAdmin) return { estAdmin }
+
+    await this.prisma.conversationParticipant.update({ where: { id: target.id }, data: { estAdmin } })
+    const actorName = displayName(await this.getUserLite(actorId))
+    const cibleNom = displayName(target.utilisateur as UserLite)
+    await this.systemMessage(
+      conversationId, actorId,
+      estAdmin
+        ? `${actorName} a nommé ${cibleNom} administrateur`
+        : `${actorName} a retiré les droits d'administrateur de ${cibleNom}`,
+    )
+    if (estAdmin) {
+      await this.notif.emit({
+        type: 'MESSAGE', niveau: 'SUCCES', titre: conv.titre ?? 'Groupe',
+        message: `${actorName} vous a nommé administrateur du groupe « ${conv.titre} »`,
+        destinataireId: targetUserId, entiteType: 'conversation', entiteId: conversationId,
+        lien: `/messagerie?c=${conversationId}`, createdById: actorId,
+      }).catch(() => { /* notif best-effort */ })
+    }
+    return { estAdmin }
+  }
+
+  /** Renomme le groupe / modifie sa description (admins uniquement). */
+  async updateGroupInfo(conversationId: string, actorId: string, dto: { titre?: string; description?: string }) {
+    const { conv } = await this.assertGroupAdmin(conversationId, actorId)
+    const data: { titre?: string; description?: string | null } = {}
+    const changements: string[] = []
+    const actorName = displayName(await this.getUserLite(actorId))
+
+    if (dto.titre !== undefined && dto.titre !== conv.titre) {
+      data.titre = dto.titre
+      changements.push(`${actorName} a changé le nom du groupe en « ${dto.titre} »`)
+    }
+    if (dto.description !== undefined) {
+      const d = dto.description || null
+      if (d !== conv.description) {
+        data.description = d
+        changements.push(`${actorName} a modifié la description du groupe`)
+      }
+    }
+    if (Object.keys(data).length) {
+      await this.prisma.conversation.update({ where: { id: conversationId }, data })
+      for (const texte of changements) await this.systemMessage(conversationId, actorId, texte)
+    }
+    return this.getGroupInfo(conversationId, actorId)
+  }
+
+  /** Change la photo du groupe (admins uniquement) — même convention que les autres photos (carré recadré, Base64). */
+  async setGroupPhoto(conversationId: string, actorId: string, buffer: Buffer) {
+    await this.assertGroupAdmin(conversationId, actorId)
+    let jpeg: Buffer
+    try {
+      jpeg = await sharp(buffer).rotate().resize(512, 512, { fit: 'cover', position: 'centre' }).jpeg({ quality: 80, mozjpeg: true }).toBuffer()
+    } catch {
+      throw new BadRequestException('Image illisible ou corrompue')
+    }
+    const photoUrl = `data:image/jpeg;base64,${jpeg.toString('base64')}`
+    await this.prisma.conversation.update({ where: { id: conversationId }, data: { photoUrl } })
+    const actorName = displayName(await this.getUserLite(actorId))
+    await this.systemMessage(conversationId, actorId, `${actorName} a changé la photo du groupe`)
+    return { photoUrl }
+  }
+
+  /** Retire la photo du groupe (admins uniquement). */
+  async removeGroupPhoto(conversationId: string, actorId: string) {
+    await this.assertGroupAdmin(conversationId, actorId)
+    await this.prisma.conversation.update({ where: { id: conversationId }, data: { photoUrl: null } })
+    const actorName = displayName(await this.getUserLite(actorId))
+    await this.systemMessage(conversationId, actorId, `${actorName} a retiré la photo du groupe`)
+    return { photoUrl: null }
+  }
+
+  /** Coupe/rétablit les notifications d'UNE conversation, pour l'utilisateur courant seulement. */
+  async setMuted(conversationId: string, userId: string, muted: boolean) {
+    const part = await this.assertParticipant(conversationId, userId)
+    await this.prisma.conversationParticipant.update({ where: { id: part.id }, data: { muted } })
+    return { muted }
   }
 
   // ── Messages ────────────────────────────────────────────────────────────────
@@ -370,14 +627,17 @@ export class MessagerieService {
         vu = luPar > 0
       }
       const ageMs = Date.now() - m.createdAt.getTime()
-      const fenetreOuverte = deMoi && ageMs <= EDIT_DELETE_WINDOW_MS
+      const fenetreOuverte = deMoi && ageMs <= EDIT_DELETE_WINDOW_MS && m.type === 'TEXTE'
       return {
         id:           m.id,
+        type:         m.type as 'TEXTE' | 'SYSTEME',
         contenu:      m.contenuChiffre ? decryptMessage(m.contenuChiffre) : '',
         expediteurId: m.expediteurId,
         expediteur:   displayName(m.expediteur as UserLite),
         deMoi,
         edite:        !!m.editedAt,
+        epingle:      m.epingle,
+        transfere:    m.transfere,
         createdAt:    m.createdAt,
         piecesJointes: m.piecesJointes,
         reactions:    aggregateReactions(m.reactions, userId),
@@ -455,13 +715,15 @@ export class MessagerieService {
     })
     await this.prisma.conversation.update({ where: { id: conversationId }, data: { updatedAt: new Date() } })
 
-    // Notifier les AUTRES participants (le contenu n'est pas recopié dans la notif).
+    // Notifier les AUTRES participants (le contenu réel reste dans un APERÇU tronqué,
+    // jamais recopié en entier — façon WhatsApp : "Jean : Salut !" / "Jean : 📷 Photo").
     const expName = displayName(msg.expediteur as UserLite)
     const conv = await this.prisma.conversation.findUnique({ where: { id: conversationId } })
-    const apercuNotif = conv?.type === 'GROUPE' && conv.titre ? ` (${conv.titre})` : ''
+    const groupTitre = conv?.type === 'GROUPE' ? (conv.titre ?? 'Groupe') : null
+    const apercu = contentPreview(texte, fichiers)
     const autres = await this.prisma.conversationParticipant.findMany({
       where:  { conversationId, utilisateurId: { not: expediteurId } },
-      select: { utilisateurId: true },
+      select: { utilisateurId: true, muted: true },
     })
     // @mentions — les userId sont portés par des tokens `@[Nom](userId)` dans le texte
     // brut (avant chiffrement). On ne notifie spécifiquement QUE les vrais participants
@@ -477,13 +739,14 @@ export class MessagerieService {
         this.notif.pushLive(p.utilisateurId, 'MESSAGE_NEW', conversationId)
         continue
       }
+      // Conversation mise en sourdine par CE destinataire → aucune notification (même mention).
+      if (p.muted) continue
+      const corps = mentioned ? `${expName} vous a mentionné : ${apercu}` : `${expName} : ${apercu}`
       await this.notif.emit({
         type:           'MESSAGE',
         niveau:         mentioned ? 'AVERTISSEMENT' : 'INFO',
-        titre:          mentioned ? 'Vous avez été mentionné' : 'Nouveau message',
-        message:        mentioned
-          ? `${expName} vous a mentionné${apercuNotif}`
-          : `${expName} vous a envoyé un message${apercuNotif}`,
+        titre:          groupTitre ?? expName,
+        message:        corps,
         destinataireId: p.utilisateurId,
         entiteType:     'conversation',
         entiteId:       conversationId,
@@ -494,11 +757,14 @@ export class MessagerieService {
 
     return {
       id:           msg.id,
+      type:         'TEXTE' as const,
       contenu:      texte,
       expediteurId: msg.expediteurId,
       expediteur:   expName,
       deMoi:        true,
       edite:        false,
+      epingle:      false,
+      transfere:    false,
       createdAt:    msg.createdAt,
       piecesJointes: msg.piecesJointes,
       reactions:    [] as { emoji: string; count: number; mine: boolean }[],
@@ -660,6 +926,117 @@ export class MessagerieService {
       }
     }
     return { emoji: e, active: true }
+  }
+
+  /** Détail nominatif des réactions d'un message (qui a réagi, avec quel emoji, quand). */
+  async getReactionDetails(messageId: string, userId: string) {
+    const m = await this.prisma.message.findUnique({ where: { id: messageId }, select: { conversationId: true, deletedAt: true } })
+    if (!m || m.deletedAt) throw new NotFoundException('Message introuvable')
+    await this.assertParticipant(m.conversationId, userId)
+
+    const rows = await this.prisma.messageReaction.findMany({
+      where:   { messageId, deletedAt: null },
+      orderBy: { createdAt: 'asc' },
+    })
+    const userIds = [...new Set(rows.map(r => r.utilisateurId))]
+    const users = userIds.length
+      ? await this.prisma.utilisateur.findMany({ where: { id: { in: userIds } }, select: USER_SELECT })
+      : []
+    const nomMap = new Map(users.map(u => [u.id, displayName(u as UserLite)]))
+    return rows.map(r => ({
+      emoji:        r.emoji,
+      utilisateurId: r.utilisateurId,
+      nom:          nomMap.get(r.utilisateurId) ?? 'Utilisateur',
+      mine:         r.utilisateurId === userId,
+      createdAt:    r.createdAt,
+    }))
+  }
+
+  /** Épingle/désépingle un message (max 3 par conversation, façon WhatsApp). */
+  async togglePin(messageId: string, userId: string) {
+    const m = await this.prisma.message.findUnique({ where: { id: messageId }, select: { conversationId: true, deletedAt: true, epingle: true } })
+    if (!m || m.deletedAt) throw new NotFoundException('Message introuvable')
+    await this.assertParticipant(m.conversationId, userId)
+    const next = !m.epingle
+    if (next) {
+      const count = await this.prisma.message.count({ where: { conversationId: m.conversationId, epingle: true, deletedAt: null } })
+      if (count >= 3) throw new BadRequestException('Maximum 3 messages épinglés par conversation — désépinglez-en un d’abord')
+    }
+    await this.prisma.message.update({ where: { id: messageId }, data: { epingle: next } })
+    for (const p of await this.prisma.conversationParticipant.findMany({ where: { conversationId: m.conversationId }, select: { utilisateurId: true } })) {
+      this.notif.pushLive(p.utilisateurId, 'MESSAGE_NEW', m.conversationId)
+    }
+    return { epingle: next }
+  }
+
+  /** Liste les messages épinglés d'une conversation (bandeau en haut du fil). */
+  async listPinned(conversationId: string, userId: string) {
+    await this.assertParticipant(conversationId, userId)
+    const rows = await this.prisma.message.findMany({
+      where:   { conversationId, epingle: true, deletedAt: null },
+      orderBy: { createdAt: 'desc' },
+      include: { expediteur: { select: USER_SELECT }, piecesJointes: { select: { id: true } } },
+    })
+    return rows.map(m => ({
+      id:        m.id,
+      contenu:   m.contenuChiffre ? decryptMessage(m.contenuChiffre).slice(0, 160) : (m.piecesJointes.length ? '📎 Pièce jointe' : ''),
+      expediteur: displayName(m.expediteur as UserLite),
+      createdAt: m.createdAt,
+    }))
+  }
+
+  /** Transfère un message existant vers d'autres conversations (le contenu chiffré est recopié tel quel). */
+  async forwardMessage(messageId: string, userId: string, targetConversationIds: string[]) {
+    const m = await this.prisma.message.findUnique({ where: { id: messageId }, include: { piecesJointes: true } })
+    if (!m || m.deletedAt) throw new NotFoundException('Message introuvable')
+    await this.assertParticipant(m.conversationId, userId)
+
+    const cibles = [...new Set(targetConversationIds.filter(Boolean))].slice(0, 10)
+    if (!cibles.length) throw new BadRequestException('Sélectionnez au moins une conversation')
+
+    const actorName = displayName(await this.getUserLite(userId))
+    let forwarded = 0
+    for (const conversationId of cibles) {
+      await this.assertParticipant(conversationId, userId) // il faut aussi être membre de la conversation cible
+      await this.prisma.message.create({
+        data: {
+          conversationId,
+          expediteurId:   userId,
+          contenuChiffre: m.contenuChiffre,
+          transfere:      true,
+          ...(m.piecesJointes.length ? {
+            piecesJointes: {
+              create: m.piecesJointes.map(pj => ({
+                nomFichier: pj.nomFichier, mimeType: pj.mimeType, taille: pj.taille, contenuChiffre: pj.contenuChiffre,
+              })),
+            },
+          } : {}),
+        },
+      })
+      await this.prisma.conversation.update({ where: { id: conversationId }, data: { updatedAt: new Date() } })
+      forwarded++
+
+      const conv = await this.prisma.conversation.findUnique({ where: { id: conversationId } })
+      const groupTitre = conv?.type === 'GROUPE' ? (conv.titre ?? 'Groupe') : null
+      const autres = await this.prisma.conversationParticipant.findMany({
+        where:  { conversationId, utilisateurId: { not: userId } },
+        select: { utilisateurId: true, muted: true },
+      })
+      for (const p of autres) {
+        if (p.muted) continue
+        if (this.presence.isViewing(p.utilisateurId, conversationId)) {
+          this.notif.pushLive(p.utilisateurId, 'MESSAGE_NEW', conversationId)
+          continue
+        }
+        await this.notif.emit({
+          type: 'MESSAGE', niveau: 'INFO', titre: groupTitre ?? actorName,
+          message: `${actorName} : message transféré`,
+          destinataireId: p.utilisateurId, entiteType: 'conversation', entiteId: conversationId,
+          lien: `/messagerie?c=${conversationId}`, createdById: userId,
+        }).catch(() => { /* notif best-effort */ })
+      }
+    }
+    return { forwarded }
   }
 
   /** Sert une pièce jointe déchiffrée (data URL) à un participant autorisé. */

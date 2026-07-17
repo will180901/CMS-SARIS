@@ -118,11 +118,14 @@ export function useSendMessage(conversationId: string) {
       const prev = qc.getQueryData(key)
       const temp: MessageItem = {
         id:           `temp-${++tempCounter}`,
+        type:         'TEXTE',
         contenu,
         expediteurId: 'me',
         expediteur:   'Moi',
         deMoi:        true,
         edite:        false,
+        epingle:      false,
+        transfere:    false,
         createdAt:    new Date().toISOString(),
         piecesJointes: fichiers.map((f, i) => ({ id: `temp-pj-${i}`, nomFichier: f.name, mimeType: f.type, taille: f.size })),
         reactions:    [],
@@ -209,5 +212,121 @@ export function useToggleReaction(conversationId: string) {
   return useMutation({
     mutationFn: ({ messageId, emoji }: { messageId: string; emoji: string }) => messagerieApi.react(messageId, emoji),
     onSuccess:  () => { qc.invalidateQueries({ queryKey: threadKey(conversationId) }) },
+  })
+}
+
+export function useReactionDetails(messageId: string | null, enabled: boolean) {
+  return useQuery({
+    queryKey: [...MSG_KEY, 'reaction-details', messageId],
+    queryFn:  () => messagerieApi.reactionDetails(messageId!),
+    enabled:  enabled && !!messageId,
+    staleTime: 5_000,
+  })
+}
+
+// ── Gestion de groupe ─────────────────────────────────────────────────────────
+
+const groupInfoKey = (conversationId: string) => [...MSG_KEY, 'groupe', conversationId] as const
+
+export function useGroupInfo(conversationId: string | null, enabled = true) {
+  return useQuery({
+    queryKey: groupInfoKey(conversationId ?? '∅'),
+    queryFn:  () => messagerieApi.groupInfo(conversationId!),
+    enabled:  enabled && !!conversationId,
+    staleTime: 10_000,
+  })
+}
+
+/** Invalide tout ce qu'un événement de groupe peut affecter : infos, fil (message système), liste. */
+function invalidateGroup(qc: ReturnType<typeof useQueryClient>, conversationId: string) {
+  qc.invalidateQueries({ queryKey: groupInfoKey(conversationId) })
+  qc.invalidateQueries({ queryKey: threadKey(conversationId) })
+  qc.invalidateQueries({ queryKey: convKey })
+}
+
+export function useAddParticipants(conversationId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (participantIds: string[]) => messagerieApi.addParticipants(conversationId, participantIds),
+    onSuccess:  () => invalidateGroup(qc, conversationId),
+  })
+}
+
+export function useRemoveParticipant(conversationId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (userId: string) => messagerieApi.removeParticipant(conversationId, userId),
+    onSuccess:  () => invalidateGroup(qc, conversationId),
+  })
+}
+
+export function useSetAdmin(conversationId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ userId, estAdmin }: { userId: string; estAdmin: boolean }) => messagerieApi.setAdmin(conversationId, userId, estAdmin),
+    onSuccess:  () => invalidateGroup(qc, conversationId),
+  })
+}
+
+export function useUpdateGroup(conversationId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (dto: { titre?: string; description?: string }) => messagerieApi.updateGroup(conversationId, dto),
+    onSuccess:  () => invalidateGroup(qc, conversationId),
+  })
+}
+
+export function useUploadGroupPhoto(conversationId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (file: File) => messagerieApi.uploadGroupPhoto(conversationId, file),
+    onSuccess:  () => invalidateGroup(qc, conversationId),
+  })
+}
+
+export function useRemoveGroupPhoto(conversationId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => messagerieApi.removeGroupPhoto(conversationId),
+    onSuccess:  () => invalidateGroup(qc, conversationId),
+  })
+}
+
+export function useSetMuted(conversationId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (muted: boolean) => messagerieApi.setMuted(conversationId, muted),
+    onSuccess:  () => { qc.invalidateQueries({ queryKey: convKey }) },
+  })
+}
+
+// ── Fil avancé : épinglage, transfert ─────────────────────────────────────────
+
+export function useTogglePin(conversationId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (messageId: string) => messagerieApi.togglePin(messageId),
+    onSuccess:  () => {
+      qc.invalidateQueries({ queryKey: threadKey(conversationId) })
+      qc.invalidateQueries({ queryKey: [...MSG_KEY, 'epingles', conversationId] })
+    },
+  })
+}
+
+export function usePinnedMessages(conversationId: string | null) {
+  return useQuery({
+    queryKey: [...MSG_KEY, 'epingles', conversationId ?? '∅'],
+    queryFn:  () => messagerieApi.pinned(conversationId!),
+    enabled:  !!conversationId,
+    staleTime: 5_000,
+  })
+}
+
+export function useForwardMessage() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ messageId, conversationIds }: { messageId: string; conversationIds: string[] }) =>
+      messagerieApi.forward(messageId, conversationIds),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: MSG_KEY }) },
   })
 }

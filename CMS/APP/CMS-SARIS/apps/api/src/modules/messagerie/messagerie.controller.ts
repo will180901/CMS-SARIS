@@ -8,10 +8,10 @@
 import {
   Controller, Get, Post, Patch, Delete,
   Body, Param, Query, Req,
-  UseGuards, UseInterceptors, UploadedFiles,
+  UseGuards, UseInterceptors, UploadedFiles, UploadedFile,
   HttpCode, HttpStatus, UnauthorizedException, BadRequestException,
 } from '@nestjs/common'
-import { FilesInterceptor } from '@nestjs/platform-express'
+import { FilesInterceptor, FileInterceptor } from '@nestjs/platform-express'
 import { Throttle } from '@nestjs/throttler'
 import { memoryStorage } from 'multer'
 import { MessagerieService, type UploadedPiece } from './messagerie.service'
@@ -19,7 +19,10 @@ import { JwtAuthGuard }       from '../security/guards/jwt-auth.guard'
 import { PermissionsGuard }   from '../security/guards/permissions.guard'
 import { UserThrottlerGuard } from '../security/guards/user-throttler.guard'
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator'
-import { StartConversationDto, CreateGroupDto, SendMessageDto, UpdateMessageDto, ReactDto } from './dto/messagerie.dto'
+import {
+  StartConversationDto, CreateGroupDto, SendMessageDto, UpdateMessageDto, ReactDto,
+  AddParticipantsDto, SetAdminDto, UpdateGroupDto, MuteDto, ForwardMessageDto,
+} from './dto/messagerie.dto'
 import { BatchIdsDto } from '../../common/dto/batch-ids.dto'
 
 interface AuthedRequest { user?: { id?: string; siteId?: string } }
@@ -42,6 +45,17 @@ const ATTACHMENT_OPTS = {
   fileFilter: (_req: unknown, file: Express.Multer.File, cb: (e: Error | null, ok: boolean) => void) => {
     if (ALLOWED_MIME.test(file.mimetype)) cb(null, true)
     else cb(new BadRequestException(`Type de fichier non autorisé : ${file.mimetype}`), false)
+  },
+}
+
+// Photo de groupe — même convention que les autres photos (patient/utilisateur) :
+// stockage en mémoire, recadrée en carré côté service, jamais de fichier sur disque.
+const GROUP_PHOTO_OPTS = {
+  storage: memoryStorage(),
+  limits:  { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req: unknown, file: Express.Multer.File, cb: (e: Error | null, ok: boolean) => void) => {
+    if (/^image\/(jpeg|png|webp|gif)$/.test(file.mimetype)) cb(null, true)
+    else cb(new BadRequestException('Format invalide — image JPEG, PNG, WEBP ou GIF attendue'), false)
   },
 }
 
@@ -132,6 +146,68 @@ export class MessagerieController {
     return this.svc.leaveConversation(id, requireUser(req).userId)
   }
 
+  // ── Gestion de groupe ───────────────────────────────────────────────────────
+
+  /** Infos + membres d'un groupe (visible par tout participant). */
+  @Get('conversations/:id/groupe')
+  @RequirePermissions('messagerie.read')
+  groupInfo(@Param('id') id: string, @Req() req: AuthedRequest) {
+    return this.svc.getGroupInfo(id, requireUser(req).userId)
+  }
+
+  /** Ajoute des membres à un groupe existant (admins du groupe uniquement). */
+  @Post('conversations/:id/participants')
+  @RequirePermissions('messagerie.create')
+  @HttpCode(HttpStatus.OK)
+  addParticipants(@Param('id') id: string, @Body() dto: AddParticipantsDto, @Req() req: AuthedRequest) {
+    return this.svc.addParticipants(id, requireUser(req).userId, dto.participantIds)
+  }
+
+  /** Retire un membre d'un groupe (admins du groupe uniquement). */
+  @Delete('conversations/:id/participants/:userId')
+  @RequirePermissions('messagerie.delete')
+  @HttpCode(HttpStatus.OK)
+  removeParticipant(@Param('id') id: string, @Param('userId') userId: string, @Req() req: AuthedRequest) {
+    return this.svc.removeParticipant(id, requireUser(req).userId, userId)
+  }
+
+  /** Promeut/rétrograde un admin de groupe (admins du groupe uniquement). */
+  @Patch('conversations/:id/participants/:userId/admin')
+  @RequirePermissions('messagerie.update')
+  setAdmin(@Param('id') id: string, @Param('userId') userId: string, @Body() dto: SetAdminDto, @Req() req: AuthedRequest) {
+    return this.svc.setAdmin(id, requireUser(req).userId, userId, dto.estAdmin)
+  }
+
+  /** Renomme le groupe / modifie sa description (admins du groupe uniquement). */
+  @Patch('conversations/:id')
+  @RequirePermissions('messagerie.update')
+  updateGroup(@Param('id') id: string, @Body() dto: UpdateGroupDto, @Req() req: AuthedRequest) {
+    return this.svc.updateGroupInfo(id, requireUser(req).userId, dto)
+  }
+
+  /** Change la photo du groupe (admins du groupe uniquement). */
+  @Post('conversations/:id/photo')
+  @RequirePermissions('messagerie.update')
+  @UseInterceptors(FileInterceptor('file', GROUP_PHOTO_OPTS))
+  uploadGroupPhoto(@Param('id') id: string, @UploadedFile() file: Express.Multer.File | undefined, @Req() req: AuthedRequest) {
+    if (!file) throw new BadRequestException('Aucun fichier reçu')
+    return this.svc.setGroupPhoto(id, requireUser(req).userId, file.buffer)
+  }
+
+  /** Retire la photo du groupe (admins du groupe uniquement). */
+  @Delete('conversations/:id/photo')
+  @RequirePermissions('messagerie.update')
+  removeGroupPhoto(@Param('id') id: string, @Req() req: AuthedRequest) {
+    return this.svc.removeGroupPhoto(id, requireUser(req).userId)
+  }
+
+  /** Coupe/rétablit MES notifications pour cette conversation (pas d'effet pour les autres). */
+  @Patch('conversations/:id/mute')
+  @RequirePermissions('messagerie.read')
+  mute(@Param('id') id: string, @Body() dto: MuteDto, @Req() req: AuthedRequest) {
+    return this.svc.setMuted(id, requireUser(req).userId, dto.muted)
+  }
+
   /**
    * Signale une activité de saisie : diffusé en temps réel aux AUTRES participants
    * (éphémère). `kind=audio` → « en train d'enregistrer un message vocal », sinon
@@ -192,6 +268,36 @@ export class MessagerieController {
   @HttpCode(HttpStatus.OK)
   react(@Param('id') id: string, @Body() dto: ReactDto, @Req() req: AuthedRequest) {
     return this.svc.toggleReaction(id, requireUser(req).userId, dto.emoji)
+  }
+
+  /** Détail nominatif des réactions d'un message (qui a réagi, avec quoi). */
+  @Get('messages/:id/reactions')
+  @RequirePermissions('messagerie.read')
+  reactionDetails(@Param('id') id: string, @Req() req: AuthedRequest) {
+    return this.svc.getReactionDetails(id, requireUser(req).userId)
+  }
+
+  /** Épingle/désépingle un message (max 3 par conversation). */
+  @Post('messages/:id/epingler')
+  @RequirePermissions('messagerie.update')
+  @HttpCode(HttpStatus.OK)
+  togglePin(@Param('id') id: string, @Req() req: AuthedRequest) {
+    return this.svc.togglePin(id, requireUser(req).userId)
+  }
+
+  /** Messages épinglés d'une conversation. */
+  @Get('conversations/:id/epingles')
+  @RequirePermissions('messagerie.read')
+  pinned(@Param('id') id: string, @Req() req: AuthedRequest) {
+    return this.svc.listPinned(id, requireUser(req).userId)
+  }
+
+  /** Transfère un message vers une ou plusieurs autres conversations. */
+  @Post('messages/:id/transferer')
+  @RequirePermissions('messagerie.create')
+  @HttpCode(HttpStatus.OK)
+  forward(@Param('id') id: string, @Body() dto: ForwardMessageDto, @Req() req: AuthedRequest) {
+    return this.svc.forwardMessage(id, requireUser(req).userId, dto.conversationIds)
   }
 
   /** Modification d'un message (le sien uniquement). */

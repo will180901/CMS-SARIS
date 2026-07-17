@@ -5,12 +5,14 @@
  */
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Users, MoreVertical, Trash2, LogOut } from 'lucide-react'
+import { Users, MoreVertical, Trash2, LogOut, BellOff, Bell } from 'lucide-react'
 import { Avatar, UserAvatar } from '@/components/saris'
 import { Popover, PopoverContent, PopoverTrigger } from '@workspace/ui/components/popover'
+import { toast } from '@workspace/ui/components/sonner'
 import { useIsTouch } from '@/hooks/useMediaQuery'
 import { formatTime, formatDate } from '@/lib/intl'
 import { renderRich } from './twemoji'
+import { useSetMuted } from '../hooks/useMessagerie'
 import type { ConversationItem } from '../api/messagerie.api'
 
 function formatCardTime(iso: string, yesterdayLabel: string): string {
@@ -36,12 +38,19 @@ export function ConversationCard({
   const isTouch = useIsTouch()
   const isGroupe = conv.type === 'GROUPE'
   const nom = conv.titre
+  const muteMut = useSetMuted(conv.id)
 
   let apercu = t('messagerie.noMessage')
   if (conv.dernierMessage) {
     const dm = conv.dernierMessage
-    const prefix = dm.deMoi ? t('messagerie.youPrefix') : (isGroupe ? `${dm.auteur} : ` : '')
+    // Message SYSTEME : phrase déjà complète (« Jean a quitté le groupe ») → pas de préfixe auteur.
+    const prefix = dm.type === 'SYSTEME' ? '' : dm.deMoi ? t('messagerie.youPrefix') : (isGroupe ? `${dm.auteur} : ` : '')
     apercu = `${prefix}${dm.apercu ?? ''}`
+  }
+
+  function toggleMuted() {
+    setMenuOpen(false)
+    muteMut.mutate(!conv.muted, { onError: () => toast.error(t('messagerie.groupUpdateError')) })
   }
 
   const showMenu = hover || menuOpen || isTouch
@@ -62,14 +71,17 @@ export function ConversationCard({
       }}
     >
       {isGroupe
-        ? <div style={{ width: 40, height: 40, borderRadius: 'var(--radius-md)', background: 'var(--ap-100)', color: 'var(--ap-700)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Users size={18} /></div>
+        ? (conv.photoUrl
+            ? <img src={conv.photoUrl} alt={nom} style={{ width: 40, height: 40, borderRadius: 'var(--radius-md)', objectFit: 'cover', flexShrink: 0 }} />
+            : <div style={{ width: 40, height: 40, borderRadius: 'var(--radius-md)', background: 'var(--ap-100)', color: 'var(--ap-700)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Users size={18} /></div>)
         : conv.interlocuteur
           ? <UserAvatar userId={conv.interlocuteur.id} nom={nom} size={40} />
           : <Avatar nom={nom} size={40} />}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
-          <span style={{ fontSize: 13, fontWeight: conv.nonLus > 0 ? 700 : 600, color: 'var(--texte-primaire)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13, fontWeight: conv.nonLus > 0 ? 700 : 600, color: 'var(--texte-primaire)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {nom}
+            {conv.muted && <BellOff size={11} style={{ color: 'var(--texte-tertiaire)', flexShrink: 0 }} />}
           </span>
           {conv.dernierMessage && <span style={{ fontSize: 10, color: 'var(--texte-tertiaire)', flexShrink: 0 }}>{formatCardTime(conv.dernierMessage.createdAt, t('messagerie.yesterday'))}</span>}
         </div>
@@ -78,7 +90,12 @@ export function ConversationCard({
             {renderRich(apercu, 13)}
           </span>
           {conv.nonLus > 0 && (
-            <span style={{ minWidth: 18, height: 18, padding: '0 5px', borderRadius: 9999, background: 'var(--ap-400)', color: '#fff', fontSize: 10, fontWeight: 700, lineHeight: '18px', textAlign: 'center', flexShrink: 0 }}>
+            <span style={{
+              minWidth: 18, height: 18, padding: '0 5px', borderRadius: 9999,
+              background: conv.muted ? 'var(--fond-surface-2)' : 'var(--ap-400)',
+              color: conv.muted ? 'var(--texte-tertiaire)' : '#fff',
+              fontSize: 10, fontWeight: 700, lineHeight: '18px', textAlign: 'center', flexShrink: 0,
+            }}>
               {conv.nonLus > 99 ? '99+' : conv.nonLus}
             </span>
           )}
@@ -95,6 +112,13 @@ export function ConversationCard({
               </button>
             </PopoverTrigger>
             <PopoverContent align="end" sideOffset={4} style={{ width: 210, padding: 4, background: 'var(--fond-surface)', border: '1px solid var(--bordure-legere)', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.14)' }}>
+              <button onClick={toggleMuted}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 7, fontSize: 13, color: 'var(--texte-secondaire)', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--fond-surface-2)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                {conv.muted ? <Bell size={14} /> : <BellOff size={14} />}
+                {conv.muted ? t('messagerie.unmuteConversation') : t('messagerie.muteConversation')}
+              </button>
               <button onClick={() => { setMenuOpen(false); onDelete(conv) }}
                 style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 7, fontSize: 13, color: 'var(--erreur-accent)', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left' }}
                 onMouseEnter={e => (e.currentTarget.style.background = 'var(--erreur-fond)')}

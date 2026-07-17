@@ -196,6 +196,57 @@ export const messagerie = {
     micUnavailable: "Micro inaccessible — autorisez l'accès au microphone.",
     sendVoiceNote: 'Envoyer la note vocale',
     voiceNoteFilename: 'note-vocale',
+
+    // ── Gestion de groupe ─────────────────────────────────────────────
+    groupInfo: 'Infos du groupe',
+    groupPhoto: 'Photo du groupe',
+    changeGroupPhoto: 'Changer la photo',
+    removeGroupPhoto: 'Retirer la photo',
+    addDescription: 'Ajouter une description',
+    membersCount_one: '{{count}} membre',
+    membersCount_other: '{{count}} membres',
+    addMembers: 'Ajouter des membres',
+    addSelected_one: 'Ajouter ({{count}})',
+    addSelected_other: 'Ajouter ({{count}})',
+    searchContact: 'Rechercher un contact…',
+    noContact: 'Aucun contact disponible',
+    roleCreator: 'Créateur',
+    roleAdmin: 'Administrateur',
+    promoteAdmin: 'Nommer administrateur',
+    demoteAdmin: "Retirer les droits d'administrateur",
+    removeMember: 'Retirer du groupe',
+    confirmRemoveMember: 'Retirer ce membre du groupe ?',
+    confirmLeaveGroup: 'Quitter ce groupe ?',
+    leaveGroup: 'Quitter le groupe',
+    leaveError: 'Impossible de quitter le groupe',
+    groupUpdateError: 'Une erreur est survenue',
+    photoInvalidFormat: 'Format invalide — image JPEG, PNG, WEBP ou GIF attendue',
+    photoTooLarge: 'Fichier trop volumineux (5 Mo maximum)',
+
+    // ── Épinglage ─────────────────────────────────────────────────────
+    pin: 'Épingler',
+    unpin: 'Désépingler',
+    pinnedLabel: 'Épinglé',
+    pinnedMessage: 'Message épinglé',
+    pinnedMessages_one: '{{count}} message épinglé',
+    pinnedMessages_other: '{{count}} messages épinglés',
+    pinError: "Impossible d'épingler ce message",
+
+    // ── Transfert ─────────────────────────────────────────────────────
+    forward: 'Transférer',
+    forwardTo: 'Transférer vers',
+    forwardSend: 'Transférer ({{count}})',
+    forwardError: 'Impossible de transférer ce message',
+    forwarded: 'Transféré',
+
+    // ── Réactions détaillées ───────────────────────────────────────────
+    reactionDetails: 'Réactions',
+    noReaction: 'Aucune réaction',
+
+    // ── Mute par conversation ───────────────────────────────────────────
+    muteConversation: 'Couper les notifications',
+    unmuteConversation: 'Réactiver les notifications',
+    muted: 'Notifications coupées',
   },
   en: {
     // ── En-tête de page ─────────────────────────────────────────────
@@ -390,5 +441,56 @@ export const messagerie = {
     micUnavailable: 'Microphone unavailable — please allow microphone access.',
     sendVoiceNote: 'Send the voice note',
     voiceNoteFilename: 'voice-note',
+
+    // ── Gestion de groupe ─────────────────────────────────────────────
+    groupInfo: 'Group info',
+    groupPhoto: 'Group photo',
+    changeGroupPhoto: 'Change photo',
+    removeGroupPhoto: 'Remove photo',
+    addDescription: 'Add a description',
+    membersCount_one: '{{count}} member',
+    membersCount_other: '{{count}} members',
+    addMembers: 'Add members',
+    addSelected_one: 'Add ({{count}})',
+    addSelected_other: 'Add ({{count}})',
+    searchContact: 'Search a contact…',
+    noContact: 'No contact available',
+    roleCreator: 'Creator',
+    roleAdmin: 'Admin',
+    promoteAdmin: 'Make admin',
+    demoteAdmin: 'Remove as admin',
+    removeMember: 'Remove from group',
+    confirmRemoveMember: 'Remove this member from the group?',
+    confirmLeaveGroup: 'Leave this group?',
+    leaveGroup: 'Leave group',
+    leaveError: 'Unable to leave the group',
+    groupUpdateError: 'Something went wrong',
+    photoInvalidFormat: 'Invalid format — JPEG, PNG, WEBP or GIF image expected',
+    photoTooLarge: 'File too large (5 MB maximum)',
+
+    // ── Pinning ─────────────────────────────────────────────────────────
+    pin: 'Pin',
+    unpin: 'Unpin',
+    pinnedLabel: 'Pinned',
+    pinnedMessage: 'Pinned message',
+    pinnedMessages_one: '{{count}} pinned message',
+    pinnedMessages_other: '{{count}} pinned messages',
+    pinError: 'Unable to pin this message',
+
+    // ── Forwarding ────────────────────────────────────────────────────
+    forward: 'Forward',
+    forwardTo: 'Forward to',
+    forwardSend: 'Forward ({{count}})',
+    forwardError: 'Unable to forward this message',
+    forwarded: 'Forwarded',
+
+    // ── Reaction details ──────────────────────────────────────────────
+    reactionDetails: 'Reactions',
+    noReaction: 'No reaction',
+
+    // ── Per-conversation mute ─────────────────────────────────────────
+    muteConversation: 'Mute notifications',
+    unmuteConversation: 'Unmute notifications',
+    muted: 'Notifications muted',
   },
 }

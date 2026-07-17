@@ -1,5 +1,5 @@
 import {
-  IsString, IsNotEmpty, IsUUID, MaxLength, IsOptional, IsArray, ArrayMinSize, ArrayMaxSize,
+  IsString, IsNotEmpty, IsUUID, MaxLength, IsOptional, IsArray, ArrayMinSize, ArrayMaxSize, IsBoolean,
 } from 'class-validator'
 import { Transform } from 'class-transformer'
 
@@ -51,4 +51,47 @@ export class ReactDto {
   @IsNotEmpty({ message: 'Emoji requis' })
   @MaxLength(16)
   emoji!: string
+}
+
+// ── Gestion de groupe ─────────────────────────────────────────────────────────
+
+export class AddParticipantsDto {
+  @IsArray()
+  @ArrayMinSize(1, { message: 'Sélectionnez au moins un participant' })
+  @ArrayMaxSize(50)
+  @IsUUID('all', { each: true })
+  participantIds!: string[]
+}
+
+export class SetAdminDto {
+  @IsBoolean()
+  estAdmin!: boolean
+}
+
+export class UpdateGroupDto {
+  @IsOptional()
+  @Transform(trim)
+  @IsString()
+  @IsNotEmpty({ message: 'Le nom du groupe est requis' })
+  @MaxLength(120)
+  titre?: string
+
+  @IsOptional()
+  @Transform(trim)
+  @IsString()
+  @MaxLength(500)
+  description?: string
+}
+
+export class MuteDto {
+  @IsBoolean()
+  muted!: boolean
+}
+
+export class ForwardMessageDto {
+  @IsArray()
+  @ArrayMinSize(1, { message: 'Sélectionnez au moins une conversation' })
+  @ArrayMaxSize(10)
+  @IsUUID('all', { each: true })
+  conversationIds!: string[]
 }
