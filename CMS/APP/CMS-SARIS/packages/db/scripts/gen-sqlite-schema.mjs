@@ -5,6 +5,8 @@
  *  - generator : output dédié + binaryTargets (n'écrase pas le client PG)
  *  - enums (non supportés par SQLite via Prisma) -> retirés ; champs typés enum -> String ;
  *    valeurs par défaut d'enum -> chaînes quotées
+ *  - listes de scalaires (String[], Int[]… — non supportées par le connecteur SQLite) ->
+ *    String (JSON sérialisé côté appli) ; @default([]) -> @default("[]")
  *
  * Sortie : prisma/sqlite/schema.prisma (+ migration_lock.toml).
  *   node packages/db/scripts/gen-sqlite-schema.mjs
@@ -45,6 +47,14 @@ s = s.replace(/@default\(([A-Za-z_][A-Za-z0-9_]*)\)/g, (full, val) =>
   enumValues.has(val) ? `@default("${val}")` : full,
 )
 
+// 4.5 Listes de scalaires (String[], Int[]…) -> String : SQLite (via Prisma) ne supporte pas
+// les colonnes de type liste. La valeur reste un JSON sérialisé côté application.
+const SCALAR_TYPES = ['String', 'Int', 'Boolean', 'DateTime', 'Float', 'Json', 'Bytes', 'BigInt', 'Decimal']
+const scalarListRe = new RegExp('\\b(' + SCALAR_TYPES.join('|') + ')\\[\\]', 'g')
+const scalarListFields = new Set()
+s = s.replace(scalarListRe, (full, type) => { scalarListFields.add(type); return type })
+s = s.replace(/@default\(\[\]\)/g, '@default("[]")')
+
 // 5. datasource -> sqlite
 s = s.replace(
   /datasource\s+db\s*\{[\s\S]*?\}/,
@@ -62,4 +72,5 @@ s = '// ⚠️ GÉNÉRÉ par scripts/gen-sqlite-schema.mjs — NE PAS ÉDITER. S
 fs.mkdirSync(OUTDIR, { recursive: true })
 fs.writeFileSync(path.join(OUTDIR, 'schema.prisma'), s, 'utf8')
 // Note : migrations/migration_lock.toml est géré par `prisma migrate` (ne pas l'écrire ici).
-console.log('Schéma SQLite généré dans prisma/sqlite/. Enums convertis en String : ' + Object.keys(enums).join(', '))
+console.log('Schéma SQLite généré dans prisma/sqlite/. Enums convertis en String : ' + Object.keys(enums).join(', ')
+  + (scalarListFields.size ? ' · Listes converties en String : ' + [...scalarListFields].join(', ') : ''))
