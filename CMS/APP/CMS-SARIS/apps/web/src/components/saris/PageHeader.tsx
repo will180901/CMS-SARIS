@@ -6,6 +6,7 @@
  */
 
 import type { ReactNode } from 'react'
+import { TILE_TONE_MAP, type Tone } from './tones'
 
 interface BreadcrumbItem {
   label: ReactNode
@@ -21,12 +22,15 @@ interface Props {
   breadcrumb?: BreadcrumbItem[]
   /** Variante "compacte" — réduit la hauteur (pour les sous-pages) */
   compact?:    boolean
+  /** Couleur de la tuile d'icône — identité visuelle du module. Défaut 'accent'. */
+  tone?:       Tone
 }
 
-export function PageHeader({ icon, title, subtitle, actions, breadcrumb, compact }: Props) {
+export function PageHeader({ icon, title, subtitle, actions, breadcrumb, compact, tone = 'accent' }: Props) {
   const padY = compact ? 'var(--espace-3)' : 'var(--espace-4)'
+  const t = TILE_TONE_MAP[tone]
   return (
-    <div style={{
+    <div className="saris-grain" style={{
       padding:      `${padY} var(--espace-6)`,
       background:   'var(--fond-surface)',
       borderBottom: '1px solid var(--bordure-legere)',
@@ -78,8 +82,8 @@ export function PageHeader({ icon, title, subtitle, actions, breadcrumb, compact
             width: compact ? 32 : 40,
             height: compact ? 32 : 40,
             borderRadius: 'var(--radius-lg)',
-            background: 'var(--ap-50)',
-            color: 'var(--ap-600)',
+            background: t.bg,
+            color: t.color,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             flexShrink: 0,
           }}>

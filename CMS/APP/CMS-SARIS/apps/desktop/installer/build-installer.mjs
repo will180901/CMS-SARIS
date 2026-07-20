@@ -20,7 +20,11 @@ const NSIS = path.join(process.env.LOCALAPPDATA, 'electron-builder', 'Cache', 'n
 const makensis = path.join(NSIS, 'Bin', 'makensis.exe')
 const srcdir = path.join(desktop, 'release', 'win-unpacked')
 const assets = path.join(desktop, 'build')
-const outfile = path.join(desktop, 'release', `CMS SARIS-Setup-${version}.exe`)
+// Nom distinct de l'installeur "remote" par défaut (electron-builder.yml, sans backend
+// embarqué) : ce script ne produit QUE l'installeur "local" autonome (SQLite + API
+// embarqués) — mêmes noms = confusion possible si les deux se retrouvent dans le même
+// dossier de diffusion. Cohérent avec electron-builder.local.yml (artifactName "-Local-").
+const outfile = path.join(desktop, 'release', `CMS SARIS-Local-Setup-${version}.exe`)
 const nsi = path.join(here, 'cms-saris.nsi')
 
 // Localise signtool.exe (SDK Windows), en préférant x64 puis x86.

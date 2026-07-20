@@ -15,7 +15,7 @@ import { Button } from '@workspace/ui/components/button'
 import { Input } from '@workspace/ui/components/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@workspace/ui/components/popover'
 import { toast } from '@workspace/ui/components/sonner'
-import { UserAvatar } from '@/components/saris'
+import { UserAvatar, TILE_TONE_MAP } from '@/components/saris'
 import { isOfflineQueued } from '@/lib/api'
 import { isDesktop } from '@/lib/desktop'
 import { DESKTOP_TITLEBAR_H } from '@/components/layout/DesktopTitleBar'
@@ -141,8 +141,8 @@ export function MessageriePage() {
         <div style={{ padding: 'var(--espace-4) var(--espace-6) 0', flexShrink: 0, borderBottom: '1px solid var(--bordure-legere)', background: 'var(--fond-surface)' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--ap-50)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
-                <MessageSquare size={16} style={{ color: 'var(--ap-600)' }} />
+              <div style={{ width: 36, height: 36, borderRadius: 8, background: TILE_TONE_MAP.cyan.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
+                <MessageSquare size={16} style={{ color: TILE_TONE_MAP.cyan.color }} />
               </div>
               <div>
                 <h1 style={{ fontSize: 'var(--font-size-h2)', fontWeight: 600, color: 'var(--texte-primaire)', margin: 0 }}>{t('messagerie.pageTitle')}</h1>

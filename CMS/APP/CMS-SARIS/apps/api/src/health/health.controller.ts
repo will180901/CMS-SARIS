@@ -1,4 +1,24 @@
 import { Controller, Get, HttpCode, HttpStatus } from '@nestjs/common'
+import { SkipThrottle } from '@nestjs/throttler'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+
+// Version de l'API centrale — lue une fois depuis package.json (dist/health/../../package.json).
+// Purement INFORMATIF : les schémas de version desktop (ex. 1.6.0) et API (ex. 0.0.1) sont
+// indépendants, il n'existe pas de règle de compatibilité "même version" à faire respecter ici —
+// exposée pour permettre à un client (desktop, supervision) d'AFFICHER ce qui tourne côté
+// central, sans qu'aucune logique n'en déduise un verdict compatible/incompatible.
+const API_VERSION = (() => {
+  try {
+    return (
+      JSON.parse(
+        readFileSync(join(__dirname, '../../package.json'), 'utf-8'),
+      ) as { version: string }
+    ).version
+  } catch {
+    return 'inconnue'
+  }
+})()
 
 /**
  * HealthController — sonde de disponibilité publique (liveness).
@@ -15,17 +35,26 @@ import { Controller, Get, HttpCode, HttpStatus } from '@nestjs/common'
  * utilise `/health/ping`, un chemin distinct, dédié, jamais touché par Render.
  */
 @Controller('health')
+@SkipThrottle() // sonde de liveness interrogée en continu (desktop : /health/ping toutes les 5s) — pas de surface à protéger
 export class HealthController {
   @Get()
   @HttpCode(HttpStatus.OK)
   check() {
-    return { status: 'ok', timestamp: new Date().toISOString() }
+    return {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      version: API_VERSION,
+    }
   }
 
   /** Sonde DÉDIÉE au frontend — jamais interrogée par Render (cf. note ci-dessus). */
   @Get('ping')
   @HttpCode(HttpStatus.OK)
   ping() {
-    return { status: 'ok', timestamp: new Date().toISOString() }
+    return {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      version: API_VERSION,
+    }
   }
 }

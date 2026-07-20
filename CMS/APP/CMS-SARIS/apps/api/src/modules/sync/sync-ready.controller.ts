@@ -1,4 +1,5 @@
 import { Controller, Get } from '@nestjs/common'
+import { SkipThrottle } from '@nestjs/throttler'
 import { SyncClientService } from './sync-client.service'
 
 /**
@@ -11,6 +12,7 @@ import { SyncClientService } from './sync-client.service'
  * que sur 127.0.0.1 (loopback). Sur le serveur central, `enabled` est faux → `ready` = true.
  */
 @Controller('sync')
+@SkipThrottle() // endpoint loopback-only, aucune donnée sensible — pas de surface à protéger
 export class SyncReadyController {
   constructor(private readonly client: SyncClientService) {}
 

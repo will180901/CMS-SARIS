@@ -16,7 +16,7 @@ import { Button } from '@workspace/ui/components/button'
 import { Input }  from '@workspace/ui/components/input'
 import { Label }  from '@workspace/ui/components/label'
 import { usePersonnel, useCreatePersonnel, useUpdatePersonnel, useSetStatutPersonnel, useDeletePersonnel } from '../hooks/usePersonnel'
-import type { PersonnelMedical, PersonnelPayload } from '../api/personnel.api'
+import type { PersonnelMedical, PersonnelPayload, RolePersonnel } from '../api/personnel.api'
 import { usePagination } from '@/modules/referentiels/hooks/usePagination'
 import { StatutBadge }   from '@/modules/referentiels/components/badges/StatutBadge'
 import { SkeletonRows }  from '@/modules/referentiels/components/SkeletonRows'
@@ -33,7 +33,7 @@ const ROLES = ['MEDECIN', 'INFIRMIER', 'SAGE_FEMME', 'TECHNICIEN_LAB', 'ADMINIST
 const isActif = (s: string) => s === 'ACTIF'
 const lbl = { fontSize: '13px', fontWeight: 500 as const, color: 'var(--texte-primaire)', marginBottom: '6px', display: 'block' }
 
-interface FormState { matricule: string; nom: string; prenom: string; role: string }
+interface FormState { matricule: string; nom: string; prenom: string; role: RolePersonnel }
 const EMPTY: FormState = { matricule: '', nom: '', prenom: '', role: 'INFIRMIER' }
 
 export function PersonnelSoignantTab({ canCreate, canUpdate, canDelete }: { canCreate: boolean; canUpdate: boolean; canDelete: boolean }) {
@@ -173,7 +173,7 @@ export function PersonnelSoignantTab({ canCreate, canUpdate, canDelete }: { canC
             </div>
             <div>
               <Label style={lbl}>{t('personnelSoignant.colRole', { defaultValue: 'Rôle' })} <span style={{ color: 'var(--erreur-texte)' }}>*</span></Label>
-              <Select value={form.role} onValueChange={v => patch({ role: v })}>
+              <Select value={form.role} onValueChange={v => patch({ role: v as RolePersonnel })}>
                 <SelectTrigger style={{ height: 36, fontSize: '13px', border: '1px solid var(--bordure-normale)' }}><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {ROLES.map(r => <SelectItem key={r} value={r}>{labelMetier(r)}</SelectItem>)}

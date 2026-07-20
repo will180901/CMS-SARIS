@@ -7,7 +7,7 @@ import { App } from "./App.tsx"
 import { ThemeProvider } from "@/components/theme-provider.tsx"
 import { TooltipProvider } from "@workspace/ui/components/tooltip"
 import { QueryProvider } from "@/providers/query-provider.tsx"
-import { Toaster } from "@workspace/ui/components/sonner"
+import { ThemedToaster } from "@/components/ThemedToaster"
 import { ErrorBoundary } from "@/components/ErrorBoundary"
 
 createRoot(document.getElementById("root")!).render(
@@ -19,7 +19,7 @@ createRoot(document.getElementById("root")!).render(
             <App />
           </ErrorBoundary>
           {/* Toasts — centré en haut, durée 4s */}
-          <Toaster
+          <ThemedToaster
             position="top-center"
             duration={4000}
             richColors

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Plus, ClipboardList, Search, X, SlidersHorizontal, ChevronLeft } from 'lucide-react'
 import { Button }              from '@workspace/ui/components/button'
 import { Input }               from '@workspace/ui/components/input'
-import { SelectBox }          from '@/components/saris'
+import { SelectBox, TILE_TONE_MAP } from '@/components/saris'
 import {
   Popover, PopoverContent, PopoverTrigger,
 } from '@workspace/ui/components/popover'
@@ -213,11 +213,11 @@ export function TriagePage() {
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
               <div style={{
                 width: 36, height: 36, borderRadius: 8,
-                background: 'var(--ap-50)', display: 'flex',
+                background: TILE_TONE_MAP.rose.bg, display: 'flex',
                 alignItems: 'center', justifyContent: 'center',
                 flexShrink: 0, marginTop: 2,
               }}>
-                <ClipboardList size={16} style={{ color: 'var(--ap-600)' }} />
+                <ClipboardList size={16} style={{ color: TILE_TONE_MAP.rose.color }} />
               </div>
               <div>
                 <h1 style={{ fontSize: 'var(--font-size-h2)', fontWeight: '600', color: 'var(--texte-primaire)', margin: 0 }}>

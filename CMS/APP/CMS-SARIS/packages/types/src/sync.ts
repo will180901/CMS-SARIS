@@ -8,6 +8,7 @@ export type ModuleName =
   | 'referentiels'
   | 'triage'
   | 'sorties_critiques'
+  | 'messagerie'
 
 export interface FileMutation {
   id?:            number

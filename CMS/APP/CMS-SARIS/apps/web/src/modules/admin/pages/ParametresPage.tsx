@@ -146,7 +146,7 @@ function LegalLangSection() {
       </SettingCard>
 
       <SettingCard icon={<Info size={16} />} title={t('settings.sectionAbout')}>
-        <p style={{ margin: 0, fontSize: 13, color: 'var(--texte-secondaire)' }}>{t('settings.aboutVersion')} : CMS SARIS v0.1.0</p>
+        <p style={{ margin: 0, fontSize: 13, color: 'var(--texte-secondaire)' }}>{t('settings.aboutVersion')} : CMS SARIS v{__APP_VERSION__}</p>
         <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--texte-secondaire)' }}>{t('settings.aboutAuthor')} : Déo Cherel BOUWAYI MIKOUYA</p>
       </SettingCard>
 

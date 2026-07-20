@@ -40,6 +40,7 @@ function deriveModule(segment: string): ModuleName {
     case 'suivis-chroniques':                              return 'sorties_critiques'
     case 'referentiels': case 'sites':                     return 'referentiels'
     case 'admin': case 'utilisateurs': case 'roles':       return 'acteurs'
+    case 'messagerie':                                     return 'messagerie'
     default:                                               return 'patients'
   }
 }

@@ -259,7 +259,7 @@ export function AlertesTab({ dossier, canWrite }: { dossier: PatientDossier; can
     <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
 
       <Section
-        title={t('patients.sectionAllergies')} icon={<AlertTriangle size={15} style={{ color: '#e11d48' }} />}
+        title={t('patients.sectionAllergies')} icon={<AlertTriangle size={15} style={{ color: 'var(--ton-rose-icone)' }} />}
         count={dossier.allergies.filter(a => a.statut === 'ACTIVE').length}
         onAdd={() => setAllergieDrawer(true)}
         canWrite={canWrite}
@@ -284,7 +284,7 @@ export function AlertesTab({ dossier, canWrite }: { dossier: PatientDossier; can
       <div style={{ height: 1, background: 'var(--bordure-legere)' }} />
 
       <Section
-        title={t('patients.sectionMedicalAlerts')} icon={<ShieldAlert size={15} style={{ color: '#c2410c' }} />}
+        title={t('patients.sectionMedicalAlerts')} icon={<ShieldAlert size={15} style={{ color: 'var(--ton-ambre-icone)' }} />}
         count={dossier.alertesMedicales.filter(a => a.statut === 'ACTIVE').length}
         onAdd={() => setAlerteDrawer(true)}
         canWrite={canWrite}

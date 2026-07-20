@@ -11,7 +11,7 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import { FileBarChart, Download, Calendar, Stethoscope, BedSingle, ChevronRight, ChevronLeft } from 'lucide-react'
-import { Card, Skeleton, EmptyState, StatCard, DonutChart, RankedBars, type DonutSlice } from '@/components/saris'
+import { Card, Skeleton, EmptyState, StatCard, DonutChart, RankedBars, TILE_TONE_MAP, type DonutSlice } from '@/components/saris'
 import { useIsCompact } from '@/hooks/useMediaQuery'
 import { usePersistedState } from '@/hooks/usePersistedState'
 import { formatDate } from '@/lib/intl'
@@ -78,8 +78,8 @@ export function RapportsPage() {
       <div style={{ padding: 'var(--espace-4) var(--espace-6) 0', flexShrink: 0, borderBottom: '1px solid var(--bordure-legere)', background: 'var(--fond-surface)' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--ap-50)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
-              <FileBarChart size={16} style={{ color: 'var(--ap-600)' }} />
+            <div style={{ width: 36, height: 36, borderRadius: 8, background: TILE_TONE_MAP.violet.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
+              <FileBarChart size={16} style={{ color: TILE_TONE_MAP.violet.color }} />
             </div>
             <div>
               <h1 style={{ fontSize: 'var(--font-size-h2)', fontWeight: 600, color: 'var(--texte-primaire)', margin: 0 }}>Rapports</h1>

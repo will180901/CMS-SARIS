@@ -19,7 +19,7 @@ import {
   HardDrive, CheckCircle2, AlertTriangle, Loader2, CloudUpload, Trash2,
   RotateCcw, Users, Stethoscope, Pill, Ambulance, FlaskConical, HardHat, ClipboardList,
   CalendarClock, MonitorSmartphone, Activity, GitMerge, Radio, LayoutGrid, List, Search,
-  X, Clock, LogIn, Pencil, User,
+  X, Clock, LogIn, Pencil, User, MessageSquare,
 } from 'lucide-react'
 import {
   PageHeader, Card, Button, StatusPill, Skeleton, EmptyState, Tooltip, Modal, SegmentedTabs,
@@ -80,6 +80,7 @@ const MODULE_ICONS: Record<string, ReactNode> = {
   bons_examen:      <FlaskConical size={14} />,
   evacuations:      <Ambulance size={14} />,
   accidents_travail:<HardHat size={14} />,
+  messagerie:       <MessageSquare size={14} />,
 }
 function moduleIcon(mod: string) { return MODULE_ICONS[mod] ?? <HardDrive size={14} /> }
 
@@ -134,6 +135,7 @@ export function SynchronisationPage() {
         icon={<RefreshCw size={18} />}
         title={t('admin.syncPageTitle')}
         subtitle={t('admin.syncPageSubtitle')}
+        tone="neutral"
       />
 
       {/* Onglets de regroupement (scroll horizontal sur petit écran) */}
@@ -218,7 +220,7 @@ function SupervisionZone() {
   ]
 
   return (
-    <Card padding="none" className="saris-grain">
+    <Card padding="none">
       <Card.Header
         icon={<Radio size={14} />}
         title={t('admin.supTitle')}
@@ -695,7 +697,7 @@ function DataSyncZone() {
   const online = !!client?.online
 
   return (
-    <Card padding="none" className="saris-grain">
+    <Card padding="none">
       <Card.Header
         icon={<Database size={14} />}
         title={t('sync.dataTitle')}
@@ -801,7 +803,7 @@ function SyncTerrainZone() {
   const rejectedCount = queue.filter(m => m.statut === 'REJECTED').length
 
   return (
-    <Card padding="none" className="saris-grain">
+    <Card padding="none">
       <Card.Header
         icon={<CloudUpload size={14} />}
         title={t('admin.terrainTitle')}
@@ -952,7 +954,7 @@ function SauvegardesZone({ sauvegardes, loading, canRestore, planification }: {
   const [restoreTarget, setRestoreTarget] = useState<SauvegardeSysteme | null>(null)
 
   return (
-    <Card padding="none" className="saris-grain">
+    <Card padding="none">
       <Card.Header
         icon={<Save size={14} />}
         title={t('admin.backupsTitle')}
@@ -1115,7 +1117,7 @@ function VolumetrieZone({ status, loading, total }: {
 }) {
   const { t } = useTranslation()
   return (
-    <Card padding="none" className="saris-grain">
+    <Card padding="none">
       <Card.Header
         icon={<HardDrive size={14} />}
         title={t('admin.volumetryTitle')}

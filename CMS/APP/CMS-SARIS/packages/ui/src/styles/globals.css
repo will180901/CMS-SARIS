@@ -62,12 +62,26 @@
   --fond-surface:   #FFFFFF;
   --fond-surface-2: #F0F2F5;
   --fond-input:     #EAECF0;
+  /* Bordure DÉDIÉE aux champs de saisie — distincte de --fond-input : avant ce
+     token, border-input ET bg-input dérivaient tous les deux de --fond-input
+     (quasi identique à --fond-page/--fond-surface-2), rendant un champ actif
+     visuellement indissociable d'un champ disabled:opacity-50. Réutilise la
+     valeur déjà présente --g-400 (échelle grise jusqu'ici inutilisée). */
+  --bordure-input:  #8892A4;
 
   /* ── Charte : grain « grains de sable » + verre poli ─────── */
   /* Grain ALPHA : grains sombres fins sur fond TRANSPARENT → se pose PAR-DESSUS
-     la surface sans changer sa couleur (le gris bleuté est conservé). */
+     la surface sans changer sa couleur (le gris bleuté est conservé).
+     3 intensités partageant le même bruit (baseFrequency 0.82), seul le
+     multiplicateur alpha du feColorMatrix et la taille de tuile changent :
+     fine = petits éléments (boutons), normal = cartes/modales, strong = fond
+     de page (apps/web/src/components/layout/AppShell.tsx). */
+  --grain-url-fine: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch' result='t'/%3E%3CfeColorMatrix in='t' type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.16 0 0 0 0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='gamma' exponent='2.3' amplitude='1' offset='0'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  --grain-size-fine: 110px;
   --grain-url: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch' result='t'/%3E%3CfeColorMatrix in='t' type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.28 0 0 0 0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='gamma' exponent='2.3' amplitude='1' offset='0'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
   --grain-size:    200px;
+  --grain-url-strong: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch' result='t'/%3E%3CfeColorMatrix in='t' type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.42 0 0 0 0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='gamma' exponent='2.3' amplitude='1' offset='0'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  --grain-size-strong: 260px;
   --grain-blend:   normal;    /* alpha → compositing normal, couleur préservée */
   /* Verre poli : fond translucide + flou. */
   --verre-fond:  color-mix(in srgb, var(--fond-surface) 82%, transparent);
@@ -79,9 +93,13 @@
   --texte-tertiaire:  #98A2B2;   /* gris brume */
 
   /* ── Bordures ────────────────────────────────────────────── */
-  --bordure-legere: rgba(15, 23, 42, 0.08);
-  --bordure-normale: rgba(15, 23, 42, 0.14);
-  --bordure-forte:  rgba(15, 23, 42, 0.28);
+  --bordure-legere:  rgba(15, 23, 42, 0.10);
+  --bordure-normale: rgba(15, 23, 42, 0.18);
+  --bordure-forte:   rgba(15, 23, 42, 0.34);
+
+  /* ── Anneau de focus clavier — UNE seule couleur dans toute l'app,
+     indépendante de la couleur du composant (prévisibilité, WCAG 2.4.7). */
+  --anneau-focus: var(--ring);
 
   /* ── Couleurs sémantiques désaturées ─────────────────────── */
   --succes-fond:    #EAF3EC;
@@ -100,6 +118,36 @@
   --info-texte:     #2A4F6B;
   --info-accent:    #3A6080;
   --info-bordure:   rgba(42, 79, 107, 0.2);
+
+  /* ── Tons décoratifs — personnalisation icônes/tuiles/avatars ──────────
+     6 tons nommés, PAS des sémantiques d'état (succès/erreur/...) : servent à
+     donner une identité visuelle distincte par module/élément, jamais un
+     signal de gravité. Formule commune (voir IconButton.tsx/tones.ts) :
+     repos = fond+bordure douce+icône ; survol = fond→bordure, icône→icône-survol. */
+  --ton-rose-fond:           #FCE7F3;
+  --ton-rose-bordure:        #F9A8D4;
+  --ton-rose-icone:          #9D174D;
+  --ton-rose-icone-survol:   #831843;
+  --ton-violet-fond:         #EDE9FE;
+  --ton-violet-bordure:      #C4B5FD;
+  --ton-violet-icone:        #5B21B6;
+  --ton-violet-icone-survol: #4C1D95;
+  --ton-bleu-fond:           #DBEAFE;
+  --ton-bleu-bordure:        #93C5FD;
+  --ton-bleu-icone:          #1D4ED8;
+  --ton-bleu-icone-survol:   #1E3A8A;
+  --ton-emeraude-fond:           #D1FAE5;
+  --ton-emeraude-bordure:        #6EE7B7;
+  --ton-emeraude-icone:          #065F46;
+  --ton-emeraude-icone-survol:   #064E3B;
+  --ton-cyan-fond:           #E0F2FE;
+  --ton-cyan-bordure:        #7DD3FC;
+  --ton-cyan-icone:          #0369A1;
+  --ton-cyan-icone-survol:   #0C4A6E;
+  --ton-ambre-fond:           #FEF3C7;
+  --ton-ambre-bordure:        #FCD34D;
+  --ton-ambre-icone:          #92400E;
+  --ton-ambre-icone-survol:   #78350F;
 
   /* ── Raccourcis accent ───────────────────────────────────── */
   --couleur-accent:       var(--ap-400);
@@ -231,6 +279,9 @@
   --fond-surface:   #161B22;
   --fond-surface-2: #1C2333;
   --fond-input:     #21262D;
+  /* = --fond-input ci-dessus : le thème sombre a déjà un contraste correct
+     (validé, ne pas y toucher) — ce token n'existe que pour le clair. */
+  --bordure-input:  #21262D;
 
   /* ── Charte : grain + verre poli (sombre) ────────────────── */
   --grain-blend: normal;           /* grain alpha : compositing normal */
@@ -263,6 +314,33 @@
   --info-texte:     #7EB5D6;
   --info-accent:    #5E9FC0;
   --info-bordure:   rgba(126, 181, 214, 0.15);
+
+  /* ── Tons décoratifs (sombre) — même principe que --erreur-* et --succes-*
+     en mode sombre : fond quasi-noir teinté, icône éclaircie pour rester lisible. */
+  --ton-rose-fond:           #500724;
+  --ton-rose-bordure:        rgba(249, 168, 212, 0.18);
+  --ton-rose-icone:          #F472B6;
+  --ton-rose-icone-survol:   #FBCFE8;
+  --ton-violet-fond:         #2E1065;
+  --ton-violet-bordure:      rgba(196, 181, 253, 0.18);
+  --ton-violet-icone:        #A78BFA;
+  --ton-violet-icone-survol: #DDD6FE;
+  --ton-bleu-fond:           #172554;
+  --ton-bleu-bordure:        rgba(147, 197, 253, 0.18);
+  --ton-bleu-icone:          #60A5FA;
+  --ton-bleu-icone-survol:   #BFDBFE;
+  --ton-emeraude-fond:           #022C22;
+  --ton-emeraude-bordure:        rgba(110, 231, 183, 0.18);
+  --ton-emeraude-icone:          #34D399;
+  --ton-emeraude-icone-survol:   #A7F3D0;
+  --ton-cyan-fond:           #082F49;
+  --ton-cyan-bordure:        rgba(125, 211, 252, 0.18);
+  --ton-cyan-icone:          #38BDF8;
+  --ton-cyan-icone-survol:   #BAE6FD;
+  --ton-ambre-fond:           #451A03;
+  --ton-ambre-bordure:        rgba(252, 211, 77, 0.18);
+  --ton-ambre-icone:          #FBBF24;
+  --ton-ambre-icone-survol:   #FDE68A;
 
   /* ── Ombres — désactivées (bordures assurent la hiérarchie) */
   --ombre-0: none;
@@ -524,21 +602,27 @@
      Ne définit PAS de couleur de fond → se superpose au fond existant.
    - .saris-glass : fond translucide + flou d'arrière-plan.
 ═══════════════════════════════════════════════════════════════ */
+/* Grain « grains de sable » sur les surfaces : appliqué via background-blend-mode
+   (peu coûteux, par élément — PAS de mix-blend-mode plein écran qui fait ramer).
+   Toute surface portant une de ces classes (ou le body/main ci-dessous) reçoit
+   le grain mélangé à sa propre couleur de fond. 3 intensités, jamais la même
+   texture sur un petit élément (boutons) et sur un fond de page entier. */
+.saris-grain-fine {
+  background-image: var(--grain-url-fine);
+  background-repeat: repeat;
+  background-size: var(--grain-size-fine) var(--grain-size-fine);
+  background-blend-mode: var(--grain-blend);
+}
 .saris-grain {
   background-image: var(--grain-url);
   background-repeat: repeat;
   background-size: var(--grain-size) var(--grain-size);
   background-blend-mode: var(--grain-blend);
 }
-
-/* Grain « grains de sable » sur les surfaces : appliqué via background-blend-mode
-   (peu coûteux, par élément — PAS de mix-blend-mode plein écran qui fait ramer).
-   Toute surface portant la classe .saris-grain (ou le body/main ci-dessous) reçoit
-   le grain mélangé à sa propre couleur de fond. */
 .saris-grain-strong {
-  background-image: var(--grain-url);
+  background-image: var(--grain-url-strong);
   background-repeat: repeat;
-  background-size: var(--grain-size) var(--grain-size);
+  background-size: var(--grain-size-strong) var(--grain-size-strong);
   background-blend-mode: var(--grain-blend);
 }
 .saris-glass {
@@ -548,6 +632,18 @@
 }
 /* Respect des préférences d'accessibilité : pas de grain si contraste élevé. */
 @media (prefers-contrast: more) {
-  .saris-grain { background-image: none; }
-  body::after { display: none; }
+  body,
+  .saris-grain-fine,
+  .saris-grain,
+  .saris-grain-strong {
+    background-image: none;
+  }
+}
+
+/* Anneau de focus clavier — géométrie/couleur UNIQUES dans toute l'app,
+   indépendantes de la couleur du composant. outline-offset négatif = anneau
+   interne, jamais rogné par un ancêtre overflow:hidden (ex. rail de la Sidebar). */
+.saris-focus-ring:focus-visible {
+  outline: 2px solid var(--anneau-focus);
+  outline-offset: -2px;
 }

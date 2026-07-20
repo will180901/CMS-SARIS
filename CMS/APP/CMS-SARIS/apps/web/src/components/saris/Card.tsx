@@ -10,6 +10,7 @@
 
 import { forwardRef } from 'react'
 import type { CSSProperties, HTMLAttributes, ReactNode } from 'react'
+import { TILE_TONE_MAP, type Tone } from './tones'
 
 // ── Tokens dérivés des CSS variables ──────────────────────────────────────────
 
@@ -35,10 +36,13 @@ export interface CardProps extends HTMLAttributes<HTMLDivElement> {
   muted?:     boolean
   /** Bordure d'accent (utilisée pour signaler une carte importante) */
   accent?:    boolean
+  /** Désactive le grain par défaut (soupape pour un contenu très dense où la
+   *  texture gênerait la lisibilité — aucun cas identifié à ce jour). */
+  noGrain?:   boolean
 }
 
 const CardRoot = forwardRef<HTMLDivElement, CardProps>(function Card(
-  { elevation = 'flat', padding = 'none', muted, accent, style, children, ...rest },
+  { elevation = 'flat', padding = 'none', muted, accent, noGrain, style, className, children, ...rest },
   ref,
 ) {
   const merged: CSSProperties = {
@@ -55,8 +59,9 @@ const CardRoot = forwardRef<HTMLDivElement, CardProps>(function Card(
     padding:      PADDING_MAP[padding],
     ...style,
   }
+  const grainClass = noGrain ? '' : 'saris-grain'
   return (
-    <div ref={ref} style={merged} {...rest}>
+    <div ref={ref} className={[grainClass, className].filter(Boolean).join(' ') || undefined} style={merged} {...rest}>
       {children}
     </div>
   )
@@ -71,9 +76,12 @@ interface CardHeaderProps {
   actions?:     ReactNode
   /** Visuellement plus discret (uppercase / petit) */
   compact?:     boolean
+  /** Couleur de la tuile d'icône. Défaut 'accent'. */
+  tone?:        Tone
 }
 
-function CardHeader({ icon, title, subtitle, actions, compact }: CardHeaderProps) {
+function CardHeader({ icon, title, subtitle, actions, compact, tone = 'accent' }: CardHeaderProps) {
+  const t = TILE_TONE_MAP[tone]
   return (
     <div style={{
       padding:      'var(--espace-3) var(--espace-4)',
@@ -86,9 +94,9 @@ function CardHeader({ icon, title, subtitle, actions, compact }: CardHeaderProps
       {icon && (
         <div style={{
           width: 28, height: 28, borderRadius: 'var(--radius-md)',
-          background: 'var(--ap-50)',
+          background: t.bg,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: 'var(--ap-600)', flexShrink: 0,
+          color: t.color, flexShrink: 0,
         }}>
           {icon}
         </div>

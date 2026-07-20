@@ -205,7 +205,7 @@ export function Sidebar() {
               {group.items.map(item => {
                 const showBadge = item.key === 'messagerie' && messagerieUnread > 0
                 return (
-                <NavLink key={item.key} to={item.href} end={item.href === '/dashboard'}>
+                <NavLink key={item.key} to={item.href} end={item.href === '/dashboard'} className="saris-focus-ring" style={{ borderRadius: 'var(--radius-md)' }}>
                   {({ isActive }) => (
                     <div
                       title={!open ? (ITEM_TKEY[item.key] ? t(ITEM_TKEY[item.key]!) : item.label) : undefined}
@@ -283,6 +283,7 @@ export function Sidebar() {
               <button
                 aria-label="Menu utilisateur"
                 title={!open ? user.login : undefined}
+                className="saris-focus-ring"
                 style={{
                   width: '100%',
                   display: 'flex', alignItems: 'center', justifyContent: open ? 'flex-start' : 'center', gap: 'var(--espace-2)',
@@ -436,6 +437,7 @@ function MenuItem({
     <button
       onClick={onClick}
       disabled={disabled}
+      className="saris-focus-ring"
       style={{
         width: '100%',
         display: 'flex', alignItems: 'center', gap: 'var(--espace-2)',

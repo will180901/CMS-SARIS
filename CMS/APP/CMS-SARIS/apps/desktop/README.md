@@ -1,8 +1,13 @@
 # CMS SARIS — Client de bureau (Windows)
 
-Application de bureau **Electron** qui embarque le frontend (`apps/web`) et dialogue
-avec l'**API distante** (NestJS) en HTTPS. Aucun serveur ni base de données n'est
-embarqué : c'est un **client lourd**.
+Application de bureau **Electron** qui embarque le frontend (`apps/web`, build
+`--mode desktop`), en deux modes :
+
+- **`remote` (par défaut)** : client léger, dialogue avec l'**API distante** (NestJS) en
+  HTTPS — pas de serveur ni de base embarqués.
+- **`local` (offline-first)** : embarque en plus une copie compilée de l'**API NestJS et
+  une base SQLite locale** (process forké, `127.0.0.1` uniquement — jamais exposé au
+  réseau), avec synchronisation vers le serveur central. Voir « Mode local » plus bas.
 
 - Frontend servi via un schéma applicatif privilégié **`app://cms-saris`** (origine
   stable, autorisée en CORS côté serveur — indispensable au flux SSE des notifications).
@@ -39,9 +44,10 @@ pnpm --filter @cms-saris/desktop dist:unpacked   # dossier non empaqueté (debug
 pnpm --filter @cms-saris/desktop clean           # nettoie dist-electron/ app/ release/
 ```
 
-L'installeur est en **un clic** (`oneClick: true`) : double-clic → installation par utilisateur
-(sans admin) → raccourcis → lancement automatique. L'exécutable autonome est aussi disponible
-sans installation dans `release/win-unpacked/CMS SARIS.exe`.
+L'installeur est **assisté** (`oneClick: false`, NSIS 2-en-1 : détecte une install existante et
+propose Réinstaller/Désinstaller, sinon installe) : quelques clics → installation par
+utilisateur (sans admin) → raccourcis → lancement automatique. L'exécutable autonome est aussi
+disponible sans installation dans `release/win-unpacked/CMS SARIS.exe`.
 
 ### Dépannage build
 
@@ -98,7 +104,7 @@ pnpm --filter @cms-saris/desktop dist
 ## Mise à jour automatique (GitHub Releases)
 
 Le canal est **déjà configuré** sur **GitHub Releases** (`publish: provider github`,
-dépôt `will180901/CMS-SARIS-CONGO`) dans [`electron-builder.yml`](./electron-builder.yml)
+dépôt `will180901/CMS-SARIS`) dans [`electron-builder.yml`](./electron-builder.yml)
 et `electron-builder.local.yml`.
 
 **Expérience utilisateur (façon grandes apps).** Au démarrage, l'app vérifie
@@ -204,39 +210,43 @@ La session (dont le **refresh token**) est stockée :
 
 ## Mode local offline-first (backend embarqué + SQLite) — packaging
 
-Par défaut l'app est en **mode `remote`** (client du serveur distant — build vérifié actuel).
-Le **mode `local`** (offline-first) embarque le backend NestJS + une base SQLite et se
-synchronise avec le serveur central. Code livré (typecheck OK) :
+Par défaut l'app est en **mode `remote`** (client du serveur distant, section précédente).
+Le **mode `local`** (offline-first) embarque en plus une **copie compilée de `apps/api`**
+(NestJS) et une base **SQLite** locale dans un process forké, qui n'écoute que sur
+`127.0.0.1` (jamais exposé au réseau du poste) — implémentation :
 `electron/{backend,backend-entry,db-init}.ts`, `config.ts` (mode/serverUrl), `main.ts`
-(`initBackend`), API `/sync/*` + client de synchro + cron de purge.
+(`initBackend`, bascule connecté/autonome par sonde `/health/ping`), API `/sync/*` + client
+de synchro + cron de purge.
 
-**Activer le mode local** : `config.json` → `{ "mode": "local", "serverUrl": "https://central…" }`
-(ou env `SARIS_MODE=local`, `SERVER_URL=…`).
+**Le packaging est entièrement automatisé** (pas de manipulation manuelle de
+`electron-builder.yml`) via un pipeline dédié, distinct du build « remote » de la section
+précédente :
 
-**Packaging à finaliser (exige le build).** Les clés nécessaires sont **déjà présentes
-et COMMENTÉES** dans [`electron-builder.yml`](./electron-builder.yml) — `asarUnpack`
-(moteurs natifs Prisma : `**/node_modules/.prisma/**`, `**/node_modules/@prisma/engines/**`,
-`**/*.node`) et `extraResources` (`../api/dist` → `api/dist`, `build/seed.db` → `seed.db`).
-Elles restent commentées pour **ne pas casser le build distant par défaut** : un
-`extraResources` pointant vers un chemin absent fait échouer `electron-builder`.
+```bash
+# depuis apps/desktop — build complet du client autonome (dossier non empaqueté)
+node scripts/build-local.mjs --dir
 
-**`build/seed.db` est INDISPENSABLE avant d'activer `mode: local`.** C'est une base
-SQLite **pré-migrée** (toutes les tables créées). Au 1er lancement, `electron/db-init.ts`
-la **copie** vers `%APPDATA%\CMS SARIS\cms-saris.db`. Sans ce fichier modèle, la base
-locale est vide (aucune table) → le backend embarqué **ne démarre pas**. Il doit donc être
-**généré au build, pas livré vide**.
+# puis, l'installeur NSIS sur-mesure (affichage temps réel + double barre de progression) :
+node installer/build-installer.mjs
+```
 
-Ordre de build (local), **dans cet ordre** :
-1. `pnpm --filter api build` → produit `../api/dist/main.js` (qui expose `bootstrap`) ;
-2. `pnpm --filter api db:sqlite:gen` → client Prisma ciblé SQLite ;
-3. `pnpm --filter api db:sqlite:migrate` → **génère `build/seed.db` pré-migrée** ;
-4. **décommenter** les blocs `asarUnpack` + `extraResources` dans `electron-builder.yml` ;
-5. build desktop → `electron-builder`.
+`scripts/build-local.mjs` enchaîne : build du renderer (`vite build --mode desktop`) →
+compilation Electron → **build de `apps/api`** (`pnpm --filter api build`) → génération du
+client Prisma SQLite + **`build/seed.db`** (base SQLite pré-migrée, schéma seul, aucune
+donnée — copiée par `electron/db-init.ts` vers `%APPDATA%\CMS SARIS\cms-saris.db` au 1er
+lancement) → déploiement de l'API compilée (avec ses dépendances à plat) dans
+`build/api-runtime/` → écriture de `dist-electron/defaults.json` (mode `local` + secrets
+lus depuis `apps/api/.env`) → `electron-builder --win --config electron-builder.local.yml`
+(config **séparée** de `electron-builder.yml`, avec ses propres `extraResources`
+`build/api-runtime → api`, `build/sqlite-client → sqlite-client`, `build/seed.db → seed.db`).
+Le mode distant par défaut n'est jamais affecté : ce pipeline ne touche à aucun fichier
+utilisé par `pnpm --filter @cms-saris/desktop dist`.
 
-⚠️ À valider sur la machine de build (présence des engines Prisma SQLite après
-`asarUnpack`, démarrage du fork via `backend-entry.js`, 1er lancement avec copie de
-`seed.db`). Le **mode distant par défaut n'est jamais affecté** tant que ces blocs
-restent commentés.
+`installer/build-installer.mjs` prend ensuite le relais pour produire l'installeur final
+signé (`release/CMS SARIS-Local-Setup-<version>.exe` + `latest.yml`) à partir du
+`win-unpacked` généré ci-dessus — voir [`installer/cms-saris.nsi`](./installer/cms-saris.nsi).
 
-> Voir le plan complet : [`CMS/Docs/plan-offline-first-synchronisation.md`](../../../Docs/plan-offline-first-synchronisation.md)
-> et le blueprint d'implémentation : [`CMS/Docs/conception/blueprint-offline-first.md`](../../../Docs/conception/blueprint-offline-first.md).
+⚠️ Pipeline vérifié statiquement (chemins, noms de fichiers, options electron-builder
+cohérents de bout en bout) ; à valider par un build réel sur la machine cible (engines
+Prisma SQLite après `asarUnpack`, démarrage effectif du fork via `backend-entry.js`, 1er
+lancement avec copie de `seed.db`).

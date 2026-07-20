@@ -1,13 +1,13 @@
-import { useTheme } from "next-themes"
 import { Toaster as Sonner, toast, type ToasterProps } from "sonner"
 
 // Re-export toast pour les consumers (apps/web, etc.)
 export { toast }
 import { CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon } from "lucide-react"
 
-const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme()
-
+// packages/ui ne doit pas dépendre d'apps/web : le thème réel (hook maison
+// theme-provider.tsx) est injecté par l'app via la prop `theme` — voir
+// apps/web/src/components/ThemedToaster.tsx.
+const Toaster = ({ theme = "system", ...props }: ToasterProps) => {
   return (
     <Sonner
       theme={theme as ToasterProps["theme"]}

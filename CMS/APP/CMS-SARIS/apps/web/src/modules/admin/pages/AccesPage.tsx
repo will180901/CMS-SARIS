@@ -9,7 +9,7 @@ import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { ShieldCheck } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { SegmentedTabs } from '@/components/saris'
+import { SegmentedTabs, TILE_TONE_MAP } from '@/components/saris'
 import { usePermissions } from '@/hooks/usePermissions'
 import { useIsCompact } from '@/hooks/useMediaQuery'
 import { usePersistedState } from '@/hooks/usePersistedState'
@@ -54,7 +54,7 @@ export function AccesPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--espace-3)', marginBottom: 'var(--espace-4)' }}>
           <div style={{
             width: 40, height: 40, borderRadius: 'var(--radius-lg)', flexShrink: 0,
-            background: 'var(--ap-50)', color: 'var(--ap-600)',
+            background: TILE_TONE_MAP.accent.bg, color: TILE_TONE_MAP.accent.color,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <ShieldCheck size={20} />

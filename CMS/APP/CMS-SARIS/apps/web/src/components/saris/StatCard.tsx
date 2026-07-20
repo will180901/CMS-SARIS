@@ -5,6 +5,7 @@
 
 import type { ReactNode } from 'react'
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { TILE_TONE_MAP, type Tone } from './tones'
 
 interface Props {
   icon?:        ReactNode
@@ -15,22 +16,13 @@ interface Props {
   /** Variation par rapport à la période précédente (en % ou texte libre) */
   trend?:       { value: string; direction: 'up' | 'down' | 'flat'; tone?: 'positive' | 'negative' | 'neutral' }
   /** Couleur de l'accent (icône + barre latérale) */
-  tone?:        'accent' | 'gold' | 'success' | 'warning' | 'error' | 'neutral'
+  tone?:        Tone
   /** Action de clic optionnelle (rend la carte interactive) */
   onClick?:     () => void
 }
 
-const TONE_MAP = {
-  accent:  { bg: 'var(--ap-50)',       color: 'var(--ap-600)'        },
-  gold:    { bg: 'var(--as-50)',       color: 'var(--as-700)'        },
-  success: { bg: 'var(--succes-fond)', color: 'var(--succes-accent)' },
-  warning: { bg: 'var(--avert-fond)',  color: 'var(--avert-accent)'  },
-  error:   { bg: 'var(--erreur-fond)', color: 'var(--erreur-accent)' },
-  neutral: { bg: 'var(--fond-surface-2)', color: 'var(--texte-secondaire)' },
-}
-
 export function StatCard({ icon, label, value, hint, trend, tone = 'accent', onClick }: Props) {
-  const t = TONE_MAP[tone]
+  const t = TILE_TONE_MAP[tone]
   const Trend = trend?.direction === 'up' ? TrendingUp
               : trend?.direction === 'down' ? TrendingDown
               : Minus

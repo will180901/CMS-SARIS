@@ -19,7 +19,7 @@ Deux façons de l'utiliser, **même code** :
 
 | Domaine | Contenu |
 |---|---|
-| **Sécurité** | Authentification JWT + bcrypt, **2FA (TOTP)** + codes de secours, rôles & permissions (6 rôles, ~110 permissions), sessions, **journal d'audit** persistant |
+| **Sécurité** | Authentification JWT + bcrypt, **2FA (TOTP)** + codes de secours, rôles & permissions (3 rôles, 116 permissions), sessions, **journal d'audit** persistant |
 | **Référentiels** | Sites, catégories de patients, motifs, pathologies, médicaments, types d'examen, établissements |
 | **Acteurs / RH** | Personnel médical, habilitations, délégations de prescription, présences/absences, sous-traitants |
 | **Patients** | Dossier complet (identité, contacts, allergies, antécédents, alertes, constantes, suivis grossesse/chronique), rattachements |
@@ -194,12 +194,17 @@ pnpm --filter @cms-saris/desktop dist         # construire l'installateur Window
 
 ## 8. Identifiants de test (après seed)
 
+Le système compte **3 rôles** : `ADMIN_SYSTEME`, `MEDECIN_CHEF`, `INFIRMIER` (cf.
+`packages/types/src/permissions.ts`, `ROLE_CATALOG`). Le seed crée `admin` puis, pour
+chaque membre actif du personnel médical, un compte lié (login = nom de famille en
+minuscules, mot de passe partagé `Saris2026!`) :
+
 | Login | Mot de passe | Rôle | Pour tester |
 |---|---|---|---|
 | `admin` | `Admin123!` | ADMIN_SYSTEME | Tableau de bord système, administration, supervision |
-| `admin-medical` | `Saris2026!` | ADMIN_MEDICAL | Référentiels, personnel, dashboard gouvernance clinique |
-| `infirmier-delegue` | `Saris2026!` | INFIRMIER_DELEGUE | Triage, consultation, prescription (dashboard clinique) |
-| `agent-rh` | `Saris2026!` | AGENT_RH | Dashboard RH, personnel, sous-traitants |
+| `moukanda` | `Saris2026!` | MEDECIN_CHEF | Référentiels, personnel, consultations, dashboard clinique |
+| `batchi` | `Saris2026!` | INFIRMIER | Triage, consultation, prescription déléguée |
+| `ndinga` | `Saris2026!` | INFIRMIER | Triage, consultation, prescription déléguée |
 
 > Site : **Moutela** · Sites disponibles : Moutela, Nkayi. Chaque rôle voit un **tableau de bord
 > et une navigation différents** (filtrés par permission) — pratique pour tester l'adaptation par rôle.

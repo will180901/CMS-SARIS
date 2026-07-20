@@ -26,8 +26,11 @@ ManifestDPIAware true
   !define PBM_SETRANGE32 0x406
 !endif
 
+; Repli si /DVERSION n'est pas passé au préprocesseur (build-installer.mjs le passe
+; toujours depuis package.json — ce repli ne sert qu'à un appel manuel de makensis).
+; Penser à la bumper avec apps/desktop/package.json si elle traîne.
 !ifndef VERSION
-  !define VERSION "1.4.1"
+  !define VERSION "1.6.0"
 !endif
 !ifndef SRCDIR
   !define SRCDIR "..\release\win-unpacked"

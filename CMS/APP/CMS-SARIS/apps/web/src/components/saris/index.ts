@@ -14,6 +14,9 @@ export type { ButtonVariant, ButtonSize } from './Button'
 export { IconButton }                     from './IconButton'
 export type { IconButtonTone }            from './IconButton'
 
+export { TILE_TONE_MAP }                  from './tones'
+export type { Tone }                      from './tones'
+
 export { Field, TextInput, Textarea }     from './Field'
 
 export { Modal }                          from './Modal'

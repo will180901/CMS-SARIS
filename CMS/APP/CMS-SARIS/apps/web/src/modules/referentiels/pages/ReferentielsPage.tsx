@@ -12,7 +12,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Tabs, TabsContent } from '@workspace/ui/components/tabs'
 import { Database } from 'lucide-react'
-import { SegmentedTabs } from '@/components/saris'
+import { SegmentedTabs, TILE_TONE_MAP } from '@/components/saris'
 import { useSites, useMotifs, usePathologies, useMedicaments, useCategoriesPatient, useTypesExamen, useTypesConsultation } from '../hooks/useReferentiels'
 import { useSousTraitants } from '../hooks/useSousTraitants'
 import { useEmployes } from '../hooks/useEmployes'
@@ -40,7 +40,10 @@ export function ReferentielsPage() {
   // de motifs SANS donner accès aux sites. Le backend applique exactement la
   // même séparation (referentiel.<service>.<action>).
   const PERM = {
-    sites:       {},
+    // SitesTab ne lit pas ces props (lecture seule, aucun bouton create/update/delete) ;
+    // gardé au même format que les autres onglets pour que PERM[value] reste un type
+    // uniforme (sinon l'union hétérogène casse le typage de <Component {...PERM[value]} />).
+    sites:       { canCreate: false, canUpdate: false, canDelete: false },
     motifs:      { canCreate: has('referentiel.motif.create'),      canUpdate: has('referentiel.motif.update'),      canDelete: has('referentiel.motif.delete') },
     pathologies: { canCreate: has('referentiel.pathologie.create'), canUpdate: has('referentiel.pathologie.update'), canDelete: has('referentiel.pathologie.delete') },
     medicaments: { canCreate: has('referentiel.medicament.create'), canUpdate: has('referentiel.medicament.update'), canDelete: has('referentiel.medicament.delete') },
@@ -98,9 +101,9 @@ export function ReferentielsPage() {
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               width: '36px', height: '36px', borderRadius: '8px',
-              background: 'var(--ap-50)', flexShrink: 0, marginTop: '2px',
+              background: TILE_TONE_MAP.ambre.bg, flexShrink: 0, marginTop: '2px',
             }}>
-              <Database size={16} style={{ color: 'var(--ap-600)' }} />
+              <Database size={16} style={{ color: TILE_TONE_MAP.ambre.color }} />
             </div>
             <div>
               <h1 style={{ fontSize: 'var(--font-size-h2)', fontWeight: '600', color: 'var(--texte-primaire)', margin: 0, lineHeight: '1.3' }}>

@@ -1,11 +1,29 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UnauthorizedException, UseGuards } from '@nestjs/common'
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+  UnauthorizedException,
+  UseGuards,
+} from '@nestjs/common'
+import { Throttle } from '@nestjs/throttler'
 import { JwtAuthGuard } from '../security/guards/jwt-auth.guard'
 import { PermissionsGuard } from '../security/guards/permissions.guard'
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator'
 import { SyncService } from './sync.service'
 import { SyncClientService } from './sync-client.service'
 import { SyncSupervisionService } from './sync-supervision.service'
-import { SyncPullQueryDto, SyncPushDto, SyncHeartbeatDto, RenamePosteDto } from './sync.dto'
+import {
+  SyncPullQueryDto,
+  SyncPushDto,
+  SyncHeartbeatDto,
+  RenamePosteDto,
+} from './sync.dto'
 
 interface AuthedRequest {
   user?: { id?: string; siteId?: string }
@@ -21,8 +39,15 @@ function requireUser(req: AuthedRequest): { userId: string; siteId: string } {
 /**
  * Endpoints de synchronisation offline-first (serveur central).
  * Scope STRICT par site (résolu depuis le JWT, jamais depuis la requête).
+ *
+ * Plafond desserré (600/min, cf. @Throttle ci-dessous) : trafic machine-à-machine
+ * authentifié, pas une surface exposée au public. Un poste desktop sonde le central
+ * toutes les 4s par défaut (SYNC_PROBE_SEC) + heartbeat toutes les 30s
+ * (SYNC_HEARTBEAT_SEC) — plusieurs postes d'un même site derrière la même IP
+ * dépasseraient le plafond global 'default' (100/min) en fonctionnement NORMAL.
  */
 @UseGuards(JwtAuthGuard, PermissionsGuard)
+@Throttle({ default: { limit: 600, ttl: 60_000 } })
 @Controller('sync')
 export class SyncController {
   constructor(
@@ -60,7 +85,11 @@ export class SyncController {
   /** Renomme un poste (nom unique par site) — supervision admin. */
   @Patch('supervision/postes/:id')
   @RequirePermissions('synchronisation.execute')
-  renamePoste(@Req() req: AuthedRequest, @Param('id') id: string, @Body() dto: RenamePosteDto) {
+  renamePoste(
+    @Req() req: AuthedRequest,
+    @Param('id') id: string,
+    @Body() dto: RenamePosteDto,
+  ) {
     const { siteId } = requireUser(req)
     return this.supervision.renamePoste(siteId, id, dto.libelle)
   }
@@ -94,7 +123,10 @@ export class SyncController {
   @RequirePermissions('synchronisation.read')
   async status(@Req() req: AuthedRequest) {
     const { siteId } = requireUser(req)
-    const [base, client] = await Promise.all([this.svc.status(siteId), this.client.clientStatus()])
+    const [base, client] = await Promise.all([
+      this.svc.status(siteId),
+      this.client.clientStatus(),
+    ])
     return { ...base, client }
   }
 
@@ -103,6 +135,11 @@ export class SyncController {
   @RequirePermissions('synchronisation.execute')
   async run() {
     const result = await this.client.runCycle()
-    return result ?? { skipped: true, reason: 'mode local inactif ou serveur injoignable' }
+    return (
+      result ?? {
+        skipped: true,
+        reason: 'mode local inactif ou serveur injoignable',
+      }
+    )
   }
 }

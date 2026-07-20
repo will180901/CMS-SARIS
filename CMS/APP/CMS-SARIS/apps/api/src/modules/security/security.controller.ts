@@ -9,15 +9,15 @@ import {
   Headers,
   UseGuards,
 } from '@nestjs/common'
-import { Throttle, ThrottlerGuard } from '@nestjs/throttler'
-import { SecurityService }   from './security.service'
-import { JwtAuthGuard }      from './guards/jwt-auth.guard'
-import { CurrentUser }       from '../../common/decorators/current-user.decorator'
-import { LoginDto }          from './dto/login.dto'
-import { TotpVerifyDto }     from './dto/totp-verify.dto'
-import { RefreshDto }        from './dto/refresh.dto'
+import { Throttle } from '@nestjs/throttler'
+import { SecurityService } from './security.service'
+import { JwtAuthGuard } from './guards/jwt-auth.guard'
+import { CurrentUser } from '../../common/decorators/current-user.decorator'
+import { LoginDto } from './dto/login.dto'
+import { TotpVerifyDto } from './dto/totp-verify.dto'
+import { RefreshDto } from './dto/refresh.dto'
 import { ChangePasswordDto } from './dto/change-password.dto'
-import type { UserSession }  from '@cms-saris/types'
+import type { UserSession } from '@cms-saris/types'
 
 /**
  * SecurityController — endpoints d'authentification publics.
@@ -43,11 +43,10 @@ export class SecurityController {
    */
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(ThrottlerGuard)
-  @Throttle({ default: { limit: 10, ttl: 60_000 } }) // anti brute-force : 10 tentatives/min/IP
+  @Throttle({ default: { limit: 10, ttl: 60_000 } }) // anti brute-force : 10 tentatives/min/IP (ThrottlerGuard global, cf. app.module.ts)
   login(
-    @Body() dto:                    LoginDto,
-    @Ip()   ip:                     string,
+    @Body() dto: LoginDto,
+    @Ip() ip: string,
     @Headers('user-agent') userAgent: string,
   ) {
     return this.securityService.login(dto, ip, userAgent)
@@ -63,11 +62,10 @@ export class SecurityController {
    */
   @Post('totp/verify')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(ThrottlerGuard)
-  @Throttle({ default: { limit: 10, ttl: 60_000 } }) // anti brute-force du code TOTP
+  @Throttle({ default: { limit: 10, ttl: 60_000 } }) // anti brute-force du code TOTP (ThrottlerGuard global, cf. app.module.ts)
   verifyTotp(
-    @Body() dto:                    TotpVerifyDto,
-    @Ip()   ip:                     string,
+    @Body() dto: TotpVerifyDto,
+    @Ip() ip: string,
     @Headers('user-agent') userAgent: string,
   ) {
     return this.securityService.verifyTotp(dto, ip, userAgent)
@@ -85,7 +83,6 @@ export class SecurityController {
    */
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(ThrottlerGuard)
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
   refresh(@Body() dto: RefreshDto) {
     return this.securityService.refresh(dto)

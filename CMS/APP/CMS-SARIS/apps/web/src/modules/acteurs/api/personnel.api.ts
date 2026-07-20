@@ -3,25 +3,15 @@
  * centre, assignables au triage / consultation. Géré par le médecin-chef / admin.
  */
 import { api } from '@/lib/api'
+import type { PersonnelMedical, RolePersonnel } from '@cms-saris/types'
 
-export type RolePersonnel = 'MEDECIN' | 'INFIRMIER' | 'SAGE_FEMME' | 'TECHNICIEN_LAB' | 'ADMINISTRATIF'
-
-export interface PersonnelMedical {
-  id:        string
-  nom:       string
-  prenom:    string
-  matricule: string
-  role:      string
-  siteId:    string | null
-  statut:    string
-  createdAt: string
-}
+export type { PersonnelMedical, RolePersonnel }
 
 export interface PersonnelPayload {
   matricule: string
   nom:       string
   prenom:    string
-  role:      string
+  role:      RolePersonnel
   siteId?:   string
 }
 

@@ -22,6 +22,7 @@ import { PaginationBar } from '../components/PaginationBar'
 import { DataTableHead, dataRowStyle, DATA_TABLE_CARD, useColumnResize } from '@/components/saris'
 import { useIsCompact }  from '@/hooks/useMediaQuery'
 import { isActif }       from '../api/referentiels.api'
+import { formatDate }    from '@/lib/intl'
 
 const CAT_LABEL: Record<string, string> = { ASSURE_CDI: 'CDI', ASSURE_CDD: 'CDD' }
 const EMPTY: EmployePayload = { matricule: '', nom: '', prenom: '', categorie: 'ASSURE_CDI', fonction: '', sectionPaie: '', service: '', departement: '', dateNaissance: '', sexe: '' }
@@ -125,13 +126,18 @@ export function EmployesTab({ canCreate, canUpdate, canDelete }: { canCreate: bo
               { label: t('employes.colMatricule', { defaultValue: 'Matricule' }) },
               { label: t('employes.colNom', { defaultValue: 'Nom complet' }) },
               { label: t('employes.colCategorie', { defaultValue: 'Catégorie' }) },
+              { label: t('patients.fieldNaissance', { defaultValue: 'Naissance' }) },
+              { label: t('patients.fieldSexe', { defaultValue: 'Sexe' }) },
               { label: t('employes.colFonction', { defaultValue: 'Fonction' }) },
+              { label: t('patients.fieldSectionPaie', { defaultValue: 'Section de paie' }) },
+              { label: t('patients.fieldService', { defaultValue: 'Service' }) },
+              { label: t('patients.fieldDepartement', { defaultValue: 'Département' }) },
               { label: t('acteurs.colStatut', { defaultValue: 'Statut' }) },
               { label: '', align: 'right' },
             ]} />
             <tbody>
               {isLoading ? (
-                <SkeletonRows rows={6} cols={6} widths={[0.18, 0.26, 0.12, 0.22, 0.14, 0.08]} />
+                <SkeletonRows rows={6} cols={11} widths={[0.11, 0.16, 0.08, 0.09, 0.06, 0.13, 0.11, 0.1, 0.1, 0.08, 0.06]} />
               ) : filtered.length === 0 ? (
                 <EmptyState
                   icon={IdCard}
@@ -252,6 +258,11 @@ export function EmployesTab({ canCreate, canUpdate, canDelete }: { canCreate: bo
   )
 }
 
+const SEXE_LABEL: Record<string, { key: string; fallback: string }> = {
+  M: { key: 'sexeMasculin', fallback: 'Masculin' },
+  F: { key: 'sexeFeminin', fallback: 'Féminin' },
+}
+
 function EmployeRow({ employe, striped, onEdit, onToggle, onDelete, canUpdate, canDelete }: {
   employe: EmployeSaris; striped: boolean; onEdit: (e: EmployeSaris) => void; onToggle: () => void; onDelete: () => void; canUpdate: boolean; canDelete: boolean
 }) {
@@ -259,6 +270,7 @@ function EmployeRow({ employe, striped, onEdit, onToggle, onDelete, canUpdate, c
   const showMenu = canUpdate || canDelete
   const [hovered, setHovered] = useState(false)
   const isCompact = useIsCompact()
+  const cellStyle = { padding: 'var(--espace-2) var(--espace-4)', fontSize: '12px', color: 'var(--texte-secondaire)' }
   return (
     <tr onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} style={dataRowStyle(striped, hovered)}>
       <td style={{ padding: 'var(--espace-2) var(--espace-4)', fontSize: '12px', fontFamily: 'monospace', color: 'var(--texte-secondaire)' }}>{employe.matricule}</td>
@@ -266,8 +278,13 @@ function EmployeRow({ employe, striped, onEdit, onToggle, onDelete, canUpdate, c
         <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--texte-primaire)', textTransform: 'uppercase' }}>{employe.nom}</span>
         <span style={{ fontSize: '12px', color: 'var(--texte-tertiaire)', marginLeft: 4 }}>{employe.prenom}</span>
       </td>
-      <td style={{ padding: 'var(--espace-2) var(--espace-4)', fontSize: '12px', color: 'var(--texte-secondaire)' }}>{CAT_LABEL[employe.categorie] ?? employe.categorie}</td>
-      <td style={{ padding: 'var(--espace-2) var(--espace-4)', fontSize: '12px', color: 'var(--texte-secondaire)' }}>{employe.fonction ?? '—'}</td>
+      <td style={cellStyle}>{CAT_LABEL[employe.categorie] ?? employe.categorie}</td>
+      <td style={cellStyle}>{employe.dateNaissance ? formatDate(employe.dateNaissance) : '—'}</td>
+      <td style={cellStyle}>{employe.sexe && SEXE_LABEL[employe.sexe] ? t(`patients.${SEXE_LABEL[employe.sexe]!.key}`, { defaultValue: SEXE_LABEL[employe.sexe]!.fallback }) : '—'}</td>
+      <td style={cellStyle}>{employe.fonction ?? '—'}</td>
+      <td style={cellStyle}>{employe.sectionPaie ?? '—'}</td>
+      <td style={cellStyle}>{employe.service ?? '—'}</td>
+      <td style={cellStyle}>{employe.departement ?? '—'}</td>
       <td style={{ padding: 'var(--espace-2) var(--espace-4)' }}><StatutBadge statut={employe.statut} /></td>
       <td style={{ padding: 'var(--espace-2) var(--espace-4)', textAlign: 'right', width: '48px' }}>
         {showMenu && (

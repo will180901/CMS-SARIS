@@ -12,6 +12,7 @@ import { createPortal } from 'react-dom'
 import type { ReactNode } from 'react'
 import { X } from 'lucide-react'
 import { IconButton } from './IconButton'
+import { TILE_TONE_MAP, type Tone } from './tones'
 import { useIsMobile } from '@/hooks/useMediaQuery'
 import { isDesktop } from '@/lib/desktop'
 import { DESKTOP_TITLEBAR_H } from '../layout/DesktopTitleBar'
@@ -27,11 +28,14 @@ interface ModalProps {
   footer?:   ReactNode
   /** Padding du corps. Défaut `var(--espace-5)`. Passer `0` pour les modales « liste » (rangées pleine largeur). */
   bodyPadding?: string
+  /** Couleur de la tuile d'icône. Défaut 'accent'. */
+  tone?:     Tone
   children:  ReactNode
 }
 
-export function Modal({ icon, title, subtitle, onClose, width = 560, footer, bodyPadding = 'var(--espace-5)', children }: ModalProps) {
+export function Modal({ icon, title, subtitle, onClose, width = 560, footer, bodyPadding = 'var(--espace-5)', tone = 'accent', children }: ModalProps) {
   const isMobile = useIsMobile()
+  const t = TILE_TONE_MAP[tone]
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     document.addEventListener('keydown', onKey)
@@ -81,7 +85,7 @@ export function Modal({ icon, title, subtitle, onClose, width = 560, footer, bod
         }}>
           <div style={{
             width: 36, height: 36, borderRadius: 'var(--radius-lg)',
-            background: 'var(--ap-50)', color: 'var(--ap-600)',
+            background: t.bg, color: t.color,
             display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
           }}>
             {icon}

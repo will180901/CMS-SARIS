@@ -55,7 +55,7 @@ services:
     name: cms-saris-web
     runtime: static
     rootDir: CMS/APP/CMS-SARIS
-    buildCommand: npm install -g pnpm@9.15.9 && pnpm install --frozen-lockfile --prod=false && pnpm --filter web exec vite build
+    buildCommand: npm install -g pnpm@9.15.9 && pnpm install --frozen-lockfile --prod=false && pnpm --filter web build
     staticPublishPath: apps/web/dist
     # SPA : toutes les routes renvoient index.html (routage côté client).
     routes:

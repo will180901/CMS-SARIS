@@ -31,7 +31,7 @@ const VARIANT_STYLES: Record<ButtonVariant, { bg: string; text: string; border: 
   secondary: { bg: 'var(--fond-surface-2)',  text: 'var(--texte-primaire)',     border: '1px solid var(--bordure-normale)', hoverBg: 'var(--fond-input)', hoverBorder: '1px solid var(--bordure-forte)' },
   ghost:     { bg: 'transparent',            text: 'var(--texte-secondaire)',   border: 'transparent',                hoverBg: 'var(--fond-surface-2)' },
   outline:   { bg: 'var(--fond-surface)',    text: 'var(--ap-700)',             border: '1px solid var(--ap-200)',    hoverBg: 'var(--ap-50)', hoverBorder: '1px solid var(--ap-400)' },
-  danger:    { bg: 'var(--erreur-accent)',   text: '#FFFFFF',                   border: 'transparent',                hoverBg: '#7A2E2E' },
+  danger:    { bg: 'var(--erreur-accent)',   text: '#FFFFFF',                   border: 'transparent',                hoverBg: 'var(--erreur-texte)' },
   success:   { bg: 'var(--succes-accent)',   text: '#FFFFFF',                   border: 'transparent',                hoverBg: 'var(--succes-texte)' },
 }
 
@@ -42,19 +42,24 @@ export const Button = forwardRef<HTMLButtonElement, Props>(function Button(
     loading,
     leftIcon, rightIcon,
     fullWidth,
-    style, children, disabled, ...rest
+    style, className, children, disabled, ...rest
   },
   ref,
 ) {
   const s = SIZE_MAP[size]
   const v = VARIANT_STYLES[variant]
   const isDisabled = disabled || loading
+  // Grain fin réservé aux fonds opaques : sur un fond transparent (ghost), le
+  // bruit flotterait visuellement sur le contenu derrière au lieu de texturer
+  // le bouton lui-même.
+  const grainClass = variant !== 'ghost' ? 'saris-grain-fine' : ''
 
   return (
     <button
       ref={ref}
       disabled={isDisabled}
       {...rest}
+      className={['saris-focus-ring', grainClass, className].filter(Boolean).join(' ')}
       style={{
         display:        'inline-flex',
         alignItems:     'center',

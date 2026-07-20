@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router-dom'
 import { ClipboardList, Search, X, Stethoscope, ChevronLeft, SlidersHorizontal } from 'lucide-react'
 import { Popover, PopoverTrigger, PopoverContent } from '@workspace/ui/components/popover'
+import { TILE_TONE_MAP } from '@/components/saris'
 import { useConsultations }        from '../hooks/useConsultation'
 import { consultationApi }         from '../api/consultation.api'
 import { ConsultationQueueCard }   from '../components/ConsultationQueueCard'
@@ -154,10 +155,10 @@ export function ConsultationPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
             <div style={{
               width: 30, height: 30, borderRadius: 7,
-              background: 'var(--ap-100)',
+              background: TILE_TONE_MAP.emeraude.bg,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <ClipboardList size={16} style={{ color: 'var(--ap-600)' }} />
+              <ClipboardList size={16} style={{ color: TILE_TONE_MAP.emeraude.color }} />
             </div>
             <div>
               <p style={{ margin: 0, fontSize: '15px', fontWeight: '700', color: 'var(--texte-primaire)', lineHeight: 1 }}>

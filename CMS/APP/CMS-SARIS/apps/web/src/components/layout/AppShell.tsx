@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { Sidebar, SIDEBAR_RAIL } from './Sidebar'
 import { TopHeader }        from './TopHeader'
@@ -40,18 +41,35 @@ function RootRedirect() {
 }
 
 // ── Pages réelles ─────────────────────────────────────────────────────────────
-import { ReferentielsPage } from '@/modules/referentiels/pages/ReferentielsPage'
-import { PatientsPage }     from '@/modules/patients/pages/PatientsPage'
-import { DossierPage }      from '@/modules/patients/pages/DossierPage'
-import { TriagePage }       from '@/modules/triage/pages/TriagePage'
-import { ConsultationPage } from '@/modules/consultation/pages/ConsultationPage'
-import { AccesPage }        from '@/modules/admin/pages/AccesPage'
-import { AuditPage }        from '@/modules/admin/pages/AuditPage'
-import { DashboardPage }    from '@/modules/dashboard/pages/DashboardPage'
-import { RapportsPage }     from '@/modules/rapports/pages/RapportsPage'
-import { ParametresPage }   from '@/modules/admin/pages/ParametresPage'
-import { SynchronisationPage } from '@/modules/admin/pages/SynchronisationPage'
-import { MessageriePage }    from '@/modules/messagerie/pages/MessageriePage'
+// Chargées à la demande (une route = un chunk) : le bundle initial n'embarque plus
+// tous les modules métier d'un coup (référentiels, messagerie, admin…), seulement
+// la route effectivement visitée.
+const ReferentielsPage    = lazy(() => import('@/modules/referentiels/pages/ReferentielsPage').then(m => ({ default: m.ReferentielsPage })))
+const PatientsPage        = lazy(() => import('@/modules/patients/pages/PatientsPage').then(m => ({ default: m.PatientsPage })))
+const DossierPage         = lazy(() => import('@/modules/patients/pages/DossierPage').then(m => ({ default: m.DossierPage })))
+const TriagePage          = lazy(() => import('@/modules/triage/pages/TriagePage').then(m => ({ default: m.TriagePage })))
+const ConsultationPage    = lazy(() => import('@/modules/consultation/pages/ConsultationPage').then(m => ({ default: m.ConsultationPage })))
+const AccesPage           = lazy(() => import('@/modules/admin/pages/AccesPage').then(m => ({ default: m.AccesPage })))
+const AuditPage           = lazy(() => import('@/modules/admin/pages/AuditPage').then(m => ({ default: m.AuditPage })))
+const DashboardPage       = lazy(() => import('@/modules/dashboard/pages/DashboardPage').then(m => ({ default: m.DashboardPage })))
+const RapportsPage        = lazy(() => import('@/modules/rapports/pages/RapportsPage').then(m => ({ default: m.RapportsPage })))
+const ParametresPage      = lazy(() => import('@/modules/admin/pages/ParametresPage').then(m => ({ default: m.ParametresPage })))
+const SynchronisationPage = lazy(() => import('@/modules/admin/pages/SynchronisationPage').then(m => ({ default: m.SynchronisationPage })))
+const MessageriePage      = lazy(() => import('@/modules/messagerie/pages/MessageriePage').then(m => ({ default: m.MessageriePage })))
+
+/** Fallback de route (Suspense) — même langage visuel que LoadingScreen, mais scopé à
+ *  la zone de contenu (pas un overlay plein écran par-dessus sidebar/header déjà montés). */
+function RouteLoader() {
+  return (
+    <div className="flex flex-1 items-center justify-center">
+      <div
+        className="h-9 w-9 animate-spin rounded-full border-[3px] border-muted border-t-primary"
+        role="status"
+        aria-label="Chargement"
+      />
+    </div>
+  )
+}
 
 // ── Shell principal ───────────────────────────────────────────────────────────
 
@@ -71,6 +89,7 @@ export function AppShell() {
       >
         <TopHeader />
         <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: isMobile ? '0 var(--espace-2) var(--espace-2)' : '0 var(--espace-4) var(--espace-4)' }}>
+        <Suspense fallback={<RouteLoader />}>
         <Routes>
           {/* Redirection racine → page d'accueil préférée */}
           <Route path="/" element={<RootRedirect />} />
@@ -193,6 +212,7 @@ export function AppShell() {
           {/* Fallback → page d'accueil préférée */}
           <Route path="*" element={<RootRedirect />} />
         </Routes>
+        </Suspense>
         </div>
       </main>
       </div>

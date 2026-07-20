@@ -47,7 +47,7 @@ export async function exportStatsXlsx(stats: StatistiquesActivite) {
       [
         { value: `Période : ${stats.periode.from} au ${stats.periode.to}`, backgroundColor: SOFT, textColor: INK, borderColor: LINE, columnSpan: 2 },
       ],
-      [{ value: null }],
+      [null],
       [
         { value: 'Total consultations', fontWeight: 'bold', backgroundColor: SOFT, textColor: INK, borderColor: LINE },
         { value: stats.totalConsultations, type: Number, backgroundColor: '#ffffff', textColor: INK, borderColor: LINE, align: 'right' as const },

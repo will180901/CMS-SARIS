@@ -5,7 +5,7 @@ import { Search, X, Users, AlertTriangle, ChevronRight, ChevronLeft, Camera, Tra
 import { Input }              from '@workspace/ui/components/input'
 import { Button }             from '@workspace/ui/components/button'
 import { toast }              from '@workspace/ui/components/sonner'
-import { SelectBox, PaginationBar, EmptyState, PhotoCropModal } from '@/components/saris'
+import { SelectBox, PaginationBar, EmptyState, PhotoCropModal, TILE_TONE_MAP } from '@/components/saris'
 import { usePagination }      from '@/hooks/usePagination'
 import { useRowsPerPage }     from '@/hooks/useRowsPerPage'
 import { useIsCompact }       from '@/hooks/useMediaQuery'
@@ -420,8 +420,8 @@ export function PatientsPage() {
       <div style={{ padding: 'var(--espace-4) var(--espace-6) var(--espace-4)', flexShrink: 0, borderBottom: '1px solid var(--bordure-legere)' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-            <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--ap-50)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
-              <Users size={16} style={{ color: 'var(--ap-600)' }} />
+            <div style={{ width: 36, height: 36, borderRadius: 8, background: TILE_TONE_MAP.bleu.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
+              <Users size={16} style={{ color: TILE_TONE_MAP.bleu.color }} />
             </div>
             <div>
               <h1 style={{ fontSize: 'var(--font-size-h2)', fontWeight: '600', color: 'var(--texte-primaire)', margin: 0 }}>{t('patients.pageTitle')}</h1>
