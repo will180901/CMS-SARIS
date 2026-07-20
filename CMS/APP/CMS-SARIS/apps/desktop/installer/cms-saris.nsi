@@ -160,7 +160,11 @@ FunctionEnd
 ; 150 ms (NSD_CreateTimer) parmi 48 frames pré-rendues (build/anim/frame_NN.bmp,
 ; cf. scripts/gen-installer-anim.mjs — même rendu que le mockup validé le 2026-07-20).
 Function WelcomeCreate
-  nsDialogs::Create 1018
+  ; Modèle 1046 = style "Bienvenue/Fin" (plein cadre, PAS de bandeau d'en-tête) —
+  ; contrairement à 1018 (pages "intérieures" type Dossier/Installation, qui elles
+  ; affichent le bandeau MUI_HEADERIMAGE). Avec 1018 le bandeau logo apparaissait
+  ; par-dessus notre propre panneau, en trop.
+  nsDialogs::Create 1046
   Pop $0
   ${If} $0 == error
     Abort
@@ -234,6 +238,42 @@ FunctionEnd
 ; Frames de l'animation (page Bienvenue) — extraites tôt (ordre d'archive .onInit).
 ReserveFile "${ASSETS}\anim\*.bmp"
 
+; Repère une installation CMS SARIS existante, quel que soit l'installateur d'ORIGINE :
+; notre identifiant fixe (${UNINST_KEY}, cet installateur "local") EST insuffisant seul,
+; car l'installateur "remote" (electron-builder standard, electron-builder.yml) enregistre
+; sous une clé GUID générée à la volée, différente à chaque build. On balaie donc aussi
+; par DisplayName commençant par "CMS SARIS" pour couvrir ce cas.
+; Sortie : $R0 = UninstallString ("" si rien trouvé), $R1 = QuietUninstallString.
+Function FindExistingInstall
+  StrCpy $R0 ""
+  StrCpy $R1 ""
+  ReadRegStr $R0 HKCU "${UNINST_KEY}" "UninstallString"
+  ${If} $R0 != ""
+    ReadRegStr $R1 HKCU "${UNINST_KEY}" "QuietUninstallString"
+    Return
+  ${EndIf}
+
+  StrCpy $R2 0
+  loopFindExisting:
+    EnumRegKey $R3 HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall" $R2
+    ${If} $R3 == ""
+      Return
+    ${EndIf}
+    ClearErrors
+    ReadRegStr $R4 HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\$R3" "DisplayName"
+    ${IfNot} ${Errors}
+      StrLen $R5 "CMS SARIS"
+      StrCpy $R6 $R4 $R5
+      ${If} $R6 == "CMS SARIS"
+        ReadRegStr $R0 HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\$R3" "UninstallString"
+        ReadRegStr $R1 HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\$R3" "QuietUninstallString"
+        Return
+      ${EndIf}
+    ${EndIf}
+    IntOp $R2 $R2 + 1
+    Goto loopFindExisting
+FunctionEnd
+
 ; ── .onInit : extrait les frames d'animation, refuse si l'app tourne, installateur 2-en-1 ──
 Function .onInit
   InitPluginsDir
@@ -251,13 +291,14 @@ Function .onInit
     Abort
   ${EndIf}
   ; Déjà installé ? (sauf en mode silencieux = mise à jour auto → on réinstalle)
+  ; Détecte AUSSI une installation faite par l'installateur "remote" (ID généré,
+  ; cf. FindExistingInstall) — pas seulement une installation par CET installateur.
   ${IfNot} ${Silent}
-    ReadRegStr $R0 HKCU "${UNINST_KEY}" "UninstallString"
+    Call FindExistingInstall
     ${If} $R0 != ""
       MessageBox MB_YESNOCANCEL|MB_ICONQUESTION "CMS SARIS est deja installe.$\n$\nOui = Desinstaller (suppression complete)$\nNon = Reinstaller / Mettre a jour$\nAnnuler = Quitter" IDYES sarisUninst IDNO +2
       Abort
       sarisUninst:
-        ReadRegStr $R1 HKCU "${UNINST_KEY}" "QuietUninstallString"
         ${If} $R1 == ""
           StrCpy $R1 '"$R0" /S'
         ${EndIf}

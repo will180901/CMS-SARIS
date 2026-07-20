@@ -52,15 +52,13 @@ function frameSvg(i) {
     </defs>
     <rect width="${W}" height="${H}" fill="#12313b" />
     <g>${blobs}</g>
-    <rect x="12" y="${H / 2 - 68}" width="${W - 24}" height="136" rx="9"
+    <rect x="12" y="${H / 2 - 54}" width="${W - 24}" height="108" rx="9"
       fill="rgba(255,255,255,0.10)" stroke="rgba(255,255,255,0.22)" stroke-width="1" />
-    <rect x="${W / 2 - 20}" y="${H / 2 - 52}" width="40" height="40" rx="10" fill="rgba(255,255,255,0.94)" />
-    <text x="${W / 2}" y="${H / 2 - 27}" text-anchor="middle" font-family="Segoe UI, sans-serif"
+    <rect x="${W / 2 - 20}" y="${H / 2 - 38}" width="40" height="40" rx="10" fill="rgba(255,255,255,0.94)" />
+    <text x="${W / 2}" y="${H / 2 - 13}" text-anchor="middle" font-family="Segoe UI, sans-serif"
       font-size="12" font-weight="700" fill="#3D7A92">CS</text>
-    <text x="${W / 2}" y="${H / 2 + 6}" text-anchor="middle" font-family="Segoe UI, sans-serif"
-      font-size="13" font-weight="700" fill="#ffffff">CMS SARIS</text>
     <text x="${W / 2}" y="${H / 2 + 22}" text-anchor="middle" font-family="Segoe UI, sans-serif"
-      font-size="9.5" fill="rgba(255,255,255,0.78)">Centre Médico-Social</text>
+      font-size="13" font-weight="700" fill="#ffffff">CMS SARIS</text>
   </svg>`
 }
 
