@@ -99,9 +99,12 @@
       $('test').onclick = async () => {
         const url = clean($('url').value)
         if (!url) return setMsg('Saisissez une adresse.', 'err')
-        setMsg('Test en cours…')
+        // Un serveur gratuit (Render, etc.) mis en veille peut mettre 50 s ou plus à se
+        // réveiller sur la première requête — un délai court fait échouer le test à tort
+        // alors que le serveur finit par répondre. 70 s = marge au-delà du pire cas connu.
+        setMsg('Test en cours… (jusqu’à 1 min si le serveur était en veille)')
         const ctrl = new AbortController()
-        const t = setTimeout(() => ctrl.abort(), 6000)
+        const t = setTimeout(() => ctrl.abort(), 70000)
         try {
           await fetch(url + '/health', { mode: 'no-cors', signal: ctrl.signal })
           setMsg('Serveur joignable ✓', 'ok')
