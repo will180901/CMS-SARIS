@@ -81,8 +81,7 @@ Var CurStep
 ; ── Panneau animé (page Bienvenue) : fumée en boucle derrière un panneau "verre
 ; dépoli", cf. décision du 2026-07-20 (pas de WebView2 : séquence pré-rendue à la
 ; place, mêmes formes/mouvement que le mockup validé — apps/desktop/scripts/gen-installer-anim.mjs).
-Var hWelcomeBmp     ; handle du contrôle STATIC bitmap
-Var hWelcomeBmpImg  ; handle GDI du bitmap actuellement affiché (à libérer avant remplacement)
+Var hWelcomeBmpImg  ; handle GDI du bitmap actuellement substitué (à libérer avant remplacement)
 Var WelcomeFrame    ; index de frame courant (0-47)
 
 ; ── Apparence MUI ──
@@ -91,18 +90,26 @@ Var WelcomeFrame    ; index de frame courant (0-47)
 !define MUI_HEADERIMAGE
 !define MUI_HEADERIMAGE_BITMAP "${ASSETS}\installerHeader.bmp"
 !define MUI_HEADERIMAGE_RIGHT
-; Page Fin (page Bienvenue remplacée par un panneau CUSTOM animé, cf. plus bas) :
-; même mécanisme MUI2 qu'avant (case "Lancer CMS SARIS" intacte), juste reskinné
-; sur la 1ère frame de l'animation pour rester visuellement cohérent, sans
-; ré-implémenter à risque une logique déjà éprouvée.
+; Sert de départ à l'image du panneau Bienvenue (ensuite animée, cf. WelcomeShow) ET
+; d'image FIXE du panneau Fin — page Fin gardée sur le mécanisme MUI2 standard
+; (case "Lancer CMS SARIS" intacte), juste reskinnée sur la 1ère frame pour la
+; cohérence visuelle, sans ré-implémenter à risque une logique déjà éprouvée.
 !define MUI_WELCOMEFINISHPAGE_BITMAP "${ASSETS}\anim\frame_00.bmp"
 !define MUI_UNWELCOMEFINISHPAGE_BITMAP "${ASSETS}\uninstallerSidebar.bmp"
 !define MUI_ABORTWARNING
 
+; Page Bienvenue : texte personnalisé + page STANDARD MUI2 conservée (elle gère déjà
+; correctement le cadre plein écran sans bandeau d'en-tête) — seule l'image de son
+; contrôle bitmap existant est ensuite substituée/animée (cf. WelcomeShow plus bas).
+!define MUI_WELCOMEPAGE_TITLE "Bienvenue dans l'installation de CMS SARIS"
+!define MUI_WELCOMEPAGE_TEXT "Cet assistant installe CMS SARIS sur cet ordinateur : l'application, le service local (backend embarque) et la base de donnees locale.$\n$\nCliquez sur Suivant pour continuer."
+!define MUI_PAGE_CUSTOMFUNCTION_SHOW WelcomeShow
+!define MUI_PAGE_CUSTOMFUNCTION_LEAVE WelcomeLeaveHook
+!insertmacro MUI_PAGE_WELCOME
+
 ; Page d'installation : on accroche la création de la 2e barre à l'affichage.
 !define MUI_PAGE_CUSTOMFUNCTION_SHOW InstFilesPageShow
 
-Page custom WelcomeCreate WelcomeLeave
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
 !define MUI_FINISHPAGE_RUN "$INSTDIR\${EXE_NAME}"
@@ -154,44 +161,20 @@ Function InstFilesPageShow
   ${EndIf}
 FunctionEnd
 
-; ── Page Bienvenue personnalisée : panneau gauche animé (fumée + verre dépoli) ──
-; Remplace MUI_PAGE_WELCOME. Le panneau DROIT (texte) est un nsDialogs classique ;
-; le panneau GAUCHE est un contrôle bitmap dont l'image est permutée toutes les
-; 150 ms (NSD_CreateTimer) parmi 48 frames pré-rendues (build/anim/frame_NN.bmp,
-; cf. scripts/gen-installer-anim.mjs — même rendu que le mockup validé le 2026-07-20).
-Function WelcomeCreate
-  ; Modèle 1046 = style "Bienvenue/Fin" (plein cadre, PAS de bandeau d'en-tête) —
-  ; contrairement à 1018 (pages "intérieures" type Dossier/Installation, qui elles
-  ; affichent le bandeau MUI_HEADERIMAGE). Avec 1018 le bandeau logo apparaissait
-  ; par-dessus notre propre panneau, en trop.
-  nsDialogs::Create 1046
-  Pop $0
-  ${If} $0 == error
-    Abort
-  ${EndIf}
-
-  ${NSD_CreateBitmap} 0 0 164 314 ""
-  Pop $hWelcomeBmp
+; ── Animation du panneau Bienvenue (fumée + verre dépoli) ──────────────────────
+; La page MUI2 standard (Pages\Welcome.nsh, lue directement dans le NSIS installé
+; localement pour éviter de deviner) crée déjà elle-même le contrôle bitmap correct
+; ($mui.WelcomePage.Image, déclaré par MUI_WELCOMEPAGE_INTERFACE) sur un cadre plein
+; écran SANS bandeau d'en-tête — reconstruire cette page à la main (tenté puis annulé)
+; cassait ce cadrage. On se contente donc de permuter l'IMAGE de ce contrôle EXISTANT,
+; toutes les 150 ms, parmi 48 frames pré-rendues (build/anim/frame_NN.bmp, cf.
+; scripts/gen-installer-anim.mjs).
+Function WelcomeShow
   StrCpy $WelcomeFrame 0
-  System::Call 'user32::LoadImageW(i 0, w "$PLUGINSDIR\anim\frame_00.bmp", i 0, i 0, i 0, i 0x10) p.r1'
-  StrCpy $hWelcomeBmpImg $1
-  SendMessage $hWelcomeBmp ${STM_SETIMAGE} ${IMAGE_BITMAP} $1
-
-  ${NSD_CreateLabel} 184 40 260 50 "Bienvenue dans l'installation de CMS SARIS"
-  Pop $1
-  CreateFont $2 "Segoe UI" 13 700
-  SendMessage $1 ${WM_SETFONT} $2 1
-
-  ${NSD_CreateLabel} 184 96 260 130 "Cet assistant installe CMS SARIS sur cet ordinateur : l'application, le service local (backend embarque) et la base de donnees locale.$\n$\nCliquez sur Suivant pour continuer."
-  Pop $1
-
+  StrCpy $hWelcomeBmpImg 0
   ${NSD_CreateTimer} WelcomeAnimate 150
-  nsDialogs::Show
 FunctionEnd
 
-; Appelé toutes les 150 ms tant que la page Bienvenue est affichée : avance d'une
-; frame (boucle continue 0-47) et libère l'ancien bitmap (évite une fuite de
-; handles GDI si l'utilisateur reste longtemps sur cette page).
 Function WelcomeAnimate
   IntOp $WelcomeFrame $WelcomeFrame + 1
   ${If} $WelcomeFrame >= 48
@@ -201,13 +184,17 @@ Function WelcomeAnimate
   StrCpy $9 $9 2 -2   ; 2 derniers caracteres -> "00".."47"
   System::Call 'user32::LoadImageW(i 0, w "$PLUGINSDIR\anim\frame_$9.bmp", i 0, i 0, i 0, i 0x10) p.r1'
   ${If} $1 != 0
-    SendMessage $hWelcomeBmp ${STM_SETIMAGE} ${IMAGE_BITMAP} $1
-    System::Call 'gdi32::DeleteObject(p $hWelcomeBmpImg)'
+    SendMessage $mui.WelcomePage.Image ${STM_SETIMAGE} ${IMAGE_BITMAP} $1
+    ${If} $hWelcomeBmpImg != 0
+      System::Call 'gdi32::DeleteObject(p $hWelcomeBmpImg)'
+    ${EndIf}
     StrCpy $hWelcomeBmpImg $1
   ${EndIf}
 FunctionEnd
 
-Function WelcomeLeave
+; Note : on ne touche PAS à $mui.WelcomePage.Image.Bitmap (l'image de depart chargee
+; par MUI2 lui-meme) — seulement aux frames qu'on y substitue ensuite, trackees a part.
+Function WelcomeLeaveHook
   ${NSD_KillTimer} WelcomeAnimate
   ${If} $hWelcomeBmpImg != 0
     System::Call 'gdi32::DeleteObject(p $hWelcomeBmpImg)'
