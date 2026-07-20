@@ -38,12 +38,8 @@
         padding: 28px 26px;
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
       }
-      .badge {
-        width: 44px; height: 44px; border-radius: 10px;
-        background: #e9edf1; color: var(--ap-400);
-        display: flex; align-items: center; justify-content: center;
-        font-weight: 700; font-size: 18px; margin-bottom: 14px;
-      }
+      .badge { width: 44px; height: 44px; margin-bottom: 14px; }
+      .badge img { width: 100%; height: 100%; object-fit: contain; }
       h1 { font-size: 18px; margin: 0 0 6px; }
       p { font-size: 13px; color: var(--texte-2); margin: 0 0 18px; line-height: 1.5; }
       label { font-size: 12px; font-weight: 600; color: var(--texte-2); display: block; margin-bottom: 6px; }
@@ -71,7 +67,7 @@
   </head>
   <body>
     <main>
-      <div class="badge">CS</div>
+      <div class="badge"><img src="setup-logo.png" alt="CMS SARIS" /></div>
       <h1>Connexion au serveur</h1>
       <p>Indiquez l’adresse du serveur CMS SARIS fournie par votre administrateur. Elle sera mémorisée sur ce poste.</p>
       <label for="url">Adresse du serveur</label>
