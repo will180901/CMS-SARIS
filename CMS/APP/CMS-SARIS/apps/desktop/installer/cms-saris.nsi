@@ -83,6 +83,8 @@ Var CurStep
 ; place, mêmes formes/mouvement que le mockup validé — apps/desktop/scripts/gen-installer-anim.mjs).
 Var hWelcomeBmpImg  ; handle GDI du bitmap actuellement substitué (à libérer avant remplacement)
 Var WelcomeFrame    ; index de frame courant (0-47)
+Var WelcomeBmpW     ; largeur RÉELLE du contrôle bitmap (mesurée, peut différer de 164px selon le DPI)
+Var WelcomeBmpH     ; hauteur RÉELLE du contrôle bitmap (idem, 314px)
 
 ; ── Apparence MUI ──
 !define MUI_ICON "${ASSETS}\icon.ico"
@@ -173,6 +175,17 @@ FunctionEnd
 Function WelcomeShow
   StrCpy $WelcomeFrame 0
   StrCpy $hWelcomeBmpImg 0
+
+  ; Mesure la taille RÉELLE du contrôle bitmap (peut différer de nos frames natives
+  ; 164x314 selon le DPI/l'échelle système) — cf. constat du 2026-07-20 : à taille
+  ; native, l'image ne remplissait pas tout le contrôle, laissant un vide en bas.
+  System::Call "*(i,i,i,i) p.r2"
+  System::Call "user32::GetClientRect(p $mui.WelcomePage.Image, p r2)"
+  System::Call "*$2(i,i,i.r3,i.r4)"   ; r3 = largeur, r4 = hauteur (left/top toujours 0)
+  System::Free $2
+  StrCpy $WelcomeBmpW $3
+  StrCpy $WelcomeBmpH $4
+
   ${NSD_CreateTimer} WelcomeAnimate 150
 FunctionEnd
 
@@ -183,7 +196,9 @@ Function WelcomeAnimate
   ${EndIf}
   StrCpy $9 "0$WelcomeFrame"
   StrCpy $9 $9 2 -2   ; 2 derniers caracteres -> "00".."47"
-  System::Call 'user32::LoadImageW(i 0, w "$PLUGINSDIR\anim\frame_$9.bmp", i 0, i 0, i 0, i 0x10) p.r1'
+  ; Étirée à la taille RÉELLE mesurée (WelcomeShow) au lieu de la taille native du
+  ; fichier — remplit tout le contrôle, plus de bande vide en bas.
+  System::Call 'user32::LoadImageW(i 0, w "$PLUGINSDIR\anim\frame_$9.bmp", i 0, i $WelcomeBmpW, i $WelcomeBmpH, i 0x10) p.r1'
   ${If} $1 != 0
     SendMessage $mui.WelcomePage.Image ${STM_SETIMAGE} ${IMAGE_BITMAP} $1
     ${If} $hWelcomeBmpImg != 0
