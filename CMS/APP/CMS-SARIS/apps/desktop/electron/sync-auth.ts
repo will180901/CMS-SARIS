@@ -66,20 +66,37 @@ interface AuthResponse {
   tempToken?: string
 }
 
-export interface SetupResult { ok: boolean; error?: string; requireTotp?: boolean; tempToken?: string }
+export interface AuthResult {
+  ok: boolean
+  error?: string
+  requireTotp?: boolean
+  tempToken?: string
+  /** Site déjà associé au COMPTE qui se connecte — pré-sélection suggérée, pas imposée
+   *  (le site du poste est désormais choisi par l'opérateur à l'étape 2, cf. finalizeSyncSetup). */
+  defaultSiteId?: string
+}
+
+export interface Site { id: string; code: string; libelle: string; localisation?: string | null }
+
+export interface SetupResult { ok: boolean; error?: string }
+
+/** Jetons obtenus après authentification, en attente du choix du site (étape 2 de l'écran de
+ *  configuration). Gardés UNIQUEMENT en mémoire du processus principal — jamais renvoyés au
+ *  renderer — jusqu'à finalizeSyncSetup(), qui les persiste (ou les jette si l'écran est annulé). */
+let pendingAuth: { serverUrl: string; accessToken: string; refreshToken: string } | null = null
 
 /**
- * 1er lancement : authentifie au CENTRAL (login/mdp, ou code TOTP si 2FA). En cas de succès,
- * persiste serverUrl + siteId + refreshToken (DPAPI) et écrit l'access token.
+ * Étape 1 — 1er lancement : authentifie au CENTRAL (login/mdp, ou code TOTP si 2FA).
+ * Ne persiste RIEN sur disque : les jetons restent en mémoire (pendingAuth) le temps que
+ * l'opérateur choisisse le site à l'étape 2 (cf. listPendingSites / finalizeSyncSetup).
  */
-export async function setupSync(
+export async function authenticateSync(
   serverUrl: string,
   login: string,
   password: string,
   totpCode?: string,
   tempToken?: string,
-  posteLibelle?: string,
-): Promise<SetupResult> {
+): Promise<AuthResult> {
   const server = trimUrl(serverUrl)
   if (!/^https?:\/\//i.test(server)) return { ok: false, error: 'L’adresse doit commencer par http:// ou https://' }
   try {
@@ -104,20 +121,48 @@ export async function setupSync(
       if (data.requireTotp) return { ok: false, requireTotp: true, tempToken: data.tempToken }
     }
     const { accessToken, refreshToken } = data
-    const siteId = data.user?.siteId
-    if (!accessToken || !refreshToken || !siteId) {
-      return { ok: false, error: 'Réponse du serveur invalide (jeton ou site manquant).' }
+    if (!accessToken || !refreshToken) {
+      return { ok: false, error: 'Réponse du serveur invalide (jeton manquant).' }
     }
-    writeConfig({ mode: 'local', serverUrl: server, siteId })
-    secureSet(REFRESH_KEY, refreshToken)
-    fs.writeFileSync(syncTokenFilePath(), accessToken, 'utf8')
-    getPosteLocalId()
-    if (posteLibelle) setPosteLibelle(posteLibelle)
-    else getPosteLibelle() // assure un nom par défaut (hostname) même si le champ a été laissé vide
-    return { ok: true }
+    pendingAuth = { serverUrl: server, accessToken, refreshToken }
+    return { ok: true, defaultSiteId: data.user?.siteId }
   } catch (e) {
     return { ok: false, error: 'Serveur injoignable : ' + (e as Error).message }
   }
+}
+
+/** Étape 2 — liste les sites du référentiel (lecture seule) avec le jeton obtenu à l'étape 1. */
+export async function listPendingSites(): Promise<Site[]> {
+  if (!pendingAuth) throw new Error('Authentification requise avant de lister les sites.')
+  const r = await fetch(pendingAuth.serverUrl + '/referentiels/sites?pageSize=200', {
+    headers: { Authorization: `Bearer ${pendingAuth.accessToken}` },
+  })
+  if (!r.ok) throw new Error(`Erreur serveur (HTTP ${r.status}).`)
+  const data = (await r.json()) as Site[] | { items?: Site[]; data?: Site[] }
+  return Array.isArray(data) ? data : (data.items ?? data.data ?? [])
+}
+
+/**
+ * Étape 3 — l'opérateur a choisi le site DE CE POSTE (indépendant du site de son propre
+ * compte) : persiste serverUrl + siteId + refreshToken (DPAPI) et écrit l'access token.
+ */
+export function finalizeSyncSetup(siteId: string, posteLibelle?: string): SetupResult {
+  if (!pendingAuth) return { ok: false, error: 'Session d’authentification expirée — recommencez.' }
+  if (!siteId) return { ok: false, error: 'Aucun site sélectionné.' }
+  const { serverUrl, accessToken, refreshToken } = pendingAuth
+  writeConfig({ mode: 'local', serverUrl, siteId })
+  secureSet(REFRESH_KEY, refreshToken)
+  fs.writeFileSync(syncTokenFilePath(), accessToken, 'utf8')
+  getPosteLocalId()
+  if (posteLibelle) setPosteLibelle(posteLibelle)
+  else getPosteLibelle() // assure un nom par défaut (hostname) même si le champ a été laissé vide
+  pendingAuth = null
+  return { ok: true }
+}
+
+/** Abandon de l'écran de configuration avant finalisation (retour à l'étape 1, changement de compte…). */
+export function discardPendingAuth(): void {
+  pendingAuth = null
 }
 
 let refreshing = false

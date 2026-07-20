@@ -37,14 +37,21 @@ contextBridge.exposeInMainWorld('saris', {
   /** Enregistre l'URL du serveur puis relance l'application. */
   setApiUrl: (url: string): Promise<{ ok: boolean }> => ipcRenderer.invoke('saris:set-api-url', url),
   /**
-   * Configuration du poste en mode local (écran de 1er lancement) : authentifie au serveur
-   * central. En cas de succès, le processus principal démarre le backend embarqué + lance
-   * la 1ère synchro, puis recharge vers l'application.
+   * Configuration du poste en mode local (écran de 1er lancement), en 2 étapes :
+   *  1) syncAuthenticate — login/mdp (+ 2FA si besoin) contre le serveur central.
+   *  2) syncListSites / syncFinalize — l'opérateur choisit le site DE CE POSTE, puis le
+   *     processus principal démarre le backend embarqué + lance la 1ère synchro.
    */
-  syncSetup: (params: {
-    serverUrl: string; login: string; password: string; totpCode?: string; tempToken?: string; posteLibelle?: string
-  }): Promise<{ ok: boolean; error?: string; requireTotp?: boolean; tempToken?: string }> =>
-    ipcRenderer.invoke('saris:sync-setup', params),
+  syncAuthenticate: (params: {
+    serverUrl: string; login: string; password: string; totpCode?: string; tempToken?: string
+  }): Promise<{ ok: boolean; error?: string; requireTotp?: boolean; tempToken?: string; defaultSiteId?: string }> =>
+    ipcRenderer.invoke('saris:sync-authenticate', params),
+  syncListSites: (): Promise<{ ok: boolean; sites?: { id: string; code: string; libelle: string; localisation?: string | null }[]; error?: string }> =>
+    ipcRenderer.invoke('saris:sync-list-sites'),
+  syncFinalize: (params: { siteId: string; posteLibelle?: string }): Promise<{ ok: boolean; error?: string }> =>
+    ipcRenderer.invoke('saris:sync-finalize', params),
+  /** Abandonne l'authentification en attente (retour à l'étape 1 depuis l'étape 2). */
+  syncDiscard: (): Promise<void> => ipcRenderer.invoke('saris:sync-discard'),
   /** Progression après « Connecter » : { step: 'backend'|'done'|'error', message }. */
   onSetupStatus: (cb: (s: { step: string; message: string }) => void): (() => void) => {
     const listener = (_e: unknown, payload: { step: string; message: string }): void => cb(payload)

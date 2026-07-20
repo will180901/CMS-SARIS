@@ -8,9 +8,9 @@
       :root {
         --teal-400: #4e8ba4; --teal-500: #3d7a92; --teal-600: #336779;
         --ink: #1c2530; --ink-2: #55616e; --ink-3: #93a0ad;
-        --line: #d7dee5; --field: #f4f7f9; --surface: #ffffff;
+        --line: #8892a4; --field: #ffffff; --surface: #ffffff;
         --bg: #eef2f6;
-        --err: #b14747; --err-bg: #fbeeee; --ok: #2f7d5b;
+        --err: #b14747; --err-bg: #fbeeee; --ok: #2f7d5b; --ok-bg: #eef7f2;
         /* Grain (feTurbulence) — texture pour donner du relief SANS dégradé. */
         --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
       }
@@ -22,13 +22,12 @@
         -webkit-user-select: none; user-select: none;
         display: flex; flex-direction: column; height: 100vh; overflow: hidden; position: relative;
       }
-      /* Grain SUBTIL sur toute l'interface. */
       body::before {
         content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
         background-image: var(--grain); background-size: 160px 160px; opacity: 0.05;
       }
       .titlebar { height: 40px; flex: 0 0 40px; -webkit-app-region: drag; position: relative; z-index: 1; }
-      .wrap { flex: 1; display: flex; align-items: flex-start; justify-content: center; padding: 2px 26px 22px; position: relative; z-index: 1; }
+      .wrap { flex: 1; display: flex; align-items: flex-start; justify-content: center; padding: 2px 26px 22px; position: relative; z-index: 1; overflow-y: auto; }
       .card { width: 100%; max-width: 412px; }
 
       .brand { display: flex; flex-direction: column; align-items: center; text-align: center; margin-bottom: 16px; }
@@ -43,6 +42,10 @@
       .intro { font-size: 12.5px; color: var(--ink-2); line-height: 1.55; text-align: center; margin: 0 2px 18px; }
       .intro b { color: var(--ink); font-weight: 600; }
 
+      .steps { display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 18px; }
+      .steps .d { width: 22px; height: 3px; border-radius: 2px; background: var(--line); opacity: .4; }
+      .steps .d.on { background: var(--teal-500); opacity: 1; }
+
       .field { margin-bottom: 13px; }
       label { font-size: 11.5px; font-weight: 600; color: var(--ink-2); display: block; margin-bottom: 5px; letter-spacing: 0.2px; }
       .inp { position: relative; }
@@ -53,7 +56,7 @@
         -webkit-user-select: text; user-select: text;
       }
       input::placeholder { color: var(--ink-3); }
-      input:focus { border-color: var(--teal-400); background: var(--surface); box-shadow: 0 0 0 3px rgba(78, 139, 164, 0.14); }
+      input:focus { border-color: var(--teal-400); box-shadow: 0 0 0 3px rgba(78, 139, 164, 0.16); }
       .eye {
         position: absolute; right: 6px; top: 5px; width: 32px; height: 32px; border: 0; background: transparent;
         color: var(--ink-3); cursor: pointer; border-radius: 8px; display: flex; align-items: center; justify-content: center;
@@ -69,7 +72,6 @@
       }
       @keyframes sp { to { transform: rotate(360deg); } }
 
-      /* Bouton : couleur PLATE + grain PRONONCÉ (pas de dégradé). */
       button.go {
         position: relative; overflow: hidden;
         width: 100%; height: 46px; margin-top: 12px; border: 0; border-radius: 10px;
@@ -87,9 +89,43 @@
       button.go:active { transform: translateY(1px); }
       button.go:disabled { background: #8fa9b5; cursor: default; box-shadow: none; }
 
+      .back {
+        display: inline-flex; align-items: center; gap: 5px; background: none; border: 0; cursor: pointer;
+        color: var(--ink-2); font-size: 12px; font-weight: 600; padding: 4px 2px; margin-bottom: 10px;
+      }
+      .back:hover { color: var(--ink); }
+
       .foot { font-size: 10.5px; color: var(--ink-3); line-height: 1.55; text-align: center; margin-top: 16px; }
       .foot b { color: var(--ink-2); font-weight: 600; }
       .hidden { display: none; }
+
+      /* ── Étape 2 : recherche de site ── */
+      .sitebox { position: relative; }
+      .matches {
+        position: absolute; left: 0; right: 0; top: calc(100% + 5px); z-index: 5;
+        background: var(--surface); border: 1px solid var(--line); border-radius: 9px;
+        box-shadow: 0 8px 20px rgba(28,37,48,.12); overflow: hidden; max-height: 190px; overflow-y: auto;
+      }
+      .matches .opt {
+        padding: 9px 12px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+        border-bottom: 1px solid #eef1f4;
+      }
+      .matches .opt:last-child { border-bottom: none; }
+      .matches .opt:hover { background: #f4f8fa; }
+      .matches .opt .nm { font-size: 13px; color: var(--ink); font-weight: 500; display: flex; align-items: center; gap: 7px; }
+      .matches .opt .code {
+        font-family: Consolas, monospace; font-size: 9.5px; color: var(--ink-3); background: var(--bg);
+        padding: 1px 5px; border-radius: 4px; flex-shrink: 0;
+      }
+      .matches .opt .loc { font-size: 10.5px; color: var(--ink-3); flex-shrink: 0; }
+      .matches .empty { padding: 12px; font-size: 12px; color: var(--ink-3); text-align: center; }
+
+      .siteconfirm {
+        display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ok);
+        background: var(--ok-bg); border-radius: 9px; padding: 9px 11px; margin-top: 6px;
+      }
+      .siteconfirm svg { flex-shrink: 0; }
+      .siteconfirm .chg { margin-left: auto; background: none; border: 0; color: var(--teal-500); font-weight: 600; font-size: 11px; cursor: pointer; }
     </style>
   </head>
   <body>
@@ -101,21 +137,19 @@
           <h1>CMS SARIS</h1>
           <p class="sub">Configuration du poste de travail</p>
         </div>
+        <div class="steps"><span class="d" id="dot1"></span><span class="d" id="dot2"></span></div>
 
-        <p class="intro">
-          Connectez ce poste à votre serveur. À la première connexion, les données de votre
-          site sont <b>synchronisées localement</b> — l’application fonctionne ensuite même
-          <b>hors‑ligne</b> et se resynchronise dès que le serveur est joignable.
-        </p>
+        <!-- ── Étape 1 : connexion ── -->
+        <div id="step1">
+          <p class="intro">
+            Connectez ce poste à votre serveur. À la première connexion, les données de votre
+            site sont <b>synchronisées localement</b> — l’application fonctionne ensuite même
+            <b>hors‑ligne</b> et se resynchronise dès que le serveur est joignable.
+          </p>
 
-        <div id="creds">
           <div class="field">
             <label for="url">Adresse du serveur</label>
             <input id="url" type="url" placeholder="http://192.168.1.10:3000" autocomplete="off" spellcheck="false" />
-          </div>
-          <div class="field">
-            <label for="posteLibelle">Nom de ce poste</label>
-            <input id="posteLibelle" type="text" placeholder="ex. Bureau Accueil" autocomplete="off" spellcheck="false" maxlength="80" />
           </div>
           <div class="field">
             <label for="login">Identifiant</label>
@@ -130,21 +164,50 @@
               </button>
             </div>
           </div>
+          <div id="totpField" class="field hidden">
+            <label for="totp">Code de vérification (2FA)</label>
+            <input id="totp" type="text" inputmode="numeric" maxlength="6" placeholder="123456" autocomplete="one-time-code" />
+          </div>
+
+          <div id="status1" class="status"></div>
+          <button id="go1" class="go"><span>Continuer</span></button>
+
+          <p class="foot">
+            Utilisez vos <b>identifiants du serveur central</b> (les mêmes que sur le site web).
+            L’adresse et la connexion sont mémorisées de façon sécurisée sur ce poste.
+          </p>
         </div>
 
-        <div id="totpField" class="field hidden">
-          <label for="totp">Code de vérification (2FA)</label>
-          <input id="totp" type="text" inputmode="numeric" maxlength="6" placeholder="123456" autocomplete="one-time-code" />
+        <!-- ── Étape 2 : site + nom du poste ── -->
+        <div id="step2" class="hidden">
+          <button class="back" id="backBtn" type="button">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+            Retour
+          </button>
+          <p class="intro">
+            Connecté. Indiquez le <b>site sur lequel travaille ce poste</b> — la localisation
+            associée sera confirmée automatiquement.
+          </p>
+
+          <div class="field sitebox">
+            <label for="siteSearch">Site de rattachement de ce poste</label>
+            <input id="siteSearch" type="text" placeholder="Rechercher un site…" autocomplete="off" spellcheck="false" />
+            <div id="matches" class="matches hidden"></div>
+          </div>
+          <div id="siteConfirm" class="siteconfirm hidden">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>
+            <span id="siteConfirmText"></span>
+            <button class="chg" id="siteChange" type="button">Changer</button>
+          </div>
+
+          <div class="field" style="margin-top: 13px;">
+            <label for="posteLibelle">Nom de ce poste</label>
+            <input id="posteLibelle" type="text" placeholder="ex. Bureau Accueil" autocomplete="off" spellcheck="false" maxlength="80" />
+          </div>
+
+          <div id="status2" class="status"></div>
+          <button id="go2" class="go"><span>Connecter et synchroniser</span></button>
         </div>
-
-        <div id="status" class="status"></div>
-
-        <button id="go" class="go"><span>Connecter et synchroniser</span></button>
-
-        <p class="foot">
-          Utilisez vos <b>identifiants du serveur central</b> (les mêmes que sur le site web).
-          L’adresse et la connexion sont mémorisées de façon sécurisée sur ce poste.
-        </p>
       </div>
     </div>
 
@@ -153,72 +216,189 @@
       const clean = (v) => (v || '').trim()
       let tempToken = null
       let busy = false
+      let sites = []
+      let selectedSite = null
 
-      function setStatus(text, kind, spin) {
-        const el = $('status')
+      function setStatus(id, text, kind, spin) {
+        const el = $(id)
         el.className = 'status' + (kind ? ' ' + kind : '')
         el.innerHTML = (spin ? '<span class="spin"></span>' : '') + '<span>' + (text || '') + '</span>'
       }
-      function setBusy(b) {
+      function setBusy1(b) {
         busy = b
-        $('go').disabled = b
-        ;['url', 'posteLibelle', 'login', 'password', 'totp'].forEach((id) => { const e = $(id); if (e) e.disabled = b })
+        $('go1').disabled = b
+        ;['url', 'login', 'password', 'totp'].forEach((id) => { const e = $(id); if (e) e.disabled = b })
       }
-      function setBtn(t) { $('go').querySelector('span').textContent = t }
+      function setBusy2(b) {
+        busy = b
+        $('go2').disabled = b
+        $('posteLibelle').disabled = b
+      }
+      function setBtn(id, t) { $(id).querySelector('span').textContent = t }
 
       $('url').value = (window.saris && window.saris.serverUrl) || ''
-      $('posteLibelle').value = (window.saris && window.saris.posteLibelleDefault) || ''
       ;($('url').value ? $('login') : $('url')).focus()
 
       $('toggle').onclick = () => {
         const p = $('password'); p.type = p.type === 'password' ? 'text' : 'password'
       }
 
+      function goToStep(n) {
+        $('step1').classList.toggle('hidden', n !== 1)
+        $('step2').classList.toggle('hidden', n !== 2)
+        $('dot1').classList.toggle('on', n === 1)
+        $('dot2').classList.toggle('on', n === 2)
+      }
+
+      // ── Étape 1 : authentification ──────────────────────────────────────────
+      async function submitStep1() {
+        if (busy) return
+        const serverUrl = clean($('url').value)
+        const login = clean($('login').value)
+        const password = $('password').value
+        const totpCode = clean($('totp').value)
+        if (!serverUrl) return setStatus('status1', 'Saisissez l’adresse du serveur.', 'err')
+        if (!/^https?:\/\//i.test(serverUrl)) return setStatus('status1', 'L’adresse doit commencer par http:// ou https://', 'err')
+        if (!tempToken && (!login || !password)) return setStatus('status1', 'Saisissez identifiant et mot de passe.', 'err')
+        if (tempToken && !totpCode) return setStatus('status1', 'Saisissez le code de vérification.', 'err')
+
+        setBusy1(true)
+        setStatus('status1', tempToken ? 'Vérification du code…' : 'Connexion au serveur…', '', true)
+        try {
+          const res = await window.saris.syncAuthenticate({ serverUrl, login, password, totpCode, tempToken })
+          if (res && res.requireTotp) {
+            tempToken = res.tempToken
+            $('totpField').classList.remove('hidden'); $('totp').focus()
+            setStatus('status1', 'Authentification à deux facteurs : entrez votre code.', ''); setBusy1(false)
+            return
+          }
+          if (res && res.ok) {
+            setStatus('status1', 'Connecté.', 'ok')
+            await loadSites(res.defaultSiteId)
+            $('posteLibelle').value = (window.saris && window.saris.posteLibelleDefault) || ''
+            goToStep(2)
+            setBusy1(false)
+            $('siteSearch').focus()
+            return
+          }
+          setStatus('status1', (res && res.error) || 'Échec de la connexion.', 'err'); setBusy1(false)
+        } catch (e) {
+          setStatus('status1', 'Erreur : ' + (e && e.message ? e.message : e), 'err'); setBusy1(false)
+        }
+      }
+
+      // ── Étape 2 : choix du site ──────────────────────────────────────────────
+      async function loadSites(defaultSiteId) {
+        setStatus('status2', 'Chargement des sites…', '', true)
+        const res = await window.saris.syncListSites()
+        if (!res || !res.ok) {
+          setStatus('status2', (res && res.error) || 'Impossible de charger les sites.', 'err')
+          sites = []
+          return
+        }
+        sites = res.sites || []
+        setStatus('status2', '', '')
+        if (defaultSiteId) {
+          const d = sites.find((s) => s.id === defaultSiteId)
+          if (d) selectSite(d)
+        }
+      }
+
+      function renderMatches(query) {
+        const box = $('matches')
+        const q = query.trim().toLowerCase()
+        const list = q ? sites.filter((s) => s.libelle.toLowerCase().includes(q) || s.code.toLowerCase().includes(q)) : sites
+        if (list.length === 0) {
+          box.innerHTML = '<div class="empty">Aucun site trouvé — contactez un administrateur.</div>'
+        } else {
+          box.innerHTML = list.map((s) =>
+            '<div class="opt" data-id="' + s.id + '">' +
+              '<span class="nm"><span class="code">' + s.code + '</span>' + s.libelle + '</span>' +
+              '<span class="loc">' + (s.localisation || '') + '</span>' +
+            '</div>'
+          ).join('')
+          ;[...box.querySelectorAll('.opt')].forEach((el) => {
+            el.onclick = () => {
+              const s = sites.find((x) => x.id === el.getAttribute('data-id'))
+              if (s) selectSite(s)
+            }
+          })
+        }
+        box.classList.remove('hidden')
+      }
+
+      function selectSite(s) {
+        selectedSite = s
+        $('siteSearch').value = s.libelle
+        $('matches').classList.add('hidden')
+        $('siteConfirmText').textContent = 'Site trouvé — ' + (s.localisation || s.libelle)
+        $('siteConfirm').classList.remove('hidden')
+      }
+
+      $('siteSearch').addEventListener('input', () => {
+        selectedSite = null
+        $('siteConfirm').classList.add('hidden')
+        renderMatches($('siteSearch').value)
+      })
+      $('siteSearch').addEventListener('focus', () => renderMatches($('siteSearch').value))
+      document.addEventListener('click', (e) => {
+        if (!$('siteSearch').contains(e.target) && !$('matches').contains(e.target)) $('matches').classList.add('hidden')
+      })
+      $('siteChange').onclick = () => {
+        selectedSite = null
+        $('siteConfirm').classList.add('hidden')
+        $('siteSearch').value = ''
+        $('siteSearch').focus()
+        renderMatches('')
+      }
+
+      $('backBtn').onclick = async () => {
+        if (busy) return
+        await window.saris.syncDiscard()
+        tempToken = null
+        $('totpField').classList.add('hidden')
+        setStatus('status1', '', '')
+        setBtn('go1', 'Continuer')
+        goToStep(1)
+      }
+
+      async function submitStep2() {
+        if (busy) return
+        if (!selectedSite) return setStatus('status2', 'Choisissez un site dans la liste.', 'err')
+        const posteLibelle = clean($('posteLibelle').value)
+
+        setBusy2(true)
+        setStatus('status2', 'Connexion au serveur…', '', true)
+        try {
+          const res = await window.saris.syncFinalize({ siteId: selectedSite.id, posteLibelle })
+          if (res && res.ok) { setStatus('status2', 'Préparation du poste…', '', true); return }
+          setStatus('status2', (res && res.error) || 'Échec de la configuration.', 'err'); setBusy2(false)
+        } catch (e) {
+          setStatus('status2', 'Erreur : ' + (e && e.message ? e.message : e), 'err'); setBusy2(false)
+        }
+      }
+
       // Progression poussée par le processus principal (démarrage backend / synchro / erreur).
       window.saris && window.saris.onSetupStatus && window.saris.onSetupStatus((s) => {
         if (!s) return
         if (s.step === 'error') {
-          setStatus(s.message || 'Une erreur est survenue.', 'err', false)
-          tempToken = null; $('totpField').classList.add('hidden'); setBusy(false); setBtn('Réessayer')
+          setStatus('status2', s.message || 'Une erreur est survenue.', 'err', false)
+          setBusy2(false); setBtn('go2', 'Réessayer')
         } else if (s.step === 'done') {
-          setStatus(s.message || 'Ouverture…', 'ok', true)
+          setStatus('status2', s.message || 'Ouverture…', 'ok', true)
         } else {
-          setStatus(s.message || 'Veuillez patienter…', '', true)
+          setStatus('status2', s.message || 'Veuillez patienter…', '', true)
         }
       })
 
-      async function submit() {
-        if (busy) return
-        const serverUrl = clean($('url').value)
-        const posteLibelle = clean($('posteLibelle').value)
-        const login = clean($('login').value)
-        const password = $('password').value
-        const totpCode = clean($('totp').value)
-        if (!serverUrl) return setStatus('Saisissez l’adresse du serveur.', 'err')
-        if (!/^https?:\/\//i.test(serverUrl)) return setStatus('L’adresse doit commencer par http:// ou https://', 'err')
-        if (!tempToken && (!login || !password)) return setStatus('Saisissez identifiant et mot de passe.', 'err')
-        if (tempToken && !totpCode) return setStatus('Saisissez le code de vérification.', 'err')
+      $('go1').onclick = submitStep1
+      ;['url', 'login', 'password', 'totp'].forEach((id) =>
+        $(id).addEventListener('keydown', (e) => { if (e.key === 'Enter') submitStep1() }))
 
-        setBusy(true)
-        setStatus(tempToken ? 'Vérification du code…' : 'Connexion au serveur…', '', true)
-        try {
-          const res = await window.saris.syncSetup({ serverUrl, login, password, totpCode, tempToken, posteLibelle })
-          if (res && res.requireTotp) {
-            tempToken = res.tempToken
-            $('totpField').classList.remove('hidden'); $('totp').focus()
-            setStatus('Authentification à deux facteurs : entrez votre code.', ''); setBusy(false)
-            return
-          }
-          if (res && res.ok) { setStatus('Connecté. Préparation du poste…', '', true); return }
-          setStatus((res && res.error) || 'Échec de la connexion.', 'err'); setBusy(false)
-        } catch (e) {
-          setStatus('Erreur : ' + (e && e.message ? e.message : e), 'err'); setBusy(false)
-        }
-      }
+      $('go2').onclick = submitStep2
+      $('posteLibelle').addEventListener('keydown', (e) => { if (e.key === 'Enter') submitStep2() })
 
-      $('go').onclick = submit
-      ;['url', 'posteLibelle', 'login', 'password', 'totp'].forEach((id) =>
-        $(id).addEventListener('keydown', (e) => { if (e.key === 'Enter') submit() }))
+      goToStep(1)
     </script>
   </body>
 </html>

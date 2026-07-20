@@ -14,6 +14,7 @@ ManifestDPIAware true
 !include "LogicLib.nsh"
 !include "WinMessages.nsh"
 !include "FileFunc.nsh"
+!include "nsDialogs.nsh"
 
 ; Constantes Win32 (certaines déjà fournies par WinMessages.nsh → guardées).
 !ifndef WS_CHILD_VISIBLE
@@ -24,6 +25,12 @@ ManifestDPIAware true
 !endif
 !ifndef PBM_SETRANGE32
   !define PBM_SETRANGE32 0x406
+!endif
+!ifndef STM_SETIMAGE
+  !define STM_SETIMAGE 0x172
+!endif
+!ifndef IMAGE_BITMAP
+  !define IMAGE_BITMAP 0
 !endif
 
 ; Repli si /DVERSION n'est pas passé au préprocesseur (build-installer.mjs le passe
@@ -71,20 +78,31 @@ Var SecondBar     ; handle de la 2e barre (étape) ; 0 si non créée
 Var TotalSteps
 Var CurStep
 
+; ── Panneau animé (page Bienvenue) : fumée en boucle derrière un panneau "verre
+; dépoli", cf. décision du 2026-07-20 (pas de WebView2 : séquence pré-rendue à la
+; place, mêmes formes/mouvement que le mockup validé — apps/desktop/scripts/gen-installer-anim.mjs).
+Var hWelcomeBmp     ; handle du contrôle STATIC bitmap
+Var hWelcomeBmpImg  ; handle GDI du bitmap actuellement affiché (à libérer avant remplacement)
+Var WelcomeFrame    ; index de frame courant (0-47)
+
 ; ── Apparence MUI ──
 !define MUI_ICON "${ASSETS}\icon.ico"
 !define MUI_UNICON "${ASSETS}\icon.ico"
 !define MUI_HEADERIMAGE
 !define MUI_HEADERIMAGE_BITMAP "${ASSETS}\installerHeader.bmp"
 !define MUI_HEADERIMAGE_RIGHT
-!define MUI_WELCOMEFINISHPAGE_BITMAP "${ASSETS}\installerSidebar.bmp"
+; Page Fin (page Bienvenue remplacée par un panneau CUSTOM animé, cf. plus bas) :
+; même mécanisme MUI2 qu'avant (case "Lancer CMS SARIS" intacte), juste reskinné
+; sur la 1ère frame de l'animation pour rester visuellement cohérent, sans
+; ré-implémenter à risque une logique déjà éprouvée.
+!define MUI_WELCOMEFINISHPAGE_BITMAP "${ASSETS}\anim\frame_00.bmp"
 !define MUI_UNWELCOMEFINISHPAGE_BITMAP "${ASSETS}\uninstallerSidebar.bmp"
 !define MUI_ABORTWARNING
 
 ; Page d'installation : on accroche la création de la 2e barre à l'affichage.
 !define MUI_PAGE_CUSTOMFUNCTION_SHOW InstFilesPageShow
 
-!insertmacro MUI_PAGE_WELCOME
+Page custom WelcomeCreate WelcomeLeave
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
 !define MUI_FINISHPAGE_RUN "$INSTDIR\${EXE_NAME}"
@@ -136,6 +154,63 @@ Function InstFilesPageShow
   ${EndIf}
 FunctionEnd
 
+; ── Page Bienvenue personnalisée : panneau gauche animé (fumée + verre dépoli) ──
+; Remplace MUI_PAGE_WELCOME. Le panneau DROIT (texte) est un nsDialogs classique ;
+; le panneau GAUCHE est un contrôle bitmap dont l'image est permutée toutes les
+; 150 ms (NSD_CreateTimer) parmi 48 frames pré-rendues (build/anim/frame_NN.bmp,
+; cf. scripts/gen-installer-anim.mjs — même rendu que le mockup validé le 2026-07-20).
+Function WelcomeCreate
+  nsDialogs::Create 1018
+  Pop $0
+  ${If} $0 == error
+    Abort
+  ${EndIf}
+
+  ${NSD_CreateBitmap} 0 0 164 314 ""
+  Pop $hWelcomeBmp
+  StrCpy $WelcomeFrame 0
+  System::Call 'user32::LoadImageW(i 0, w "$PLUGINSDIR\anim\frame_00.bmp", i 0, i 0, i 0, i 0x10) p.r1'
+  StrCpy $hWelcomeBmpImg $1
+  SendMessage $hWelcomeBmp ${STM_SETIMAGE} ${IMAGE_BITMAP} $1
+
+  ${NSD_CreateLabel} 184 40 260 50 "Bienvenue dans l'installation de CMS SARIS"
+  Pop $1
+  CreateFont $2 "Segoe UI" 13 700
+  SendMessage $1 ${WM_SETFONT} $2 1
+
+  ${NSD_CreateLabel} 184 96 260 130 "Cet assistant installe CMS SARIS sur cet ordinateur : l'application, le service local (backend embarque) et la base de donnees locale.$\n$\nCliquez sur Suivant pour continuer."
+  Pop $1
+
+  ${NSD_CreateTimer} WelcomeAnimate 150
+  nsDialogs::Show
+FunctionEnd
+
+; Appelé toutes les 150 ms tant que la page Bienvenue est affichée : avance d'une
+; frame (boucle continue 0-47) et libère l'ancien bitmap (évite une fuite de
+; handles GDI si l'utilisateur reste longtemps sur cette page).
+Function WelcomeAnimate
+  IntOp $WelcomeFrame $WelcomeFrame + 1
+  ${If} $WelcomeFrame >= 48
+    StrCpy $WelcomeFrame 0
+  ${EndIf}
+  StrCpy $9 "0$WelcomeFrame"
+  StrCpy $9 $9 2 -2   ; 2 derniers caracteres -> "00".."47"
+  System::Call 'user32::LoadImageW(i 0, w "$PLUGINSDIR\anim\frame_$9.bmp", i 0, i 0, i 0, i 0x10) p.r1'
+  ${If} $1 != 0
+    SendMessage $hWelcomeBmp ${STM_SETIMAGE} ${IMAGE_BITMAP} $1
+    System::Call 'gdi32::DeleteObject(p $hWelcomeBmpImg)'
+    StrCpy $hWelcomeBmpImg $1
+  ${EndIf}
+FunctionEnd
+
+Function WelcomeLeave
+  ${NSD_KillTimer} WelcomeAnimate
+  ${If} $hWelcomeBmpImg != 0
+    System::Call 'gdi32::DeleteObject(p $hWelcomeBmpImg)'
+    StrCpy $hWelcomeBmpImg 0
+  ${EndIf}
+FunctionEnd
+
 ; Avance la 2e barre + affiche l'en-tête d'étape dans le journal temps réel.
 !macro STEP TXT
   IntOp $CurStep $CurStep + 1
@@ -156,8 +231,15 @@ FunctionEnd
   ${EndIf}
 !macroend
 
-; ── .onInit : refus si l'app tourne + installateur 2-en-1 ────────────────────
+; Frames de l'animation (page Bienvenue) — extraites tôt (ordre d'archive .onInit).
+ReserveFile "${ASSETS}\anim\*.bmp"
+
+; ── .onInit : extrait les frames d'animation, refuse si l'app tourne, installateur 2-en-1 ──
 Function .onInit
+  InitPluginsDir
+  SetOutPath "$PLUGINSDIR\anim"
+  File "${ASSETS}\anim\*.bmp"
+
   StrCpy $TotalSteps 4
   ; App en cours d'exécution ? (mutex posé par Electron singleInstanceLock = appId)
   System::Call 'kernel32::OpenMutexW(i 0x100000, b 0, w "${APP_ID}") i .R9'

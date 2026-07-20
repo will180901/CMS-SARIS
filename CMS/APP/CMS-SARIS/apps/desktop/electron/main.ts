@@ -17,7 +17,8 @@ import { initAutoUpdater, checkForUpdates, downloadUpdate, quitAndInstall } from
 import { startBackend, findFreePort, stopBackend } from './backend'
 import { ensureDb } from './db-init'
 import {
-  isSyncConfigured, setupSync, refreshAccessToken, startRefreshTimer, stopRefreshTimer,
+  isSyncConfigured, authenticateSync, listPendingSites, finalizeSyncSetup, discardPendingAuth,
+  refreshAccessToken, startRefreshTimer, stopRefreshTimer,
   clearSync, getPosteLocalId, getPosteLibelle, syncTokenFilePath,
 } from './sync-auth'
 
@@ -312,18 +313,32 @@ function registerIpc(): void {
     app.exit(0)
     return { ok: true }
   })
-  // Configuration du poste (mode local, 1er lancement) : login au central. Si OK → démarre
-  // le backend embarqué (qui lance la 1ère synchro) puis charge l'application.
-  ipcMain.handle('saris:sync-setup', async (
+  // Configuration du poste (mode local, 1er lancement), en 2 étapes :
+  //  1) authentification au central (login/mdp, ou 2FA) — ne persiste rien sur disque
+  //  2) l'opérateur choisit le SITE de ce poste (référentiel, indépendant du site de son
+  //     propre compte) → finalize persiste tout et démarre le backend embarqué.
+  ipcMain.handle('saris:sync-authenticate', async (
     _e,
-    params: { serverUrl: string; login: string; password: string; totpCode?: string; tempToken?: string; posteLibelle?: string },
-  ) => {
-    const res = await setupSync(params.serverUrl, params.login, params.password, params.totpCode, params.tempToken, params.posteLibelle)
+    params: { serverUrl: string; login: string; password: string; totpCode?: string; tempToken?: string },
+  ) => authenticateSync(params.serverUrl, params.login, params.password, params.totpCode, params.tempToken))
+
+  ipcMain.handle('saris:sync-list-sites', async () => {
+    try {
+      return { ok: true as const, sites: await listPendingSites() }
+    } catch (e) {
+      return { ok: false as const, error: (e as Error).message }
+    }
+  })
+
+  ipcMain.handle('saris:sync-finalize', (_e, params: { siteId: string; posteLibelle?: string }) => {
+    const res = finalizeSyncSetup(params.siteId, params.posteLibelle)
     // On répond TOUT DE SUITE (l'écran affiche la progression via saris:setup-status), puis
     // on démarre le backend local + on charge l'app — ou on signale l'erreur, sans bloquer.
     if (res.ok) setImmediate(() => { void completeLocalStartup() })
     return res
   })
+
+  ipcMain.handle('saris:sync-discard', () => { discardPendingAuth() })
   ipcMain.handle('saris:check-updates', () => checkForUpdates())
   ipcMain.handle('saris:update-download', () => downloadUpdate())
   ipcMain.handle('saris:update-install', () => quitAndInstall())

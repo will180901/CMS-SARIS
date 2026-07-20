@@ -66,6 +66,12 @@ function signInstaller() {
 
 if (!fs.existsSync(makensis)) { console.error('makensis introuvable : ' + makensis); process.exit(1) }
 if (!fs.existsSync(srcdir)) { console.error("win-unpacked introuvable — lance build-local.mjs d'abord."); process.exit(1) }
+// Frames de l'animation (page Bienvenue) — build/ est gitignoré comme le reste des
+// assets installeur : à régénérer sur un poste/clone qui ne les a pas encore.
+if (!fs.existsSync(path.join(assets, 'anim', 'frame_00.bmp'))) {
+  console.error("Frames d'animation introuvables — lance scripts/gen-installer-anim.mjs d'abord.")
+  process.exit(1)
+}
 
 // Icône : réutilise celle générée par electron-builder.
 const icoSrc = path.join(desktop, 'release', '.icon-ico', 'icon.ico')
