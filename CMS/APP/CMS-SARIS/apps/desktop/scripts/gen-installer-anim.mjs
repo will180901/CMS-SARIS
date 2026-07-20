@@ -7,6 +7,11 @@
  * dépendance GDI+ supplémentaire — cohérent avec la décision du 2026-07-20 de ne
  * pas embarquer de plugin NSIS tiers non vérifié (WebView2).
  *
+ * Icône : vrai logo CMS SARIS (apps/web/public/icon-512.png), fond blanc détouré en
+ * transparence réelle (le fichier source a un canal alpha mais opaque à 255 partout —
+ * cf. scripts/strip-white-bg.mjs pour la même logique en autonome). Composé DIRECTEMENT
+ * sur le panneau (pas de cadre/avatar autour, demandé explicitement le 2026-07-20).
+ *
  * Taille 164x314 = dimension standard du bitmap de bienvenue/fin NSIS ModernUI2.
  * Boucle parfaitement continue : la frame 0 raccorde la dernière frame.
  *
@@ -25,6 +30,8 @@ for (const f of fs.readdirSync(outDir)) fs.rmSync(path.join(outDir, f))
 const W = 164
 const H = 314
 const FRAMES = 48 // boucle continue ; avancée toutes les ~150ms côté NSIS -> cycle ~7,2s
+const ICON_SRC = path.resolve(here, '..', '..', 'web', 'public', 'icon-512.png')
+const ICON_SIZE = 46
 
 // Un blob = un cercle radial flou qui dérive en boucle fermée sur une ellipse.
 // période = FRAMES pour tous (boucle parfaite), phase/amplitude/rayon distincts
@@ -34,6 +41,20 @@ const BLOBS = [
   { cx: 136, cy: 166, r: 80,  color: '93,202,165',   ax: 30, ay: 24, phase: 0.33, opacity: 0.48 },
   { cx: 54,  cy: 262, r: 112, color: '255,255,255', ax: 24, ay: 36, phase: 0.62, opacity: 0.42 },
 ]
+
+/** Détoure le fond blanc opaque du logo source en transparence réelle (alpha proportionnel
+ *  à la distance à blanc, préserve un bord anti-aliasé propre), puis le redimensionne. */
+async function loadTransparentIcon() {
+  const src = sharp(ICON_SRC).ensureAlpha()
+  const { data, info } = await src.raw().toBuffer({ resolveWithObject: true })
+  const out = Buffer.from(data)
+  for (let i = 0; i < data.length; i += info.channels) {
+    const r = data[i], g = data[i + 1], b = data[i + 2]
+    const distFromWhite = 255 - Math.min(r, g, b)
+    out[i + 3] = Math.min(255, Math.round(distFromWhite * 1.5))
+  }
+  return sharp(out, { raw: info }).resize(ICON_SIZE, ICON_SIZE, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } }).png().toBuffer()
+}
 
 function frameSvg(i) {
   const t = i / FRAMES
@@ -54,9 +75,6 @@ function frameSvg(i) {
     <g>${blobs}</g>
     <rect x="12" y="${H / 2 - 54}" width="${W - 24}" height="108" rx="9"
       fill="rgba(255,255,255,0.10)" stroke="rgba(255,255,255,0.22)" stroke-width="1" />
-    <rect x="${W / 2 - 20}" y="${H / 2 - 38}" width="40" height="40" rx="10" fill="rgba(255,255,255,0.94)" />
-    <text x="${W / 2}" y="${H / 2 - 13}" text-anchor="middle" font-family="Segoe UI, sans-serif"
-      font-size="12" font-weight="700" fill="#3D7A92">CS</text>
     <text x="${W / 2}" y="${H / 2 + 22}" text-anchor="middle" font-family="Segoe UI, sans-serif"
       font-size="13" font-weight="700" fill="#ffffff">CMS SARIS</text>
   </svg>`
@@ -101,11 +119,18 @@ function rgbToBmp(rgb, width, height) {
 }
 
 const pad = (n) => String(n).padStart(2, '0')
+const iconPng = await loadTransparentIcon()
+const iconTop = Math.round(H / 2 - 54 + 18) // dans le panneau "verre", au-dessus du texte
+const iconLeft = Math.round(W / 2 - ICON_SIZE / 2)
 
 for (let i = 0; i < FRAMES; i++) {
   const svg = frameSvg(i)
-  const { data } = await sharp(Buffer.from(svg)).removeAlpha().raw().toBuffer({ resolveWithObject: true })
-  const bmp = rgbToBmp(data, W, H)
+  const composed = await sharp(Buffer.from(svg))
+    .composite([{ input: iconPng, left: iconLeft, top: iconTop }])
+    .removeAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true })
+  const bmp = rgbToBmp(composed.data, W, H)
   fs.writeFileSync(path.join(outDir, `frame_${pad(i)}.bmp`), bmp)
 }
 

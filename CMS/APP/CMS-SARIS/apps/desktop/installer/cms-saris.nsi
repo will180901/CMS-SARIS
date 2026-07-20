@@ -87,9 +87,10 @@ Var WelcomeFrame    ; index de frame courant (0-47)
 ; ── Apparence MUI ──
 !define MUI_ICON "${ASSETS}\icon.ico"
 !define MUI_UNICON "${ASSETS}\icon.ico"
-!define MUI_HEADERIMAGE
-!define MUI_HEADERIMAGE_BITMAP "${ASSETS}\installerHeader.bmp"
-!define MUI_HEADERIMAGE_RIGHT
+; Pas de MUI_HEADERIMAGE (bandeau logo en haut des pages) — retiré explicitement,
+; demandé à deux reprises le 2026-07-20. Supprimé GLOBALEMENT (Dossier/Installation
+; y compris) plutôt que juste sur Bienvenue : évite toute ambiguïté sur "quelle page
+; exactement l'affichait encore" après un précédent essai de retrait incomplet.
 ; Sert de départ à l'image du panneau Bienvenue (ensuite animée, cf. WelcomeShow) ET
 ; d'image FIXE du panneau Fin — page Fin gardée sur le mécanisme MUI2 standard
 ; (case "Lancer CMS SARIS" intacte), juste reskinnée sur la 1ère frame pour la
