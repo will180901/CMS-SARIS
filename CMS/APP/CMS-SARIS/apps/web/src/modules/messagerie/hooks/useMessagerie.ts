@@ -9,6 +9,7 @@
 import { useEffect } from 'react'
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { messagerieApi, type MessageItem, type MessagesPage } from '../api/messagerie.api'
+import { useUploadProgressStore } from '@/stores/uploadProgress.store'
 
 export const MSG_KEY = ['messagerie'] as const
 const threadKey = (id: string) => [...MSG_KEY, 'thread', id] as const
@@ -106,19 +107,30 @@ export function useLeaveConversation() {
 
 let tempCounter = 0
 
+type SendMessageVars = { contenu: string; fichiers: File[]; replyToId?: string; replyPreview?: MessageItem['replyTo'] }
+type SendMessageInternalVars = SendMessageVars & { tempId: string }
+
+/**
+ * `onMutate` (crée la bulle optimiste) et `mutationFn` (fait l'upload) ne partagent
+ * aucun contexte React Query commun — le `tempId` est donc généré en AMONT (dans le
+ * wrapper mutate/mutateAsync ci-dessous) et injecté dans les variables, pour que la
+ * progression de l'upload (indexée par cet id, cf. uploadProgress.store.ts) retombe
+ * sur la bonne bulle dans PieceJointe.tsx.
+ */
 export function useSendMessage(conversationId: string) {
   const qc = useQueryClient()
-  return useMutation({
-    mutationFn: ({ contenu, fichiers, replyToId }: { contenu: string; fichiers: File[]; replyToId?: string; replyPreview?: MessageItem['replyTo'] }) =>
-      messagerieApi.send(conversationId, contenu, fichiers, replyToId),
+  const mutation = useMutation({
+    mutationFn: ({ contenu, fichiers, replyToId, tempId }: SendMessageInternalVars) =>
+      messagerieApi.send(conversationId, contenu, fichiers, replyToId,
+        fichiers.length ? (pct) => useUploadProgressStore.getState().setProgress(tempId, pct) : undefined),
 
     // Envoi optimiste : la bulle apparaît immédiatement (statut « en cours »).
-    onMutate: async ({ contenu, fichiers, replyPreview }) => {
+    onMutate: async ({ contenu, fichiers, replyPreview, tempId }: SendMessageInternalVars) => {
       const key = threadKey(conversationId)
       await qc.cancelQueries({ queryKey: key })
       const prev = qc.getQueryData(key)
       const temp: MessageItem = {
-        id:           `temp-${++tempCounter}`,
+        id:           tempId,
         type:         'TEXTE',
         contenu,
         expediteurId: 'me',
@@ -142,16 +154,25 @@ export function useSendMessage(conversationId: string) {
         pages[0] = { ...pages[0]!, messages: [...pages[0]!.messages, temp] }
         return { ...old, pages }
       })
-      return { prev, key }
+      return { prev, key, tempId }
     },
     onError: (_e, _vars, ctx) => {
       if (ctx?.prev) qc.setQueryData(ctx.key, ctx.prev)
+      if (ctx?.tempId) useUploadProgressStore.getState().clear(ctx.tempId)
     },
-    onSettled: () => {
+    onSettled: (_data, _err, _vars, ctx) => {
       qc.invalidateQueries({ queryKey: threadKey(conversationId) })
       qc.invalidateQueries({ queryKey: convKey })
+      if (ctx?.tempId) useUploadProgressStore.getState().clear(ctx.tempId)
     },
   })
+
+  const withTempId = (vars: SendMessageVars): SendMessageInternalVars => ({ ...vars, tempId: `temp-${++tempCounter}` })
+  return {
+    ...mutation,
+    mutate:      (vars: SendMessageVars) => mutation.mutate(withTempId(vars)),
+    mutateAsync: (vars: SendMessageVars) => mutation.mutateAsync(withTempId(vars)),
+  }
 }
 
 export function useUpdateMessage(conversationId: string) {

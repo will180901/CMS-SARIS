@@ -173,12 +173,12 @@ export const messagerieApi = {
                    api.get<MessagesPage>(`/messagerie/conversations/${conversationId}/messages`, before ? { before } : undefined),
 
   /** Envoi multipart (texte et/ou pièces jointes, réponse optionnelle). */
-  send:          (conversationId: string, contenu: string, fichiers: File[] = [], replyToId?: string) => {
+  send:          (conversationId: string, contenu: string, fichiers: File[] = [], replyToId?: string, onProgress?: (pct: number) => void) => {
     const fd = new FormData()
     if (contenu) fd.append('contenu', contenu)
     if (replyToId) fd.append('replyToId', replyToId)
     for (const f of fichiers) fd.append('fichiers', f)
-    return api.upload<MessageItem>(`/messagerie/conversations/${conversationId}/messages`, fd)
+    return api.upload<MessageItem>(`/messagerie/conversations/${conversationId}/messages`, fd, { onProgress })
   },
 
   update:        (messageId: string, contenu: string) =>

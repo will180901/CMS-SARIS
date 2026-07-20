@@ -21,7 +21,7 @@ import {
 import { Avatar, UserAvatar } from '@/components/saris'
 import { Popover, PopoverContent, PopoverTrigger } from '@workspace/ui/components/popover'
 import { toast } from '@workspace/ui/components/sonner'
-import { isOfflineQueued } from '@/lib/api'
+import { isOfflineQueued, isUploadTimeout } from '@/lib/api'
 import { isDesktop } from '@/lib/desktop'
 import { DESKTOP_TITLEBAR_H } from '@/components/layout/DesktopTitleBar'
 import {
@@ -364,13 +364,19 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
     setMediaFiles([])
     if (!processed.length) return
     try { await sendMut.mutateAsync({ contenu: caption, fichiers: processed }); playSound('sent') }
-    catch (e) { if (!isOfflineQueued(e)) { toast.error(t('messagerie.sendError')); playSound('error') } }
+    catch (e) {
+      if (isUploadTimeout(e)) { toast.error(t('messagerie.sendTimeout')); playSound('error') }
+      else if (!isOfflineQueued(e)) { toast.error(t('messagerie.sendError')); playSound('error') }
+    }
   }
 
   async function sendVoice(file: File) {
     setRecording(false)
     try { await sendMut.mutateAsync({ contenu: '', fichiers: [file] }); playSound('sent') }
-    catch (e) { if (!isOfflineQueued(e)) { toast.error(t('messagerie.voiceSendError')); playSound('error') } }
+    catch (e) {
+      if (isUploadTimeout(e)) { toast.error(t('messagerie.sendTimeout')); playSound('error') }
+      else if (!isOfflineQueued(e)) { toast.error(t('messagerie.voiceSendError')); playSound('error') }
+    }
   }
 
   function insertEmoji(emoji: string) {
@@ -930,7 +936,7 @@ function Bubble({
               {/* Album média (collé aux bords) — ou cartes « envoi… » si optimiste */}
               {m.pending && hasMedia ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: 8 }}>
-                  {m.piecesJointes.map(pj => <PieceJointe key={pj.id} pj={pj} mine={mine} pending onOpen={onOpenMedia} />)}
+                  {m.piecesJointes.map(pj => <PieceJointe key={pj.id} pj={pj} mine={mine} pending uploadId={m.id} onOpen={onOpenMedia} />)}
                 </div>
               ) : visuals.length > 0 && <MediaGrid items={visuals} onOpen={onOpenMedia} />}
 

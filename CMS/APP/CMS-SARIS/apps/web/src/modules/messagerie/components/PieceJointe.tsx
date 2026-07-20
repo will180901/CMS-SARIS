@@ -16,17 +16,21 @@ import { FileText, Download, Loader2, Play, Pause, FolderOpen, Save } from 'luci
 import { isDesktop } from '@/lib/desktop'
 import { playSound } from '@/lib/sounds'
 import { useAudioPlaybackStore } from '@/stores/audioPlayback.store'
+import { useUploadProgressStore } from '@/stores/uploadProgress.store'
 import { messagerieApi, type PieceJointeMeta } from '../api/messagerie.api'
 import { useDesktopDownload } from '../hooks/useDesktopDownload'
 import { formatBytes, formatDuration } from './mediaUtils'
 
-export function PieceJointe({ pj, mine, pending, onOpen, onAudioEnded }: { pj: PieceJointeMeta; mine: boolean; pending?: boolean; onOpen?: (pj: PieceJointeMeta) => void; onAudioEnded?: () => void }) {
+export function PieceJointe({ pj, mine, pending, uploadId, onOpen, onAudioEnded }: { pj: PieceJointeMeta; mine: boolean; pending?: boolean; uploadId?: string; onOpen?: (pj: PieceJointeMeta) => void; onAudioEnded?: () => void }) {
   const { t } = useTranslation()
+  // Abonnement LOCAL à ce petit composant (pas dans MessageThread) : sinon chaque tick de
+  // progression re-rendrait tout le fil de discussion au lieu de la seule bulle concernée.
+  const pct = useUploadProgressStore((s) => (uploadId ? s.progress[uploadId] : undefined))
   if (pending) {
     return (
       <Card mine={mine}>
         <IconTile mine={mine}><Loader2 size={18} className="animate-spin" /></IconTile>
-        <Texts name={pj.nomFichier} sub={t('messagerie.sending')} />
+        <Texts name={pj.nomFichier} sub={typeof pct === 'number' ? `${pct}%` : t('messagerie.sending')} />
       </Card>
     )
   }

@@ -66,6 +66,19 @@ export function isOfflineQueued(err: unknown): boolean {
   return err instanceof ApiError && (err as { queued?: boolean }).queued === true
 }
 
+/** Émise quand un envoi de fichier (upload) dépasse son délai maximum (cf. requestUpload). */
+export class UploadTimeoutError extends ApiError {
+  constructor(path: string) {
+    super(0, {}, `Délai d'envoi dépassé — ${path}`)
+    this.name = 'UploadTimeoutError'
+  }
+}
+
+/** True si l'erreur correspond à un upload qui a dépassé son délai. */
+export function isUploadTimeout(err: unknown): boolean {
+  return err instanceof UploadTimeoutError
+}
+
 // ── Auto-refresh (singleton pour éviter plusieurs appels simultanés) ──────────
 
 let refreshingPromise: Promise<void> | null = null
@@ -244,6 +257,70 @@ async function request<T>(path: string, options: RequestInit = {}, isRetry = fal
   return response.json() as Promise<T>
 }
 
+// ── Upload de fichiers (XHR dédié) ─────────────────────────────────────────────
+// fetch() n'expose pas de façon fiable/universelle la progression d'un ENVOI (seulement
+// la réception) — XMLHttpRequest.upload.onprogress est le mécanisme standard pour ça,
+// stable partout (y compris Electron/Chromium). Le reste de l'API (get/post/patch/delete
+// JSON) reste sur fetch, inchangé ; seul ce chemin upload utilise XHR.
+
+const UPLOAD_TIMEOUT_BASE_MS      = 120_000 // 2 min : couvre 1 fichier ≤ 16 Mo à ~136 Ko/s
+const UPLOAD_TIMEOUT_PER_EXTRA_MB = 4_000   // +4 s par Mo au-delà de 16 Mo (multi-fichiers)
+const UPLOAD_TIMEOUT_MAX_MS       = 360_000 // 6 min plafond (10 × 16 Mo max côté API)
+
+/** Délai maximum d'un upload, mis à l'échelle de la taille réelle du payload. */
+function uploadTimeoutFor(form: FormData): number {
+  let bytes = 0
+  for (const v of form.values()) if (v instanceof Blob) bytes += v.size
+  const extraMb = Math.max(0, bytes / (1024 * 1024) - 16)
+  return Math.min(UPLOAD_TIMEOUT_MAX_MS, UPLOAD_TIMEOUT_BASE_MS + extraMb * UPLOAD_TIMEOUT_PER_EXTRA_MB)
+}
+
+function requestUpload<T>(
+  path: string,
+  form: FormData,
+  opts: { onProgress?: (pct: number) => void; timeoutMs?: number } = {},
+  isRetry = false,
+): Promise<T> {
+  // Hors-ligne avéré : échec immédiat (FormData non rejouable, cf. canQueueOffline).
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    return Promise.reject(new ApiError(0, {}, `Hors ligne — ${path}`))
+  }
+  return new Promise<T>((resolve, reject) => {
+    const token = useSessionStore.getState().token
+    const xhr = new XMLHttpRequest()
+    xhr.open('POST', `${BASE_URL}${path}`, true)
+    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`)
+    // PAS de Content-Type manuel : le navigateur pose le boundary multipart lui-même.
+    xhr.timeout = opts.timeoutMs ?? uploadTimeoutFor(form)
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) opts.onProgress?.(Math.round((e.loaded / e.total) * 100))
+    }
+    xhr.onload = () => {
+      void (async () => {
+        if (xhr.status === 401 && !isRetry) {
+          const state = useSessionStore.getState()
+          if (state.token) {
+            try {
+              await tryRefreshToken()
+              resolve(await requestUpload<T>(path, form, opts, true))
+            } catch (e) { reject(e) }
+            return
+          }
+          if (state.isAuthenticated) state.clearSession()
+        }
+        if (xhr.status === 204) { resolve(undefined as T); return }
+        let body: unknown = {}
+        try { body = xhr.responseText ? JSON.parse(xhr.responseText) : {} } catch { /* réponse non-JSON */ }
+        if (xhr.status >= 200 && xhr.status < 300) resolve(body as T)
+        else reject(new ApiError(xhr.status, body, `HTTP ${xhr.status} — ${path}`))
+      })()
+    }
+    xhr.onerror   = () => reject(new ApiError(0, {}, `Échec réseau — ${path}`))
+    xhr.ontimeout = () => reject(new UploadTimeoutError(path))
+    xhr.send(form)
+  })
+}
+
 // ── Sérialisation query params ────────────────────────────────────────────────
 
 function buildUrl(path: string, params?: Record<string, string | number | boolean | undefined | null>): string {
@@ -264,5 +341,6 @@ export const api = {
   put:    <T>(path: string, body: unknown)   => request<T>(path, { method: 'PUT',    body: JSON.stringify(body) }),
   patch:  <T>(path: string, body?: unknown)  => request<T>(path, { method: 'PATCH',  body: body ? JSON.stringify(body) : undefined }),
   delete: <T>(path: string)                  => request<T>(path, { method: 'DELETE' }),
-  upload: <T>(path: string, form: FormData)  => request<T>(path, { method: 'POST', body: form }),
+  upload: <T>(path: string, form: FormData, opts?: { onProgress?: (pct: number) => void; timeoutMs?: number }) =>
+            requestUpload<T>(path, form, opts ?? {}),
 }

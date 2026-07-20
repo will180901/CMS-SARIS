@@ -46,6 +46,9 @@ let needsLocalSetup = false
 let serverOnline = false
 let rendererApiUrl: string | null = null
 let connectivityTimer: ReturnType<typeof setInterval> | null = null
+/** Incrémenté à chaque push (pushRendererUrl) — anti-régression entre le pull à la
+ *  demande (saris:get-connectivity) et un push qui arriverait entre-temps. */
+let connectivitySeq = 0
 
 // Le schéma doit être déclaré AVANT app.whenReady().
 protocol.registerSchemesAsPrivileged([
@@ -307,6 +310,17 @@ function registerIpc(): void {
     }
   })
   ipcMain.handle('saris:get-config', () => ({ apiUrl: resolveApiUrl(), appVersion: app.getVersion() }))
+  /**
+   * État de connectivité ACTUEL (dernier connu), à la demande — hydrate le renderer
+   * immédiatement après un reload (Ctrl+R), sans attendre le prochain changement détecté
+   * par la sonde (cf. startConnectivityWatch, qui ne pousse que sur CHANGEMENT). `null` si
+   * la bascule online-first n'est pas active (mode 'remote', ou sonde initiale pas encore
+   * terminée en mode 'local' au tout début du démarrage).
+   */
+  ipcMain.handle('saris:get-connectivity', () => {
+    if (rendererApiUrl === null) return null
+    return { url: rendererApiUrl, mode: serverOnline ? 'central' : 'local', online: serverOnline, seq: connectivitySeq }
+  })
   ipcMain.handle('saris:set-api-url', (_e, url: string) => {
     writeConfig({ apiUrl: String(url ?? '') })
     app.relaunch()
@@ -543,10 +557,12 @@ function computeRendererUrl(): string {
 /** Pousse l'URL active au renderer (et la mémorise pour le prochain saris:config). */
 function pushRendererUrl(): void {
   rendererApiUrl = computeRendererUrl()
+  connectivitySeq++
   mainWindow?.webContents.send('saris:api-url', {
     url: rendererApiUrl,
     mode: serverOnline ? 'central' : 'local',
     online: serverOnline,
+    seq: connectivitySeq,
   })
   log.info(`[connectivité] renderer → ${serverOnline ? 'CENTRAL (en ligne)' : 'LOCAL (hors-ligne)'} : ${rendererApiUrl}`)
 }

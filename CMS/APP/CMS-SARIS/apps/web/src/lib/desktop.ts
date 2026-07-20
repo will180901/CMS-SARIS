@@ -23,6 +23,10 @@ export interface SarisDesktopBridge {
   platform: string
   setApiUrl: (url: string) => Promise<{ ok: boolean }>
   getConfig: () => Promise<{ apiUrl: string; appVersion: string }>
+  /** Bascule « online-first » : pousse l'URL d'API active (central en ligne / local hors-ligne). */
+  onApiUrl?: (cb: (s: { url: string; mode: string; online: boolean; seq: number }) => void) => () => void
+  /** État de connectivité ACTUEL à la demande — cf. onApiUrl pour les changements suivants. */
+  getConnectivity?: () => Promise<{ url: string; mode: string; online: boolean; seq: number } | null>
   checkForUpdates: () => Promise<void>
   /** Mises à jour automatiques (GitHub Releases) — abonnement au statut + actions. */
   updates: {

@@ -63,11 +63,15 @@ contextBridge.exposeInMainWorld('saris', {
    * quand l'appareil est en ligne (messagerie/temps réel instantanés) et le backend LOCAL
    * SQLite quand il est hors-ligne.
    */
-  onApiUrl: (cb: (s: { url: string; mode: string; online: boolean }) => void): (() => void) => {
-    const listener = (_e: unknown, payload: { url: string; mode: string; online: boolean }): void => cb(payload)
+  onApiUrl: (cb: (s: { url: string; mode: string; online: boolean; seq: number }) => void): (() => void) => {
+    const listener = (_e: unknown, payload: { url: string; mode: string; online: boolean; seq: number }): void => cb(payload)
     ipcRenderer.on('saris:api-url', listener)
     return () => ipcRenderer.removeListener('saris:api-url', listener)
   },
+  /** Interroge l'état de connectivité ACTUEL à la demande (cf. onApiUrl pour les changements
+   *  suivants). À appeler une fois au montage pour hydrater le renderer après un reload. */
+  getConnectivity: (): Promise<{ url: string; mode: string; online: boolean; seq: number } | null> =>
+    ipcRenderer.invoke('saris:get-connectivity'),
   getConfig: (): Promise<{ apiUrl: string; appVersion: string }> => ipcRenderer.invoke('saris:get-config'),
   checkForUpdates: (): Promise<void> => ipcRenderer.invoke('saris:check-updates'),
   /**

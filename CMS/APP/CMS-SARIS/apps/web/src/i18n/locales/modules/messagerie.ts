@@ -96,6 +96,7 @@ export const messagerie = {
     // ── Toasts d'envoi ──────────────────────────────────────────────
     sendError: "Échec de l'envoi",
     voiceSendError: "Échec de l'envoi de la note vocale",
+    sendTimeout: "Délai d'envoi dépassé — vérifiez votre connexion et réessayez",
     updateError: 'Échec de la modification',
     deleteError: 'Échec de la suppression',
     copied: 'Copié',
@@ -349,6 +350,7 @@ export const messagerie = {
     // ── Toasts d'envoi ──────────────────────────────────────────────
     sendError: 'Failed to send',
     voiceSendError: 'Failed to send the voice note',
+    sendTimeout: 'Upload timed out — check your connection and try again',
     updateError: 'Failed to edit',
     deleteError: 'Failed to delete',
     copied: 'Copied',

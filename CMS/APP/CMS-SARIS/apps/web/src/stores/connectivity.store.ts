@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { create } from 'zustand'
 import { BASE_URL, setApiBaseUrl } from '@/lib/api'
+import type { SarisDesktopBridge } from '@/lib/desktop'
 
 type Mode = 'central' | 'local' | 'web'
 
@@ -13,7 +14,9 @@ interface ConnectivityState {
   online: boolean
   /** Incrémenté à CHAQUE bascule → réabonne les flux temps réel (SSE) au bon backend. */
   version: number
-  apply: (apiUrl: string, mode: Mode, online: boolean) => void
+  /** Dernier numéro de séquence appliqué (anti-régression pull/push) — usage interne. */
+  seq: number
+  apply: (apiUrl: string, mode: Mode, online: boolean, seq?: number) => void
 }
 
 /**
@@ -27,28 +30,33 @@ export const useConnectivityStore = create<ConnectivityState>((set, get) => ({
   mode: 'web',
   online: true,
   version: 0,
-  apply: (apiUrl, mode, online) => {
+  seq: -1,
+  apply: (apiUrl, mode, online, seq) => {
+    // Une mise à jour porteuse d'un seq <= au dernier appliqué est PÉRIMÉE (arrivée en
+    // désordre entre le pull initial au montage et un push concurrent) → ignorée.
+    if (typeof seq === 'number' && seq <= get().seq) return
     setApiBaseUrl(apiUrl) // bascule l'URL de TOUS les fetch (liaison vive)
-    set({ apiUrl: (apiUrl || '').replace(/\/+$/, ''), mode, online, version: get().version + 1 })
+    set({ apiUrl: (apiUrl || '').replace(/\/+$/, ''), mode, online, version: get().version + 1, seq: seq ?? get().seq })
   },
 }))
 
-interface SarisBridge {
-  onApiUrl?: (cb: (s: { url: string; mode: Mode; online: boolean }) => void) => () => void
-}
-
 /**
- * Branche la bascule online-first : écoute le process principal qui pousse l'URL active.
- * No-op sur le web (pas de `window.saris`). À appeler UNE seule fois (AppShell).
+ * Branche la bascule online-first : hydrate l'état RÉEL actuel au montage (pull, pour ne pas
+ * rester bloqué sur les valeurs par défaut après un reload/Ctrl+R), puis écoute le process
+ * principal pour les changements suivants (push). No-op sur le web (pas de `window.saris`).
+ * À appeler UNE seule fois (AppShell).
  */
 export function useApiEndpointSwitch(): void {
   const apply = useConnectivityStore((s) => s.apply)
   useEffect(() => {
-    const saris = (window as unknown as { saris?: SarisBridge }).saris
+    const saris = (window as unknown as { saris?: SarisDesktopBridge }).saris
     if (!saris?.onApiUrl) return
     const off = saris.onApiUrl((s) => {
-      if (s && s.url) apply(s.url, s.mode ?? 'central', s.online ?? true)
+      if (s && s.url) apply(s.url, s.mode as Mode ?? 'central', s.online ?? true, s.seq)
     })
+    saris.getConnectivity?.()
+      .then((s) => { if (s && s.url) apply(s.url, s.mode as Mode, s.online, s.seq) })
+      .catch(() => { /* best-effort : ancien build sans getConnectivity, ou erreur IPC */ })
     return off
   }, [apply])
 }
