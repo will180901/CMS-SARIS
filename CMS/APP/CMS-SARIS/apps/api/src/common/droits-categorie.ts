@@ -12,7 +12,11 @@
 import { ForbiddenException } from '@nestjs/common'
 import type { PrismaService } from '../prisma/prisma.service'
 
-export type TypePrestation = 'CONSULTATION' | 'PREMIERS_SOINS' | 'MEDICAMENT' | 'EXAMEN'
+export type TypePrestation =
+  | 'CONSULTATION'
+  | 'PREMIERS_SOINS'
+  | 'MEDICAMENT'
+  | 'EXAMEN'
 
 export async function assertPrestationCouverte(
   prisma: PrismaService,
@@ -20,19 +24,22 @@ export async function assertPrestationCouverte(
   typePrestation: TypePrestation,
 ): Promise<void> {
   const droit = await prisma.droitCategoriePatient.findFirst({
-    where:  { categorieId, typePrestation, couvert: true },
+    where: { categorieId, typePrestation, couvert: true },
     select: { id: true },
   })
   if (droit) return
 
   const cat = await prisma.categoriePatient.findUnique({
-    where: { id: categorieId }, select: { libelle: true },
+    where: { id: categorieId },
+    select: { libelle: true },
   })
   const libelle = cat?.libelle ?? 'cette catégorie'
   const quoi =
-      typePrestation === 'EXAMEN'     ? "aux bons d'examens"
-    : typePrestation === 'MEDICAMENT' ? 'à la prise en charge des médicaments (bon de pharmacie)'
-    : 'à cette prestation'
+    typePrestation === 'EXAMEN'
+      ? "aux bons d'examens"
+      : typePrestation === 'MEDICAMENT'
+        ? 'à la prise en charge des médicaments (bon de pharmacie)'
+        : 'à cette prestation'
   throw new ForbiddenException(
     `La catégorie « ${libelle} » n'ouvre pas droit ${quoi} — réservé au personnel CDI et à leurs ayants droit.`,
   )

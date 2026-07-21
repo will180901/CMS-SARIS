@@ -14,6 +14,7 @@ import { referentielsApi, toggleStatut, isActif } from '../api/referentiels.api'
 import { ApiError, isOfflineQueued } from '@/lib/api'
 import i18n from '@/i18n/config'
 import type {
+  CreateSitePayload, UpdateSitePayload,
   CreateMotifPayload, UpdateMotifPayload,
   CreatePathologiePayload, UpdatePathologiePayload,
   CreateMedicamentPayload, UpdateMedicamentPayload,
@@ -22,7 +23,7 @@ import type {
   CreateTypeConsultationPayload, UpdateTypeConsultationPayload,
 } from '../api/referentiels.api'
 import type {
-  MotifConsultation, PathologieReference,
+  Site, MotifConsultation, PathologieReference,
   MedicamentReference, CategoriePatient, TypeExamen,
   TypeConsultation,
 } from '@cms-saris/types'
@@ -52,14 +53,51 @@ function toastError(err: unknown) {
 //  SITES
 // ══════════════════════════════════════════════════════════════════════════════
 
-// Lecture seule : un site est enregistré une seule fois, à la première
-// installation du poste desktop — plus de création/modification/suppression
-// depuis l'interface (cf. project_rattachements_flux_visite / pivot multi-site).
+// Créé depuis l'assistant de première installation du poste desktop, ou ici (admin
+// web) — même endpoint backend des deux côtés.
 export function useSites() {
   return useQuery({
     queryKey: QUERY_KEYS.sites,
     queryFn:  referentielsApi.sites.list,
     staleTime: 30_000,
+  })
+}
+
+export function useCreateSite() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: CreateSitePayload) => referentielsApi.sites.create(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: QUERY_KEYS.sites })
+      toast.success(i18n.t('referentiels.siteCreated'))
+    },
+    onError: toastError,
+  })
+}
+
+export function useUpdateSite() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateSitePayload }) =>
+      referentielsApi.sites.update(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: QUERY_KEYS.sites })
+      toast.success(i18n.t('referentiels.siteUpdated'))
+    },
+    onError: toastError,
+  })
+}
+
+export function useToggleSiteStatut() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (s: Site) =>
+      referentielsApi.sites.setStatut(s.id, toggleStatut(s.statut) as Site['statut']),
+    onSuccess: (_, s) => {
+      qc.invalidateQueries({ queryKey: QUERY_KEYS.sites })
+      toast.success(isActif(s.statut) ? i18n.t('referentiels.siteDeactivated') : i18n.t('referentiels.siteActivated'))
+    },
+    onError: toastError,
   })
 }
 
@@ -398,6 +436,7 @@ function makeDeleteHook(
   }
 }
 
+export const useDeleteSite        = makeDeleteHook(QUERY_KEYS.sites,      referentielsApi.sites.remove,        'referentiels.siteDeleted')
 export const useDeleteMotif       = makeDeleteHook(QUERY_KEYS.motifs,      referentielsApi.motifs.remove,       'referentiels.motifDeleted')
 export const useDeletePathologie  = makeDeleteHook(QUERY_KEYS.pathologies, referentielsApi.pathologies.remove,  'referentiels.pathoDeleted')
 export const useDeleteMedicament  = makeDeleteHook(QUERY_KEYS.medicaments, referentielsApi.medicaments.remove,  'referentiels.medDeleted')

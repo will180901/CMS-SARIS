@@ -13,6 +13,7 @@ import { useEffect, useRef, useState } from 'react'
 import { FileBarChart, Download, Calendar, Stethoscope, BedSingle, ChevronRight, ChevronLeft } from 'lucide-react'
 import { Card, Skeleton, EmptyState, StatCard, DonutChart, RankedBars, TILE_TONE_MAP, type DonutSlice } from '@/components/saris'
 import { useIsCompact } from '@/hooks/useMediaQuery'
+import { usePermissions } from '@/hooks/usePermissions'
 import { usePersistedState } from '@/hooks/usePersistedState'
 import { formatDate } from '@/lib/intl'
 import { useRapports, useRapport } from '../hooks/useRapports'
@@ -35,6 +36,8 @@ const LIST_MIN = 260, LIST_MAX = 420, LIST_DEFAULT = 320
 
 export function RapportsPage() {
   const isCompact = useIsCompact()
+  const { has } = usePermissions()
+  const canExport = has('rapport.export')
   const [filtreType, setFiltreType] = usePersistedState<TypeRapport | 'ALL'>('rapports', 'filtreType', 'ALL')
   const { data: rapports = [], isLoading } = useRapports()
   const [selectedId, setSelectedId] = usePersistedState<string | null>('rapports', 'selectedId', null)
@@ -218,9 +221,13 @@ export function RapportsPage() {
                 title={`${TYPE_LABEL[detail.type]} — ${formatDate(detail.periodeDebut, { day: '2-digit', month: 'long', year: 'numeric' })} → ${formatDate(detail.periodeFin, { day: '2-digit', month: 'long', year: 'numeric' })}`}
                 subtitle={`${detail.contenu.totalConsultations} consultation${detail.contenu.totalConsultations > 1 ? 's' : ''} · ${detail.contenu.repos.totalJours} jour(s) de repos prescrits`}
                 actions={
-                  <button type="button" onClick={() => void exportStatsXlsx(detail.contenu)} style={rapportExportBtn}>
-                    <Download size={12} /> Excel
-                  </button>
+                  // L'export est produit entièrement côté navigateur (aucune route à
+                  // garder) : `rapport.export` s'applique ICI.
+                  canExport ? (
+                    <button type="button" onClick={() => void exportStatsXlsx(detail.contenu)} style={rapportExportBtn}>
+                      <Download size={12} /> Excel
+                    </button>
+                  ) : null
                 }
               />
               <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--espace-6)', display: 'flex', flexDirection: 'column', gap: 'var(--espace-6)' }}>

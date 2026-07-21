@@ -17,7 +17,7 @@ import { initAutoUpdater, checkForUpdates, downloadUpdate, quitAndInstall } from
 import { startBackend, findFreePort, stopBackend } from './backend'
 import { ensureDb } from './db-init'
 import {
-  isSyncConfigured, authenticateSync, listPendingSites, finalizeSyncSetup, discardPendingAuth,
+  isSyncConfigured, authenticateSync, listPendingSites, createPendingSite, finalizeSyncSetup, discardPendingAuth,
   refreshAccessToken, startRefreshTimer, stopRefreshTimer,
   clearSync, getPosteLocalId, getPosteLibelle, syncTokenFilePath,
 } from './sync-auth'
@@ -343,6 +343,11 @@ function registerIpc(): void {
       return { ok: false as const, error: (e as Error).message }
     }
   })
+
+  ipcMain.handle('saris:sync-create-site', async (
+    _e,
+    params: { code: string; libelle: string; localisation?: string },
+  ) => createPendingSite(params))
 
   ipcMain.handle('saris:sync-finalize', (_e, params: { siteId: string; posteLibelle?: string }) => {
     const res = finalizeSyncSetup(params.siteId, params.posteLibelle)

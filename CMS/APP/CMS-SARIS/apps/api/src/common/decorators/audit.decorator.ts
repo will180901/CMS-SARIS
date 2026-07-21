@@ -9,7 +9,10 @@ import { SetMetadata } from '@nestjs/common'
  * paramètres, sécurité) → éviter le double enregistrement. Réservé aux modules
  * cliniques / configuration sans audit explicite.
  */
-export interface AuditMeta { module: string; entiteType?: string }
+export interface AuditMeta {
+  module: string
+  entiteType?: string
+}
 export const AUDIT_KEY = 'audit_meta'
 export const Audit = (module: string, entiteType?: string) =>
   SetMetadata(AUDIT_KEY, { module, entiteType } as AuditMeta)

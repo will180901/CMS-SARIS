@@ -1,13 +1,34 @@
-import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common'
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
 import { CI } from '../../common/prisma/search'
-import type { ListQueryDto }             from './dto/list-query.dto'
-import type { CreateMotifDto, UpdateMotifDto }                       from './dto/motif.dto'
-import type { CreatePathologieDto, UpdatePathologieDto }             from './dto/pathologie.dto'
-import type { CreateMedicamentDto, UpdateMedicamentDto }             from './dto/medicament.dto'
-import type { CreateCategoriePatientDto, UpdateCategoriePatientDto } from './dto/categorie-patient.dto'
-import type { CreateTypeExamenDto, UpdateTypeExamenDto }             from './dto/type-examen.dto'
-import type { CreateTypeConsultationDto, UpdateTypeConsultationDto } from './dto/type-consultation.dto'
+import type { ListQueryDto } from './dto/list-query.dto'
+import type { CreateSiteDto, UpdateSiteDto } from './dto/site.dto'
+import type { CreateMotifDto, UpdateMotifDto } from './dto/motif.dto'
+import type {
+  CreatePathologieDto,
+  UpdatePathologieDto,
+} from './dto/pathologie.dto'
+import type {
+  CreateMedicamentDto,
+  UpdateMedicamentDto,
+} from './dto/medicament.dto'
+import type {
+  CreateCategoriePatientDto,
+  UpdateCategoriePatientDto,
+} from './dto/categorie-patient.dto'
+import type {
+  CreateTypeExamenDto,
+  UpdateTypeExamenDto,
+} from './dto/type-examen.dto'
+import type {
+  CreateTypeConsultationDto,
+  UpdateTypeConsultationDto,
+} from './dto/type-consultation.dto'
 
 /**
  * Normalise un statut reçu côté API vers l'enum attendu par l'entité.
@@ -15,14 +36,18 @@ import type { CreateTypeConsultationDto, UpdateTypeConsultationDto } from './dto
  * les autres utilisent ACTIF/INACTIF.
  */
 function toEnumActifInactif(statut: string): 'ACTIF' | 'INACTIF' {
-  if (statut === 'ACTIF' || statut === 'ACTIVE')   return 'ACTIF'
+  if (statut === 'ACTIF' || statut === 'ACTIVE') return 'ACTIF'
   if (statut === 'INACTIF' || statut === 'INACTIVE') return 'INACTIF'
-  throw new BadRequestException(`Statut "${statut}" invalide (attendu ACTIF/INACTIF)`)
+  throw new BadRequestException(
+    `Statut "${statut}" invalide (attendu ACTIF/INACTIF)`,
+  )
 }
 function toEnumActiveInactive(statut: string): 'ACTIVE' | 'INACTIVE' {
-  if (statut === 'ACTIVE' || statut === 'ACTIF')   return 'ACTIVE'
+  if (statut === 'ACTIVE' || statut === 'ACTIF') return 'ACTIVE'
   if (statut === 'INACTIVE' || statut === 'INACTIF') return 'INACTIVE'
-  throw new BadRequestException(`Statut "${statut}" invalide (attendu ACTIVE/INACTIVE)`)
+  throw new BadRequestException(
+    `Statut "${statut}" invalide (attendu ACTIVE/INACTIVE)`,
+  )
 }
 
 @Injectable()
@@ -30,18 +55,20 @@ export class ReferentielsService {
   constructor(private readonly prisma: PrismaService) {}
 
   // ══════════════════════════════════════════════════════════════════════════
-  //  SITES — lecture seule (enregistrement unique à l'installation du poste)
+  //  SITES — créés depuis l'assistant de première installation du poste desktop
+  //  (ou l'admin web) ; code verrouillé après création (pilote le préfixe de
+  //  numérotation des dossiers patients, cf. PatientService.generateNumeroPatient).
   // ══════════════════════════════════════════════════════════════════════════
 
   findAllSites(query: ListQueryDto = {}) {
     return this.prisma.site.findMany({
       where: {
-        ...(query.statut  && { statut: query.statut }),
-        ...(query.search  && {
+        ...(query.statut && { statut: query.statut }),
+        ...(query.search && {
           OR: [
-            { libelle:     { contains: query.search, ...CI } },
-            { code:        { contains: query.search, ...CI } },
-            { localisation:{ contains: query.search, ...CI } },
+            { libelle: { contains: query.search, ...CI } },
+            { code: { contains: query.search, ...CI } },
+            { localisation: { contains: query.search, ...CI } },
           ],
         }),
       },
@@ -55,6 +82,55 @@ export class ReferentielsService {
     return site
   }
 
+  async createSite(dto: CreateSiteDto) {
+    const prefix = dto.code.slice(0, 3).toUpperCase()
+
+    // Collision de PRÉFIXE avec un AUTRE site (confusion possible dans la numérotation
+    // des dossiers patients PAT-<préfixe>-xxxxx). Vérifié sur TOUS les sites, y compris
+    // désactivés/soft-supprimés (`.raw`), car leurs patients historiques portent encore
+    // ce préfixe.
+    const autresSites = await this.prisma.raw.site.findMany({
+      where: { code: { not: dto.code } },
+      select: { code: true, libelle: true },
+    })
+    const collision = autresSites.find(
+      s => s.code.slice(0, 3).toUpperCase() === prefix,
+    )
+    if (collision) {
+      throw new ConflictException(
+        `Le code "${dto.code}" produirait le préfixe "${prefix}" (3 premières lettres), ` +
+          `déjà utilisé par le site "${collision.libelle}" (${collision.code}) pour la ` +
+          `numérotation des dossiers patients (PAT-${prefix}-xxxxx). Choisissez un code ` +
+          'dont les 3 premières lettres diffèrent.',
+      )
+    }
+
+    const existing = await this.prisma.raw.site.findUnique({ where: { code: dto.code } })
+    if (existing && !existing.deletedAt)
+      throw new ConflictException(`Code site "${dto.code}" déjà utilisé`)
+    if (existing)
+      return this.prisma.site.update({
+        where: { id: existing.id },
+        data: { ...dto, deletedAt: null },
+      })
+    return this.prisma.site.create({ data: dto })
+  }
+
+  async updateSite(id: string, dto: UpdateSiteDto) {
+    const existing = await this.prisma.site.findUnique({ where: { id } })
+    if (!existing) throw new NotFoundException(`Site ${id} introuvable`)
+    return this.prisma.site.update({ where: { id }, data: dto })
+  }
+
+  async setStatutSite(id: string, statut: string) {
+    const existing = await this.prisma.site.findUnique({ where: { id } })
+    if (!existing) throw new NotFoundException(`Site ${id} introuvable`)
+    return this.prisma.site.update({
+      where: { id },
+      data: { statut: toEnumActifInactif(statut) },
+    })
+  }
+
   // ══════════════════════════════════════════════════════════════════════════
   //  MOTIFS DE CONSULTATION
   // ══════════════════════════════════════════════════════════════════════════
@@ -66,7 +142,7 @@ export class ReferentielsService {
         ...(query.search && {
           OR: [
             { libelle: { contains: query.search, ...CI } },
-            { code:    { contains: query.search, ...CI } },
+            { code: { contains: query.search, ...CI } },
           ],
         }),
       },
@@ -75,22 +151,36 @@ export class ReferentielsService {
   }
 
   async createMotif(dto: CreateMotifDto) {
-    const existing = await this.prisma.raw.motifConsultation.findUnique({ where: { code: dto.code } })
-    if (existing && !existing.deletedAt) throw new ConflictException(`Code motif "${dto.code}" déjà utilisé`)
-    if (existing) return this.prisma.motifConsultation.update({ where: { id: existing.id }, data: { ...dto, deletedAt: null } })
+    const existing = await this.prisma.raw.motifConsultation.findUnique({
+      where: { code: dto.code },
+    })
+    if (existing && !existing.deletedAt)
+      throw new ConflictException(`Code motif "${dto.code}" déjà utilisé`)
+    if (existing)
+      return this.prisma.motifConsultation.update({
+        where: { id: existing.id },
+        data: { ...dto, deletedAt: null },
+      })
     return this.prisma.motifConsultation.create({ data: dto })
   }
 
   async updateMotif(id: string, dto: UpdateMotifDto) {
-    const existing = await this.prisma.motifConsultation.findUnique({ where: { id } })
+    const existing = await this.prisma.motifConsultation.findUnique({
+      where: { id },
+    })
     if (!existing) throw new NotFoundException(`Motif ${id} introuvable`)
     return this.prisma.motifConsultation.update({ where: { id }, data: dto })
   }
 
   async setStatutMotif(id: string, statut: string) {
-    const existing = await this.prisma.motifConsultation.findUnique({ where: { id } })
+    const existing = await this.prisma.motifConsultation.findUnique({
+      where: { id },
+    })
     if (!existing) throw new NotFoundException(`Motif ${id} introuvable`)
-    return this.prisma.motifConsultation.update({ where: { id }, data: { statut: toEnumActifInactif(statut) } })
+    return this.prisma.motifConsultation.update({
+      where: { id },
+      data: { statut: toEnumActifInactif(statut) },
+    })
   }
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -104,7 +194,7 @@ export class ReferentielsService {
         ...(query.search && {
           OR: [
             { libelle: { contains: query.search, ...CI } },
-            { code:    { contains: query.search, ...CI } },
+            { code: { contains: query.search, ...CI } },
           ],
         }),
       },
@@ -113,22 +203,38 @@ export class ReferentielsService {
   }
 
   async createPathologie(dto: CreatePathologieDto) {
-    const existing = await this.prisma.raw.pathologieReference.findUnique({ where: { code: dto.code } })
-    if (existing && !existing.deletedAt) throw new ConflictException(`Code pathologie "${dto.code}" déjà utilisé`)
-    if (existing) return this.prisma.pathologieReference.update({ where: { id: existing.id }, data: { ...dto, chronique: dto.chronique ?? false, deletedAt: null } })
-    return this.prisma.pathologieReference.create({ data: { ...dto, chronique: dto.chronique ?? false } })
+    const existing = await this.prisma.raw.pathologieReference.findUnique({
+      where: { code: dto.code },
+    })
+    if (existing && !existing.deletedAt)
+      throw new ConflictException(`Code pathologie "${dto.code}" déjà utilisé`)
+    if (existing)
+      return this.prisma.pathologieReference.update({
+        where: { id: existing.id },
+        data: { ...dto, chronique: dto.chronique ?? false, deletedAt: null },
+      })
+    return this.prisma.pathologieReference.create({
+      data: { ...dto, chronique: dto.chronique ?? false },
+    })
   }
 
   async updatePathologie(id: string, dto: UpdatePathologieDto) {
-    const existing = await this.prisma.pathologieReference.findUnique({ where: { id } })
+    const existing = await this.prisma.pathologieReference.findUnique({
+      where: { id },
+    })
     if (!existing) throw new NotFoundException(`Pathologie ${id} introuvable`)
     return this.prisma.pathologieReference.update({ where: { id }, data: dto })
   }
 
   async setStatutPathologie(id: string, statut: string) {
-    const existing = await this.prisma.pathologieReference.findUnique({ where: { id } })
+    const existing = await this.prisma.pathologieReference.findUnique({
+      where: { id },
+    })
     if (!existing) throw new NotFoundException(`Pathologie ${id} introuvable`)
-    return this.prisma.pathologieReference.update({ where: { id }, data: { statut: toEnumActiveInactive(statut) } })
+    return this.prisma.pathologieReference.update({
+      where: { id },
+      data: { statut: toEnumActiveInactive(statut) },
+    })
   }
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -141,9 +247,9 @@ export class ReferentielsService {
         ...(query.statut && { statut: query.statut }),
         ...(query.search && {
           OR: [
-            { nomGenerique:  { contains: query.search, ...CI } },
+            { nomGenerique: { contains: query.search, ...CI } },
             { nomCommercial: { contains: query.search, ...CI } },
-            { familleThera:  { contains: query.search, ...CI } },
+            { familleThera: { contains: query.search, ...CI } },
           ],
         }),
       },
@@ -156,15 +262,22 @@ export class ReferentielsService {
   }
 
   async updateMedicament(id: string, dto: UpdateMedicamentDto) {
-    const existing = await this.prisma.medicamentReference.findUnique({ where: { id } })
+    const existing = await this.prisma.medicamentReference.findUnique({
+      where: { id },
+    })
     if (!existing) throw new NotFoundException(`Médicament ${id} introuvable`)
     return this.prisma.medicamentReference.update({ where: { id }, data: dto })
   }
 
   async setStatutMedicament(id: string, statut: string) {
-    const existing = await this.prisma.medicamentReference.findUnique({ where: { id } })
+    const existing = await this.prisma.medicamentReference.findUnique({
+      where: { id },
+    })
     if (!existing) throw new NotFoundException(`Médicament ${id} introuvable`)
-    return this.prisma.medicamentReference.update({ where: { id }, data: { statut: toEnumActifInactif(statut) } })
+    return this.prisma.medicamentReference.update({
+      where: { id },
+      data: { statut: toEnumActifInactif(statut) },
+    })
   }
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -178,7 +291,7 @@ export class ReferentielsService {
         ...(query.search && {
           OR: [
             { libelle: { contains: query.search, ...CI } },
-            { code:    { contains: query.search, ...CI } },
+            { code: { contains: query.search, ...CI } },
           ],
         }),
       },
@@ -197,36 +310,59 @@ export class ReferentielsService {
    */
   async findDroitsCategoriesPatient() {
     const droits = await this.prisma.droitCategoriePatient.findMany({
-      where:  { typePrestation: { in: ['EXAMEN', 'MEDICAMENT'] } },
+      where: { typePrestation: { in: ['EXAMEN', 'MEDICAMENT'] } },
       select: { categorieId: true, typePrestation: true, couvert: true },
     })
-    const parCategorie = new Map<string, { bonExamen: boolean; bonPharmacie: boolean }>()
+    const parCategorie = new Map<
+      string,
+      { bonExamen: boolean; bonPharmacie: boolean }
+    >()
     for (const d of droits) {
-      const entry = parCategorie.get(d.categorieId) ?? { bonExamen: false, bonPharmacie: false }
-      if (d.typePrestation === 'EXAMEN')     entry.bonExamen    = d.couvert
+      const entry = parCategorie.get(d.categorieId) ?? {
+        bonExamen: false,
+        bonPharmacie: false,
+      }
+      if (d.typePrestation === 'EXAMEN') entry.bonExamen = d.couvert
       if (d.typePrestation === 'MEDICAMENT') entry.bonPharmacie = d.couvert
       parCategorie.set(d.categorieId, entry)
     }
-    return [...parCategorie.entries()].map(([categorieId, droits]) => ({ categorieId, ...droits }))
+    return [...parCategorie.entries()].map(([categorieId, droits]) => ({
+      categorieId,
+      ...droits,
+    }))
   }
 
   async createCategoriePatient(dto: CreateCategoriePatientDto) {
-    const existing = await this.prisma.raw.categoriePatient.findUnique({ where: { code: dto.code } })
-    if (existing && !existing.deletedAt) throw new ConflictException(`Code catégorie "${dto.code}" déjà utilisé`)
-    if (existing) return this.prisma.categoriePatient.update({ where: { id: existing.id }, data: { ...dto, deletedAt: null } })
+    const existing = await this.prisma.raw.categoriePatient.findUnique({
+      where: { code: dto.code },
+    })
+    if (existing && !existing.deletedAt)
+      throw new ConflictException(`Code catégorie "${dto.code}" déjà utilisé`)
+    if (existing)
+      return this.prisma.categoriePatient.update({
+        where: { id: existing.id },
+        data: { ...dto, deletedAt: null },
+      })
     return this.prisma.categoriePatient.create({ data: dto })
   }
 
   async updateCategoriePatient(id: string, dto: UpdateCategoriePatientDto) {
-    const existing = await this.prisma.categoriePatient.findUnique({ where: { id } })
+    const existing = await this.prisma.categoriePatient.findUnique({
+      where: { id },
+    })
     if (!existing) throw new NotFoundException(`Catégorie ${id} introuvable`)
     return this.prisma.categoriePatient.update({ where: { id }, data: dto })
   }
 
   async setStatutCategoriePatient(id: string, statut: string) {
-    const existing = await this.prisma.categoriePatient.findUnique({ where: { id } })
+    const existing = await this.prisma.categoriePatient.findUnique({
+      where: { id },
+    })
     if (!existing) throw new NotFoundException(`Catégorie ${id} introuvable`)
-    return this.prisma.categoriePatient.update({ where: { id }, data: { statut: toEnumActiveInactive(statut) } })
+    return this.prisma.categoriePatient.update({
+      where: { id },
+      data: { statut: toEnumActiveInactive(statut) },
+    })
   }
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -240,7 +376,7 @@ export class ReferentielsService {
         ...(query.search && {
           OR: [
             { libelle: { contains: query.search, ...CI } },
-            { code:    { contains: query.search, ...CI } },
+            { code: { contains: query.search, ...CI } },
             { domaine: { contains: query.search, ...CI } },
           ],
         }),
@@ -250,9 +386,16 @@ export class ReferentielsService {
   }
 
   async createTypeExamen(dto: CreateTypeExamenDto) {
-    const existing = await this.prisma.raw.typeExamen.findUnique({ where: { code: dto.code } })
-    if (existing && !existing.deletedAt) throw new ConflictException(`Code type examen "${dto.code}" déjà utilisé`)
-    if (existing) return this.prisma.typeExamen.update({ where: { id: existing.id }, data: { ...dto, deletedAt: null } })
+    const existing = await this.prisma.raw.typeExamen.findUnique({
+      where: { code: dto.code },
+    })
+    if (existing && !existing.deletedAt)
+      throw new ConflictException(`Code type examen "${dto.code}" déjà utilisé`)
+    if (existing)
+      return this.prisma.typeExamen.update({
+        where: { id: existing.id },
+        data: { ...dto, deletedAt: null },
+      })
     return this.prisma.typeExamen.create({ data: dto })
   }
 
@@ -265,7 +408,10 @@ export class ReferentielsService {
   async setStatutTypeExamen(id: string, statut: string) {
     const existing = await this.prisma.typeExamen.findUnique({ where: { id } })
     if (!existing) throw new NotFoundException(`Type examen ${id} introuvable`)
-    return this.prisma.typeExamen.update({ where: { id }, data: { statut: toEnumActifInactif(statut) } })
+    return this.prisma.typeExamen.update({
+      where: { id },
+      data: { statut: toEnumActifInactif(statut) },
+    })
   }
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -279,7 +425,7 @@ export class ReferentielsService {
         ...(query.search && {
           OR: [
             { libelle: { contains: query.search, ...CI } },
-            { code:    { contains: query.search, ...CI } },
+            { code: { contains: query.search, ...CI } },
           ],
         }),
       },
@@ -288,22 +434,40 @@ export class ReferentielsService {
   }
 
   async createTypeConsultation(dto: CreateTypeConsultationDto) {
-    const existing = await this.prisma.raw.typeConsultation.findUnique({ where: { code: dto.code } })
-    if (existing && !existing.deletedAt) throw new ConflictException(`Code type consultation "${dto.code}" déjà utilisé`)
-    if (existing) return this.prisma.typeConsultation.update({ where: { id: existing.id }, data: { ...dto, deletedAt: null } })
+    const existing = await this.prisma.raw.typeConsultation.findUnique({
+      where: { code: dto.code },
+    })
+    if (existing && !existing.deletedAt)
+      throw new ConflictException(
+        `Code type consultation "${dto.code}" déjà utilisé`,
+      )
+    if (existing)
+      return this.prisma.typeConsultation.update({
+        where: { id: existing.id },
+        data: { ...dto, deletedAt: null },
+      })
     return this.prisma.typeConsultation.create({ data: dto })
   }
 
   async updateTypeConsultation(id: string, dto: UpdateTypeConsultationDto) {
-    const existing = await this.prisma.typeConsultation.findUnique({ where: { id } })
-    if (!existing) throw new NotFoundException(`Type consultation ${id} introuvable`)
+    const existing = await this.prisma.typeConsultation.findUnique({
+      where: { id },
+    })
+    if (!existing)
+      throw new NotFoundException(`Type consultation ${id} introuvable`)
     return this.prisma.typeConsultation.update({ where: { id }, data: dto })
   }
 
   async setStatutTypeConsultation(id: string, statut: string) {
-    const existing = await this.prisma.typeConsultation.findUnique({ where: { id } })
-    if (!existing) throw new NotFoundException(`Type consultation ${id} introuvable`)
-    return this.prisma.typeConsultation.update({ where: { id }, data: { statut: toEnumActifInactif(statut) } })
+    const existing = await this.prisma.typeConsultation.findUnique({
+      where: { id },
+    })
+    if (!existing)
+      throw new NotFoundException(`Type consultation ${id} introuvable`)
+    return this.prisma.typeConsultation.update({
+      where: { id },
+      data: { statut: toEnumActifInactif(statut) },
+    })
   }
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -318,46 +482,73 @@ export class ReferentielsService {
       if (e?.code === 'P2003' || e?.code === 'P2014') {
         throw new ConflictException(
           `Suppression impossible : ${label} est référencé(e) par des données existantes. ` +
-          'Désactivez-le plutôt (changement de statut).',
+            'Désactivez-le plutôt (changement de statut).',
         )
       }
       throw e
     }
   }
 
+  async deleteSite(id: string) {
+    if (!(await this.prisma.site.findUnique({ where: { id } })))
+      throw new NotFoundException(`Site ${id} introuvable`)
+    await this.hardDelete('ce site', () =>
+      this.prisma.site.delete({ where: { id } }),
+    )
+    return { id, deleted: true }
+  }
+
   async deleteMotif(id: string) {
-    if (!await this.prisma.motifConsultation.findUnique({ where: { id } })) throw new NotFoundException(`Motif ${id} introuvable`)
-    await this.hardDelete('ce motif', () => this.prisma.motifConsultation.delete({ where: { id } }))
+    if (!(await this.prisma.motifConsultation.findUnique({ where: { id } })))
+      throw new NotFoundException(`Motif ${id} introuvable`)
+    await this.hardDelete('ce motif', () =>
+      this.prisma.motifConsultation.delete({ where: { id } }),
+    )
     return { id, deleted: true }
   }
 
   async deletePathologie(id: string) {
-    if (!await this.prisma.pathologieReference.findUnique({ where: { id } })) throw new NotFoundException(`Pathologie ${id} introuvable`)
-    await this.hardDelete('cette pathologie', () => this.prisma.pathologieReference.delete({ where: { id } }))
+    if (!(await this.prisma.pathologieReference.findUnique({ where: { id } })))
+      throw new NotFoundException(`Pathologie ${id} introuvable`)
+    await this.hardDelete('cette pathologie', () =>
+      this.prisma.pathologieReference.delete({ where: { id } }),
+    )
     return { id, deleted: true }
   }
 
   async deleteMedicament(id: string) {
-    if (!await this.prisma.medicamentReference.findUnique({ where: { id } })) throw new NotFoundException(`Médicament ${id} introuvable`)
-    await this.hardDelete('ce médicament', () => this.prisma.medicamentReference.delete({ where: { id } }))
+    if (!(await this.prisma.medicamentReference.findUnique({ where: { id } })))
+      throw new NotFoundException(`Médicament ${id} introuvable`)
+    await this.hardDelete('ce médicament', () =>
+      this.prisma.medicamentReference.delete({ where: { id } }),
+    )
     return { id, deleted: true }
   }
 
   async deleteCategoriePatient(id: string) {
-    if (!await this.prisma.categoriePatient.findUnique({ where: { id } })) throw new NotFoundException(`Catégorie ${id} introuvable`)
-    await this.hardDelete('cette catégorie', () => this.prisma.categoriePatient.delete({ where: { id } }))
+    if (!(await this.prisma.categoriePatient.findUnique({ where: { id } })))
+      throw new NotFoundException(`Catégorie ${id} introuvable`)
+    await this.hardDelete('cette catégorie', () =>
+      this.prisma.categoriePatient.delete({ where: { id } }),
+    )
     return { id, deleted: true }
   }
 
   async deleteTypeExamen(id: string) {
-    if (!await this.prisma.typeExamen.findUnique({ where: { id } })) throw new NotFoundException(`Type examen ${id} introuvable`)
-    await this.hardDelete('ce type d\'examen', () => this.prisma.typeExamen.delete({ where: { id } }))
+    if (!(await this.prisma.typeExamen.findUnique({ where: { id } })))
+      throw new NotFoundException(`Type examen ${id} introuvable`)
+    await this.hardDelete("ce type d'examen", () =>
+      this.prisma.typeExamen.delete({ where: { id } }),
+    )
     return { id, deleted: true }
   }
 
   async deleteTypeConsultation(id: string) {
-    if (!await this.prisma.typeConsultation.findUnique({ where: { id } })) throw new NotFoundException(`Type consultation ${id} introuvable`)
-    await this.hardDelete('ce type de consultation', () => this.prisma.typeConsultation.delete({ where: { id } }))
+    if (!(await this.prisma.typeConsultation.findUnique({ where: { id } })))
+      throw new NotFoundException(`Type consultation ${id} introuvable`)
+    await this.hardDelete('ce type de consultation', () =>
+      this.prisma.typeConsultation.delete({ where: { id } }),
+    )
     return { id, deleted: true }
   }
 }

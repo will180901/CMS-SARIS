@@ -48,22 +48,34 @@ export class DashboardService {
     const startOfYesterday = daysAgo(1)
 
     const [
-      visitesAttente, visitesEnCours, visitesCloturees, visitesAnnulees,
-      consultActives, consultClotureesJour,
+      visitesAttente,
+      visitesEnCours,
+      visitesCloturees,
+      visitesAnnulees,
+      consultActives,
+      consultClotureesJour,
       ordValidesJour,
       bonsAttente,
       evacEnCours,
       visitesHier,
     ] = await Promise.all([
       this.prisma.visite.count({ where: { statut: 'EN_ATTENTE' } }),
-      this.prisma.visite.count({ where: { statut: 'EN_COURS'   } }),
-      this.prisma.visite.count({ where: { statut: 'CLOTUREE', dateOuverture: { gte: startOfDay } } }),
-      this.prisma.visite.count({ where: { statut: 'ANNULEE',  dateOuverture: { gte: startOfDay } } }),
+      this.prisma.visite.count({ where: { statut: 'EN_COURS' } }),
+      this.prisma.visite.count({
+        where: { statut: 'CLOTUREE', dateOuverture: { gte: startOfDay } },
+      }),
+      this.prisma.visite.count({
+        where: { statut: 'ANNULEE', dateOuverture: { gte: startOfDay } },
+      }),
 
       this.prisma.consultation.count({ where: { statut: 'OUVERTE' } }),
-      this.prisma.consultation.count({ where: { statut: 'CLOTUREE', closedAt: { gte: startOfDay } } }),
+      this.prisma.consultation.count({
+        where: { statut: 'CLOTUREE', closedAt: { gte: startOfDay } },
+      }),
 
-      this.prisma.ordonnance.count({ where: { statut: 'VALIDEE', createdAt: { gte: startOfDay } } }),
+      this.prisma.ordonnance.count({
+        where: { statut: 'VALIDEE', createdAt: { gte: startOfDay } },
+      }),
 
       this.prisma.bonExamen.count({ where: { statut: 'EN_ATTENTE' } }),
 
@@ -74,31 +86,47 @@ export class DashboardService {
       }),
     ])
 
-    const visitesAujourdhui = visitesAttente + visitesEnCours + visitesCloturees + visitesAnnulees
+    const visitesAujourdhui =
+      visitesAttente + visitesEnCours + visitesCloturees + visitesAnnulees
 
     // ── Temps moyen d'attente (min) sur les visites clôturées du jour ──
     const visitesCloAvecDate = await this.prisma.visite.findMany({
-      where:  { statut: 'CLOTUREE', dateCloture: { not: null, gte: startOfDay } },
+      where: {
+        statut: 'CLOTUREE',
+        dateCloture: { not: null, gte: startOfDay },
+      },
       select: { dateOuverture: true, dateCloture: true },
     })
-    const tempsAttenteMoyenMin = visitesCloAvecDate.length === 0
-      ? null
-      : Math.round(
-          visitesCloAvecDate.reduce(
-            (acc, v) => acc + (v.dateCloture!.getTime() - v.dateOuverture.getTime()), 0,
-          ) / visitesCloAvecDate.length / 60_000,
-        )
+    const tempsAttenteMoyenMin =
+      visitesCloAvecDate.length === 0
+        ? null
+        : Math.round(
+            visitesCloAvecDate.reduce(
+              (acc, v) =>
+                acc + (v.dateCloture!.getTime() - v.dateOuverture.getTime()),
+              0,
+            ) /
+              visitesCloAvecDate.length /
+              60_000,
+          )
 
     return {
-      visitesAujourdhui, visitesAttente, visitesEnCours, visitesCloturees, visitesAnnulees,
+      visitesAujourdhui,
+      visitesAttente,
+      visitesEnCours,
+      visitesCloturees,
+      visitesAnnulees,
       visitesHier,
-      tendanceVisitesPct: visitesHier === 0 ? null : Math.round(((visitesAujourdhui - visitesHier) / visitesHier) * 100),
+      tendanceVisitesPct:
+        visitesHier === 0
+          ? null
+          : Math.round(((visitesAujourdhui - visitesHier) / visitesHier) * 100),
       tempsAttenteMoyenMin,
-      consultationsActives:       consultActives,
+      consultationsActives: consultActives,
       consultationsClotureesJour: consultClotureesJour,
-      ordonnancesValideesJour:    ordValidesJour,
-      bonsExamenAttente:          bonsAttente,
-      evacuationsEnCours:         evacEnCours,
+      ordonnancesValideesJour: ordValidesJour,
+      bonsExamenAttente: bonsAttente,
+      evacuationsEnCours: evacEnCours,
     }
   }
 
@@ -106,14 +134,15 @@ export class DashboardService {
   async getActivityTrend(jours = 14) {
     const debut = daysAgo(jours - 1)
     const visites = await this.prisma.visite.findMany({
-      where:  { dateOuverture: { gte: debut } },
+      where: { dateOuverture: { gte: debut } },
       select: { dateOuverture: true, statut: true },
     })
 
     // Comptage par jour (toutes / clôturées)
     const parJour = new Map<string, { total: number; cloturees: number }>()
     for (let i = 0; i < jours; i++) {
-      const d = new Date(debut); d.setDate(debut.getDate() + i)
+      const d = new Date(debut)
+      d.setDate(debut.getDate() + i)
       parJour.set(dayKey(d), { total: 0, cloturees: 0 })
     }
     for (const v of visites) {
@@ -126,8 +155,8 @@ export class DashboardService {
     }
 
     return [...parJour.entries()].map(([date, c]) => ({
-      date,                       // YYYY-MM-DD
-      visites:   c.total,
+      date, // YYYY-MM-DD
+      visites: c.total,
       cloturees: c.cloturees,
     }))
   }
@@ -136,21 +165,23 @@ export class DashboardService {
   async getHourlyAffluence() {
     const startOfDay = startOfToday()
     const visites = await this.prisma.visite.findMany({
-      where:  { dateOuverture: { gte: startOfDay } },
+      where: { dateOuverture: { gte: startOfDay } },
       select: { dateOuverture: true },
     })
 
     // On présente la plage d'ouverture typique d'un centre (6h → 20h).
-    const HEURE_MIN = 6, HEURE_MAX = 20
+    const HEURE_MIN = 6,
+      HEURE_MAX = 20
     const buckets = new Map<number, number>()
     for (let h = HEURE_MIN; h <= HEURE_MAX; h++) buckets.set(h, 0)
     for (const v of visites) {
       const h = v.dateOuverture.getHours()
-      if (h >= HEURE_MIN && h <= HEURE_MAX) buckets.set(h, (buckets.get(h) ?? 0) + 1)
+      if (h >= HEURE_MIN && h <= HEURE_MAX)
+        buckets.set(h, (buckets.get(h) ?? 0) + 1)
     }
 
     return [...buckets.entries()].map(([heure, count]) => ({
-      heure,                                   // 6..20
+      heure, // 6..20
       label: `${String(heure).padStart(2, '0')}h`,
       count,
     }))
@@ -169,14 +200,14 @@ export class DashboardService {
     if (rows.length === 0) return []
 
     const motifs = await this.prisma.motifConsultation.findMany({
-      where: { id: { in: rows.map(r => r.motifPrincipalId) } },
+      where: { id: { in: rows.map((r) => r.motifPrincipalId) } },
       select: { id: true, libelle: true },
     })
-    const map = new Map(motifs.map(m => [m.id, m]))
-    return rows.map(r => ({
-      motifId:  r.motifPrincipalId,
-      libelle:  map.get(r.motifPrincipalId)?.libelle ?? '—',
-      count:    r._count._all,
+    const map = new Map(motifs.map((m) => [m.id, m]))
+    return rows.map((r) => ({
+      motifId: r.motifPrincipalId,
+      libelle: map.get(r.motifPrincipalId)?.libelle ?? '—',
+      count: r._count._all,
     }))
   }
 
@@ -186,7 +217,10 @@ export class DashboardService {
       where: { statut: 'EN_ATTENTE' },
       include: {
         patient: {
-          select: { numeroPatient: true, identite: { select: { nom: true, prenom: true } } },
+          select: {
+            numeroPatient: true,
+            identite: { select: { nom: true, prenom: true } },
+          },
         },
         motifPrincipal: { select: { id: true, code: true, libelle: true } },
       },
@@ -201,52 +235,72 @@ export class DashboardService {
 
   async getAdminSystemStats() {
     const since24h = new Date(Date.now() - 24 * 60 * 60_000)
-    const since7j  = daysAgo(6)
+    const since7j = daysAgo(6)
 
-    const [comptesActifs, comptesBloques, comptesDesactives, totalRoles, echecs24h, totalSessions] =
-      await Promise.all([
-        this.prisma.utilisateur.count({ where: { statut: 'ACTIF' } }),
-        this.prisma.utilisateur.count({ where: { statut: 'BLOQUE' } }),
-        this.prisma.utilisateur.count({ where: { statut: 'DESACTIVE' } }),
-        this.prisma.role.count(),
-        this.prisma.journalAuthentification.count({
-          // Les résultats sont préfixés : SUCCES_LOGIN, ECHEC_MOT_DE_PASSE, etc.
-          // Un échec = code commençant par « ECHEC » (≠ tout ce qui n'est pas SUCCES).
-          where: { resultat: { startsWith: 'ECHEC' }, createdAt: { gte: since24h } },
-        }),
-        this.prisma.sessionUtilisateur.count({
-          where: { revokedAt: null, expiresAt: { gt: new Date() } },
-        }),
-      ])
+    const [
+      comptesActifs,
+      comptesBloques,
+      comptesDesactives,
+      totalRoles,
+      echecs24h,
+      totalSessions,
+    ] = await Promise.all([
+      this.prisma.utilisateur.count({ where: { statut: 'ACTIF' } }),
+      this.prisma.utilisateur.count({ where: { statut: 'BLOQUE' } }),
+      this.prisma.utilisateur.count({ where: { statut: 'DESACTIVE' } }),
+      this.prisma.role.count(),
+      this.prisma.journalAuthentification.count({
+        // Les résultats sont préfixés : SUCCES_LOGIN, ECHEC_MOT_DE_PASSE, etc.
+        // Un échec = code commençant par « ECHEC » (≠ tout ce qui n'est pas SUCCES).
+        where: {
+          resultat: { startsWith: 'ECHEC' },
+          createdAt: { gte: since24h },
+        },
+      }),
+      this.prisma.sessionUtilisateur.count({
+        where: { revokedAt: null, expiresAt: { gt: new Date() } },
+      }),
+    ])
 
     // Série 7 jours : authentifications réussies vs échouées (tous sites confondus)
     const auths = await this.prisma.journalAuthentification.findMany({
-      where:  { createdAt: { gte: since7j } },
+      where: { createdAt: { gte: since7j } },
       select: { createdAt: true, resultat: true },
     })
     const parJour = new Map<string, { succes: number; echecs: number }>()
     for (let i = 0; i < 7; i++) {
-      const d = new Date(since7j); d.setDate(since7j.getDate() + i)
+      const d = new Date(since7j)
+      d.setDate(since7j.getDate() + i)
       parJour.set(dayKey(d), { succes: 0, echecs: 0 })
     }
     for (const a of auths) {
       const slot = parJour.get(dayKey(a.createdAt))
       // Convention : SUCCES_* = réussite, ECHEC_* = échec (cf. journalisation).
-      if (slot) { if (a.resultat.startsWith('SUCCES')) slot.succes++; else slot.echecs++ }
+      if (slot) {
+        if (a.resultat.startsWith('SUCCES')) slot.succes++
+        else slot.echecs++
+      }
     }
-    const authTrend = [...parJour.entries()].map(([date, c]) => ({ date, ...c }))
+    const authTrend = [...parJour.entries()].map(([date, c]) => ({
+      date,
+      ...c,
+    }))
 
     // Volume d'actions d'audit sur 7 jours
-    const auditActions7j = await this.prisma.journalAudit.count({ where: { createdAt: { gte: since7j } } })
+    const auditActions7j = await this.prisma.journalAudit.count({
+      where: { createdAt: { gte: since7j } },
+    })
 
     return {
       comptes: {
-        actifs: comptesActifs, bloques: comptesBloques, desactives: comptesDesactives,
+        actifs: comptesActifs,
+        bloques: comptesBloques,
+        desactives: comptesDesactives,
         total: comptesActifs + comptesBloques + comptesDesactives,
       },
       totalRoles,
       echecsConnexion24h: echecs24h,
-      sessionsActives:    totalSessions,
+      sessionsActives: totalSessions,
       auditActions7j,
       authTrend,
     }
@@ -271,38 +325,54 @@ export class DashboardService {
 
     // 1. Par type de consultation
     const parTypeRows = await this.prisma.consultation.groupBy({
-      by:     ['typeConsultationId'],
-      where:  { createdAt: period },
+      by: ['typeConsultationId'],
+      where: { createdAt: period },
       _count: { _all: true },
     })
-    const typeIds = parTypeRows.map(r => r.typeConsultationId).filter((x): x is string => !!x)
+    const typeIds = parTypeRows
+      .map((r) => r.typeConsultationId)
+      .filter((x): x is string => !!x)
     const types = typeIds.length
-      ? await this.prisma.typeConsultation.findMany({ where: { id: { in: typeIds } }, select: { id: true, libelle: true } })
+      ? await this.prisma.typeConsultation.findMany({
+          where: { id: { in: typeIds } },
+          select: { id: true, libelle: true },
+        })
       : []
-    const typeMap = new Map(types.map(t => [t.id, t.libelle]))
+    const typeMap = new Map(types.map((t) => [t.id, t.libelle]))
     const parType = parTypeRows
-      .map(r => ({ libelle: r.typeConsultationId ? (typeMap.get(r.typeConsultationId) ?? '—') : 'Non précisé', count: r._count._all }))
+      .map((r) => ({
+        libelle: r.typeConsultationId
+          ? (typeMap.get(r.typeConsultationId) ?? '—')
+          : 'Non précisé',
+        count: r._count._all,
+      }))
       .sort((a, b) => b.count - a.count)
 
     // 2. Par pathologie (diagnostic principal)
     const parPathoRows = await this.prisma.diagnosticConsultation.groupBy({
-      by:     ['pathologieId'],
-      where:  { type: 'PRINCIPAL', consultation: { createdAt: period } },
+      by: ['pathologieId'],
+      where: { type: 'PRINCIPAL', consultation: { createdAt: period } },
       _count: { _all: true },
     })
-    const pathoIds = parPathoRows.map(r => r.pathologieId)
+    const pathoIds = parPathoRows.map((r) => r.pathologieId)
     const pathos = pathoIds.length
-      ? await this.prisma.pathologieReference.findMany({ where: { id: { in: pathoIds } }, select: { id: true, libelle: true } })
+      ? await this.prisma.pathologieReference.findMany({
+          where: { id: { in: pathoIds } },
+          select: { id: true, libelle: true },
+        })
       : []
-    const pathoMap = new Map(pathos.map(p => [p.id, p.libelle]))
+    const pathoMap = new Map(pathos.map((p) => [p.id, p.libelle]))
     const parPathologie = parPathoRows
-      .map(r => ({ libelle: pathoMap.get(r.pathologieId) ?? '—', count: r._count._all }))
+      .map((r) => ({
+        libelle: pathoMap.get(r.pathologieId) ?? '—',
+        count: r._count._all,
+      }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 15)
 
     // 3. Par catégorie de patient + département/direction + repos (agrégation en mémoire)
     const consults = await this.prisma.consultation.findMany({
-      where:  { createdAt: period },
+      where: { createdAt: period },
       select: {
         reposJours: true,
         visite: {
@@ -310,7 +380,7 @@ export class DashboardService {
             patient: {
               select: {
                 categoriePatient: { select: { libelle: true } },
-                donneesEmploi:    { select: { departement: true } },
+                donneesEmploi: { select: { departement: true } },
               },
             },
           },
@@ -319,13 +389,18 @@ export class DashboardService {
     })
     const catMap = new Map<string, number>()
     const deptMap = new Map<string, number>()
-    let totalReposJours = 0, consultAvecRepos = 0
+    let totalReposJours = 0,
+      consultAvecRepos = 0
     for (const c of consults) {
       const lib = c.visite?.patient?.categoriePatient?.libelle ?? '—'
       catMap.set(lib, (catMap.get(lib) ?? 0) + 1)
-      const dept = c.visite?.patient?.donneesEmploi?.departement ?? 'Non renseigné'
+      const dept =
+        c.visite?.patient?.donneesEmploi?.departement ?? 'Non renseigné'
       deptMap.set(dept, (deptMap.get(dept) ?? 0) + 1)
-      if (c.reposJours && c.reposJours > 0) { totalReposJours += c.reposJours; consultAvecRepos++ }
+      if (c.reposJours && c.reposJours > 0) {
+        totalReposJours += c.reposJours
+        consultAvecRepos++
+      }
     }
     const parCategorie = [...catMap.entries()]
       .map(([libelle, count]) => ({ libelle, count }))
@@ -337,9 +412,12 @@ export class DashboardService {
       .sort((a, b) => b.count - a.count)
 
     return {
-      periode:            { from: dayKey(from), to: dayKey(toEnd) },
+      periode: { from: dayKey(from), to: dayKey(toEnd) },
       totalConsultations: consults.length,
-      repos:              { consultationsAvecRepos: consultAvecRepos, totalJours: totalReposJours },
+      repos: {
+        consultationsAvecRepos: consultAvecRepos,
+        totalJours: totalReposJours,
+      },
       parType,
       parPathologie,
       parCategorie,
@@ -351,7 +429,10 @@ export class DashboardService {
    * Croisement pathologie × catégorie de patient × département (recueil §6.2) —
    * une ligne par combinaison observée sur la période, triée par volume décroissant.
    */
-  async getCroisementPathologieCategorieDirection(fromStr?: string, toStr?: string) {
+  async getCroisementPathologieCategorieDirection(
+    fromStr?: string,
+    toStr?: string,
+  ) {
     const from = fromStr ? new Date(fromStr) : daysAgo(29)
     from.setHours(0, 0, 0, 0)
     const toEnd = toStr ? new Date(toStr) : new Date()
@@ -371,7 +452,7 @@ export class DashboardService {
                 patient: {
                   select: {
                     categoriePatient: { select: { libelle: true } },
-                    donneesEmploi:    { select: { departement: true } },
+                    donneesEmploi: { select: { departement: true } },
                   },
                 },
               },
@@ -381,11 +462,21 @@ export class DashboardService {
       },
     })
 
-    const crossMap = new Map<string, { pathologie: string; categorie: string; departement: string; count: number }>()
+    const crossMap = new Map<
+      string,
+      {
+        pathologie: string
+        categorie: string
+        departement: string
+        count: number
+      }
+    >()
     for (const d of diagnostics) {
-      const pathologie  = d.pathologie.libelle
-      const categorie   = d.consultation.visite?.patient?.categoriePatient?.libelle ?? '—'
-      const departement = d.consultation.visite?.patient?.donneesEmploi?.departement ?? '—'
+      const pathologie = d.pathologie.libelle
+      const categorie =
+        d.consultation.visite?.patient?.categoriePatient?.libelle ?? '—'
+      const departement =
+        d.consultation.visite?.patient?.donneesEmploi?.departement ?? '—'
       const key = `${pathologie}::${categorie}::${departement}`
       const slot = crossMap.get(key)
       if (slot) slot.count++
@@ -402,14 +493,17 @@ export class DashboardService {
    */
   async getEvolutionAnnuelle(annee: number) {
     const debut = new Date(annee, 0, 1)
-    const fin   = new Date(annee + 1, 0, 1)
+    const fin = new Date(annee + 1, 0, 1)
 
     const consultations = await this.prisma.consultation.findMany({
-      where:  { createdAt: { gte: debut, lt: fin } },
+      where: { createdAt: { gte: debut, lt: fin } },
       select: { createdAt: true, reposJours: true },
     })
 
-    const parMois = new Map<string, { consultations: number; reposJours: number }>()
+    const parMois = new Map<
+      string,
+      { consultations: number; reposJours: number }
+    >()
     for (let m = 0; m < 12; m++) {
       const cle = `${annee}-${String(m + 1).padStart(2, '0')}`
       parMois.set(cle, { consultations: 0, reposJours: 0 })

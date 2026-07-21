@@ -28,9 +28,17 @@ export interface UpdateDelegationPayload {
 
 // ── API object ─────────────────────────────────────────────────────────────────
 
+export interface MyActiveDelegation {
+  active:       boolean
+  delegationId: string | null
+  dateFin:      string | null
+}
+
 export const acteursApi = {
   delegations: {
     list:         ()                                           => api.get<DelegationPrescription[]>('/delegations'),
+    /** Ma propre délégation active — accès libre (JWT seul), pas de permission dédiée. */
+    mine:         ()                                           => api.get<MyActiveDelegation>('/delegations/mine/active'),
     create:       (data: CreateDelegationPayload)              => api.post<DelegationPrescription>('/delegations', data),
     update:       (id: string, data: UpdateDelegationPayload)  => api.patch<DelegationPrescription>(`/delegations/${id}`, data),
     toggleStatut: (id: string, statut: 'ACTIVE' | 'INACTIVE')  => api.patch<DelegationPrescription>(`/delegations/${id}/statut`, { statut }),

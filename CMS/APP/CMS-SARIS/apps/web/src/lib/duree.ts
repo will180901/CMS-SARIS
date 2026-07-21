@@ -28,8 +28,21 @@ export function formatDuree(
   const t0 = new Date(from).getTime()
   const t1 = new Date(to).getTime()
   if (Number.isNaN(t0) || Number.isNaN(t1)) return '—'
+  return formatDureeMs(Math.max(0, t1 - t0), opts)
+}
 
-  const ms = Math.max(0, t1 - t0)
+/**
+ * Même échelle auto-adaptée que `formatDuree()`, mais à partir d'une durée déjà
+ * connue en MINUTES (ex. une moyenne calculée côté serveur) plutôt que de deux
+ * dates — sinon un simple nombre de minutes brut redevient illisible passé
+ * quelques heures (« 24570 min » au lieu de « 17 j »).
+ */
+export function formatDureeMinutes(min: number, opts: { court?: boolean; precis?: boolean } = {}): string {
+  if (!Number.isFinite(min)) return '—'
+  return formatDureeMs(Math.max(0, min) * MIN, opts)
+}
+
+function formatDureeMs(ms: number, opts: { court?: boolean; precis?: boolean } = {}): string {
   const court = opts.court ?? false
   const precis = opts.precis ?? false
 

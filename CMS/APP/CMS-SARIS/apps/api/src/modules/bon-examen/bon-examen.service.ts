@@ -6,18 +6,31 @@
  */
 
 import {
-  Injectable, NotFoundException, ConflictException, BadRequestException,
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
 } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
-import { assertPrestationCouverte } from '../../common/droits-categorie'
 import {
-  CreateBonExamenDto, UpdateBonExamenDto, ValiderBonExamenDto,
-  SaisirResultatDto, BonExamenQueryDto,
+  UpdateBonExamenDto,
+  ValiderBonExamenDto,
+  SaisirResultatDto,
+  BonExamenQueryDto,
 } from './dto/bon-examen.dto'
 
 const BON_INCLUDE = {
-  lignes: { include: { typeExamen: { select: { id: true, code: true, libelle: true, domaine: true } } } },
+  lignes: {
+    include: {
+      typeExamen: {
+        select: { id: true, code: true, libelle: true, domaine: true },
+      },
+    },
+  },
   resultats: { orderBy: { createdAt: 'desc' as const } },
+  // Statut de l'ordonnance d'origine : permet au frontend de signaler un bon dont l'ordonnance
+  // a été annulée APRÈS coup (bon déjà VALIDE/résultat saisi, non touché par la cascade).
+  ordonnance: { select: { id: true, statut: true } },
   consultation: {
     select: {
       id: true,
@@ -25,8 +38,16 @@ const BON_INCLUDE = {
         select: {
           patient: {
             select: {
-              id: true, numeroPatient: true,
-              identite: { select: { nom: true, prenom: true, dateNaissance: true, sexe: true } },
+              id: true,
+              numeroPatient: true,
+              identite: {
+                select: {
+                  nom: true,
+                  prenom: true,
+                  dateNaissance: true,
+                  sexe: true,
+                },
+              },
             },
           },
         },
@@ -48,7 +69,7 @@ export class BonExamenService {
       where: { id },
       include: BON_INCLUDE,
     })
-    if (!bon) throw new NotFoundException('Bon d\'examen introuvable')
+    if (!bon) throw new NotFoundException("Bon d'examen introuvable")
     return bon
   }
 
@@ -57,7 +78,8 @@ export class BonExamenService {
   async findAll(query: BonExamenQueryDto) {
     // Volontairement SANS filtre de site (accès gouverné par permission).
     const where: any = {}
-    if (query.patientId) where.consultation = { visite: { patientId: query.patientId } }
+    if (query.patientId)
+      where.consultation = { visite: { patientId: query.patientId } }
     if (query.consultationId) where.consultationId = query.consultationId
     if (query.statut && query.statut !== 'TOUS') {
       where.statut = query.statut
@@ -76,52 +98,9 @@ export class BonExamenService {
     return this.getOrThrow(id)
   }
 
-  // ── Créer ─────────────────────────────────────────────────────────────────
-
-  async create(dto: CreateBonExamenDto) {
-    // Vérifier consultation (volontairement SANS filtre de site)
-    const consultation = await this.prisma.consultation.findFirst({
-      where:  { id: dto.consultationId },
-      select: { statut: true, visite: { select: { patient: { select: { categoriePatientId: true } } } } },
-    })
-    if (!consultation) throw new NotFoundException('Consultation introuvable')
-    // Le bon d'examen est délivré par l'infirmier une fois la consultation CLÔTURÉE
-    // (recueil §3.2/§4.3) — jamais pendant que le médecin est encore en train
-    // d'examiner, jamais après une annulation.
-    if (consultation.statut !== 'CLOTUREE') {
-      throw new ConflictException('Le bon d\'examen ne peut être créé qu\'une fois la consultation clôturée')
-    }
-
-    // RÈGLE CENTRALE (recueil) : bon d'examens réservé aux CDI + ayants droit.
-    await assertPrestationCouverte(this.prisma, consultation.visite.patient.categoriePatientId, 'EXAMEN')
-
-    // Vérifier types d'examen
-    const types = await this.prisma.typeExamen.findMany({ where: { id: { in: dto.typesExamenIds } } })
-    if (types.length !== dto.typesExamenIds.length) {
-      throw new BadRequestException('Un ou plusieurs types d\'examen sont invalides')
-    }
-
-    // Créer le bon + ses lignes
-    const bon = await this.prisma.$transaction(async tx => {
-      const created = await tx.bonExamen.create({
-        data: {
-          consultationId:  dto.consultationId,
-          indicationClinik: dto.indicationClinik.trim(),
-          etablissementId: dto.etablissementId ?? null,
-          statut:          'EN_ATTENTE',
-        },
-      })
-      await tx.ligneExamen.createMany({
-        data: dto.typesExamenIds.map(typeExamenId => ({
-          bonId: created.id,
-          typeExamenId,
-        })),
-      })
-      return created
-    })
-
-    return this.getOrThrow(bon.id)
-  }
+  // Créer un bon d'examen « à la main » n'existe plus ici (route retirée) : un bon naît
+  // exclusivement de « Générer un bon » sur une ordonnance PRESCRIPTION_EXAMEN validée
+  // (voir ConsultationService.genererBonDepuisOrdonnance), pour garantir sa traçabilité.
 
   // ── Modifier (brouillon uniquement) ───────────────────────────────────────
 
@@ -133,9 +112,12 @@ export class BonExamenService {
 
     await this.prisma.bonExamen.update({
       where: { id },
-      data:  {
+      data: {
         indicationClinik: dto.indicationClinik?.trim() ?? bon.indicationClinik,
-        etablissementId:  dto.etablissementId !== undefined ? dto.etablissementId : bon.etablissementId,
+        etablissementId:
+          dto.etablissementId !== undefined
+            ? dto.etablissementId
+            : bon.etablissementId,
       },
     })
     return this.getOrThrow(id)
@@ -150,14 +132,15 @@ export class BonExamenService {
     }
 
     if (dto.statut === 'ANNULE' && !dto.motifAnnulation?.trim()) {
-      throw new BadRequestException('Motif d\'annulation requis')
+      throw new BadRequestException("Motif d'annulation requis")
     }
 
     await this.prisma.bonExamen.update({
       where: { id },
-      data:  {
+      data: {
         statut: dto.statut,
-        motifAnnulation: dto.statut === 'ANNULE' ? dto.motifAnnulation!.trim() : null,
+        motifAnnulation:
+          dto.statut === 'ANNULE' ? dto.motifAnnulation!.trim() : null,
       },
     })
     return this.getOrThrow(id)
@@ -168,14 +151,16 @@ export class BonExamenService {
   async annuler(id: string, motifAnnulation: string) {
     const bon = await this.getOrThrow(id)
     if (bon.statut !== 'EN_ATTENTE' && bon.statut !== 'VALIDE') {
-      throw new ConflictException('Seul un bon en attente ou validé peut être annulé')
+      throw new ConflictException(
+        'Seul un bon en attente ou validé peut être annulé',
+      )
     }
     if (!motifAnnulation?.trim()) {
-      throw new BadRequestException('Motif d\'annulation requis')
+      throw new BadRequestException("Motif d'annulation requis")
     }
     await this.prisma.bonExamen.update({
       where: { id },
-      data:  { statut: 'ANNULE', motifAnnulation: motifAnnulation.trim() },
+      data: { statut: 'ANNULE', motifAnnulation: motifAnnulation.trim() },
     })
     return this.getOrThrow(id)
   }
@@ -190,8 +175,11 @@ export class BonExamenService {
    * depuis là, sans « introuvable » pour un bon créé sur l'autre site.
    */
   async delete(id: string) {
-    const bon = await this.prisma.bonExamen.findFirst({ where: { id }, include: BON_INCLUDE })
-    if (!bon) throw new NotFoundException('Bon d\'examen introuvable')
+    const bon = await this.prisma.bonExamen.findFirst({
+      where: { id },
+      include: BON_INCLUDE,
+    })
+    if (!bon) throw new NotFoundException("Bon d'examen introuvable")
     if (bon.resultats.length > 0) {
       throw new ConflictException(
         'Ce bon possède des résultats enregistrés : annulez-le plutôt que de le supprimer (traçabilité).',
@@ -206,20 +194,26 @@ export class BonExamenService {
 
   // ── Saisir un résultat ────────────────────────────────────────────────────
 
-  async saisirResultat(bonId: string, dto: SaisirResultatDto, acteurId: string) {
+  async saisirResultat(
+    bonId: string,
+    dto: SaisirResultatDto,
+    acteurId: string,
+  ) {
     const bon = await this.getOrThrow(bonId)
     if (bon.statut !== 'VALIDE') {
-      throw new ConflictException('Seul un bon validé peut recevoir un résultat')
+      throw new ConflictException(
+        'Seul un bon validé peut recevoir un résultat',
+      )
     }
 
     await this.prisma.resultatExamen.create({
       data: {
         bonId,
-        laboratoire:    dto.laboratoire?.trim() ?? null,
-        contenu:        dto.contenu.trim(),
+        laboratoire: dto.laboratoire?.trim() ?? null,
+        contenu: dto.contenu.trim(),
         interpretation: dto.interpretation?.trim() ?? null,
-        statut:         'RECU',
-        saisiePar:      acteurId,
+        statut: 'RECU',
+        saisiePar: acteurId,
       },
     })
     return this.getOrThrow(bonId)

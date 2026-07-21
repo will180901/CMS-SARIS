@@ -14,6 +14,7 @@ import { useSessionStore } from '@/stores/session.store'
 import { useConnectivityStore } from '@/stores/connectivity.store'
 import { playSound } from '@/lib/sounds'
 import { useTypingStore } from '@/stores/typing.store'
+import { performTokenRefresh } from '@/modules/auth/hooks/useRefreshSession'
 import { notificationsApi, type NotificationItem } from '../api/notifications.api'
 
 export const NOTIF_KEY = ['notifications'] as const
@@ -173,6 +174,12 @@ export function useNotificationStream() {
         // Message reçu dans la conversation ACTIVE (déjà ouverte) : on met à jour le fil
         // et les listes, mais SANS cloche ni son — le message est déjà sous les yeux.
         if (n.type === 'MESSAGE_NEW') { qc.invalidateQueries({ queryKey: ['messagerie'] }); return }
+        // Mes droits viennent de changer (rôle modifié, dérogation, changement de rôle).
+        // Le SERVEUR applique déjà le changement au prochain appel (permissions relues
+        // en base) ; ici on ne fait que réaligner l'INTERFACE : nouveau jeton + purge des
+        // caches, pour que menus et boutons apparaissent/disparaissent sans rechargement.
+        // Silencieux : ni cloche, ni son, ni toast.
+        if (n.type === 'PERMISSIONS_CHANGED') { void performTokenRefresh(qc); return }
         // Événements LIVE silencieux : rafraîchir les listes, sans cloche/son/toast.
         const live = LIVE_INVALIDATIONS[n.type]
         if (live) { for (const key of live) qc.invalidateQueries({ queryKey: key }); return }

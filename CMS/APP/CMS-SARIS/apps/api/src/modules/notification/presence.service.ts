@@ -26,8 +26,10 @@ export class PresenceService {
 
   disconnect(userId: string): void {
     const n = (this.counts.get(userId) ?? 1) - 1
-    if (n <= 0) { this.counts.delete(userId); this.viewing.delete(userId) }
-    else this.counts.set(userId, n)
+    if (n <= 0) {
+      this.counts.delete(userId)
+      this.viewing.delete(userId)
+    } else this.counts.set(userId, n)
   }
 
   isOnline(userId: string): boolean {

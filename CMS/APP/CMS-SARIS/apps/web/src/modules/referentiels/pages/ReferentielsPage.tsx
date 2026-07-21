@@ -40,10 +40,7 @@ export function ReferentielsPage() {
   // de motifs SANS donner accès aux sites. Le backend applique exactement la
   // même séparation (referentiel.<service>.<action>).
   const PERM = {
-    // SitesTab ne lit pas ces props (lecture seule, aucun bouton create/update/delete) ;
-    // gardé au même format que les autres onglets pour que PERM[value] reste un type
-    // uniforme (sinon l'union hétérogène casse le typage de <Component {...PERM[value]} />).
-    sites:       { canCreate: false, canUpdate: false, canDelete: false },
+    sites:       { canCreate: has('referentiel.site.create'),       canUpdate: has('referentiel.site.update'),       canDelete: has('referentiel.site.delete') },
     motifs:      { canCreate: has('referentiel.motif.create'),      canUpdate: has('referentiel.motif.update'),      canDelete: has('referentiel.motif.delete') },
     pathologies: { canCreate: has('referentiel.pathologie.create'), canUpdate: has('referentiel.pathologie.update'), canDelete: has('referentiel.pathologie.delete') },
     medicaments: { canCreate: has('referentiel.medicament.create'), canUpdate: has('referentiel.medicament.update'), canDelete: has('referentiel.medicament.delete') },

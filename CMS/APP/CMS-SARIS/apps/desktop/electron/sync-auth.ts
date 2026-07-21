@@ -142,6 +142,35 @@ export async function listPendingSites(): Promise<Site[]> {
   return Array.isArray(data) ? data : (data.items ?? data.data ?? [])
 }
 
+export interface CreateSiteInput { code: string; libelle: string; localisation?: string }
+export interface CreateSiteResult { ok: boolean; site?: Site; error?: string }
+
+/**
+ * Étape 2 bis — crée un NOUVEAU site avec le jeton obtenu à l'étape 1 (perm serveur
+ * referentiel.site.create requise : réservé Admin Système / Médecin Chef). Le site créé
+ * est ensuite sélectionné comme n'importe quel site trouvé par recherche (cf. sync-setup.html).
+ */
+export async function createPendingSite(input: CreateSiteInput): Promise<CreateSiteResult> {
+  if (!pendingAuth) return { ok: false, error: 'Authentification requise avant de créer un site.' }
+  try {
+    const r = await fetch(pendingAuth.serverUrl + '/referentiels/sites', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${pendingAuth.accessToken}` },
+      body: JSON.stringify(input),
+    })
+    const body = await r.json().catch(() => null) as { message?: unknown } & Partial<Site> | null
+    if (r.status === 403)
+      return { ok: false, error: 'Compte non autorisé à créer un site (réservé aux administrateurs).' }
+    if (!r.ok) {
+      const m = body && 'message' in body ? body.message : undefined
+      return { ok: false, error: Array.isArray(m) ? m.join(', ') : m ? String(m) : `Erreur serveur (HTTP ${r.status}).` }
+    }
+    return { ok: true, site: body as Site }
+  } catch (e) {
+    return { ok: false, error: 'Serveur injoignable : ' + (e as Error).message }
+  }
+}
+
 /**
  * Étape 3 — l'opérateur a choisi le site DE CE POSTE (indépendant du site de son propre
  * compte) : persiste serverUrl + siteId + refreshToken (DPAPI) et écrit l'access token.

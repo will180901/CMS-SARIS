@@ -15,7 +15,12 @@
  * la migration est transparente (les secrets sont ré-écrits chiffrés au prochain
  * setup, sans casser l'existant).
  */
-import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'crypto'
+import {
+  createCipheriv,
+  createDecipheriv,
+  randomBytes,
+  scryptSync,
+} from 'crypto'
 
 const VERSION = 'v1'
 const KEY_SALT = 'cms-saris.totp.v1' // sel applicatif fixe : le secret reste TOTP_ENC_KEY
@@ -39,9 +44,17 @@ function getKey(): Buffer {
 export function encryptSecret(plain: string): string {
   const iv = randomBytes(12) // 96 bits : taille recommandée pour GCM
   const cipher = createCipheriv('aes-256-gcm', getKey(), iv)
-  const ciphertext = Buffer.concat([cipher.update(plain, 'utf8'), cipher.final()])
+  const ciphertext = Buffer.concat([
+    cipher.update(plain, 'utf8'),
+    cipher.final(),
+  ])
   const authTag = cipher.getAuthTag()
-  return [VERSION, iv.toString('base64'), authTag.toString('base64'), ciphertext.toString('base64')].join(':')
+  return [
+    VERSION,
+    iv.toString('base64'),
+    authTag.toString('base64'),
+    ciphertext.toString('base64'),
+  ].join(':')
 }
 
 /** Déchiffre un secret stocké. Renvoie tel quel un ancien secret en clair (rétro-compat). */
@@ -51,9 +64,16 @@ export function decryptSecret(stored: string): string {
   if (!ivB64 || !tagB64 || !ctB64) {
     throw new Error('Secret TOTP chiffré illisible (format invalide).')
   }
-  const decipher = createDecipheriv('aes-256-gcm', getKey(), Buffer.from(ivB64, 'base64'))
+  const decipher = createDecipheriv(
+    'aes-256-gcm',
+    getKey(),
+    Buffer.from(ivB64, 'base64'),
+  )
   decipher.setAuthTag(Buffer.from(tagB64, 'base64'))
-  return Buffer.concat([decipher.update(Buffer.from(ctB64, 'base64')), decipher.final()]).toString('utf8')
+  return Buffer.concat([
+    decipher.update(Buffer.from(ctB64, 'base64')),
+    decipher.final(),
+  ]).toString('utf8')
 }
 
 /** True si la valeur stockée est déjà au format chiffré v1. */

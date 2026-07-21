@@ -130,13 +130,17 @@ function PreferencesCard() {
   const { data: pref, isLoading } = useMyPreferences()
   const update = useUpdateMyPreferences()
   const { setTheme } = useTheme()
+  // ⚠️ Doit rester aligné sur HOME_PERM/HOME_ORDER (AppShell.tsx) : une valeur absente
+  // de cette table serait ignorée au chargement (repli sur la 1re page autorisée).
   const pageOptions = [
     { value: 'dashboard', label: t('nav.dashboard') },
-    { value: 'patients', label: t('nav.patients') },
     { value: 'triage', label: t('nav.triage') },
+    { value: 'patients', label: t('nav.patients') },
     { value: 'consultations', label: t('nav.consultations') },
-    { value: 'personnel', label: t('nav.personnel') },
-    { value: 'admin/utilisateurs', label: t('nav.utilisateurs') },
+    { value: 'rapports', label: t('nav.rapports') },
+    { value: 'messagerie', label: t('nav.messagerie') },
+    { value: 'referentiels', label: t('nav.referentiels') },
+    { value: 'admin/acces', label: t('nav.acces') },
   ]
   const [draft, setDraft] = useState<Preferences | null>(null)
   // Préférence locale (appareil) : sons d'interface. Appliquée immédiatement.

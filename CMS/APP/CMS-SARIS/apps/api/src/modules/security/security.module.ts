@@ -9,6 +9,7 @@ import { MeService } from './me.service'
 import { JwtStrategy } from './strategies/jwt.strategy'
 import { JwtAuthGuard } from './guards/jwt-auth.guard'
 import { PermissionsGuard } from './guards/permissions.guard'
+import { PermissionsResolverService } from './permissions-resolver.service'
 import { ParametresModule } from '../parametres/parametres.module'
 
 /**
@@ -38,7 +39,16 @@ import { ParametresModule } from '../parametres/parametres.module'
     JwtStrategy,
     JwtAuthGuard,
     PermissionsGuard,
+    PermissionsResolverService,
   ],
-  exports: [JwtAuthGuard, PermissionsGuard, JwtModule],
+  // PermissionsResolverService est exporté : les modules d'administration doivent
+  // pouvoir INVALIDER le cache dès qu'ils modifient des droits (rôles, dérogations,
+  // affectations) — sans quoi le changement attendrait l'expiration du TTL.
+  exports: [
+    JwtAuthGuard,
+    PermissionsGuard,
+    JwtModule,
+    PermissionsResolverService,
+  ],
 })
 export class SecurityModule {}

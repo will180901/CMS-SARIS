@@ -59,6 +59,11 @@ interface Props {
   date:          string          // ISO
   patient:       PrintPatient
   soignant?:     PrintSoignant | null
+  /** Titre du bloc identité + libellé de la 1ʳᵉ signature (par défaut : un acte
+   *  prescrit — « Prescripteur »). À adapter pour un document non prescriptif
+   *  (ex. synthèse de dossier) où personne ne « prescrit » quoi que ce soit. */
+  soignantTitle?:        string
+  firstSignatureLabel?: string
   /** Libellé de la 2e zone de signature (ex. « Cachet établissement destinataire »). */
   secondSignatureLabel?: string
   /** Ligne d'établissement sous le logo (ex. « Centre Médico-Social — CMS Moutela »). */
@@ -106,6 +111,8 @@ function ScaledSheet({ children, zoom = 1 }: { children: React.ReactNode; zoom?:
 
 export function MedicalPrintSheet({
   rootId, titre, apercuLabel, numero, date, patient, soignant,
+  soignantTitle = 'Prescripteur',
+  firstSignatureLabel = 'Signature et cachet du prescripteur',
   secondSignatureLabel = "Cachet de l'établissement destinataire",
   etablissement = 'Centre Médico-Social — République du Congo',
   children, onClose, variant = 'modal',
@@ -207,7 +214,7 @@ export function MedicalPrintSheet({
           ['N° dossier', patient.numeroPatient, true],
           ...(patient.categorieLibelle ? [['Catégorie', patient.categorieLibelle] as [string, string]] : []),
         ]} />
-        <IdentityBlock title="Prescripteur" rows={[
+        <IdentityBlock title={soignantTitle} rows={[
           ['Nom & prénom', soignant?.prenom || soignant?.nom ? `${soignant?.prenom ?? ''} ${(soignant?.nom ?? '').toUpperCase()}`.trim() : '—'],
           ['Fonction', soignant?.role ? labelMetier(soignant.role) : '—'],
           ['Matricule', soignant?.matricule ?? '—', true],
@@ -220,7 +227,7 @@ export function MedicalPrintSheet({
 
       {/* SIGNATURES */}
       <div style={{ padding: '16px 40px 18px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 36 }}>
-        <SignatureBox label="Signature et cachet du prescripteur" hint={soignant ? `${soignant.prenom ?? ''} ${soignant.nom ?? ''}${soignant.matricule ? ` — ${soignant.matricule}` : ''}`.trim() : ''} />
+        <SignatureBox label={firstSignatureLabel} hint={soignant ? `${soignant.prenom ?? ''} ${soignant.nom ?? ''}${soignant.matricule ? ` — ${soignant.matricule}` : ''}`.trim() : ''} />
         <SignatureBox label={secondSignatureLabel} hint="Date : ___/___/______   Visa :" />
       </div>
 
@@ -250,7 +257,7 @@ export function MedicalPrintSheet({
     <>
       <div onClick={onClose} style={{ position: 'fixed', top: isDesktop ? DESKTOP_TITLEBAR_H : 0, right: 0, bottom: 0, left: 0, zIndex: 1000, background: 'rgba(15,23,42,0.55)', backdropFilter: 'blur(2px)' }} />
       <div style={{ position: 'fixed', top: isDesktop ? DESKTOP_TITLEBAR_H : 0, right: 0, bottom: 0, left: 0, zIndex: 1001, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '20px 16px', overflowY: 'auto' }}>
-        <div style={{ width: '100%', maxWidth: SHEET_W + 28, background: 'var(--fond-surface)', borderRadius: 12, boxShadow: '0 24px 60px rgba(15,23,42,0.3)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ width: '100%', maxWidth: SHEET_W + 28, flexShrink: 0, background: 'var(--fond-surface)', borderRadius: 12, boxShadow: '0 24px 60px rgba(15,23,42,0.3)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           {toolbar}
           <div style={{ background: '#e9edf0', display: 'flex', justifyContent: 'center', padding: 24 }}>
             {sheet}

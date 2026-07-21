@@ -1,5 +1,10 @@
 import {
-  IsUUID, IsString, IsOptional, IsIn, IsNotEmpty, MaxLength,
+  IsUUID,
+  IsString,
+  IsOptional,
+  IsIn,
+  IsNotEmpty,
+  MaxLength,
 } from 'class-validator'
 
 export class CreateEvacuationDto {

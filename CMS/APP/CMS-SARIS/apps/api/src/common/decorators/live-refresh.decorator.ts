@@ -18,7 +18,7 @@ import { SetMetadata } from '@nestjs/common'
 export const LIVE_REFRESH_KEY = 'live_refresh_type'
 
 export interface LiveRefreshMeta {
-  type:       string
+  type: string
   siteScoped: boolean
 }
 

@@ -1,26 +1,15 @@
 import {
-  IsUUID, IsString, IsOptional, IsArray, IsIn, IsNotEmpty,
-  MaxLength, ArrayMinSize,
+  IsUUID,
+  IsString,
+  IsOptional,
+  IsIn,
+  IsNotEmpty,
+  MaxLength,
 } from 'class-validator'
 
-export class CreateBonExamenDto {
-  @IsUUID()
-  consultationId!: string
-
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(2000)
-  indicationClinik!: string
-
-  @IsOptional()
-  @IsUUID()
-  etablissementId?: string | null
-
-  @IsArray()
-  @ArrayMinSize(1, { message: 'Au moins un examen est requis' })
-  @IsUUID('all', { each: true })
-  typesExamenIds!: string[]
-}
+// Note : la création d'un bon d'examen ne se fait plus directement (POST retiré) — un bon
+// naît exclusivement de « Générer un bon » sur une ordonnance PRESCRIPTION_EXAMEN validée
+// (voir ConsultationService.genererBonDepuisOrdonnance), pour garantir sa traçabilité.
 
 export class UpdateBonExamenDto {
   @IsOptional()
@@ -45,7 +34,7 @@ export class ValiderBonExamenDto {
 
 export class AnnulerBonExamenDto {
   @IsString()
-  @IsNotEmpty({ message: 'Motif d\'annulation requis' })
+  @IsNotEmpty({ message: "Motif d'annulation requis" })
   @MaxLength(500)
   motifAnnulation!: string
 }

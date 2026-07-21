@@ -63,6 +63,51 @@ async function main() {
     }
   }
   console.log(`   ✓ ${attached} rattachement(s) ajouté(s) (aucune suppression)`)
+
+  // 3. Reprise de compatibilité — découpage d'anciennes permissions « fourre-tout ».
+  //
+  // Certaines permissions ont été scindées en droits plus fins (ex. la lecture globale
+  // des référentiels → une lecture par service ; `ordonnance.create` qui gardait aussi
+  // l'édition et la suppression). Les rôles SYSTÈME reçoivent les nouveaux droits via
+  // DEFAULT_ROLE_PERMISSIONS ci-dessus, mais les rôles PERSONNALISÉS créés en base par
+  // un administrateur, eux, perdraient l'accès. Cette étape leur accorde l'équivalent
+  // de ce qu'ils avaient déjà : à droits inchangés, accès inchangé.
+  //
+  // Purement additive et idempotente : relancer le script ne produit plus rien.
+  const IMPLIED: { si: string; alors: string[] }[] = [
+    { si: 'referentiel.read', alors: [
+      'referentiel.site.read', 'referentiel.motif.read', 'referentiel.pathologie.read',
+      'referentiel.medicament.read', 'referentiel.categorie.read', 'referentiel.examen.read',
+      'referentiel.type_consultation.read',
+    ] },
+    { si: 'ordonnance.create',  alors: ['ordonnance.update', 'ordonnance.delete'] },
+    { si: 'bon_examen.create',  alors: ['bon_examen.update'] },
+    { si: 'consultation.read',  alors: ['rapport.read'] },
+  ]
+
+  let backfilled = 0
+  for (const role of roles) {
+    const codesDuRole = new Set(
+      (await prisma.rolePermission.findMany({
+        where:   { roleId: role.id },
+        include: { permission: true },
+      })).map((rp) => rp.permission.code),
+    )
+
+    for (const { si, alors } of IMPLIED) {
+      if (!codesDuRole.has(si)) continue
+      for (const permCode of alors) {
+        if (codesDuRole.has(permCode)) continue
+        const perm = await prisma.permission.findUnique({ where: { code: permCode } })
+        if (!perm) continue
+        await prisma.rolePermission.create({ data: { roleId: role.id, permissionId: perm.id } })
+        codesDuRole.add(permCode)
+        backfilled++
+        console.log(`   ↪ ${role.code} ← ${permCode} (repris de « ${si} »)`)
+      }
+    }
+  }
+  console.log(`   ✓ ${backfilled} droit(s) repris pour préserver les accès existants`)
   console.log('✅ Synchronisation terminée.')
 }
 

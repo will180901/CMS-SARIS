@@ -1,5 +1,11 @@
 import {
-  IsArray, IsOptional, IsString, IsUUID, IsIn, ArrayMinSize, MaxLength,
+  IsArray,
+  IsOptional,
+  IsString,
+  IsUUID,
+  IsIn,
+  ArrayMinSize,
+  MaxLength,
 } from 'class-validator'
 
 // ── Remplacer l'ensemble des dérogations d'UN utilisateur (PUT idempotent) ────

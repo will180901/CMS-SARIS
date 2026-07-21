@@ -15,15 +15,20 @@ import type { PermissionCode } from '@cms-saris/types'
 // Pages d'accueil possibles → permission requise. Toute valeur hors de cette
 // table est ignorée (évite une redirection vers une route inexistante qui
 // bouclerait indéfiniment via le wildcard `*`).
+// ⚠️ Doit rester aligné sur NAV_GROUPS (navigation.config.ts) ET sur la liste de choix
+// « page d'accueil » des préférences (PersonnelTab.tsx) : une page proposée à l'utilisateur
+// mais absente d'ici serait silencieusement ignorée au profit de la 1re page autorisée.
 const HOME_PERM: Record<string, PermissionCode> = {
   dashboard:            'dashboard.read',
+  rapports:             'consultation.read',
   patients:             'patient.read',
   triage:               'visite.read',
   consultations:        'consultation.read',
+  messagerie:           'messagerie.read',
   referentiels:         'referentiel.read',
   'admin/acces':        'utilisateur.read',
 }
-const HOME_ORDER = ['dashboard', 'patients', 'triage', 'consultations', 'referentiels', 'admin/acces']
+const HOME_ORDER = ['dashboard', 'triage', 'patients', 'consultations', 'rapports', 'messagerie', 'referentiels', 'admin/acces']
 
 /** Redirige vers la page d'accueil préférée — uniquement si connue ET autorisée,
  *  sinon vers la première page accessible (jamais une route inexistante). */
@@ -54,6 +59,7 @@ const AuditPage           = lazy(() => import('@/modules/admin/pages/AuditPage')
 const DashboardPage       = lazy(() => import('@/modules/dashboard/pages/DashboardPage').then(m => ({ default: m.DashboardPage })))
 const RapportsPage        = lazy(() => import('@/modules/rapports/pages/RapportsPage').then(m => ({ default: m.RapportsPage })))
 const ParametresPage      = lazy(() => import('@/modules/admin/pages/ParametresPage').then(m => ({ default: m.ParametresPage })))
+const ParametresSystemePage = lazy(() => import('@/modules/admin/pages/ParametresSystemePage').then(m => ({ default: m.ParametresSystemePage })))
 const SynchronisationPage = lazy(() => import('@/modules/admin/pages/SynchronisationPage').then(m => ({ default: m.SynchronisationPage })))
 const MessageriePage      = lazy(() => import('@/modules/messagerie/pages/MessageriePage').then(m => ({ default: m.MessageriePage })))
 
@@ -170,10 +176,13 @@ export function AppShell() {
           />
 
           {/* ── Administration système ───────────────────────────────────── */}
+          {/* Les 4 permissions correspondent aux 4 onglets de la page (comptes, rôles,
+              personnel soignant, délégations) — `personnel.read` manquait, ce qui
+              bloquait l'accès à un profil n'ayant QUE cet onglet. */}
           <Route
             path="/admin/acces"
             element={
-              <PermissionGate any={['utilisateur.read', 'role.read', 'delegation.read']}>
+              <PermissionGate any={['utilisateur.read', 'role.read', 'personnel.read', 'delegation.read']}>
                 <AccesPage />
               </PermissionGate>
             }
@@ -191,12 +200,21 @@ export function AppShell() {
             }
           />
 
-          {/* Accessible à tout utilisateur connecté : la section Personnel
-              (préférences, mot de passe, 2FA, sessions) est en self-service.
-              L'onglet Généraux (système) se restreint lui-même à parametre.read. */}
+          {/* Accessible à tout utilisateur connecté : cette page ne porte QUE les réglages
+              personnels (préférences, mot de passe, 2FA, sessions) — self-service. */}
           <Route
             path="/admin/parametres"
             element={<ParametresPage />}
+          />
+
+          {/* Paramètres SYSTÈME (appliqués à tout le centre) — page distincte et gardée. */}
+          <Route
+            path="/admin/parametres-systeme"
+            element={
+              <PermissionGate any={['parametre.read']}>
+                <ParametresSystemePage />
+              </PermissionGate>
+            }
           />
 
           {/* ── Système ──────────────────────────────────────────────────── */}

@@ -13,24 +13,39 @@
  * Planification : sauvegarde automatique quotidienne + rétention (30 dernières).
  */
 
-import { Injectable, NotFoundException, ConflictException, BadRequestException, Logger } from '@nestjs/common'
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+  Logger,
+} from '@nestjs/common'
 import { Cron, CronExpression } from '@nestjs/schedule'
 import { PrismaService } from '../../prisma/prisma.service'
 import { NotificationService } from '../notification/notification.service'
-import { currentKeyId, reencryptToCurrent } from '../../common/crypto/message-crypto'
+import {
+  currentKeyId,
+  reencryptToCurrent,
+} from '../../common/crypto/message-crypto'
 
 const SNAPSHOT_VERSION = 1
-const RETENTION_MAX = 30          // nombre de sauvegardes conservées
+const RETENTION_MAX = 30 // nombre de sauvegardes conservées
 export const AUTO_BACKUP_CRON = CronExpression.EVERY_DAY_AT_2AM
 
 // Tables de référentiel : snapshot/restauration générique par `id`.
 const CONFIG_TABLES = [
-  'site', 'categoriePatient', 'motifConsultation',
-  'pathologieReference', 'medicamentReference', 'typeExamen',
+  'site',
+  'categoriePatient',
+  'motifConsultation',
+  'pathologieReference',
+  'medicamentReference',
+  'typeExamen',
   'parametreSysteme',
 ] as const
 
-function stripMeta<T extends Record<string, any>>(row: T): Omit<T, 'createdAt' | 'updatedAt'> {
+function stripMeta<T extends Record<string, any>>(
+  row: T,
+): Omit<T, 'createdAt' | 'updatedAt'> {
   const { createdAt, updatedAt, ...rest } = row as any
   return rest
 }
@@ -45,9 +60,18 @@ export class SynchronisationService {
 
   async getStatus() {
     const [
-      utilisateurs, patients, visites, consultations,
-      ordonnances, bonsExamen, evacuations,
-      sites, personnel, totalAudit, totalAuth, derniereSauvegarde,
+      utilisateurs,
+      patients,
+      visites,
+      consultations,
+      ordonnances,
+      bonsExamen,
+      evacuations,
+      sites,
+      personnel,
+      totalAudit,
+      totalAuth,
+      derniereSauvegarde,
     ] = await Promise.all([
       this.prisma.utilisateur.count(),
       this.prisma.patient.count(),
@@ -68,15 +92,15 @@ export class SynchronisationService {
 
     return {
       modules: [
-        { module: 'utilisateurs',  count: utilisateurs },
-        { module: 'sites',         count: sites },
-        { module: 'personnel',     count: personnel },
-        { module: 'patients',      count: patients },
-        { module: 'visites',       count: visites },
+        { module: 'utilisateurs', count: utilisateurs },
+        { module: 'sites', count: sites },
+        { module: 'personnel', count: personnel },
+        { module: 'patients', count: patients },
+        { module: 'visites', count: visites },
         { module: 'consultations', count: consultations },
-        { module: 'ordonnances',   count: ordonnances },
-        { module: 'bons_examen',   count: bonsExamen },
-        { module: 'evacuations',   count: evacuations },
+        { module: 'ordonnances', count: ordonnances },
+        { module: 'bons_examen', count: bonsExamen },
+        { module: 'evacuations', count: evacuations },
       ],
       journaux: { audit: totalAudit, authentifications: totalAuth },
       derniereSauvegarde,
@@ -112,10 +136,10 @@ export class SynchronisationService {
     const roles = await this.prisma.role.findMany({
       include: { permissions: { include: { permission: true } } },
     })
-    data['roles'] = roles.map(r => ({
+    data['roles'] = roles.map((r) => ({
       code: r.code,
       libelle: r.libelle,
-      permissions: r.permissions.map(rp => rp.permission.code),
+      permissions: r.permissions.map((rp) => rp.permission.code),
     }))
     return { version: SNAPSHOT_VERSION, perimetre: 'CONFIGURATION', data }
   }
@@ -123,7 +147,12 @@ export class SynchronisationService {
   /** Déclenche une sauvegarde réelle de la configuration. */
   async declencherSauvegarde(acteurId: string | null, type = 'MANUELLE') {
     const sauvegarde = await this.prisma.sauvegardeSysteme.create({
-      data: { type, statut: 'EN_COURS', declenchePar: acteurId ?? null, perimetre: 'CONFIGURATION' },
+      data: {
+        type,
+        statut: 'EN_COURS',
+        declenchePar: acteurId ?? null,
+        perimetre: 'CONFIGURATION',
+      },
     })
 
     try {
@@ -139,17 +168,37 @@ export class SynchronisationService {
         },
         select: SAUVEGARDE_SELECT,
       })
-      await this.audit(acteurId, 'EXECUTE', sauvegarde.id, { type, statut: 'REUSSIE' }, 'SUCCES')
+      await this.audit(
+        acteurId,
+        'EXECUTE',
+        sauvegarde.id,
+        { type, statut: 'REUSSIE' },
+        'SUCCES',
+      )
       await this.appliquerRetention()
       this.notif.broadcastLive('LIVE_SYNC') // rafraîchit l'écran Synchronisation en direct
       return updated
     } catch (e: any) {
-      await this.prisma.sauvegardeSysteme.update({
-        where: { id: sauvegarde.id },
-        data: { statut: 'ECHEC', message: e?.message ?? 'Erreur inconnue', finishedAt: new Date() },
-      }).catch(() => {})
-      await this.audit(acteurId, 'EXECUTE', sauvegarde.id, { type, statut: 'ECHEC' }, 'ECHEC')
-      throw new ConflictException('La sauvegarde a échoué : ' + (e?.message ?? 'erreur inconnue'))
+      await this.prisma.sauvegardeSysteme
+        .update({
+          where: { id: sauvegarde.id },
+          data: {
+            statut: 'ECHEC',
+            message: e?.message ?? 'Erreur inconnue',
+            finishedAt: new Date(),
+          },
+        })
+        .catch(() => {})
+      await this.audit(
+        acteurId,
+        'EXECUTE',
+        sauvegarde.id,
+        { type, statut: 'ECHEC' },
+        'ECHEC',
+      )
+      throw new ConflictException(
+        'La sauvegarde a échoué : ' + (e?.message ?? 'erreur inconnue'),
+      )
     }
   }
 
@@ -157,7 +206,9 @@ export class SynchronisationService {
 
   /** Restaure la configuration depuis une sauvegarde (perm synchronisation.restore). */
   async restaurerSauvegarde(id: string, acteurId: string | null) {
-    const sauvegarde = await this.prisma.sauvegardeSysteme.findUnique({ where: { id } })
+    const sauvegarde = await this.prisma.sauvegardeSysteme.findUnique({
+      where: { id },
+    })
     if (!sauvegarde) throw new NotFoundException('Sauvegarde introuvable')
     if (!sauvegarde.contenuJson) {
       throw new BadRequestException(
@@ -169,32 +220,43 @@ export class SynchronisationService {
     try {
       snapshot = JSON.parse(sauvegarde.contenuJson)
     } catch {
-      throw new BadRequestException('Contenu de sauvegarde illisible (corrompu).')
+      throw new BadRequestException(
+        'Contenu de sauvegarde illisible (corrompu).',
+      )
     }
 
-    await this.prisma.$transaction(async (tx) => {
-      // 1. Référentiels + paramètres : upsert par id (ré-applique les valeurs).
-      for (const table of CONFIG_TABLES) {
-        const rows = snapshot.data[table] ?? []
-        for (const row of rows) {
-          const clean = stripMeta(row)
-          const { id: rowId, ...vals } = clean as any
-          await (tx as any)[table].upsert({ where: { id: rowId }, create: clean, update: vals })
+    await this.prisma.$transaction(
+      async (tx) => {
+        // 1. Référentiels + paramètres : upsert par id (ré-applique les valeurs).
+        for (const table of CONFIG_TABLES) {
+          const rows = snapshot.data[table] ?? []
+          for (const row of rows) {
+            const clean = stripMeta(row)
+            const { id: rowId, ...vals } = clean as any
+            await (tx as any)[table].upsert({
+              where: { id: rowId },
+              create: clean,
+              update: vals,
+            })
+          }
         }
-      }
-      // 2. Matrice rôles → permissions (réinitialise par rôle existant, par code).
-      for (const r of (snapshot.data['roles'] ?? [])) {
-        const role = await tx.role.findUnique({ where: { code: r.code } })
-        if (!role) continue
-        await tx.rolePermission.deleteMany({ where: { roleId: role.id } })
-        const perms = await tx.permission.findMany({ where: { code: { in: r.permissions ?? [] } } })
-        if (perms.length > 0) {
-          await tx.rolePermission.createMany({
-            data: perms.map(p => ({ roleId: role.id, permissionId: p.id })),
+        // 2. Matrice rôles → permissions (réinitialise par rôle existant, par code).
+        for (const r of snapshot.data['roles'] ?? []) {
+          const role = await tx.role.findUnique({ where: { code: r.code } })
+          if (!role) continue
+          await tx.rolePermission.deleteMany({ where: { roleId: role.id } })
+          const perms = await tx.permission.findMany({
+            where: { code: { in: r.permissions ?? [] } },
           })
+          if (perms.length > 0) {
+            await tx.rolePermission.createMany({
+              data: perms.map((p) => ({ roleId: role.id, permissionId: p.id })),
+            })
+          }
         }
-      }
-    }, { timeout: 30_000 })
+      },
+      { timeout: 30_000 },
+    )
 
     await this.audit(acteurId, 'RESTORE', id, { sauvegardeId: id }, 'SUCCES')
     // La restauration ré-applique référentiels + matrice rôles → rafraîchir en direct.
@@ -213,42 +275,58 @@ export class SynchronisationService {
    */
   async reencrypterMessages(acteurId: string | null) {
     const messages = await this.rechiffrerTable('message', 200)
-    const pieces   = await this.rechiffrerTable('messagePieceJointe', 25) // base64 volumineux → lots plus petits
+    const pieces = await this.rechiffrerTable('messagePieceJointe', 25) // base64 volumineux → lots plus petits
     const resultat = {
       cleCourante: currentKeyId(),
-      messages, pieces,
+      messages,
+      pieces,
       rechiffres: messages.rechiffres + pieces.rechiffres,
     }
-    this.logger.log(`Ré-encryption messagerie → clé ${resultat.cleCourante} : ${resultat.rechiffres} élément(s) mis à jour`)
+    this.logger.log(
+      `Ré-encryption messagerie → clé ${resultat.cleCourante} : ${resultat.rechiffres} élément(s) mis à jour`,
+    )
     await this.audit(acteurId, 'REENCRYPT', 'messagerie', resultat, 'SUCCES')
     return resultat
   }
 
   /** Parcourt une table (curseur par id) et ré-encrypte `contenuChiffre` vers la clé courante. */
-  private async rechiffrerTable(table: 'message' | 'messagePieceJointe', lot: number) {
+  private async rechiffrerTable(
+    table: 'message' | 'messagePieceJointe',
+    lot: number,
+  ) {
     const repo = (this.prisma as any)[table]
     let cursor: string | undefined
-    let total = 0, rechiffres = 0, illisibles = 0
+    let total = 0,
+      rechiffres = 0,
+      illisibles = 0
     for (;;) {
-      const batch: { id: string; contenuChiffre: string }[] = await repo.findMany({
-        take: lot,
-        ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
-        orderBy: { id: 'asc' },
-        select: { id: true, contenuChiffre: true },
-      })
+      const batch: { id: string; contenuChiffre: string }[] =
+        await repo.findMany({
+          take: lot,
+          ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+          orderBy: { id: 'asc' },
+          select: { id: true, contenuChiffre: true },
+        })
       if (!batch.length) break
       for (const row of batch) {
         total++
         let next: string | null = null
-        try { next = reencryptToCurrent(row.contenuChiffre) } catch { /* illisible : on ne touche pas */ }
+        try {
+          next = reencryptToCurrent(row.contenuChiffre)
+        } catch {
+          /* illisible : on ne touche pas */
+        }
         if (next) {
-          await repo.update({ where: { id: row.id }, data: { contenuChiffre: next } })
+          await repo.update({
+            where: { id: row.id },
+            data: { contenuChiffre: next },
+          })
           rechiffres++
         } else if (!row.contenuChiffre.startsWith('v')) {
           illisibles++ // format inattendu (ni v1 ni v2) : laissé tel quel, signalé
         }
       }
-      cursor = batch[batch.length - 1]!.id
+      cursor = batch[batch.length - 1].id
       if (batch.length < lot) break
     }
     return { total, rechiffres, illisibles }
@@ -274,13 +352,21 @@ export class SynchronisationService {
       select: { id: true },
     })
     if (obsoletes.length > 0) {
-      await this.prisma.sauvegardeSysteme.deleteMany({ where: { id: { in: obsoletes.map(o => o.id) } } })
+      await this.prisma.sauvegardeSysteme.deleteMany({
+        where: { id: { in: obsoletes.map((o) => o.id) } },
+      })
     }
   }
 
   // ── Audit best-effort ───────────────────────────────────────────────────────
 
-  private async audit(acteurId: string | null, action: string, entiteId: string, apresJson: unknown, statut: string) {
+  private async audit(
+    acteurId: string | null,
+    action: string,
+    entiteId: string,
+    apresJson: unknown,
+    statut: string,
+  ) {
     try {
       await this.prisma.journalAudit.create({
         data: {
@@ -293,12 +379,21 @@ export class SynchronisationService {
           statut,
         },
       })
-    } catch { /* best-effort */ }
+    } catch {
+      /* best-effort */
+    }
   }
 }
 
 // Métadonnées renvoyées à l'UI (exclut le contenu JSON volumineux ; ajoute `restaurable`).
 const SAUVEGARDE_SELECT = {
-  id: true, type: true, statut: true, declenchePar: true, createdAt: true,
-  perimetre: true, taille: true, finishedAt: true, message: true,
+  id: true,
+  type: true,
+  statut: true,
+  declenchePar: true,
+  createdAt: true,
+  perimetre: true,
+  taille: true,
+  finishedAt: true,
+  message: true,
 } as const

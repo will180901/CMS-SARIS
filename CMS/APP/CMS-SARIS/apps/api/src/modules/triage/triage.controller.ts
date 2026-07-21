@@ -7,23 +7,42 @@
  */
 
 import {
-  Controller, Get, Post, Patch, Delete, Body, Param, Query, Req,
-  UseGuards, HttpCode, HttpStatus, UnauthorizedException,
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  Req,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+  UnauthorizedException,
 } from '@nestjs/common'
-import { TriageService }      from './triage.service'
-import { JwtAuthGuard }       from '../security/guards/jwt-auth.guard'
-import { PermissionsGuard }   from '../security/guards/permissions.guard'
+import { TriageService } from './triage.service'
+import { JwtAuthGuard } from '../security/guards/jwt-auth.guard'
+import { PermissionsGuard } from '../security/guards/permissions.guard'
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator'
 import { LiveRefresh } from '../../common/decorators/live-refresh.decorator'
 import { Audit } from '../../common/decorators/audit.decorator'
 import {
-  CreateVisiteDto, UpdateStatutVisiteDto,
-  UpdateSoignantVisiteDto, UpdateNotesVisiteDto,
-  CreateConstanteVitaleDto, VisiteQueryDto,
+  CreateVisiteDto,
+  UpdateStatutVisiteDto,
+  UpdateSoignantVisiteDto,
+  UpdateNotesVisiteDto,
+  CreateConstanteVitaleDto,
+  VisiteQueryDto,
 } from './dto/visite.dto'
 
 interface AuthedRequest {
-  user?: { id?: string; siteId?: string; roles?: string[]; personnelMedicalId?: string | null }
+  user?: {
+    id?: string
+    siteId?: string
+    roles?: string[]
+    personnelMedicalId?: string | null
+  }
 }
 
 const SUPERVISION_ROLES = ['ADMIN_SYSTEME', 'MEDECIN_CHEF']
@@ -32,11 +51,14 @@ const SUPERVISION_ROLES = ['ADMIN_SYSTEME', 'MEDECIN_CHEF']
 // patient (onglet dossier) n'a accès qu'à la visite EN COURS, pas aux visites passées.
 function isHistoriqueRestreint(req: AuthedRequest): boolean {
   const roles = req.user?.roles ?? []
-  return roles.includes('INFIRMIER') && !roles.some(r => SUPERVISION_ROLES.includes(r))
+  return (
+    roles.includes('INFIRMIER') &&
+    !roles.some((r) => SUPERVISION_ROLES.includes(r))
+  )
 }
 
 function requireUser(req: AuthedRequest): { id: string; siteId: string } {
-  const id     = req.user?.id
+  const id = req.user?.id
   const siteId = req.user?.siteId
   if (!id || !siteId) throw new UnauthorizedException('Session invalide')
   return { id, siteId }
@@ -56,7 +78,9 @@ export class TriageController {
     // Multi-site sans restriction : file de triage partagée entre les deux sites.
     // Phase C : l'historique (clôturées/annulées) est scopé à l'initiateur, sauf supervision.
     return this.triageService.findAll(query, {
-      canReadAll:         (req.user?.roles ?? []).some(r => SUPERVISION_ROLES.includes(r)),
+      canReadAll: (req.user?.roles ?? []).some((r) =>
+        SUPERVISION_ROLES.includes(r),
+      ),
       personnelMedicalId: req.user?.personnelMedicalId ?? null,
     })
   }
@@ -72,10 +96,19 @@ export class TriageController {
   // Placé AVANT @Get(':id') pour que « patient » ne soit pas capturé comme :id.
   @Get('patient/:patientId')
   @RequirePermissions('visite.read')
-  findByPatient(@Param('patientId') patientId: string, @Req() req: AuthedRequest) {
+  findByPatient(
+    @Param('patientId') patientId: string,
+    @Req() req: AuthedRequest,
+  ) {
     requireUser(req)
-    const canViewLocked = (req.user?.roles ?? []).some(r => SUPERVISION_ROLES.includes(r))
-    return this.triageService.findByPatient(patientId, canViewLocked, isHistoriqueRestreint(req))
+    const canViewLocked = (req.user?.roles ?? []).some((r) =>
+      SUPERVISION_ROLES.includes(r),
+    )
+    return this.triageService.findByPatient(
+      patientId,
+      canViewLocked,
+      isHistoriqueRestreint(req),
+    )
   }
 
   @Get(':id')

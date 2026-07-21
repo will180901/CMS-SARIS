@@ -1,4 +1,10 @@
-import { IsString, IsNotEmpty, IsOptional, IsIn, MaxLength } from 'class-validator'
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsIn,
+  MaxLength,
+} from 'class-validator'
 import { PartialType } from '@nestjs/mapped-types'
 
 export const ROLES_PERSONNEL = [

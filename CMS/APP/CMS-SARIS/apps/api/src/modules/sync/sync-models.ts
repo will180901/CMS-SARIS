@@ -56,14 +56,14 @@ export const SYNC_MODELS: readonly SyncModelDef[] = [
   // ── Référentiels partagés (globaux) ───────────────────────────────────────
   def('Site', 'site', (siteId) => ({ id: siteId })),
   def('CategoriePatient', 'categoriePatient', GLOBAL),
-  def('DroitCategoriePatient', 'droitCategoriePatient', GLOBAL),  // droits par catégorie (recueil) — après CategoriePatient (FK)
+  def('DroitCategoriePatient', 'droitCategoriePatient', GLOBAL), // droits par catégorie (recueil) — après CategoriePatient (FK)
   def('MotifConsultation', 'motifConsultation', GLOBAL),
   def('PathologieReference', 'pathologieReference', GLOBAL),
   def('MedicamentReference', 'medicamentReference', GLOBAL),
   def('TypeExamen', 'typeExamen', GLOBAL),
   def('EtablissementReference', 'etablissementReference', GLOBAL),
   def('SocieteSousTraitante', 'societeSousTraitante', GLOBAL),
-  def('EmployeSaris', 'employeSaris', GLOBAL),  // registre des employés SARIS (main-d'œuvre, partagé inter-sites)
+  def('EmployeSaris', 'employeSaris', GLOBAL), // registre des employés SARIS (main-d'œuvre, partagé inter-sites)
   def('Role', 'role', GLOBAL),
   def('Permission', 'permission', GLOBAL),
 
@@ -74,14 +74,21 @@ export const SYNC_MODELS: readonly SyncModelDef[] = [
   // Planning / présence / délégation = opérationnel, propre au site.
   def('PlanningPermutation', 'planningPermutation', BY_SITE),
   def('PresenceJournaliere', 'presenceJournaliere', BY_SITE),
-  def('DelegationPrescription', 'delegationPrescription', VIA((s) => ({ medecinChef: { siteId: s } }))),
+  def(
+    'DelegationPrescription',
+    'delegationPrescription',
+    VIA((s) => ({ medecinChef: { siteId: s } })),
+  ),
 
   // ── Comptes & habilitations (AVANT les entités qui les référencent : createdBy…) ──
   // GLOBAL : un agent qui tourne entre les deux sites doit pouvoir se connecter
   // hors-ligne sur n'importe quel poste (indispensable à la connexion HORS-LIGNE).
   def('Utilisateur', 'utilisateur', GLOBAL),
   def('RolePermission', 'rolePermission', GLOBAL, ['roleId', 'permissionId']),
-  def('UtilisateurRole', 'utilisateurRole', GLOBAL, ['utilisateurId', 'roleId']),
+  def('UtilisateurRole', 'utilisateurRole', GLOBAL, [
+    'utilisateurId',
+    'roleId',
+  ]),
   def('UtilisateurPermission', 'utilisateurPermission', GLOBAL),
 
   // ── Patients & dossier — GLOBAL (dossier centralisé, continuité cross-site) ─
@@ -117,11 +124,31 @@ export const SYNC_MODELS: readonly SyncModelDef[] = [
 
   // ── Messagerie (scope site via conversation) ──────────────────────────────
   def('Conversation', 'conversation', BY_SITE),
-  def('ConversationParticipant', 'conversationParticipant', VIA((s) => ({ conversation: { siteId: s } }))),
-  def('Message', 'message', VIA((s) => ({ conversation: { siteId: s } }))),
-  def('MessageReaction', 'messageReaction', VIA((s) => ({ message: { conversation: { siteId: s } } }))),
-  def('MessageMasque', 'messageMasque', VIA((s) => ({ message: { conversation: { siteId: s } } }))),
-  def('MessagePieceJointe', 'messagePieceJointe', VIA((s) => ({ message: { conversation: { siteId: s } } }))),
+  def(
+    'ConversationParticipant',
+    'conversationParticipant',
+    VIA((s) => ({ conversation: { siteId: s } })),
+  ),
+  def(
+    'Message',
+    'message',
+    VIA((s) => ({ conversation: { siteId: s } })),
+  ),
+  def(
+    'MessageReaction',
+    'messageReaction',
+    VIA((s) => ({ message: { conversation: { siteId: s } } })),
+  ),
+  def(
+    'MessageMasque',
+    'messageMasque',
+    VIA((s) => ({ message: { conversation: { siteId: s } } })),
+  ),
+  def(
+    'MessagePieceJointe',
+    'messagePieceJointe',
+    VIA((s) => ({ message: { conversation: { siteId: s } } })),
+  ),
 ]
 
 export const SYNC_MODEL_BY_NAME: ReadonlyMap<string, SyncModelDef> = new Map(

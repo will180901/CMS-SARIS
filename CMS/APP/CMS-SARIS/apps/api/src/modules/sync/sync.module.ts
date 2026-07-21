@@ -16,7 +16,12 @@ import { TombstonePurgeCron } from './tombstone-purge.cron'
 @Module({
   imports: [SecurityModule, NotificationModule],
   controllers: [SyncController, SyncReadyController],
-  providers: [SyncService, SyncClientService, SyncSupervisionService, TombstonePurgeCron],
+  providers: [
+    SyncService,
+    SyncClientService,
+    SyncSupervisionService,
+    TombstonePurgeCron,
+  ],
   exports: [SyncService, SyncClientService],
 })
 export class SyncModule {}

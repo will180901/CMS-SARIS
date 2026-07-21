@@ -5,12 +5,13 @@ import type { SoignantResume, ConstanteVitale } from './visite.js'
 
 export type StatutConsultation = 'OUVERTE' | 'CLOTUREE' | 'ANNULEE'
 
-export type DecisionMedicale =
-  | 'CLOTURE_SIMPLE'
-  | 'PRESCRIPTION'
-  | 'EXAMEN_COMPLEMENTAIRE'
-  | 'EVACUATION'
-  | 'SUIVI_TRAITEMENT'
+/** Valeurs acceptées en ÉCRITURE (clôture). Les consultations historiques peuvent porter
+ *  CLOTURE_SIMPLE/PRESCRIPTION/EXAMEN_COMPLEMENTAIRE — toujours lisibles (labelDecision()
+ *  bascule sur un texte humanisé), jamais réémises. D'où Consultation.decisionMedicale
+ *  ci-dessous typé en `string | null`, pas en `DecisionMedicale | null`. */
+export type DecisionMedicale = 'EVACUATION' | 'SUIVI_TRAITEMENT'
+
+export type TypeOrdonnance = 'PHARMACEUTIQUE' | 'PRESCRIPTION_EXAMEN'
 
 export type TypeDiagnostic = 'PRINCIPAL' | 'ASSOCIE'
 export type CertitudeDiagnostic = 'CONFIRME' | 'PROBABLE' | 'SUSPECTE'
@@ -30,7 +31,8 @@ export interface Consultation {
   anamneseModeDebut?: string | null
   anamneseSymptomes?: string | null
   conclusion?:      string | null
-  decisionMedicale?: DecisionMedicale | null
+  /** string, pas DecisionMedicale : peut porter une valeur historique (voir DecisionMedicale). */
+  decisionMedicale?: string | null
   motifAnnulation?: string | null
   typeConsultationId?: string | null
   reposJours?:      number | null
@@ -64,17 +66,25 @@ export interface Ordonnance {
   prescripteurId:  string
   delegationId?:   string | null
   statut:          StatutOrdonnance
+  /** null = ordonnance antérieure à cette colonne, implicitement PHARMACEUTIQUE. */
+  typeOrdonnance?: TypeOrdonnance | null
+  indicationClinik?: string | null
+  etablissementId?:  string | null
   motifAnnulation?: string | null
   createdAt:       string
 }
 
+/** Branche PHARMACEUTIQUE (medicamentId/posologie/duree/voieAdmin/quantite) OU branche
+ *  PRESCRIPTION_EXAMEN (typeExamenId) — jamais les deux, selon Ordonnance.typeOrdonnance. */
 export interface LigneOrdonnance {
   id:             string
   ordonnanceId:   string
-  medicamentId:   string
-  posologie:      string
-  duree:          string
-  voieAdmin:      string
+  medicamentId?:  string | null
+  posologie?:     string | null
+  duree?:         string | null
+  voieAdmin?:     string | null
+  quantite?:      string | null
+  typeExamenId?:  string | null
   instructions?:  string | null
   justification?: string | null
 }
@@ -94,6 +104,13 @@ export interface MedicamentResume {
   nomCommercial?: string | null
 }
 
+export interface TypeExamenResume {
+  id:      string
+  code:    string
+  libelle: string
+  domaine: string
+}
+
 export interface TypeConsultationResume {
   id:      string
   code:    string
@@ -107,11 +124,16 @@ export interface DiagnosticDetail extends DiagnosticConsultation {
 }
 
 export interface LigneOrdonnanceDetail extends LigneOrdonnance {
-  medicament: MedicamentResume
+  medicament?: MedicamentResume | null
+  typeExamen?: TypeExamenResume | null
 }
 
 export interface OrdonnanceDetail extends Ordonnance {
   lignes: LigneOrdonnanceDetail[]
+  /** Bon(s) actif(s) déjà générés depuis cette ordonnance (hors ANNULE) — piloter le bouton
+   *  « Générer un bon » (déjà généré vs disponible). Un seul type des deux est jamais peuplé. */
+  bonsExamen?:    { id: string }[]
+  bonsPharmacie?: { id: string }[]
 }
 
 export interface VisiteResume {
@@ -143,6 +165,8 @@ export interface ConsultationDetail extends ConsultationListItem {
   ordonnances: OrdonnanceDetail[]
   /** Présence d'une évacuation (relation 1-1) + son statut (pour ignorer une évacuation ANNULE). */
   evacuation:      { id: string; statut: string } | null
+  /** Présence d'un suivi de traitement (relation 1-1) + son statut (ignorer un suivi ANNULE). */
+  suiviTraitement: { id: string; statut: string } | null
   /** Compteurs des relations 1-N non chargées en entier (pour les badges d'onglets). */
   _count: {
     diagnostics:    number

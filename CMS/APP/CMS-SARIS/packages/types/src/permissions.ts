@@ -49,19 +49,25 @@ export const PERMISSIONS = {
   // Ordonnance
   ORDONNANCE_READ:         'ordonnance.read',
   ORDONNANCE_CREATE:       'ordonnance.create',
+  ORDONNANCE_UPDATE:       'ordonnance.update',
   ORDONNANCE_VALIDATE:     'ordonnance.validate',
   ORDONNANCE_CANCEL:       'ordonnance.cancel',
+  ORDONNANCE_DELETE:       'ordonnance.delete',
   ORDONNANCE_PRINT:        'ordonnance.print',
 
   // Bon d'examen
   BON_EXAMEN_READ:         'bon_examen.read',
   BON_EXAMEN_CREATE:       'bon_examen.create',
+  BON_EXAMEN_UPDATE:       'bon_examen.update',
   BON_EXAMEN_VALIDATE:     'bon_examen.validate',
   BON_EXAMEN_CANCEL:       'bon_examen.cancel',
   BON_EXAMEN_DELETE:       'bon_examen.delete',
   BON_EXAMEN_RESULT:       'bon_examen.result',
 
-  // Bon de pharmacie (recueil) — voucher de retrait de médicaments, CDI + ayants droit
+  // Bon de pharmacie (recueil) — voucher de retrait de médicaments, CDI + ayants droit.
+  // Pas de `.update` : un bon de pharmacie est GÉNÉRÉ depuis une ordonnance validée et
+  // n'est jamais éditable ensuite (seulement délivré, annulé ou supprimé) — une telle
+  // permission serait orpheline.
   BON_PHARMACIE_READ:      'bon_pharmacie.read',
   BON_PHARMACIE_CREATE:    'bon_pharmacie.create',
   BON_PHARMACIE_DELIVER:   'bon_pharmacie.deliver',
@@ -86,10 +92,19 @@ export const PERMISSIONS = {
   SUIVI_TRAITEMENT_CLOSE:  'suivi_traitement.close',
   SUIVI_TRAITEMENT_DELETE: 'suivi_traitement.delete',
 
-  // Référentiels — lecture globale + écriture GRANULAIRE par service.
-  // Cette séparation permet d'accorder la création/édition d'un seul service
-  // (ex: motifs) sans donner accès aux autres (sites, médicaments…).
+  // Référentiels — lecture ET écriture GRANULAIRES par service.
+  // `referentiel.read` reste la clé d'entrée du MODULE (accès à la page) ; chaque
+  // service a en plus son propre `.read`, qui gouverne la visibilité de SON onglet.
+  // Sans ces `.read` par service, accorder la lecture d'un seul référentiel était
+  // impossible : `referentiel.read` ouvrait les 7 d'un coup.
   REFERENTIEL_READ:               'referentiel.read',
+  REFERENTIEL_SITE_READ:          'referentiel.site.read',
+  REFERENTIEL_MOTIF_READ:         'referentiel.motif.read',
+  REFERENTIEL_PATHOLOGIE_READ:    'referentiel.pathologie.read',
+  REFERENTIEL_MEDICAMENT_READ:    'referentiel.medicament.read',
+  REFERENTIEL_CATEGORIE_READ:     'referentiel.categorie.read',
+  REFERENTIEL_EXAMEN_READ:        'referentiel.examen.read',
+  REFERENTIEL_TYPE_CONSULTATION_READ: 'referentiel.type_consultation.read',
   REFERENTIEL_SITE_CREATE:        'referentiel.site.create',
   REFERENTIEL_SITE_UPDATE:        'referentiel.site.update',
   REFERENTIEL_SITE_DELETE:        'referentiel.site.delete',
@@ -151,6 +166,11 @@ export const PERMISSIONS = {
   ROLE_CREATE:             'role.create',
   ROLE_UPDATE:             'role.update',
   ROLE_DELETE:             'role.delete',
+
+  // Rapports statistiques — module à part entière : il empruntait `consultation.read`,
+  // ce qui rendait impossible d'accorder les consultations sans les rapports (ou l'inverse).
+  RAPPORT_READ:            'rapport.read',
+  RAPPORT_EXPORT:          'rapport.export',
 
   // Audit
   AUDIT_READ:              'audit.read',
@@ -221,13 +241,16 @@ export const PERMISSION_META: Record<PermissionCode, { libelle: string; module: 
   // Ordonnance
   'ordonnance.read':             { libelle: 'Consulter les ordonnances', module: 'ordonnance' },
   'ordonnance.create':           { libelle: 'Créer une ordonnance', module: 'ordonnance' },
+  'ordonnance.update':           { libelle: 'Modifier une ordonnance brouillon', module: 'ordonnance' },
   'ordonnance.validate':         { libelle: 'Valider une ordonnance', module: 'ordonnance' },
   'ordonnance.cancel':           { libelle: 'Annuler une ordonnance validée', module: 'ordonnance' },
+  'ordonnance.delete':           { libelle: 'Supprimer une ordonnance brouillon', module: 'ordonnance' },
   'ordonnance.print':            { libelle: 'Imprimer une ordonnance', module: 'ordonnance' },
 
   // Bon d'examen
   'bon_examen.read':             { libelle: 'Consulter les bons d\'examen', module: 'bon_examen' },
   'bon_examen.create':           { libelle: 'Créer un bon d\'examen', module: 'bon_examen' },
+  'bon_examen.update':           { libelle: 'Modifier un bon d\'examen', module: 'bon_examen' },
   'bon_examen.validate':         { libelle: 'Valider un bon d\'examen', module: 'bon_examen' },
   'bon_examen.cancel':           { libelle: 'Annuler un bon d\'examen', module: 'bon_examen' },
   'bon_examen.delete':           { libelle: 'Supprimer définitivement un bon d\'examen', module: 'bon_examen' },
@@ -257,7 +280,14 @@ export const PERMISSION_META: Record<PermissionCode, { libelle: string; module: 
   'suivi_traitement.delete':     { libelle: 'Supprimer définitivement un suivi de traitement', module: 'suivi_traitement' },
 
   // Référentiels — lecture globale + écriture par service
-  'referentiel.read':                { libelle: 'Consulter les référentiels', module: 'referentiel' },
+  'referentiel.read':                { libelle: 'Accéder au module Référentiels', module: 'referentiel' },
+  'referentiel.site.read':           { libelle: 'Consulter les sites', module: 'referentiel' },
+  'referentiel.motif.read':          { libelle: 'Consulter les motifs de consultation', module: 'referentiel' },
+  'referentiel.pathologie.read':     { libelle: 'Consulter les pathologies', module: 'referentiel' },
+  'referentiel.medicament.read':     { libelle: 'Consulter les médicaments', module: 'referentiel' },
+  'referentiel.categorie.read':      { libelle: 'Consulter les catégories de patient', module: 'referentiel' },
+  'referentiel.examen.read':         { libelle: 'Consulter les types d\'examen', module: 'referentiel' },
+  'referentiel.type_consultation.read': { libelle: 'Consulter les types de consultation', module: 'referentiel' },
   'referentiel.site.create':         { libelle: 'Créer un site', module: 'referentiel' },
   'referentiel.site.update':         { libelle: 'Modifier un site', module: 'referentiel' },
   'referentiel.site.delete':         { libelle: 'Désactiver ou supprimer un site', module: 'referentiel' },
@@ -321,6 +351,10 @@ export const PERMISSION_META: Record<PermissionCode, { libelle: string; module: 
   'role.delete':                 { libelle: 'Supprimer un rôle', module: 'role' },
 
   // Audit
+  // Rapports
+  'rapport.read':                { libelle: 'Consulter les rapports statistiques', module: 'rapport' },
+  'rapport.export':              { libelle: 'Exporter un rapport (Excel/PDF)', module: 'rapport' },
+
   'audit.read':                  { libelle: 'Consulter les journaux d\'audit', module: 'audit' },
 
   // Paramètres
@@ -343,6 +377,102 @@ export const PERMISSION_META: Record<PermissionCode, { libelle: string; module: 
   'messagerie.create':           { libelle: 'Envoyer un message', module: 'messagerie' },
   'messagerie.update':           { libelle: 'Modifier un message', module: 'messagerie' },
   'messagerie.delete':           { libelle: 'Supprimer un message', module: 'messagerie' },
+}
+
+// ── Cohérence : « écrire implique consulter » ────────────────────────────────
+//
+// Un droit d'écriture SANS le droit de lecture correspondant est un droit MORT :
+// l'utilisateur ne voit ni la liste ni la fiche (403 sur le GET), donc il n'atteint
+// jamais le formulaire — la case cochée dans la matrice ne lui apporte rien, tout en
+// laissant croire à l'administrateur qu'il a accordé quelque chose.
+//
+// Lecture impliquée par un code (résolution structurelle, pas de table à maintenir) :
+//   `module.action`      → `module.read`
+//   `module.sous.action` → `module.sous.read` s'il existe, sinon `module.read`
+//   `module.sous.read`   → `module.read`  (accès au module parent, ex. Référentiels)
+// La règle est ensuite appliquée en chaîne :
+//   referentiel.site.create → referentiel.site.read → referentiel.read
+//
+// ⚠️ Le serveur applique la MÊME règle dans `apps/api/src/common/permission-coherence.ts`
+// (l'API ne peut pas value-importer ce paquet, cf. `common/governance.ts`). Toute
+// évolution ici doit être répercutée là-bas.
+
+const CODES_CONNUS: ReadonlySet<string> = new Set<string>(ALL_PERMISSIONS)
+
+/** Lecture directement impliquée par un code, ou null s'il n'y en a pas. */
+function lectureDirecte(code: string): PermissionCode | null {
+  const segments = code.split('.')
+  const action = segments[segments.length - 1]!
+
+  if (segments.length >= 3) {
+    if (action !== 'read') {
+      const sous = `${segments[0]}.${segments[1]}.read`
+      if (CODES_CONNUS.has(sous)) return sous as PermissionCode
+    }
+    // Sous-entité sans lecture propre (ex. patient.rattachement.manage) ou lecture
+    // de sous-entité (ex. referentiel.site.read) → on remonte au module parent.
+    const module = `${segments[0]}.read`
+    return module !== code && CODES_CONNUS.has(module) ? (module as PermissionCode) : null
+  }
+
+  if (action === 'read') return null
+  const module = `${segments[0]}.read`
+  return CODES_CONNUS.has(module) ? (module as PermissionCode) : null
+}
+
+/** Toutes les lectures impliquées par un code (chaîne complète, code exclu). */
+function chaineDeLectures(code: string): PermissionCode[] {
+  const out: PermissionCode[] = []
+  const vus = new Set<string>([code])
+  let courant = lectureDirecte(code)
+  while (courant && !vus.has(courant)) {
+    vus.add(courant)
+    out.push(courant)
+    courant = lectureDirecte(courant)
+  }
+  return out
+}
+
+/** code → lectures qu'il implique. */
+export const PERMISSION_LECTURES_IMPLIQUEES: Record<PermissionCode, PermissionCode[]> =
+  Object.fromEntries(
+    ALL_PERMISSIONS.map((c) => [c, chaineDeLectures(c)]),
+  ) as Record<PermissionCode, PermissionCode[]>
+
+/** Table inverse : lecture → codes qui deviennent inutilisables sans elle. */
+export const PERMISSION_DEPENDANTS: Record<PermissionCode, PermissionCode[]> = (() => {
+  const inverse = {} as Record<PermissionCode, PermissionCode[]>
+  for (const c of ALL_PERMISSIONS) inverse[c] = []
+  for (const c of ALL_PERMISSIONS) {
+    for (const lecture of PERMISSION_LECTURES_IMPLIQUEES[c]!) inverse[lecture]!.push(c)
+  }
+  return inverse
+})()
+
+/** Lectures impliquées par l'ensemble mais absentes de celui-ci. */
+export function lecturesManquantes(codes: readonly string[]): PermissionCode[] {
+  const presents = new Set<string>(codes)
+  const out = new Set<PermissionCode>()
+  for (const c of codes) {
+    for (const lecture of PERMISSION_LECTURES_IMPLIQUEES[c as PermissionCode] ?? []) {
+      if (!presents.has(lecture)) out.add(lecture)
+    }
+  }
+  return [...out]
+}
+
+/** Ensemble complété avec toutes les lectures impliquées (sens « on accorde »). */
+export function completerLectures(codes: readonly string[]): string[] {
+  return [...new Set([...codes, ...lecturesManquantes(codes)])]
+}
+
+/** Ensemble étendu à tout ce qui en dépend (sens « on retire »). */
+export function completerRevocations(codes: readonly string[]): string[] {
+  const out = new Set<string>(codes)
+  for (const c of codes) {
+    for (const dep of PERMISSION_DEPENDANTS[c as PermissionCode] ?? []) out.add(dep)
+  }
+  return [...out]
 }
 
 // ── Affectation par défaut Rôle → Permissions (charte de gouvernance) ─────────
@@ -369,13 +499,18 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionCode[]> = {
     'consultation.read', 'consultation.create', 'consultation.update',
     'consultation.close', 'consultation.cancel', 'consultation.delete',
     'consultation.diagnose', 'consultation.examen',
-    'ordonnance.read', 'ordonnance.create', 'ordonnance.validate', 'ordonnance.cancel', 'ordonnance.print',
-    // Bon d'examen : le médecin chef le crée directement (pas d'ordonnance requise —
-    // ce n'est pas un acte de prescription médicamenteuse). Bon de pharmacie : lecture
-    // seule pour le médecin-chef — sa création reste réservée à l'infirmier, une fois
-    // l'ordonnance validée (recueil §3.2/§4.3).
-    'bon_examen.read', 'bon_examen.create',
-    'bon_pharmacie.read',
+    'ordonnance.read', 'ordonnance.create', 'ordonnance.update', 'ordonnance.validate',
+    'ordonnance.cancel', 'ordonnance.delete', 'ordonnance.print',
+    // Bons (examen/pharmacie) : générés en un clic depuis une ordonnance validée
+    // (« Générer un bon », ConsultationService.genererBonDepuisOrdonnance) — le médecin
+    // chef doit pouvoir le faire pour SES PROPRES ordonnances, quel que soit leur type.
+    // Le cycle de vie COMPLET lui revient aussi : il pouvait créer un bon sans pouvoir
+    // le valider, l'annuler, le délivrer ni y saisir un résultat — incohérence corrigée.
+    'bon_examen.read', 'bon_examen.create', 'bon_examen.update',
+    'bon_examen.validate', 'bon_examen.cancel', 'bon_examen.result',
+    'bon_pharmacie.read', 'bon_pharmacie.create', 'bon_pharmacie.deliver', 'bon_pharmacie.cancel',
+    // Rapports statistiques (module autonome depuis l'ajout de rapport.*)
+    'rapport.read', 'rapport.export',
     'evacuation.read', 'evacuation.create', 'evacuation.update', 'evacuation.cancel', 'evacuation.close', 'evacuation.delete',
     // Suivi de traitement : ouvrable par le médecin chef (comme l'évacuation) ET
     // par l'infirmier (voir INFIRMIER ci-dessous) — contrôle de suivi partagé.
@@ -384,6 +519,9 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionCode[]> = {
     'delegation.read', 'delegation.create', 'delegation.update', 'delegation.revoke', 'delegation.delete',
     // Gouvernance médicale (anciennement ADMIN_MEDICAL) : contrôle total des référentiels
     'referentiel.read',
+    'referentiel.site.read',       'referentiel.motif.read',      'referentiel.pathologie.read',
+    'referentiel.medicament.read', 'referentiel.categorie.read',  'referentiel.examen.read',
+    'referentiel.type_consultation.read',
     'referentiel.site.create',       'referentiel.site.update',       'referentiel.site.delete',
     'referentiel.motif.create',      'referentiel.motif.update',      'referentiel.motif.delete',
     'referentiel.pathologie.create', 'referentiel.pathologie.update', 'referentiel.pathologie.delete',
@@ -411,18 +549,21 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionCode[]> = {
     'consultation.read', 'consultation.create', 'consultation.examen',
     'consultation.diagnose', 'consultation.update', 'consultation.close', 'consultation.cancel',
     'bon_examen.read', 'bon_examen.result',
-    // Prescription (recueil) : l'infirmier reçoit les permissions de prescription,
-    // mais le SERVICE (assertPeutPrescrire) n'autorise l'acte QUE s'il a une
-    // délégation active accordée par le médecin chef. Sans délégation → 403.
-    // validate + cancel : indispensables pour que la prescription DÉLÉGUÉE aille
-    // au bout — la clôture en décision « Prescription » exige une ordonnance VALIDÉE
-    // (le cloisonnement limite l'infirmier à ses propres consultations).
-    'ordonnance.read', 'ordonnance.create', 'ordonnance.validate', 'ordonnance.cancel', 'ordonnance.print',
-    // Bons : NE PASSENT PLUS par assertPeutPrescrire (ce n'est pas un acte de
-    // prescription mais la délivrance de routine post-clôture, recueil §3.2/§4.3) —
-    // bon d'examen libre ; bon de pharmacie exige une ordonnance VALIDÉE existante.
-    'bon_examen.create', 'bon_examen.cancel',
+    // Prescription (recueil) : l'infirmier reçoit les permissions de prescription (create/
+    // validate/cancel), mais le SERVICE (assertPeutPrescrire) n'autorise la CRÉATION/l'AJOUT
+    // DE LIGNE que s'il a une délégation active accordée par le médecin chef — sans délégation,
+    // le frontend le bascule en lecture seule (validées uniquement) ; ces permissions restent
+    // nécessaires pour qu'un infirmier fraîchement délégué ne soit pas bloqué au niveau du guard.
+    'ordonnance.read', 'ordonnance.create', 'ordonnance.update', 'ordonnance.validate',
+    'ordonnance.cancel', 'ordonnance.delete', 'ordonnance.print',
+    // Bons : NE PASSENT PLUS par assertPeutPrescrire (ce n'est pas un acte de prescription mais
+    // une délivrance, recueil §3.2/§4.3) — générés en un clic (« Générer un bon ») depuis une
+    // ordonnance VALIDÉE du type correspondant (ConsultationService.genererBonDepuisOrdonnance).
+    'bon_examen.create', 'bon_examen.update', 'bon_examen.cancel',
     'bon_pharmacie.read', 'bon_pharmacie.create', 'bon_pharmacie.cancel',
+    // Rapports : accessibles avant l'ajout de rapport.* via consultation.read — comportement
+    // conservé à l'identique (l'admin peut le retirer depuis la matrice s'il le souhaite).
+    'rapport.read',
     // Suivi de traitement : l'infirmier ouvre/gère les épisodes de suivi au même
     // titre que le médecin chef (contrôle d'état de santé, fiches datées).
     'suivi_traitement.read', 'suivi_traitement.create', 'suivi_traitement.update',
@@ -433,8 +574,15 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionCode[]> = {
     // drawer « Rattachement sous-traitant » (patient.rattachement.manage sans ce droit de
     // lecture laissait la liste déroulante vide, ajout impossible en pratique).
     'sous_traitant.read',
-    // Enrichissement collaboratif : motifs de triage uniquement
-    'referentiel.read', 'referentiel.motif.create',
+    // Référentiels : la LECTURE des 7 services est indispensable au travail clinique
+    // (médicaments d'une ordonnance, types d'examen d'un bon, motifs du triage,
+    // catégories d'un patient…) — ce ne sont pas des droits d'administration.
+    // L'ÉCRITURE reste limitée aux motifs (enrichissement collaboratif du triage).
+    'referentiel.read',
+    'referentiel.site.read',       'referentiel.motif.read',      'referentiel.pathologie.read',
+    'referentiel.medicament.read', 'referentiel.categorie.read',  'referentiel.examen.read',
+    'referentiel.type_consultation.read',
+    'referentiel.motif.create',
   ],
 }
 

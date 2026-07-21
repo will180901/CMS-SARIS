@@ -1,12 +1,20 @@
 import {
-  Controller, Get, Patch, Post, Body, Param, Req,
-  UseGuards, HttpCode, HttpStatus,
+  Controller,
+  Get,
+  Patch,
+  Post,
+  Body,
+  Param,
+  Req,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common'
 import { IsString, MaxLength } from 'class-validator'
-import { ParametresService }    from '../parametres/parametres.service'
-import { JwtAuthGuard }         from '../security/guards/jwt-auth.guard'
-import { PermissionsGuard }     from '../security/guards/permissions.guard'
-import { RequirePermissions }   from '../../common/decorators/require-permissions.decorator'
+import { ParametresService } from '../parametres/parametres.service'
+import { JwtAuthGuard } from '../security/guards/jwt-auth.guard'
+import { PermissionsGuard } from '../security/guards/permissions.guard'
+import { RequirePermissions } from '../../common/decorators/require-permissions.decorator'
 
 export class UpdateParametreDto {
   @IsString()
@@ -27,7 +35,11 @@ export class ParametresController {
 
   @Patch(':cle')
   @RequirePermissions('parametre.update')
-  update(@Param('cle') cle: string, @Body() dto: UpdateParametreDto, @Req() req: any) {
+  update(
+    @Param('cle') cle: string,
+    @Body() dto: UpdateParametreDto,
+    @Req() req: any,
+  ) {
     return this.svc.update(cle, dto.valeur, req.user?.id ?? null)
   }
 

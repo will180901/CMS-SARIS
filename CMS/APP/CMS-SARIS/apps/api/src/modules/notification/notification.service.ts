@@ -19,37 +19,47 @@ export type NiveauNotif = 'INFO' | 'SUCCES' | 'AVERTISSEMENT' | 'CRITIQUE'
 export type CategorieNotif = 'clinique' | 'sortie' | 'administratif' | 'systeme'
 
 export interface EmitInput {
-  type:                string
-  niveau?:             NiveauNotif
+  type: string
+  niveau?: NiveauNotif
   /** Catégorie → bascule de Paramètres consultée avant émission (admin système). */
-  category?:           CategorieNotif
-  titre:               string
-  message:             string
+  category?: CategorieNotif
+  titre: string
+  message: string
   /** Cible une seule personne. Si absent → diffusion (voir siteId/requiredPermission). */
-  destinataireId?:     string | null
+  destinataireId?: string | null
   /** Diffusion : restreint à un site (null = tous les sites = système global). */
-  siteId?:             string | null
+  siteId?: string | null
   /** Diffusion : permission requise pour voir (respect des rôles/permissions). */
   requiredPermission?: string | null
-  entiteType?:         string | null
-  entiteId?:           string | null
-  lien?:               string | null
-  createdById?:        string | null
+  entiteType?: string | null
+  entiteId?: string | null
+  lien?: string | null
+  createdById?: string | null
   /** PersonnelMedical.id des personnes directement impliquées (ex. soignant
    *  assigné) — distingue « me concerne » de la diffusion large côté feed. */
   concernedPersonnelIds?: string[]
 }
 
 export interface NotifAudience {
-  userId:      string
-  siteId:      string
+  userId: string
+  siteId: string
   permissions: string[]
 }
 
 interface NotifRow {
-  id: string; createdAt: Date; destinataireId: string | null; siteId: string | null
-  requiredPermission: string | null; type: string; niveau: string; titre: string; message: string
-  entiteType: string | null; entiteId: string | null; lien: string | null; createdById: string | null
+  id: string
+  createdAt: Date
+  destinataireId: string | null
+  siteId: string | null
+  requiredPermission: string | null
+  type: string
+  niveau: string
+  titre: string
+  message: string
+  entiteType: string | null
+  entiteId: string | null
+  lien: string | null
+  createdById: string | null
   concernedPersonnelIds: string[]
 }
 
@@ -59,16 +69,16 @@ export class NotificationService {
   private readonly stream$ = new Subject<NotifRow>()
 
   constructor(
-    private readonly prisma:  PrismaService,
-    private readonly params:  ParametresService,
+    private readonly prisma: PrismaService,
+    private readonly params: ParametresService,
   ) {}
 
   // Catégorie → clé de paramètre (bascule système). 'systeme' = toujours actif.
   private static readonly CAT_PARAM: Record<CategorieNotif, string | null> = {
-    clinique:      'notif.evenements_cliniques',
-    sortie:        'notif.sorties_critiques',
+    clinique: 'notif.evenements_cliniques',
+    sortie: 'notif.sorties_critiques',
     administratif: 'notif.evenements_administratifs',
-    systeme:       null,
+    systeme: null,
   }
 
   /** Les notifications de cette catégorie sont-elles activées (réglages admin) ? */
@@ -90,17 +100,17 @@ export class NotificationService {
       if (!(await this.categoryEnabled(input.category))) return null
       const n = await this.prisma.notification.create({
         data: {
-          type:               input.type,
-          niveau:             input.niveau ?? 'INFO',
-          titre:              input.titre,
-          message:            input.message,
-          destinataireId:     input.destinataireId ?? null,
-          siteId:             input.siteId ?? null,
+          type: input.type,
+          niveau: input.niveau ?? 'INFO',
+          titre: input.titre,
+          message: input.message,
+          destinataireId: input.destinataireId ?? null,
+          siteId: input.siteId ?? null,
           requiredPermission: input.requiredPermission ?? null,
-          entiteType:         input.entiteType ?? null,
-          entiteId:           input.entiteId ?? null,
-          lien:               input.lien ?? null,
-          createdById:        input.createdById ?? null,
+          entiteType: input.entiteType ?? null,
+          entiteId: input.entiteId ?? null,
+          lien: input.lien ?? null,
+          createdById: input.createdById ?? null,
           concernedPersonnelIds: input.concernedPersonnelIds ?? [],
         },
       })
@@ -122,7 +132,8 @@ export class NotificationService {
     // propre action (il en est déjà conscient → évite le bruit / l'ambiguïté).
     if (n.createdById && n.createdById === a.userId) return false
     if (n.siteId && n.siteId !== a.siteId) return false
-    if (n.requiredPermission && !a.permissions.includes(n.requiredPermission)) return false
+    if (n.requiredPermission && !a.permissions.includes(n.requiredPermission))
+      return false
     return true
   }
 
@@ -134,7 +145,12 @@ export class NotificationService {
           destinataireId: null,
           AND: [
             { OR: [{ siteId: null }, { siteId: a.siteId }] },
-            { OR: [{ requiredPermission: null }, { requiredPermission: { in: a.permissions } }] },
+            {
+              OR: [
+                { requiredPermission: null },
+                { requiredPermission: { in: a.permissions } },
+              ],
+            },
             // L'auteur de l'action ne se notifie pas lui-même.
             { OR: [{ createdById: null }, { NOT: { createdById: a.userId } }] },
           ],
@@ -147,32 +163,48 @@ export class NotificationService {
 
   async list(a: NotifAudience, limit = 40) {
     const rows = await this.prisma.notification.findMany({
-      where:   this.whereFor(a),
+      where: this.whereFor(a),
       orderBy: { createdAt: 'desc' },
-      take:    Math.min(limit, 100),
-      include: { lectures: { where: { utilisateurId: a.userId }, select: { id: true, masque: true } } },
+      take: Math.min(limit, 100),
+      include: {
+        lectures: {
+          where: { utilisateurId: a.userId },
+          select: { id: true, masque: true },
+        },
+      },
     })
     // On masque du feed les notifications « supprimées pour moi ».
     return rows
-      .filter(r => !r.lectures.some(l => l.masque))
+      .filter((r) => !r.lectures.some((l) => l.masque))
       .map(({ lectures, ...n }) => ({ ...n, lu: lectures.length > 0 }))
   }
 
   async unreadCount(a: NotifAudience): Promise<number> {
     const rows = await this.prisma.notification.findMany({
-      where:   this.whereFor(a),
+      where: this.whereFor(a),
       orderBy: { createdAt: 'desc' },
-      take:    100,
-      select:  { id: true, lectures: { where: { utilisateurId: a.userId }, select: { id: true } } },
+      take: 100,
+      select: {
+        id: true,
+        lectures: { where: { utilisateurId: a.userId }, select: { id: true } },
+      },
     })
-    return rows.filter(r => r.lectures.length === 0).length
+    return rows.filter((r) => r.lectures.length === 0).length
   }
 
   async markRead(id: string, userId: string) {
-    const notif = await this.prisma.notification.findUnique({ where: { id }, select: { id: true } })
+    const notif = await this.prisma.notification.findUnique({
+      where: { id },
+      select: { id: true },
+    })
     if (!notif) throw new NotFoundException('Notification introuvable')
     await this.prisma.notificationLecture.upsert({
-      where:  { notificationId_utilisateurId: { notificationId: id, utilisateurId: userId } },
+      where: {
+        notificationId_utilisateurId: {
+          notificationId: id,
+          utilisateurId: userId,
+        },
+      },
       update: {},
       create: { notificationId: id, utilisateurId: userId },
     })
@@ -181,15 +213,21 @@ export class NotificationService {
 
   async markAllRead(a: NotifAudience) {
     const rows = await this.prisma.notification.findMany({
-      where:   this.whereFor(a),
+      where: this.whereFor(a),
       orderBy: { createdAt: 'desc' },
-      take:    200,
-      select:  { id: true, lectures: { where: { utilisateurId: a.userId }, select: { id: true } } },
+      take: 200,
+      select: {
+        id: true,
+        lectures: { where: { utilisateurId: a.userId }, select: { id: true } },
+      },
     })
-    const unread = rows.filter(r => r.lectures.length === 0).map(r => r.id)
+    const unread = rows.filter((r) => r.lectures.length === 0).map((r) => r.id)
     if (unread.length) {
       await this.prisma.notificationLecture.createMany({
-        data:          unread.map(notificationId => ({ notificationId, utilisateurId: a.userId })),
+        data: unread.map((notificationId) => ({
+          notificationId,
+          utilisateurId: a.userId,
+        })),
         skipDuplicates: true,
       })
     }
@@ -202,15 +240,24 @@ export class NotificationService {
    * « réaction » dès que l'utilisateur ouvre la conversation concernée — évite le
    * décalage où le compteur restait malgré l'ouverture de la conversation.
    */
-  async markReadForEntite(userId: string, entiteType: string, entiteId: string) {
+  async markReadForEntite(
+    userId: string,
+    entiteType: string,
+    entiteId: string,
+  ) {
     const rows = await this.prisma.notification.findMany({
-      where:  { destinataireId: userId, entiteType, entiteId, lectures: { none: { utilisateurId: userId } } },
+      where: {
+        destinataireId: userId,
+        entiteType,
+        entiteId,
+        lectures: { none: { utilisateurId: userId } },
+      },
       select: { id: true },
-      take:   200,
+      take: 200,
     })
     if (!rows.length) return { marked: 0 }
     await this.prisma.notificationLecture.createMany({
-      data:           rows.map(r => ({ notificationId: r.id, utilisateurId: userId })),
+      data: rows.map((r) => ({ notificationId: r.id, utilisateurId: userId })),
       skipDuplicates: true,
     })
     return { marked: rows.length }
@@ -218,17 +265,27 @@ export class NotificationService {
 
   /** Suppression définitive d'une notification (réservé admin système). */
   async remove(id: string) {
-    await this.prisma.notificationLecture.deleteMany({ where: { notificationId: id } })
+    await this.prisma.notificationLecture.deleteMany({
+      where: { notificationId: id },
+    })
     await this.prisma.notification.delete({ where: { id } })
     return { ok: true }
   }
 
   /** « Supprimer pour moi » : masque la notification du feed de cet utilisateur (lue ou non). */
   async dismissForUser(id: string, userId: string) {
-    const notif = await this.prisma.notification.findUnique({ where: { id }, select: { id: true } })
+    const notif = await this.prisma.notification.findUnique({
+      where: { id },
+      select: { id: true },
+    })
     if (!notif) throw new NotFoundException('Notification introuvable')
     await this.prisma.notificationLecture.upsert({
-      where:  { notificationId_utilisateurId: { notificationId: id, utilisateurId: userId } },
+      where: {
+        notificationId_utilisateurId: {
+          notificationId: id,
+          utilisateurId: userId,
+        },
+      },
       update: { masque: true },
       create: { notificationId: id, utilisateurId: userId, masque: true },
     })
@@ -241,28 +298,41 @@ export class NotificationService {
     if (!uniq.length) return { dismissed: 0 }
     // Ne garder que les ids EXISTANTS : un id inconnu violerait la FK (P2003) et ferait
     // échouer tout le lot. On ignore silencieusement les notifications introuvables.
-    const existants = await this.prisma.notification.findMany({ where: { id: { in: uniq } }, select: { id: true } })
-    const ids2 = existants.map(n => n.id)
+    const existants = await this.prisma.notification.findMany({
+      where: { id: { in: uniq } },
+      select: { id: true },
+    })
+    const ids2 = existants.map((n) => n.id)
     if (!ids2.length) return { dismissed: 0 }
-    await this.prisma.$transaction(ids2.map(notificationId =>
-      this.prisma.notificationLecture.upsert({
-        where:  { notificationId_utilisateurId: { notificationId, utilisateurId: userId } },
-        update: { masque: true },
-        create: { notificationId, utilisateurId: userId, masque: true },
-      }),
-    ))
+    await this.prisma.$transaction(
+      ids2.map((notificationId) =>
+        this.prisma.notificationLecture.upsert({
+          where: {
+            notificationId_utilisateurId: {
+              notificationId,
+              utilisateurId: userId,
+            },
+          },
+          update: { masque: true },
+          create: { notificationId, utilisateurId: userId, masque: true },
+        }),
+      ),
+    )
     return { dismissed: ids2.length }
   }
 
   /** « Tout supprimer pour moi » : masque toutes les notifications visibles de l'utilisateur. */
   async dismissAllForUser(a: NotifAudience) {
     const rows = await this.prisma.notification.findMany({
-      where:   this.whereFor(a),
+      where: this.whereFor(a),
       orderBy: { createdAt: 'desc' },
-      take:    200,
-      select:  { id: true },
+      take: 200,
+      select: { id: true },
     })
-    return this.dismissManyForUser(rows.map(r => r.id), a.userId)
+    return this.dismissManyForUser(
+      rows.map((r) => r.id),
+      a.userId,
+    )
   }
 
   /**
@@ -271,12 +341,25 @@ export class NotificationService {
    * cloche ni son ni toast. Le frontend traite les types `LIVE_*` à part.
    * `siteId` null = tous les sites ; `requiredPermission` restreint la visibilité.
    */
-  broadcastLive(type: string, opts?: { siteId?: string | null; requiredPermission?: string | null }): void {
+  broadcastLive(
+    type: string,
+    opts?: { siteId?: string | null; requiredPermission?: string | null },
+  ): void {
     this.stream$.next({
-      id: `live-${type}`, createdAt: new Date(), destinataireId: null,
-      siteId: opts?.siteId ?? null, requiredPermission: opts?.requiredPermission ?? null,
-      type, niveau: 'INFO', titre: '', message: '', entiteType: null, entiteId: null,
-      lien: null, createdById: null, concernedPersonnelIds: [],
+      id: `live-${type}`,
+      createdAt: new Date(),
+      destinataireId: null,
+      siteId: opts?.siteId ?? null,
+      requiredPermission: opts?.requiredPermission ?? null,
+      type,
+      niveau: 'INFO',
+      titre: '',
+      message: '',
+      entiteType: null,
+      entiteId: null,
+      lien: null,
+      createdById: null,
+      concernedPersonnelIds: [],
     } as NotifRow)
   }
 
@@ -286,10 +369,20 @@ export class NotificationService {
    */
   pushLive(destinataireId: string, type: string, entiteId?: string): void {
     this.stream$.next({
-      id: `live-${type}`, createdAt: new Date(), destinataireId,
-      siteId: null, requiredPermission: null, type, niveau: 'INFO',
-      titre: '', message: '', entiteType: 'conversation', entiteId: entiteId ?? null,
-      lien: null, createdById: null, concernedPersonnelIds: [],
+      id: `live-${type}`,
+      createdAt: new Date(),
+      destinataireId,
+      siteId: null,
+      requiredPermission: null,
+      type,
+      niveau: 'INFO',
+      titre: '',
+      message: '',
+      entiteType: 'conversation',
+      entiteId: entiteId ?? null,
+      lien: null,
+      createdById: null,
+      concernedPersonnelIds: [],
     } as NotifRow)
   }
 
@@ -304,10 +397,19 @@ export class NotificationService {
   pushSessionRevoked(userId: string, revokedSids: string[]): void {
     if (!revokedSids.length) return
     this.stream$.next({
-      id: `revoke-${Date.now()}`, createdAt: new Date(), destinataireId: userId,
-      siteId: null, requiredPermission: null, type: 'SESSION_REVOKED', niveau: 'CRITIQUE',
-      titre: 'Session fermée', message: 'Votre compte a été ouvert sur un autre poste.',
-      entiteType: 'session', entiteId: revokedSids.join(','), lien: null, createdById: null,
+      id: `revoke-${Date.now()}`,
+      createdAt: new Date(),
+      destinataireId: userId,
+      siteId: null,
+      requiredPermission: null,
+      type: 'SESSION_REVOKED',
+      niveau: 'CRITIQUE',
+      titre: 'Session fermée',
+      message: 'Votre compte a été ouvert sur un autre poste.',
+      entiteType: 'session',
+      entiteId: revokedSids.join(','),
+      lien: null,
+      createdById: null,
       concernedPersonnelIds: [],
     } as NotifRow)
   }
@@ -317,8 +419,8 @@ export class NotificationService {
   /** Flux SSE filtré : seules les notifications visibles par cet utilisateur. */
   streamFor(a: NotifAudience): Observable<MessageEvent> {
     return this.stream$.pipe(
-      filter(n => this.visibleFor(n, a)),
-      map(n => ({ data: { ...n, lu: false } }) as MessageEvent),
+      filter((n) => this.visibleFor(n, a)),
+      map((n) => ({ data: { ...n, lu: false } }) as MessageEvent),
     )
   }
 }

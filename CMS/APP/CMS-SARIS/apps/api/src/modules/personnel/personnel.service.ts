@@ -1,16 +1,33 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common'
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
 import { CI } from '../../common/prisma/search'
-import type { CreatePersonnelDto, UpdatePersonnelDto, PersonnelQueryDto }   from './dto/personnel.dto'
-import type { CreateDelegationDto, UpdateDelegationDto }                     from './dto/delegation.dto'
-import type { CreateSousTraitantDto, UpdateSousTraitantDto, SousTraitantQueryDto } from './dto/sous-traitant.dto'
+import type {
+  CreatePersonnelDto,
+  UpdatePersonnelDto,
+  PersonnelQueryDto,
+} from './dto/personnel.dto'
+import type {
+  CreateDelegationDto,
+  UpdateDelegationDto,
+} from './dto/delegation.dto'
+import type {
+  CreateSousTraitantDto,
+  UpdateSousTraitantDto,
+  SousTraitantQueryDto,
+} from './dto/sous-traitant.dto'
 
 // ── Sélection réutilisable pour les relations "résumé personnel" ──────────────
-const PERSONNEL_RESUME  = { select: { id: true, nom: true, prenom: true, matricule: true } } as const
+const PERSONNEL_RESUME = {
+  select: { id: true, nom: true, prenom: true, matricule: true },
+} as const
 const DELEGATION_INCLUDE = {
   include: {
     medecinChef: PERSONNEL_RESUME,
-    infirmier:   PERSONNEL_RESUME,
+    infirmier: PERSONNEL_RESUME,
   },
 } as const
 
@@ -26,11 +43,11 @@ export class PersonnelService {
     return this.prisma.personnelMedical.findMany({
       where: {
         ...(query.statut && { statut: query.statut }),
-        ...(query.role   && { role:   query.role }),
+        ...(query.role && { role: query.role }),
         ...(query.search && {
           OR: [
-            { nom:       { contains: query.search, ...CI } },
-            { prenom:    { contains: query.search, ...CI } },
+            { nom: { contains: query.search, ...CI } },
+            { prenom: { contains: query.search, ...CI } },
             { matricule: { contains: query.search, ...CI } },
           ],
         }),
@@ -40,7 +57,9 @@ export class PersonnelService {
   }
 
   async findById(id: string) {
-    const agent = await this.prisma.personnelMedical.findUnique({ where: { id } })
+    const agent = await this.prisma.personnelMedical.findUnique({
+      where: { id },
+    })
     if (!agent) throw new NotFoundException(`Agent ${id} introuvable`)
     return agent
   }
@@ -54,10 +73,20 @@ export class PersonnelService {
         statut: 'ACTIF',
         utilisateur: {
           statut: 'ACTIF',
-          roles:  { some: { role: { code: { in: ['MEDECIN_CHEF', 'INFIRMIER'] } } } },
+          roles: {
+            some: { role: { code: { in: ['MEDECIN_CHEF', 'INFIRMIER'] } } },
+          },
         },
       },
-      select:  { id: true, nom: true, prenom: true, matricule: true, role: true, statut: true, siteId: true },
+      select: {
+        id: true,
+        nom: true,
+        prenom: true,
+        matricule: true,
+        role: true,
+        statut: true,
+        siteId: true,
+      },
       orderBy: [{ nom: 'asc' }, { prenom: 'asc' }],
     })
   }
@@ -65,7 +94,9 @@ export class PersonnelService {
   async create(dto: CreatePersonnelDto) {
     // Contrôle d'unicité sur le client BRUT : il voit aussi les tombstones (agents soft-supprimés)
     // qui occupent encore le matricule @unique en base.
-    const existing = await this.prisma.raw.personnelMedical.findUnique({ where: { matricule: dto.matricule } })
+    const existing = await this.prisma.raw.personnelMedical.findUnique({
+      where: { matricule: dto.matricule },
+    })
     if (existing) {
       throw new ConflictException(
         existing.deletedAt
@@ -80,7 +111,9 @@ export class PersonnelService {
     await this.findById(id)
     if (dto.matricule) {
       // Client BRUT : voit les tombstones occupant le matricule, sans bloquer sur soi-même.
-      const existing = await this.prisma.raw.personnelMedical.findUnique({ where: { matricule: dto.matricule } })
+      const existing = await this.prisma.raw.personnelMedical.findUnique({
+        where: { matricule: dto.matricule },
+      })
       if (existing && existing.id !== id) {
         throw new ConflictException(
           existing.deletedAt
@@ -94,7 +127,10 @@ export class PersonnelService {
 
   async setStatut(id: string, statut: 'ACTIF' | 'INACTIF') {
     await this.findById(id)
-    return this.prisma.personnelMedical.update({ where: { id }, data: { statut } })
+    return this.prisma.personnelMedical.update({
+      where: { id },
+      data: { statut },
+    })
   }
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -109,9 +145,36 @@ export class PersonnelService {
   }
 
   async findDelegationById(id: string) {
-    const d = await this.prisma.delegationPrescription.findUnique({ where: { id }, ...DELEGATION_INCLUDE })
+    const d = await this.prisma.delegationPrescription.findUnique({
+      where: { id },
+      ...DELEGATION_INCLUDE,
+    })
     if (!d) throw new NotFoundException(`Délégation ${id} introuvable`)
     return d
+  }
+
+  /**
+   * Ma propre délégation active (si j'en ai une) — même requête que `assertPeutPrescrire`
+   * (common/prescription.ts). Sert au frontend à savoir, AVANT de tenter une action, si un
+   * infirmier non délégué doit voir l'onglet Ordonnance en lecture seule.
+   */
+  async findMyActiveDelegation(personnelMedicalId: string | null) {
+    if (!personnelMedicalId)
+      return { active: false, delegationId: null, dateFin: null }
+    const now = new Date()
+    const deleg = await this.prisma.delegationPrescription.findFirst({
+      where: {
+        infirmierId: personnelMedicalId,
+        statut: 'ACTIVE',
+        dateDebut: { lte: now },
+        dateFin: { gte: now },
+        deletedAt: null,
+      },
+      select: { id: true, dateFin: true },
+    })
+    return deleg
+      ? { active: true, delegationId: deleg.id, dateFin: deleg.dateFin }
+      : { active: false, delegationId: null, dateFin: null }
   }
 
   async createDelegation(dto: CreateDelegationDto) {
@@ -121,7 +184,7 @@ export class PersonnelService {
       data: {
         ...dto,
         dateDebut: new Date(dto.dateDebut),
-        dateFin:   new Date(dto.dateFin),
+        dateFin: new Date(dto.dateFin),
       },
       ...DELEGATION_INCLUDE,
     })
@@ -131,11 +194,11 @@ export class PersonnelService {
     await this.findDelegationById(id)
     return this.prisma.delegationPrescription.update({
       where: { id },
-      data:  {
+      data: {
         ...(dto.medecinChefId && { medecinChefId: dto.medecinChefId }),
-        ...(dto.infirmierId   && { infirmierId:   dto.infirmierId }),
-        ...(dto.dateDebut     && { dateDebut: new Date(dto.dateDebut) }),
-        ...(dto.dateFin       && { dateFin:   new Date(dto.dateFin) }),
+        ...(dto.infirmierId && { infirmierId: dto.infirmierId }),
+        ...(dto.dateDebut && { dateDebut: new Date(dto.dateDebut) }),
+        ...(dto.dateFin && { dateFin: new Date(dto.dateFin) }),
         ...(dto.perimetre !== undefined && { perimetre: dto.perimetre }),
       },
       ...DELEGATION_INCLUDE,
@@ -144,7 +207,10 @@ export class PersonnelService {
 
   async toggleDelegationStatut(id: string, statut: string) {
     await this.findDelegationById(id)
-    return this.prisma.delegationPrescription.update({ where: { id }, data: { statut } })
+    return this.prisma.delegationPrescription.update({
+      where: { id },
+      data: { statut },
+    })
   }
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -164,7 +230,9 @@ export class PersonnelService {
   }
 
   async findSousTraitantById(id: string) {
-    const s = await this.prisma.societeSousTraitante.findUnique({ where: { id } })
+    const s = await this.prisma.societeSousTraitante.findUnique({
+      where: { id },
+    })
     if (!s) throw new NotFoundException(`Société ${id} introuvable`)
     return s
   }
@@ -173,7 +241,8 @@ export class PersonnelService {
     const existing = await this.prisma.societeSousTraitante.findFirst({
       where: { nom: { equals: dto.nom, ...CI } },
     })
-    if (existing) throw new ConflictException(`Une société nommée "${dto.nom}" existe déjà`)
+    if (existing)
+      throw new ConflictException(`Une société nommée "${dto.nom}" existe déjà`)
     return this.prisma.societeSousTraitante.create({ data: dto })
   }
 
@@ -183,14 +252,20 @@ export class PersonnelService {
       const existing = await this.prisma.societeSousTraitante.findFirst({
         where: { nom: { equals: dto.nom, ...CI }, NOT: { id } },
       })
-      if (existing) throw new ConflictException(`Une société nommée "${dto.nom}" existe déjà`)
+      if (existing)
+        throw new ConflictException(
+          `Une société nommée "${dto.nom}" existe déjà`,
+        )
     }
     return this.prisma.societeSousTraitante.update({ where: { id }, data: dto })
   }
 
   async setStatutSousTraitant(id: string, statut: 'ACTIVE' | 'INACTIVE') {
     await this.findSousTraitantById(id)
-    return this.prisma.societeSousTraitante.update({ where: { id }, data: { statut } })
+    return this.prisma.societeSousTraitante.update({
+      where: { id },
+      data: { statut },
+    })
   }
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -212,7 +287,9 @@ export class PersonnelService {
 
   async deletePersonnel(id: string) {
     await this.findById(id)
-    await this.hardDelete('cet agent', () => this.prisma.personnelMedical.delete({ where: { id } }))
+    await this.hardDelete('cet agent', () =>
+      this.prisma.personnelMedical.delete({ where: { id } }),
+    )
     return { id, deleted: true }
   }
 
@@ -220,7 +297,9 @@ export class PersonnelService {
     await this.findDelegationById(id)
     // Les médicaments autorisés sont des enfants directs → on les retire d'abord.
     await this.prisma.$transaction([
-      this.prisma.delegationMedicamentAutorise.deleteMany({ where: { delegationId: id } }),
+      this.prisma.delegationMedicamentAutorise.deleteMany({
+        where: { delegationId: id },
+      }),
       this.prisma.delegationPrescription.delete({ where: { id } }),
     ])
     return { id, deleted: true }
@@ -228,7 +307,9 @@ export class PersonnelService {
 
   async deleteSousTraitant(id: string) {
     await this.findSousTraitantById(id)
-    await this.hardDelete('cette société', () => this.prisma.societeSousTraitante.delete({ where: { id } }))
+    await this.hardDelete('cette société', () =>
+      this.prisma.societeSousTraitante.delete({ where: { id } }),
+    )
     return { id, deleted: true }
   }
 }

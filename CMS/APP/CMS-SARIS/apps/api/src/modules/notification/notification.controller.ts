@@ -9,8 +9,20 @@
  * Authorization, le token JWT est passé en query (?token=) et vérifié ici.
  */
 import {
-  Controller, Get, Patch, Post, Delete, Param, Query, Req, Sse, Body,
-  UseGuards, HttpCode, HttpStatus, UnauthorizedException,
+  Controller,
+  Get,
+  Patch,
+  Post,
+  Delete,
+  Param,
+  Query,
+  Req,
+  Sse,
+  Body,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+  UnauthorizedException,
 } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import { finalize, type Observable } from 'rxjs'
@@ -19,7 +31,11 @@ import { JwtAuthGuard } from '../security/guards/jwt-auth.guard'
 import { PermissionsGuard } from '../security/guards/permissions.guard'
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator'
 import { PrismaService } from '../../prisma/prisma.service'
-import { NotificationService, type NotifAudience, type NiveauNotif } from './notification.service'
+import {
+  NotificationService,
+  type NotifAudience,
+  type NiveauNotif,
+} from './notification.service'
 import { BatchIdsDto } from '../../common/dto/batch-ids.dto'
 import { CreateAnnonceDto } from './dto/annonce.dto'
 import { PresenceService } from './presence.service'
@@ -37,14 +53,18 @@ function audienceFromReq(req: AuthedRequest): NotifAudience {
 @Controller('notifications')
 export class NotificationController {
   constructor(
-    private readonly notif:    NotificationService,
-    private readonly jwt:      JwtService,
+    private readonly notif: NotificationService,
+    private readonly jwt: JwtService,
     private readonly presence: PresenceService,
-    private readonly prisma:   PrismaService,
+    private readonly prisma: PrismaService,
   ) {}
 
   private touchLastSeen(userId: string): void {
-    this.prisma.utilisateur.update({ where: { id: userId }, data: { lastSeenAt: new Date() } }).catch(() => { /* best-effort */ })
+    this.prisma.utilisateur
+      .update({ where: { id: userId }, data: { lastSeenAt: new Date() } })
+      .catch(() => {
+        /* best-effort */
+      })
   }
 
   /**
@@ -52,15 +72,29 @@ export class NotificationController {
    * conversations → leurs messages passent « remis » (✓✓ gris) instantanément.
    */
   private notifyCoParticipants(userId: string): void {
-    this.prisma.conversationParticipant.findMany({ where: { utilisateurId: userId }, select: { conversationId: true } })
-      .then(parts => parts.length
-        ? this.prisma.conversationParticipant.findMany({
-            where:  { conversationId: { in: parts.map(p => p.conversationId) }, utilisateurId: { not: userId } },
-            select: { utilisateurId: true },
-          })
-        : [])
-      .then(others => { for (const o of others) this.notif.pushLive(o.utilisateurId, 'MESSAGE_STATUS') })
-      .catch(() => { /* best-effort */ })
+    this.prisma.conversationParticipant
+      .findMany({
+        where: { utilisateurId: userId },
+        select: { conversationId: true },
+      })
+      .then((parts) =>
+        parts.length
+          ? this.prisma.conversationParticipant.findMany({
+              where: {
+                conversationId: { in: parts.map((p) => p.conversationId) },
+                utilisateurId: { not: userId },
+              },
+              select: { utilisateurId: true },
+            })
+          : [],
+      )
+      .then((others) => {
+        for (const o of others)
+          this.notif.pushLive(o.utilisateurId, 'MESSAGE_STATUS')
+      })
+      .catch(() => {
+        /* best-effort */
+      })
   }
 
   // ── Flux temps réel (SSE) ─────────────────────────────────────────────────────
@@ -75,10 +109,11 @@ export class NotificationController {
     } catch {
       throw new UnauthorizedException('Token invalide')
     }
-    if (!payload?.sub || !payload?.siteId) throw new UnauthorizedException('Token invalide')
+    if (!payload?.sub || !payload?.siteId)
+      throw new UnauthorizedException('Token invalide')
     const audience: NotifAudience = {
-      userId:      payload.sub,
-      siteId:      payload.siteId,
+      userId: payload.sub,
+      siteId: payload.siteId,
       permissions: payload.permissions ?? [],
     }
     // Présence : en ligne tant que ce flux SSE est ouvert.
@@ -86,7 +121,10 @@ export class NotificationController {
     this.touchLastSeen(audience.userId)
     this.notifyCoParticipants(audience.userId)
     return this.notif.streamFor(audience).pipe(
-      finalize(() => { this.presence.disconnect(audience.userId); this.touchLastSeen(audience.userId) }),
+      finalize(() => {
+        this.presence.disconnect(audience.userId)
+        this.touchLastSeen(audience.userId)
+      }),
     )
   }
 
@@ -131,17 +169,19 @@ export class NotificationController {
     // « MISE_A_JOUR » (le front affiche un bouton d'installation). Niveau par défaut = AVERTISSEMENT.
     const isUpdate = !!dto.lienTelechargement
     const n = await this.notif.emit({
-      type:               'ANNONCE',
-      niveau:             (dto.niveau as NiveauNotif | undefined) ?? (isUpdate ? 'AVERTISSEMENT' : 'INFO'),
-      titre:              dto.titre,
-      message:            dto.message,
-      destinataireId:     null,
-      siteId:             dto.portee === 'TOUS' ? null : a.siteId,
+      type: 'ANNONCE',
+      niveau:
+        (dto.niveau as NiveauNotif | undefined) ??
+        (isUpdate ? 'AVERTISSEMENT' : 'INFO'),
+      titre: dto.titre,
+      message: dto.message,
+      destinataireId: null,
+      siteId: dto.portee === 'TOUS' ? null : a.siteId,
       requiredPermission: null,
-      entiteType:         isUpdate ? 'MISE_A_JOUR' : undefined,
-      lien:               isUpdate ? dto.lienTelechargement : undefined,
-      entiteId:           isUpdate ? (dto.version ?? null) : undefined,
-      createdById:        a.userId,
+      entiteType: isUpdate ? 'MISE_A_JOUR' : undefined,
+      lien: isUpdate ? dto.lienTelechargement : undefined,
+      entiteId: isUpdate ? (dto.version ?? null) : undefined,
+      createdById: a.userId,
     })
     return { ok: !!n, id: n?.id ?? null }
   }

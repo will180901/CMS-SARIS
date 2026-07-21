@@ -15,10 +15,17 @@ import fs from 'node:fs'
 import { Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
 import { SyncService } from './sync.service'
-import type { SyncPullResponseV2, SyncPushResponseV2, SyncEntityEnvelope } from '@cms-saris/types/sync'
+import type {
+  SyncPullResponseV2,
+  SyncPushResponseV2,
+  SyncEntityEnvelope,
+} from '@cms-saris/types/sync'
 
 interface SyncStateDelegate {
-  findUnique: (a: unknown) => Promise<{ lastPulledAt?: Date | null; lastPushedAt?: Date | null } | null>
+  findUnique: (a: unknown) => Promise<{
+    lastPulledAt?: Date | null
+    lastPushedAt?: Date | null
+  } | null>
   upsert: (a: unknown) => Promise<unknown>
 }
 
@@ -50,7 +57,10 @@ export class SyncClientService implements OnApplicationBootstrap {
     setInterval(() => void this.probe(), Math.max(2, probeSec) * 1000)
     // Filet de sécurité espacé : rattrape un éventuel changement non détecté par la sonde.
     const safetySec = Number(process.env['SYNC_SAFETY_SEC'] ?? '300')
-    setInterval(() => void this.triggerSync('filet'), Math.max(60, safetySec) * 1000)
+    setInterval(
+      () => void this.triggerSync('filet'),
+      Math.max(60, safetySec) * 1000,
+    )
     // Battement de vie : signale la présence du poste INDÉPENDAMMENT de toute donnée à
     // pousser — fait apparaître le poste dès l'installation et rend le statut en ligne
     // vivant (fenêtre ONLINE_WINDOW_MS = 90 s côté supervision, cf. sync-supervision.service).
@@ -70,7 +80,10 @@ export class SyncClientService implements OnApplicationBootstrap {
       await fetch(`${this.serverUrl}/sync/heartbeat`, {
         method: 'POST',
         headers: this.headers(),
-        body: JSON.stringify({ posteLocalId: this.posteLocalId, libelle: this.libelle || undefined }),
+        body: JSON.stringify({
+          posteLocalId: this.posteLocalId,
+          libelle: this.libelle || undefined,
+        }),
       })
     } catch {
       // best-effort — le prochain battement retentera
@@ -83,7 +96,9 @@ export class SyncClientService implements OnApplicationBootstrap {
     const online = await this.isOnline()
     if (online && !this.wasOnline) {
       this.wasOnline = true
-      this.logger.log('Connexion au serveur détectée → synchronisation immédiate')
+      this.logger.log(
+        'Connexion au serveur détectée → synchronisation immédiate',
+      )
       void this.triggerSync('reconnexion')
     } else if (!online) {
       this.wasOnline = false
@@ -97,11 +112,16 @@ export class SyncClientService implements OnApplicationBootstrap {
     if (r) {
       this.backoffMs = 0
       if (r.pulled || r.pushed || r.conflicts) {
-        this.logger.log(`Synchro (${raison}) : ${r.pulled} reçu(s), ${r.pushed} envoyé(s), ${r.conflicts} conflit(s)`)
+        this.logger.log(
+          `Synchro (${raison}) : ${r.pulled} reçu(s), ${r.pushed} envoyé(s), ${r.conflicts} conflit(s)`,
+        )
       }
     } else if (this.enabled) {
       // Échec / serveur injoignable → nouvelle tentative après un backoff borné.
-      this.backoffMs = Math.min(this.backoffMs ? this.backoffMs * 2 : 5000, 60000)
+      this.backoffMs = Math.min(
+        this.backoffMs ? this.backoffMs * 2 : 5000,
+        60000,
+      )
       setTimeout(() => void this.probe(), this.backoffMs)
     }
   }
@@ -117,7 +137,11 @@ export class SyncClientService implements OnApplicationBootstrap {
   private get token(): string {
     const file = process.env['SERVER_SYNC_TOKEN_FILE']
     if (file) {
-      try { return fs.readFileSync(file, 'utf8').trim() } catch { /* pas encore écrit */ }
+      try {
+        return fs.readFileSync(file, 'utf8').trim()
+      } catch {
+        /* pas encore écrit */
+      }
     }
     return process.env['SERVER_SYNC_TOKEN'] ?? ''
   }
@@ -128,35 +152,68 @@ export class SyncClientService implements OnApplicationBootstrap {
     return process.env['SITE_ID'] ?? ''
   }
   get enabled(): boolean {
-    return !!this.serverUrl && process.env['DATABASE_PROVIDER'] === 'sqlite' && !!this.siteId
+    return (
+      !!this.serverUrl &&
+      process.env['DATABASE_PROVIDER'] === 'sqlite' &&
+      !!this.siteId
+    )
   }
 
   private headers(): Record<string, string> {
-    return { 'Content-Type': 'application/json', ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}) }
+    return {
+      'Content-Type': 'application/json',
+      ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
+    }
   }
 
   private get stateDelegate(): SyncStateDelegate {
-    return (this.prisma as unknown as Record<string, SyncStateDelegate>)['syncState']
+    return (this.prisma as unknown as Record<string, SyncStateDelegate>)[
+      'syncState'
+    ]
   }
 
-  private async cursor(): Promise<{ lastPulledAt?: string; lastPushedAt?: string }> {
+  private async cursor(): Promise<{
+    lastPulledAt?: string
+    lastPushedAt?: string
+  }> {
     try {
       const row = await this.stateDelegate.findUnique({
-        where: { posteLocalId_siteId: { posteLocalId: this.posteLocalId, siteId: this.siteId } },
+        where: {
+          posteLocalId_siteId: {
+            posteLocalId: this.posteLocalId,
+            siteId: this.siteId,
+          },
+        },
       })
       return {
-        lastPulledAt: row?.lastPulledAt ? row.lastPulledAt.toISOString() : undefined,
-        lastPushedAt: row?.lastPushedAt ? row.lastPushedAt.toISOString() : undefined,
+        lastPulledAt: row?.lastPulledAt
+          ? row.lastPulledAt.toISOString()
+          : undefined,
+        lastPushedAt: row?.lastPushedAt
+          ? row.lastPushedAt.toISOString()
+          : undefined,
       }
     } catch {
       return {}
     }
   }
 
-  private async saveCursor(patch: { lastPulledAt?: Date; lastPushedAt?: Date }): Promise<void> {
+  private async saveCursor(patch: {
+    lastPulledAt?: Date
+    lastPushedAt?: Date
+  }): Promise<void> {
     await this.stateDelegate.upsert({
-      where: { posteLocalId_siteId: { posteLocalId: this.posteLocalId, siteId: this.siteId } },
-      create: { posteLocalId: this.posteLocalId, siteId: this.siteId, ...patch },
+      where: {
+        posteLocalId_siteId: {
+          posteLocalId: this.posteLocalId,
+          siteId: this.siteId,
+        },
+      },
+      create: {
+        posteLocalId: this.posteLocalId,
+        siteId: this.siteId,
+        ...patch,
+      },
       update: patch,
     })
   }
@@ -173,7 +230,9 @@ export class SyncClientService implements OnApplicationBootstrap {
     try {
       const ctrl = new AbortController()
       const t = setTimeout(() => ctrl.abort(), 4000)
-      const res = await fetch(`${this.serverUrl}/health/ping`, { signal: ctrl.signal })
+      const res = await fetch(`${this.serverUrl}/health/ping`, {
+        signal: ctrl.signal,
+      })
       clearTimeout(t)
       return res.ok
     } catch {
@@ -202,10 +261,12 @@ export class SyncClientService implements OnApplicationBootstrap {
       since = body.nextSince
       // Reprise incrémentale : on persiste le curseur APRÈS chaque page appliquée, pour
       // reprendre EXACTEMENT là où on s'est arrêté en cas d'interruption (réseau coupé).
-      if (body.nextSince) await this.saveCursor({ lastPulledAt: new Date(body.nextSince) })
+      if (body.nextSince)
+        await this.saveCursor({ lastPulledAt: new Date(body.nextSince) })
       if (!body.hasMore) break
     }
-    if (serverTime) await this.saveCursor({ lastPulledAt: new Date(serverTime) })
+    if (serverTime)
+      await this.saveCursor({ lastPulledAt: new Date(serverTime) })
     return applied
   }
 
@@ -224,7 +285,10 @@ export class SyncClientService implements OnApplicationBootstrap {
     const res = await fetch(`${this.serverUrl}/sync/push`, {
       method: 'POST',
       headers: this.headers(),
-      body: JSON.stringify({ posteLocalId: this.posteLocalId, changes: collected }),
+      body: JSON.stringify({
+        posteLocalId: this.posteLocalId,
+        changes: collected,
+      }),
     })
     if (!res.ok) throw new Error(`push HTTP ${res.status}`)
     const out = (await res.json()) as SyncPushResponseV2
@@ -239,13 +303,28 @@ export class SyncClientService implements OnApplicationBootstrap {
   }
 
   /** État de synchro pour l'UI (mode local). */
-  async clientStatus(): Promise<{ enabled: boolean; online: boolean; ready: boolean; lastPulledAt?: string; lastPushedAt?: string }> {
+  async clientStatus(): Promise<{
+    enabled: boolean
+    online: boolean
+    ready: boolean
+    lastPulledAt?: string
+    lastPushedAt?: string
+  }> {
     const c = await this.cursor()
-    return { enabled: this.enabled, online: this.enabled ? await this.isOnline() : false, ready: this.ready, ...c }
+    return {
+      enabled: this.enabled,
+      online: this.enabled ? await this.isOnline() : false,
+      ready: this.ready,
+      ...c,
+    }
   }
 
   /** Cycle complet : pull (minimise les conflits) PUIS push. Best-effort, non bloquant. */
-  async runCycle(): Promise<{ pulled: number; pushed: number; conflicts: number } | null> {
+  async runCycle(): Promise<{
+    pulled: number
+    pushed: number
+    conflicts: number
+  } | null> {
     if (!this.enabled || this.running) return null
     if (!(await this.isOnline())) return null
     this.running = true
@@ -253,10 +332,17 @@ export class SyncClientService implements OnApplicationBootstrap {
       const pulled = await this.pull()
       this.initialSyncDone = true // 1er pull abouti → données initiales en place
       const out = await this.push()
-      return { pulled, pushed: out?.applied.length ?? 0, conflicts: out?.conflicts.length ?? 0 }
+      return {
+        pulled,
+        pushed: out?.applied.length ?? 0,
+        conflicts: out?.conflicts.length ?? 0,
+      }
     } catch (e) {
       const err = e as Error
-      this.logger.error('cycle de synchronisation échoué : ' + (err.message || String(e)), err.stack)
+      this.logger.error(
+        'cycle de synchronisation échoué : ' + (err.message || String(e)),
+        err.stack,
+      )
       return null
     } finally {
       this.running = false

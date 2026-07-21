@@ -4,7 +4,7 @@ import { consultationApi } from '../api/consultation.api'
 import type { AnamnesePayload } from '../api/consultation.api'
 import type {
   CreateConsultationPayload, AddDiagnosticPayload,
-  CloturerPayload, AddLignePayload, ConsultationQueryParams,
+  CloturerPayload, AddLignePayload, CreateOrdonnancePayload, ConsultationQueryParams,
   SetReposPayload,
 } from '../api/consultation.api'
 import { ApiError, isOfflineQueued } from '@/lib/api'
@@ -284,12 +284,27 @@ export function useValiderOrdonnance(consultationId: string, ordonnanceId: strin
   })
 }
 
+/** Indication clinique seule, en brouillon — autosave silencieuse (pas de toast à chaque frappe). */
+export function useUpdateOrdonnance(consultationId: string, ordonnanceId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (indicationClinik: string) => consultationApi.updateOrdonnance(consultationId, ordonnanceId, indicationClinik),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: consultationKey(consultationId) })
+    },
+    onError: toastError,
+  })
+}
+
 export function useAnnulerOrdonnance(consultationId: string, ordonnanceId: string) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: () => consultationApi.annulerOrdonnance(consultationId, ordonnanceId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: consultationKey(consultationId) })
+      // Cascade backend : un bon lié encore EN_ATTENTE est annulé en même temps.
+      qc.invalidateQueries({ queryKey: ['bons-examen'] })
+      qc.invalidateQueries({ queryKey: ['bons-pharmacie'] })
       toast.success(i18n.t('consultation.toastPrescriptionCancelled'))
     },
     onError: toastError,
@@ -316,8 +331,9 @@ export function useDeleteOrdonnance(consultationId: string, ordonnanceId: string
 export function useCreateOrdonnanceAvecLigne(consultationId: string) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (ligne: AddLignePayload) => {
-      const ord = await consultationApi.createOrdonnance(consultationId)
+    mutationFn: async (payload: CreateOrdonnancePayload & AddLignePayload) => {
+      const { typeOrdonnance, indicationClinik, etablissementId, ...ligne } = payload
+      const ord = await consultationApi.createOrdonnance(consultationId, { typeOrdonnance, indicationClinik, etablissementId })
       try {
         return await consultationApi.addLigne(consultationId, ord.id, ligne)
       } catch (err) {
@@ -333,5 +349,21 @@ export function useCreateOrdonnanceAvecLigne(consultationId: string) {
       toast.success(i18n.t('consultation.toastPrescriptionCreated'))
     },
     onError: toastErrorUnlessCI,
+  })
+}
+
+// ── Générer un bon depuis une ordonnance validée ─────────────────────────────
+
+export function useGenererBon(consultationId: string, ordonnanceId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => consultationApi.genererBon(consultationId, ordonnanceId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: consultationKey(consultationId) })
+      qc.invalidateQueries({ queryKey: ['bons-examen'] })
+      qc.invalidateQueries({ queryKey: ['bons-pharmacie'] })
+      toast.success(i18n.t('consultation.toastBonGenerated'))
+    },
+    onError: toastError,
   })
 }

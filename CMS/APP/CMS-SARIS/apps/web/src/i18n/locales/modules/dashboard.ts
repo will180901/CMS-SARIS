@@ -20,7 +20,7 @@ export const dashboard = {
     // ── Vue clinique : alertes ──────────────────────────────────────
     alertWaitingOne: '{{count}} patient attend depuis plus de 30 minutes.',
     alertWaitingOther: '{{count}} patients attendent depuis plus de 30 minutes.',
-    alertAvgWaitHigh: 'Temps d\'attente moyen élevé : {{min}} min sur les visites clôturées du jour.',
+    alertAvgWaitHigh: 'Temps d\'attente moyen élevé : {{duree}} sur les visites clôturées du jour.',
 
     // ── Vue clinique : KPI ──────────────────────────────────────────
     kpiVisitsToday: 'Visites aujourd\'hui',
@@ -30,7 +30,6 @@ export const dashboard = {
     kpiInQueue: 'En file d\'attente',
     kpiQueueEmpty: 'File vide',
     kpiAvgWaitTime: 'Temps moyen d\'attente',
-    kpiMinUnit: '{{min}} min',
     kpiClosedVisitsHint: 'Visites clôturées du jour',
     kpiActiveConsultations: 'Consultations actives',
     kpiClosedTodayHint: '{{count}} clôturées aujourd\'hui',
@@ -179,7 +178,7 @@ export const dashboard = {
     // ── Vue clinique : alertes ──────────────────────────────────────
     alertWaitingOne: '{{count}} patient has been waiting for more than 30 minutes.',
     alertWaitingOther: '{{count}} patients have been waiting for more than 30 minutes.',
-    alertAvgWaitHigh: 'High average wait time: {{min}} min for today\'s closed visits.',
+    alertAvgWaitHigh: 'High average wait time: {{duree}} for today\'s closed visits.',
 
     // ── Vue clinique : KPI ──────────────────────────────────────────
     kpiVisitsToday: 'Visits today',
@@ -189,7 +188,6 @@ export const dashboard = {
     kpiInQueue: 'In queue',
     kpiQueueEmpty: 'Queue empty',
     kpiAvgWaitTime: 'Average wait time',
-    kpiMinUnit: '{{min}} min',
     kpiClosedVisitsHint: 'Today\'s closed visits',
     kpiActiveConsultations: 'Active consultations',
     kpiClosedTodayHint: '{{count}} closed today',

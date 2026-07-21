@@ -5,7 +5,9 @@ import helmet from 'helmet'
 import { AppModule } from './app.module'
 import { GlobalExceptionFilter } from './common/filters/http-exception.filter'
 
-export async function bootstrap(opts: { port?: number; host?: string } = {}): Promise<NestExpressApplication> {
+export async function bootstrap(
+  opts: { port?: number; host?: string } = {},
+): Promise<NestExpressApplication> {
   const logger = new Logger('Bootstrap')
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -23,10 +25,13 @@ export async function bootstrap(opts: { port?: number; host?: string } = {}): Pr
   // TRUST_PROXY : nombre de hops (ex. "1"), "true", ou une plage (ex. "loopback").
   const trustProxyEnv = process.env['TRUST_PROXY']
   const trustProxy: boolean | number | string = trustProxyEnv
-    ? (/^\d+$/.test(trustProxyEnv) ? Number(trustProxyEnv)
-      : trustProxyEnv === 'true' ? true
-      : trustProxyEnv === 'false' ? false
-      : trustProxyEnv)
+    ? /^\d+$/.test(trustProxyEnv)
+      ? Number(trustProxyEnv)
+      : trustProxyEnv === 'true'
+        ? true
+        : trustProxyEnv === 'false'
+          ? false
+          : trustProxyEnv
     : 1 // défaut : on fait confiance au 1er proxy en amont
   app.set('trust proxy', trustProxy)
 
@@ -53,7 +58,8 @@ export async function bootstrap(opts: { port?: number; host?: string } = {}): Pr
 
   app.enableCors({
     origin: (origin, callback) => {
-      if (!origin || corsOrigins.includes(origin) || localOriginRe.test(origin)) callback(null, true)
+      if (!origin || corsOrigins.includes(origin) || localOriginRe.test(origin))
+        callback(null, true)
       else callback(null, false)
     },
     credentials: true,
@@ -63,9 +69,9 @@ export async function bootstrap(opts: { port?: number; host?: string } = {}): Pr
   // ── Validation globale des DTOs ───────────────────────────────────────────
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true,            // Supprime les champs non déclarés dans le DTO
+      whitelist: true, // Supprime les champs non déclarés dans le DTO
       forbidNonWhitelisted: true, // Rejette les requêtes avec champs inconnus
-      transform: true,            // Transforme automatiquement les types primitifs
+      transform: true, // Transforme automatiquement les types primitifs
       transformOptions: { enableImplicitConversion: true },
     }),
   )
@@ -76,7 +82,9 @@ export async function bootstrap(opts: { port?: number; host?: string } = {}): Pr
   const port = opts.port ?? parseInt(process.env['PORT'] ?? '3000', 10)
   const host = opts.host ?? process.env['HOST'] ?? '0.0.0.0'
   await app.listen(port, host)
-  logger.log(`🚀 CMS SARIS API démarrée sur : http://${host === '0.0.0.0' ? 'localhost' : host}:${port}`)
+  logger.log(
+    `🚀 CMS SARIS API démarrée sur : http://${host === '0.0.0.0' ? 'localhost' : host}:${port}`,
+  )
   return app
 }
 

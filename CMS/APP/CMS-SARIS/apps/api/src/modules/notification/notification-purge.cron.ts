@@ -29,7 +29,9 @@ export class NotificationPurgeCron {
       where: { createdAt: { lt: cutoff } },
     })
     if (res.count) {
-      this.logger.log(`Purge notifications : ${res.count} supprimée(s) (> ${jours} j, < ${cutoff.toISOString()})`)
+      this.logger.log(
+        `Purge notifications : ${res.count} supprimée(s) (> ${jours} j, < ${cutoff.toISOString()})`,
+      )
     }
   }
 }

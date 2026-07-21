@@ -1,29 +1,28 @@
 /**
- * BonExamenCard — gestion des bons d'examen d'une consultation.
- *
- * Affiché dans l'onglet "Décision" de la consultation.
- * Cycle : EN_ATTENTE (création) → VALIDE (transmis labo) → résultat reçu → CONSULTÉ
+ * BonExamenCard — affichage (lecture) des bons d'examen d'une consultation, dans l'onglet
+ * "Bons" (Documents). Un bon naît exclusivement de « Générer un bon » sur une ordonnance
+ * PRESCRIPTION_EXAMEN validée (OrdonnanceCard) — plus de création directe ici.
+ * Cycle : EN_ATTENTE (généré) → VALIDE (transmis labo) → résultat reçu → CONSULTÉ
  *       ou EN_ATTENTE → ANNULE
  */
 
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
-  FileWarning, Plus, X, FlaskConical, ShieldCheck, FileText,
+  FileWarning, FlaskConical, ShieldCheck, FileText,
   CheckCircle2, Printer, Ban,
 } from 'lucide-react'
 import {
   Card, Button, StatusPill, EmptyState,
   Field, Textarea, TextInput, Modal, MotifDialog,
 } from '@/components/saris'
-import { useTypesExamen, useCategoriesDroits } from '@/modules/referentiels/hooks/useReferentiels'
+import { useCategoriesDroits } from '@/modules/referentiels/hooks/useReferentiels'
 import {
-  useBonsExamen, useCreateBonExamen, useValiderBonExamen,
+  useBonsExamen, useValiderBonExamen,
   useAnnulerBonExamen, useSaisirResultat,
 } from '../hooks/useBonExamen'
 import { usePermissions } from '@/hooks/usePermissions'
 import { formatDate } from '@/lib/intl'
-import { Popover, PopoverAnchor, PopoverContent } from '@workspace/ui/components/popover'
 import { BonExamenPrintModal } from './BonExamenPrintModal'
 import { labelDomaine } from '@/config/labels'
 import type { BonExamen } from '../api/bon-examen.api'
@@ -53,76 +52,48 @@ export function BonExamenCard({ consultationId, readonly, soignant, categorieLib
   const { data: droits = [], isLoading: droitsLoading } = useCategoriesDroits()
   const droitCategorie = categoriePatientId ? droits.find(d => d.categorieId === categoriePatientId) : undefined
   const eligible = !categoriePatientId || (!droitsLoading && droitCategorie?.bonExamen === true)
-  const canCreate    = has('bon_examen.create') && !readonly && eligible
   const canValidate  = has('bon_examen.validate') && !readonly
   const canCancel    = has('bon_examen.cancel') && !readonly
   const canResult    = has('bon_examen.result')
 
   const { data: bons = [], isLoading } = useBonsExamen({ consultationId })
-  const [openNew, setOpenNew] = useState(false)
 
   return (
-    <>
-      <Card>
-        <Card.Header
-          icon={<FileWarning size={14} />}
-          title={t('bonExamen.cardTitle')}
-          subtitle={isLoading
-            ? t('bonExamen.loading')
-            : t(bons.length > 1 ? 'bonExamen.countOther' : 'bonExamen.countOne', { count: bons.length })}
-          actions={
-            canCreate && (
-              <Button
-                size="sm"
-                variant="outline"
-                leftIcon={<Plus size={13} />}
-                onClick={() => setOpenNew(true)}
-              >
-                {t('bonExamen.newBon')}
-              </Button>
-            )
-          }
-        />
-        <Card.Body padding="md">
-          {!isLoading && bons.length === 0 ? (
-            <EmptyState
-              icon={<FlaskConical size={18} />}
-              title={eligible ? t('bonExamen.emptyTitle') : t('bonExamen.notEligibleTitle', { defaultValue: 'Bons d\'examens non couverts' })}
-              description={eligible
-                ? t('bonExamen.emptyDescription')
-                : t('bonExamen.notEligibleDesc', { defaultValue: 'Cette catégorie de patient n\'ouvre pas droit aux bons d\'examens (réservé au personnel CDI et à leurs ayants droit).' })}
-              variant="subtle"
-              action={canCreate && (
-                <Button leftIcon={<Plus size={13} />} size="sm" onClick={() => setOpenNew(true)}>
-                  {t('bonExamen.createFirst')}
-                </Button>
-              )}
-            />
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--espace-3)' }}>
-              {bons.map(b => (
-                <BonExamenItem
-                  key={b.id}
-                  bon={b}
-                  canValidate={canValidate}
-                  canCancel={canCancel}
-                  canResult={canResult}
-                  soignant={soignant}
-                  categorieLibelle={categorieLibelle}
-                />
-              ))}
-            </div>
-          )}
-        </Card.Body>
-      </Card>
-
-      {openNew && (
-        <CreateBonDialog
-          consultationId={consultationId}
-          onClose={() => setOpenNew(false)}
-        />
-      )}
-    </>
+    <Card>
+      <Card.Header
+        icon={<FileWarning size={14} />}
+        title={t('bonExamen.cardTitle')}
+        subtitle={isLoading
+          ? t('bonExamen.loading')
+          : t(bons.length > 1 ? 'bonExamen.countOther' : 'bonExamen.countOne', { count: bons.length })}
+      />
+      <Card.Body padding="md">
+        {!isLoading && bons.length === 0 ? (
+          <EmptyState
+            icon={<FlaskConical size={18} />}
+            title={eligible ? t('bonExamen.emptyTitle') : t('bonExamen.notEligibleTitle', { defaultValue: 'Bons d\'examens non couverts' })}
+            description={eligible
+              ? t('bonExamen.emptyDescriptionGenerated', { defaultValue: 'Aucun bon pour l\'instant — générez-en un depuis une ordonnance de prescription d\'examen validée (onglet Ordonnance).' })
+              : t('bonExamen.notEligibleDesc', { defaultValue: 'Cette catégorie de patient n\'ouvre pas droit aux bons d\'examens (réservé au personnel CDI et à leurs ayants droit).' })}
+            variant="subtle"
+          />
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--espace-3)' }}>
+            {bons.map(b => (
+              <BonExamenItem
+                key={b.id}
+                bon={b}
+                canValidate={canValidate}
+                canCancel={canCancel}
+                canResult={canResult}
+                soignant={soignant}
+                categorieLibelle={categorieLibelle}
+              />
+            ))}
+          </div>
+        )}
+      </Card.Body>
+    </Card>
   )
 }
 
@@ -262,6 +233,22 @@ function BonExamenItem({
                 )}
               </div>
             ))}
+          </div>
+        )}
+
+        {bon.ordonnance?.statut === 'ANNULEE' && bon.statut !== 'ANNULE' && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            fontSize: 'var(--font-size-caption)',
+            fontWeight: 600,
+            color: 'var(--avert-texte)',
+            background: 'var(--avert-fond)',
+            border: '1px solid var(--avert-bordure)',
+            padding: 'var(--espace-2)',
+            borderRadius: 'var(--radius-md)',
+          }}>
+            <FileWarning size={13} style={{ flexShrink: 0 }} />
+            {t('bonExamen.ordonnanceAnnuleeWarning')}
           </div>
         )}
 
@@ -434,189 +421,3 @@ function ResultatForm({ bonId, onClose }: { bonId: string; onClose: () => void }
   )
 }
 
-// ── Dialog création bon d'examen ──────────────────────────────────────────────
-
-function CreateBonDialog({
-  consultationId, onClose,
-}: {
-  consultationId: string
-  onClose: () => void
-}) {
-  const { t } = useTranslation()
-  const create = useCreateBonExamen()
-  const { data: types = [] } = useTypesExamen()
-  const typesActifs = useMemo(() => types.filter(t => t.statut === 'ACTIF'), [types])
-
-  const [indication, setIndication] = useState('')
-  const [selected,   setSelected]   = useState<string[]>([])
-  const [examInput,  setExamInput]  = useState('')
-  const [examFocus,  setExamFocus]  = useState(false)
-
-  const byId = useMemo(() => new Map(typesActifs.map(t => [t.id, t])), [typesActifs])
-  const suggestions = useMemo(() => {
-    const q = examInput.trim().toLowerCase()
-    if (!q) return []
-    return typesActifs
-      .filter(t => !selected.includes(t.id))
-      .filter(t => t.libelle.toLowerCase().includes(q) || t.code.toLowerCase().includes(q))
-      .slice(0, 8)
-  }, [examInput, typesActifs, selected])
-
-  function addExam(id: string)    { setSelected(arr => arr.includes(id) ? arr : [...arr, id]); setExamInput(''); setExamFocus(false) }
-  function removeExam(id: string) { setSelected(arr => arr.filter(x => x !== id)) }
-
-  const valid = indication.trim().length >= 5 && selected.length > 0
-
-  async function handleSubmit() {
-    if (!valid) return
-    await create.mutateAsync({
-      consultationId,
-      indicationClinik: indication.trim(),
-      typesExamenIds: selected,
-    })
-    onClose()
-  }
-
-  return (
-    <Modal
-      icon={<FileWarning size={16} />}
-      title={t('bonExamen.createModalTitle')}
-      subtitle={t('bonExamen.createModalSubtitle')}
-      width={640}
-      onClose={onClose}
-      footer={<>
-        <Button variant="secondary" onClick={onClose}>{t('bonExamen.cancel')}</Button>
-        <Button
-          variant="primary"
-          disabled={!valid}
-          loading={create.isPending}
-          leftIcon={<FileWarning size={14} />}
-          onClick={handleSubmit}
-        >
-          {t(selected.length > 1 ? 'bonExamen.createButtonOther' : 'bonExamen.createButtonOne', { count: selected.length })}
-        </Button>
-      </>}
-    >
-          <Field
-            label={t('bonExamen.indicationLabel')}
-            required
-            hint={t('bonExamen.indicationHint')}
-          >
-            {(id) => (
-              <Textarea
-                id={id}
-                rows={3}
-                maxLength={2000}
-                value={indication}
-                onChange={e => setIndication(e.target.value)}
-                placeholder={t('bonExamen.indicationPlaceholder')}
-                autoFocus
-              />
-            )}
-          </Field>
-
-          <Field
-            label={t('bonExamen.examsLabel')}
-            required
-            hint={t(selected.length > 1 ? 'bonExamen.examsHintOther' : 'bonExamen.examsHintOne', { count: selected.length })}
-          >
-            {(id) => (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--espace-2)' }}>
-                {/* Liste à puces des examens choisis */}
-                <div style={{
-                  minHeight: 48, borderRadius: 'var(--radius-md)',
-                  border: '1px solid var(--bordure-legere)', background: 'var(--fond-surface-2)',
-                  padding: selected.length === 0 ? 0 : '6px 4px',
-                  display: 'flex', flexDirection: 'column',
-                  justifyContent: selected.length === 0 ? 'center' : 'flex-start',
-                }}>
-                  {selected.length === 0 ? (
-                    <p style={{ fontSize: 'var(--font-size-body-sm)', color: 'var(--texte-tertiaire)', fontStyle: 'italic', textAlign: 'center', margin: 0 }}>
-                      {t('bonExamen.noExamSelected')}
-                    </p>
-                  ) : (
-                    selected.map(sid => {
-                      const ex = byId.get(sid)
-                      if (!ex) return null
-                      return (
-                        <div
-                          key={sid}
-                          style={{ display: 'flex', alignItems: 'baseline', gap: 10, padding: '5px 10px' }}
-                          onMouseEnter={e => { const b = e.currentTarget.querySelector('button'); if (b) (b as HTMLElement).style.opacity = '1' }}
-                          onMouseLeave={e => { const b = e.currentTarget.querySelector('button'); if (b) (b as HTMLElement).style.opacity = '0' }}
-                        >
-                          <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--ap-500)', flexShrink: 0, marginTop: 6 }} />
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <span style={{ fontSize: 'var(--font-size-body)', fontWeight: 600, color: 'var(--texte-primaire)' }}>{ex.libelle}</span>
-                            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)', marginLeft: 8 }}>{ex.code}</span>
-                            <span style={{ fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)', marginLeft: 6 }}>· {labelDomaine(ex.domaine)}</span>
-                          </div>
-                          <button
-                            type="button" onClick={() => removeExam(sid)} title={t('bonExamen.removeExam')}
-                            style={{
-                              width: 22, height: 22, borderRadius: 4, flexShrink: 0, opacity: 0,
-                              background: 'transparent', border: 'none', cursor: 'pointer',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              color: 'var(--texte-tertiaire)', transition: 'opacity 0.12s',
-                            }}
-                            onMouseEnter={e => { e.currentTarget.style.background = 'var(--erreur-fond)'; e.currentTarget.style.color = 'var(--erreur-accent)' }}
-                            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--texte-tertiaire)' }}
-                          >
-                            <X size={12} />
-                          </button>
-                        </div>
-                      )
-                    })
-                  )}
-                </div>
-
-                {/* Autocomplétion (popover, z-index au-dessus du modal) */}
-                <Popover open={examFocus && suggestions.length > 0} onOpenChange={o => { if (!o) setExamFocus(false) }}>
-                  <PopoverAnchor asChild>
-                    <div>
-                      <TextInput
-                        id={id}
-                        size="sm"
-                        value={examInput}
-                        onChange={e => setExamInput(e.target.value)}
-                        onFocus={() => setExamFocus(true)}
-                        onBlur={() => setTimeout(() => setExamFocus(false), 120)}
-                        placeholder={t('bonExamen.examSearchPlaceholder')}
-                      />
-                    </div>
-                  </PopoverAnchor>
-                  <PopoverContent
-                    align="start" sideOffset={6}
-                    onOpenAutoFocus={e => e.preventDefault()}
-                    onCloseAutoFocus={e => e.preventDefault()}
-                    style={{
-                      width: 'var(--radix-popover-trigger-width)', maxWidth: 'none', padding: 0, zIndex: 1100,
-                      maxHeight: 240, overflowY: 'auto', borderRadius: 'var(--radius-md)',
-                      background: 'var(--fond-surface)', border: '1px solid var(--bordure-normale)',
-                    }}
-                  >
-                    {suggestions.map(t => (
-                      <button
-                        key={t.id} type="button"
-                        onMouseDown={e => { e.preventDefault(); addExam(t.id) }}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-                          padding: '8px 12px', textAlign: 'left', cursor: 'pointer',
-                          background: 'transparent', border: 'none',
-                          borderBottom: '1px solid var(--bordure-legere)',
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.background = 'var(--ap-50)'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                      >
-                        <span style={{ flex: 1, fontSize: 'var(--font-size-body-sm)', color: 'var(--texte-primaire)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.libelle}</span>
-                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)', flexShrink: 0 }}>{t.code}</span>
-                      </button>
-                    ))}
-                  </PopoverContent>
-                </Popover>
-              </div>
-            )}
-          </Field>
-    </Modal>
-  )
-}

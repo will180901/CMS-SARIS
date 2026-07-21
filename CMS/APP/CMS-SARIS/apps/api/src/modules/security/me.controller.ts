@@ -8,8 +8,20 @@
  */
 
 import {
-  Controller, Get, Put, Post, Delete, Body, Param, Req,
-  UseGuards, HttpCode, HttpStatus, UseInterceptors, UploadedFile, BadRequestException,
+  Controller,
+  Get,
+  Put,
+  Post,
+  Delete,
+  Body,
+  Param,
+  Req,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
 } from '@nestjs/common'
 import { FileInterceptor } from '@nestjs/platform-express'
 import { memoryStorage } from 'multer'
@@ -35,15 +47,26 @@ export class MeController {
 
   // ── Photo de profil (avatar) ──────────────────────────────────────────────
   @Post('photo')
-  @UseInterceptors(FileInterceptor('file', {
-    storage: memoryStorage(),
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5 Mo
-    fileFilter: (_req, file, cb) => {
-      if (/^image\/(jpeg|png|webp|gif)$/.test(file.mimetype)) cb(null, true)
-      else cb(new BadRequestException('Format invalide — image JPEG, PNG, WEBP ou GIF attendue'), false)
-    },
-  }))
-  uploadPhoto(@UploadedFile() file: Express.Multer.File | undefined, @Req() req: any) {
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: { fileSize: 5 * 1024 * 1024 }, // 5 Mo
+      fileFilter: (_req, file, cb) => {
+        if (/^image\/(jpeg|png|webp|gif)$/.test(file.mimetype)) cb(null, true)
+        else
+          cb(
+            new BadRequestException(
+              'Format invalide — image JPEG, PNG, WEBP ou GIF attendue',
+            ),
+            false,
+          )
+      },
+    }),
+  )
+  uploadPhoto(
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @Req() req: any,
+  ) {
     if (!file) throw new BadRequestException('Aucun fichier reçu')
     return this.svc.setPhoto(req.user.id, file.buffer)
   }

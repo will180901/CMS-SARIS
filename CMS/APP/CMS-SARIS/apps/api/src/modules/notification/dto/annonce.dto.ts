@@ -1,4 +1,10 @@
-import { IsString, IsNotEmpty, MaxLength, IsOptional, IsIn } from 'class-validator'
+import {
+  IsString,
+  IsNotEmpty,
+  MaxLength,
+  IsOptional,
+  IsIn,
+} from 'class-validator'
 
 /** Annonce admin diffusée (notification.create — ADMIN_SYSTEME). */
 export class CreateAnnonceDto {

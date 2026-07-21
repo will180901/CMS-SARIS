@@ -41,7 +41,25 @@ export const ME_KEY = ['auth', 'me'] as const
  * @param queryClient (optionnel) — si fourni, invalide toutes les queries pour
  *   que les hooks `enabled: has(...)` se relancent avec les nouvelles permissions
  */
-export async function performTokenRefresh(queryClient?: QueryClient): Promise<Me> {
+/**
+ * Renouvellement EN COURS, s'il y en a un. Le jeton de rafraîchissement est à usage
+ * unique (rotation côté serveur) : deux appels concurrents se marchent dessus — le
+ * premier consomme le jeton, le second reçoit un 401 et fait sauter la session.
+ * Ça arrivait réellement au rechargement de page (bootstrap + un autre déclencheur
+ * simultané), et le risque augmente maintenant que le temps réel peut lui aussi en
+ * demander un. On mutualise donc : tout appel concurrent attend LE MÊME résultat.
+ */
+let renouvellementEnCours: Promise<Me> | null = null
+
+export function performTokenRefresh(queryClient?: QueryClient): Promise<Me> {
+  if (renouvellementEnCours) return renouvellementEnCours
+  renouvellementEnCours = executerRenouvellement(queryClient).finally(() => {
+    renouvellementEnCours = null
+  })
+  return renouvellementEnCours
+}
+
+async function executerRenouvellement(queryClient?: QueryClient): Promise<Me> {
   const state = useSessionStore.getState()
   // La re-sync bootstrap est consommée : ne pas la re-déclencher (un seul passage).
   state.setNeedsBootstrapRefresh(false)

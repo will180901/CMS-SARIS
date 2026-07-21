@@ -1,4 +1,10 @@
-import { IsString, IsNotEmpty, IsOptional, IsBoolean, MaxLength } from 'class-validator'
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsBoolean,
+  MaxLength,
+} from 'class-validator'
 import { Transform } from 'class-transformer'
 import { PartialType } from '@nestjs/mapped-types'
 
@@ -34,7 +40,8 @@ export class CreatePathologieDto {
 
   @IsOptional()
   @Transform(({ obj }) => {
-    const raw = (obj as { confidentialiteRenforcee?: unknown }).confidentialiteRenforcee
+    const raw = (obj as { confidentialiteRenforcee?: unknown })
+      .confidentialiteRenforcee
     return raw === true || raw === 'true'
       ? true
       : raw === false || raw === 'false'

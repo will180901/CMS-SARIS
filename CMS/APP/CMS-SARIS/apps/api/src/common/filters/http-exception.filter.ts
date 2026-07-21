@@ -24,9 +24,9 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(GlobalExceptionFilter.name)
 
   catch(exception: unknown, host: ArgumentsHost): void {
-    const ctx      = host.switchToHttp()
+    const ctx = host.switchToHttp()
     const response = ctx.getResponse<Response>()
-    const request  = ctx.getRequest<Request>()
+    const request = ctx.getRequest<Request>()
 
     let status: number
     let message: string | string[]
@@ -40,21 +40,24 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       switch (prismaCode) {
         case 'P2002': {
           const cible = this.uniqueTarget(exception)
-          status  = HttpStatus.CONFLICT
-          message = cible ? `Valeur déjà utilisée (${cible})` : 'Valeur déjà utilisée'
+          status = HttpStatus.CONFLICT
+          message = cible
+            ? `Valeur déjà utilisée (${cible})`
+            : 'Valeur déjà utilisée'
           break
         }
         case 'P2025':
-          status  = HttpStatus.NOT_FOUND
+          status = HttpStatus.NOT_FOUND
           message = 'Ressource introuvable'
           break
         case 'P2003':
         case 'P2014':
-          status  = HttpStatus.CONFLICT
-          message = 'Opération impossible : cette donnée est référencée par d’autres enregistrements'
+          status = HttpStatus.CONFLICT
+          message =
+            'Opération impossible : cette donnée est référencée par d’autres enregistrements'
           break
         default:
-          status  = HttpStatus.BAD_REQUEST
+          status = HttpStatus.BAD_REQUEST
           message = 'Requête invalide (contrainte de base de données)'
       }
     } else if (exception instanceof HttpException) {
@@ -63,11 +66,13 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       message =
         typeof rawMessage === 'string'
           ? rawMessage
-          : typeof rawMessage === 'object' && rawMessage !== null && 'message' in rawMessage
+          : typeof rawMessage === 'object' &&
+              rawMessage !== null &&
+              'message' in rawMessage
             ? (rawMessage as { message: string | string[] }).message
             : String(rawMessage)
     } else {
-      status  = HttpStatus.INTERNAL_SERVER_ERROR
+      status = HttpStatus.INTERNAL_SERVER_ERROR
       message = 'Erreur interne du serveur'
     }
 
@@ -81,8 +86,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     response.status(status).json({
       statusCode: status,
-      timestamp:  new Date().toISOString(),
-      path:       request.url,
+      timestamp: new Date().toISOString(),
+      path: request.url,
       message,
     })
   }

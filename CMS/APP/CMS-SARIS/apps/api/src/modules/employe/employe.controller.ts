@@ -2,18 +2,31 @@
  * EmployeController — /employes (registre des employés SARIS).
  */
 import {
-  Controller, Get, Post, Patch, Delete,
-  Body, Param, Query, UseGuards, HttpCode, HttpStatus,
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common'
-import { EmployeService }       from './employe.service'
-import { JwtAuthGuard }         from '../security/guards/jwt-auth.guard'
-import { PermissionsGuard }     from '../security/guards/permissions.guard'
-import { RequirePermissions }   from '../../common/decorators/require-permissions.decorator'
-import { LiveRefresh }          from '../../common/decorators/live-refresh.decorator'
-import { Audit }                from '../../common/decorators/audit.decorator'
-import { CurrentUser }          from '../../common/decorators/current-user.decorator'
-import type { UserSession }     from '@cms-saris/types'
-import { CreateEmployeDto, UpdateEmployeDto, EmployeQueryDto } from './dto/employe.dto'
+import { EmployeService } from './employe.service'
+import { JwtAuthGuard } from '../security/guards/jwt-auth.guard'
+import { PermissionsGuard } from '../security/guards/permissions.guard'
+import { RequirePermissions } from '../../common/decorators/require-permissions.decorator'
+import { LiveRefresh } from '../../common/decorators/live-refresh.decorator'
+import { Audit } from '../../common/decorators/audit.decorator'
+import { CurrentUser } from '../../common/decorators/current-user.decorator'
+import type { UserSession } from '@cms-saris/types'
+import {
+  CreateEmployeDto,
+  UpdateEmployeDto,
+  EmployeQueryDto,
+} from './dto/employe.dto'
 
 @Controller('employes')
 @UseGuards(JwtAuthGuard, PermissionsGuard)

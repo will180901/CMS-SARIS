@@ -1,10 +1,8 @@
-import {
-  Controller, Get, Query, UseGuards,
-} from '@nestjs/common'
-import { DashboardService }     from './dashboard.service'
-import { JwtAuthGuard }         from '../security/guards/jwt-auth.guard'
-import { PermissionsGuard }     from '../security/guards/permissions.guard'
-import { RequirePermissions }   from '../../common/decorators/require-permissions.decorator'
+import { Controller, Get, Query, UseGuards } from '@nestjs/common'
+import { DashboardService } from './dashboard.service'
+import { JwtAuthGuard } from '../security/guards/jwt-auth.guard'
+import { PermissionsGuard } from '../security/guards/permissions.guard'
+import { RequirePermissions } from '../../common/decorators/require-permissions.decorator'
 
 @Controller('dashboard')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -55,29 +53,21 @@ export class DashboardController {
    *  via ?from=YYYY-MM-DD&to=YYYY-MM-DD (défaut : 30 derniers jours). */
   @Get('statistiques')
   @RequirePermissions('consultation.read')
-  statistiques(
-    @Query('from') from?: string,
-    @Query('to') to?: string,
-  ) {
+  statistiques(@Query('from') from?: string, @Query('to') to?: string) {
     return this.svc.getStatistiques(from, to)
   }
 
   /** Croisement pathologie × catégorie × département sur la période (recueil §6.2). */
   @Get('croisement')
   @RequirePermissions('consultation.read')
-  croisement(
-    @Query('from') from?: string,
-    @Query('to') to?: string,
-  ) {
+  croisement(@Query('from') from?: string, @Query('to') to?: string) {
     return this.svc.getCroisementPathologieCategorieDirection(from, to)
   }
 
   /** Évolution mensuelle sur une année complète (recueil §6.2) — ?annee=YYYY (défaut : année en cours). */
   @Get('evolution-annuelle')
   @RequirePermissions('consultation.read')
-  evolutionAnnuelle(
-    @Query('annee') annee?: string,
-  ) {
+  evolutionAnnuelle(@Query('annee') annee?: string) {
     const anneeNum = annee ? parseInt(annee, 10) : new Date().getFullYear()
     return this.svc.getEvolutionAnnuelle(anneeNum)
   }

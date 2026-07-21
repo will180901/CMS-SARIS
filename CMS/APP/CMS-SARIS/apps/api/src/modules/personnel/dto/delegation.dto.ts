@@ -1,5 +1,9 @@
 import {
-  IsString, IsOptional, IsIn, IsUUID, IsDateString,
+  IsString,
+  IsOptional,
+  IsIn,
+  IsUUID,
+  IsDateString,
 } from 'class-validator'
 
 // Recueil §3.2 : la délégation autorise « réaliser une consultation et prescrire »

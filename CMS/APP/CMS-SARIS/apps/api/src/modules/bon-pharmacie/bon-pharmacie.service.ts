@@ -1,21 +1,34 @@
 /**
  * BonPharmacieService — Bon de pharmacie (recueil) : voucher de retrait de médicaments
- * (gratuits) DISTINCT de l'ordonnance. Réservé au personnel CDI + ayants droit
- * (garde MEDICAMENT via DroitCategoriePatient). Calque BonExamenService.
+ * (gratuits), généré depuis une ordonnance PHARMACEUTIQUE validée (ordonnanceId, traçabilité).
+ * Réservé au personnel CDI + ayants droit (garde MEDICAMENT via DroitCategoriePatient).
+ * Calque BonExamenService.
  *
  * Cycle de vie : EN_ATTENTE → DELIVRE (retiré en pharmacie) ou EN_ATTENTE → ANNULE
  */
 import {
-  Injectable, NotFoundException, ConflictException, BadRequestException,
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
 } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
-import { assertPrestationCouverte } from '../../common/droits-categorie'
 import {
-  CreateBonPharmacieDto, AnnulerBonPharmacieDto, BonPharmacieQueryDto,
+  AnnulerBonPharmacieDto,
+  BonPharmacieQueryDto,
 } from './dto/bon-pharmacie.dto'
 
 const BON_INCLUDE = {
-  lignes: { include: { medicament: { select: { id: true, nomGenerique: true, nomCommercial: true } } } },
+  lignes: {
+    include: {
+      medicament: {
+        select: { id: true, nomGenerique: true, nomCommercial: true },
+      },
+    },
+  },
+  // Statut de l'ordonnance d'origine : permet au frontend de signaler un bon dont l'ordonnance
+  // a été annulée APRÈS coup (bon déjà DELIVRE, non touché par la cascade).
+  ordonnance: { select: { id: true, statut: true } },
   consultation: {
     select: {
       id: true,
@@ -23,8 +36,16 @@ const BON_INCLUDE = {
         select: {
           patient: {
             select: {
-              id: true, numeroPatient: true,
-              identite: { select: { nom: true, prenom: true, dateNaissance: true, sexe: true } },
+              id: true,
+              numeroPatient: true,
+              identite: {
+                select: {
+                  nom: true,
+                  prenom: true,
+                  dateNaissance: true,
+                  sexe: true,
+                },
+              },
             },
           },
         },
@@ -51,12 +72,15 @@ export class BonPharmacieService {
   async findAll(query: BonPharmacieQueryDto) {
     // Volontairement SANS filtre de site (accès gouverné par permission).
     const where: any = {}
-    if (query.patientId) where.consultation = { visite: { patientId: query.patientId } }
+    if (query.patientId)
+      where.consultation = { visite: { patientId: query.patientId } }
     if (query.consultationId) where.consultationId = query.consultationId
     if (query.statut && query.statut !== 'TOUS') where.statut = query.statut
 
     return this.prisma.bonPharmacie.findMany({
-      where, include: BON_INCLUDE, orderBy: { createdAt: 'desc' },
+      where,
+      include: BON_INCLUDE,
+      orderBy: { createdAt: 'desc' },
     })
   }
 
@@ -64,64 +88,24 @@ export class BonPharmacieService {
     return this.getOrThrow(id)
   }
 
-  async create(dto: CreateBonPharmacieDto, prescripteurId: string) {
-    // Vérifier consultation (volontairement SANS filtre de site)
-    const consultation = await this.prisma.consultation.findFirst({
-      where:  { id: dto.consultationId },
-      select: { statut: true, visite: { select: { patient: { select: { categoriePatientId: true } } } } },
-    })
-    if (!consultation) throw new NotFoundException('Consultation introuvable')
-    // Le bon de pharmacie est délivré par l'infirmier une fois la consultation
-    // CLÔTURÉE (recueil §3.2/§4.3) — jamais pendant que le médecin est encore en
-    // train d'examiner, jamais après une annulation.
-    if (consultation.statut !== 'CLOTUREE') {
-      throw new ConflictException('Le bon de pharmacie ne peut être créé qu\'une fois la consultation clôturée')
-    }
-
-    // Le bon de pharmacie délivre ce que l'ordonnance a prescrit — il exige donc
-    // qu'une ordonnance VALIDÉE existe pour cette consultation (contrairement au bon
-    // d'examen, indépendant de toute ordonnance).
-    const ordonnanceValidee = await this.prisma.ordonnance.count({
-      where: { consultationId: dto.consultationId, statut: 'VALIDEE' },
-    })
-    if (ordonnanceValidee === 0) {
-      throw new ConflictException('Une ordonnance validée est requise avant de créer un bon de pharmacie')
-    }
-
-    // RÈGLE CENTRALE (recueil) : médicaments réservés aux CDI + ayants droit.
-    await assertPrestationCouverte(this.prisma, consultation.visite.patient.categoriePatientId, 'MEDICAMENT')
-
-    const bon = await this.prisma.$transaction(async tx => {
-      const created = await tx.bonPharmacie.create({
-        data: {
-          consultationId: dto.consultationId,
-          prescripteurId,
-          observations:   dto.observations?.trim() ?? null,
-          statut:         'EN_ATTENTE',
-        },
-      })
-      await tx.ligneBonPharmacie.createMany({
-        data: dto.lignes.map(l => ({
-          bonId:        created.id,
-          medicamentId: l.medicamentId ?? null,
-          libelle:      l.libelle.trim(),
-          posologie:    l.posologie?.trim() ?? null,
-          quantite:     l.quantite?.trim() ?? null,
-        })),
-      })
-      return created
-    })
-    return this.getOrThrow(bon.id)
-  }
+  // Créer un bon de pharmacie « à la main » n'existe plus ici (route retirée) : un bon naît
+  // exclusivement de « Générer un bon » sur une ordonnance PHARMACEUTIQUE validée (voir
+  // ConsultationService.genererBonDepuisOrdonnance), pour garantir sa traçabilité.
 
   async deliver(id: string, delivrePar: string | null) {
     const bon = await this.getOrThrow(id)
     if (bon.statut !== 'EN_ATTENTE') {
-      throw new ConflictException('Seul un bon en attente peut être marqué délivré')
+      throw new ConflictException(
+        'Seul un bon en attente peut être marqué délivré',
+      )
     }
     await this.prisma.bonPharmacie.update({
       where: { id },
-      data:  { statut: 'DELIVRE', delivreLe: new Date(), delivrePar: delivrePar ?? null },
+      data: {
+        statut: 'DELIVRE',
+        delivreLe: new Date(),
+        delivrePar: delivrePar ?? null,
+      },
     })
     return this.getOrThrow(id)
   }
@@ -129,11 +113,13 @@ export class BonPharmacieService {
   async annuler(id: string, dto: AnnulerBonPharmacieDto) {
     const bon = await this.getOrThrow(id)
     if (bon.statut === 'ANNULE') throw new ConflictException('Bon déjà annulé')
-    if (bon.statut === 'DELIVRE') throw new ConflictException('Un bon déjà délivré ne peut être annulé')
-    if (!dto.motifAnnulation?.trim()) throw new BadRequestException('Motif d\'annulation requis')
+    if (bon.statut === 'DELIVRE')
+      throw new ConflictException('Un bon déjà délivré ne peut être annulé')
+    if (!dto.motifAnnulation?.trim())
+      throw new BadRequestException("Motif d'annulation requis")
     await this.prisma.bonPharmacie.update({
       where: { id },
-      data:  { statut: 'ANNULE', motifAnnulation: dto.motifAnnulation.trim() },
+      data: { statut: 'ANNULE', motifAnnulation: dto.motifAnnulation.trim() },
     })
     return this.getOrThrow(id)
   }

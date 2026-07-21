@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from '@workspace/ui/components/sonner'
 import { bonExamenApi } from '../api/bon-examen.api'
 import type {
-  CreateBonExamenPayload, UpdateBonExamenPayload,
+  UpdateBonExamenPayload,
   ValiderBonExamenPayload, SaisirResultatPayload, BonExamenQueryParams,
 } from '../api/bon-examen.api'
 import { ApiError, isOfflineQueued } from '@/lib/api'
@@ -33,19 +33,6 @@ export function useBonExamen(id: string) {
     queryKey: bonExamenKey(id),
     queryFn:  () => bonExamenApi.findById(id),
     enabled:  !!id,
-  })
-}
-
-export function useCreateBonExamen() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (data: CreateBonExamenPayload) => bonExamenApi.create(data),
-    onSuccess: (_, vars) => {
-      qc.invalidateQueries({ queryKey: BONS_EXAMEN_KEY })
-      qc.invalidateQueries({ queryKey: ['consultations', vars.consultationId] })
-      toast.success(i18n.t('bonExamen.toastCreated'))
-    },
-    onError: toastErr,
   })
 }
 

@@ -16,6 +16,10 @@ import {
   BookOpen,
   MessageSquare,
   FileBarChart,
+  ShieldCheck,
+  SlidersHorizontal,
+  History,
+  RefreshCw,
 } from 'lucide-react'
 import type { LucideIcon }     from 'lucide-react'
 import type { PermissionCode, Role } from '@cms-saris/types'
@@ -43,8 +47,8 @@ export interface NavGroup {
 
 export const NAV_GROUPS: NavGroup[] = [
   {
-    key:   'clinique',
-    label: 'Clinique',
+    key:   'espace_travail',
+    label: 'Espace de travail',
     items: [
       {
         key:         'dashboard',
@@ -110,11 +114,50 @@ export const NAV_GROUPS: NavGroup[] = [
       },
     ],
   },
-  // « Administration système » (Accès & habilitations, Journaux d'audit) et « Système »
-  // (Synchronisation) ne sont plus des groupes séparés de la sidebar : ces 3 pages restent
-  // pleinement fonctionnelles à leurs routes (/admin/acces, /admin/audit, /synchronisation)
-  // mais sont désormais accessibles via des raccourcis dans Paramètres > Généraux (cf.
-  // ParametresPage.tsx), pour désencombrer le menu principal.
+  // Administration : pages de gouvernance et de configuration SYSTÈME, remontées ici
+  // (elles n'étaient plus atteignables que par des raccourcis dans Paramètres > Généraux).
+  // Chaque entrée porte SA permission réelle : useNavigation filtre item par item et
+  // supprime le groupe s'il devient vide → un infirmier ne voit pas ce groupe du tout.
+  // Les paramètres PERSONNELS (préférences, 2FA, sessions) restent hors de ce groupe :
+  // ils sont en self-service pour tout le monde, via le menu utilisateur du pied de page.
+  {
+    key:   'administration',
+    label: 'Administration',
+    items: [
+      {
+        key:         'acces',
+        label:       'Accès & habilitations',
+        icon:        ShieldCheck,
+        href:        '/admin/acces',
+        permissions: ['utilisateur.read', 'role.read', 'personnel.read', 'delegation.read'],
+        description: 'Comptes, rôles & permissions, personnel soignant, délégations',
+      },
+      {
+        key:         'parametresSysteme',
+        label:       'Paramètres système',
+        icon:        SlidersHorizontal,
+        href:        '/admin/parametres-systeme',
+        permissions: ['parametre.read'],
+        description: 'Sécurité, politique de mot de passe, notifications',
+      },
+      {
+        key:         'audit',
+        label:       'Journaux d\'audit',
+        icon:        History,
+        href:        '/admin/audit',
+        permissions: ['audit.read'],
+        description: 'Traçabilité des actions et des authentifications',
+      },
+      {
+        key:         'synchronisation',
+        label:       'Synchronisation',
+        icon:        RefreshCw,
+        href:        '/synchronisation',
+        permissions: ['synchronisation.read'],
+        description: 'Postes locaux, sauvegardes et restauration',
+      },
+    ],
+  },
 ]
 
 // ── Labels & couleurs des rôles ───────────────────────────────────────────────

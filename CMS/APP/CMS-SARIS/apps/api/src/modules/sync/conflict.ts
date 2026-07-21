@@ -23,14 +23,24 @@ function toMs(iso: string | null | undefined): number {
   return Number.isNaN(t) ? 0 : t
 }
 
-export function resolveConflict(incoming: IncomingVersioned, existing: Versioned | null): ConflictDecision {
+export function resolveConflict(
+  incoming: IncomingVersioned,
+  existing: Versioned | null,
+): ConflictDecision {
   if (!existing) return { kind: 'apply' }
   const inMs = toMs(incoming.updatedAt)
   const exMs = toMs(existing.updatedAt)
-  const baseMs = incoming.baseUpdatedAt != null ? toMs(incoming.baseUpdatedAt) : exMs
+  const baseMs =
+    incoming.baseUpdatedAt != null ? toMs(incoming.baseUpdatedAt) : exMs
   const serverMovedSinceBase = exMs > baseMs
-  if (inMs > exMs) return serverMovedSinceBase ? { kind: 'conflict', winner: 'incoming' } : { kind: 'apply' }
-  if (inMs < exMs) return serverMovedSinceBase ? { kind: 'conflict', winner: 'existing' } : { kind: 'skip' }
+  if (inMs > exMs)
+    return serverMovedSinceBase
+      ? { kind: 'conflict', winner: 'incoming' }
+      : { kind: 'apply' }
+  if (inMs < exMs)
+    return serverMovedSinceBase
+      ? { kind: 'conflict', winner: 'existing' }
+      : { kind: 'skip' }
   return { kind: 'skip' }
 }
 

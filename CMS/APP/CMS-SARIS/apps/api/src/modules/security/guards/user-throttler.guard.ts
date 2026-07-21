@@ -19,7 +19,11 @@ export class UserThrottlerGuard extends ThrottlerGuard {
   }
 
   /** Clé de stockage stable même sans décorateur nommé. */
-  protected generateKey(context: ExecutionContext, suffix: string, name: string): string {
+  protected generateKey(
+    context: ExecutionContext,
+    suffix: string,
+    name: string,
+  ): string {
     return super.generateKey(context, suffix, name || 'msg')
   }
 }

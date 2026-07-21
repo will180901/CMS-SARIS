@@ -3,21 +3,35 @@
  */
 
 import {
-  Controller, Get, Post, Patch, Delete,
-  Body, Param, Query, Req,
-  UseGuards, HttpCode, HttpStatus,
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  Req,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common'
 import { SuiviTraitementService } from './suivi-traitement.service'
-import { JwtAuthGuard }           from '../security/guards/jwt-auth.guard'
-import { PermissionsGuard }       from '../security/guards/permissions.guard'
-import { RequirePermissions }     from '../../common/decorators/require-permissions.decorator'
+import { JwtAuthGuard } from '../security/guards/jwt-auth.guard'
+import { PermissionsGuard } from '../security/guards/permissions.guard'
+import { RequirePermissions } from '../../common/decorators/require-permissions.decorator'
 import { Audit } from '../../common/decorators/audit.decorator'
 import {
-  CreateSuiviTraitementDto, AddFicheSuiviDto,
-  CloturerSuiviTraitementDto, AnnulerSuiviTraitementDto, SuiviTraitementQueryDto,
+  CreateSuiviTraitementDto,
+  AddFicheSuiviDto,
+  CloturerSuiviTraitementDto,
+  AnnulerSuiviTraitementDto,
+  SuiviTraitementQueryDto,
 } from './dto/suivi-traitement.dto'
 
-interface AuthedRequest { user?: { id?: string } }
+interface AuthedRequest {
+  user?: { id?: string }
+}
 
 @Controller('suivi-traitement')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -47,13 +61,21 @@ export class SuiviTraitementController {
   @Post(':id/fiches')
   @RequirePermissions('suivi_traitement.update')
   @HttpCode(HttpStatus.CREATED)
-  addFiche(@Param('id') id: string, @Body() dto: AddFicheSuiviDto, @Req() req: AuthedRequest) {
+  addFiche(
+    @Param('id') id: string,
+    @Body() dto: AddFicheSuiviDto,
+    @Req() req: AuthedRequest,
+  ) {
     return this.svc.addFiche(id, dto, req.user?.id ?? 'unknown')
   }
 
   @Patch(':id/fiches/:ficheId')
   @RequirePermissions('suivi_traitement.update')
-  updateFiche(@Param('id') id: string, @Param('ficheId') ficheId: string, @Body() dto: AddFicheSuiviDto) {
+  updateFiche(
+    @Param('id') id: string,
+    @Param('ficheId') ficheId: string,
+    @Body() dto: AddFicheSuiviDto,
+  ) {
     return this.svc.updateFiche(id, ficheId, dto)
   }
 

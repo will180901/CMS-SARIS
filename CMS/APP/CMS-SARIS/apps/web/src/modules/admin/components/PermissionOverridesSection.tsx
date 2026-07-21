@@ -13,12 +13,13 @@
 
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Check, X, RotateCcw } from 'lucide-react'
+import { Check, X, RotateCcw, Lock } from 'lucide-react'
 import { Button, TextInput } from '@/components/saris'
 import { useUserPermissions, useSetUserPermissions, usePermissions as useAdminPermissionCatalog } from '../hooks/useAdmin'
 import { buildPermissionTree, labelPermAction } from '@/config/permission-tree'
 import { labelPermission } from '@/config/labels'
 import type { PermissionCode } from '@cms-saris/types'
+import { PERMISSION_LECTURES_IMPLIQUEES, PERMISSION_DEPENDANTS } from '@cms-saris/types'
 
 interface Props {
   utilisateurId: string
@@ -38,8 +39,16 @@ export function PermissionOverridesSection({ utilisateurId, isSelf }: Props) {
   // État local initialisé paresseusement à la première frappe (avant ça, on
   // affiche directement les données serveur — pas de bouton « Modifier »
   // séparé : chaque puce se clique directement, comme la matrice de rôle.
-  const grantSet  = grants  ?? new Set(breakdown?.grants.map(g => g.code) ?? [])
-  const revokeSet = revokes ?? new Set(breakdown?.revokes.map(r => r.code) ?? [])
+  // Mémorisés : `requisPar` en dépend, sans quoi l'ensemble serait recalculé à
+  // chaque rendu (une nouvelle Set() à chaque passage casserait la mémoïsation).
+  const grantSet = useMemo(
+    () => grants ?? new Set(breakdown?.grants.map(g => g.code) ?? []),
+    [grants, breakdown],
+  )
+  const revokeSet = useMemo(
+    () => revokes ?? new Set(breakdown?.revokes.map(r => r.code) ?? []),
+    [revokes, breakdown],
+  )
   const dirty = grants !== null || revokes !== null
 
   const fromRoles = useMemo(() => new Set(breakdown?.fromRoles ?? []), [breakdown])
@@ -63,24 +72,58 @@ export function PermissionOverridesSection({ utilisateurId, isSelf }: Props) {
     return fromRoles.has(code)
   }
 
+  /**
+   * Lectures exigées par une permission EFFECTIVE : elles portent un cadenas et
+   * leur retrait entraîne celui des actions qui en dépendent (« écrire implique
+   * consulter »). Le serveur applique la même règle sur le PUT.
+   */
+  const requisPar = useMemo(() => {
+    const m = new Map<PermissionCode, PermissionCode[]>()
+    for (const p of catalog) {
+      const code = p.code as PermissionCode
+      if (revokeSet.has(code) || (!grantSet.has(code) && !fromRoles.has(code))) continue
+      for (const lecture of PERMISSION_LECTURES_IMPLIQUEES[code] ?? []) {
+        m.set(lecture, [...(m.get(lecture) ?? []), code])
+      }
+    }
+    return m
+  }, [catalog, grantSet, revokeSet, fromRoles])
+
   /** Clic sur une puce : comportement contextuel selon l'état actuel. */
   function handleClick(code: PermissionCode) {
-    const inherited = fromRoles.has(code)
-    if (isGranted(code)) {
-      // Accordé individuellement → retire l'octroi (retour à « non accordé »)
-      const n = new Set(grantSet); n.delete(code); setGrants(n)
-    } else if (isRevoked(code)) {
-      // Révoqué → rétablit (retour à hérité du rôle)
-      const n = new Set(revokeSet); n.delete(code); setRevokes(n)
-    } else if (inherited) {
-      // Hérité du rôle, sans dérogation → révoque pour ce compte
-      const n = new Set(revokeSet); n.add(code); setRevokes(n)
-      const g = new Set(grantSet); g.delete(code); setGrants(g)
+    const g = new Set(grantSet)
+    const r = new Set(revokeSet)
+
+    if (grantSet.has(code)) {
+      g.delete(code) // accordé individuellement → retire l'octroi
+    } else if (revokeSet.has(code)) {
+      r.delete(code) // révoqué → rétablit (retour à hérité du rôle)
+    } else if (fromRoles.has(code)) {
+      r.add(code); g.delete(code) // hérité → révoque pour ce compte
     } else {
-      // Non accordé du tout → accorde individuellement
-      const n = new Set(grantSet); n.add(code); setGrants(n)
-      const r = new Set(revokeSet); r.delete(code); setRevokes(r)
+      g.add(code); r.delete(code) // non accordé → accorde individuellement
     }
+
+    // Cohérence : on répercute dans le sens du clic.
+    const effectif = (c: PermissionCode) => !r.has(c) && (g.has(c) || fromRoles.has(c))
+    if (effectif(code)) {
+      // Devenu effectif → les lectures qu'il exige le deviennent aussi.
+      for (const lecture of PERMISSION_LECTURES_IMPLIQUEES[code] ?? []) {
+        if (effectif(lecture)) continue
+        r.delete(lecture)
+        if (!fromRoles.has(lecture)) g.add(lecture)
+      }
+    } else {
+      // Devenu non effectif → les actions qui en dépendaient deviennent mortes.
+      for (const dependant of PERMISSION_DEPENDANTS[code] ?? []) {
+        if (!effectif(dependant)) continue
+        g.delete(dependant)
+        if (fromRoles.has(dependant)) r.add(dependant)
+      }
+    }
+
+    setGrants(g)
+    setRevokes(r)
   }
 
   async function handleSave() {
@@ -155,6 +198,8 @@ export function PermissionOverridesSection({ utilisateurId, isSelf }: Props) {
                     const inherited = fromRoles.has(leaf.code)
                     const granted   = isGranted(leaf.code)
                     const revoked   = isRevoked(leaf.code)
+                    const exigee    = requisPar.get(leaf.code) ?? []
+                    const verrou    = isEffective(leaf.code) && exigee.length > 0
                     const title = granted ? t('admin.clickToRemoveGrant')
                       : revoked ? t('admin.clickToRestore')
                       : inherited ? t('admin.clickToRevoke')
@@ -164,7 +209,13 @@ export function PermissionOverridesSection({ utilisateurId, isSelf }: Props) {
                         key={leaf.code}
                         type="button"
                         onClick={() => handleClick(leaf.code)}
-                        title={`${labelPermission(leaf.code)} — ${title}`}
+                        title={verrou
+                          ? t('admin.permissionRequiredBy', {
+                              libelle: labelPermission(leaf.code),
+                              liste: exigee.slice(0, 3).map(c => labelPermission(c)).join(', ')
+                                + (exigee.length > 3 ? ` (+${exigee.length - 3})` : ''),
+                            })
+                          : `${labelPermission(leaf.code)} — ${title}`}
                         style={{
                           display: 'inline-flex', alignItems: 'center', gap: 4,
                           padding: '4px 10px', borderRadius: 'var(--radius-sm)',
@@ -177,6 +228,7 @@ export function PermissionOverridesSection({ utilisateurId, isSelf }: Props) {
                       >
                         {granted && <Check size={11} />}
                         {revoked && <X size={11} />}
+                        {verrou && !granted && !revoked && <Lock size={11} />}
                         {labelPermAction(leaf.action)}
                         {inherited && !granted && !revoked && (
                           <span style={{ fontSize: 10, opacity: 0.75 }}>{t('admin.inheritedSuffix')}</span>

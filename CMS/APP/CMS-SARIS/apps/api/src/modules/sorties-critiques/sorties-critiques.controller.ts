@@ -3,21 +3,35 @@
  */
 
 import {
-  Controller, Get, Post, Patch, Delete,
-  Body, Param, Query, Req,
-  UseGuards, HttpCode, HttpStatus,
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  Req,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common'
 import { SortiesCritiquesService } from './sorties-critiques.service'
-import { JwtAuthGuard }            from '../security/guards/jwt-auth.guard'
-import { PermissionsGuard }        from '../security/guards/permissions.guard'
-import { RequirePermissions }      from '../../common/decorators/require-permissions.decorator'
+import { JwtAuthGuard } from '../security/guards/jwt-auth.guard'
+import { PermissionsGuard } from '../security/guards/permissions.guard'
+import { RequirePermissions } from '../../common/decorators/require-permissions.decorator'
 import { Audit } from '../../common/decorators/audit.decorator'
 import {
-  CreateEvacuationDto, UpdateEvacuationDto, AddSuiviEvacuationDto,
-  AnnulerEvacuationDto, EvacuationQueryDto,
+  CreateEvacuationDto,
+  UpdateEvacuationDto,
+  AddSuiviEvacuationDto,
+  AnnulerEvacuationDto,
+  EvacuationQueryDto,
 } from './dto/evacuation.dto'
 
-interface AuthedRequest { user?: { id?: string } }
+interface AuthedRequest {
+  user?: { id?: string }
+}
 
 // ── Évacuations ───────────────────────────────────────────────────────────────
 
@@ -55,7 +69,11 @@ export class EvacuationsController {
   @Post(':id/suivi')
   @RequirePermissions('evacuation.update')
   @HttpCode(HttpStatus.CREATED)
-  addSuivi(@Param('id') id: string, @Body() dto: AddSuiviEvacuationDto, @Req() req: AuthedRequest) {
+  addSuivi(
+    @Param('id') id: string,
+    @Body() dto: AddSuiviEvacuationDto,
+    @Req() req: AuthedRequest,
+  ) {
     return this.svc.addSuiviEvacuation(id, dto, req.user?.id ?? 'unknown')
   }
 

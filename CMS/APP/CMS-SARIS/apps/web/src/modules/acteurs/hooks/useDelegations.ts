@@ -38,6 +38,19 @@ export function useDelegations() {
   })
 }
 
+/**
+ * Ma propre délégation active — accès libre à tout utilisateur authentifié (pas de
+ * permission `delegation.read` requise, contrairement à useDelegations()). Pilote la
+ * bascule lecture seule de l'onglet Ordonnance pour un infirmier non délégué.
+ */
+export function useMyActiveDelegation() {
+  return useQuery({
+    queryKey: [...DELEGATIONS_KEY, 'mine'],
+    queryFn:  acteursApi.delegations.mine,
+    staleTime: 30_000,
+  })
+}
+
 export function useCreateDelegation() {
   const qc = useQueryClient()
   return useMutation({

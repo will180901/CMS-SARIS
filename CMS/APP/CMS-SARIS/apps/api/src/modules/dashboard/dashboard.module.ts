@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common'
-import { SecurityModule }      from '../security/security.module'
+import { SecurityModule } from '../security/security.module'
 import { DashboardController } from './dashboard.controller'
-import { DashboardService }    from './dashboard.service'
+import { DashboardService } from './dashboard.service'
 
 @Module({
-  imports:     [SecurityModule],
+  imports: [SecurityModule],
   controllers: [DashboardController],
-  providers:   [DashboardService],
-  exports:     [DashboardService],
+  providers: [DashboardService],
+  exports: [DashboardService],
 })
 export class DashboardModule {}

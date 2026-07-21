@@ -1,7 +1,8 @@
 /**
  * VisitesTab — tous les passages au triage du patient (toutes visites confondues),
- * du plus récent au plus ancien. Chaque ligne ouvre la consultation qui en a
- * découlé (le cas échéant) dans un TIROIR qui glisse de la droite.
+ * du plus récent au plus ancien. Chaque ligne ouvre le résumé DE LA VISITE dans un
+ * TIROIR qui glisse de la droite ; la consultation qui en a découlé (le cas échéant)
+ * reste accessible depuis ce résumé, sans jamais s'y substituer par défaut.
  */
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -56,23 +57,20 @@ export function VisitesTab({ patientId }: { patientId: string }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 720 }}>
           {visites.map(v => {
             const cfg = STATUT_VISITE[v.statut] ?? STATUT_VISITE.CLOTUREE
-            const consult = v.consultations.find(c => c.statut !== 'ANNULEE') ?? null
-            const clickable = !!consult
             return (
               <button
                 key={v.id}
                 type="button"
-                disabled={!clickable}
-                onClick={() => consult && setDetail({ kind: 'CONSULTATION', consultationId: consult.id })}
+                onClick={() => setDetail({ kind: 'VISITE', visiteId: v.id })}
                 style={{
                   width: '100%', textAlign: 'left',
                   background: 'var(--fond-surface)', border: '1px solid var(--bordure-legere)',
                   borderRadius: 10, padding: '12px 14px',
-                  cursor: clickable ? 'pointer' : 'default',
+                  cursor: 'pointer',
                   display: 'flex', alignItems: 'center', gap: 12,
                   transition: 'border-color 0.12s, background 0.12s',
                 }}
-                onMouseEnter={e => { if (clickable) { e.currentTarget.style.borderColor = 'var(--ap-300)'; e.currentTarget.style.background = 'var(--fond-surface-2)' } }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--ap-300)'; e.currentTarget.style.background = 'var(--fond-surface-2)' }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--bordure-legere)'; e.currentTarget.style.background = 'var(--fond-surface)' }}
               >
                 <div style={{
@@ -98,7 +96,7 @@ export function VisitesTab({ patientId }: { patientId: string }) {
                     {formatDate(v.dateOuverture, { day: '2-digit', month: 'long', year: 'numeric' })} · {formatTime(v.dateOuverture, { hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
-                {clickable && <ChevronRight size={15} style={{ color: 'var(--texte-tertiaire)', flexShrink: 0 }} />}
+                <ChevronRight size={15} style={{ color: 'var(--texte-tertiaire)', flexShrink: 0 }} />
               </button>
             )
           })}

@@ -1,9 +1,24 @@
 import {
-  IsString, IsOptional, IsUUID, IsInt, Min, Max, IsIn, IsNumber, MaxLength, ValidateIf, ValidateNested,
+  IsString,
+  IsOptional,
+  IsUUID,
+  IsInt,
+  Min,
+  Max,
+  IsIn,
+  IsNumber,
+  MaxLength,
+  ValidateIf,
+  ValidateNested,
 } from 'class-validator'
 import { Type } from 'class-transformer'
 
-const STATUTS_VISITE = ['EN_ATTENTE', 'EN_COURS', 'CLOTUREE', 'ANNULEE'] as const
+const STATUTS_VISITE = [
+  'EN_ATTENTE',
+  'EN_COURS',
+  'CLOTUREE',
+  'ANNULEE',
+] as const
 
 // ── Saisie des constantes vitales ─────────────────────────────────────────────
 // Déclaré AVANT CreateVisiteDto : référencé par @Type() + emitDecoratorMetadata
@@ -19,21 +34,71 @@ const STATUTS_VISITE = ['EN_ATTENTE', 'EN_COURS', 'CLOTUREE', 'ANNULEE'] as cons
 //   • Glycémie           : 0.1 → 10 g/L  (≈ 0.55 → 55 mmol/L)
 
 export class CreateConstanteVitaleDto {
-  @IsOptional() @IsNumber() @Min(30)  @Max(45)  @Type(() => Number) temperature?:        number
-  @IsOptional() @IsInt()    @Min(50)  @Max(300) @Type(() => Number) tensionSystolique?:  number
-  @IsOptional() @IsInt()    @Min(30)  @Max(200) @Type(() => Number) tensionDiastolique?: number
-  @IsOptional() @IsInt()    @Min(20)  @Max(300) @Type(() => Number) frequenceCardiaque?: number
-  @IsOptional() @IsInt()    @Min(4)   @Max(80)  @Type(() => Number) frequenceRespiratoire?: number
-  @IsOptional() @IsNumber() @Min(50)  @Max(100) @Type(() => Number) saturationO2?:       number
-  @IsOptional() @IsNumber() @Min(0.5) @Max(300) @Type(() => Number) poids?:              number
-  @IsOptional() @IsNumber() @Min(30)  @Max(250) @Type(() => Number) taille?:             number
-  @IsOptional() @IsNumber() @Min(0.1) @Max(10)  @Type(() => Number) glycemie?:           number
+  @IsOptional()
+  @IsNumber()
+  @Min(30)
+  @Max(45)
+  @Type(() => Number)
+  temperature?: number
+  @IsOptional()
+  @IsInt()
+  @Min(50)
+  @Max(300)
+  @Type(() => Number)
+  tensionSystolique?: number
+  @IsOptional()
+  @IsInt()
+  @Min(30)
+  @Max(200)
+  @Type(() => Number)
+  tensionDiastolique?: number
+  @IsOptional()
+  @IsInt()
+  @Min(20)
+  @Max(300)
+  @Type(() => Number)
+  frequenceCardiaque?: number
+  @IsOptional()
+  @IsInt()
+  @Min(4)
+  @Max(80)
+  @Type(() => Number)
+  frequenceRespiratoire?: number
+  @IsOptional()
+  @IsNumber()
+  @Min(50)
+  @Max(100)
+  @Type(() => Number)
+  saturationO2?: number
+  @IsOptional()
+  @IsNumber()
+  @Min(0.5)
+  @Max(300)
+  @Type(() => Number)
+  poids?: number
+  @IsOptional()
+  @IsNumber()
+  @Min(30)
+  @Max(250)
+  @Type(() => Number)
+  taille?: number
+  @IsOptional()
+  @IsNumber()
+  @Min(0.1)
+  @Max(10)
+  @Type(() => Number)
+  glycemie?: number
   // Signes généraux (modèle Jeannette)
-  @IsOptional() @IsString() @MaxLength(40)                          etatConscience?:     string
-  @IsOptional() @IsInt()    @Min(3)   @Max(15)  @Type(() => Number) scoreGlasgow?:       number
-  @IsOptional() @IsString() @MaxLength(40)                          etatGeneral?:        string
-  @IsOptional() @IsString() @MaxLength(40)                          hydratation?:        string
-  @IsOptional() @IsString() @MaxLength(40)                          coloration?:         string
+  @IsOptional() @IsString() @MaxLength(40) etatConscience?: string
+  @IsOptional()
+  @IsInt()
+  @Min(3)
+  @Max(15)
+  @Type(() => Number)
+  scoreGlasgow?: number
+  @IsOptional() @IsString() @MaxLength(40) etatGeneral?: string
+  @IsOptional() @IsString() @MaxLength(40) hydratation?: string
+  @IsOptional() @IsString() @MaxLength(40) coloration?: string
 }
 
 // ── Créer une visite ──────────────────────────────────────────────────────────
@@ -41,11 +106,13 @@ export class CreateConstanteVitaleDto {
 // constantes vitales dans une seule transaction (cf. TriageService.create).
 
 export class CreateVisiteDto {
-  @IsUUID()                               patientId:        string
-  @IsUUID()                               motifPrincipalId: string
-  @IsOptional() @IsUUID()                 soignantId?:      string
+  @IsUUID() patientId: string
+  @IsUUID() motifPrincipalId: string
+  @IsOptional() @IsUUID() soignantId?: string
 
-  @IsOptional() @IsString() @MaxLength(2000)
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
   notesAccueil?: string
 
   @IsOptional()
@@ -60,20 +127,24 @@ export class UpdateStatutVisiteDto {
   @IsIn(STATUTS_VISITE) statut: string
 
   /** Obligatoire uniquement si statut = ANNULEE. */
-  @ValidateIf(o => o.statut === 'ANNULEE')
+  @ValidateIf((o) => o.statut === 'ANNULEE')
   @IsString()
   @MaxLength(500)
   motifAnnulation?: string
 
   /** Commentaire libre — utile pour CLOTUREE manuelle, ré-évaluation. */
-  @IsOptional() @IsString() @MaxLength(500)
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
   commentaire?: string
 }
 
 // ── Mettre à jour les notes d'accueil ─────────────────────────────────────────
 
 export class UpdateNotesVisiteDto {
-  @IsOptional() @IsString() @MaxLength(2000)
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
   notesAccueil?: string | null
 }
 
@@ -100,5 +171,5 @@ export class UpdateSoignantVisiteDto {
 // volume grossit, ajouter `search` + indexation pgtrgm côté backend.
 
 export class VisiteQueryDto {
-  @IsOptional() @IsIn([...STATUTS_VISITE, 'ACTIVES'])  statut?: string
+  @IsOptional() @IsIn([...STATUTS_VISITE, 'ACTIVES']) statut?: string
 }

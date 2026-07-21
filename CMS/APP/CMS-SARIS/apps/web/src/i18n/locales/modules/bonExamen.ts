@@ -25,6 +25,7 @@ export const bonExamen = {
     examsRequested: 'Examens demandés ({{count}})',
     resultsReceived: 'Résultats reçus ({{count}})',
     cancellationReason: 'Motif d\'annulation : {{motif}}',
+    ordonnanceAnnuleeWarning: 'Attention : l\'ordonnance à l\'origine de ce bon a été annulée depuis.',
 
     // ── Actions ─────────────────────────────────────────────────────
     cancelBon: 'Annuler le bon',
@@ -106,6 +107,7 @@ export const bonExamen = {
     examsRequested: 'Examinations requested ({{count}})',
     resultsReceived: 'Results received ({{count}})',
     cancellationReason: 'Cancellation reason: {{motif}}',
+    ordonnanceAnnuleeWarning: 'Warning: the prescription behind this voucher has since been cancelled.',
 
     // ── Actions ─────────────────────────────────────────────────────
     cancelBon: 'Cancel order',

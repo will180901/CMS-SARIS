@@ -26,31 +26,34 @@ export async function assertPeutPrescrire(
   const roles = scope.roles ?? []
 
   // Médecin chef / admin système : prescription libre.
-  if (roles.includes('MEDECIN_CHEF') || roles.includes('ADMIN_SYSTEME')) return null
+  if (roles.includes('MEDECIN_CHEF') || roles.includes('ADMIN_SYSTEME'))
+    return null
 
   // Infirmier : autorisé seulement avec une délégation active.
   if (roles.includes('INFIRMIER')) {
     if (!scope.personnelMedicalId) {
-      throw new ForbiddenException('Prescription réservée au médecin chef ou à un infirmier délégué.')
+      throw new ForbiddenException(
+        'Prescription réservée au médecin chef ou à un infirmier délégué.',
+      )
     }
     const now = new Date()
     const deleg = await prisma.delegationPrescription.findFirst({
       where: {
         infirmierId: scope.personnelMedicalId,
-        statut:      'ACTIVE',
-        dateDebut:   { lte: now },
-        dateFin:     { gte: now },
-        deletedAt:   null,
+        statut: 'ACTIVE',
+        dateDebut: { lte: now },
+        dateFin: { gte: now },
+        deletedAt: null,
       },
       select: { id: true },
     })
     if (!deleg) {
       throw new ForbiddenException(
-        'Vous devez disposer d\'une délégation de prescription active (accordée par le médecin chef) pour prescrire.',
+        "Vous devez disposer d'une délégation de prescription active (accordée par le médecin chef) pour prescrire.",
       )
     }
     return deleg.id
   }
 
-  throw new ForbiddenException('Vous n\'êtes pas autorisé à prescrire.')
+  throw new ForbiddenException("Vous n'êtes pas autorisé à prescrire.")
 }

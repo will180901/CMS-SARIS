@@ -1,6 +1,14 @@
 import {
-  IsString, IsEmail, IsOptional, IsUUID, IsArray, IsIn,
-  Length, Matches, ArrayMinSize, MaxLength,
+  IsString,
+  IsEmail,
+  IsOptional,
+  IsUUID,
+  IsArray,
+  IsIn,
+  Length,
+  Matches,
+  ArrayMinSize,
+  MaxLength,
 } from 'class-validator'
 
 // La politique de mot de passe (longueur, complexité) est désormais DYNAMIQUE :
@@ -12,7 +20,9 @@ import {
 export class CreateUtilisateurDto {
   @IsString()
   @Length(3, 32)
-  @Matches(/^[a-z][a-z0-9._-]*$/i, { message: 'Login : lettres, chiffres et . _ - uniquement' })
+  @Matches(/^[a-z][a-z0-9._-]*$/i, {
+    message: 'Login : lettres, chiffres et . _ - uniquement',
+  })
   login!: string
 
   @IsEmail()

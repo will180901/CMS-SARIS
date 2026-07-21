@@ -6,20 +6,41 @@
  */
 
 import {
-  Controller, Get, Post, Patch, Put, Delete, Body, Param, Query, Req,
-  UseGuards, HttpCode, HttpStatus, UnauthorizedException,
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  Req,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+  UnauthorizedException,
 } from '@nestjs/common'
-import { UtilisateursService }  from './utilisateurs.service'
-import { JwtAuthGuard }         from '../security/guards/jwt-auth.guard'
-import { PermissionsGuard }     from '../security/guards/permissions.guard'
-import { RequirePermissions }   from '../../common/decorators/require-permissions.decorator'
+import { UtilisateursService } from './utilisateurs.service'
+import { JwtAuthGuard } from '../security/guards/jwt-auth.guard'
+import { PermissionsGuard } from '../security/guards/permissions.guard'
+import { RequirePermissions } from '../../common/decorators/require-permissions.decorator'
 import {
-  CreateUtilisateurDto, UpdateUtilisateurDto,
-  SetRolesDto, SetStatutDto, ResetPasswordDto, UtilisateurQueryDto,
+  CreateUtilisateurDto,
+  UpdateUtilisateurDto,
+  SetRolesDto,
+  SetStatutDto,
+  ResetPasswordDto,
+  UtilisateurQueryDto,
 } from './dto/utilisateur.dto'
-import { SetPermissionOverridesDto, BulkPermissionDto } from './dto/permission-override.dto'
+import {
+  SetPermissionOverridesDto,
+  BulkPermissionDto,
+} from './dto/permission-override.dto'
 
-interface AuthedRequest { user?: { id?: string; siteId?: string; permissions?: string[] } }
+interface AuthedRequest {
+  user?: { id?: string; siteId?: string; permissions?: string[] }
+}
 
 /** siteId du JWT — cloisonnement multi-site, jamais depuis les query params. */
 function requireSite(req: AuthedRequest): string {
@@ -61,13 +82,28 @@ export class UtilisateursController {
   @RequirePermissions('utilisateur.create')
   @HttpCode(HttpStatus.CREATED)
   create(@Body() dto: CreateUtilisateurDto, @Req() req: AuthedRequest) {
-    return this.svc.create(dto, req.user?.id ?? null, requireSite(req), hasCrossSiteAccess(req))
+    return this.svc.create(
+      dto,
+      req.user?.id ?? null,
+      requireSite(req),
+      hasCrossSiteAccess(req),
+    )
   }
 
   @Patch(':id')
   @RequirePermissions('utilisateur.update')
-  update(@Param('id') id: string, @Body() dto: UpdateUtilisateurDto, @Req() req: AuthedRequest) {
-    return this.svc.update(id, dto, req.user?.id ?? null, requireSite(req), hasCrossSiteAccess(req))
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateUtilisateurDto,
+    @Req() req: AuthedRequest,
+  ) {
+    return this.svc.update(
+      id,
+      dto,
+      req.user?.id ?? null,
+      requireSite(req),
+      hasCrossSiteAccess(req),
+    )
   }
 
   @Delete(':id')
@@ -79,20 +115,32 @@ export class UtilisateursController {
 
   @Patch(':id/roles')
   @RequirePermissions('utilisateur.assign_role')
-  setRoles(@Param('id') id: string, @Body() dto: SetRolesDto, @Req() req: AuthedRequest) {
+  setRoles(
+    @Param('id') id: string,
+    @Body() dto: SetRolesDto,
+    @Req() req: AuthedRequest,
+  ) {
     return this.svc.setRoles(id, dto, req.user?.id ?? null)
   }
 
   @Patch(':id/statut')
   @RequirePermissions('utilisateur.update')
-  setStatut(@Param('id') id: string, @Body() dto: SetStatutDto, @Req() req: AuthedRequest) {
+  setStatut(
+    @Param('id') id: string,
+    @Body() dto: SetStatutDto,
+    @Req() req: AuthedRequest,
+  ) {
     return this.svc.setStatut(id, dto, req.user?.id ?? null)
   }
 
   @Post(':id/reset-password')
   @RequirePermissions('utilisateur.reset_password')
   @HttpCode(HttpStatus.OK)
-  resetPassword(@Param('id') id: string, @Body() dto: ResetPasswordDto, @Req() req: AuthedRequest) {
+  resetPassword(
+    @Param('id') id: string,
+    @Body() dto: ResetPasswordDto,
+    @Req() req: AuthedRequest,
+  ) {
     return this.svc.resetPassword(id, dto, req.user?.id ?? null)
   }
 
@@ -142,7 +190,11 @@ export class UtilisateursController {
   /** Remplace l'ensemble des dérogations d'un utilisateur */
   @Put(':id/permissions')
   @RequirePermissions('utilisateur.manage_permissions')
-  setPermissions(@Param('id') id: string, @Body() dto: SetPermissionOverridesDto, @Req() req: AuthedRequest) {
+  setPermissions(
+    @Param('id') id: string,
+    @Body() dto: SetPermissionOverridesDto,
+    @Req() req: AuthedRequest,
+  ) {
     return this.svc.setPermissions(id, dto, req.user?.id ?? null)
   }
 }

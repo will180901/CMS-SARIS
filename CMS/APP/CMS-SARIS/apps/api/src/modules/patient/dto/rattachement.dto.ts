@@ -10,8 +10,8 @@ import { IsOptional, IsIn, IsDateString } from 'class-validator'
 const LIENS_PARENTE = ['CONJOINT', 'ENFANT', 'PARENT', 'AUTRE'] as const
 
 export class UpdateRattachementADDto {
-  @IsOptional() @IsIn(LIENS_PARENTE)        typeLien?:  string
-  @IsOptional() @IsDateString()             dateDebut?: string
-  @IsOptional() @IsDateString()             dateFin?:   string
-  @IsOptional() @IsIn(['ACTIF', 'INACTIF']) statut?:    string
+  @IsOptional() @IsIn(LIENS_PARENTE) typeLien?: string
+  @IsOptional() @IsDateString() dateDebut?: string
+  @IsOptional() @IsDateString() dateFin?: string
+  @IsOptional() @IsIn(['ACTIF', 'INACTIF']) statut?: string
 }

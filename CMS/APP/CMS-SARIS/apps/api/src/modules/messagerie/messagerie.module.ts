@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common'
-import { SecurityModule }     from '../security/security.module'
+import { SecurityModule } from '../security/security.module'
 import { NotificationModule } from '../notification/notification.module'
-import { MessagerieService }    from './messagerie.service'
+import { MessagerieService } from './messagerie.service'
 import { MessagerieController } from './messagerie.controller'
 
 /**
@@ -10,9 +10,9 @@ import { MessagerieController } from './messagerie.controller'
  * - NotificationModule : émet une notification ciblée à chaque message reçu.
  */
 @Module({
-  imports:     [SecurityModule, NotificationModule],
+  imports: [SecurityModule, NotificationModule],
   controllers: [MessagerieController],
-  providers:   [MessagerieService],
-  exports:     [MessagerieService],
+  providers: [MessagerieService],
+  exports: [MessagerieService],
 })
 export class MessagerieModule {}

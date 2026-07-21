@@ -37,8 +37,10 @@ export class RapportsService {
   /** Chaque lundi 3h : rapport de la semaine écoulée (lundi→dimanche précédents). */
   @Cron(CronExpression.EVERY_WEEK, { name: 'rapport-hebdomadaire' })
   async genererHebdomadaires() {
-    const fin = new Date(); fin.setHours(0, 0, 0, 0)
-    const debut = new Date(fin); debut.setDate(debut.getDate() - 7)
+    const fin = new Date()
+    fin.setHours(0, 0, 0, 0)
+    const debut = new Date(fin)
+    debut.setDate(debut.getDate() - 7)
     await this.genererSiPossible('HEBDOMADAIRE', debut, fin)
   }
 
@@ -47,7 +49,7 @@ export class RapportsService {
   async genererMensuels() {
     const auj = new Date()
     const debut = new Date(auj.getFullYear(), auj.getMonth() - 1, 1)
-    const fin   = new Date(auj.getFullYear(), auj.getMonth(), 1)
+    const fin = new Date(auj.getFullYear(), auj.getMonth(), 1)
     await this.genererSiPossible('MENSUEL', debut, fin)
   }
 
@@ -56,11 +58,15 @@ export class RapportsService {
   async genererAnnuels() {
     const auj = new Date()
     const debut = new Date(auj.getFullYear() - 1, 0, 1)
-    const fin   = new Date(auj.getFullYear(), 0, 1)
+    const fin = new Date(auj.getFullYear(), 0, 1)
     await this.genererSiPossible('ANNUEL', debut, fin)
   }
 
-  private async genererSiPossible(type: TypeRapport, periodeDebut: Date, periodeFin: Date) {
+  private async genererSiPossible(
+    type: TypeRapport,
+    periodeDebut: Date,
+    periodeFin: Date,
+  ) {
     try {
       await this.genererRapport(type, periodeDebut, periodeFin)
     } catch (err) {
@@ -69,15 +75,25 @@ export class RapportsService {
   }
 
   /** Génère (ou régénère) le rapport global d'une période donnée. Idempotent. */
-  async genererRapport(type: TypeRapport, periodeDebut: Date, periodeFin: Date) {
-    const contenu = await this.dashboard.getStatistiques(dayKey(periodeDebut), dayKey(new Date(periodeFin.getTime() - 1)))
+  async genererRapport(
+    type: TypeRapport,
+    periodeDebut: Date,
+    periodeFin: Date,
+  ) {
+    const contenu = await this.dashboard.getStatistiques(
+      dayKey(periodeDebut),
+      dayKey(new Date(periodeFin.getTime() - 1)),
+    )
     const existant = await this.prisma.rapportGenere.findFirst({
       where: { type, periodeDebut, periodeFin },
       select: { id: true },
     })
     const contenuJson = JSON.stringify(contenu)
     if (existant) {
-      return this.prisma.rapportGenere.update({ where: { id: existant.id }, data: { contenuJson, genereLe: new Date() } })
+      return this.prisma.rapportGenere.update({
+        where: { id: existant.id },
+        data: { contenuJson, genereLe: new Date() },
+      })
     }
     return this.prisma.rapportGenere.create({
       data: { type, periodeDebut, periodeFin, contenuJson },
@@ -88,9 +104,15 @@ export class RapportsService {
 
   async list(type?: TypeRapport) {
     return this.prisma.rapportGenere.findMany({
-      where:   { ...(type ? { type } : {}) },
+      where: { ...(type ? { type } : {}) },
       orderBy: { periodeDebut: 'desc' },
-      select:  { id: true, type: true, periodeDebut: true, periodeFin: true, genereLe: true },
+      select: {
+        id: true,
+        type: true,
+        periodeDebut: true,
+        periodeFin: true,
+        genereLe: true,
+      },
     })
   }
 

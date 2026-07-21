@@ -14,17 +14,18 @@
  */
 
 import {
-  Injectable, CanActivate, ExecutionContext, ForbiddenException,
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
 } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
-import {
-  REQUIRE_PERMISSIONS_KEY,
-} from '../../../common/decorators/require-permissions.decorator'
+import { REQUIRE_PERMISSIONS_KEY } from '../../../common/decorators/require-permissions.decorator'
 import type { PermissionCode, UserSession } from '@cms-saris/types'
 
 interface PermissionMeta {
   permissions: PermissionCode[]
-  mode:        'ANY' | 'ALL'
+  mode: 'ANY' | 'ALL'
 }
 
 @Injectable()
@@ -41,14 +42,15 @@ export class PermissionsGuard implements CanActivate {
     if (!meta || !meta.permissions || meta.permissions.length === 0) return true
 
     const request = context.switchToHttp().getRequest<{ user: UserSession }>()
-    const user    = request.user
+    const user = request.user
     if (!user) throw new ForbiddenException('Authentification requise')
 
     const userPerms = new Set(user.permissions ?? [])
 
-    const ok = meta.mode === 'ALL'
-      ? meta.permissions.every(p => userPerms.has(p))
-      : meta.permissions.some(p => userPerms.has(p))
+    const ok =
+      meta.mode === 'ALL'
+        ? meta.permissions.every((p) => userPerms.has(p))
+        : meta.permissions.some((p) => userPerms.has(p))
 
     if (!ok) {
       throw new ForbiddenException(

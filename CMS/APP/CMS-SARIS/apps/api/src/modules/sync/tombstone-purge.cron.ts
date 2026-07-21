@@ -30,13 +30,23 @@ export class TombstonePurgeCron {
   async purge(): Promise<void> {
     if (this.isSqlite) return // pas de purge sur les postes locaux (le central fait foi)
 
-    const retentionCutoff = new Date(Date.now() - this.retentionDays * 86_400_000)
+    const retentionCutoff = new Date(
+      Date.now() - this.retentionDays * 86_400_000,
+    )
     // Borne de sécurité : le plus ancien lastPulledAt parmi les postes actifs.
-    const states = (await (this.prisma as unknown as {
-      syncState: { findMany: (a: unknown) => Promise<LastPulled[]> }
-    }).syncState.findMany({ select: { lastPulledAt: true } }).catch(() => [] as LastPulled[]))
+    const states = await (
+      this.prisma as unknown as {
+        syncState: { findMany: (a: unknown) => Promise<LastPulled[]> }
+      }
+    ).syncState
+      .findMany({ select: { lastPulledAt: true } })
+      .catch(() => [] as LastPulled[])
     const minPulled = states.length
-      ? new Date(Math.min(...states.map((s) => (s.lastPulledAt ? +s.lastPulledAt : 0))))
+      ? new Date(
+          Math.min(
+            ...states.map((s) => (s.lastPulledAt ? +s.lastPulledAt : 0)),
+          ),
+        )
       : new Date(0)
     const cutoff = retentionCutoff < minPulled ? retentionCutoff : minPulled
 
@@ -53,6 +63,9 @@ export class TombstonePurgeCron {
         /* modèle sans colonne deletedAt → ignoré */
       }
     }
-    if (total) this.logger.log(`Purge tombstones : ${total} lignes supprimées définitivement (< ${cutoff.toISOString()})`)
+    if (total)
+      this.logger.log(
+        `Purge tombstones : ${total} lignes supprimées définitivement (< ${cutoff.toISOString()})`,
+      )
   }
 }

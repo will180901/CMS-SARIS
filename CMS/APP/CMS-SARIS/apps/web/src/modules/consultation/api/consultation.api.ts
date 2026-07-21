@@ -28,22 +28,34 @@ export interface AnamnesePayload {
 }
 
 export interface CloturerPayload {
-  decisionMedicale: string
-  conclusion?:      string
+  /** Optionnel : la voie normale (aucune décision) clôture directement. */
+  decisionMedicale?: string
+  conclusion?:        string
 }
 
+// dateReprise n'est plus envoyée par le client — calculée serveur (voir apps/api/src/common/repos.ts).
 export interface SetReposPayload {
   reposJours?:      number | null
   reposInclutJour?: boolean
-  dateReprise?:     string | null
 }
 
+export interface CreateOrdonnancePayload {
+  typeOrdonnance:    'PHARMACEUTIQUE' | 'PRESCRIPTION_EXAMEN'
+  /** Requis en pratique pour PRESCRIPTION_EXAMEN (vérifié serveur). */
+  indicationClinik?: string
+  etablissementId?:  string
+}
+
+/** Polymorphe : branche PHARMACEUTIQUE (medicamentId/posologie/duree/voieAdmin/quantite) OU
+ *  branche PRESCRIPTION_EXAMEN (typesExamenIds) — selon le type de l'ordonnance ciblée. */
 export interface AddLignePayload {
-  medicamentId:  string
-  posologie:     string
-  duree:         string
-  voieAdmin:     string
-  instructions?: string
+  medicamentId?:  string
+  posologie?:     string
+  duree?:         string
+  voieAdmin?:     string
+  quantite?:      string
+  typesExamenIds?: string[]
+  instructions?:  string
   justification?: string
   /** Confirmation médicale explicite pour passer outre une contre-indication bloquante. */
   acknowledgeWarnings?: boolean
@@ -122,11 +134,19 @@ export const consultationApi = {
     api.post<ConsultationDetail>(`/consultations/${id}/prise-en-charge`, {}),
 
   // Ordonnances
-  createOrdonnance: (id: string) =>
-    api.post<OrdonnanceDetail>(`/consultations/${id}/ordonnances`, {}),
+  createOrdonnance: (id: string, data: CreateOrdonnancePayload) =>
+    api.post<OrdonnanceDetail>(`/consultations/${id}/ordonnances`, data),
+
+  /** Indication clinique seule, modifiable tant que l'ordonnance est en brouillon. */
+  updateOrdonnance: (id: string, ordId: string, indicationClinik: string) =>
+    api.patch<OrdonnanceDetail>(`/consultations/${id}/ordonnances/${ordId}`, { indicationClinik }),
 
   addLigne: (id: string, ordId: string, data: AddLignePayload) =>
-    api.post<LigneOrdonnanceDetail>(`/consultations/${id}/ordonnances/${ordId}/lignes`, data),
+    api.post<LigneOrdonnanceDetail | LigneOrdonnanceDetail[]>(`/consultations/${id}/ordonnances/${ordId}/lignes`, data),
+
+  /** Génère instantanément le bon (examen ou pharmacie) associé à une ordonnance validée. */
+  genererBon: (id: string, ordId: string) =>
+    api.post<{ id: string }>(`/consultations/${id}/ordonnances/${ordId}/generer-bon`, {}),
 
   removeLigne: (id: string, ordId: string, ligneId: string) =>
     api.delete<void>(`/consultations/${id}/ordonnances/${ordId}/lignes/${ligneId}`),

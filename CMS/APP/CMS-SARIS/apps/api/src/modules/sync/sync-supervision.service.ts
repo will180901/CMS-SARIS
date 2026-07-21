@@ -11,7 +11,12 @@
  *  - getPosteDetail() : détail d'un poste (modale) — dernière session connectée (début/fin).
  *  - masquerPoste()   : retire un poste de la liste (dismiss) ; réapparaît à sa prochaine synchro.
  */
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common'
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
 import { NotificationService } from '../notification/notification.service'
 
@@ -58,7 +63,8 @@ export class SyncSupervisionService {
   /** Enregistre un cycle de synchro reçu d'un poste (no-op sur un poste local SQLite). */
   async record(input: SyncRecordInput): Promise<void> {
     if (this.isSqlite) return
-    const { posteLocalId, siteId, userId, startedAt, applied, conflicts } = input
+    const { posteLocalId, siteId, userId, startedAt, applied, conflicts } =
+      input
     const now = new Date()
 
     try {
@@ -67,9 +73,20 @@ export class SyncSupervisionService {
       //    `masque: false` — un poste qui resynchronise redevient visible même s'il avait été
       //    retiré (dismiss) de la liste de supervision entre-temps.
       await this.prisma.posteLocal.upsert({
-        where:  { id: posteLocalId },
-        update: { derniereSyncAt: now, siteId, dernierUtilisateurId: userId, masque: false },
-        create: { id: posteLocalId, siteId, libelle: this.defaultLibelle(posteLocalId), derniereSyncAt: now, dernierUtilisateurId: userId },
+        where: { id: posteLocalId },
+        update: {
+          derniereSyncAt: now,
+          siteId,
+          dernierUtilisateurId: userId,
+          masque: false,
+        },
+        create: {
+          id: posteLocalId,
+          siteId,
+          libelle: this.defaultLibelle(posteLocalId),
+          derniereSyncAt: now,
+          dernierUtilisateurId: userId,
+        },
       })
 
       // 2. Journal du cycle (réussi / avec conflits).
@@ -77,10 +94,10 @@ export class SyncSupervisionService {
         data: {
           posteLocalId,
           startedAt,
-          finishedAt:  now,
-          statut:      conflicts.length ? 'CONFLITS' : 'REUSSIE',
+          finishedAt: now,
+          statut: conflicts.length ? 'CONFLITS' : 'REUSSIE',
           nbMutations: applied,
-          nbConflits:  conflicts.length,
+          nbConflits: conflicts.length,
         },
       })
 
@@ -88,12 +105,13 @@ export class SyncSupervisionService {
       for (const c of conflicts) {
         await this.prisma.conflitSynchronisation.create({
           data: {
-            journalId:     journal.id,
-            mutationUuid:  c.id,
-            entiteType:    c.model,
-            entiteId:      c.id,
-            typeConflit:   c.winner === 'incoming' ? 'LOCAL_GAGNE' : 'SERVEUR_GAGNE',
-            valeurLocale:  (c.valeurLocale ?? {}) as object,
+            journalId: journal.id,
+            mutationUuid: c.id,
+            entiteType: c.model,
+            entiteId: c.id,
+            typeConflit:
+              c.winner === 'incoming' ? 'LOCAL_GAGNE' : 'SERVEUR_GAGNE',
+            valeurLocale: (c.valeurLocale ?? {}) as object,
             valeurServeur: (c.valeurServeur ?? {}) as object,
           },
         })
@@ -101,7 +119,7 @@ export class SyncSupervisionService {
 
       // 4. État de synchro par poste.
       await this.prisma.syncState.upsert({
-        where:  { posteLocalId_siteId: { posteLocalId, siteId } },
+        where: { posteLocalId_siteId: { posteLocalId, siteId } },
         update: { lastPushedAt: now },
         create: { posteLocalId, siteId, lastPushedAt: now },
       })
@@ -111,7 +129,9 @@ export class SyncSupervisionService {
     }
 
     // 5. Temps réel : rafraîchit l'écran de supervision des administrateurs.
-    this.notifications.broadcastLive('SYNC_ACTIVITY', { requiredPermission: 'synchronisation.read' })
+    this.notifications.broadcastLive('SYNC_ACTIVITY', {
+      requiredPermission: 'synchronisation.read',
+    })
   }
 
   /** Nom par défaut d'un poste jamais nommé (ni par lui-même, ni par un admin). */
@@ -127,36 +147,61 @@ export class SyncSupervisionService {
    * `libelle` ne sert QU'À LA CRÉATION — jamais d'écrasement d'un nom déjà connu, pour ne
    * jamais effacer un renommage fait depuis la supervision (cf. renamePoste()).
    */
-  async heartbeat(siteId: string, posteLocalId: string, libelle?: string): Promise<void> {
+  async heartbeat(
+    siteId: string,
+    posteLocalId: string,
+    libelle?: string,
+  ): Promise<void> {
     if (this.isSqlite) return
     const now = new Date()
     try {
       await this.prisma.posteLocal.upsert({
-        where:  { id: posteLocalId },
+        where: { id: posteLocalId },
         update: { derniereSyncAt: now, siteId, masque: false },
-        create: { id: posteLocalId, siteId, libelle: libelle?.trim() || this.defaultLibelle(posteLocalId), derniereSyncAt: now },
+        create: {
+          id: posteLocalId,
+          siteId,
+          libelle: libelle?.trim() || this.defaultLibelle(posteLocalId),
+          derniereSyncAt: now,
+        },
       })
     } catch (e) {
       this.logger.warn(`heartbeat() ignoré : ${(e as Error).message}`)
     }
-    this.notifications.broadcastLive('SYNC_ACTIVITY', { requiredPermission: 'synchronisation.read' })
+    this.notifications.broadcastLive('SYNC_ACTIVITY', {
+      requiredPermission: 'synchronisation.read',
+    })
   }
 
   /** Renomme un poste (supervision admin) — nom UNIQUE au sein du site. */
-  async renamePoste(siteId: string, posteId: string, libelle: string): Promise<{ libelle: string }> {
+  async renamePoste(
+    siteId: string,
+    posteId: string,
+    libelle: string,
+  ): Promise<{ libelle: string }> {
     const trimmed = libelle.trim()
     if (!trimmed) throw new BadRequestException('Le nom du poste est requis')
 
-    const poste = await this.prisma.posteLocal.findFirst({ where: { id: posteId, siteId } })
+    const poste = await this.prisma.posteLocal.findFirst({
+      where: { id: posteId, siteId },
+    })
     if (!poste) throw new NotFoundException('Poste introuvable')
 
     const doublon = await this.prisma.posteLocal.findFirst({
       where: { siteId, libelle: trimmed, id: { not: posteId } },
     })
-    if (doublon) throw new BadRequestException('Ce nom est déjà utilisé par un autre poste')
+    if (doublon)
+      throw new BadRequestException(
+        'Ce nom est déjà utilisé par un autre poste',
+      )
 
-    await this.prisma.posteLocal.update({ where: { id: posteId }, data: { libelle: trimmed } })
-    this.notifications.broadcastLive('SYNC_ACTIVITY', { requiredPermission: 'synchronisation.read' })
+    await this.prisma.posteLocal.update({
+      where: { id: posteId },
+      data: { libelle: trimmed },
+    })
+    this.notifications.broadcastLive('SYNC_ACTIVITY', {
+      requiredPermission: 'synchronisation.read',
+    })
     return { libelle: trimmed }
   }
 
@@ -166,37 +211,40 @@ export class SyncSupervisionService {
    *  sans pour autant renvoyer un historique illimité. */
   async getSupervision(siteId: string) {
     const [postes, journaux, conflits] = await Promise.all([
-      this.prisma.posteLocal.findMany({ where: { siteId, masque: false }, orderBy: { derniereSyncAt: 'desc' } }),
+      this.prisma.posteLocal.findMany({
+        where: { siteId, masque: false },
+        orderBy: { derniereSyncAt: 'desc' },
+      }),
       this.prisma.journalSynchronisation.findMany({
-        where:   { posteLocal: { siteId } },
+        where: { posteLocal: { siteId } },
         orderBy: { startedAt: 'desc' },
-        take:    200,
+        take: 200,
         include: { posteLocal: { select: { libelle: true } } },
       }),
       this.prisma.conflitSynchronisation.findMany({
-        where:   { statut: 'EN_ATTENTE', journal: { posteLocal: { siteId } } },
+        where: { statut: 'EN_ATTENTE', journal: { posteLocal: { siteId } } },
         orderBy: { createdAt: 'desc' },
-        take:    200,
+        take: 200,
       }),
     ])
 
     return {
       postes: await this.enrichPostes(postes),
       journaux: journaux.map((j) => ({
-        id:          j.id,
-        poste:       j.posteLocal.libelle,
-        startedAt:   j.startedAt,
-        finishedAt:  j.finishedAt,
-        statut:      j.statut,
+        id: j.id,
+        poste: j.posteLocal.libelle,
+        startedAt: j.startedAt,
+        finishedAt: j.finishedAt,
+        statut: j.statut,
         nbMutations: j.nbMutations,
-        nbConflits:  j.nbConflits,
+        nbConflits: j.nbConflits,
       })),
       conflits: conflits.map((c) => ({
-        id:          c.id,
-        entiteType:  c.entiteType,
-        entiteId:    c.entiteId,
+        id: c.id,
+        entiteType: c.entiteType,
+        entiteId: c.entiteId,
         typeConflit: c.typeConflit,
-        createdAt:   c.createdAt,
+        createdAt: c.createdAt,
       })),
     }
   }
@@ -207,17 +255,19 @@ export class SyncSupervisionService {
    * plus récente (un écart > ONLINE_WINDOW_MS entre deux cycles marque une déconnexion).
    */
   async getPosteDetail(siteId: string, posteId: string) {
-    const poste = await this.prisma.posteLocal.findFirst({ where: { id: posteId, siteId } })
+    const poste = await this.prisma.posteLocal.findFirst({
+      where: { id: posteId, siteId },
+    })
     if (!poste) throw new NotFoundException('Poste introuvable')
 
     const journaux = await this.prisma.journalSynchronisation.findMany({
-      where:   { posteLocalId: posteId },
+      where: { posteLocalId: posteId },
       orderBy: { startedAt: 'desc' },
-      take:    200,
+      take: 200,
     })
 
     let sessionDebut: Date | null = null
-    let sessionFin:   Date | null = null
+    let sessionFin: Date | null = null
     if (journaux.length) {
       sessionFin = journaux[0].finishedAt ?? journaux[0].startedAt
       sessionDebut = journaux[0].startedAt
@@ -238,7 +288,7 @@ export class SyncSupervisionService {
   async masquerPoste(siteId: string, posteId: string): Promise<void> {
     const { count } = await this.prisma.posteLocal.updateMany({
       where: { id: posteId, siteId },
-      data:  { masque: true },
+      data: { masque: true },
     })
     if (!count) throw new NotFoundException('Poste introuvable')
   }
@@ -246,16 +296,27 @@ export class SyncSupervisionService {
   /** Enrichit des postes avec le nom + rôle du DERNIER utilisateur connecté (nom lisible au lieu
    *  de l'identifiant machine). `dernierUtilisateurId` n'est PAS une relation Prisma (cf.
    *  createdBy/updatedBy ailleurs au schéma) → jointure manuelle, une seule requête groupée. */
-  private async enrichPostes<T extends { id: string; libelle: string; dernierUtilisateurId: string | null; derniereSyncAt: Date | null }>(
-    postes: T[],
-  ) {
+  private async enrichPostes<
+    T extends {
+      id: string
+      libelle: string
+      dernierUtilisateurId: string | null
+      derniereSyncAt: Date | null
+    },
+  >(postes: T[]) {
     const now = Date.now()
-    const utilisateurIds = [...new Set(postes.map((p) => p.dernierUtilisateurId).filter((id): id is string => !!id))]
+    const utilisateurIds = [
+      ...new Set(
+        postes
+          .map((p) => p.dernierUtilisateurId)
+          .filter((id): id is string => !!id),
+      ),
+    ]
     const utilisateurs = utilisateurIds.length
       ? await this.prisma.utilisateur.findMany({
-          where:  { id: { in: utilisateurIds } },
+          where: { id: { in: utilisateurIds } },
           select: {
-            id:    true,
+            id: true,
             login: true,
             personnelMedical: { select: { nom: true, prenom: true } },
             roles: { select: { role: { select: { code: true } } } },
@@ -265,19 +326,25 @@ export class SyncSupervisionService {
     const utilisateurById = new Map(utilisateurs.map((u) => [u.id, u]))
 
     return postes.map((p) => {
-      const u = p.dernierUtilisateurId ? utilisateurById.get(p.dernierUtilisateurId) : undefined
+      const u = p.dernierUtilisateurId
+        ? utilisateurById.get(p.dernierUtilisateurId)
+        : undefined
       const utilisateurNom = u
-        ? (u.personnelMedical ? `${u.personnelMedical.prenom} ${u.personnelMedical.nom}` : u.login)
+        ? u.personnelMedical
+          ? `${u.personnelMedical.prenom} ${u.personnelMedical.nom}`
+          : u.login
         : null
       const codes = u?.roles.map((r) => r.role.code) ?? []
-      const utilisateurRole = ROLE_PRIORITY.find((r) => codes.includes(r)) ?? codes[0] ?? null
+      const utilisateurRole =
+        ROLE_PRIORITY.find((r) => codes.includes(r)) ?? codes[0] ?? null
       return {
-        id:              p.id,
-        libelle:         p.libelle,
+        id: p.id,
+        libelle: p.libelle,
         utilisateurNom,
         utilisateurRole,
-        derniereSyncAt:  p.derniereSyncAt,
-        enLigne:         !!p.derniereSyncAt && now - +p.derniereSyncAt < ONLINE_WINDOW_MS,
+        derniereSyncAt: p.derniereSyncAt,
+        enLigne:
+          !!p.derniereSyncAt && now - +p.derniereSyncAt < ONLINE_WINDOW_MS,
       }
     })
   }

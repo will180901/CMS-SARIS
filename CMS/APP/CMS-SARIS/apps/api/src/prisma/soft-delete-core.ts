@@ -13,12 +13,18 @@
 export type SoftDeleteAllow = ReadonlySet<string>
 
 /** Le modèle participe-t-il au soft-delete ? */
-export function isSoftDeletable(model: string | undefined, allow: SoftDeleteAllow): boolean {
+export function isSoftDeletable(
+  model: string | undefined,
+  allow: SoftDeleteAllow,
+): boolean {
   return !!model && allow.has(model)
 }
 
 /** Transforme les args d'un `delete`/`deleteMany` en `update`/`updateMany { deletedAt }`. */
-export function toSoftDeleteUpdate<T extends object>(args: T, now: Date): T & { data: { deletedAt: Date } } {
+export function toSoftDeleteUpdate<T extends object>(
+  args: T,
+  now: Date,
+): T & { data: { deletedAt: Date } } {
   return { ...args, data: { deletedAt: now } }
 }
 
@@ -27,9 +33,11 @@ export function toSoftDeleteUpdate<T extends object>(args: T, now: Date): T & { 
  * Respecte un filtre `deletedAt` déjà présent (la synchro le pose pour récupérer les
  * tombstones).
  */
-export function addNotDeletedFilter<T extends { where?: Record<string, unknown> }>(args: T | undefined): T {
+export function addNotDeletedFilter<
+  T extends { where?: Record<string, unknown> },
+>(args: T | undefined): T {
   const base = (args ?? {}) as T
-  const where = (base.where ?? {}) as Record<string, unknown>
+  const where = base.where ?? {}
   if ('deletedAt' in where) return base
   return { ...base, where: { ...where, deletedAt: null } }
 }

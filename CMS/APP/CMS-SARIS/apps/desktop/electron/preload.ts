@@ -48,6 +48,13 @@ contextBridge.exposeInMainWorld('saris', {
     ipcRenderer.invoke('saris:sync-authenticate', params),
   syncListSites: (): Promise<{ ok: boolean; sites?: { id: string; code: string; libelle: string; localisation?: string | null }[]; error?: string }> =>
     ipcRenderer.invoke('saris:sync-list-sites'),
+  /** Crée un nouveau site (réservé Admin Système / Médecin Chef côté serveur) — le site
+   *  créé est ensuite sélectionné comme n'importe quel site trouvé par recherche. */
+  syncCreateSite: (params: { code: string; libelle: string; localisation?: string }): Promise<{
+    ok: boolean
+    site?: { id: string; code: string; libelle: string; localisation?: string | null }
+    error?: string
+  }> => ipcRenderer.invoke('saris:sync-create-site', params),
   syncFinalize: (params: { siteId: string; posteLibelle?: string }): Promise<{ ok: boolean; error?: string }> =>
     ipcRenderer.invoke('saris:sync-finalize', params),
   /** Abandonne l'authentification en attente (retour à l'étape 1 depuis l'étape 2). */

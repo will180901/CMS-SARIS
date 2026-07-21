@@ -4,7 +4,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from '@workspace/ui/components/sonner'
 import { bonPharmacieApi } from '../api/bon-pharmacie.api'
-import type { CreateBonPharmaciePayload, BonPharmacieQueryParams } from '../api/bon-pharmacie.api'
+import type { BonPharmacieQueryParams } from '../api/bon-pharmacie.api'
 import { ApiError, isOfflineQueued } from '@/lib/api'
 import i18n from '@/i18n/config'
 
@@ -20,19 +20,6 @@ export function useBonsPharmacie(params?: BonPharmacieQueryParams) {
     queryKey: [...BONS_PHARMACIE_KEY, params],
     queryFn:  () => bonPharmacieApi.list(params),
     staleTime: 15_000,
-  })
-}
-
-export function useCreateBonPharmacie() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (data: CreateBonPharmaciePayload) => bonPharmacieApi.create(data),
-    onSuccess: (_, vars) => {
-      qc.invalidateQueries({ queryKey: BONS_PHARMACIE_KEY })
-      qc.invalidateQueries({ queryKey: ['consultations', vars.consultationId] })
-      toast.success(i18n.t('bonPharmacie.toastCreated', { defaultValue: 'Bon de pharmacie créé' }))
-    },
-    onError: toastErr,
   })
 }
 

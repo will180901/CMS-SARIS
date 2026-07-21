@@ -3,13 +3,19 @@ import { PassportStrategy } from '@nestjs/passport'
 import { ExtractJwt, Strategy } from 'passport-jwt'
 import { ConfigService } from '@nestjs/config'
 import { PrismaService } from '../../../prisma/prisma.service'
+import { PermissionsResolverService } from '../permissions-resolver.service'
 import type { JwtPayload, UserSession } from '@cms-saris/types'
 
 /**
  * JwtStrategy — valide le Bearer token sur chaque requête protégée.
  *
- * Peuple request.user avec les données du token, ET vérifie que la SESSION
- * associée (sid) est toujours active en base → révocation IMMÉDIATE.
+ * Peuple request.user, ET vérifie que la SESSION associée (sid) est toujours
+ * active en base → révocation IMMÉDIATE.
+ *
+ * ⚠️ Les PERMISSIONS ne viennent PLUS du payload du jeton : elles sont relues en
+ * base à chaque requête (cache court côté résolveur). Sans cela, retirer un droit
+ * n'avait aucun effet avant l'expiration du jeton — jusqu'à 8 h. Le jeton ne sert
+ * plus que d'identité (qui suis-je) ; l'autorisation (que puis-je) vient de la base.
  *
  * Utilisé par JwtAuthGuard via @UseGuards(JwtAuthGuard).
  */
@@ -18,6 +24,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     configService: ConfigService,
     private readonly prisma: PrismaService,
+    private readonly permissions: PermissionsResolverService,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -26,7 +33,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     })
   }
 
-  async validate(payload: JwtPayload): Promise<Omit<UserSession, 'token'> & { sid: string | null }> {
+  async validate(
+    payload: JwtPayload,
+  ): Promise<Omit<UserSession, 'token'> & { sid: string | null }> {
     if (!payload.sub || !payload.siteId || !payload.roles) {
       throw new UnauthorizedException('Token invalide')
     }
@@ -47,7 +56,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     const isEmbedded = process.env['DATABASE_PROVIDER'] === 'sqlite'
     if (payload.sid && !isEmbedded) {
       const session = await this.prisma.sessionUtilisateur.findUnique({
-        where:  { id: payload.sid },
+        where: { id: payload.sid },
         select: { revokedAt: true, expiresAt: true },
       })
       if (!session || session.revokedAt || session.expiresAt <= new Date()) {
@@ -55,18 +64,26 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       }
     }
 
+    // Autorisation relue EN BASE (cache court) : un droit retiré est refusé dès le
+    // prochain appel, sans attendre l'expiration du jeton ni une reconnexion.
+    // Le payload ne sert plus que de repli hors-ligne (poste non encore synchronisé).
+    const permissions = await this.permissions.resoudre(
+      payload.sub,
+      payload.permissions ?? [],
+    )
+
     return {
-      id:                 payload.sub,
-      login:              payload.sub, // Le login complet sera chargé depuis la DB si nécessaire
-      siteId:             payload.siteId,
-      roles:              payload.roles,
-      permissions:        payload.permissions ?? [],
+      id: payload.sub,
+      login: payload.sub, // Le login complet sera chargé depuis la DB si nécessaire
+      siteId: payload.siteId,
+      roles: payload.roles,
+      permissions,
       personnelMedicalId: payload.personnelMedicalId ?? null,
       // Contexte d'AUTORISATION par requête (pas un payload de profil) : le JWT ne porte pas
       // la photo (évite de la faire voyager sur chaque requête / la rendre périmée). La vraie
       // valeur vient de login/refresh/auth-me — cf. security.service.ts.
-      photoUrl:           null,
-      sid:                payload.sid ?? null,   // session courante (gestion des sessions)
+      photoUrl: null,
+      sid: payload.sid ?? null, // session courante (gestion des sessions)
     }
   }
 }

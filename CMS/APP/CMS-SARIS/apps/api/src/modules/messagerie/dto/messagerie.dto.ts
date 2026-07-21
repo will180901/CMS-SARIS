@@ -1,9 +1,18 @@
 import {
-  IsString, IsNotEmpty, IsUUID, MaxLength, IsOptional, IsArray, ArrayMinSize, ArrayMaxSize, IsBoolean,
+  IsString,
+  IsNotEmpty,
+  IsUUID,
+  MaxLength,
+  IsOptional,
+  IsArray,
+  ArrayMinSize,
+  ArrayMaxSize,
+  IsBoolean,
 } from 'class-validator'
 import { Transform } from 'class-transformer'
 
-const trim = ({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value)
+const trim = ({ value }: { value: unknown }) =>
+  typeof value === 'string' ? value.trim() : value
 
 export class StartConversationDto {
   @IsUUID()

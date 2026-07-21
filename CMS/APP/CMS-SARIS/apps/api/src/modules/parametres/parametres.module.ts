@@ -8,8 +8,8 @@ import { ParametresService } from './parametres.service'
  * ce qui permet à SecurityModule de l'importer sans cycle.
  */
 @Module({
-  imports:   [PrismaModule],
+  imports: [PrismaModule],
   providers: [ParametresService],
-  exports:   [ParametresService],
+  exports: [ParametresService],
 })
 export class ParametresModule {}

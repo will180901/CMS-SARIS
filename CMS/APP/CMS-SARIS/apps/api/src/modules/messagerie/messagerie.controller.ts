@@ -6,26 +6,50 @@
  * pour les participants autorisés.
  */
 import {
-  Controller, Get, Post, Patch, Delete,
-  Body, Param, Query, Req,
-  UseGuards, UseInterceptors, UploadedFiles, UploadedFile,
-  HttpCode, HttpStatus, UnauthorizedException, BadRequestException,
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  Req,
+  UseGuards,
+  UseInterceptors,
+  UploadedFiles,
+  UploadedFile,
+  HttpCode,
+  HttpStatus,
+  UnauthorizedException,
+  BadRequestException,
 } from '@nestjs/common'
 import { FilesInterceptor, FileInterceptor } from '@nestjs/platform-express'
 import { Throttle } from '@nestjs/throttler'
 import { memoryStorage } from 'multer'
 import { MessagerieService, type UploadedPiece } from './messagerie.service'
-import { JwtAuthGuard }       from '../security/guards/jwt-auth.guard'
-import { PermissionsGuard }   from '../security/guards/permissions.guard'
+import { JwtAuthGuard } from '../security/guards/jwt-auth.guard'
+import { PermissionsGuard } from '../security/guards/permissions.guard'
 import { UserThrottlerGuard } from '../security/guards/user-throttler.guard'
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator'
 import {
-  StartConversationDto, CreateGroupDto, SendMessageDto, UpdateMessageDto, ReactDto,
-  AddParticipantsDto, SetAdminDto, UpdateGroupDto, MuteDto, ForwardMessageDto, LeaveConversationDto,
+  StartConversationDto,
+  CreateGroupDto,
+  SendMessageDto,
+  UpdateMessageDto,
+  ReactDto,
+  AddParticipantsDto,
+  SetAdminDto,
+  UpdateGroupDto,
+  MuteDto,
+  ForwardMessageDto,
+  LeaveConversationDto,
 } from './dto/messagerie.dto'
 import { BatchIdsDto } from '../../common/dto/batch-ids.dto'
 
-interface AuthedRequest { user?: { id?: string; siteId?: string } }
+interface AuthedRequest {
+  user?: { id?: string; siteId?: string }
+}
 
 function requireUser(req: AuthedRequest): { userId: string; siteId: string } {
   const userId = req.user?.id
@@ -38,13 +62,24 @@ function requireUser(req: AuthedRequest): { userId: string; siteId: string } {
 // (aucun fichier sur disque, tout voyage avec le dump SQL). 10 fichiers, 16 Mo chacun.
 // Types autorisés : images, vidéos, audio, PDF/Office/texte. Les règles fines
 // (durée vidéo ≤ 2 min, compression image…) sont appliquées côté client.
-const ALLOWED_MIME = /^(image\/(jpeg|png|webp|gif)|video\/[a-z0-9.+-]+|audio\/[a-z0-9.+-]+|application\/pdf|text\/(plain|csv)|application\/(msword|vnd\.openxmlformats-officedocument\.[a-z.]+|vnd\.ms-excel))$/
+const ALLOWED_MIME =
+  /^(image\/(jpeg|png|webp|gif)|video\/[a-z0-9.+-]+|audio\/[a-z0-9.+-]+|application\/pdf|text\/(plain|csv)|application\/(msword|vnd\.openxmlformats-officedocument\.[a-z.]+|vnd\.ms-excel))$/
 const ATTACHMENT_OPTS = {
   storage: memoryStorage(),
-  limits:  { fileSize: 16 * 1024 * 1024, files: 10 },
-  fileFilter: (_req: unknown, file: Express.Multer.File, cb: (e: Error | null, ok: boolean) => void) => {
+  limits: { fileSize: 16 * 1024 * 1024, files: 10 },
+  fileFilter: (
+    _req: unknown,
+    file: Express.Multer.File,
+    cb: (e: Error | null, ok: boolean) => void,
+  ) => {
     if (ALLOWED_MIME.test(file.mimetype)) cb(null, true)
-    else cb(new BadRequestException(`Type de fichier non autorisé : ${file.mimetype}`), false)
+    else
+      cb(
+        new BadRequestException(
+          `Type de fichier non autorisé : ${file.mimetype}`,
+        ),
+        false,
+      )
   },
 }
 
@@ -52,10 +87,20 @@ const ATTACHMENT_OPTS = {
 // stockage en mémoire, recadrée en carré côté service, jamais de fichier sur disque.
 const GROUP_PHOTO_OPTS = {
   storage: memoryStorage(),
-  limits:  { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (_req: unknown, file: Express.Multer.File, cb: (e: Error | null, ok: boolean) => void) => {
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (
+    _req: unknown,
+    file: Express.Multer.File,
+    cb: (e: Error | null, ok: boolean) => void,
+  ) => {
     if (/^image\/(jpeg|png|webp|gif)$/.test(file.mimetype)) cb(null, true)
-    else cb(new BadRequestException('Format invalide — image JPEG, PNG, WEBP ou GIF attendue'), false)
+    else
+      cb(
+        new BadRequestException(
+          'Format invalide — image JPEG, PNG, WEBP ou GIF attendue',
+        ),
+        false,
+      )
   },
 }
 
@@ -66,8 +111,12 @@ const GROUP_PHOTO_OPTS = {
  */
 function sanitizeFilename(name: string): string {
   const base = (name ?? '').split(/[\\/]/).pop() ?? ''
-  // eslint-disable-next-line no-control-regex
-  const clean = base.replace(/[\x00-\x1f<>:"/\\|?*]/g, '').replace(/\s+/g, ' ').trim().slice(0, 200)
+
+  const clean = base
+    .replace(/[\x00-\x1f<>:"/\\|?*]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 200)
   return clean || 'fichier'
 }
 
@@ -82,12 +131,14 @@ function assertSafeBinary(buf: Buffer | undefined, nom: string): void {
   const b = buf
   const sig = (a: number[]) => a.every((v, i) => b[i] === v)
   const dangerous =
-    sig([0x4d, 0x5a]) ||                         // MZ — exécutable Windows (PE/DOS)
-    sig([0x7f, 0x45, 0x4c, 0x46]) ||             // ELF — exécutable Linux
-    sig([0xfe, 0xed, 0xfa, 0xce]) || sig([0xfe, 0xed, 0xfa, 0xcf]) || // Mach-O (macOS)
-    sig([0xcf, 0xfa, 0xed, 0xfe]) ||             // Mach-O little-endian
-    sig([0x23, 0x21])                            // #! — script shell
-  if (dangerous) throw new BadRequestException(`Fichier exécutable non autorisé : ${nom}`)
+    sig([0x4d, 0x5a]) || // MZ — exécutable Windows (PE/DOS)
+    sig([0x7f, 0x45, 0x4c, 0x46]) || // ELF — exécutable Linux
+    sig([0xfe, 0xed, 0xfa, 0xce]) ||
+    sig([0xfe, 0xed, 0xfa, 0xcf]) || // Mach-O (macOS)
+    sig([0xcf, 0xfa, 0xed, 0xfe]) || // Mach-O little-endian
+    sig([0x23, 0x21]) // #! — script shell
+  if (dangerous)
+    throw new BadRequestException(`Fichier exécutable non autorisé : ${nom}`)
 }
 
 @Controller('messagerie')
@@ -146,8 +197,16 @@ export class MessagerieController {
   @Post('conversations/:id/quitter')
   @RequirePermissions('messagerie.read')
   @HttpCode(HttpStatus.OK)
-  leave(@Param('id') id: string, @Body() dto: LeaveConversationDto, @Req() req: AuthedRequest) {
-    return this.svc.leaveConversation(id, requireUser(req).userId, dto.newPrincipalId)
+  leave(
+    @Param('id') id: string,
+    @Body() dto: LeaveConversationDto,
+    @Req() req: AuthedRequest,
+  ) {
+    return this.svc.leaveConversation(
+      id,
+      requireUser(req).userId,
+      dto.newPrincipalId,
+    )
   }
 
   // ── Gestion de groupe ───────────────────────────────────────────────────────
@@ -163,29 +222,50 @@ export class MessagerieController {
   @Post('conversations/:id/participants')
   @RequirePermissions('messagerie.create')
   @HttpCode(HttpStatus.OK)
-  addParticipants(@Param('id') id: string, @Body() dto: AddParticipantsDto, @Req() req: AuthedRequest) {
-    return this.svc.addParticipants(id, requireUser(req).userId, dto.participantIds)
+  addParticipants(
+    @Param('id') id: string,
+    @Body() dto: AddParticipantsDto,
+    @Req() req: AuthedRequest,
+  ) {
+    return this.svc.addParticipants(
+      id,
+      requireUser(req).userId,
+      dto.participantIds,
+    )
   }
 
   /** Retire un membre d'un groupe (admins du groupe uniquement). */
   @Delete('conversations/:id/participants/:userId')
   @RequirePermissions('messagerie.delete')
   @HttpCode(HttpStatus.OK)
-  removeParticipant(@Param('id') id: string, @Param('userId') userId: string, @Req() req: AuthedRequest) {
+  removeParticipant(
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+    @Req() req: AuthedRequest,
+  ) {
     return this.svc.removeParticipant(id, requireUser(req).userId, userId)
   }
 
   /** Promeut/rétrograde un admin de groupe (admins du groupe uniquement). */
   @Patch('conversations/:id/participants/:userId/admin')
   @RequirePermissions('messagerie.update')
-  setAdmin(@Param('id') id: string, @Param('userId') userId: string, @Body() dto: SetAdminDto, @Req() req: AuthedRequest) {
+  setAdmin(
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+    @Body() dto: SetAdminDto,
+    @Req() req: AuthedRequest,
+  ) {
     return this.svc.setAdmin(id, requireUser(req).userId, userId, dto.estAdmin)
   }
 
   /** Renomme le groupe / modifie sa description (admins du groupe uniquement). */
   @Patch('conversations/:id')
   @RequirePermissions('messagerie.update')
-  updateGroup(@Param('id') id: string, @Body() dto: UpdateGroupDto, @Req() req: AuthedRequest) {
+  updateGroup(
+    @Param('id') id: string,
+    @Body() dto: UpdateGroupDto,
+    @Req() req: AuthedRequest,
+  ) {
     return this.svc.updateGroupInfo(id, requireUser(req).userId, dto)
   }
 
@@ -193,7 +273,11 @@ export class MessagerieController {
   @Post('conversations/:id/photo')
   @RequirePermissions('messagerie.update')
   @UseInterceptors(FileInterceptor('file', GROUP_PHOTO_OPTS))
-  uploadGroupPhoto(@Param('id') id: string, @UploadedFile() file: Express.Multer.File | undefined, @Req() req: AuthedRequest) {
+  uploadGroupPhoto(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @Req() req: AuthedRequest,
+  ) {
     if (!file) throw new BadRequestException('Aucun fichier reçu')
     return this.svc.setGroupPhoto(id, requireUser(req).userId, file.buffer)
   }
@@ -208,7 +292,11 @@ export class MessagerieController {
   /** Coupe/rétablit MES notifications pour cette conversation (pas d'effet pour les autres). */
   @Patch('conversations/:id/mute')
   @RequirePermissions('messagerie.read')
-  mute(@Param('id') id: string, @Body() dto: MuteDto, @Req() req: AuthedRequest) {
+  mute(
+    @Param('id') id: string,
+    @Body() dto: MuteDto,
+    @Req() req: AuthedRequest,
+  ) {
     return this.svc.setMuted(id, requireUser(req).userId, dto.muted)
   }
 
@@ -221,14 +309,26 @@ export class MessagerieController {
   @RequirePermissions('messagerie.create')
   @Throttle({ default: { limit: 240, ttl: 60_000 } })
   @HttpCode(HttpStatus.NO_CONTENT)
-  typing(@Param('id') id: string, @Query('kind') kind: string | undefined, @Req() req: AuthedRequest) {
-    return this.svc.notifyTyping(id, requireUser(req).userId, kind === 'audio' ? 'audio' : 'text')
+  typing(
+    @Param('id') id: string,
+    @Query('kind') kind: string | undefined,
+    @Req() req: AuthedRequest,
+  ) {
+    return this.svc.notifyTyping(
+      id,
+      requireUser(req).userId,
+      kind === 'audio' ? 'audio' : 'text',
+    )
   }
 
   /** Messages d'une conversation (déchiffrés, paginés) + marque comme lue. */
   @Get('conversations/:id/messages')
   @RequirePermissions('messagerie.read')
-  messages(@Param('id') id: string, @Query('before') before: string | undefined, @Req() req: AuthedRequest) {
+  messages(
+    @Param('id') id: string,
+    @Query('before') before: string | undefined,
+    @Req() req: AuthedRequest,
+  ) {
     return this.svc.listMessages(id, requireUser(req).userId, before)
   }
 
@@ -244,12 +344,23 @@ export class MessagerieController {
     @UploadedFiles() files: Express.Multer.File[] | undefined,
     @Req() req: AuthedRequest,
   ) {
-    const pieces: UploadedPiece[] = (files ?? []).map(f => {
+    const pieces: UploadedPiece[] = (files ?? []).map((f) => {
       const nomFichier = sanitizeFilename(f.originalname)
       assertSafeBinary(f.buffer, nomFichier)
-      return { nomFichier, mimeType: f.mimetype, taille: f.size, buffer: f.buffer }
+      return {
+        nomFichier,
+        mimeType: f.mimetype,
+        taille: f.size,
+        buffer: f.buffer,
+      }
     })
-    return this.svc.sendMessage(id, requireUser(req).userId, dto.contenu ?? '', pieces, dto.replyToId)
+    return this.svc.sendMessage(
+      id,
+      requireUser(req).userId,
+      dto.contenu ?? '',
+      pieces,
+      dto.replyToId,
+    )
   }
 
   /** Télécharge une pièce jointe (déchiffrée) — participant autorisé uniquement. */
@@ -270,7 +381,11 @@ export class MessagerieController {
   @Post('messages/:id/reactions')
   @RequirePermissions('messagerie.create')
   @HttpCode(HttpStatus.OK)
-  react(@Param('id') id: string, @Body() dto: ReactDto, @Req() req: AuthedRequest) {
+  react(
+    @Param('id') id: string,
+    @Body() dto: ReactDto,
+    @Req() req: AuthedRequest,
+  ) {
     return this.svc.toggleReaction(id, requireUser(req).userId, dto.emoji)
   }
 
@@ -300,14 +415,26 @@ export class MessagerieController {
   @Post('messages/:id/transferer')
   @RequirePermissions('messagerie.create')
   @HttpCode(HttpStatus.OK)
-  forward(@Param('id') id: string, @Body() dto: ForwardMessageDto, @Req() req: AuthedRequest) {
-    return this.svc.forwardMessage(id, requireUser(req).userId, dto.conversationIds)
+  forward(
+    @Param('id') id: string,
+    @Body() dto: ForwardMessageDto,
+    @Req() req: AuthedRequest,
+  ) {
+    return this.svc.forwardMessage(
+      id,
+      requireUser(req).userId,
+      dto.conversationIds,
+    )
   }
 
   /** Modification d'un message (le sien uniquement). */
   @Patch('messages/:id')
   @RequirePermissions('messagerie.update')
-  update(@Param('id') id: string, @Body() dto: UpdateMessageDto, @Req() req: AuthedRequest) {
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateMessageDto,
+    @Req() req: AuthedRequest,
+  ) {
     return this.svc.updateMessage(id, requireUser(req).userId, dto.contenu)
   }
 

@@ -43,11 +43,15 @@ export function buildSoftDeleteExtension(allow: SoftDeleteAllow) {
       // PrismaPromise. Un override `async` casse silencieusement les suppressions en
       // transaction-batch (ex. patient.deletePatient).
       delete(this: unknown, args: AnyArgs) {
-        const ctx = Prisma.getExtensionContext(this) as unknown as { update: (a: unknown) => unknown }
+        const ctx = Prisma.getExtensionContext(this) as unknown as {
+          update: (a: unknown) => unknown
+        }
         return ctx.update(toSoftDeleteUpdate(args ?? {}, new Date()))
       },
       deleteMany(this: unknown, args: AnyArgs | undefined) {
-        const ctx = Prisma.getExtensionContext(this) as unknown as { updateMany: (a: unknown) => unknown }
+        const ctx = Prisma.getExtensionContext(this) as unknown as {
+          updateMany: (a: unknown) => unknown
+        }
         return ctx.updateMany(toSoftDeleteUpdate(args ?? {}, new Date()))
       },
     }
@@ -59,30 +63,42 @@ export function buildSoftDeleteExtension(allow: SoftDeleteAllow) {
     // non typable statiquement. Cast en `{}` (et non `never`) pour NE PAS dégrader les
     // types des délégués du client étendu ; les surcharges réelles s'appliquent au runtime.
     // Les appelants voient de toute façon les types PrismaClient de base (PrismaService).
-    model: model as Record<string, unknown> as {},
+    model: model as {},
     query: {
       // ── Lectures : exclure les tombstones par défaut ──────────────────────────
       $allModels: {
         async findMany({ model: m, args, query }) {
-          return query(isSoftDeletable(m, allow) ? addNotDeletedFilter(args) : args)
+          return query(
+            isSoftDeletable(m, allow) ? addNotDeletedFilter(args) : args,
+          )
         },
         async findFirst({ model: m, args, query }) {
-          return query(isSoftDeletable(m, allow) ? addNotDeletedFilter(args) : args)
+          return query(
+            isSoftDeletable(m, allow) ? addNotDeletedFilter(args) : args,
+          )
         },
         async findFirstOrThrow({ model: m, args, query }) {
-          return query(isSoftDeletable(m, allow) ? addNotDeletedFilter(args) : args)
+          return query(
+            isSoftDeletable(m, allow) ? addNotDeletedFilter(args) : args,
+          )
         },
         async count({ model: m, args, query }) {
-          return query(isSoftDeletable(m, allow) ? addNotDeletedFilter(args) : args)
+          return query(
+            isSoftDeletable(m, allow) ? addNotDeletedFilter(args) : args,
+          )
         },
         // aggregate / groupBy : Prisma ne les intercepte pas via les autres surcharges ;
         // sans ça les stats (dashboards) compteraient les tombstones. On injecte
         // `deletedAt: null` dans le `where` (les deux acceptent un `where`).
         async aggregate({ model: m, args, query }) {
-          return query(isSoftDeletable(m, allow) ? addNotDeletedFilter(args) : args)
+          return query(
+            isSoftDeletable(m, allow) ? addNotDeletedFilter(args) : args,
+          )
         },
         async groupBy({ model: m, args, query }) {
-          return query(isSoftDeletable(m, allow) ? addNotDeletedFilter(args) : args)
+          return query(
+            isSoftDeletable(m, allow) ? addNotDeletedFilter(args) : args,
+          )
         },
         // findUnique : le `where` n'accepte QUE des champs uniques → impossible d'y
         // injecter `deletedAt: null`. On POST-filtre le résultat : un enregistrement
@@ -90,16 +106,28 @@ export function buildSoftDeleteExtension(allow: SoftDeleteAllow) {
         // (findUnique + check null → NotFoundException) renvoient bien 404.
         async findUnique({ model: m, args, query }) {
           const res = await query(args)
-          if (isSoftDeletable(m, allow) && res && (res as { deletedAt?: unknown }).deletedAt) return null
+          if (
+            isSoftDeletable(m, allow) &&
+            res &&
+            (res as { deletedAt?: unknown }).deletedAt
+          )
+            return null
           return res
         },
         async findUniqueOrThrow({ model: m, args, query }) {
           const res = await query(args)
-          if (isSoftDeletable(m, allow) && res && (res as { deletedAt?: unknown }).deletedAt) {
-            throw new Prisma.PrismaClientKnownRequestError('No record was found for a query (soft-deleted).', {
-              code: 'P2025',
-              clientVersion: Prisma.prismaVersion.client,
-            })
+          if (
+            isSoftDeletable(m, allow) &&
+            res &&
+            (res as { deletedAt?: unknown }).deletedAt
+          ) {
+            throw new Prisma.PrismaClientKnownRequestError(
+              'No record was found for a query (soft-deleted).',
+              {
+                code: 'P2025',
+                clientVersion: Prisma.prismaVersion.client,
+              },
+            )
           }
           return res
         },
@@ -114,16 +142,51 @@ export function buildSoftDeleteExtension(allow: SoftDeleteAllow) {
  * est présent (décision blueprint §1.2).
  */
 export const SOFT_DELETE_MODELS: ReadonlySet<string> = new Set<string>([
-  'Utilisateur', 'Patient', 'Visite', 'Conversation', 'Site', 'CategoriePatient',
-  'MotifConsultation', 'PathologieReference', 'MedicamentReference', 'TypeExamen',
-  'TypeConsultation', 'TypeCertificat',
-  'EtablissementReference', 'SocieteSousTraitante', 'EmployeSaris', 'PersonnelMedical', 'IdentitePatient',
-  'DonneesEmploi', 'ModeViePatient',
-  'ContactUrgence', 'AllergiePatient', 'AntecedentPatient', 'AlerteMedicale',
-  'PreSaisieMedicale', 'SuiviGrossesse', 'ConsultationPrenatale', 'ConstanteVitale',
-  'Consultation', 'Ordonnance', 'LigneOrdonnance', 'BonExamen', 'ResultatExamen',
-  'BonPharmacie', 'LigneBonPharmacie',
-  'SuiviChronique', 'CertificatMedical', 'Evacuation', 'SuiviTraitement', 'MessageReaction', 'MessagePieceJointe',
-  'PlanningPermutation', 'PresenceJournaliere', 'AbsencePersonnel', 'DelegationPrescription',
-  'RattachementAyantDroitCdi', 'RattachementSousTraitant', 'Message',
+  'Utilisateur',
+  'Patient',
+  'Visite',
+  'Conversation',
+  'Site',
+  'CategoriePatient',
+  'MotifConsultation',
+  'PathologieReference',
+  'MedicamentReference',
+  'TypeExamen',
+  'TypeConsultation',
+  'TypeCertificat',
+  'EtablissementReference',
+  'SocieteSousTraitante',
+  'EmployeSaris',
+  'PersonnelMedical',
+  'IdentitePatient',
+  'DonneesEmploi',
+  'ModeViePatient',
+  'ContactUrgence',
+  'AllergiePatient',
+  'AntecedentPatient',
+  'AlerteMedicale',
+  'PreSaisieMedicale',
+  'SuiviGrossesse',
+  'ConsultationPrenatale',
+  'ConstanteVitale',
+  'Consultation',
+  'Ordonnance',
+  'LigneOrdonnance',
+  'BonExamen',
+  'ResultatExamen',
+  'BonPharmacie',
+  'LigneBonPharmacie',
+  'SuiviChronique',
+  'CertificatMedical',
+  'Evacuation',
+  'SuiviTraitement',
+  'MessageReaction',
+  'MessagePieceJointe',
+  'PlanningPermutation',
+  'PresenceJournaliere',
+  'AbsencePersonnel',
+  'DelegationPrescription',
+  'RattachementAyantDroitCdi',
+  'RattachementSousTraitant',
+  'Message',
 ])

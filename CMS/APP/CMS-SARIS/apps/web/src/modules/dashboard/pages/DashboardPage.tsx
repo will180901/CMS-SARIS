@@ -24,7 +24,7 @@ import {
   AreaTrend, MiniBars, DonutChart, RankedBars, SparkLine, CHART_PALETTE,
   type DonutSlice,
 } from '@/components/saris'
-import { formatDuree, elapsedMinutes } from '@/lib/duree'
+import { formatDuree, formatDureeMinutes, elapsedMinutes } from '@/lib/duree'
 import { formatDate, formatTime } from '@/lib/intl'
 import { usePermissions } from '@/hooks/usePermissions'
 import { useSessionStore } from '@/stores/session.store'
@@ -186,7 +186,7 @@ function ClinicalView() {
       urgencesAnciennes > 0
         ? { tone: 'warning' as const, icon: <Clock3 size={16} />, msg: t(urgencesAnciennes > 1 ? 'dashboard.alertWaitingOther' : 'dashboard.alertWaitingOne', { count: urgencesAnciennes }) }
     : (overview && overview.tempsAttenteMoyenMin !== null && overview.tempsAttenteMoyenMin > 60)
-        ? { tone: 'warning' as const, icon: <Clock size={16} />, msg: t('dashboard.alertAvgWaitHigh', { min: overview.tempsAttenteMoyenMin }) }
+        ? { tone: 'warning' as const, icon: <Clock size={16} />, msg: t('dashboard.alertAvgWaitHigh', { duree: formatDureeMinutes(overview.tempsAttenteMoyenMin) }) }
     : null
 
   return (
@@ -220,7 +220,7 @@ function ClinicalView() {
             />
             <StatCard
               icon={<Clock size={18} />} label={t('dashboard.kpiAvgWaitTime')}
-              value={overview.tempsAttenteMoyenMin !== null ? t('dashboard.kpiMinUnit', { min: overview.tempsAttenteMoyenMin }) : '—'}
+              value={overview.tempsAttenteMoyenMin !== null ? formatDureeMinutes(overview.tempsAttenteMoyenMin) : '—'}
               tone={overview.tempsAttenteMoyenMin === null ? 'neutral' : overview.tempsAttenteMoyenMin < 30 ? 'success' : overview.tempsAttenteMoyenMin < 60 ? 'warning' : 'error'}
               hint={t('dashboard.kpiClosedVisitsHint')}
             />
@@ -412,6 +412,8 @@ function StatBlock({ title, children }: { title: string; children: React.ReactNo
 }
 
 function StatistiquesSection() {
+  const { has } = usePermissions()
+  const canExport = has('rapport.export')
   const [days, setDays] = useState(30)
   const { from, to } = useMemo(() => {
     const t = new Date()
@@ -447,12 +449,18 @@ function StatistiquesSection() {
             })}
           </div>
           <div style={{ flex: 1 }} />
-          <button type="button" onClick={() => stats && void exportStatsXlsx(stats)} disabled={empty} style={statExportBtn(empty)} title="Exporter en Excel (.xlsx)">
-            <Download size={13} /> Excel
-          </button>
-          <button type="button" onClick={() => stats && exportStatsPdf(stats)} disabled={empty} style={statExportBtn(empty)} title="Exporter / imprimer en PDF">
-            <Printer size={13} /> PDF
-          </button>
+          {/* Exports produits côté navigateur (aucune route à garder) : c'est ici que
+              `rapport.export` s'applique, comme sur la page Rapports. */}
+          {canExport && (
+            <>
+              <button type="button" onClick={() => stats && void exportStatsXlsx(stats)} disabled={empty} style={statExportBtn(empty)} title="Exporter en Excel (.xlsx)">
+                <Download size={13} /> Excel
+              </button>
+              <button type="button" onClick={() => stats && exportStatsPdf(stats)} disabled={empty} style={statExportBtn(empty)} title="Exporter / imprimer en PDF">
+                <Printer size={13} /> PDF
+              </button>
+            </>
+          )}
         </div>
 
         {isLoading ? (

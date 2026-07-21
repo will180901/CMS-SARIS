@@ -1,6 +1,9 @@
 /**
- * SuiviTraitementCard — gestion d'un épisode de suivi de traitement (contrôle
- * d'état de santé, évolution d'une maladie, traitement en cours).
+ * SuiviTraitementCard — affichage (lecture) d'un épisode de suivi de traitement (contrôle
+ * d'état de santé, évolution d'une maladie, traitement en cours), dans l'onglet "Suivi"
+ * (Documents). L'épisode naît exclusivement de « Générer la fiche » depuis l'étape Décision
+ * (sélection « Suivi de traitement », voir DecisionSection dans ConsultationDetail.tsx) —
+ * plus d'ouverture directe ici.
  *
  * Une consultation ne peut avoir qu'UN épisode de suivi (relation 1↔1 en BDD).
  * Cycle : EN_COURS → fiches datées (constantes + évolution + médicaments +
@@ -19,7 +22,7 @@ import {
 } from '@/components/saris'
 import { usePermissions } from '@/hooks/usePermissions'
 import {
-  useSuivisTraitement, useCreateSuiviTraitement, useAddFicheSuivi, useUpdateFicheSuivi,
+  useSuivisTraitement, useAddFicheSuivi, useUpdateFicheSuivi,
   useCloturerSuiviTraitement, useAnnulerSuiviTraitement, useDeleteSuiviTraitement,
 } from '../hooks/useSuiviTraitement'
 import { formatDateTime } from '@/lib/intl'
@@ -33,57 +36,37 @@ interface Props {
 export function SuiviTraitementCard({ consultationId, readonly }: Props) {
   const { t } = useTranslation()
   const { has } = usePermissions()
-  const canCreate = has('suivi_traitement.create') && !readonly
   const canUpdate = has('suivi_traitement.update') && !readonly
   const canClose  = has('suivi_traitement.close')
   const canCancel = has('suivi_traitement.cancel')
   const canDelete = has('suivi_traitement.delete')
 
   const { data: suivis = [], isLoading } = useSuivisTraitement({ consultationId })
-  const [openNew, setOpenNew] = useState(false)
 
-  // Un suivi ANNULÉ est considéré comme inexistant : on libère la carte
-  // (état vide + « Ouvrir ») pour permettre une nouvelle saisie.
+  // Un suivi ANNULÉ est considéré comme inexistant : la carte reste vide (un nouvel épisode
+  // peut être régénéré depuis l'étape Décision).
   const current = suivis.find(s => s.statut !== 'ANNULE') ?? null
 
   return (
-    <>
-      <Card>
-        <Card.Header
-          icon={<Activity size={14} />}
-          title={t('suiviTraitement.cardTitle')}
-          subtitle={current ? current.motif : isLoading ? t('suiviTraitement.loading') : t('suiviTraitement.cardNone')}
-          actions={
-            !current && canCreate && (
-              <Button size="sm" variant="outline" leftIcon={<Plus size={13} />} onClick={() => setOpenNew(true)}>
-                {t('suiviTraitement.initiate')}
-              </Button>
-            )
-          }
-        />
-        <Card.Body padding="md">
-          {!isLoading && !current ? (
-            <EmptyState
-              icon={<Activity size={18} />}
-              title={t('suiviTraitement.emptyTitle')}
-              description={t('suiviTraitement.emptyDesc')}
-              variant="subtle"
-              action={canCreate && (
-                <Button leftIcon={<Plus size={13} />} size="sm" onClick={() => setOpenNew(true)}>
-                  {t('suiviTraitement.initiate')}
-                </Button>
-              )}
-            />
-          ) : current ? (
-            <SuiviDetail suivi={current} canUpdate={canUpdate} canClose={canClose} canCancel={canCancel} canDelete={canDelete} />
-          ) : null}
-        </Card.Body>
-      </Card>
-
-      {openNew && (
-        <CreateSuiviDialog consultationId={consultationId} onClose={() => setOpenNew(false)} />
-      )}
-    </>
+    <Card>
+      <Card.Header
+        icon={<Activity size={14} />}
+        title={t('suiviTraitement.cardTitle')}
+        subtitle={current ? current.motif : isLoading ? t('suiviTraitement.loading') : t('suiviTraitement.cardNone')}
+      />
+      <Card.Body padding="md">
+        {!isLoading && !current ? (
+          <EmptyState
+            icon={<Activity size={18} />}
+            title={t('suiviTraitement.emptyTitle')}
+            description={t('suiviTraitement.emptyDescGenerated', { defaultValue: 'Aucun suivi pour l\'instant — générez-le depuis l\'étape Décision (« Suivi de traitement »).' })}
+            variant="subtle"
+          />
+        ) : current ? (
+          <SuiviDetail suivi={current} canUpdate={canUpdate} canClose={canClose} canCancel={canCancel} canDelete={canDelete} />
+        ) : null}
+      </Card.Body>
+    </Card>
   )
 }
 
@@ -373,40 +356,3 @@ function FicheChip({ label, value }: { label: string; value: string }) {
   )
 }
 
-// ── Dialog création suivi ─────────────────────────────────────────────────────
-
-function CreateSuiviDialog({ consultationId, onClose }: { consultationId: string; onClose: () => void }) {
-  const { t } = useTranslation()
-  const create = useCreateSuiviTraitement()
-  const [motif, setMotif] = useState('')
-  const valid = motif.trim().length >= 5
-
-  async function handleSubmit() {
-    if (!valid) return
-    await create.mutateAsync({ consultationId, motif: motif.trim() })
-    onClose()
-  }
-
-  return (
-    <Modal
-      icon={<Activity size={16} />}
-      title={t('suiviTraitement.createTitle')}
-      subtitle={t('suiviTraitement.createSubtitle')}
-      width={520}
-      onClose={onClose}
-      footer={<>
-        <Button variant="secondary" onClick={onClose}>{t('suiviTraitement.cancelForm')}</Button>
-        <Button variant="primary" disabled={!valid} loading={create.isPending} leftIcon={<Activity size={14} />} onClick={handleSubmit}>
-          {t('suiviTraitement.createConfirm')}
-        </Button>
-      </>}
-    >
-      <Field label={t('suiviTraitement.fieldMotifSuivi')} required hint={t('suiviTraitement.fieldMotifSuiviHint')}>
-        {(id) => (
-          <Textarea id={id} rows={4} maxLength={500} value={motif} onChange={e => setMotif(e.target.value)}
-            placeholder={t('suiviTraitement.createMotifPlaceholder')} autoFocus />
-        )}
-      </Field>
-    </Modal>
-  )
-}

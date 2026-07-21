@@ -16,6 +16,10 @@ export interface LigneBonPharmacie {
 export interface BonPharmacie {
   id:              string
   consultationId:  string
+  /** Ordonnance PHARMACEUTIQUE dont ce bon a été généré (null pour un bon historique). */
+  ordonnanceId?:   string | null
+  /** Statut actuel de cette ordonnance — signale un bon dont l'ordonnance a été annulée après coup. */
+  ordonnance?:     { id: string; statut: string } | null
   prescripteurId:  string
   statut:          'EN_ATTENTE' | 'DELIVRE' | 'ANNULE'
   observations:    string | null
@@ -30,18 +34,8 @@ export interface BonPharmacie {
   }
 }
 
-export interface LigneBonPharmaciePayload {
-  medicamentId?: string | null
-  libelle:       string
-  posologie?:    string
-  quantite?:     string
-}
-
-export interface CreateBonPharmaciePayload {
-  consultationId: string
-  observations?:  string
-  lignes:         LigneBonPharmaciePayload[]
-}
+// Pas de payload de création ici : un bon de pharmacie naît exclusivement de « Générer un
+// bon » sur une ordonnance PHARMACEUTIQUE validée (consultationApi.genererBon).
 
 export interface BonPharmacieQueryParams {
   consultationId?: string
@@ -52,7 +46,6 @@ export interface BonPharmacieQueryParams {
 export const bonPharmacieApi = {
   list:     (params?: BonPharmacieQueryParams) => api.get<BonPharmacie[]>('/bons-pharmacie', params as Record<string, string>),
   findById: (id: string)                        => api.get<BonPharmacie>(`/bons-pharmacie/${id}`),
-  create:   (data: CreateBonPharmaciePayload)   => api.post<BonPharmacie>('/bons-pharmacie', data),
   deliver:  (id: string, delivrePar?: string)   => api.patch<BonPharmacie>(`/bons-pharmacie/${id}/delivrer`, { delivrePar }),
   annuler:  (id: string, motifAnnulation: string) => api.patch<BonPharmacie>(`/bons-pharmacie/${id}/annuler`, { motifAnnulation }),
   remove:   (id: string)                        => api.delete<{ id: string; deleted: true }>(`/bons-pharmacie/${id}`),

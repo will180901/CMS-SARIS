@@ -3,17 +3,28 @@
  * par matricule). DISTINCT des utilisateurs/soignants du CMS et des sociétés sous-traitantes.
  * Construit dynamiquement à l'accueil (reconnaissance / enregistrement par matricule).
  */
-import { Injectable, Inject, forwardRef, NotFoundException, ConflictException } from '@nestjs/common'
+import {
+  Injectable,
+  Inject,
+  forwardRef,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
 import { CI } from '../../common/prisma/search'
 import { PatientService } from '../patient/patient.service'
-import type { CreateEmployeDto, UpdateEmployeDto, EmployeQueryDto } from './dto/employe.dto'
+import type {
+  CreateEmployeDto,
+  UpdateEmployeDto,
+  EmployeQueryDto,
+} from './dto/employe.dto'
 
 @Injectable()
 export class EmployeService {
   constructor(
     private readonly prisma: PrismaService,
-    @Inject(forwardRef(() => PatientService)) private readonly patients: PatientService,
+    @Inject(forwardRef(() => PatientService))
+    private readonly patients: PatientService,
   ) {}
 
   async findAll(query: EmployeQueryDto) {
@@ -22,18 +33,24 @@ export class EmployeService {
       const s = query.search.trim()
       where.OR = [
         { matricule: { contains: s, ...CI } },
-        { nom:       { contains: s, ...CI } },
-        { prenom:    { contains: s, ...CI } },
+        { nom: { contains: s, ...CI } },
+        { prenom: { contains: s, ...CI } },
       ]
     }
-    if (query.categorie && query.categorie !== 'TOUS') where.categorie = query.categorie
+    if (query.categorie && query.categorie !== 'TOUS')
+      where.categorie = query.categorie
     if (query.statut && query.statut !== 'TOUS') where.statut = query.statut
-    return this.prisma.employeSaris.findMany({ where, orderBy: [{ nom: 'asc' }, { prenom: 'asc' }] })
+    return this.prisma.employeSaris.findMany({
+      where,
+      orderBy: [{ nom: 'asc' }, { prenom: 'asc' }],
+    })
   }
 
   /** Lookup de reconnaissance par matricule (200 + nullable, PAS de 404 — l'UI gère « inconnu »). */
   async findByMatricule(matricule: string) {
-    return this.prisma.employeSaris.findFirst({ where: { matricule: matricule.trim() } })
+    return this.prisma.employeSaris.findFirst({
+      where: { matricule: matricule.trim() },
+    })
   }
 
   async findById(id: string) {
@@ -51,20 +68,26 @@ export class EmployeService {
    */
   async create(dto: CreateEmployeDto, siteId?: string, createdBy?: string) {
     // Unicité matricule sur le client BRUT (voit les tombstones soft-delete).
-    const exists = await this.prisma.raw.employeSaris.findUnique({ where: { matricule: dto.matricule.trim() }, select: { id: true } })
-    if (exists) throw new ConflictException(`Le matricule ${dto.matricule.trim()} existe déjà au registre des employés`)
+    const exists = await this.prisma.raw.employeSaris.findUnique({
+      where: { matricule: dto.matricule.trim() },
+      select: { id: true },
+    })
+    if (exists)
+      throw new ConflictException(
+        `Le matricule ${dto.matricule.trim()} existe déjà au registre des employés`,
+      )
     const employe = await this.prisma.employeSaris.create({
       data: {
-        matricule:     dto.matricule.trim(),
-        nom:           dto.nom.trim(),
-        prenom:        dto.prenom.trim(),
+        matricule: dto.matricule.trim(),
+        nom: dto.nom.trim(),
+        prenom: dto.prenom.trim(),
         dateNaissance: dto.dateNaissance ? new Date(dto.dateNaissance) : null,
-        sexe:          dto.sexe ?? null,
-        fonction:      dto.fonction?.trim() ?? null,
-        sectionPaie:   dto.sectionPaie?.trim() ?? null,
-        service:       dto.service?.trim() ?? null,
-        departement:   dto.departement?.trim() ?? null,
-        categorie:     dto.categorie,
+        sexe: dto.sexe ?? null,
+        fonction: dto.fonction?.trim() ?? null,
+        sectionPaie: dto.sectionPaie?.trim() ?? null,
+        service: dto.service?.trim() ?? null,
+        departement: dto.departement?.trim() ?? null,
+        categorie: dto.categorie,
       },
     })
 
@@ -85,23 +108,39 @@ export class EmployeService {
   async update(id: string, dto: UpdateEmployeDto) {
     await this.findById(id)
     if (dto.matricule) {
-      const clash = await this.prisma.raw.employeSaris.findFirst({ where: { matricule: dto.matricule.trim(), id: { not: id } }, select: { id: true } })
-      if (clash) throw new ConflictException(`Le matricule ${dto.matricule.trim()} est déjà utilisé`)
+      const clash = await this.prisma.raw.employeSaris.findFirst({
+        where: { matricule: dto.matricule.trim(), id: { not: id } },
+        select: { id: true },
+      })
+      if (clash)
+        throw new ConflictException(
+          `Le matricule ${dto.matricule.trim()} est déjà utilisé`,
+        )
     }
     return this.prisma.employeSaris.update({
       where: { id },
       data: {
-        ...(dto.matricule     !== undefined && { matricule: dto.matricule.trim() }),
-        ...(dto.nom           !== undefined && { nom: dto.nom.trim() }),
-        ...(dto.prenom        !== undefined && { prenom: dto.prenom.trim() }),
-        ...(dto.dateNaissance !== undefined && { dateNaissance: dto.dateNaissance ? new Date(dto.dateNaissance) : null }),
-        ...(dto.sexe          !== undefined && { sexe: dto.sexe || null }),
-        ...(dto.fonction      !== undefined && { fonction: dto.fonction?.trim() || null }),
-        ...(dto.sectionPaie   !== undefined && { sectionPaie: dto.sectionPaie?.trim() || null }),
-        ...(dto.service       !== undefined && { service: dto.service?.trim() || null }),
-        ...(dto.departement   !== undefined && { departement: dto.departement?.trim() || null }),
-        ...(dto.categorie     !== undefined && { categorie: dto.categorie }),
-        ...(dto.statut        !== undefined && { statut: dto.statut }),
+        ...(dto.matricule !== undefined && { matricule: dto.matricule.trim() }),
+        ...(dto.nom !== undefined && { nom: dto.nom.trim() }),
+        ...(dto.prenom !== undefined && { prenom: dto.prenom.trim() }),
+        ...(dto.dateNaissance !== undefined && {
+          dateNaissance: dto.dateNaissance ? new Date(dto.dateNaissance) : null,
+        }),
+        ...(dto.sexe !== undefined && { sexe: dto.sexe || null }),
+        ...(dto.fonction !== undefined && {
+          fonction: dto.fonction?.trim() || null,
+        }),
+        ...(dto.sectionPaie !== undefined && {
+          sectionPaie: dto.sectionPaie?.trim() || null,
+        }),
+        ...(dto.service !== undefined && {
+          service: dto.service?.trim() || null,
+        }),
+        ...(dto.departement !== undefined && {
+          departement: dto.departement?.trim() || null,
+        }),
+        ...(dto.categorie !== undefined && { categorie: dto.categorie }),
+        ...(dto.statut !== undefined && { statut: dto.statut }),
       },
     })
   }
@@ -114,7 +153,9 @@ export class EmployeService {
       this.prisma.rattachementAyantDroitCdi.count({ where: { employeId: id } }),
     ])
     if (patients + rattachements > 0) {
-      throw new ConflictException('Cet employé est rattaché à des dossiers patients — désactivez-le plutôt que de le supprimer')
+      throw new ConflictException(
+        'Cet employé est rattaché à des dossiers patients — désactivez-le plutôt que de le supprimer',
+      )
     }
     await this.prisma.employeSaris.delete({ where: { id } })
     return { id, deleted: true }
@@ -126,7 +167,10 @@ export class EmployeService {
    * rattachement d'un ayant droit à un CDI inconnu.
    */
   async ensureByMatricule(data: CreateEmployeDto): Promise<{ id: string }> {
-    const found = await this.prisma.employeSaris.findFirst({ where: { matricule: data.matricule.trim() }, select: { id: true } })
+    const found = await this.prisma.employeSaris.findFirst({
+      where: { matricule: data.matricule.trim() },
+      select: { id: true },
+    })
     if (found) return found
     return this.create(data)
   }

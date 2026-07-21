@@ -49,7 +49,10 @@ const ACTION_LABELS: Record<string, string> = {
   read:            'Consulter',
   create:          'Créer',
   update:          'Modifier',
-  delete:          'Désactiver',
+  // « Supprimer » et non « Désactiver » : côté serveur, `delete` supprime réellement
+  // (409 si l'entrée est encore référencée). Afficher « Désactiver » minimisait une
+  // action destructive et contredisait les libellés du catalogue.
+  delete:          'Supprimer',
   manage:          'Gérer',
   validate:        'Valider',
   revoke:          'Révoquer',
@@ -62,6 +65,10 @@ const ACTION_LABELS: Record<string, string> = {
   examen:          'Examen clinique',
   result:          'Saisir un résultat',
   execute:         'Exécuter',
+  deliver:         'Délivrer',
+  export:          'Exporter',
+  lock:            'Verrouiller',
+  restore:         'Restaurer',
   assign_role:     'Attribuer des rôles',
   reset_password:  'Réinitialiser le mot de passe',
   manage_permissions: 'Gérer les dérogations',
@@ -87,6 +94,7 @@ const SUBGROUP_LABELS: Record<string, string> = {
   'referentiel.medicament':   'Médicaments',
   'referentiel.categorie':    'Catégories de patient',
   'referentiel.examen':       'Types d\'examen',
+  'referentiel.type_consultation': 'Types de consultation',
   'patient.rattachement':     'Rattachements (CDI / sous-traitants)',
 }
 

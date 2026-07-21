@@ -10,7 +10,12 @@
  * Clé AES-256 dérivée via scrypt de `MESSAGE_ENC_KEY` (ou repli sur
  * `TOTP_ENC_KEY` déjà présente — fonctionne sans config supplémentaire).
  */
-import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'crypto'
+import {
+  createCipheriv,
+  createDecipheriv,
+  randomBytes,
+  scryptSync,
+} from 'crypto'
 import { readFileSync } from 'fs'
 import { Logger } from '@nestjs/common'
 
@@ -48,12 +53,15 @@ function parsePairs(raw: string, out: Record<string, string>): void {
 /** Lit le trousseau depuis un fichier (Vault/secret monté) : JSON objet ou format "id:pass,…". */
 function keysFromFile(path: string, out: Record<string, string>): void {
   let txt: string
-  try { txt = readFileSync(path, 'utf8').trim() } catch {
+  try {
+    txt = readFileSync(path, 'utf8').trim()
+  } catch {
     throw new Error(`MESSAGE_ENC_KEYS_FILE illisible : ${path}`)
   }
   if (txt.startsWith('{')) {
     const obj = JSON.parse(txt) as Record<string, unknown>
-    for (const [id, pass] of Object.entries(obj)) if (typeof pass === 'string') out[id.trim()] = pass
+    for (const [id, pass] of Object.entries(obj))
+      if (typeof pass === 'string') out[id.trim()] = pass
   } else {
     parsePairs(txt, out)
   }
@@ -63,23 +71,35 @@ function loadRegistry(): { keys: Record<string, string>; current: string } {
   if (registry) return registry
   const keys: Record<string, string> = {}
   const file = process.env['MESSAGE_ENC_KEYS_FILE']
-  if (file) keysFromFile(file, keys)            // trousseau monté (Vault/HSM) — prioritaire
+  if (file) keysFromFile(file, keys) // trousseau monté (Vault/HSM) — prioritaire
   const raw = process.env['MESSAGE_ENC_KEYS']
-  if (raw) parsePairs(raw, keys)                // env complète/écrase le fichier
+  if (raw) parsePairs(raw, keys) // env complète/écrase le fichier
   // Clé legacy "1" (compat des messages v1 + repli mono-clé) si absente du trousseau.
-  const legacyPass = process.env['MESSAGE_ENC_KEY'] ?? process.env['TOTP_ENC_KEY']
+  const legacyPass =
+    process.env['MESSAGE_ENC_KEY'] ?? process.env['TOTP_ENC_KEY']
   if (!keys['1'] && legacyPass) keys['1'] = legacyPass
 
   const ids = Object.keys(keys)
   if (!ids.length) {
-    throw new Error('Aucune clé de chiffrement (MESSAGE_ENC_KEYS[_FILE] ou MESSAGE_ENC_KEY/TOTP_ENC_KEY). Ajoutez-la dans apps/api/.env.')
+    throw new Error(
+      'Aucune clé de chiffrement (MESSAGE_ENC_KEYS[_FILE] ou MESSAGE_ENC_KEY/TOTP_ENC_KEY). Ajoutez-la dans apps/api/.env.',
+    )
   }
-  const current = process.env['MESSAGE_ENC_KEY_CURRENT'] && keys[process.env['MESSAGE_ENC_KEY_CURRENT']!]
-    ? process.env['MESSAGE_ENC_KEY_CURRENT']!
-    : ids.sort((a, b) => Number(a) - Number(b)).pop()!
+  const current =
+    process.env['MESSAGE_ENC_KEY_CURRENT'] &&
+    keys[process.env['MESSAGE_ENC_KEY_CURRENT']]
+      ? process.env['MESSAGE_ENC_KEY_CURRENT']
+      : ids.sort((a, b) => Number(a) - Number(b)).pop()!
 
-  if (!process.env['MESSAGE_ENC_KEY'] && !raw && !file && process.env['NODE_ENV'] === 'production') {
-    cryptoLogger.warn('[sécurité] MESSAGE_ENC_KEY absente en production : repli sur TOTP_ENC_KEY. Définissez une clé dédiée + activez la rotation.')
+  if (
+    !process.env['MESSAGE_ENC_KEY'] &&
+    !raw &&
+    !file &&
+    process.env['NODE_ENV'] === 'production'
+  ) {
+    cryptoLogger.warn(
+      '[sécurité] MESSAGE_ENC_KEY absente en production : repli sur TOTP_ENC_KEY. Définissez une clé dédiée + activez la rotation.',
+    )
   }
   registry = { keys, current }
   return registry
@@ -110,19 +130,29 @@ export function reencryptToCurrent(stored: string): string | null {
 
 /** Clé AES-256 dérivée (scrypt) pour un identifiant de clé donné, mise en cache. */
 function keyFor(id: string): Buffer {
-  if (derived[id]) return derived[id]!
+  if (derived[id]) return derived[id]
   const pass = loadRegistry().keys[id]
-  if (!pass) throw new Error(`Clé de chiffrement « ${id} » inconnue (rotation : conservez les anciennes clés).`)
+  if (!pass)
+    throw new Error(
+      `Clé de chiffrement « ${id} » inconnue (rotation : conservez les anciennes clés).`,
+    )
   return (derived[id] = scryptSync(pass, KEY_SALT, 32))
 }
 
 /** Résout la clé d'un message stocké selon son préfixe de version. */
-function decodeKey(parts: string[]): { key: Buffer; iv: string; tag: string; ct: string } | null {
+function decodeKey(
+  parts: string[],
+): { key: Buffer; iv: string; tag: string; ct: string } | null {
   if (parts[0] === VERSION && parts.length === 5) {
-    return { key: keyFor(parts[1]!), iv: parts[2]!, tag: parts[3]!, ct: parts[4]! }
+    return {
+      key: keyFor(parts[1]),
+      iv: parts[2],
+      tag: parts[3],
+      ct: parts[4],
+    }
   }
   if (parts[0] === LEGACY && parts.length === 4) {
-    return { key: keyFor('1'), iv: parts[1]!, tag: parts[2]!, ct: parts[3]! }
+    return { key: keyFor('1'), iv: parts[1], tag: parts[2], ct: parts[3] }
   }
   return null
 }
@@ -134,7 +164,13 @@ function encryptRaw(plain: Buffer): string {
   const cipher = createCipheriv('aes-256-gcm', keyFor(current), iv)
   const ct = Buffer.concat([cipher.update(plain), cipher.final()])
   const tag = cipher.getAuthTag()
-  return [VERSION, current, iv.toString('base64'), tag.toString('base64'), ct.toString('base64')].join(':')
+  return [
+    VERSION,
+    current,
+    iv.toString('base64'),
+    tag.toString('base64'),
+    ct.toString('base64'),
+  ].join(':')
 }
 
 /** Déchiffre un contenu stocké (v2 ou legacy v1) → Buffer, ou null si illisible. */
@@ -142,9 +178,16 @@ function decryptRaw(stored: string): Buffer | null {
   const decoded = decodeKey(stored.split(':'))
   if (!decoded) return null
   try {
-    const decipher = createDecipheriv('aes-256-gcm', decoded.key, Buffer.from(decoded.iv, 'base64'))
+    const decipher = createDecipheriv(
+      'aes-256-gcm',
+      decoded.key,
+      Buffer.from(decoded.iv, 'base64'),
+    )
     decipher.setAuthTag(Buffer.from(decoded.tag, 'base64'))
-    return Buffer.concat([decipher.update(Buffer.from(decoded.ct, 'base64')), decipher.final()])
+    return Buffer.concat([
+      decipher.update(Buffer.from(decoded.ct, 'base64')),
+      decipher.final(),
+    ])
   } catch {
     return null
   }
@@ -157,7 +200,8 @@ export function encryptMessage(plain: string): string {
 
 /** Déchiffre un message stocké. Renvoie un placeholder si illisible (jamais throw). */
 export function decryptMessage(stored: string): string {
-  if (!stored.startsWith(VERSION + ':') && !stored.startsWith(LEGACY + ':')) return stored // ancien format / clair
+  if (!stored.startsWith(VERSION + ':') && !stored.startsWith(LEGACY + ':'))
+    return stored // ancien format / clair
   const buf = decryptRaw(stored)
   return buf ? buf.toString('utf8') : '[message illisible]'
 }

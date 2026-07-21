@@ -189,7 +189,7 @@
             associée sera confirmée automatiquement.
           </p>
 
-          <div class="field sitebox">
+          <div id="siteSearchField" class="field sitebox">
             <label for="siteSearch">Site de rattachement de ce poste</label>
             <input id="siteSearch" type="text" placeholder="Rechercher un site…" autocomplete="off" spellcheck="false" />
             <div id="matches" class="matches hidden"></div>
@@ -198,6 +198,32 @@
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>
             <span id="siteConfirmText"></span>
             <button class="chg" id="siteChange" type="button">Changer</button>
+          </div>
+          <button class="chg" id="newSiteLink" type="button" style="margin: 2px 0 4px;">+ Créer un nouveau site</button>
+
+          <div id="newSiteForm" class="hidden" style="margin-top: 4px;">
+            <p class="intro" style="text-align: left; margin: 0 0 12px;">
+              Réservé aux comptes <b>Administrateur Système</b> ou <b>Médecin Chef</b> — les
+              3 premières lettres du code identifieront ce site dans les numéros de dossier
+              patient (ex. <b>MOUTELA</b> → PAT‑MOU‑00001).
+            </p>
+            <div class="field">
+              <label for="newSiteCode">Code du site</label>
+              <input id="newSiteCode" type="text" placeholder="EX: POINTENOIRE" autocomplete="off" spellcheck="false" maxlength="30" />
+            </div>
+            <div class="field">
+              <label for="newSiteLibelle">Nom du site</label>
+              <input id="newSiteLibelle" type="text" placeholder="Centre Médico-Social …" autocomplete="off" spellcheck="false" maxlength="100" />
+            </div>
+            <div class="field">
+              <label for="newSiteLocalisation">Localisation (optionnel)</label>
+              <input id="newSiteLocalisation" type="text" placeholder="Ville, Pays" autocomplete="off" spellcheck="false" maxlength="150" />
+            </div>
+            <div id="statusNewSite" class="status"></div>
+            <div style="display: flex; gap: 8px;">
+              <button class="back" id="newSiteCancel" type="button" style="margin-bottom: 0;">Annuler</button>
+              <button class="go" id="newSiteSubmit" type="button" style="flex: 1; margin-top: 0;"><span>Créer le site</span></button>
+            </div>
           </div>
 
           <div class="field" style="margin-top: 13px;">
@@ -351,6 +377,53 @@
         $('siteSearch').focus()
         renderMatches('')
       }
+
+      // ── Étape 2 bis : créer un nouveau site ──────────────────────────────────
+      function showNewSiteForm(show) {
+        $('siteSearchField').classList.toggle('hidden', show)
+        $('siteConfirm').classList.toggle('hidden', show || !selectedSite)
+        $('newSiteLink').classList.toggle('hidden', show)
+        $('newSiteForm').classList.toggle('hidden', !show)
+        setStatus('statusNewSite', '', '')
+        if (show) $('newSiteCode').focus()
+      }
+      $('newSiteLink').onclick = () => showNewSiteForm(true)
+      $('newSiteCancel').onclick = () => showNewSiteForm(false)
+
+      // Même normalisation que codeReferentiel()/sanitizeCodeInput() côté web
+      // (apps/web/src/lib/validation.ts) : majuscules, [A-Z0-9_-] uniquement.
+      $('newSiteCode').addEventListener('input', (e) => {
+        e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, '')
+      })
+
+      async function submitNewSite() {
+        if (busy) return
+        const code = clean($('newSiteCode').value)
+        const libelle = clean($('newSiteLibelle').value)
+        const localisation = clean($('newSiteLocalisation').value)
+        if (!code || !libelle) return setStatus('statusNewSite', 'Code et nom du site requis.', 'err')
+
+        busy = true
+        $('newSiteSubmit').disabled = true
+        setStatus('statusNewSite', 'Création du site…', '', true)
+        try {
+          const res = await window.saris.syncCreateSite({ code, libelle, localisation: localisation || undefined })
+          busy = false
+          $('newSiteSubmit').disabled = false
+          if (res && res.ok && res.site) {
+            sites.push(res.site)
+            showNewSiteForm(false)
+            selectSite(res.site)
+            return
+          }
+          setStatus('statusNewSite', (res && res.error) || 'Échec de la création du site.', 'err')
+        } catch (e) {
+          busy = false
+          $('newSiteSubmit').disabled = false
+          setStatus('statusNewSite', 'Erreur : ' + (e && e.message ? e.message : e), 'err')
+        }
+      }
+      $('newSiteSubmit').onclick = submitNewSite
 
       $('backBtn').onclick = async () => {
         if (busy) return

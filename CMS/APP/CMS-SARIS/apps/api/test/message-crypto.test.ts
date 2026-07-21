@@ -75,8 +75,14 @@ console.log('confidentialité du stockage')
 test('le contenu stocké ne contient pas le clair', () => {
   const clair = 'CONFIDENTIEL_DIAGNOSTIC_VIH'
   const stored = encryptMessage(clair)
-  assert.ok(!stored.includes(clair), 'le clair ne doit pas apparaître dans le stockage')
-  assert.ok(!stored.includes('DIAGNOSTIC'), 'aucun fragment du clair en stockage')
+  assert.ok(
+    !stored.includes(clair),
+    'le clair ne doit pas apparaître dans le stockage',
+  )
+  assert.ok(
+    !stored.includes('DIAGNOSTIC'),
+    'aucun fragment du clair en stockage',
+  )
 })
 
 // ── Format de stockage versionné ────────────────────────────────────────────
@@ -93,9 +99,9 @@ test('le 2e segment = identifiant de clé courante', () => {
 })
 test('iv / tag / ct sont du base64 décodable de tailles GCM attendues', () => {
   const [, , ivB64, tagB64, ctB64] = encryptMessage('abc').split(':')
-  assert.equal(Buffer.from(ivB64!, 'base64').length, 12) // IV 96 bits
-  assert.equal(Buffer.from(tagB64!, 'base64').length, 16) // tag GCM 128 bits
-  assert.ok(Buffer.from(ctB64!, 'base64').length > 0)
+  assert.equal(Buffer.from(ivB64, 'base64').length, 12) // IV 96 bits
+  assert.equal(Buffer.from(tagB64, 'base64').length, 16) // tag GCM 128 bits
+  assert.ok(Buffer.from(ctB64, 'base64').length > 0)
 })
 test('isCurrent() vrai sur un message fraîchement chiffré', () => {
   assert.equal(isCurrent(encryptMessage('x')), true)
@@ -107,8 +113,8 @@ console.log('intégrité / authentification GCM')
 /** Remplace le segment `idx` par sa version altérée (1 octet flippé en base64→bin→base64). */
 function tamperSegment(stored: string, idx: number): string {
   const parts = stored.split(':')
-  const buf = Buffer.from(parts[idx]!, 'base64')
-  buf[0] = buf[0]! ^ 0xff // inverse le premier octet
+  const buf = Buffer.from(parts[idx], 'base64')
+  buf[0] = buf[0] ^ 0xff // inverse le premier octet
   parts[idx] = buf.toString('base64')
   return parts.join(':')
 }
@@ -143,7 +149,9 @@ test('décryptage binaire d’un ciphertext altéré → throw (l’appelant gè
 // ── Pièces jointes binaires ─────────────────────────────────────────────────
 console.log('round-trip binaire (pièces jointes)')
 test('chiffrer/déchiffrer un buffer binaire = octets identiques', () => {
-  const bin = Buffer.from([0x00, 0xff, 0x10, 0x7f, 0x80, 0xde, 0xad, 0xbe, 0xef])
+  const bin = Buffer.from([
+    0x00, 0xff, 0x10, 0x7f, 0x80, 0xde, 0xad, 0xbe, 0xef,
+  ])
   const stored = encryptBytes(bin)
   assert.deepEqual(decryptBytes(stored), bin)
 })
@@ -159,7 +167,10 @@ test('gros buffer (64 Kio) round-trip', () => {
 // ── Rétro-compatibilité & valeurs non chiffrées ─────────────────────────────
 console.log('rétro-compatibilité')
 test('valeur SANS préfixe v1/v2 renvoyée telle quelle (ancien clair)', () => {
-  assert.equal(decryptMessage('ancien message en clair'), 'ancien message en clair')
+  assert.equal(
+    decryptMessage('ancien message en clair'),
+    'ancien message en clair',
+  )
 })
 // Reproduit FIDÈLEMENT la dérivation de clé du module (scrypt, sel applicatif fixe)
 // pour fabriquer des ciphertexts « anciens » (clé id "1") et prouver qu'ils restent
@@ -172,9 +183,17 @@ function deriveKey(pass: string): Buffer {
 function encryptWith(pass: string, clair: string, prefix: string): string {
   const iv = randomBytes(12)
   const cipher = createCipheriv('aes-256-gcm', deriveKey(pass), iv)
-  const ct = Buffer.concat([cipher.update(Buffer.from(clair, 'utf8')), cipher.final()])
+  const ct = Buffer.concat([
+    cipher.update(Buffer.from(clair, 'utf8')),
+    cipher.final(),
+  ])
   const tag = cipher.getAuthTag()
-  return [prefix, iv.toString('base64'), tag.toString('base64'), ct.toString('base64')].join(':')
+  return [
+    prefix,
+    iv.toString('base64'),
+    tag.toString('base64'),
+    ct.toString('base64'),
+  ].join(':')
 }
 
 const KEY1 = 'phrase-secrete-un' // = MESSAGE_ENC_KEY / clé id "1"
@@ -207,9 +226,9 @@ test('message chiffré avec ANCIENNE clé "1" → ré-encrypté vers clé couran
 
   const re = reencryptToCurrent(ancien)
   assert.ok(re, 'doit produire un nouveau ciphertext (pas null)')
-  assert.equal(re!.split(':')[1], '2') // désormais sur la clé courante
-  assert.equal(isCurrent(re!), true)
-  assert.equal(decryptMessage(re!), clair) // ✅ même clair, nouvelle clé
+  assert.equal(re.split(':')[1], '2') // désormais sur la clé courante
+  assert.equal(isCurrent(re), true)
+  assert.equal(decryptMessage(re), clair) // ✅ même clair, nouvelle clé
   assert.notEqual(re, ancien) // contenu stocké réellement changé
 })
 test('reencryptToCurrent() sur ciphertext décodable mais corrompu → null (non destructif)', () => {

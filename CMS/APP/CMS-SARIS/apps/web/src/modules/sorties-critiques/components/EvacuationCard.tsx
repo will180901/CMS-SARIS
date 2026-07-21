@@ -1,5 +1,8 @@
 /**
- * EvacuationCard — gestion de l'évacuation d'un patient.
+ * EvacuationCard — affichage (lecture) de l'évacuation d'un patient, dans l'onglet
+ * "Évacuation" (Documents). La fiche naît exclusivement de « Générer la fiche » depuis
+ * l'étape Décision (sélection « Évacuation médicale », voir DecisionSection dans
+ * ConsultationDetail.tsx) — plus d'initiation directe ici.
  *
  * Une consultation ne peut avoir qu'UNE évacuation (relation 1↔1 en BDD).
  * Cycle : EN_COURS → suivi multi-étapes → CLOTURE | ANNULE
@@ -15,9 +18,8 @@ import {
   Field, Textarea, SelectBox, Modal, MotifDialog,
 } from '@/components/saris'
 import { usePermissions } from '@/hooks/usePermissions'
-import { useIsCompact } from '@/hooks/useMediaQuery'
 import {
-  useEvacuations, useCreateEvacuation, useAddSuiviEvacuation, useAnnulerEvacuation, useDeleteEvacuation,
+  useEvacuations, useAddSuiviEvacuation, useAnnulerEvacuation, useDeleteEvacuation,
 } from '../hooks/useSorties'
 import { EvacuationPrintModal } from './EvacuationPrintModal'
 import { labelStatut, labelUrgence } from '@/config/labels'
@@ -35,65 +37,38 @@ interface Props {
 export function EvacuationCard({ consultationId, readonly, patient, soignant }: Props) {
   const { t } = useTranslation()
   const { has } = usePermissions()
-  const canCreate = has('evacuation.create') && !readonly
   const canUpdate = has('evacuation.update') && !readonly
   const canDelete = has('evacuation.delete')
 
   const { data: evacuations = [], isLoading } = useEvacuations({ consultationId })
-  const [openNew, setOpenNew] = useState(false)
 
-  // Une évacuation ANNULÉE est considérée comme inexistante : on libère la carte
-  // (état vide + « Initier ») pour permettre une nouvelle saisie. Le backend
-  // réactive la ligne annulée lors de la recréation (contrainte 1↔1).
+  // Une évacuation ANNULÉE est considérée comme inexistante : la carte reste vide (une
+  // nouvelle fiche peut être régénérée depuis l'étape Décision — le backend réactive la
+  // ligne annulée à la recréation, contrainte 1↔1).
   const current = evacuations.find(e => e.statut !== 'ANNULE') ?? null
 
   return (
-    <>
-      <Card>
-        <Card.Header
-          icon={<Ambulance size={14} />}
-          title={t('sorties.evacCardTitle')}
-          subtitle={current
-            ? t('sorties.evacCardUrgenceLevel', { niveau: labelUrgence(current.niveauUrgence) })
-            : isLoading ? t('sorties.loading') : t('sorties.evacCardNone')}
-          actions={
-            !current && canCreate && (
-              <Button
-                size="sm" variant="outline"
-                leftIcon={<Plus size={13} />}
-                onClick={() => setOpenNew(true)}
-              >
-                {t('sorties.evacInitiate')}
-              </Button>
-            )
-          }
-        />
-        <Card.Body padding="md">
-          {!isLoading && !current ? (
-            <EmptyState
-              icon={<Ambulance size={18} />}
-              title={t('sorties.evacEmptyTitle')}
-              description={t('sorties.evacEmptyDesc')}
-              variant="subtle"
-              action={canCreate && (
-                <Button leftIcon={<Plus size={13} />} size="sm" onClick={() => setOpenNew(true)}>
-                  {t('sorties.evacInitiateEvacuation')}
-                </Button>
-              )}
-            />
-          ) : current ? (
-            <EvacuationDetail evacuation={current} canUpdate={canUpdate} canDelete={canDelete} patient={patient} soignant={soignant} />
-          ) : null}
-        </Card.Body>
-      </Card>
-
-      {openNew && (
-        <CreateEvacuationDialog
-          consultationId={consultationId}
-          onClose={() => setOpenNew(false)}
-        />
-      )}
-    </>
+    <Card>
+      <Card.Header
+        icon={<Ambulance size={14} />}
+        title={t('sorties.evacCardTitle')}
+        subtitle={current
+          ? t('sorties.evacCardUrgenceLevel', { niveau: labelUrgence(current.niveauUrgence) })
+          : isLoading ? t('sorties.loading') : t('sorties.evacCardNone')}
+      />
+      <Card.Body padding="md">
+        {!isLoading && !current ? (
+          <EmptyState
+            icon={<Ambulance size={18} />}
+            title={t('sorties.evacEmptyTitle')}
+            description={t('sorties.evacEmptyDescGenerated', { defaultValue: 'Aucune fiche pour l\'instant — générez-la depuis l\'étape Décision (« Évacuation médicale »).' })}
+            variant="subtle"
+          />
+        ) : current ? (
+          <EvacuationDetail evacuation={current} canUpdate={canUpdate} canDelete={canDelete} patient={patient} soignant={soignant} />
+        ) : null}
+      </Card.Body>
+    </Card>
   )
 }
 
@@ -349,102 +324,3 @@ function EvacuationDetail({ evacuation, canUpdate, canDelete, patient, soignant 
   )
 }
 
-// ── Dialog création évacuation ────────────────────────────────────────────────
-
-function CreateEvacuationDialog({ consultationId, onClose }: { consultationId: string; onClose: () => void }) {
-  const { t } = useTranslation()
-  const create = useCreateEvacuation()
-  const isCompact = useIsCompact()
-  const [niveau,    setNiveau]    = useState<'BASSE' | 'MOYENNE' | 'HAUTE' | 'CRITIQUE'>('HAUTE')
-  const [infos,     setInfos]     = useState('')
-
-  const valid = infos.trim().length >= 10
-
-  async function handleSubmit() {
-    if (!valid) return
-    await create.mutateAsync({
-      consultationId,
-      niveauUrgence: niveau,
-      infosCliniques: infos.trim(),
-    })
-    onClose()
-  }
-
-  return (
-    <Modal
-      icon={<Ambulance size={16} />}
-      title={t('sorties.createEvacTitle')}
-      subtitle={t('sorties.createEvacSubtitle')}
-      width={560}
-      onClose={onClose}
-      footer={<>
-        <Button variant="secondary" onClick={onClose}>{t('sorties.cancel')}</Button>
-        <Button
-          variant="danger"
-          disabled={!valid}
-          loading={create.isPending}
-          leftIcon={<Ambulance size={14} />}
-          onClick={handleSubmit}
-        >
-          {t('sorties.createEvacConfirm')}
-        </Button>
-      </>}
-    >
-          <Field label={t('sorties.fieldNiveauUrgence')} required>
-            {(id) => (
-              <div id={id} style={{ display: 'grid', gridTemplateColumns: isCompact ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 'var(--espace-2)' }}>
-                {(['BASSE', 'MOYENNE', 'HAUTE', 'CRITIQUE'] as const).map(n => {
-                  const active = niveau === n
-                  const colors = {
-                    BASSE:    { bg: 'var(--fond-surface-2)', text: 'var(--texte-secondaire)' },
-                    MOYENNE:  { bg: 'var(--info-fond)',      text: 'var(--info-texte)'       },
-                    HAUTE:    { bg: 'var(--avert-fond)',     text: 'var(--avert-texte)'      },
-                    CRITIQUE: { bg: 'var(--erreur-fond)',    text: 'var(--erreur-texte)'     },
-                  }[n]
-                  return (
-                    <button
-                      key={n}
-                      type="button"
-                      onClick={() => setNiveau(n)}
-                      style={{
-                        padding: 'var(--espace-2)',
-                        borderRadius: 'var(--radius-md)',
-                        border: `2px solid ${active ? colors.text : 'var(--bordure-normale)'}`,
-                        background: active ? colors.bg : 'var(--fond-surface)',
-                        color: active ? colors.text : 'var(--texte-secondaire)',
-                        fontWeight: 600,
-                        fontSize: 'var(--font-size-caption)',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
-                        cursor: 'pointer',
-                        transition: 'all 0.12s',
-                      }}
-                    >
-                      {t(`sorties.urgence${n.charAt(0)}${n.slice(1).toLowerCase()}`)}
-                    </button>
-                  )
-                })}
-              </div>
-            )}
-          </Field>
-
-          <Field
-            label={t('sorties.fieldInfosCliniques')}
-            required
-            hint={t('sorties.fieldInfosCliniquesHint')}
-          >
-            {(id) => (
-              <Textarea
-                id={id}
-                rows={6}
-                maxLength={5000}
-                value={infos}
-                onChange={e => setInfos(e.target.value)}
-                placeholder={t('sorties.createEvacInfosPlaceholder')}
-                autoFocus
-              />
-            )}
-          </Field>
-    </Modal>
-  )
-}

@@ -24,6 +24,9 @@ import { usePermissions } from '@/hooks/usePermissions'
 import { useIsCompact } from '@/hooks/useMediaQuery'
 import type { RoleAdmin, PermissionDb } from '../api/admin.api'
 import type { PermissionCode } from '@cms-saris/types'
+import {
+  PERMISSION_LECTURES_IMPLIQUEES, PERMISSION_DEPENDANTS, completerLectures,
+} from '@cms-saris/types'
 import { labelModule, labelPermission } from '@/config/labels'
 import { PrivacyCurtain } from '@/components/PrivacyCurtain'
 import { buildPermissionTree, parsePermCode, labelPermAction } from '@/config/permission-tree'
@@ -264,7 +267,11 @@ function RoleEditor({ role, permissions, canUpdate, canDelete, onBack }: {
   const { data: usersOfRole = [], isLoading: lu } = useRoleUtilisateurs(role.id)
 
   const [libelle, setLibelle] = useState(role.libelle)
-  const [selected, setSelected] = useState<Set<PermissionCode>>(new Set(role.permissions))
+  // On normalise dès l'ouverture : si un rôle ancien porte une écriture sans sa
+  // lecture, la case manquante apparaît cochée (et le rôle « modifié à enregistrer »).
+  const [selected, setSelected] = useState<Set<PermissionCode>>(
+    () => new Set(completerLectures(role.permissions) as PermissionCode[]),
+  )
   const [search, setSearch] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [tab, setTab] = useState<'details' | 'permissions' | 'utilisateurs'>('permissions')
@@ -272,7 +279,7 @@ function RoleEditor({ role, permissions, canUpdate, canDelete, onBack }: {
   // Sync quand on change de rôle
   useEffect(() => {
     setLibelle(role.libelle)
-    setSelected(new Set(role.permissions))
+    setSelected(new Set(completerLectures(role.permissions) as PermissionCode[]))
     setSearch('')
     setConfirmDelete(false)
   }, [role.id])
@@ -290,11 +297,36 @@ function RoleEditor({ role, permissions, canUpdate, canDelete, onBack }: {
     return buildPermissionTree(filtered)
   }, [permissions, search])
 
+  // ── Cohérence « écrire implique consulter » ────────────────────────────────
+  // Cocher une écriture coche la lecture correspondante ; une lecture exigée par
+  // une écriture déjà cochée est verrouillée (on décoche l'écriture d'abord, ou
+  // le module entier). Le serveur applique la même règle : l'interface ne fait
+  // que la rendre lisible.
+  const requisPar = useMemo(() => {
+    const m = new Map<PermissionCode, PermissionCode[]>()
+    for (const code of selected) {
+      for (const lecture of PERMISSION_LECTURES_IMPLIQUEES[code] ?? []) {
+        m.set(lecture, [...(m.get(lecture) ?? []), code])
+      }
+    }
+    return m
+  }, [selected])
+
+  function ajouter(next: Set<PermissionCode>, code: PermissionCode) {
+    next.add(code)
+    for (const lecture of PERMISSION_LECTURES_IMPLIQUEES[code] ?? []) next.add(lecture)
+  }
+
+  function retirer(next: Set<PermissionCode>, code: PermissionCode) {
+    next.delete(code)
+    for (const dep of PERMISSION_DEPENDANTS[code] ?? []) next.delete(dep)
+  }
+
   function toggle(code: PermissionCode) {
     setSelected(s => {
       const next = new Set(s)
-      if (next.has(code)) next.delete(code)
-      else next.add(code)
+      if (next.has(code)) retirer(next, code)
+      else                ajouter(next, code)
       return next
     })
   }
@@ -303,8 +335,10 @@ function RoleEditor({ role, permissions, canUpdate, canDelete, onBack }: {
     const allSelected = codes.every(c => selected.has(c))
     setSelected(s => {
       const next = new Set(s)
-      if (allSelected) codes.forEach(c => next.delete(c))
-      else             codes.forEach(c => next.add(c))
+      for (const c of codes) {
+        if (allSelected) retirer(next, c)
+        else             ajouter(next, c)
+      }
       return next
     })
   }
@@ -498,6 +532,15 @@ function RoleEditor({ role, permissions, canUpdate, canDelete, onBack }: {
             </h3>
           </div>
 
+          {/* Rappel de la règle de cohérence appliquée par l'interface ET le serveur */}
+          <p style={{
+            margin: '0 0 var(--espace-3)', display: 'flex', alignItems: 'center', gap: 6,
+            fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)',
+          }}>
+            <Lock size={11} style={{ flexShrink: 0 }} />
+            {t('admin.permissionCoherenceHint')}
+          </p>
+
           <div style={{ position: 'relative', marginBottom: 'var(--espace-3)' }}>
             <Search size={14} style={{
               position: 'absolute', left: 10, top: '50%',
@@ -589,14 +632,22 @@ function RoleEditor({ role, permissions, canUpdate, canDelete, onBack }: {
                           )}
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, paddingLeft: sg.sub ? 18 : 0 }}>
                             {sg.leaves.map(leaf => {
-                              const on = selected.has(leaf.code)
+                              const on      = selected.has(leaf.code)
+                              const exigee  = requisPar.get(leaf.code) ?? []
+                              const verrou  = on && exigee.length > 0
+                              const apercu  = exigee.slice(0, 3).map(c => labelPermission(c)).join(', ')
                               return (
                                 <button
                                   key={leaf.code}
                                   type="button"
                                   disabled={!canUpdate}
+                                  title={verrou
+                                    ? t('admin.permissionRequiredBy', {
+                                        libelle: labelPermission(leaf.code),
+                                        liste: apercu + (exigee.length > 3 ? ` (+${exigee.length - 3})` : ''),
+                                      })
+                                    : labelPermission(leaf.code)}
                                   onClick={() => toggle(leaf.code)}
-                                  title={labelPermission(leaf.code)}
                                   style={{
                                     display: 'inline-flex', alignItems: 'center', gap: 4,
                                     padding: '4px 10px', borderRadius: 'var(--radius-sm)',
@@ -608,7 +659,7 @@ function RoleEditor({ role, permissions, canUpdate, canDelete, onBack }: {
                                     transition: 'all 0.12s',
                                   }}
                                 >
-                                  {on && <Check size={11} />}
+                                  {verrou ? <Lock size={11} /> : on ? <Check size={11} /> : null}
                                   {labelPermAction(leaf.action)}
                                 </button>
                               )

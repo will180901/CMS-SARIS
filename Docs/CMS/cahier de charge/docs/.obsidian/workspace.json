@@ -4,17 +4,21 @@
     "type": "split",
     "children": [
       {
-        "id": "3d1b44060c95ebfe",
+        "id": "96c49a275314b0cc",
         "type": "tabs",
         "children": [
           {
-            "id": "1f7fd6c8f92c3dca",
+            "id": "04d9d1d17314884b",
             "type": "leaf",
             "state": {
-              "type": "graph",
-              "state": {},
-              "icon": "lucide-git-fork",
-              "title": "Vue graphique"
+              "type": "markdown",
+              "state": {
+                "file": "01_architecture_fonctionnelle/modele_donnees_global.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "modele_donnees_global"
             }
           }
         ]
@@ -176,8 +180,11 @@
       "bases:Créer une nouvelle base": false
     }
   },
-  "active": "1f7fd6c8f92c3dca",
+  "active": "04d9d1d17314884b",
   "lastOpenFiles": [
+    "liste_doc.base",
+    "04_ux_ui/charte_graphique.md",
+    "01_architecture_fonctionnelle/carte_domaines.md",
     "rapport_audit_fidelite.md",
     "02_modules/MODULE_07_dossier_patient.md.tmp.12352.6e5853efcbda",
     "02_modules/MODULE_15_dashboard.md.tmp.12352.24b3123bfb38",
@@ -188,14 +195,11 @@
     "00_HOME.md.tmp.12352.fb31e6fc6c1d",
     "02_modules/MODULE_01_securite_authentification.md.tmp.12352.d524213b8fa0",
     "00_cadrage/cadre_reglementaire.md.tmp.12352.b0890c430ff8",
-    "02_modules/MODULE_16_synchronisation.md.tmp.12352.37a9f0770e58",
     "03_conception_transverse/checklist_mise_en_production.md",
     "01_architecture_fonctionnelle/modele_donnees_global.md",
     "01_architecture_fonctionnelle/glossaire.md",
     "01_architecture_fonctionnelle/exigences_non_fonctionnelles.md",
-    "01_architecture_fonctionnelle/carte_domaines.md",
     "04_ux_ui/specifications_ecrans.md",
-    "04_ux_ui/charte_graphique.md",
     "rapport_revue_coherence.md",
     "tracabilite.md",
     "03_conception_transverse/modele_operationnel.md",
@@ -212,7 +216,6 @@
     "02_modules/MODULE_11_bon_pharmacie.md",
     "02_modules/MODULE_10_bon_examen.md",
     "02_modules/MODULE_09_consultation.md",
-    "02_modules/MODULE_08_triage.md",
-    "02_modules/MODULE_07_dossier_patient.md"
+    "02_modules/MODULE_08_triage.md"
   ]
 }

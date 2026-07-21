@@ -14,12 +14,13 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { X, Loader2, FlaskConical, FileText, Stethoscope, Pill, Receipt, Ambulance, ArrowUpRight, PenLine, Activity } from 'lucide-react'
+import { X, Loader2, FlaskConical, FileText, Stethoscope, Pill, Receipt, Ambulance, ArrowUpRight, PenLine, Activity, HeartPulse } from 'lucide-react'
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from '@workspace/ui/components/sheet'
 import { InfoSection, InfoRow, StatusPill, Button } from '@/components/saris'
 import { PreviewHostContext } from '@/components/print/MedicalPrintSheet'
+import { useVisite } from '@/modules/triage/hooks/useTriage'
 import { useConsultation } from '@/modules/consultation/hooks/useConsultation'
 import { ConsultationArchiveSummary } from '@/modules/consultation/components/ConsultationArchiveSummary'
 import { OrdonnancePrintModal } from '@/modules/consultation/components/OrdonnancePrintModal'
@@ -37,6 +38,7 @@ import type { SuiviResultatExamenItem } from '../../api/patients.api'
 // ── Cible de la page détail ────────────────────────────────────────────────────
 
 export type DossierDetailTarget =
+  | { kind: 'VISITE';             visiteId: string }
   | { kind: 'CONSULTATION';       consultationId: string }
   | { kind: 'ORDONNANCE';         consultationId: string; ordonnanceId: string }
   | { kind: 'BON_EXAMEN';         consultationId: string; bonId: string }
@@ -65,6 +67,7 @@ export function targetForDocument(
 }
 
 const TITLE_KEY: Record<DossierDetailTarget['kind'], string> = {
+  VISITE:            'patients.visiteViewerTitle',
   CONSULTATION:      'patients.consultationViewerTitle',
   ORDONNANCE:        'patients.docOrdonnance',
   BON_EXAMEN:        'patients.docBonExamen',
@@ -76,6 +79,7 @@ const TITLE_KEY: Record<DossierDetailTarget['kind'], string> = {
 }
 
 const KIND_ICON: Record<DossierDetailTarget['kind'], typeof FileText> = {
+  VISITE:            HeartPulse,
   CONSULTATION:      Stethoscope,
   ORDONNANCE:        Pill,
   BON_EXAMEN:        FlaskConical,
@@ -151,6 +155,101 @@ function ConsultationBody({ consultationId, onBack }: { consultationId: string; 
   }
 
   return <ConsultationArchiveSummary consultationId={consultationId} consultation={consultation} onDeleted={onBack} />
+}
+
+const VISITE_STATUT_TONE: Record<string, 'warning' | 'info' | 'success' | 'error'> = {
+  EN_ATTENTE: 'warning',
+  EN_COURS:   'info',
+  CLOTUREE:   'success',
+  ANNULEE:    'error',
+}
+const VISITE_STATUT_LABEL_KEY: Record<string, string> = {
+  EN_ATTENTE: 'patients.visiteEnAttente',
+  EN_COURS:   'patients.visiteEnCours',
+  CLOTUREE:   'patients.visiteCloturee',
+  ANNULEE:    'patients.visiteAnnulee',
+}
+const CONSULT_STATUT_TONE: Record<string, 'info' | 'success' | 'error'> = {
+  OUVERTE:  'info',
+  CLOTUREE: 'success',
+  ANNULEE:  'error',
+}
+const CONSULT_STATUT_LABEL_KEY: Record<string, string> = {
+  OUVERTE:  'patients.consultStatusOpen',
+  CLOTUREE: 'patients.consultStatusClosed',
+  ANNULEE:  'patients.consultStatusCancelled',
+}
+
+/**
+ * Résumé de la VISITE (accueil/triage) — distinct de la consultation qui en a
+ * découlé le cas échéant. Une visite passe à CLÔTURÉE dès son envoi en
+ * consultation (pas quand la consultation elle-même se termine) : ce tiroir
+ * montre donc les deux statuts côte à côte plutôt que de faire croire que la
+ * visite clôturée = prise en charge terminée.
+ */
+function VisiteBody({ visiteId }: { visiteId: string }) {
+  const { t } = useTranslation()
+  const { data: visite, isLoading } = useVisite(visiteId)
+  const [showConsultationId, setShowConsultationId] = useState<string | null>(null)
+
+  if (showConsultationId) {
+    return <ConsultationBody consultationId={showConsultationId} onBack={() => setShowConsultationId(null)} />
+  }
+
+  if (isLoading) return <Loading />
+  if (!visite) return <NotFound msgKey="patients.docViewerNotFound" />
+
+  const consult = visite.consultations.find(c => c.statut !== 'ANNULEE') ?? null
+
+  return (
+    <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
+      <InfoSection title={t('patients.visitesTitle')} icon={<HeartPulse size={14} />}>
+        <InfoRow
+          label={t('patients.sidebarStatus')}
+          valueNode={<StatusPill tone={VISITE_STATUT_TONE[visite.statut] ?? 'success'}>{t(VISITE_STATUT_LABEL_KEY[visite.statut] ?? 'patients.visiteCloturee')}</StatusPill>}
+        />
+        <InfoRow
+          label={t('patients.colDate')}
+          value={`${formatDate(visite.dateOuverture, { day: '2-digit', month: 'long', year: 'numeric' })} · ${formatTime(visite.dateOuverture, { hour: '2-digit', minute: '2-digit' })}`}
+        />
+        {visite.motifPrincipal?.libelle && (
+          <InfoRow label={t('triage.motifConsultation')} value={visite.motifPrincipal.libelle} />
+        )}
+        {visite.soignant && (
+          <InfoRow label={t('patients.caregiverLabel')} value={`${visite.soignant.prenom} ${visite.soignant.nom}`} />
+        )}
+        {visite.notesAccueil && (
+          <InfoRow
+            label={t('triage.notesAccueilLabel')}
+            valueNode={<span style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{visite.notesAccueil}</span>}
+            full
+          />
+        )}
+      </InfoSection>
+
+      {consult ? (
+        <>
+          <div style={{ marginTop: 16 }}>
+            <InfoSection title={t('patients.consultationViewerTitle')} icon={<Stethoscope size={14} />}>
+              <InfoRow
+                label={t('patients.sidebarStatus')}
+                valueNode={<StatusPill tone={CONSULT_STATUT_TONE[consult.statut] ?? 'success'}>{t(CONSULT_STATUT_LABEL_KEY[consult.statut] ?? 'patients.consultStatusClosed')}</StatusPill>}
+              />
+            </InfoSection>
+          </div>
+          <div style={{ marginTop: 12 }}>
+            <Button variant="outline" leftIcon={<ArrowUpRight size={13} />} onClick={() => setShowConsultationId(consult.id)}>
+              {t('patients.openConsultation')}
+            </Button>
+          </div>
+        </>
+      ) : (
+        <p style={{ margin: '12px 0 0', fontSize: 12, color: 'var(--texte-tertiaire)', lineHeight: 1.6 }}>
+          {t('patients.visiteAucuneConsultation')}
+        </p>
+      )}
+    </div>
+  )
 }
 
 function OrdonnanceBody({ consultationId, ordonnanceId, onBack }: { consultationId: string; ordonnanceId: string; onBack: () => void }) {
@@ -352,6 +451,7 @@ export function DossierDetailDrawer({ target, onClose }: { target: DossierDetail
         {/* Corps — hôte positionné : les aperçus A4 `inline` le recouvrent */}
         <div ref={setHost} style={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <PreviewHostContext.Provider value={host}>
+            {target.kind === 'VISITE'        && <VisiteBody visiteId={target.visiteId} />}
             {target.kind === 'CONSULTATION'  && <ConsultationBody consultationId={target.consultationId} onBack={requestClose} />}
             {target.kind === 'ORDONNANCE'    && <OrdonnanceBody consultationId={target.consultationId} ordonnanceId={target.ordonnanceId} onBack={requestClose} />}
             {target.kind === 'BON_EXAMEN'    && <BonExamenBody consultationId={target.consultationId} bonId={target.bonId} onBack={requestClose} />}

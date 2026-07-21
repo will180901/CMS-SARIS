@@ -10,7 +10,14 @@
  * (Typé `string[]` volontairement : pas de value-import de @cms-saris/types côté API.)
  */
 export const VITAL_GOVERNANCE_PERMISSIONS: string[] = [
-  'role.read', 'role.create', 'role.update', 'role.delete',
-  'utilisateur.read', 'utilisateur.create', 'utilisateur.update',
-  'utilisateur.assign_role', 'utilisateur.reset_password', 'utilisateur.manage_permissions',
+  'role.read',
+  'role.create',
+  'role.update',
+  'role.delete',
+  'utilisateur.read',
+  'utilisateur.create',
+  'utilisateur.update',
+  'utilisateur.assign_role',
+  'utilisateur.reset_password',
+  'utilisateur.manage_permissions',
 ]

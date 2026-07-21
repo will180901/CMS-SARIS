@@ -420,14 +420,15 @@ model ContreIndicationMedicament {
 }
 
 model TypeExamen {
-  updatedAt DateTime      @default(now()) @updatedAt
-  deletedAt DateTime?
-  id        String        @id @default(uuid())
-  code      String        @unique
-  libelle   String
-  domaine   String
-  statut    String        @default("ACTIF")
-  lignes    LigneExamen[]
+  updatedAt        DateTime          @default(now()) @updatedAt
+  deletedAt        DateTime?
+  id               String            @id @default(uuid())
+  code             String            @unique
+  libelle          String
+  domaine          String
+  statut           String            @default("ACTIF")
+  lignes           LigneExamen[]
+  lignesOrdonnance LigneOrdonnance[]
 
   @@index([updatedAt])
 }
@@ -454,6 +455,7 @@ model EtablissementReference {
   localisation String?
   statut       String       @default("ACTIF")
   evacuations  Evacuation[]
+  ordonnances  Ordonnance[]
 
   @@index([updatedAt])
 }
@@ -1064,35 +1066,52 @@ model DiagnosticConsultation {
 }
 
 model Ordonnance {
-  updatedAt       DateTime                @default(now()) @updatedAt
-  deletedAt       DateTime?
-  id              String                  @id @default(uuid())
-  consultationId  String
-  prescripteurId  String
-  delegationId    String?
-  statut          String                  @default("BROUILLON")
-  motifAnnulation String?
-  createdAt       DateTime                @default(now())
-  consultation    Consultation            @relation(fields: [consultationId], references: [id])
-  delegation      DelegationPrescription? @relation(fields: [delegationId], references: [id])
-  lignes          LigneOrdonnance[]
+  updatedAt        DateTime                @default(now()) @updatedAt
+  deletedAt        DateTime?
+  id               String                  @id @default(uuid())
+  consultationId   String
+  prescripteurId   String
+  delegationId     String?
+  statut           String                  @default("BROUILLON")
+  // Type de la refonte "ordonnance → bon" : 'PHARMACEUTIQUE' | 'PRESCRIPTION_EXAMEN' (@IsIn DTO,
+  // pas un enum Prisma — cohérent avec decisionMedicale). Nullable : les ordonnances antérieures à
+  // cette colonne restent implicitement PHARMACEUTIQUE (c'est tout ce qu'une ordonnance pouvait
+  // être avant), jamais de backfill.
+  typeOrdonnance   String?
+  // Renseigné seulement si typeOrdonnance === 'PRESCRIPTION_EXAMEN' (miroir BonExamen.indicationClinik).
+  indicationClinik String?
+  etablissementId  String?
+  motifAnnulation  String?
+  createdAt        DateTime                @default(now())
+  consultation     Consultation            @relation(fields: [consultationId], references: [id])
+  delegation       DelegationPrescription? @relation(fields: [delegationId], references: [id])
+  etablissement    EtablissementReference? @relation(fields: [etablissementId], references: [id])
+  lignes           LigneOrdonnance[]
+  bonsExamen       BonExamen[]
+  bonsPharmacie    BonPharmacie[]
 
   @@index([updatedAt])
 }
 
 model LigneOrdonnance {
-  updatedAt     DateTime            @default(now()) @updatedAt
+  updatedAt     DateTime             @default(now()) @updatedAt
   deletedAt     DateTime?
-  id            String              @id @default(uuid())
+  id            String               @id @default(uuid())
   ordonnanceId  String
-  medicamentId  String
-  posologie     String
-  duree         String
-  voieAdmin     String
+  // Branche PHARMACEUTIQUE (toutes nullables : une ligne d'ordonnance PRESCRIPTION_EXAMEN ne les
+  // renseigne pas — même pattern que LigneBonPharmacie.medicamentId, déjà optionnelle).
+  medicamentId  String?
+  posologie     String?
+  duree         String?
+  voieAdmin     String?
+  quantite      String?
   instructions  String?
   justification String?
-  ordonnance    Ordonnance          @relation(fields: [ordonnanceId], references: [id])
-  medicament    MedicamentReference @relation(fields: [medicamentId], references: [id])
+  // Branche PRESCRIPTION_EXAMEN : un type d'examen par ligne (miroir LigneExamen).
+  typeExamenId  String?
+  ordonnance    Ordonnance           @relation(fields: [ordonnanceId], references: [id])
+  medicament    MedicamentReference? @relation(fields: [medicamentId], references: [id])
+  typeExamen    TypeExamen?          @relation(fields: [typeExamenId], references: [id])
 
   @@index([updatedAt])
 }
@@ -1102,12 +1121,20 @@ model BonExamen {
   deletedAt        DateTime?
   id               String           @id @default(uuid())
   consultationId   String
+  // Traçabilité vers l'ordonnance PRESCRIPTION_EXAMEN d'origine (refonte génération de bon).
+  // Nullable (bons historiques) et volontairement PAS @unique : un bon annulé ne doit pas
+  // bloquer la régénération d'un nouveau bon pour la même ordonnance. La règle "un seul bon
+  // ACTIF à la fois" est vérifiée en service ET renforcée par un index unique PARTIEL en base
+  // (WHERE statut != 'ANNULE' AND deletedAt IS NULL — non représentable ici, voir migration
+  // 20260721160000_bon_ordonnanceid_partial_unique) pour fermer la fenêtre de race.
+  ordonnanceId     String?
   indicationClinik String
   etablissementId  String?
   statut           String           @default("EN_ATTENTE")
   motifAnnulation  String?
   createdAt        DateTime         @default(now())
   consultation     Consultation     @relation(fields: [consultationId], references: [id])
+  ordonnance       Ordonnance?      @relation(fields: [ordonnanceId], references: [id])
   lignes           LigneExamen[]
   resultats        ResultatExamen[]
 
@@ -1141,14 +1168,19 @@ model ResultatExamen {
   @@index([updatedAt])
 }
 
-// Bon de pharmacie (recueil) — voucher de retrait de médicaments (gratuits) DISTINCT de
-// l'ordonnance. Réservé au personnel CDI + ayants droit (garde MEDICAMENT). Calque BonExamen.
+// Bon de pharmacie (recueil) — voucher de retrait de médicaments (gratuits), généré depuis une
+// ordonnance PHARMACEUTIQUE validée (ordonnanceId). Réservé au personnel CDI + ayants droit
+// (garde MEDICAMENT). Calque BonExamen.
 model BonPharmacie {
   updatedAt       DateTime            @default(now()) @updatedAt
   deletedAt       DateTime?
   id              String              @id @default(uuid())
   consultationId  String
   prescripteurId  String
+  // Traçabilité vers l'ordonnance PHARMACEUTIQUE d'origine (refonte génération de bon).
+  // Nullable (bons historiques) et volontairement PAS @unique — cf. commentaire
+  // BonExamen.ordonnanceId (même index unique partiel en base, même raison).
+  ordonnanceId    String?
   statut          String              @default("EN_ATTENTE") // EN_ATTENTE | DELIVRE | ANNULE
   observations    String?
   delivreLe       DateTime?
@@ -1156,6 +1188,7 @@ model BonPharmacie {
   motifAnnulation String?
   createdAt       DateTime            @default(now())
   consultation    Consultation        @relation(fields: [consultationId], references: [id])
+  ordonnance      Ordonnance?         @relation(fields: [ordonnanceId], references: [id])
   lignes          LigneBonPharmacie[]
 
   @@index([updatedAt])
@@ -1252,9 +1285,9 @@ model SuiviEvacuation {
 // MODULE : SUIVI DE TRAITEMENT
 // ─────────────────────────────────────────────
 // Épisode de suivi (contrôle d'état de santé, évolution d'une maladie, traitement
-// en cours) ouvert depuis une consultation clôturée (décision SUIVI_TRAITEMENT,
-// comme EVACUATION) — les fiches datées s'ajoutent ensuite depuis le dossier
-// patient, sans repasser par le triage ou la consultation.
+// en cours) généré depuis l'étape Décision d'une consultation encore OUVERTE (décision
+// SUIVI_TRAITEMENT, comme EVACUATION), avant sa clôture — les fiches datées s'ajoutent
+// ensuite depuis le dossier patient, sans repasser par le triage ou la consultation.
 model SuiviTraitement {
   updatedAt       DateTime               @default(now()) @updatedAt
   deletedAt       DateTime?

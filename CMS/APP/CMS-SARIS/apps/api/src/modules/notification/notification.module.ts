@@ -15,9 +15,9 @@ import { LiveRefreshInterceptor } from '../../common/interceptors/live-refresh.i
  * Importe SecurityModule pour JwtAuthGuard + JwtService (auth SSE).
  */
 @Module({
-  imports:     [SecurityModule, ParametresModule],
+  imports: [SecurityModule, ParametresModule],
   controllers: [NotificationController],
-  providers:   [
+  providers: [
     NotificationService,
     PresenceService,
     NotificationPurgeCron,
@@ -25,6 +25,6 @@ import { LiveRefreshInterceptor } from '../../common/interceptors/live-refresh.i
     // @LiveRefresh(...) ; NO-OP partout ailleurs.
     { provide: APP_INTERCEPTOR, useClass: LiveRefreshInterceptor },
   ],
-  exports:     [NotificationService, PresenceService],
+  exports: [NotificationService, PresenceService],
 })
 export class NotificationModule {}

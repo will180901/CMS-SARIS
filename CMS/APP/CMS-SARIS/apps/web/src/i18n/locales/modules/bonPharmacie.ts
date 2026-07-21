@@ -23,6 +23,7 @@ export const bonPharmacie = {
     qty: 'Qté {{q}}',
     deliveredOn: 'Délivré le {{date}}',
     cancelledReason: 'Annulé : {{motif}}',
+    ordonnanceAnnuleeWarning: 'Attention : l\'ordonnance à l\'origine de ce bon a été annulée depuis.',
 
     // ── Actions ─────────────────────────────────────────────────────
     print: 'Imprimer',
@@ -82,6 +83,7 @@ export const bonPharmacie = {
     qty: 'Qty {{q}}',
     deliveredOn: 'Delivered on {{date}}',
     cancelledReason: 'Cancelled: {{motif}}',
+    ordonnanceAnnuleeWarning: 'Warning: the prescription behind this voucher has since been cancelled.',
 
     print: 'Print',
     markDelivered: 'Mark delivered',

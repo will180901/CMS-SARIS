@@ -43,15 +43,20 @@ export const SIDEBAR_RAIL = 68
 const SIDEBAR_TOP = isDesktop ? DESKTOP_TITLEBAR_H : 0
 
 // Mappage clé de navigation → clé i18n (le menu reste défini en français dans la config).
+// Une clé par groupe/item RÉELLEMENT présent dans navigation.config.ts : toute clé
+// orpheline ici est du code mort, et tout item absent retombe silencieusement sur son
+// libellé français en dur (le bug qu'avait `rapports`).
 const GROUP_TKEY: Record<string, string> = {
-  clinique: 'navGroups.clinique',
+  espace_travail: 'navGroups.espaceTravail',
   administration_medicale: 'navGroups.adminMedicale',
+  administration: 'navGroups.administration',
 }
 const ITEM_TKEY: Record<string, string> = {
-  dashboard: 'nav.dashboard', patients: 'nav.patients', triage: 'nav.triage',
-  consultations: 'nav.consultations', sorties: 'nav.sortiesCritiques', messagerie: 'nav.messagerie',
-  referentiels: 'nav.referentiels', utilisateurs: 'nav.utilisateurs',
-  roles: 'nav.roles', parametres: 'nav.parametres',
+  dashboard: 'nav.dashboard', rapports: 'nav.rapports', triage: 'nav.triage',
+  patients: 'nav.patients', consultations: 'nav.consultations', messagerie: 'nav.messagerie',
+  referentiels: 'nav.referentiels',
+  acces: 'nav.acces', parametresSysteme: 'nav.parametresSysteme',
+  audit: 'nav.audit', synchronisation: 'nav.synchronisation',
 }
 
 // ── Composant ─────────────────────────────────────────────────────────────────
@@ -397,9 +402,11 @@ export function Sidebar() {
 
               {/* Actions */}
               <div style={{ padding: 'var(--espace-1)' }}>
+                {/* Réglages PERSONNELS uniquement (self-service). Les paramètres système
+                    ont leur propre entrée dans le groupe Administration de la barre. */}
                 <MenuItem
                   icon={<Settings size={13} />}
-                  label="Paramètres"
+                  label={t('settings.title')}
                   onClick={() => { setMenuOpen(false); navigate('/admin/parametres') }}
                 />
                 <div style={{ height: 1, background: 'var(--bordure-legere)', margin: '4px 0' }} />

@@ -30,6 +30,10 @@ export interface ResultatExamen {
 export interface BonExamen {
   id:               string
   consultationId:   string
+  /** Ordonnance PRESCRIPTION_EXAMEN dont ce bon a été généré (null pour un bon historique). */
+  ordonnanceId?:    string | null
+  /** Statut actuel de cette ordonnance — signale un bon dont l'ordonnance a été annulée après coup. */
+  ordonnance?:      { id: string; statut: string } | null
   indicationClinik: string
   etablissementId:  string | null
   statut:           'EN_ATTENTE' | 'VALIDE' | 'ANNULE'
@@ -50,13 +54,8 @@ export interface BonExamen {
 }
 
 // ── Payloads ──────────────────────────────────────────────────────────────────
-
-export interface CreateBonExamenPayload {
-  consultationId:   string
-  indicationClinik: string
-  etablissementId?: string | null
-  typesExamenIds:   string[]
-}
+// Pas de payload de création ici : un bon d'examen naît exclusivement de « Générer un
+// bon » sur une ordonnance PRESCRIPTION_EXAMEN validée (consultationApi.genererBon).
 
 export interface UpdateBonExamenPayload {
   indicationClinik?: string
@@ -87,8 +86,6 @@ export const bonExamenApi = {
     api.get<BonExamen[]>('/bons-examen', params as Record<string, string>),
   findById:    (id: string) =>
     api.get<BonExamen>(`/bons-examen/${id}`),
-  create:      (data: CreateBonExamenPayload) =>
-    api.post<BonExamen>('/bons-examen', data),
   update:      (id: string, data: UpdateBonExamenPayload) =>
     api.patch<BonExamen>(`/bons-examen/${id}`, data),
   validerOuAnnuler: (id: string, data: ValiderBonExamenPayload) =>

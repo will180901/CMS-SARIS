@@ -1,4 +1,14 @@
-import { IsArray, IsISO8601, IsInt, IsNotEmpty, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator'
+import {
+  IsArray,
+  IsISO8601,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator'
 import type { SyncEntityEnvelope } from '@cms-saris/types/sync'
 
 export class SyncPullQueryDto {

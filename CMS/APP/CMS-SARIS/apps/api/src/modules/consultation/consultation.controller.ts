@@ -42,6 +42,7 @@ import {
   ConsultationQueryDto,
   SetTypeConsultationDto,
   UpdateReposDto,
+  UpdateOrdonnanceDto,
 } from './dto/consultation.dto'
 
 interface AuthedRequest {
@@ -146,6 +147,11 @@ export class ConsultationController {
     return this.consultationService.findById(id, {
       canReadAll,
       personnelMedicalId: req.user?.personnelMedicalId ?? null,
+      // Les ordonnances sont imbriquées dans ce détail : c'est ICI que
+      // `ordonnance.read` s'applique réellement (cf. service.findById).
+      canReadOrdonnances: (req.user?.permissions ?? []).includes(
+        'ordonnance.read',
+      ),
     })
   }
 
@@ -295,8 +301,11 @@ export class ConsultationController {
     )
   }
 
+  // Mode ANY volontaire : l'ajout de ligne appartient AUSSI au flux de création
+  // (création paresseuse = on crée l'ordonnance PUIS sa 1re ligne). Exiger `update`
+  // seul casserait la création pour un rôle n'ayant que `create`.
   @Post(':id/ordonnances/:ordId/lignes')
-  @RequirePermissions('ordonnance.create')
+  @RequirePermissions('ordonnance.create', 'ordonnance.update')
   @HttpCode(HttpStatus.CREATED)
   addLigne(
     @Param('id') id: string,
@@ -319,8 +328,20 @@ export class ConsultationController {
     )
   }
 
+  @Patch(':id/ordonnances/:ordId')
+  @RequirePermissions('ordonnance.update')
+  updateOrdonnance(
+    @Param('id') id: string,
+    @Param('ordId') ordId: string,
+    @Body() dto: UpdateOrdonnanceDto,
+    @Req() req: AuthedRequest,
+  ) {
+    const { id: userId } = requireUser(req)
+    return this.consultationService.updateOrdonnance(id, ordId, dto, userId)
+  }
+
   @Delete(':id/ordonnances/:ordId/lignes/:ligneId')
-  @RequirePermissions('ordonnance.create')
+  @RequirePermissions('ordonnance.update')
   @HttpCode(HttpStatus.NO_CONTENT)
   removeLigne(
     @Param('id') id: string,
@@ -360,7 +381,7 @@ export class ConsultationController {
   }
 
   @Delete(':id/ordonnances/:ordId')
-  @RequirePermissions('ordonnance.create')
+  @RequirePermissions('ordonnance.delete')
   @HttpCode(HttpStatus.NO_CONTENT)
   deleteOrdonnance(
     @Param('id') id: string,
@@ -369,5 +390,24 @@ export class ConsultationController {
   ) {
     const { id: userId } = requireUser(req)
     return this.consultationService.deleteOrdonnance(id, ordId, userId)
+  }
+
+  // Générer un bon (examen ou pharmacie) depuis une ordonnance validée : la permission
+  // précise (bon_examen.create vs bon_pharmacie.create, selon le type réel de l'ordonnance)
+  // est revérifiée dans le service — cette garde n'exige qu'AU MOINS L'UNE des deux.
+  @Post(':id/ordonnances/:ordId/generer-bon')
+  @RequirePermissions('bon_examen.create', 'bon_pharmacie.create')
+  @HttpCode(HttpStatus.CREATED)
+  genererBon(
+    @Param('id') id: string,
+    @Param('ordId') ordId: string,
+    @Req() req: AuthedRequest,
+  ) {
+    requireUser(req)
+    return this.consultationService.genererBonDepuisOrdonnance(
+      id,
+      ordId,
+      req.user?.permissions ?? [],
+    )
   }
 }

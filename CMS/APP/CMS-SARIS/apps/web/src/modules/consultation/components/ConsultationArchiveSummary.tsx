@@ -118,7 +118,6 @@ export function ConsultationArchiveSummary({ consultationId, consultation, onDel
         categoriePatientId={patient.categoriePatient.id}
         soignant={consultation.soignant}
         categorieLibelle={patient.categoriePatient.libelle}
-        hasOrdonnanceValidee={consultation.ordonnances.some(o => o.statut === 'VALIDEE')}
       />
       <EvacuationCard
         consultationId={consultationId}

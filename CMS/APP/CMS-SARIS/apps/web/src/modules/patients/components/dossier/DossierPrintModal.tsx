@@ -65,6 +65,8 @@ export function DossierPrintModal({ dossier, onClose }: { dossier: PatientDossie
         categorieLibelle: dossier.categoriePatient?.libelle,
       }}
       soignant={emetteur}
+      soignantTitle={t('patients.printIssuedByTitle')}
+      firstSignatureLabel={t('patients.printFirstSignature')}
       secondSignatureLabel={t('patients.printSecondSignature')}
       onClose={onClose}
     >

@@ -13,13 +13,15 @@ import {
 } from 'lucide-react'
 import { SegmentedTabs, Button } from '@/components/saris'
 import { useIsCompact } from '@/hooks/useMediaQuery'
-import { useCategoriesDroits } from '@/modules/referentiels/hooks/useReferentiels'
 import { calcAge } from '@/lib/age'
 import {
   useConsultation, useUpdateExamen, useUpdateAnamnese, useUpdateConclusion,
   useCloturer, useAnnulerConsultation, usePrendreEnCharge,
 } from '../hooks/useConsultation'
 import { useSessionStore } from '@/stores/session.store'
+import { useMyActiveDelegation } from '@/modules/acteurs/hooks/useDelegations'
+import { useCreateEvacuation } from '@/modules/sorties-critiques/hooks/useSorties'
+import { useCreateSuiviTraitement } from '@/modules/suivi-traitement/hooks/useSuiviTraitement'
 import { DiagnosticsCard } from './DiagnosticsCard'
 import { OrdonnanceCard }  from './OrdonnanceCard'
 import { OrdonnancePrintModal } from './OrdonnancePrintModal'
@@ -33,55 +35,33 @@ import { BonExamenCard }   from '@/modules/bon-examen/components/BonExamenCard'
 import { BonPharmacieCard } from '@/modules/bon-pharmacie/components/BonPharmacieCard'
 import { EvacuationCard }     from '@/modules/sorties-critiques/components/EvacuationCard'
 import { SuiviTraitementCard } from '@/modules/suivi-traitement/components/SuiviTraitementCard'
-import { FlaskConical, Ambulance, Activity } from 'lucide-react'
+import { FlaskConical, Ambulance, Activity, Loader2 } from 'lucide-react'
 import { usePermissions } from '@/hooks/usePermissions'
 import { formatDuree, elapsedMinutes } from '@/lib/duree'
 import { formatTime as intlFormatTime, formatDateTime } from '@/lib/intl'
 
 // ── Décisions médicales ───────────────────────────────────────────────────────
+// Réduites à EVACUATION/SUIVI_TRAITEMENT (refonte) : la voie normale d'une consultation
+// est la clôture simple (pas besoin d'un choix explicite) ; prescription et examen
+// complémentaire sont désormais couverts par le flux Ordonnance → Générer un bon.
+// Sélectionnable ET désélectionnable (choix unique, jamais les deux en même temps).
 
-// Mono + accent teal (SARIS) : les ICÔNES distinguent les décisions, pas la couleur.
 const DECISIONS = [
-  { value: 'CLOTURE_SIMPLE',         labelKey: 'decisionClotureSimple'        },
-  { value: 'PRESCRIPTION',           labelKey: 'decisionPrescription'         },
-  { value: 'EXAMEN_COMPLEMENTAIRE',  labelKey: 'decisionExamenComplementaire' },
-  { value: 'EVACUATION',             labelKey: 'decisionEvacuation'           },
-  { value: 'SUIVI_TRAITEMENT',       labelKey: 'decisionSuiviTraitement'      },
+  { value: 'EVACUATION',       labelKey: 'decisionEvacuation'      },
+  { value: 'SUIVI_TRAITEMENT', labelKey: 'decisionSuiviTraitement' },
 ] as const
 
 const DECISION_ICON: Record<string, React.ReactNode> = {
-  CLOTURE_SIMPLE:        <CheckCircle2 size={16} />,
-  PRESCRIPTION:          <Pill size={16} />,
-  EXAMEN_COMPLEMENTAIRE: <FlaskConical size={16} />,
-  EVACUATION:            <Ambulance size={16} />,
-  SUIVI_TRAITEMENT:      <Activity size={16} />,
+  EVACUATION:       <Ambulance size={16} />,
+  SUIVI_TRAITEMENT: <Activity size={16} />,
 }
 
 // ── Onglets ───────────────────────────────────────────────────────────────────
+// Indépendants de la décision médicale (Ordonnance/Bons toujours visibles, plus de
+// présélection automatique) — seul le contenu des documents dépend encore de ce qui a
+// été généré.
 
 type DocView = 'ordonnance' | 'examens-c' | 'sorties' | 'suivi-traitement'
-
-/** Choix intelligent du document par défaut selon la décision médicale. */
-function defaultDocView(decision?: string | null): DocView {
-  if (decision === 'EXAMEN_COMPLEMENTAIRE') return 'examens-c'
-  if (decision === 'EVACUATION') return 'sorties'
-  if (decision === 'SUIVI_TRAITEMENT') return 'suivi-traitement'
-  return 'ordonnance'
-}
-
-/**
- * Document à ouvrir quand une décision est choisie. `null` = pas de document
- * (clôture simple) → on reste sur l'écran Décision.
- */
-function docViewForDecision(decision: string): DocView | null {
-  switch (decision) {
-    case 'PRESCRIPTION':           return 'ordonnance'
-    case 'EXAMEN_COMPLEMENTAIRE':  return 'examens-c'
-    case 'EVACUATION':             return 'sorties'
-    case 'SUIVI_TRAITEMENT':       return 'suivi-traitement'
-    default:                       return null
-  }
-}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -167,7 +147,14 @@ export function ConsultationDetail({ consultationId, initialDocView }: Props) {
   const [decision, setDecision] = useState('')   // remonté ici pour survivre aux changements d'étape
   const { has } = usePermissions()
   const myUserId = useSessionStore(s => s.user?.id ?? '')
+  const myRoles  = useSessionStore(s => s.user?.roles ?? [])
   const prendre   = usePrendreEnCharge(consultationId)
+  // Infirmier SANS délégation active : onglet Ordonnance en lecture seule (validées
+  // uniquement). Un infirmier délégué garde les mêmes droits qu'un médecin.
+  const { data: myDelegation } = useMyActiveDelegation()
+  const infirmierNonDelegue = myRoles.includes('INFIRMIER')
+    && !myRoles.includes('MEDECIN_CHEF') && !myRoles.includes('ADMIN_SYSTEME')
+    && !myDelegation?.active
 
   /* Redimensionnement sidebar patient ↔ contenu (mêmes bornes que VisiteDetail) */
   const splitRef                    = useRef<HTMLDivElement>(null)
@@ -208,10 +195,11 @@ export function ConsultationDetail({ consultationId, initialDocView }: Props) {
   // Réinitialise à l'ouverture d'une autre consultation.
   useEffect(() => { setStep(1); setDecision(''); setPreviewOrdId(null) }, [consultationId])
 
-  // Consultation déjà décidée (rouverte) → pré-sélectionne le bon document.
+  // Consultation déjà décidée (rouverte) → réhydrate le choix (les onglets Documents sont
+  // désormais indépendants de la décision, plus de présélection automatique).
   const decisionMed = consultation?.decisionMedicale
   useEffect(() => {
-    if (decisionMed) { setDecision(decisionMed); setDocView(defaultDocView(decisionMed)) }
+    if (decisionMed === 'EVACUATION' || decisionMed === 'SUIVI_TRAITEMENT') setDecision(decisionMed)
   }, [decisionMed])
 
   // Arriver depuis le dossier en cliquant un document précis : ouvrir d'emblée
@@ -235,17 +223,16 @@ export function ConsultationDetail({ consultationId, initialDocView }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [consultationId, consOuverte, priseEnCharge])
 
-  /**
-   * Décision choisie : on pré-sélectionne l'onglet Documents correspondant (sans
-   * y naviguer — Documents est désormais l'étape précédente) et, pour une
-   * PRESCRIPTION, on prépare l'ordonnance brouillon si elle n'existe pas.
-   */
+  /** Décision sélectionnable ET désélectionnable : recliquer la décision déjà active
+   *  l'annule (choix unique, jamais les deux ensemble). */
   function handleDecisionPick(value: string) {
-    setDecision(value)
-    const view = docViewForDecision(value)
-    if (view) setDocView(view)
-    // L'ordonnance n'est PLUS créée automatiquement ici : elle est créée à l'ajout
-    // de la première ligne (création paresseuse), pour ne jamais persister d'ordonnance vide.
+    setDecision(d => d === value ? '' : value)
+  }
+
+  /** Après génération d'une fiche (Évacuation/Suivi) : va voir le document généré. */
+  function goToDocuments(view: DocView) {
+    setStep(2)
+    setDocView(view)
   }
 
   if (isLoading) {
@@ -267,10 +254,6 @@ export function ConsultationDetail({ consultationId, initialDocView }: Props) {
   const { visite } = consultation
   const patient     = visite.patient
   const isActive    = consultation.statut === 'OUVERTE'
-  // Bons (pharmacie + examen) : délivrés par l'infirmier une fois la consultation
-  // clôturée (recueil §3.2/§4.3) — jamais pendant que le médecin est encore en train
-  // d'examiner, jamais après une annulation.
-  const canDeliverBons = consultation.statut === 'CLOTUREE'
 
   // Compteurs pour les badges d'onglets — « savoir à quoi s'attendre ».
   const nbDiagnostics   = consultation.diagnostics.length
@@ -430,6 +413,7 @@ export function ConsultationDetail({ consultationId, initialDocView }: Props) {
               canCancel={canCancel}
               decision={decision}
               onPickDecision={handleDecisionPick}
+              onGoToDocuments={goToDocuments}
             />
             <CertificatCard
               consultationId={consultationId}
@@ -453,6 +437,7 @@ export function ConsultationDetail({ consultationId, initialDocView }: Props) {
                 { key: 'ordonnance', label: t('consultation.tabPrescription'), icon: <Pill size={13} />,         badge: nbOrdonnances || undefined },
                 { key: 'examens-c',  label: t('consultation.tabExamForm'),     icon: <FlaskConical size={13} />, badge: (nbBonsExamen + nbBonsPharmacie) || undefined },
                 { key: 'sorties',    label: t('consultation.tabCriticalCases'), icon: <Ambulance size={13} />,   badge: nbSorties || undefined },
+                { key: 'suivi-traitement', label: t('consultation.tabSuivi'),  icon: <Activity size={13} /> },
               ]}
             />
 
@@ -463,6 +448,7 @@ export function ConsultationDetail({ consultationId, initialDocView }: Props) {
                   consultation={consultation}
                   ordonnances={consultation.ordonnances}
                   readonly={!isActive || !canOrdonnance || heldByOther}
+                  restrictToValidatedReadOnly={infirmierNonDelegue}
                   onPreview={setPreviewOrdId}
                 />
               </div>
@@ -470,23 +456,22 @@ export function ConsultationDetail({ consultationId, initialDocView }: Props) {
 
             {docView === 'examens-c' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--espace-3)' }}>
+                {/* Affichage pur : un bon naît exclusivement de « Générer un bon » sur une
+                    ordonnance validée (onglet Ordonnance) — gérable tant que la consultation
+                    est active, plus de dépendance à la clôture (ancien bug de régression). */}
                 <BonExamenCard
                   consultationId={consultationId}
-                  readonly={!canDeliverBons}
+                  readonly={!isActive || heldByOther}
                   soignant={consultation.soignant}
                   categorieLibelle={patient.categoriePatient.libelle}
                   categoriePatientId={patient.categoriePatient.id}
                 />
-                {/* Bon de pharmacie (recueil) : voucher médicaments, CDI + ayants droit —
-                    délivré par l'infirmier une fois la consultation clôturée, et
-                    seulement si une ordonnance validée existe pour cette consultation. */}
                 <BonPharmacieCard
                   consultationId={consultationId}
-                  readonly={!canDeliverBons}
+                  readonly={!isActive || heldByOther}
                   categoriePatientId={patient.categoriePatient.id}
                   soignant={consultation.soignant}
                   categorieLibelle={patient.categoriePatient.libelle}
-                  hasOrdonnanceValidee={consultation.ordonnances.some(o => o.statut === 'VALIDEE')}
                 />
               </div>
             )}
@@ -788,7 +773,7 @@ function ExamenSection({ consultationId, examenClinique, readonly }: {
 
 // ── Section décision médicale ─────────────────────────────────────────────────
 
-function DecisionSection({ consultationId, consultation, isActive, canClose: canCloseRole, canCancel, decision, onPickDecision }: {
+function DecisionSection({ consultationId, consultation, isActive, canClose: canCloseRole, canCancel, decision, onPickDecision, onGoToDocuments }: {
   consultationId: string
   consultation: ReturnType<typeof useConsultation>['data'] & {}
   isActive: boolean
@@ -796,6 +781,7 @@ function DecisionSection({ consultationId, consultation, isActive, canClose: can
   canCancel: boolean
   decision: string
   onPickDecision: (value: string) => void
+  onGoToDocuments: (view: 'sorties' | 'suivi-traitement') => void
 }) {
   const { t } = useTranslation()
   const isCompact = useIsCompact()
@@ -828,26 +814,27 @@ function DecisionSection({ consultationId, consultation, isActive, canClose: can
     }, 1200)
   }
 
+  // La fiche (évacuation/suivi) est désormais générée AVANT ce point, inline ci-dessous —
+  // ces enregistrements enfants existent déjà quand ils sont requis par la décision choisie.
+  const evacActive = !!consultation.evacuation && consultation.evacuation.statut !== 'ANNULE'
+  const suiviActif = !!consultation.suiviTraitement && consultation.suiviTraitement.statut !== 'ANNULE'
+
+  // Choix unique réel (pas juste un radio visuel) : le backend rejette déjà la création
+  // croisée (409) — on bloque en plus le clic ici pour ne pas laisser l'utilisateur
+  // remplir tout un formulaire avant de découvrir l'erreur.
+  const blockedByOther: Record<string, boolean> = {
+    EVACUATION:       suiviActif,
+    SUIVI_TRAITEMENT: evacActive,
+  }
+
   // Prérequis de clôture, anticipés AVANT le clic (alignés sur les gardes serveur).
+  // Aucune décision (voie normale, cas dominant) : aucun prérequis documentaire supplémentaire.
   const blockers: string[] = []
   if (consultation.diagnostics.length === 0) blockers.push(t('consultation.blockerDiagnostic'))
   if (!consultation.typeConsultationId) blockers.push(t('consultation.blockerType'))
-  if (decision === 'PRESCRIPTION' && !consultation.ordonnances.some(o => o.statut === 'VALIDEE')) blockers.push(t('consultation.blockerOrdonnance'))
-  // Examen complémentaire : PAS de bon d'examen exigé avant clôture — l'infirmier le
-  // délivre APRÈS, comme le bon de pharmacie.
-  if (decision === 'EVACUATION' && (!consultation.evacuation || consultation.evacuation.statut === 'ANNULE')) blockers.push(t('consultation.blockerDocument'))
-  const canClose = isActive && !!decision && blockers.length === 0
-
-  // Avertissement (NON bloquant) : la catégorie du patient n'ouvre pas droit au
-  // document que cette décision présuppose délivrable APRÈS clôture — l'infirmier
-  // ne pourra jamais créer le bon correspondant (audit : cul-de-sac différé).
-  // Fail-closed identique à BonExamenCard/BonPharmacieCard : sans ligne de droit
-  // configurée pour la catégorie, on considère NON éligible (pas l'inverse).
-  const { data: droits = [], isLoading: droitsLoading } = useCategoriesDroits()
-  const categoriePatientId = consultation.visite.patient.categoriePatient.id
-  const droitCategorie = droits.find(d => d.categorieId === categoriePatientId)
-  const categorieNonEligibleExamen    = decision === 'EXAMEN_COMPLEMENTAIRE' && !droitsLoading && droitCategorie?.bonExamen !== true
-  const categorieNonEligiblePharmacie = decision === 'PRESCRIPTION' && !droitsLoading && droitCategorie?.bonPharmacie !== true
+  if (decision === 'EVACUATION' && !evacActive) blockers.push(t('consultation.blockerDocument'))
+  if (decision === 'SUIVI_TRAITEMENT' && !suiviActif) blockers.push(t('consultation.blockerDocument'))
+  const canClose = isActive && blockers.length === 0
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -865,32 +852,49 @@ function DecisionSection({ consultationId, consultation, isActive, canClose: can
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           {DECISIONS.map((d, i) => {
             const active = decision === d.value
+            const blocked = blockedByOther[d.value] ?? false
+            const clickable = isActive && !blocked
             return (
-              <button
-                key={d.value}
-                onClick={() => onPickDecision(d.value)}
-                disabled={!isActive}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 11,
-                  padding: '11px 14px', fontSize: '13px', fontWeight: active ? 700 : 500,
-                  cursor: isActive ? 'pointer' : 'not-allowed', textAlign: 'left', width: '100%',
-                  opacity: isActive ? 1 : 0.6,
-                  borderLeft: `3px solid ${active ? 'var(--ap-500)' : 'transparent'}`,
-                  borderRight: 'none', borderTop: 'none',
-                  borderBottom: i < DECISIONS.length - 1 ? '1px solid var(--bordure-legere)' : 'none',
-                  background: active ? 'var(--ap-50)' : 'transparent',
-                  color: active ? 'var(--ap-700)' : 'var(--texte-secondaire)',
-                  transition: 'background 0.12s, color 0.12s',
-                }}
-                onMouseEnter={e => { if (!active && isActive) e.currentTarget.style.background = 'var(--fond-surface-2)' }}
-                onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent' }}
-              >
-                <span style={{ display: 'flex', flexShrink: 0, color: active ? 'var(--ap-600)' : 'var(--texte-tertiaire)' }}>
-                  {DECISION_ICON[d.value]}
-                </span>
-                <span style={{ flex: 1, minWidth: 0, lineHeight: 1.3 }}>{t(`consultation.${d.labelKey}`)}</span>
-                {active && <CheckCircle2 size={15} style={{ color: 'var(--ap-600)', flexShrink: 0 }} />}
-              </button>
+              <div key={d.value} style={{ borderBottom: i < DECISIONS.length - 1 ? '1px solid var(--bordure-legere)' : 'none' }}>
+                <button
+                  onClick={() => onPickDecision(d.value)}
+                  disabled={!clickable}
+                  title={blocked ? t('consultation.decisionBlockedBySibling') : undefined}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 11,
+                    padding: '11px 14px', fontSize: '13px', fontWeight: active ? 700 : 500,
+                    cursor: clickable ? 'pointer' : 'not-allowed', textAlign: 'left', width: '100%',
+                    opacity: clickable ? 1 : 0.6,
+                    border: 'none', borderLeft: `3px solid ${active ? 'var(--ap-500)' : 'transparent'}`,
+                    background: active ? 'var(--ap-50)' : 'transparent',
+                    color: active ? 'var(--ap-700)' : 'var(--texte-secondaire)',
+                    transition: 'background 0.12s, color 0.12s',
+                  }}
+                  onMouseEnter={e => { if (!active && clickable) e.currentTarget.style.background = 'var(--fond-surface-2)' }}
+                  onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent' }}
+                >
+                  <span style={{ display: 'flex', flexShrink: 0, color: active ? 'var(--ap-600)' : 'var(--texte-tertiaire)' }}>
+                    {DECISION_ICON[d.value]}
+                  </span>
+                  <span style={{ flex: 1, minWidth: 0, lineHeight: 1.3 }}>{t(`consultation.${d.labelKey}`)}</span>
+                  {active && <CheckCircle2 size={15} style={{ color: 'var(--ap-600)', flexShrink: 0 }} />}
+                </button>
+                {blocked && (
+                  <p style={{ margin: '0 14px 10px', fontSize: '11px', color: 'var(--avert-texte)' }}>
+                    {t('consultation.decisionBlockedBySibling')}
+                  </p>
+                )}
+                {active && !blocked && d.value === 'EVACUATION' && (
+                  <div style={{ padding: '0 14px 14px' }}>
+                    <EvacuationInlineForm consultationId={consultationId} isActive={isActive} already={evacActive} onGenerated={() => onGoToDocuments('sorties')} />
+                  </div>
+                )}
+                {active && !blocked && d.value === 'SUIVI_TRAITEMENT' && (
+                  <div style={{ padding: '0 14px 14px' }}>
+                    <SuiviInlineForm consultationId={consultationId} isActive={isActive} already={suiviActif} onGenerated={() => onGoToDocuments('suivi-traitement')} />
+                  </div>
+                )}
+              </div>
             )
           })}
         </div>
@@ -934,20 +938,6 @@ function DecisionSection({ consultationId, consultation, isActive, canClose: can
         </div>
       </div>
 
-      {/* Catégorie non éligible au document que cette décision présuppose — NE bloque
-          PAS la clôture (souvent volontaire : prescription faite, dispensation externe),
-          juste un avertissement pour ne pas laisser le patient sans suite en silence. */}
-      {(categorieNonEligibleExamen || categorieNonEligiblePharmacie) && (
-        <div style={{ padding: '10px 12px', borderRadius: 8, background: 'var(--info-fond)', border: '1px solid var(--info-bordure)', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-          <AlertTriangle size={13} style={{ color: 'var(--info-texte)', flexShrink: 0, marginTop: 1 }} />
-          <p style={{ margin: 0, fontSize: 12, color: 'var(--info-texte)', lineHeight: 1.5 }}>
-            {categorieNonEligibleExamen
-              ? t('consultation.decisionCategorieNonEligibleExamen')
-              : t('consultation.decisionCategorieNonEligiblePharmacie')}
-          </p>
-        </div>
-      )}
-
       {/* Prérequis manquants — anticipés avant la clôture (plus d'erreur subie) */}
       {decision && blockers.length > 0 && (
         <div style={{ padding: '10px 12px', borderRadius: 8, background: 'var(--avert-fond)', border: '1px solid var(--avert-bordure)', display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -966,7 +956,7 @@ function DecisionSection({ consultationId, consultation, isActive, canClose: can
         {/* Clôturer */}
         {canCloseRole && (
         <button
-          onClick={() => cloturer.mutate({ decisionMedicale: decision, conclusion: conclusion || undefined })}
+          onClick={() => cloturer.mutate({ decisionMedicale: decision || undefined, conclusion: conclusion || undefined })}
           disabled={!canClose || cloturer.isPending}
           style={{
             height: 44, borderRadius: 8, fontSize: '13px', fontWeight: '600',
@@ -1050,6 +1040,151 @@ function DecisionSection({ consultationId, consultation, isActive, canClose: can
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// ── Fiche d'évacuation — capture inline depuis l'étape Décision ───────────────
+// Remplace l'ancien CreateEvacuationDialog (EvacuationCard) : mêmes champs, même hook
+// useCreateEvacuation, mais générée ici et non plus depuis l'onglet Évacuation (devenu
+// affichage pur).
+
+function EvacuationInlineForm({ consultationId, isActive, already, onGenerated }: {
+  consultationId: string
+  isActive: boolean
+  already: boolean
+  onGenerated: () => void
+}) {
+  const { t } = useTranslation()
+  const isCompact = useIsCompact()
+  const create = useCreateEvacuation()
+  const [niveau, setNiveau] = useState<'BASSE' | 'MOYENNE' | 'HAUTE' | 'CRITIQUE'>('HAUTE')
+  const [infos,  setInfos]  = useState('')
+  const valid = infos.trim().length >= 10
+
+  if (already) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 8, background: 'var(--succes-fond)', color: 'var(--succes-texte)', fontSize: 12 }}>
+        <CheckCircle2 size={14} style={{ flexShrink: 0 }} />
+        <span style={{ flex: 1 }}>{t('consultation.evacGenerated')}</span>
+        <button onClick={onGenerated} style={{ background: 'none', border: 'none', color: 'var(--succes-texte)', fontWeight: 700, fontSize: 12, cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>
+          {t('consultation.viewInDocuments')}
+        </button>
+      </div>
+    )
+  }
+  if (!isActive) return null
+
+  async function submit() {
+    if (!valid) return
+    await create.mutateAsync({ consultationId, niveauUrgence: niveau, infosCliniques: infos.trim() })
+    onGenerated()
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 10, borderRadius: 8, border: '1px solid var(--ap-200)', background: 'var(--ap-50)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isCompact ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 6 }}>
+        {(['BASSE', 'MOYENNE', 'HAUTE', 'CRITIQUE'] as const).map(n => {
+          const active = niveau === n
+          const colors = {
+            BASSE:    { bg: 'var(--fond-surface-2)', text: 'var(--texte-secondaire)' },
+            MOYENNE:  { bg: 'var(--info-fond)',      text: 'var(--info-texte)'       },
+            HAUTE:    { bg: 'var(--avert-fond)',     text: 'var(--avert-texte)'      },
+            CRITIQUE: { bg: 'var(--erreur-fond)',    text: 'var(--erreur-texte)'     },
+          }[n]
+          return (
+            <button
+              key={n} type="button" onClick={() => setNiveau(n)}
+              style={{
+                padding: '8px', borderRadius: 6, border: `1.5px solid ${active ? colors.text : 'var(--bordure-normale)'}`,
+                background: active ? colors.bg : 'var(--fond-surface)', color: active ? colors.text : 'var(--texte-secondaire)',
+                fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em', cursor: 'pointer',
+              }}
+            >
+              {t(`sorties.urgence${n.charAt(0)}${n.slice(1).toLowerCase()}`)}
+            </button>
+          )
+        })}
+      </div>
+      <textarea
+        value={infos}
+        maxLength={5000}
+        rows={3}
+        onChange={e => setInfos(e.target.value)}
+        placeholder={t('sorties.createEvacInfosPlaceholder')}
+        aria-label={t('sorties.fieldInfosCliniques')}
+        style={{ width: '100%', padding: '8px 10px', fontSize: 13, borderRadius: 6, boxSizing: 'border-box', outline: 'none', border: '1px solid var(--bordure-normale)', background: 'var(--fond-surface)', color: 'var(--texte-primaire)', resize: 'vertical', fontFamily: 'inherit' }}
+      />
+      <button
+        onClick={submit} disabled={!valid || create.isPending}
+        style={{
+          alignSelf: 'flex-end', height: 34, padding: '0 16px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+          background: valid ? 'var(--erreur-accent)' : 'var(--fond-surface-2)', color: valid ? '#fff' : 'var(--texte-tertiaire)',
+          border: 'none', cursor: valid ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', gap: 6,
+        }}
+      >
+        {create.isPending ? <Loader2 size={14} className="animate-spin" /> : <Ambulance size={14} />}
+        {t('consultation.genererFiche')}
+      </button>
+    </div>
+  )
+}
+
+// ── Suivi de traitement — capture inline depuis l'étape Décision ──────────────
+// Remplace l'ancien CreateSuiviDialog (SuiviTraitementCard).
+
+function SuiviInlineForm({ consultationId, isActive, already, onGenerated }: {
+  consultationId: string
+  isActive: boolean
+  already: boolean
+  onGenerated: () => void
+}) {
+  const { t } = useTranslation()
+  const create = useCreateSuiviTraitement()
+  const [motif, setMotif] = useState('')
+  const valid = motif.trim().length >= 5
+
+  if (already) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 8, background: 'var(--succes-fond)', color: 'var(--succes-texte)', fontSize: 12 }}>
+        <CheckCircle2 size={14} style={{ flexShrink: 0 }} />
+        <span style={{ flex: 1 }}>{t('consultation.suiviGenerated')}</span>
+        <button onClick={onGenerated} style={{ background: 'none', border: 'none', color: 'var(--succes-texte)', fontWeight: 700, fontSize: 12, cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>
+          {t('consultation.viewInDocuments')}
+        </button>
+      </div>
+    )
+  }
+  if (!isActive) return null
+
+  async function submit() {
+    if (!valid) return
+    await create.mutateAsync({ consultationId, motif: motif.trim() })
+    onGenerated()
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 10, borderRadius: 8, border: '1px solid var(--ap-200)', background: 'var(--ap-50)' }}>
+      <textarea
+        value={motif}
+        maxLength={500}
+        rows={3}
+        onChange={e => setMotif(e.target.value)}
+        placeholder={t('suiviTraitement.createMotifPlaceholder')}
+        aria-label={t('suiviTraitement.fieldMotifSuivi')}
+        style={{ width: '100%', padding: '8px 10px', fontSize: 13, borderRadius: 6, boxSizing: 'border-box', outline: 'none', border: '1px solid var(--bordure-normale)', background: 'var(--fond-surface)', color: 'var(--texte-primaire)', resize: 'vertical', fontFamily: 'inherit' }}
+      />
+      <button
+        onClick={submit} disabled={!valid || create.isPending}
+        style={{
+          alignSelf: 'flex-end', height: 34, padding: '0 16px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+          background: valid ? 'var(--ap-500)' : 'var(--fond-surface-2)', color: valid ? '#fff' : 'var(--texte-tertiaire)',
+          border: 'none', cursor: valid ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', gap: 6,
+        }}
+      >
+        {create.isPending ? <Loader2 size={14} className="animate-spin" /> : <Activity size={14} />}
+        {t('consultation.genererFiche')}
+      </button>
     </div>
   )
 }

@@ -5,29 +5,57 @@
  */
 
 import {
-  Controller, Get, Post, Patch, Delete, Body, Param, Query, Req,
-  UseGuards, HttpCode, HttpStatus, UseInterceptors, UploadedFile, BadRequestException,
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  Req,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
 } from '@nestjs/common'
-import { FileInterceptor }    from '@nestjs/platform-express'
-import { memoryStorage }      from 'multer'
-import { PatientService }     from './patient.service'
-import { JwtAuthGuard }       from '../security/guards/jwt-auth.guard'
-import { PermissionsGuard }   from '../security/guards/permissions.guard'
+import { FileInterceptor } from '@nestjs/platform-express'
+import { memoryStorage } from 'multer'
+import { PatientService } from './patient.service'
+import { JwtAuthGuard } from '../security/guards/jwt-auth.guard'
+import { PermissionsGuard } from '../security/guards/permissions.guard'
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator'
 import { Audit } from '../../common/decorators/audit.decorator'
 import {
-  CreatePatientDto, UpdateIdentiteDto, UpsertModeVieDto,
-  ChangerCategorieDto, ToggleStatutPatientDto, PatientQueryDto, FindSimilarPatientDto,
+  CreatePatientDto,
+  UpdateIdentiteDto,
+  UpsertModeVieDto,
+  ChangerCategorieDto,
+  ToggleStatutPatientDto,
+  PatientQueryDto,
+  FindSimilarPatientDto,
   VerrouPatientDto,
 } from './dto/patient.dto'
-import { CreateAllergieDto, UpdateAllergieDto }             from './dto/medical.dto'
-import { CreateAntecedentDto, UpdateAntecedentDto }         from './dto/medical.dto'
-import { CreateAlerteMedicaleDto, UpdateAlerteMedicaleDto } from './dto/medical.dto'
-import { CreateSuiviChroniqueDto, UpdateSuiviChroniqueDto } from './dto/medical.dto'
+import { CreateAllergieDto, UpdateAllergieDto } from './dto/medical.dto'
+import { CreateAntecedentDto, UpdateAntecedentDto } from './dto/medical.dto'
+import {
+  CreateAlerteMedicaleDto,
+  UpdateAlerteMedicaleDto,
+} from './dto/medical.dto'
+import {
+  CreateSuiviChroniqueDto,
+  UpdateSuiviChroniqueDto,
+} from './dto/medical.dto'
 import { UpdateRattachementADDto } from './dto/rattachement.dto'
 
 interface AuthedRequest {
-  user?: { roles?: string[]; personnelMedicalId?: string | null; siteId?: string }
+  user?: {
+    roles?: string[]
+    personnelMedicalId?: string | null
+    siteId?: string
+  }
 }
 
 // Cloisonnement par médecin retiré (rôle MEDECIN supprimé, modèle à 2 rôles
@@ -41,7 +69,7 @@ function isRestrictedDoctor(_req: AuthedRequest): boolean {
 // Supervision = peut voir un dossier VERROUILLÉ (médecin-chef / admin système).
 const SUPERVISION_ROLES = ['ADMIN_SYSTEME', 'MEDECIN_CHEF']
 function isSupervision(req: AuthedRequest): boolean {
-  return (req.user?.roles ?? []).some(r => SUPERVISION_ROLES.includes(r))
+  return (req.user?.roles ?? []).some((r) => SUPERVISION_ROLES.includes(r))
 }
 
 // Confidentialité (recueil §5) : l'infirmier n'a accès qu'au résumé de la visite/
@@ -100,9 +128,9 @@ export class PatientController {
   @RequirePermissions('patient.read')
   findById(@Param('id') id: string, @Req() req: AuthedRequest) {
     return this.patientService.findById(id, {
-      restrictToOwn:      isRestrictedDoctor(req),
+      restrictToOwn: isRestrictedDoctor(req),
       personnelMedicalId: req.user?.personnelMedicalId ?? null,
-      canViewLocked:      isSupervision(req),
+      canViewLocked: isSupervision(req),
       restreindreHistorique: isHistoriqueRestreint(req),
     })
   }
@@ -123,9 +151,9 @@ export class PatientController {
   @RequirePermissions('patient.read')
   findConstantes(@Param('id') id: string, @Req() req: AuthedRequest) {
     return this.patientService.findConstantes(id, {
-      restrictToOwn:      isRestrictedDoctor(req),
+      restrictToOwn: isRestrictedDoctor(req),
       personnelMedicalId: req.user?.personnelMedicalId ?? null,
-      canViewLocked:      isSupervision(req),
+      canViewLocked: isSupervision(req),
       restreindreHistorique: isHistoriqueRestreint(req),
     })
   }
@@ -139,9 +167,9 @@ export class PatientController {
   @RequirePermissions('consultation.read')
   findAlertesCliniques(@Param('id') id: string, @Req() req: AuthedRequest) {
     return this.patientService.findAlertesCliniques(id, {
-      restrictToOwn:      isRestrictedDoctor(req),
+      restrictToOwn: isRestrictedDoctor(req),
       personnelMedicalId: req.user?.personnelMedicalId ?? null,
-      canViewLocked:      isSupervision(req),
+      canViewLocked: isSupervision(req),
     })
   }
 
@@ -153,9 +181,9 @@ export class PatientController {
   @RequirePermissions('consultation.read')
   findSuivi(@Param('id') id: string, @Req() req: AuthedRequest) {
     return this.patientService.findSuivi(id, {
-      restrictToOwn:      isRestrictedDoctor(req),
+      restrictToOwn: isRestrictedDoctor(req),
       personnelMedicalId: req.user?.personnelMedicalId ?? null,
-      canViewLocked:      isSupervision(req),
+      canViewLocked: isSupervision(req),
       restreindreHistorique: isHistoriqueRestreint(req),
     })
   }
@@ -166,14 +194,17 @@ export class PatientController {
    */
   @Post(':id/suivi-chronique')
   @RequirePermissions('consultation.diagnose')
-  createSuiviChronique(@Param('id') id: string, @Body() dto: CreateSuiviChroniqueDto) {
+  createSuiviChronique(
+    @Param('id') id: string,
+    @Body() dto: CreateSuiviChroniqueDto,
+  ) {
     return this.patientService.createSuiviChronique(id, dto)
   }
 
   @Patch(':id/suivi-chronique/:sId')
   @RequirePermissions('consultation.diagnose')
   updateSuiviChronique(
-    @Param('id')  id:  string,
+    @Param('id') id: string,
     @Param('sId') sId: string,
     @Body() dto: UpdateSuiviChroniqueDto,
   ) {
@@ -194,18 +225,29 @@ export class PatientController {
 
   @Post(':id/photo')
   @RequirePermissions('patient.update')
-  @UseInterceptors(FileInterceptor('file', {
-    // Stockage EN MÉMOIRE : la photo est encodée en Base64 et conservée dans la
-    // base (colonne identite.photoUrl). Aucun fichier sur disque → tout voyage
-    // avec le dump SQL (déploiement / sauvegarde triviaux).
-    storage: memoryStorage(),
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5 Mo
-    fileFilter: (_req, file, cb) => {
-      if (/^image\/(jpeg|png|webp|gif)$/.test(file.mimetype)) cb(null, true)
-      else cb(new BadRequestException('Format invalide — image JPEG, PNG, WEBP ou GIF attendue'), false)
-    },
-  }))
-  uploadPhoto(@Param('id') id: string, @UploadedFile() file?: Express.Multer.File) {
+  @UseInterceptors(
+    FileInterceptor('file', {
+      // Stockage EN MÉMOIRE : la photo est encodée en Base64 et conservée dans la
+      // base (colonne identite.photoUrl). Aucun fichier sur disque → tout voyage
+      // avec le dump SQL (déploiement / sauvegarde triviaux).
+      storage: memoryStorage(),
+      limits: { fileSize: 5 * 1024 * 1024 }, // 5 Mo
+      fileFilter: (_req, file, cb) => {
+        if (/^image\/(jpeg|png|webp|gif)$/.test(file.mimetype)) cb(null, true)
+        else
+          cb(
+            new BadRequestException(
+              'Format invalide — image JPEG, PNG, WEBP ou GIF attendue',
+            ),
+            false,
+          )
+      },
+    }),
+  )
+  uploadPhoto(
+    @Param('id') id: string,
+    @UploadedFile() file?: Express.Multer.File,
+  ) {
     if (!file) throw new BadRequestException('Aucun fichier reçu')
     return this.patientService.setPhoto(id, file.buffer)
   }
@@ -218,7 +260,11 @@ export class PatientController {
 
   @Patch(':id/categorie')
   @RequirePermissions('patient.change_category')
-  changerCategorie(@Param('id') id: string, @Body() dto: ChangerCategorieDto, @Req() req: any) {
+  changerCategorie(
+    @Param('id') id: string,
+    @Body() dto: ChangerCategorieDto,
+    @Req() req: any,
+  ) {
     return this.patientService.changerCategorie(id, dto, req.user?.id)
   }
 
@@ -231,8 +277,17 @@ export class PatientController {
   /** Verrouiller / déverrouiller l'accès au dossier (médecin-chef). */
   @Patch(':id/verrou')
   @RequirePermissions('patient.lock')
-  setVerrou(@Param('id') id: string, @Body() dto: VerrouPatientDto, @Req() req: any) {
-    return this.patientService.setVerrou(id, dto.verrouille, dto.motif ?? null, req.user?.id ?? null)
+  setVerrou(
+    @Param('id') id: string,
+    @Body() dto: VerrouPatientDto,
+    @Req() req: any,
+  ) {
+    return this.patientService.setVerrou(
+      id,
+      dto.verrouille,
+      dto.motif ?? null,
+      req.user?.id ?? null,
+    )
   }
 
   // ── Allergies ─────────────────────────────────────────────────────────────
@@ -246,9 +301,9 @@ export class PatientController {
   @Patch(':id/allergies/:aId')
   @RequirePermissions('patient.update')
   updateAllergie(
-    @Param('id')  id:  string,
+    @Param('id') id: string,
     @Param('aId') aId: string,
-    @Body()       dto: UpdateAllergieDto,
+    @Body() dto: UpdateAllergieDto,
   ) {
     return this.patientService.updateAllergie(id, aId, dto)
   }
@@ -270,9 +325,9 @@ export class PatientController {
   @Patch(':id/antecedents/:aId')
   @RequirePermissions('patient.update')
   updateAntecedent(
-    @Param('id')  id:  string,
+    @Param('id') id: string,
     @Param('aId') aId: string,
-    @Body()       dto: UpdateAntecedentDto,
+    @Body() dto: UpdateAntecedentDto,
   ) {
     return this.patientService.updateAntecedent(id, aId, dto)
   }
@@ -294,9 +349,9 @@ export class PatientController {
   @Patch(':id/alertes/:aId')
   @RequirePermissions('patient.update')
   updateAlerte(
-    @Param('id')  id:  string,
+    @Param('id') id: string,
     @Param('aId') aId: string,
-    @Body()       dto: UpdateAlerteMedicaleDto,
+    @Body() dto: UpdateAlerteMedicaleDto,
   ) {
     return this.patientService.updateAlerte(id, aId, dto)
   }
@@ -315,9 +370,9 @@ export class PatientController {
   @Patch(':id/rattachements-ad/:rId')
   @RequirePermissions('patient.rattachement.manage')
   updateRattachementAD(
-    @Param('id')  id:  string,
+    @Param('id') id: string,
     @Param('rId') rId: string,
-    @Body()       dto: UpdateRattachementADDto,
+    @Body() dto: UpdateRattachementADDto,
   ) {
     return this.patientService.updateRattachementAD(id, rId, dto)
   }

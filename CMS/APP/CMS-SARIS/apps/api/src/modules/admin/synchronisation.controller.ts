@@ -1,10 +1,17 @@
 import {
-  Controller, Get, Post, Param, Req, UseGuards, HttpCode, HttpStatus,
+  Controller,
+  Get,
+  Post,
+  Param,
+  Req,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common'
 import { SynchronisationService } from './synchronisation.service'
-import { JwtAuthGuard }           from '../security/guards/jwt-auth.guard'
-import { PermissionsGuard }       from '../security/guards/permissions.guard'
-import { RequirePermissions }     from '../../common/decorators/require-permissions.decorator'
+import { JwtAuthGuard } from '../security/guards/jwt-auth.guard'
+import { PermissionsGuard } from '../security/guards/permissions.guard'
+import { RequirePermissions } from '../../common/decorators/require-permissions.decorator'
 
 @Controller('synchronisation')
 @UseGuards(JwtAuthGuard, PermissionsGuard)

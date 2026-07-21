@@ -1,7 +1,15 @@
-import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common'
+import {
+  Injectable,
+  OnModuleInit,
+  OnModuleDestroy,
+  Logger,
+} from '@nestjs/common'
 import { PrismaClient } from '@prisma/client'
 import { createRequire } from 'node:module'
-import { buildSoftDeleteExtension, SOFT_DELETE_MODELS } from './soft-delete.extension'
+import {
+  buildSoftDeleteExtension,
+  SOFT_DELETE_MODELS,
+} from './soft-delete.extension'
 
 /**
  * PrismaService — wrapper NestJS autour de PrismaClient, **bi-cible** et
@@ -23,8 +31,15 @@ import { buildSoftDeleteExtension, SOFT_DELETE_MODELS } from './soft-delete.exte
 
 // Membres propres au service + cycle de vie (NON routés vers le client étendu).
 const SERVICE_OWN = new Set<string>([
-  'logger', 'baseClient', 'extendedClient', 'buildExtended',
-  'onModuleInit', 'onModuleDestroy', 'raw', 'softDelete', 'then',
+  'logger',
+  'baseClient',
+  'extendedClient',
+  'buildExtended',
+  'onModuleInit',
+  'onModuleDestroy',
+  'raw',
+  'softDelete',
+  'then',
 ])
 
 // Méthodes `$` qui n'existent QUE sur le client de base (perdues par `$extends`) :
@@ -32,7 +47,10 @@ const SERVICE_OWN = new Set<string>([
 const BASE_ONLY = new Set<string>(['$connect', '$disconnect', '$on', '$use'])
 
 @Injectable()
-export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+export class PrismaService
+  extends PrismaClient
+  implements OnModuleInit, OnModuleDestroy
+{
   private readonly logger = new Logger(PrismaService.name)
   /** Client BRUT (non étendu) : `this` en PostgreSQL, l'instance SQLite chargée en embarqué. */
   private readonly baseClient: PrismaClient
@@ -41,13 +59,18 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
   constructor() {
     super({
-      log: process.env['NODE_ENV'] === 'development' ? ['query', 'error', 'warn'] : ['error'],
+      log:
+        process.env['NODE_ENV'] === 'development'
+          ? ['query', 'error', 'warn']
+          : ['error'],
     })
 
     if (process.env['DATABASE_PROVIDER'] === 'sqlite') {
       const clientPath = process.env['SQLITE_CLIENT_PATH']
       if (!clientPath) {
-        throw new Error('DATABASE_PROVIDER=sqlite mais SQLITE_CLIENT_PATH est absent (chemin du client Prisma SQLite généré).')
+        throw new Error(
+          'DATABASE_PROVIDER=sqlite mais SQLITE_CLIENT_PATH est absent (chemin du client Prisma SQLite généré).',
+        )
       }
       const req = createRequire(__filename)
       const mod = req(clientPath) as { PrismaClient: typeof PrismaClient }
@@ -65,7 +88,9 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       get: (target, prop, receiver) => {
         if (typeof prop !== 'string') return Reflect.get(target, prop, receiver)
         if (SERVICE_OWN.has(prop)) return Reflect.get(target, prop, receiver)
-        const source = BASE_ONLY.has(prop) ? target.baseClient : target.extendedClient
+        const source = BASE_ONLY.has(prop)
+          ? target.baseClient
+          : target.extendedClient
         const value = (source as unknown as Record<string, unknown>)[prop]
         return typeof value === 'function'
           ? (value as (...a: unknown[]) => unknown).bind(source)
@@ -75,7 +100,9 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   }
 
   private buildExtended() {
-    return this.baseClient.$extends(buildSoftDeleteExtension(SOFT_DELETE_MODELS))
+    return this.baseClient.$extends(
+      buildSoftDeleteExtension(SOFT_DELETE_MODELS),
+    )
   }
 
   async onModuleInit(): Promise<void> {
@@ -87,7 +114,9 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       // appliquer les enregistrements dans l'ordre parent → enfant.
       await this.baseClient.$executeRawUnsafe('PRAGMA foreign_keys = OFF')
     }
-    this.logger.log(`Base de données ${sqlite ? 'SQLite locale' : 'PostgreSQL'} connectée (soft-delete actif)`)
+    this.logger.log(
+      `Base de données ${sqlite ? 'SQLite locale' : 'PostgreSQL'} connectée (soft-delete actif)`,
+    )
   }
 
   async onModuleDestroy(): Promise<void> {

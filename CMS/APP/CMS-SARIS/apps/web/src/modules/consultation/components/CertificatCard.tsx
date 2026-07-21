@@ -7,6 +7,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Bed, Check, Printer } from 'lucide-react'
 import { useSetRepos } from '../hooks/useConsultation'
+import { formatDate } from '@/lib/intl'
 
 interface Props {
   consultationId:  string
@@ -43,29 +44,26 @@ export function CertificatCard({ consultationId, reposJours, reposInclutJour, da
   const reposRO = readonly || !canRepos   // le repos maladie frappe consultation.update
   const setRepos = useSetRepos(consultationId)
 
-  // ── Repos (auto-save débounce) ──────────────────────────────────────────────
+  // ── Repos (auto-save débounce) — date de reprise calculée serveur, jamais saisie ────
   const [jours, setJours]       = useState<string>(reposJours != null ? String(reposJours) : '')
-  const [reprise, setReprise]   = useState<string>(dateReprise ? dateReprise.slice(0, 10) : '')
   const [inclut, setInclut]     = useState<boolean>(reposInclutJour)
   const [reposSaved, setSaved]  = useState(true)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     setJours(reposJours != null ? String(reposJours) : '')
-    setReprise(dateReprise ? dateReprise.slice(0, 10) : '')
     setInclut(reposInclutJour)
     setSaved(true)
   }, [consultationId])
 
-  function persistRepos(next: { jours?: string; reprise?: string; inclut?: boolean }) {
-    const j = next.jours    ?? jours
-    const r = next.reprise  ?? reprise
-    const i = next.inclut   ?? inclut
+  function persistRepos(next: { jours?: string; inclut?: boolean }) {
+    const j = next.jours  ?? jours
+    const i = next.inclut ?? inclut
     setSaved(false)
     if (timer.current) clearTimeout(timer.current)
     timer.current = setTimeout(() => {
       setRepos.mutate(
-        { reposJours: j ? Number(j) : null, reposInclutJour: i, dateReprise: r || null },
+        { reposJours: j ? Number(j) : null, reposInclutJour: i },
         { onSuccess: () => setSaved(true) },
       )
     }, 800)
@@ -102,17 +100,20 @@ export function CertificatCard({ consultationId, reposJours, reposInclutJour, da
               onChange={e => { setJours(e.target.value); persistRepos({ jours: e.target.value }) }}
               placeholder="0" style={{ ...INPUT, width: 110, maxWidth: '100%' }} />
           </label>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <span style={{ fontSize: '11px', color: 'var(--texte-secondaire)' }}>{t('consultation.certResumeDate')}</span>
-            <input type="date" value={reprise} disabled={reposRO}
-              onChange={e => { setReprise(e.target.value); persistRepos({ reprise: e.target.value }) }}
-              style={{ ...INPUT, width: 150, maxWidth: '100%' }} />
-          </label>
           <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '12px', color: 'var(--texte-secondaire)', paddingBottom: 8, cursor: reposRO ? 'default' : 'pointer' }}>
             <input type="checkbox" checked={inclut} disabled={reposRO}
               onChange={e => { setInclut(e.target.checked); persistRepos({ inclut: e.target.checked }) }} />
             {t('consultation.certIncludeDay')}
           </label>
+          {/* Date de reprise : calculée serveur, jamais saisie — affichage seul. */}
+          {dateReprise && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <span style={{ fontSize: '11px', color: 'var(--texte-secondaire)' }}>{t('consultation.certResumeDate')}</span>
+              <span style={{ height: 34, display: 'flex', alignItems: 'center', fontSize: '13px', fontWeight: 600, color: 'var(--texte-primaire)' }}>
+                {formatDate(dateReprise)}
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </div>

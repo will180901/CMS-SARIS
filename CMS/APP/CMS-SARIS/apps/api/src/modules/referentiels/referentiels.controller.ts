@@ -1,21 +1,37 @@
 import {
-  Controller, Get, Post, Patch, Delete,
-  Body, Param, Query, UseGuards, HttpCode, HttpStatus,
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common'
-import { ReferentielsService }       from './referentiels.service'
-import { JwtAuthGuard }              from '../security/guards/jwt-auth.guard'
-import { PermissionsGuard }          from '../security/guards/permissions.guard'
-import { RequirePermissions }        from '../../common/decorators/require-permissions.decorator'
-import { LiveRefresh }               from '../../common/decorators/live-refresh.decorator'
-import { Audit }                      from '../../common/decorators/audit.decorator'
-import { ListQueryDto }              from './dto/list-query.dto'
-import { CreateMotifDto, UpdateMotifDto }                       from './dto/motif.dto'
-import { CreatePathologieDto, UpdatePathologieDto }             from './dto/pathologie.dto'
-import { CreateMedicamentDto, UpdateMedicamentDto }             from './dto/medicament.dto'
-import { CreateCategoriePatientDto, UpdateCategoriePatientDto } from './dto/categorie-patient.dto'
-import { CreateTypeExamenDto, UpdateTypeExamenDto }             from './dto/type-examen.dto'
-import { CreateTypeConsultationDto, UpdateTypeConsultationDto } from './dto/type-consultation.dto'
-import { ToggleStatutReferentielDto }                           from './dto/toggle-statut.dto'
+import { ReferentielsService } from './referentiels.service'
+import { JwtAuthGuard } from '../security/guards/jwt-auth.guard'
+import { PermissionsGuard } from '../security/guards/permissions.guard'
+import { RequirePermissions } from '../../common/decorators/require-permissions.decorator'
+import { LiveRefresh } from '../../common/decorators/live-refresh.decorator'
+import { Audit } from '../../common/decorators/audit.decorator'
+import { ListQueryDto } from './dto/list-query.dto'
+import { CreateSiteDto, UpdateSiteDto } from './dto/site.dto'
+import { CreateMotifDto, UpdateMotifDto } from './dto/motif.dto'
+import { CreatePathologieDto, UpdatePathologieDto } from './dto/pathologie.dto'
+import { CreateMedicamentDto, UpdateMedicamentDto } from './dto/medicament.dto'
+import {
+  CreateCategoriePatientDto,
+  UpdateCategoriePatientDto,
+} from './dto/categorie-patient.dto'
+import { CreateTypeExamenDto, UpdateTypeExamenDto } from './dto/type-examen.dto'
+import {
+  CreateTypeConsultationDto,
+  UpdateTypeConsultationDto,
+} from './dto/type-consultation.dto'
+import { ToggleStatutReferentielDto } from './dto/toggle-statut.dto'
 
 /**
  * ReferentielsController — /referentiels
@@ -40,26 +56,54 @@ export class ReferentielsController {
   constructor(private readonly svc: ReferentielsService) {}
 
   // ── Sites ─────────────────────────────────────────────────────────────────
-  // Lecture seule : un site est enregistré une seule fois, à la première
-  // installation du poste desktop — plus de création/modification/suppression
-  // depuis l'interface (cf. pivot multi-site sans restriction).
+  // Créés depuis l'assistant de première installation du poste desktop (ou l'admin
+  // web) — cf. pivot multi-site sans restriction : plus de cloisonnement des DONNÉES
+  // par site, mais le référentiel Site lui-même reste géré (create/update/delete).
 
   @Get('sites')
-  @RequirePermissions('referentiel.read')
+  @RequirePermissions('referentiel.site.read')
   getSites(@Query() query: ListQueryDto) {
     return this.svc.findAllSites(query)
   }
 
   @Get('sites/:id')
-  @RequirePermissions('referentiel.read')
+  @RequirePermissions('referentiel.site.read')
   getSite(@Param('id') id: string) {
     return this.svc.findSiteById(id)
+  }
+
+  @Post('sites')
+  @RequirePermissions('referentiel.site.create')
+  @HttpCode(HttpStatus.CREATED)
+  createSite(@Body() dto: CreateSiteDto) {
+    return this.svc.createSite(dto)
+  }
+
+  @Patch('sites/:id')
+  @RequirePermissions('referentiel.site.update')
+  updateSite(@Param('id') id: string, @Body() dto: UpdateSiteDto) {
+    return this.svc.updateSite(id, dto)
+  }
+
+  @Patch('sites/:id/statut')
+  @RequirePermissions('referentiel.site.delete')
+  setStatutSite(
+    @Param('id') id: string,
+    @Body() dto: ToggleStatutReferentielDto,
+  ) {
+    return this.svc.setStatutSite(id, dto.statut)
+  }
+
+  @Delete('sites/:id')
+  @RequirePermissions('referentiel.site.delete')
+  deleteSite(@Param('id') id: string) {
+    return this.svc.deleteSite(id)
   }
 
   // ── Motifs de consultation ────────────────────────────────────────────────
 
   @Get('motifs')
-  @RequirePermissions('referentiel.read')
+  @RequirePermissions('referentiel.motif.read')
   getMotifs(@Query() query: ListQueryDto) {
     return this.svc.findAllMotifs(query)
   }
@@ -79,7 +123,10 @@ export class ReferentielsController {
 
   @Patch('motifs/:id/statut')
   @RequirePermissions('referentiel.motif.delete')
-  setStatutMotif(@Param('id') id: string, @Body() dto: ToggleStatutReferentielDto) {
+  setStatutMotif(
+    @Param('id') id: string,
+    @Body() dto: ToggleStatutReferentielDto,
+  ) {
     return this.svc.setStatutMotif(id, dto.statut)
   }
 
@@ -92,7 +139,7 @@ export class ReferentielsController {
   // ── Pathologies ───────────────────────────────────────────────────────────
 
   @Get('pathologies')
-  @RequirePermissions('referentiel.read')
+  @RequirePermissions('referentiel.pathologie.read')
   getPathologies(@Query() query: ListQueryDto) {
     return this.svc.findAllPathologies(query)
   }
@@ -112,7 +159,10 @@ export class ReferentielsController {
 
   @Patch('pathologies/:id/statut')
   @RequirePermissions('referentiel.pathologie.delete')
-  setStatutPathologie(@Param('id') id: string, @Body() dto: ToggleStatutReferentielDto) {
+  setStatutPathologie(
+    @Param('id') id: string,
+    @Body() dto: ToggleStatutReferentielDto,
+  ) {
     return this.svc.setStatutPathologie(id, dto.statut)
   }
 
@@ -125,7 +175,7 @@ export class ReferentielsController {
   // ── Médicaments ───────────────────────────────────────────────────────────
 
   @Get('medicaments')
-  @RequirePermissions('referentiel.read')
+  @RequirePermissions('referentiel.medicament.read')
   getMedicaments(@Query() query: ListQueryDto) {
     return this.svc.findAllMedicaments(query)
   }
@@ -145,7 +195,10 @@ export class ReferentielsController {
 
   @Patch('medicaments/:id/statut')
   @RequirePermissions('referentiel.medicament.delete')
-  setStatutMedicament(@Param('id') id: string, @Body() dto: ToggleStatutReferentielDto) {
+  setStatutMedicament(
+    @Param('id') id: string,
+    @Body() dto: ToggleStatutReferentielDto,
+  ) {
     return this.svc.setStatutMedicament(id, dto.statut)
   }
 
@@ -158,13 +211,18 @@ export class ReferentielsController {
   // ── Catégories de patients ────────────────────────────────────────────────
 
   @Get('categories-patient')
-  @RequirePermissions('referentiel.read')
+  @RequirePermissions('referentiel.categorie.read')
   getCategoriesPatient(@Query() query: ListQueryDto) {
     return this.svc.findAllCategoriesPatient(query)
   }
 
   // Route statique déclarée avant toute route `:id` du groupe pour ne jamais être
   // capturée par un paramètre id (aucune route GET `:id` ici, gardé par prudence).
+  //
+  // Garde volontairement laissée sur `referentiel.read` (et NON sur la lecture granulaire
+  // des catégories) : c'est un endpoint de SUPPORT CLINIQUE — il alimente l'éligibilité
+  // aux bons dans les écrans de consultation/ordonnance, pas la gestion du référentiel.
+  // L'exiger sur `referentiel.categorie.read` priverait les soignants de cette info.
   @Get('categories-patient/droits')
   @RequirePermissions('referentiel.read')
   getDroitsCategoriesPatient() {
@@ -180,13 +238,19 @@ export class ReferentielsController {
 
   @Patch('categories-patient/:id')
   @RequirePermissions('referentiel.categorie.update')
-  updateCategoriePatient(@Param('id') id: string, @Body() dto: UpdateCategoriePatientDto) {
+  updateCategoriePatient(
+    @Param('id') id: string,
+    @Body() dto: UpdateCategoriePatientDto,
+  ) {
     return this.svc.updateCategoriePatient(id, dto)
   }
 
   @Patch('categories-patient/:id/statut')
   @RequirePermissions('referentiel.categorie.delete')
-  setStatutCategoriePatient(@Param('id') id: string, @Body() dto: ToggleStatutReferentielDto) {
+  setStatutCategoriePatient(
+    @Param('id') id: string,
+    @Body() dto: ToggleStatutReferentielDto,
+  ) {
     return this.svc.setStatutCategoriePatient(id, dto.statut)
   }
 
@@ -199,7 +263,7 @@ export class ReferentielsController {
   // ── Types d'examen ────────────────────────────────────────────────────────
 
   @Get('types-examen')
-  @RequirePermissions('referentiel.read')
+  @RequirePermissions('referentiel.examen.read')
   getTypesExamen(@Query() query: ListQueryDto) {
     return this.svc.findAllTypesExamen(query)
   }
@@ -219,7 +283,10 @@ export class ReferentielsController {
 
   @Patch('types-examen/:id/statut')
   @RequirePermissions('referentiel.examen.delete')
-  setStatutTypeExamen(@Param('id') id: string, @Body() dto: ToggleStatutReferentielDto) {
+  setStatutTypeExamen(
+    @Param('id') id: string,
+    @Body() dto: ToggleStatutReferentielDto,
+  ) {
     return this.svc.setStatutTypeExamen(id, dto.statut)
   }
 
@@ -232,7 +299,7 @@ export class ReferentielsController {
   // ── Types de consultation ─────────────────────────────────────────────────
 
   @Get('types-consultation')
-  @RequirePermissions('referentiel.read')
+  @RequirePermissions('referentiel.type_consultation.read')
   getTypesConsultation(@Query() query: ListQueryDto) {
     return this.svc.findAllTypesConsultation(query)
   }
@@ -246,13 +313,19 @@ export class ReferentielsController {
 
   @Patch('types-consultation/:id')
   @RequirePermissions('referentiel.type_consultation.update')
-  updateTypeConsultation(@Param('id') id: string, @Body() dto: UpdateTypeConsultationDto) {
+  updateTypeConsultation(
+    @Param('id') id: string,
+    @Body() dto: UpdateTypeConsultationDto,
+  ) {
     return this.svc.updateTypeConsultation(id, dto)
   }
 
   @Patch('types-consultation/:id/statut')
   @RequirePermissions('referentiel.type_consultation.delete')
-  setStatutTypeConsultation(@Param('id') id: string, @Body() dto: ToggleStatutReferentielDto) {
+  setStatutTypeConsultation(
+    @Param('id') id: string,
+    @Body() dto: ToggleStatutReferentielDto,
+  ) {
     return this.svc.setStatutTypeConsultation(id, dto.statut)
   }
 

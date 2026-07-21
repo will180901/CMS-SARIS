@@ -14,4 +14,6 @@ export class CreateTypeConsultationDto {
 }
 
 // SÉCURITÉ : `statut` retiré — toggle via /types-consultation/:id/statut (referentiel.type_consultation.delete).
-export class UpdateTypeConsultationDto extends PartialType(CreateTypeConsultationDto) {}
+export class UpdateTypeConsultationDto extends PartialType(
+  CreateTypeConsultationDto,
+) {}

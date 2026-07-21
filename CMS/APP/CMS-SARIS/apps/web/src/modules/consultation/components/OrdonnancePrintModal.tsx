@@ -6,9 +6,10 @@
  */
 import { useTranslation } from 'react-i18next'
 import {
-  MedicalPrintSheet, PrintSection, PrintTable, PrintCallout,
+  MedicalPrintSheet, PrintSection, PrintTable, PrintCallout, PrintProse,
   PRINT_ACCENT, PRINT_MUTED, PRINT_SOFT,
 } from '@/components/print/MedicalPrintSheet'
+import { labelDomaine } from '@/config/labels'
 import type { ConsultationDetail, OrdonnanceDetail } from '@cms-saris/types'
 
 interface Props {
@@ -22,6 +23,7 @@ export function OrdonnancePrintModal({ consultation, ordonnance, onClose, varian
   const { t } = useTranslation()
   const p       = consultation.visite.patient
   const numero  = ordonnance.id.slice(0, 8).toUpperCase()
+  const isExamen = ordonnance.typeOrdonnance === 'PRESCRIPTION_EXAMEN'
 
   return (
     <MedicalPrintSheet
@@ -58,12 +60,36 @@ export function OrdonnancePrintModal({ consultation, ordonnance, onClose, varian
         </PrintSection>
       )}
 
+      {/* Indication clinique (branche PRESCRIPTION_EXAMEN uniquement) */}
+      {isExamen && ordonnance.indicationClinik && (
+        <PrintSection titre={t('consultation.ordIndicationLabel')}>
+          <PrintProse>{ordonnance.indicationClinik}</PrintProse>
+        </PrintSection>
+      )}
+
       {/* Prescription */}
       <PrintSection titre={ordonnance.lignes.length
         ? t('consultation.printPrescriptionCount', { count: ordonnance.lignes.length })
         : t('consultation.printPrescription')}>
         {ordonnance.lignes.length === 0 ? (
           <p style={{ margin: 0, fontStyle: 'italic', color: PRINT_MUTED, fontSize: 10.5 }}>{t('consultation.printNoMedication')}</p>
+        ) : isExamen ? (
+          <PrintTable
+            columns={[
+              { key: 'n', label: '#', width: 28, align: 'center' },
+              { key: 'exam', label: t('consultation.ordExamsLabel') },
+            ]}
+            rows={ordonnance.lignes.map((l, i) => ({
+              n: <span style={{ fontWeight: 700, color: PRINT_ACCENT }}>{i + 1}</span>,
+              exam: (
+                <div>
+                  <span style={{ fontWeight: 700 }}>{l.typeExamen?.libelle}</span>
+                  {l.typeExamen && <span style={{ color: PRINT_MUTED, fontStyle: 'italic' }}> ({labelDomaine(l.typeExamen.domaine)})</span>}
+                  {l.instructions && <div style={{ color: '#374151', fontStyle: 'italic', fontSize: 9.5, marginTop: 2 }}>{l.instructions}</div>}
+                </div>
+              ),
+            }))}
+          />
         ) : (
           <PrintTable
             columns={[
@@ -77,8 +103,8 @@ export function OrdonnancePrintModal({ consultation, ordonnance, onClose, varian
               n: <span style={{ fontWeight: 700, color: PRINT_ACCENT }}>{i + 1}</span>,
               med: (
                 <div>
-                  <span style={{ fontWeight: 700 }}>{l.medicament.nomGenerique}</span>
-                  {l.medicament.nomCommercial && <span style={{ color: PRINT_MUTED, fontStyle: 'italic' }}> ({l.medicament.nomCommercial})</span>}
+                  <span style={{ fontWeight: 700 }}>{l.medicament?.nomGenerique}</span>
+                  {l.medicament?.nomCommercial && <span style={{ color: PRINT_MUTED, fontStyle: 'italic' }}> ({l.medicament.nomCommercial})</span>}
                   {l.instructions && <div style={{ color: '#374151', fontStyle: 'italic', fontSize: 9.5, marginTop: 2 }}>{l.instructions}</div>}
                 </div>
               ),

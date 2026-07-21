@@ -6,13 +6,22 @@
  */
 
 import {
-  Controller, Get, Post, Patch, Delete, Body, Param, Req,
-  UseGuards, HttpCode, HttpStatus,
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Req,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common'
-import { RolesService }         from './roles.service'
-import { JwtAuthGuard }         from '../security/guards/jwt-auth.guard'
-import { PermissionsGuard }     from '../security/guards/permissions.guard'
-import { RequirePermissions }   from '../../common/decorators/require-permissions.decorator'
+import { RolesService } from './roles.service'
+import { JwtAuthGuard } from '../security/guards/jwt-auth.guard'
+import { PermissionsGuard } from '../security/guards/permissions.guard'
+import { RequirePermissions } from '../../common/decorators/require-permissions.decorator'
 import { CreateRoleDto, UpdateRoleDto } from './dto/role.dto'
 
 @Controller('admin')

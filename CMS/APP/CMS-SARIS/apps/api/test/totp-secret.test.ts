@@ -26,8 +26,14 @@ import {
 let passed = 0
 let failed = 0
 function test(name: string, fn: () => void): void {
-  try { fn(); passed++; console.log('  ✓ ' + name) }
-  catch (e) { failed++; console.error('  ✗ ' + name + '\n     ' + (e as Error).message) }
+  try {
+    fn()
+    passed++
+    console.log('  ✓ ' + name)
+  } catch (e) {
+    failed++
+    console.error('  ✗ ' + name + '\n     ' + (e as Error).message)
+  }
 }
 
 // Un secret TOTP réaliste (base32).
@@ -52,8 +58,8 @@ test('format v1:<iv>:<tag>:<ct> (4 segments)', () => {
 })
 test('IV 96 bits, tag GCM 128 bits', () => {
   const [, iv, tag] = encryptSecret(SECRET).split(':')
-  assert.equal(Buffer.from(iv!, 'base64').length, 12)
-  assert.equal(Buffer.from(tag!, 'base64').length, 16)
+  assert.equal(Buffer.from(iv, 'base64').length, 12)
+  assert.equal(Buffer.from(tag, 'base64').length, 16)
 })
 test('le secret en clair n’apparaît pas dans la valeur stockée', () => {
   const stored = encryptSecret(SECRET)
@@ -68,8 +74,8 @@ test('isEncrypted() : vrai sur chiffré, faux sur clair', () => {
 console.log('authentification GCM (altération)')
 function tamper(stored: string, idx: number): string {
   const parts = stored.split(':')
-  const buf = Buffer.from(parts[idx]!, 'base64')
-  buf[0] = buf[0]! ^ 0xff
+  const buf = Buffer.from(parts[idx], 'base64')
+  buf[0] = buf[0] ^ 0xff
   parts[idx] = buf.toString('base64')
   return parts.join(':')
 }

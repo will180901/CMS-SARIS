@@ -2,20 +2,27 @@
  * BonPharmacieController — /bons-pharmacie
  */
 import {
-  Controller, Get, Post, Patch, Delete,
-  Body, Param, Query,
-  UseGuards, HttpCode, HttpStatus,
+  Controller,
+  Get,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common'
-import { CurrentUser }          from '../../common/decorators/current-user.decorator'
-import type { UserSession }     from '@cms-saris/types'
-import { BonPharmacieService }  from './bon-pharmacie.service'
-import { JwtAuthGuard }         from '../security/guards/jwt-auth.guard'
-import { PermissionsGuard }     from '../security/guards/permissions.guard'
-import { RequirePermissions }   from '../../common/decorators/require-permissions.decorator'
-import { LiveRefresh }          from '../../common/decorators/live-refresh.decorator'
-import { Audit }                from '../../common/decorators/audit.decorator'
+import { BonPharmacieService } from './bon-pharmacie.service'
+import { JwtAuthGuard } from '../security/guards/jwt-auth.guard'
+import { PermissionsGuard } from '../security/guards/permissions.guard'
+import { RequirePermissions } from '../../common/decorators/require-permissions.decorator'
+import { LiveRefresh } from '../../common/decorators/live-refresh.decorator'
+import { Audit } from '../../common/decorators/audit.decorator'
 import {
-  CreateBonPharmacieDto, DelivrerBonPharmacieDto, AnnulerBonPharmacieDto, BonPharmacieQueryDto,
+  DelivrerBonPharmacieDto,
+  AnnulerBonPharmacieDto,
+  BonPharmacieQueryDto,
 } from './dto/bon-pharmacie.dto'
 
 @Controller('bons-pharmacie')
@@ -37,12 +44,8 @@ export class BonPharmacieController {
     return this.svc.findById(id)
   }
 
-  @Post()
-  @RequirePermissions('bon_pharmacie.create')
-  @HttpCode(HttpStatus.CREATED)
-  create(@Body() dto: CreateBonPharmacieDto, @CurrentUser() user: UserSession) {
-    return this.svc.create(dto, user.personnelMedicalId ?? user.id)
-  }
+  // Création directe retirée : un bon de pharmacie naît exclusivement de « Générer un bon »
+  // sur une ordonnance PHARMACEUTIQUE validée (POST /consultations/:id/ordonnances/:ordId/generer-bon).
 
   @Patch(':id/delivrer')
   @RequirePermissions('bon_pharmacie.deliver')
