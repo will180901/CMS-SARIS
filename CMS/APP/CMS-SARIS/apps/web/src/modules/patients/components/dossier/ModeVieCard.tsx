@@ -5,27 +5,55 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Pencil, Check, X, HeartPulse } from 'lucide-react'
-import { Input }     from '@workspace/ui/components/input'
 import { Label }     from '@workspace/ui/components/label'
-import { Textarea }  from '@/components/saris'
+import { Textarea, SelectBox } from '@/components/saris'
 import { useUpdateModeVie } from '../../hooks/usePatients'
 import { useIsCompact } from '@/hooks/useMediaQuery'
 import type { PatientDossier } from '@cms-saris/types'
 
+/**
+ * Chaque rubrique se saisit dans une liste déroulante et non plus au clavier :
+ * le mode de vie est relevé en consultation, souvent debout et dans l'urgence, et
+ * dix champs libres coûtaient dix frappes complètes. Les choix reprennent les
+ * échelles qui étaient déjà proposées en indication dans les anciens champs.
+ *
+ * Le détail chiffré ou nuancé (heures de sommeil, substance précise, médicament
+ * pris en automédication…) va dans « Observations », qui reste en texte libre.
+ */
 const FIELDS = [
-  { key: 'tabac',            label: 'Tabac',               ph: 'Non / Occasionnel / Régulier' },
-  { key: 'alcool',           label: 'Alcool',              ph: 'Non / Occasionnel / Régulier' },
-  { key: 'drogues',          label: 'Drogues',             ph: 'Non / …' },
-  { key: 'activitePhysique', label: 'Activité physique',   ph: 'Sédentaire / Modérée / Intense' },
-  { key: 'alimentation',     label: 'Alimentation',        ph: '' },
-  { key: 'sommeil',          label: 'Sommeil',             ph: 'Heures / qualité' },
-  { key: 'troublesSommeil',  label: 'Troubles du sommeil', ph: '' },
-  { key: 'sedentarite',      label: 'Sédentarité',         ph: '' },
-  { key: 'portCharges',      label: 'Port de charges',     ph: '' },
-  { key: 'automedication',   label: 'Automédication',      ph: 'Non / Oui : lesquels' },
+  { key: 'tabac',            label: 'Tabac',               choix: ['Non', 'Occasionnel', 'Régulier', 'Sevré'] },
+  { key: 'alcool',           label: 'Alcool',              choix: ['Non', 'Occasionnel', 'Régulier'] },
+  { key: 'drogues',          label: 'Drogues',             choix: ['Non', 'Occasionnel', 'Régulier'] },
+  { key: 'activitePhysique', label: 'Activité physique',   choix: ['Sédentaire', 'Modérée', 'Intense'] },
+  { key: 'alimentation',     label: 'Alimentation',        choix: ['Équilibrée', 'Déséquilibrée', 'Régime particulier'] },
+  { key: 'sommeil',          label: 'Sommeil',             choix: ['Bon', 'Moyen', 'Mauvais'] },
+  { key: 'troublesSommeil',  label: 'Troubles du sommeil', choix: ['Non', 'Oui'] },
+  { key: 'sedentarite',      label: 'Sédentarité',         choix: ['Non', 'Oui'] },
+  { key: 'portCharges',      label: 'Port de charges',     choix: ['Non', 'Occasionnel', 'Fréquent'] },
+  { key: 'automedication',   label: 'Automédication',      choix: ['Non', 'Oui'] },
 ] as const
 
 type ModeVieKey = (typeof FIELDS)[number]['key'] | 'observations'
+
+/**
+ * Options d'une rubrique : « non renseigné » d'abord (pour pouvoir effacer), puis
+ * les choix standard.
+ *
+ * Si le dossier contient déjà une valeur absente de la liste — les anciennes
+ * saisies étaient libres — elle est ajoutée en fin de liste. Sans cela, la liste
+ * n'aurait rien à sélectionner, afficherait « non renseigné », et le premier
+ * enregistrement effacerait silencieusement une donnée clinique existante.
+ */
+function optionsPour(choix: readonly string[], actuelle: string | null | undefined, labelVide: string) {
+  const options = [
+    { value: '', label: labelVide },
+    ...choix.map(c => ({ value: c, label: c })),
+  ]
+  if (actuelle && !choix.includes(actuelle)) {
+    options.push({ value: actuelle, label: actuelle })
+  }
+  return options
+}
 
 export function ModeVieCard({ dossier, canWrite }: { dossier: PatientDossier; canWrite: boolean }) {
   const { t } = useTranslation()
@@ -113,12 +141,13 @@ export function ModeVieCard({ dossier, canWrite }: { dossier: PatientDossier; ca
               {FIELDS.map(f => (
                 <div key={f.key} style={fld}>
                   <Label style={lbl}>{tr(f.key, f.label)}</Label>
-                  <Input
+                  <SelectBox
+                    size="sm"
                     value={vals[f.key]}
-                    onChange={e => setVals(v => ({ ...v, [f.key]: e.target.value }))}
-                    maxLength={200}
-                    placeholder={f.ph}
-                    style={{ fontSize: '13px', height: 34 }}
+                    onChange={val => setVals(v => ({ ...v, [f.key]: val }))}
+                    placeholder={t('patients.notProvided')}
+                    aria-label={tr(f.key, f.label)}
+                    options={optionsPour(f.choix, mv?.[f.key], t('patients.notProvided'))}
                   />
                 </div>
               ))}

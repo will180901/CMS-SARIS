@@ -145,6 +145,7 @@ export const en: Resources = {
     densityCompact: 'Compact',
     homePage: 'Home page',
     homePageHint: 'Page shown right after sign in',
+    homeAuto: 'Automatic (based on my role)',
     enabled: 'Enabled',
     disabled: 'Disabled',
     consult: 'View',

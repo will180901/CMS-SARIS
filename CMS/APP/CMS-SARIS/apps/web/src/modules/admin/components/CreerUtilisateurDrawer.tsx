@@ -1,12 +1,21 @@
 /**
- * CreerUtilisateurDrawer — assistant de création d'un compte utilisateur.
+ * CreerUtilisateurDrawer — assistant d'enregistrement d'une PERSONNE.
  *
- * Assistant en 2 étapes (cohérent avec « Nouveau patient ») :
- *   1. Compte         — login, email, mot de passe initial, site d'affectation
- *   2. Rôles & accès  — lien personnel médical (optionnel) + rôles attribués
+ * Assistant en 2 étapes :
+ *   1. Identité — nom, prénom, matricule, métier
+ *   2. Accès    — facultatif : login, mot de passe, site, rôles
  *
- * Validation par étape : on ne passe à l'étape 2 que si l'étape 1 est valide,
- * et « Créer le compte » n'est actif qu'avec au moins un rôle.
+ * L'ordre compte : on enregistre d'abord QUI est la personne, et seulement
+ * ensuite si elle peut se connecter. Un agent administratif ou un soignant pas
+ * encore doté d'un compte s'arrête à l'étape 1 — auparavant c'était impossible
+ * sans passer par un second écran, ce qui produisait des fiches en double.
+ *
+ * Le métier (sage-femme, technicien de laboratoire…) est saisi ici et non déduit
+ * du rôle d'accès : le système n'a que trois rôles de droits pour cinq métiers,
+ * et laisser le serveur deviner écrasait le métier réel.
+ *
+ * Avec `personnel`, l'assistant sert à DONNER un accès à quelqu'un déjà
+ * enregistré : l'identité est rappelée en lecture seule et on démarre à l'étape 2.
  */
 
 import { useState } from 'react'
@@ -21,48 +30,64 @@ import {
 } from '@workspace/ui/components/sheet'
 import { Button, Field, TextInput, StatusPill, SelectBox } from '@/components/saris'
 import { useCreateUtilisateur, useRoles } from '../hooks/useAdmin'
+import { useCreatePersonnel } from '@/modules/acteurs/hooks/usePersonnel'
+import { labelMetier } from '@/config/labels'
 import { useSites } from '@/modules/referentiels/hooks/useReferentiels'
 import { useSessionStore } from '@/stores/session.store'
 import { usePermissions } from '@/hooks/usePermissions'
 
+/** Personne déjà enregistrée à qui l'on vient donner un accès. */
+export interface PersonneExistante {
+  id:        string
+  nom:       string
+  prenom:    string
+  matricule: string
+  role:      string
+}
+
 interface Props {
   open:    boolean
   onClose: () => void
+  /** Renseigné = mode « donner un accès » : identité figée, on démarre à l'étape 2. */
+  personnel?: PersonneExistante | null
 }
+
+/** Métiers du centre. Distincts des rôles d'accès (qui portent les droits). */
+const METIERS = ['MEDECIN', 'INFIRMIER', 'SAGE_FEMME', 'TECHNICIEN_LAB', 'ADMINISTRATIF'] as const
 
 // Règles de validation alignées avec le backend (cf utilisateur.dto.ts).
 const LOGIN_REGEX    = /^[a-z][a-z0-9._-]*$/i
 const EMAIL_REGEX    = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{10,}$/
 
-export function CreerUtilisateurDrawer({ open, onClose }: Props) {
+export function CreerUtilisateurDrawer({ open, onClose, personnel = null }: Props) {
   const { t } = useTranslation()
   const create = useCreateUtilisateur()
+  const creerPersonnel = useCreatePersonnel()
   const isCompact = useIsCompact()
   const cols2 = isCompact ? '1fr' : '1fr 1fr'
 
-  const [step, setStep] = useState<1 | 2>(1)
+  /** Mode « donner un accès » : la personne existe déjà, son identité est figée. */
+  const modeAcces = !!personnel
+
+  const [step, setStep] = useState<1 | 2>(modeAcces ? 2 : 1)
   const [login,    setLogin]    = useState('')
   const [email,    setEmail]    = useState('')
   const [mdp,      setMdp]      = useState('')
   const [showMdp,  setShowMdp]  = useState(false)
   const [roleIds,  setRoleIds]  = useState<string[]>([])
-  const [nom,       setNom]       = useState('')
-  const [prenom,    setPrenom]    = useState('')
-  const [matricule, setMatricule] = useState('')
+  const [nom,       setNom]       = useState(personnel?.nom ?? '')
+  const [prenom,    setPrenom]    = useState(personnel?.prenom ?? '')
+  const [matricule, setMatricule] = useState(personnel?.matricule ?? '')
+  const [metier,    setMetier]    = useState<string>(personnel?.role ?? 'INFIRMIER')
+  // En mode « donner un accès », la question ne se pose pas : c'est le but même.
+  const [avecAcces, setAvecAcces] = useState(modeAcces)
 
   const { data: sites = [] } = useSites()
   const { data: roles = [] } = useRoles()
 
-  // Compte « soignant » = au moins un rôle clinique (MEDECIN_CHEF / INFIRMIER). Dans ce
-  // cas on saisit l'identité (nom/prénom/matricule) et le backend crée la fiche clinique
-  // liée — plus de répertoire de personnel séparé (recueil).
-  const isClinicalSelected = roleIds.some(id => {
-    const r = roles.find(x => x.id === id)
-    return r?.code === 'MEDECIN_CHEF' || r?.code === 'INFIRMIER'
-  })
-  const identityValid = !isClinicalSelected
-    || (nom.trim().length >= 2 && prenom.trim().length >= 2 && matricule.trim().length >= 2)
+  const identityValid =
+    nom.trim().length >= 2 && prenom.trim().length >= 2 && matricule.trim().length >= 2
 
   // Cloisonnement multi-site : par défaut un admin crée sur SON propre site
   // (JWT), site figé sans sélecteur. Un détenteur de `utilisateur.create`
@@ -87,17 +112,23 @@ export function CreerUtilisateurDrawer({ open, onClose }: Props) {
     ? t('admin.passwordRule')
     : undefined
 
-  const step1Valid =
+  // Étape 1 = identité. Étape 2 = accès, dont les champs ne sont exigés que si
+  // l'on a effectivement demandé un accès.
+  const accesValid =
     LOGIN_REGEX.test(login) && login.length >= 3 && login.length <= 32
     && EMAIL_REGEX.test(email)
     && PASSWORD_REGEX.test(mdp)
     && !!siteId
-  const valid = step1Valid && roleIds.length > 0 && identityValid
+    && roleIds.length > 0
+  const valid = identityValid && (!avecAcces || accesValid)
 
   function reset() {
-    setStep(1)
+    setStep(modeAcces ? 2 : 1)
     setLogin(''); setEmail(''); setMdp(''); setShowMdp(false)
-    setRoleIds([]); setNom(''); setPrenom(''); setMatricule('')
+    setRoleIds([])
+    setNom(personnel?.nom ?? ''); setPrenom(personnel?.prenom ?? '')
+    setMatricule(personnel?.matricule ?? ''); setMetier(personnel?.role ?? 'INFIRMIER')
+    setAvecAcces(modeAcces)
     setSiteId(ownSiteId)
   }
   function handleClose() { reset(); onClose() }
@@ -107,31 +138,47 @@ export function CreerUtilisateurDrawer({ open, onClose }: Props) {
   }
 
   function goNext() {
-    if (step1Valid) setStep(2)
+    if (identityValid) setStep(2)
   }
 
   async function handleSubmit(e?: React.FormEvent) {
     e?.preventDefault()
     if (!valid) return
-    // Erreurs serveur (login/email déjà pris…) notifiées par toast via le hook.
+    // Erreurs serveur (matricule/login/email déjà pris…) notifiées par toast via les hooks.
     try {
-      await create.mutateAsync({
-        login: login.trim(),
-        email: email.trim().toLowerCase(),
-        motDePasseInitial: mdp,
-        siteId,
-        roleIds,
-        ...(isClinicalSelected ? { nom: nom.trim(), prenom: prenom.trim(), matricule: matricule.trim() } : {}),
-      })
+      // 1. L'identité d'abord. La fiche porte le VRAI métier — le serveur ne peut
+      //    pas le déduire du rôle d'accès (il n'a que 3 rôles pour 5 métiers).
+      const personnelId = personnel
+        ? personnel.id
+        : (await creerPersonnel.mutateAsync({
+            nom:       nom.trim(),
+            prenom:    prenom.trim(),
+            matricule: matricule.trim(),
+            role:      metier as never,
+          })).id
+
+      // 2. L'accès ensuite, s'il a été demandé. En cas d'échec ici, la personne
+      //    reste enregistrée SANS accès — un état cohérent et rattrapable depuis
+      //    la liste (« Donner un accès »), jamais une fiche à moitié créée.
+      if (avecAcces) {
+        await create.mutateAsync({
+          login: login.trim(),
+          email: email.trim().toLowerCase(),
+          motDePasseInitial: mdp,
+          siteId,
+          roleIds,
+          personnelMedicalId: personnelId,
+        })
+      }
       handleClose()
     } catch {
-      // On garde le drawer ouvert pour correction.
+      // On garde le panneau ouvert pour correction.
     }
   }
 
   const STEPS = [
-    { n: 1 as const, label: t('admin.stepAccount'),     icon: <KeyRound size={13} /> },
-    { n: 2 as const, label: t('admin.stepRolesAccess'), icon: <ShieldCheck size={13} /> },
+    { n: 1 as const, label: t('admin.stepIdentite', { defaultValue: 'Identité' }), icon: <Stethoscope size={13} /> },
+    { n: 2 as const, label: t('admin.stepAcces',    { defaultValue: 'Accès' }),    icon: <KeyRound size={13} /> },
   ]
 
   return (
@@ -167,13 +214,19 @@ export function CreerUtilisateurDrawer({ open, onClose }: Props) {
               margin: 0, fontSize: 'var(--font-size-h4)', fontWeight: 700,
               color: 'var(--texte-primaire)', lineHeight: 1.25,
             }}>
-              {t('admin.newUserAccount')}
+              {modeAcces
+                ? t('admin.donnerAccesTitre', { defaultValue: 'Donner un accès' })
+                : t('admin.nouvellePersonne', { defaultValue: 'Nouvelle personne' })}
             </SheetTitle>
             <SheetDescription style={{
               margin: '3px 0 0', fontSize: 'var(--font-size-caption)',
               color: 'var(--texte-tertiaire)', lineHeight: 1.4,
             }}>
-              {step === 1 ? t('admin.newUserStep1Desc') : t('admin.newUserStep2Desc')}
+              {modeAcces
+                ? t('admin.donnerAccesDesc', { defaultValue: 'Ouvrir une connexion à cette personne' })
+                : step === 1
+                  ? t('admin.nouvellePersonneDesc', { defaultValue: 'Qui est cette personne ?' })
+                  : t('admin.nouvellePersonneAccesDesc', { defaultValue: 'Peut-elle se connecter à l’application ?' })}
             </SheetDescription>
           </div>
           <button
@@ -240,16 +293,108 @@ export function CreerUtilisateurDrawer({ open, onClose }: Props) {
             display: 'flex', flexDirection: 'column', gap: 'var(--espace-4)',
           }}
         >
-          {/* ── Étape 1 — Compte ───────────────────────────────────────── */}
+          {/* ── Étape 1 — Identité ─────────────────────────────────────── */}
           {step === 1 && (
             <>
+              <SectionTitle icon={<Stethoscope size={14} />} label={t('admin.identiteSection', { defaultValue: 'Identité de la personne' })} />
+              <div style={{ display: 'grid', gridTemplateColumns: cols2, gap: 'var(--espace-3)' }}>
+                <Field label={t('admin.soignantPrenom', { defaultValue: 'Prénom' })} required>
+                  {(id) => (
+                    <TextInput
+                      id={id} value={prenom}
+                      onChange={e => setPrenom(e.target.value)}
+                      placeholder="Marie-Claire" autoFocus
+                    />
+                  )}
+                </Field>
+                <Field label={t('admin.soignantNom', { defaultValue: 'Nom' })} required>
+                  {(id) => (
+                    <TextInput id={id} value={nom} onChange={e => setNom(e.target.value)} placeholder="BATCHI" />
+                  )}
+                </Field>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: cols2, gap: 'var(--espace-3)' }}>
+                <Field
+                  label={t('admin.soignantMatricule', { defaultValue: 'Matricule' })}
+                  required
+                  hint={t('admin.soignantMatriculeHint', { defaultValue: 'Identifiant unique de l\'agent (ex. INF-001, MED-002).' })}
+                >
+                  {(id) => <TextInput id={id} value={matricule} onChange={e => setMatricule(e.target.value)} placeholder="INF-001" />}
+                </Field>
+                <Field
+                  label={t('admin.metierLabel', { defaultValue: 'Métier' })}
+                  required
+                  hint={t('admin.metierHint', { defaultValue: 'Sa fonction réelle — indépendante des droits accordés.' })}
+                >
+                  {(id) => (
+                    <SelectBox
+                      id={id} value={metier} onChange={setMetier}
+                      options={METIERS.map(m => ({ value: m, label: labelMetier(m) }))}
+                    />
+                  )}
+                </Field>
+              </div>
+            </>
+          )}
+
+          {/* ── Étape 2 — Accès à l'application ────────────────────────── */}
+          {step === 2 && (
+            <>
+              {/* Rappel de qui l'on est en train d'enregistrer */}
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 'var(--espace-2)',
+                padding: 'var(--espace-2) var(--espace-3)',
+                border: '1px solid var(--bordure-legere)',
+                borderRadius: 'var(--radius-md)',
+                background: 'var(--fond-surface-2)',
+                fontSize: 'var(--font-size-body-sm)',
+              }}>
+                <Stethoscope size={14} style={{ color: 'var(--texte-tertiaire)', flexShrink: 0 }} />
+                <span style={{ color: 'var(--texte-primaire)', fontWeight: 600 }}>
+                  {`${prenom} ${nom}`.trim()}
+                </span>
+                <span style={{ color: 'var(--texte-tertiaire)', fontFamily: 'monospace', fontSize: 'var(--font-size-caption)' }}>
+                  {matricule} · {labelMetier(metier)}
+                </span>
+              </div>
+
+              {/* Le choix structurant de cet écran : accès ou pas d'accès. */}
+              {!modeAcces && (
+                <label style={{
+                  display: 'flex', alignItems: 'flex-start', gap: 'var(--espace-2)',
+                  padding: 'var(--espace-3)',
+                  borderRadius: 'var(--radius-md)',
+                  border: `1.5px solid ${avecAcces ? 'var(--ap-400)' : 'var(--bordure-legere)'}`,
+                  background: avecAcces ? 'var(--ap-50)' : 'var(--fond-surface)',
+                  cursor: 'pointer', transition: 'all 0.12s',
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={avecAcces}
+                    onChange={e => setAvecAcces(e.target.checked)}
+                    style={{ width: 14, height: 14, accentColor: 'var(--ap-500)', marginTop: 2 }}
+                  />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ margin: 0, fontSize: 'var(--font-size-body-sm)', fontWeight: 600, color: avecAcces ? 'var(--ap-700)' : 'var(--texte-primaire)' }}>
+                      {t('admin.donnerAcces', { defaultValue: 'Donner un accès à l’application' })}
+                    </p>
+                    <p style={{ margin: '2px 0 0', fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)' }}>
+                      {t('admin.donnerAccesHint', { defaultValue: 'Décochez pour enregistrer la personne sans lui permettre de se connecter.' })}
+                    </p>
+                  </div>
+                </label>
+              )}
+
+              {!avecAcces ? null : (
+              <>
               <div style={{ display: 'grid', gridTemplateColumns: cols2, gap: 'var(--espace-3)' }}>
                 <Field label={t('admin.loginLabel')} required hint={t('admin.loginHint')} error={loginError}>
                   {(id) => (
                     <TextInput
                       id={id} value={login}
                       onChange={e => setLogin(e.target.value.toLowerCase().trim())}
-                      placeholder={t('admin.loginPlaceholder')} autoFocus
+                      placeholder={t('admin.loginPlaceholder')}
                     />
                   )}
                 </Field>
@@ -325,12 +470,7 @@ export function CreerUtilisateurDrawer({ open, onClose }: Props) {
                   )}
                 </Field>
               )}
-            </>
-          )}
 
-          {/* ── Étape 2 — Rôles & accès ────────────────────────────────── */}
-          {step === 2 && (
-            <>
               <SectionTitle icon={<ShieldCheck size={14} />} label={t('admin.assignedRoles')} />
               <Field
                 label={t('admin.rolesLabel')}
@@ -382,25 +522,7 @@ export function CreerUtilisateurDrawer({ open, onClose }: Props) {
                 )}
               </Field>
 
-              {/* Identité du soignant — la fiche clinique est créée AVEC le compte */}
-              {isClinicalSelected && (
-                <>
-                  <SectionTitle icon={<Stethoscope size={14} />} label={t('admin.soignantIdentity', { defaultValue: 'Identité du soignant' })} />
-                  <p style={{ margin: '-6px 0 0', fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)' }}>
-                    {t('admin.soignantIdentityHint', { defaultValue: 'La fiche clinique du soignant est créée automatiquement avec le compte.' })}
-                  </p>
-                  <div style={{ display: 'grid', gridTemplateColumns: cols2, gap: 'var(--espace-3)' }}>
-                    <Field label={t('admin.soignantNom', { defaultValue: 'Nom' })} required>
-                      {(id) => <TextInput id={id} value={nom} onChange={e => setNom(e.target.value)} placeholder="BATCHI" />}
-                    </Field>
-                    <Field label={t('admin.soignantPrenom', { defaultValue: 'Prénom' })} required>
-                      {(id) => <TextInput id={id} value={prenom} onChange={e => setPrenom(e.target.value)} placeholder="Marie-Claire" />}
-                    </Field>
-                  </div>
-                  <Field label={t('admin.soignantMatricule', { defaultValue: 'Matricule' })} required hint={t('admin.soignantMatriculeHint', { defaultValue: 'Identifiant unique de l\'agent (ex. INF-001, MED-002).' })}>
-                    {(id) => <TextInput id={id} value={matricule} onChange={e => setMatricule(e.target.value)} placeholder="INF-001" />}
-                  </Field>
-                </>
+              </>
               )}
             </>
           )}
@@ -414,7 +536,7 @@ export function CreerUtilisateurDrawer({ open, onClose }: Props) {
           display:    'flex', justifyContent: 'space-between', gap: 'var(--espace-2)',
           flexShrink: 0,
         }}>
-          {step === 1 ? (
+          {step === 1 || modeAcces ? (
             <Button variant="secondary" size="sm" onClick={handleClose}>{t('admin.cancel')}</Button>
           ) : (
             <Button variant="secondary" size="sm" leftIcon={<ChevronLeft size={14} />} onClick={() => setStep(1)}>
@@ -423,7 +545,7 @@ export function CreerUtilisateurDrawer({ open, onClose }: Props) {
           )}
 
           {step === 1 ? (
-            <Button variant="primary" size="sm" disabled={!step1Valid} onClick={goNext}>
+            <Button variant="primary" size="sm" disabled={!identityValid} onClick={goNext}>
               {t('admin.next')} <ChevronRight size={14} style={{ marginLeft: 4 }} />
             </Button>
           ) : (
@@ -431,11 +553,15 @@ export function CreerUtilisateurDrawer({ open, onClose }: Props) {
               type="submit" form="creer-user-form"
               variant="primary" size="sm"
               disabled={!valid}
-              loading={create.isPending}
+              loading={create.isPending || creerPersonnel.isPending}
               leftIcon={<UserPlus size={14} />}
               style={{ minWidth: 140 }}
             >
-              {t('admin.createAccount')}
+              {modeAcces
+                ? t('admin.donnerAccesAction', { defaultValue: 'Donner l’accès' })
+                : avecAcces
+                  ? t('admin.createAccount')
+                  : t('admin.enregistrerPersonne', { defaultValue: 'Enregistrer' })}
             </Button>
           )}
         </div>

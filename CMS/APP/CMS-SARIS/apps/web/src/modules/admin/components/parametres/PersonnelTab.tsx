@@ -23,6 +23,8 @@ import { soundsEnabled, setSoundsEnabled } from '@/lib/sounds'
 import { formatDateTime } from '@/lib/intl'
 import { useTranslation } from 'react-i18next'
 import { useSessionStore } from '@/stores/session.store'
+import { usePermissions } from '@/hooks/usePermissions'
+import type { PermissionCode } from '@cms-saris/types'
 import {
   useMyPreferences, useUpdateMyPreferences,
   useMySessions, useRevokeSession, useRevokeOtherSessions,
@@ -132,16 +134,27 @@ function PreferencesCard() {
   const { setTheme } = useTheme()
   // ⚠️ Doit rester aligné sur HOME_PERM/HOME_ORDER (AppShell.tsx) : une valeur absente
   // de cette table serait ignorée au chargement (repli sur la 1re page autorisée).
+  //
+  // La liste est FILTRÉE par les permissions : proposer une page à laquelle la
+  // personne n'a pas accès l'amènerait à choisir une destination silencieusement
+  // ignorée à la connexion suivante — une promesse que le système ne tient pas.
+  const { has } = usePermissions()
   const pageOptions = [
-    { value: 'dashboard', label: t('nav.dashboard') },
-    { value: 'triage', label: t('nav.triage') },
-    { value: 'patients', label: t('nav.patients') },
-    { value: 'consultations', label: t('nav.consultations') },
-    { value: 'rapports', label: t('nav.rapports') },
-    { value: 'messagerie', label: t('nav.messagerie') },
-    { value: 'referentiels', label: t('nav.referentiels') },
-    { value: 'admin/acces', label: t('nav.acces') },
+    // « Automatique » ouvre sur le poste de travail de la fonction (l'infirmier
+    // commence sa journée au Triage, pas devant des statistiques). Les autres
+    // valeurs sont un choix délibéré et priment sur ce comportement.
+    { value: 'auto', label: t('settings.homeAuto'), perm: null },
+    { value: 'dashboard', label: t('nav.dashboard'), perm: 'dashboard.read' },
+    { value: 'triage', label: t('nav.triage'), perm: 'visite.read' },
+    { value: 'patients', label: t('nav.patients'), perm: 'patient.read' },
+    { value: 'consultations', label: t('nav.consultations'), perm: 'consultation.read' },
+    { value: 'rapports', label: t('nav.rapports'), perm: 'consultation.read' },
+    { value: 'messagerie', label: t('nav.messagerie'), perm: 'messagerie.read' },
+    { value: 'referentiels', label: t('nav.referentiels'), perm: 'referentiel.read' },
+    { value: 'admin/acces', label: t('nav.acces'), perm: 'utilisateur.read' },
   ]
+    .filter(o => o.perm === null || has(o.perm as PermissionCode))
+    .map(({ value, label }) => ({ value, label }))
   const [draft, setDraft] = useState<Preferences | null>(null)
   // Préférence locale (appareil) : sons d'interface. Appliquée immédiatement.
   const [sons, setSons] = useState(soundsEnabled())

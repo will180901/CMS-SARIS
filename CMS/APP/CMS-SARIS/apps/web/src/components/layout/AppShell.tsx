@@ -10,7 +10,9 @@ import { useMyPreferences } from '@/modules/admin/hooks/useAdmin'
 import { usePermissions }   from '@/hooks/usePermissions'
 import { useIsMobile }      from '@/hooks/useMediaQuery'
 import { useNavStackTracker } from '@/hooks/useNavStack'
-import type { PermissionCode } from '@cms-saris/types'
+import { useSessionStore }   from '@/stores/session.store'
+import { ACCUEIL_PAR_ROLE, getPrimaryRole } from '@/config/navigation.config'
+import type { PermissionCode, Role } from '@cms-saris/types'
 
 // Pages d'accueil possibles → permission requise. Toute valeur hors de cette
 // table est ignorée (évite une redirection vers une route inexistante qui
@@ -30,16 +32,38 @@ const HOME_PERM: Record<string, PermissionCode> = {
 }
 const HOME_ORDER = ['dashboard', 'triage', 'patients', 'consultations', 'rapports', 'messagerie', 'referentiels', 'admin/acces']
 
-/** Redirige vers la page d'accueil préférée — uniquement si connue ET autorisée,
- *  sinon vers la première page accessible (jamais une route inexistante). */
+/** Valeur de préférence signifiant « pas de choix explicite — décide pour moi ».
+ *  Volontairement ABSENTE de HOME_PERM : elle ne désigne aucune route, ce qui la
+ *  fait retomber sur le poste de travail de la fonction (cf. RootRedirect). */
+const ACCUEIL_AUTO = 'auto'
+
+/**
+ * Redirige vers la page d'accueil — uniquement si connue ET autorisée, sinon vers la
+ * première page accessible (jamais une route inexistante, qui boucalerait via `*`).
+ *
+ * Ordre de priorité :
+ *   1. le choix explicite de la personne (« Mes paramètres ») ;
+ *   2. le poste de travail de sa fonction (ACCUEIL_PAR_ROLE : l'infirmier ouvre sur
+ *      le Triage, où se trouve réellement son travail) ;
+ *   3. la première page à laquelle ses permissions lui donnent accès.
+ * Chaque niveau reste filtré par les permissions : un poste non autorisé est ignoré.
+ */
 function RootRedirect() {
   const { has } = usePermissions()
   const { data: pref, isLoading } = useMyPreferences()
+  const roles = useSessionStore(s => s.user?.roles)
   if (isLoading) return null
 
-  const firstAllowed = HOME_ORDER.find(p => has(HOME_PERM[p])) ?? 'dashboard'
-  const cible = pref?.pageAccueil ?? ''
-  const perm  = HOME_PERM[cible]
+  const posteDuRole = roles?.length
+    ? ACCUEIL_PAR_ROLE[getPrimaryRole(roles as Role[])]
+    : undefined
+  const ordre = posteDuRole
+    ? [posteDuRole, ...HOME_ORDER.filter(p => p !== posteDuRole)]
+    : HOME_ORDER
+
+  const firstAllowed = ordre.find(p => has(HOME_PERM[p]!)) ?? 'dashboard'
+  const cible = pref?.pageAccueil ?? ACCUEIL_AUTO
+  const perm  = cible === ACCUEIL_AUTO ? undefined : HOME_PERM[cible]
   const target = perm && has(perm) ? cible : firstAllowed
 
   return <Navigate to={`/${target}`} replace />

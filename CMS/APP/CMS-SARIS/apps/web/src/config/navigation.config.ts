@@ -2,10 +2,20 @@
  * Configuration de navigation — basée sur les PERMISSIONS granulaires
  * (et plus seulement sur les rôles).
  *
- * Charte de gouvernance (3 rôles, modèle du recueil) :
- *   - ADMIN_SYSTEME : administration + audit + supervision système (PAS de clinique)
- *   - MEDECIN_CHEF  : clinique complète + gouvernance médicale (référentiels, personnel, audit)
- *   - INFIRMIER     : triage / constantes (prescription uniquement si délégué)
+ * Ce qu'un utilisateur voit ici découle UNIQUEMENT de ses permissions effectives :
+ * aucune entrée n'est réservée à un rôle en dur, et un groupe vide disparaît. Une
+ * permission accordée ou retirée depuis « Accès & habilitations » se répercute donc
+ * immédiatement sur ce menu, y compris pour un rôle personnalisé.
+ *
+ * Fonctions livrées avec le système (ce ne sont que les valeurs PAR DÉFAUT des rôles,
+ * modifiables depuis la matrice de permissions) :
+ *   - ADMIN_SYSTEME : super-administrateur — catalogue COMPLET, clinique comprise.
+ *       Choix assumé : il pilote et supervise l'ensemble de la plateforme. Ne pas lui
+ *       re-retirer le clinique (décision prise, puis confirmée).
+ *   - MEDECIN_CHEF  : clinique complète + gouvernance médicale (référentiels, personnel,
+ *       accès & habilitations, audit) — mais ni paramètres système ni synchronisation.
+ *   - INFIRMIER     : triage / constantes / accueil (prescription uniquement si délégué),
+ *       sans aucune entrée du groupe Administration.
  */
 
 import {
@@ -175,4 +185,21 @@ const ROLE_PRIORITY: Role[] = [
 
 export function getPrimaryRole(roles: Role[]): Role {
   return ROLE_PRIORITY.find(r => roles.includes(r)) ?? roles[0]
+}
+
+// ── Poste de travail par défaut ───────────────────────────────────────────────
+
+/**
+ * Page sur laquelle une fonction arrive naturellement à la connexion.
+ *
+ * L'infirmier(ère) travaille à l'accueil : sa journée commence dans la file
+ * d'attente, pas devant des statistiques. Le médecin chef et l'administrateur
+ * ouvrent au contraire sur une vue d'ensemble.
+ *
+ * Ce n'est qu'un DÉFAUT : le choix explicite fait dans « Mes paramètres » prime
+ * toujours, et une fonction absente de cette table garde le tableau de bord.
+ * La page reste soumise aux permissions — un poste non autorisé est ignoré.
+ */
+export const ACCUEIL_PAR_ROLE: Partial<Record<Role, string>> = {
+  INFIRMIER: 'triage',
 }

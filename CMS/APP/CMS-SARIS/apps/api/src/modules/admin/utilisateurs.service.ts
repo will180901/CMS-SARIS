@@ -226,18 +226,28 @@ export class UtilisateursService {
           : 'Cet email est déjà utilisé',
       )
 
-    // Le personnel ne doit pas déjà être lié à un autre compte
+    // Le personnel ne doit pas déjà être lié à un autre compte VIVANT.
     if (dto.personnelMedicalId) {
       const personnelLink = await this.prisma.raw.utilisateur.findUnique({
         where: { personnelMedicalId: dto.personnelMedicalId },
         select: { id: true, deletedAt: true },
       })
-      if (personnelLink)
+      if (personnelLink && !personnelLink.deletedAt)
         throw new ConflictException(
-          personnelLink.deletedAt
-            ? 'Ce personnel médical est lié à un compte utilisateur supprimé'
-            : 'Ce personnel médical est déjà lié à un autre compte utilisateur',
+          'Ce personnel médical est déjà lié à un autre compte utilisateur',
         )
+      // Lié à un compte SUPPRIMÉ : ce n'est pas un conflit, c'est une personne
+      // dont on avait retiré l'accès et à qui on le redonne. Le compte supprimé
+      // n'est plus qu'une trace d'audit — son lien vers la personne ne sert à
+      // rien et n'a aucune raison de la bloquer à vie. On le détache donc ici.
+      // (Les suppressions récentes détachent déjà à la source ; ce rattrapage
+      // couvre les comptes supprimés AVANT cette correction.)
+      if (personnelLink?.deletedAt) {
+        await this.prisma.raw.utilisateur.update({
+          where: { id: personnelLink.id },
+          data: { personnelMedicalId: null },
+        })
+      }
       const personnelExists = await this.prisma.personnelMedical.findUnique({
         where: { id: dto.personnelMedicalId },
       })
@@ -1028,6 +1038,16 @@ export class UtilisateursService {
 
     // On retire les enfants sûrs (rôles, dérogations, sessions) puis le compte.
     // Si l'historique (audit, notifications) y réfère encore → 409 : on désactive.
+    //
+    // Le lien vers la fiche personnel est DÉTACHÉ avant la suppression. Supprimer un
+    // compte, c'est retirer un accès à l'application — pas effacer la personne : sa
+    // fiche (et tout l'historique clinique qui s'y rattache) doit rester intacte ET
+    // pouvoir recevoir un nouvel accès plus tard. Comme la suppression est douce, le
+    // compte devient un tombstone qui CONSERVERAIT `personnelMedicalId` ; la contrainte
+    // d'unicité rendait alors impossible de redonner un accès à cette personne
+    // (« Ce personnel médical est lié à un compte utilisateur supprimé »).
+    // Le login et l'e-mail, eux, restent volontairement occupés par le tombstone :
+    // ils identifient un compte passé et ne doivent pas être réattribués à l'aveugle.
     try {
       await this.prisma.$transaction([
         this.prisma.utilisateurRole.deleteMany({
@@ -1038,6 +1058,10 @@ export class UtilisateursService {
         }),
         this.prisma.sessionUtilisateur.deleteMany({
           where: { utilisateurId: id },
+        }),
+        this.prisma.utilisateur.update({
+          where: { id },
+          data: { personnelMedicalId: null },
         }),
         this.prisma.utilisateur.delete({ where: { id } }),
       ])

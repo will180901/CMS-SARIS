@@ -27,7 +27,12 @@ const PREF_DEFAULTS = {
   theme: 'auto',
   densite: 'confort',
   langue: 'fr',
-  pageAccueil: 'dashboard',
+  // 'auto' = « selon ma fonction » : le client ouvre sur le poste de travail du rôle
+  // (l'infirmier sur le Triage, les autres sur le Tableau de bord). Toute autre valeur
+  // est un choix explicite de la personne et prime. Le défaut du schéma reste
+  // "dashboard" pour ne pas toucher aux comptes existants : seuls les comptes SANS
+  // ligne de préférences reçoivent 'auto'.
+  pageAccueil: 'auto',
   lignesParPage: 25,
   notifEmail: true,
 }

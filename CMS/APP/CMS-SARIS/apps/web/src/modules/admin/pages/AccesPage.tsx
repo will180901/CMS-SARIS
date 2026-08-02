@@ -16,7 +16,6 @@ import { usePersistedState } from '@/hooks/usePersistedState'
 import { UtilisateursPage } from './UtilisateursPage'
 import { RolesPage } from './RolesPage'
 import { DelegationsTab } from '@/modules/acteurs/tabs/DelegationsTab'
-import { PersonnelSoignantTab } from '@/modules/acteurs/tabs/PersonnelSoignantTab'
 
 export function AccesPage() {
   const { t } = useTranslation()
@@ -24,13 +23,15 @@ export function AccesPage() {
   const isCompact = useIsCompact()
   const canUsers = has('utilisateur.read')
   const canRoles = has('role.read')
-  const canPersonnel = has('personnel.read')
   const canDeleg = has('delegation.read')   // le médecin-chef gère ici ses délégations
 
+  // « Personnel » remplace les anciens onglets « Utilisateurs » ET « Personnel
+  // soignant » : c'est la même personne des deux côtés, et deux écrans de
+  // création produisaient des doublons et des fiches orphelines. La page liste
+  // désormais toutes les personnes, avec ou sans accès à l'application.
   const tabs = [
-    ...(canUsers ? [{ key: 'users', label: 'Utilisateurs' }] : []),
+    ...(canUsers ? [{ key: 'users', label: t('admin.tabPersonnel', { defaultValue: 'Personnel' }) }] : []),
     ...(canRoles ? [{ key: 'roles', label: 'Rôles & permissions' }] : []),
-    ...(canPersonnel ? [{ key: 'personnel', label: t('personnelSoignant.tab', { defaultValue: 'Personnel soignant' }) }] : []),
     ...(canDeleg ? [{ key: 'delegations', label: 'Délégations' }] : []),
   ]
   const [tab, setTab] = usePersistedState<string>('acces', 'tab', tabs[0]?.key ?? 'users')
@@ -74,15 +75,6 @@ export function AccesPage() {
       <div style={{ flex: 1, minHeight: 0, overflow: isCompact ? 'auto' : 'hidden' }}>
         {active === 'users' && canUsers && <UtilisateursPage embedded />}
         {active === 'roles' && canRoles && <RolesPage embedded />}
-        {active === 'personnel' && canPersonnel && (
-          <div style={{ height: isCompact ? 'auto' : '100%', padding: '0 var(--espace-6)' }}>
-            <PersonnelSoignantTab
-              canCreate={has('personnel.create')}
-              canUpdate={has('personnel.update')}
-              canDelete={has('personnel.delete')}
-            />
-          </div>
-        )}
         {active === 'delegations' && canDeleg && (
           <div style={{ height: isCompact ? 'auto' : '100%', padding: '0 var(--espace-6)' }}>
             <DelegationsTab

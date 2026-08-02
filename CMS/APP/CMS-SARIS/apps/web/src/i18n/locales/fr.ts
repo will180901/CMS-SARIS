@@ -143,6 +143,7 @@ export const fr = {
     densityCompact: 'Compact',
     homePage: 'Page d’accueil',
     homePageHint: 'Page affichée juste après la connexion',
+    homeAuto: 'Automatique (selon ma fonction)',
     enabled: 'Activés',
     disabled: 'Désactivés',
     consult: 'Consulter',

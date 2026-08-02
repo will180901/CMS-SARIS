@@ -1,5 +1,20 @@
 /**
- * UtilisateursPage — administration des comptes utilisateur.
+ * UtilisateursPage — administration des PERSONNES du centre.
+ *
+ * Une ligne = une personne, qu'elle puisse se connecter ou non.
+ *
+ * Le système garde deux objets distincts en base, et c'est nécessaire :
+ *   • `PersonnelMedical` — l'identité professionnelle (nom, matricule, métier).
+ *     C'est elle que référence tout l'historique clinique : consultations,
+ *     délégations, absences, présences, plannings, habilitations. La supprimer
+ *     détruirait cet historique.
+ *   • `Utilisateur` — le moyen de se connecter (login, rôles, permissions,
+ *     sessions, messagerie). L'administrateur système en a un sans être soignant.
+ *
+ * Mais les gérer sur DEUX écrans n'avait aucun sens : c'est la même personne, et
+ * deux formulaires de création produisaient des doublons et des fiches orphelines.
+ * Cette page les réunit — l'accès à l'application devient une PROPRIÉTÉ de la
+ * personne : elle en a un, ou elle n'en a pas.
  *
  * Layout : PageHeader + Toolbar + tableau dense.
  * Actions : créer, voir détail, changer statut, réinitialiser mdp, attribuer rôles.
@@ -9,7 +24,7 @@ import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Users, Plus, Shield, KeyRound, UserCheck, UserX,
-  Stethoscope, Loader2, ChevronRight, Trash2, AlertTriangle,
+  Stethoscope, Loader2, ChevronRight, Trash2, AlertTriangle, Pencil,
 } from 'lucide-react'
 import { PageHeader, Toolbar, Card, Button, StatCard,
   StatusPill, UserAvatar, EmptyState, Skeleton, IconButton, SelectBox, PaginationBar, useColumnResize, Modal,
@@ -20,12 +35,30 @@ import { useIsCompact } from '@/hooks/useMediaQuery'
 import { usePermissions } from '@/hooks/usePermissions'
 import { useSessionStore } from '@/stores/session.store'
 import { useUtilisateurs, useRoles, useSetStatut, useDeleteUtilisateur } from '../hooks/useAdmin'
+import { usePersonnel } from '@/modules/acteurs/hooks/usePersonnel'
 import { useSites } from '@/modules/referentiels/hooks/useReferentiels'
+import { labelMetier } from '@/config/labels'
 import { CreerUtilisateurDrawer } from '../components/CreerUtilisateurDrawer'
 import { UtilisateurDrawer }      from '../components/UtilisateurDrawer'
 import { ResetPasswordDialog }    from '../components/ResetPasswordDialog'
+import { FichePersonnelModal }    from '../components/FichePersonnelModal'
 import type { UtilisateurAdmin }  from '../api/admin.api'
 import { labelStatut } from '@/config/labels'
+
+/**
+ * Une personne telle qu'affichée ici : son identité, et son accès s'il existe.
+ * `compte` à null = la personne est enregistrée mais ne peut pas se connecter.
+ */
+export interface Personne {
+  cle:         string
+  compte:      UtilisateurAdmin | null
+  personnelId: string | null
+  nom:         string
+  prenom:      string
+  matricule:   string | null
+  metier:      string | null
+  ficheActive: boolean
+}
 
 export function UtilisateursPage({ embedded = false }: { embedded?: boolean } = {}) {
   const { t } = useTranslation()
@@ -41,6 +74,7 @@ export function UtilisateursPage({ embedded = false }: { embedded?: boolean } = 
   const [statutF,   setStatutF]   = useState<'' | 'ACTIF' | 'DESACTIVE' | 'BLOQUE'>('')
   const [roleF,     setRoleF]     = useState<string>('')
   const [siteF,     setSiteF]     = useState<string>('')
+  const [accesF,    setAccesF]    = useState<'' | 'avec' | 'sans'>('')
   // Filtre de site : la liste backend est désormais globale (multi-site sans
   // restriction) — ce filtre est purement une commodité d'affichage côté client,
   // appliqué après réception de la liste complète (pas de paramètre serveur).
@@ -49,6 +83,10 @@ export function UtilisateursPage({ embedded = false }: { embedded?: boolean } = 
   const [openDetail, setOpenDetail] = useState<string | null>(null)
   const [openReset,  setOpenReset]  = useState<UtilisateurAdmin | null>(null)
   const [openDelete, setOpenDelete] = useState<UtilisateurAdmin | null>(null)
+  /** Personne déjà enregistrée à qui l'on ouvre un accès. */
+  const [openAcces,  setOpenAcces]  = useState<Personne | null>(null)
+  /** Fiche (identité) en cours de modification. */
+  const [openFiche,  setOpenFiche]  = useState<Personne | null>(null)
 
   const deleteUser = useDeleteUtilisateur()
 
@@ -75,13 +113,59 @@ export function UtilisateursPage({ embedded = false }: { embedded?: boolean } = 
   )
   const { data: roles = [] } = useRoles()
 
-  // KPI rapides
+  // Répertoire des personnes. Celles qui n'ont pas de compte n'apparaissent que
+  // via cette source — sans elle, un agent administratif ou un soignant pas
+  // encore doté d'un accès resterait invisible ici.
+  const { data: personnel = [], isLoading: chargePersonnel } = usePersonnel()
+
+  // ── Fusion : une ligne par personne ────────────────────────────────────────
+  const personnes = useMemo<Personne[]>(() => {
+    const q = search.trim().toLowerCase()
+
+    const depuisComptes: Personne[] = users.map(u => ({
+      cle:         'u:' + u.id,
+      compte:      u,
+      personnelId: u.personnelMedicalId,
+      nom:         u.personnelMedical?.nom    ?? u.login,
+      prenom:      u.personnelMedical?.prenom ?? '',
+      matricule:   u.personnelMedical?.matricule ?? null,
+      metier:      u.personnelMedical?.role   ?? null,
+      ficheActive: u.statut === 'ACTIF',
+    }))
+
+    // Un filtre qui ne porte que sur le compte (statut, rôle, site) exclut par
+    // nature les personnes qui n'en ont pas : on ne les mélange pas au résultat.
+    const filtreCompteActif = !!(statutF || roleF || siteF)
+    const rattaches = new Set(users.map(u => u.personnelMedicalId).filter(Boolean))
+
+    const sansAcces: Personne[] =
+      accesF === 'avec' || filtreCompteActif
+        ? []
+        : personnel
+            .filter(p => !rattaches.has(p.id))
+            .filter(p => !q || [p.nom, p.prenom, p.matricule].some(v => v?.toLowerCase().includes(q)))
+            .map(p => ({
+              cle:         'p:' + p.id,
+              compte:      null,
+              personnelId: p.id,
+              nom:         p.nom,
+              prenom:      p.prenom,
+              matricule:   p.matricule,
+              metier:      p.role,
+              ficheActive: p.statut === 'ACTIF',
+            }))
+
+    const liste = accesF === 'sans' ? sansAcces : [...depuisComptes, ...sansAcces]
+    return liste.sort((a, b) => (a.nom + a.prenom).localeCompare(b.nom + b.prenom))
+  }, [users, personnel, search, statutF, roleF, siteF, accesF])
+
+  // KPI rapides — à l'échelle des PERSONNES, pas des seuls comptes.
   const stats = useMemo(() => ({
-    total:    users.length,
-    actifs:   users.filter(u => u.statut === 'ACTIF').length,
-    bloques:  users.filter(u => u.statut === 'BLOQUE').length,
-    desact:   users.filter(u => u.statut === 'DESACTIVE').length,
-  }), [users])
+    total:    personnes.length,
+    avec:     personnes.filter(p => p.compte).length,
+    sans:     personnes.filter(p => !p.compte).length,
+    bloques:  personnes.filter(p => p.compte?.statut === 'BLOQUE').length,
+  }), [personnes])
 
   return (
     <>
@@ -95,7 +179,7 @@ export function UtilisateursPage({ embedded = false }: { embedded?: boolean } = 
           actions={
             canCreate && (
               <Button leftIcon={<Plus size={15} />} onClick={() => setOpenCreer(true)}>
-                {t('admin.newUser')}
+                {t('admin.nouvellePersonne', { defaultValue: 'Nouvelle personne' })}
               </Button>
             )
           }
@@ -106,7 +190,7 @@ export function UtilisateursPage({ embedded = false }: { embedded?: boolean } = 
         {embedded && canCreate && (
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--espace-2)', padding: 'var(--espace-3) var(--espace-6) 0' }}>
             <Button size="sm" leftIcon={<Plus size={15} />} onClick={() => setOpenCreer(true)}>
-              {t('admin.newUser')}
+              {t('admin.nouvellePersonne', { defaultValue: 'Nouvelle personne' })}
             </Button>
           </div>
         )}
@@ -120,23 +204,24 @@ export function UtilisateursPage({ embedded = false }: { embedded?: boolean } = 
         }}>
           <StatCard
             icon={<Users size={18} />}
-            label={t('admin.totalAccounts')}
+            label={t('admin.totalPersonnes', { defaultValue: 'Personnes au total' })}
             value={stats.total}
             tone="accent"
-            hint={t('admin.allStatuses')}
+            hint={t('admin.avecOuSansAcces', { defaultValue: 'Avec ou sans accès' })}
           />
           <StatCard
             icon={<UserCheck size={18} />}
-            label={t('admin.active')}
-            value={stats.actifs}
+            label={t('admin.avecAcces', { defaultValue: 'Avec accès' })}
+            value={stats.avec}
             tone="success"
-            hint={stats.total > 0 ? `${Math.round(stats.actifs / stats.total * 100)} %` : '—'}
+            hint={stats.total > 0 ? `${Math.round(stats.avec / stats.total * 100)} %` : '—'}
           />
           <StatCard
             icon={<UserX size={18} />}
-            label={t('admin.deactivated')}
-            value={stats.desact}
+            label={t('admin.sansAcces', { defaultValue: 'Sans accès' })}
+            value={stats.sans}
             tone="neutral"
+            hint={t('admin.sansAccesHint', { defaultValue: 'Enregistrées, sans connexion' })}
           />
           <StatCard
             icon={<Shield size={18} />}
@@ -156,6 +241,20 @@ export function UtilisateursPage({ embedded = false }: { embedded?: boolean } = 
               searchPlaceholder={t('admin.userSearchPlaceholder')}
               filters={
                 <>
+                  <div style={{ minWidth: 170 }}>
+                    <SelectBox
+                      size="sm"
+                      value={accesF}
+                      onChange={v => setAccesF(v as '' | 'avec' | 'sans')}
+                      placeholder={t('admin.accesAll', { defaultValue: 'Accès : tous' })}
+                      aria-label={t('admin.filterByAcces', { defaultValue: 'Filtrer par accès' })}
+                      options={[
+                        { value: '',     label: t('admin.accesAll',  { defaultValue: 'Accès : tous' }) },
+                        { value: 'avec', label: t('admin.avecAcces', { defaultValue: 'Avec accès' }) },
+                        { value: 'sans', label: t('admin.sansAcces', { defaultValue: 'Sans accès' }) },
+                      ]}
+                    />
+                  </div>
                   <div style={{ minWidth: 160 }}>
                     <SelectBox
                       size="sm"
@@ -207,9 +306,9 @@ export function UtilisateursPage({ embedded = false }: { embedded?: boolean } = 
 
         {/* ── Tableau ──────────────────────────────────────────────────────── */}
         <UserTableSection
-          users={users}
-          isLoading={isLoading}
-          hasFilters={!!(search || statutF || roleF || siteF)}
+          personnes={personnes}
+          isLoading={isLoading || chargePersonnel}
+          hasFilters={!!(search || statutF || roleF || siteF || accesF)}
           canCreate={canCreate}
           canUpdate={canUpdate}
           canResetPassword={canResetPassword}
@@ -219,16 +318,52 @@ export function UtilisateursPage({ embedded = false }: { embedded?: boolean } = 
           onOpenDetail={setOpenDetail}
           onResetPassword={setOpenReset}
           onDelete={setOpenDelete}
+          onDonnerAcces={setOpenAcces}
+          onOpenFiche={setOpenFiche}
         />
       </div>
 
       {/* Drawers / Dialogs */}
       <CreerUtilisateurDrawer open={openCreer} onClose={() => setOpenCreer(false)} />
 
+      {/* Ouvrir un accès à quelqu'un déjà enregistré : même assistant, identité figée. */}
+      {openAcces?.personnelId && (
+        <CreerUtilisateurDrawer
+          key={openAcces.personnelId}
+          open
+          onClose={() => setOpenAcces(null)}
+          personnel={{
+            id:        openAcces.personnelId,
+            nom:       openAcces.nom,
+            prenom:    openAcces.prenom,
+            matricule: openAcces.matricule ?? '',
+            role:      openAcces.metier ?? 'INFIRMIER',
+          }}
+        />
+      )}
+
       {openDetail && (
         <UtilisateurDrawer
           utilisateurId={openDetail}
           onClose={() => setOpenDetail(null)}
+        />
+      )}
+
+      {openFiche?.personnelId && (
+        <FichePersonnelModal
+          key={openFiche.personnelId}
+          fiche={{
+            id:        openFiche.personnelId,
+            nom:       openFiche.nom,
+            prenom:    openFiche.prenom,
+            matricule: openFiche.matricule ?? '',
+            metier:    openFiche.metier ?? 'INFIRMIER',
+            active:    openFiche.ficheActive,
+            aUnCompte: !!openFiche.compte,
+          }}
+          canUpdate={has('personnel.update')}
+          canDelete={has('personnel.delete')}
+          onClose={() => setOpenFiche(null)}
         />
       )}
 
@@ -294,11 +429,11 @@ const USER_COLS = '2.2fr 1.4fr 1.8fr 1fr 140px'
 // ── Section tableau avec sticky header + pagination ───────────────────────────
 
 function UserTableSection({
-  users, isLoading, hasFilters,
+  personnes, isLoading, hasFilters,
   canCreate, canUpdate, canResetPassword, canDelete, meId,
-  onOpenCreer, onOpenDetail, onResetPassword, onDelete,
+  onOpenCreer, onOpenDetail, onResetPassword, onDelete, onDonnerAcces, onOpenFiche,
 }: {
-  users:            UtilisateurAdmin[]
+  personnes:        Personne[]
   isLoading:        boolean
   hasFilters:       boolean
   canCreate:        boolean
@@ -310,12 +445,14 @@ function UserTableSection({
   onOpenDetail:     (id: string) => void
   onResetPassword:  (u: UtilisateurAdmin) => void
   onDelete:         (u: UtilisateurAdmin) => void
+  onDonnerAcces:    (p: Personne) => void
+  onOpenFiche:      (p: Personne) => void
 }) {
   const { t } = useTranslation()
   const isCompact = useIsCompact()
   const tableMinW = isCompact ? 720 : undefined
-  const pagination = usePagination(users, useRowsPerPage())
-  const rz = useColumnResize({ storageKey: 'admin-utilisateurs', ready: !isLoading && users.length > 0, cellsSelector: ':scope > *' })
+  const pagination = usePagination(personnes, useRowsPerPage())
+  const rz = useColumnResize({ storageKey: 'admin-utilisateurs', ready: !isLoading && personnes.length > 0, cellsSelector: ':scope > *' })
   const cols = rz.gridTemplate ?? USER_COLS
 
   return (
@@ -342,7 +479,7 @@ function UserTableSection({
       }}>
 
         {/* Header tableau — STICKY */}
-        {!isLoading && users.length > 0 && (
+        {!isLoading && personnes.length > 0 && (
           <div ref={rz.containerRef} role="row" style={{
             display:      'grid',
             gridTemplateColumns: cols,
@@ -358,7 +495,13 @@ function UserTableSection({
             color:        'var(--texte-tertiaire)',
             flexShrink:   0,
           }}>
-            {[t('admin.colAccount'), t('admin.colSite'), t('admin.colRoles'), t('admin.colStatus'), t('admin.colActions')].map((label, i, arr) => (
+            {[
+              t('admin.colPersonne', { defaultValue: 'Personne' }),
+              t('admin.colSite'),
+              t('admin.colAcces', { defaultValue: 'Accès à l’application' }),
+              t('admin.colStatus'),
+              t('admin.colActions'),
+            ].map((label, i, arr) => (
               <div key={i} role="columnheader" style={{ position: 'relative', minWidth: 0, textAlign: i === arr.length - 1 ? 'right' : 'left' }}>
                 {label}
                 {i < arr.length - 1 && (
@@ -391,7 +534,7 @@ function UserTableSection({
                 </div>
               ))}
             </div>
-          ) : users.length === 0 ? (
+          ) : personnes.length === 0 ? (
             <EmptyState
               icon={<Users size={20} />}
               title={t('admin.noUserAccount')}
@@ -403,36 +546,157 @@ function UserTableSection({
                 : undefined}
             />
           ) : (
-            pagination.pageData.map((u, i) => (
-              <UserRow
-                key={u.id}
-                u={u}
-                cols={cols}
-                striped={i % 2 === 1}
-                canUpdate={canUpdate}
-                canResetPassword={canResetPassword}
-                canDelete={canDelete && u.id !== meId}
-                onOpenDetail={onOpenDetail}
-                onResetPassword={onResetPassword}
-                onDelete={onDelete}
-              />
+            pagination.pageData.map((p, i) => (
+              p.compte ? (
+                <UserRow
+                  key={p.cle}
+                  u={p.compte}
+                  metier={p.metier}
+                  cols={cols}
+                  striped={i % 2 === 1}
+                  canUpdate={canUpdate}
+                  canResetPassword={canResetPassword}
+                  canDelete={canDelete && p.compte.id !== meId}
+                  onOpenDetail={onOpenDetail}
+                  onResetPassword={onResetPassword}
+                  onDelete={onDelete}
+                  onOpenFiche={() => onOpenFiche(p)}
+                />
+              ) : (
+                <PersonneSansAccesRow
+                  key={p.cle}
+                  personne={p}
+                  cols={cols}
+                  striped={i % 2 === 1}
+                  canDonnerAcces={canCreate}
+                  onDonnerAcces={() => onDonnerAcces(p)}
+                  canUpdate={canUpdate}
+                  onOpenFiche={() => onOpenFiche(p)}
+                />
+              )
             ))
           )}
         </div>
       </div>
 
       {/* Pagination (visible seulement quand il y a des données) */}
-      {!isLoading && users.length > 0 && (
+      {!isLoading && personnes.length > 0 && (
         <PaginationBar {...pagination} />
       )}
     </div>
   )
 }
 
+/**
+ * Personne enregistrée SANS accès à l'application : un agent administratif, ou un
+ * soignant pas encore doté d'un compte. Elle a une identité et un métier, mais ni
+ * login, ni rôle, ni site de connexion — les cellules correspondantes restent
+ * volontairement vides plutôt que d'afficher un faux « — » qui laisserait croire
+ * à une donnée manquante.
+ */
+function PersonneSansAccesRow({
+  personne, cols, striped, canDonnerAcces, onDonnerAcces, canUpdate, onOpenFiche,
+}: {
+  personne: Personne
+  cols: string
+  striped: boolean
+  canDonnerAcces: boolean
+  onDonnerAcces: () => void
+  canUpdate: boolean
+  onOpenFiche: () => void
+}) {
+  const { t } = useTranslation()
+
+  return (
+    <div
+      role="row"
+      style={{
+        display: 'grid',
+        gridTemplateColumns: cols,
+        gap: 'var(--espace-3)',
+        padding: 'var(--espace-3) var(--espace-4)',
+        alignItems: 'center',
+        background: striped ? 'var(--fond-surface-2)' : 'transparent',
+        borderBottom: '1px solid var(--bordure-legere)',
+      }}
+    >
+      {/* Personne */}
+      <div role="cell" style={{ display: 'flex', alignItems: 'center', gap: 'var(--espace-3)', minWidth: 0 }}>
+        <UserAvatar userId={personne.personnelId ?? personne.cle} nom={personne.nom} prenom={personne.prenom} size={34} tone="neutral" />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{
+            margin: 0, fontWeight: 600, fontSize: 'var(--font-size-body-sm)',
+            color: 'var(--texte-primaire)',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            {`${personne.prenom} ${personne.nom}`.trim()}
+          </p>
+          <p style={{
+            margin: '2px 0 0',
+            fontSize: 'var(--font-size-caption)',
+            color: 'var(--texte-tertiaire)',
+            fontFamily: 'monospace',
+            display: 'flex', alignItems: 'center', gap: 6,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            <Stethoscope size={10} />
+            {personne.matricule}
+            {personne.metier && (
+              <>
+                <span>·</span>
+                <span style={{ fontFamily: 'inherit' }}>{labelMetier(personne.metier)}</span>
+              </>
+            )}
+          </p>
+        </div>
+      </div>
+
+      {/* Site — une personne sans compte n'est rattachée à aucun site de connexion */}
+      <div role="cell" />
+
+      {/* Accès */}
+      <div role="cell">
+        <StatusPill tone="neutral" dot={false}>
+          {t('admin.sansAcces', { defaultValue: 'Sans accès' })}
+        </StatusPill>
+      </div>
+
+      {/* Statut de la fiche */}
+      <div role="cell">
+        <StatusPill tone={personne.ficheActive ? 'success' : 'neutral'}>
+          {personne.ficheActive
+            ? t('acteurs.statutActif',   { defaultValue: 'Actif' })
+            : t('acteurs.statutInactif', { defaultValue: 'Inactif' })}
+        </StatusPill>
+      </div>
+
+      {/* Actions */}
+      <div role="cell" style={{ display: 'flex', gap: 4, justifyContent: 'flex-end', alignItems: 'center' }}>
+        {canUpdate && (
+          <IconButton
+            aria-label={t('admin.modifierFiche', { defaultValue: 'Modifier la fiche' })}
+            icon={<Pencil size={14} />}
+            tone="neutral"
+            size="sm"
+            onClick={onOpenFiche}
+          />
+        )}
+        {canDonnerAcces && (
+          <Button size="sm" variant="secondary" leftIcon={<KeyRound size={13} />} onClick={onDonnerAcces}>
+            {t('admin.donnerAccesAction', { defaultValue: 'Donner l’accès' })}
+          </Button>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function UserRow({
-  u, cols, striped, canUpdate, canResetPassword, canDelete, onOpenDetail, onResetPassword, onDelete,
+  u, metier, cols, striped, canUpdate, canResetPassword, canDelete, onOpenDetail, onResetPassword, onDelete, onOpenFiche,
 }: {
   u: UtilisateurAdmin
+  /** Métier de la personne (Sage-femme, Technicien…). Distinct du rôle d'accès. */
+  metier: string | null
   cols: string
   striped: boolean
   canUpdate: boolean
@@ -441,6 +705,7 @@ function UserRow({
   onOpenDetail: (id: string) => void
   onResetPassword: (u: UtilisateurAdmin) => void
   onDelete: (u: UtilisateurAdmin) => void
+  onOpenFiche: () => void
 }) {
   const { t } = useTranslation()
   const setStatut = useSetStatut(u.id)
@@ -496,6 +761,12 @@ function UserRow({
               <span>·</span>
               <Stethoscope size={10} />
               {u.personnelMedical.matricule}
+              {metier && (
+                <>
+                  <span>·</span>
+                  <span style={{ fontFamily: 'inherit' }}>{labelMetier(metier)}</span>
+                </>
+              )}
             </p>
           )}
         </div>
@@ -534,6 +805,17 @@ function UserRow({
 
       {/* Actions */}
       <div role="cell" style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }} onClick={e => e.stopPropagation()}>
+        {/* Modifier l'IDENTITÉ (nom, matricule, métier) — distinct du compte.
+            Absent pour un compte sans fiche clinique, comme l'administrateur. */}
+        {canUpdate && u.personnelMedical && (
+          <IconButton
+            aria-label={t('admin.modifierFiche', { defaultValue: 'Modifier la fiche' })}
+            icon={<Pencil size={14} />}
+            tone="neutral"
+            size="sm"
+            onClick={onOpenFiche}
+          />
+        )}
         {canResetPassword && (
           <IconButton
             aria-label={t('admin.resetPasswordAria')}
