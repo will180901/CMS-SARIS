@@ -73,7 +73,10 @@ export const NAV_GROUPS: NavGroup[] = [
         label:       'Rapports',
         icon:        FileBarChart,
         href:        '/rapports',
-        permissions: ['consultation.read'],
+        // `rapport.read` et non `consultation.read` : c'est ce qu'exige réellement
+        // le serveur (RapportsController). Avec l'ancienne valeur, une personne
+        // privée de `rapport.read` voyait l'entrée puis se heurtait à un 403.
+        permissions: ['rapport.read'],
         description: 'Rapports statistiques générés automatiquement (hebdo/mensuel/annuel)',
       },
       {

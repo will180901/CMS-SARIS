@@ -22,7 +22,7 @@ import type { PermissionCode, Role } from '@cms-saris/types'
 // mais absente d'ici serait silencieusement ignorée au profit de la 1re page autorisée.
 const HOME_PERM: Record<string, PermissionCode> = {
   dashboard:            'dashboard.read',
-  rapports:             'consultation.read',
+  rapports:             'rapport.read',
   patients:             'patient.read',
   triage:               'visite.read',
   consultations:        'consultation.read',
@@ -137,7 +137,7 @@ export function AppShell() {
           <Route
             path="/rapports"
             element={
-              <PermissionGate any={['consultation.read']}>
+              <PermissionGate any={['rapport.read']}>
                 <RapportsPage />
               </PermissionGate>
             }

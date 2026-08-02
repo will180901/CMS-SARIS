@@ -177,6 +177,12 @@ function ClinicalView() {
   const { data: tendance = [], isLoading: lt } = useTendance()
   const { data: affluence = [], isLoading: la } = useAffluence()
 
+  // Chaque bloc suit le droit de LIRE le module dont il rend compte : la vue se
+  // compose donc des permissions réellement détenues, sans aucun test « si le
+  // rôle est X ». Un rôle personnalisé, ou une dérogation accordée à une seule
+  // personne, produit immédiatement le tableau de bord correspondant.
+  const peutVisites = has('visite.read')
+
   // Sparkline KPI visites = 7 derniers jours
   const spark7 = useMemo(() => tendance.slice(-7), [tendance])
 
@@ -192,7 +198,9 @@ function ClinicalView() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--espace-4)' }}>
 
-      {alerte && <AlertBanner tone={alerte.tone} icon={alerte.icon} message={alerte.msg} />}
+      {/* L'alerte porte sur la file d'attente : sans droit de lire les visites,
+          elle signalerait une urgence que la personne ne peut pas aller traiter. */}
+      {alerte && peutVisites && <AlertBanner tone={alerte.tone} icon={alerte.icon} message={alerte.msg} />}
 
       {/* KPI principaux */}
       <div style={GRID_AUTO}>
@@ -200,6 +208,7 @@ function ClinicalView() {
           Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} height={120} />)
         ) : overview ? (
           <>
+            {peutVisites && <>
             <StatCardSpark
               icon={<HeartPulse size={18} />} label={t('dashboard.kpiVisitsToday')} value={overview.visitesAujourdhui}
               tone="accent"
@@ -224,16 +233,20 @@ function ClinicalView() {
               tone={overview.tempsAttenteMoyenMin === null ? 'neutral' : overview.tempsAttenteMoyenMin < 30 ? 'success' : overview.tempsAttenteMoyenMin < 60 ? 'warning' : 'error'}
               hint={t('dashboard.kpiClosedVisitsHint')}
             />
-            <StatCard
-              icon={<Stethoscope size={18} />} label={t('dashboard.kpiActiveConsultations')} value={overview.consultationsActives}
-              tone="accent" hint={t('dashboard.kpiClosedTodayHint', { count: overview.consultationsClotureesJour })}
-              onClick={has('consultation.read') ? () => navigate('/consultations') : undefined}
-            />
+            </>}
+            {has('consultation.read') && (
+              <StatCard
+                icon={<Stethoscope size={18} />} label={t('dashboard.kpiActiveConsultations')} value={overview.consultationsActives}
+                tone="accent" hint={t('dashboard.kpiClosedTodayHint', { count: overview.consultationsClotureesJour })}
+                onClick={() => navigate('/consultations')}
+              />
+            )}
           </>
         ) : null}
       </div>
 
-      {/* Tendance 14j + Affluence horaire */}
+      {/* Tendance 14j + Affluence horaire — deux lectures de l'activité de visite */}
+      {peutVisites && (
       <div style={{ display: 'grid', gridTemplateColumns: compact ? '1fr' : '1.5fr 1fr', gap: 'var(--espace-4)' }}>
         <ChartCard
           icon={<TrendingUp size={15} />} title={t('dashboard.chartTrendTitle')} subtitle={t('dashboard.chartTrendSubtitle')}
@@ -255,8 +268,10 @@ function ClinicalView() {
           <MiniBars data={affluence} xKey="label" yKey="count" unit={t('dashboard.affluenceUnit')} color="var(--ap-400)" />
         </ChartCard>
       </div>
+      )}
 
-      {/* Urgences + Motifs (donut) */}
+      {/* File d'attente + motifs du jour — le cœur du poste d'accueil */}
+      {peutVisites && (
       <div style={{ display: 'grid', gridTemplateColumns: compact ? '1fr' : '1.4fr 1fr', gap: 'var(--espace-4)' }}>
         <Card>
           <Card.Header
@@ -292,19 +307,35 @@ function ClinicalView() {
           />
         </ChartCard>
       </div>
+      )}
 
-      {/* Suivis & sorties critiques */}
-      {overview && (
+      {/* Suivis & sorties critiques — chaque indicateur suit le droit de LIRE le
+          module dont il rend compte. Un infirmier sans `evacuation.read` ne voit
+          pas la carte Évacuations plutôt qu'un chiffre qu'il ne peut pas ouvrir. */}
+      {overview && (has('ordonnance.read') || has('bon_examen.read') || has('evacuation.read') || has('suivi_traitement.read')) && (
         <div style={GRID_AUTO}>
-          <StatCard icon={<Pill size={16} />} label={t('dashboard.kpiValidatedPrescriptions')} value={overview.ordonnancesValideesJour} tone="success" hint={t('dashboard.today')} />
-          <StatCard icon={<FileWarning size={16} />} label={t('dashboard.kpiExamFormsPending')} value={overview.bonsExamenAttente} tone={overview.bonsExamenAttente > 0 ? 'warning' : 'neutral'} hint={t('dashboard.examFormsHint')} />
-          <StatCard icon={<Ambulance size={16} />} label={t('dashboard.kpiEvacuationsInProgress')} value={overview.evacuationsEnCours} tone={overview.evacuationsEnCours > 0 ? 'error' : 'neutral'} />
-          <StatCard icon={<Activity size={16} />} label={t('dashboard.kpiChronicFollowups')} value={overview.suivisChroniquesActifs} tone="accent" hint={t('dashboard.chronicFollowupsHint')} />
+          {has('ordonnance.read') && (
+            <StatCard icon={<Pill size={16} />} label={t('dashboard.kpiValidatedPrescriptions')} value={overview.ordonnancesValideesJour} tone="success" hint={t('dashboard.today')} />
+          )}
+          {has('bon_examen.read') && (
+            <StatCard icon={<FileWarning size={16} />} label={t('dashboard.kpiExamFormsPending')} value={overview.bonsExamenAttente} tone={overview.bonsExamenAttente > 0 ? 'warning' : 'neutral'} hint={t('dashboard.examFormsHint')} />
+          )}
+          {has('evacuation.read') && (
+            <StatCard icon={<Ambulance size={16} />} label={t('dashboard.kpiEvacuationsInProgress')} value={overview.evacuationsEnCours} tone={overview.evacuationsEnCours > 0 ? 'error' : 'neutral'} />
+          )}
+          {has('suivi_traitement.read') && (
+            <StatCard icon={<Activity size={16} />} label={t('dashboard.kpiChronicFollowups')} value={overview.suivisChroniquesActifs} tone="accent" hint={t('dashboard.chronicFollowupsHint')} />
+          )}
         </div>
       )}
 
-      <StatistiquesSection />
-      <EvolutionAnnuelleSection />
+      {/* Analyse statistique : réservée à qui peut consulter les rapports. */}
+      {has('rapport.read') && (
+        <>
+          <StatistiquesSection />
+          <EvolutionAnnuelleSection />
+        </>
+      )}
 
       {has('delegation.read') && <DelegationsWidget />}
     </div>

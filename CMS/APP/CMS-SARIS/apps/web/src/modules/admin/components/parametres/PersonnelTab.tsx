@@ -148,7 +148,7 @@ function PreferencesCard() {
     { value: 'triage', label: t('nav.triage'), perm: 'visite.read' },
     { value: 'patients', label: t('nav.patients'), perm: 'patient.read' },
     { value: 'consultations', label: t('nav.consultations'), perm: 'consultation.read' },
-    { value: 'rapports', label: t('nav.rapports'), perm: 'consultation.read' },
+    { value: 'rapports', label: t('nav.rapports'), perm: 'rapport.read' },
     { value: 'messagerie', label: t('nav.messagerie'), perm: 'messagerie.read' },
     { value: 'referentiels', label: t('nav.referentiels'), perm: 'referentiel.read' },
     { value: 'admin/acces', label: t('nav.acces'), perm: 'utilisateur.read' },
