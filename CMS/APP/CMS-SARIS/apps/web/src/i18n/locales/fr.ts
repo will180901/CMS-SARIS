@@ -357,6 +357,7 @@ export const fr = {
     errorDescription: 'L’affichage a rencontré un problème inattendu. Vous pouvez recharger la page. Si le problème persiste, reconnectez-vous.',
     errorReload: 'Recharger la page',
     errorReconnect: 'Se reconnecter',
+    errorDetails: 'Détail technique',
     // DesktopTitleBar
     desktopSubtitle: '— Centre médical',
     menu: 'Menu',

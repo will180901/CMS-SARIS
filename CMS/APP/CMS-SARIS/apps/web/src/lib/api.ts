@@ -80,6 +80,16 @@ export function isUploadTimeout(err: unknown): boolean {
 }
 
 // ── Auto-refresh (singleton pour éviter plusieurs appels simultanés) ──────────
+//
+// ⚠️ Ce verrou est le SEUL de l'application. Le jeton de rafraîchissement est à usage
+// unique (rotation côté serveur) : si deux renouvellements partent en même temps, le
+// premier consomme le jeton et le second reçoit un 401 qui détruit la session — la
+// personne est déconnectée en plein travail, sans rien avoir fait de mal.
+//
+// Il a existé un second verrou, indépendant, dans `useRefreshSession.ts`. Deux verrous
+// qui s'ignorent ne protègent de rien : `performTokenRefresh` s'appuie désormais sur
+// `tryRefreshToken` ci-dessous. Ne jamais réintroduire d'appel direct à /auth/refresh
+// ailleurs — passer systématiquement par cette fonction.
 
 let refreshingPromise: Promise<void> | null = null
 

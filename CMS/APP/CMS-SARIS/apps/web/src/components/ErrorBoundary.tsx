@@ -13,6 +13,7 @@ import i18n from '@/i18n/config'
 import { useSessionStore } from '@/stores/session.store'
 import { isDesktop } from '@/lib/desktop'
 import { DESKTOP_TITLEBAR_H } from './layout/DesktopTitleBar'
+import { estChunkObsolete, tenterRechargementUnique } from '@/lib/stale-chunk'
 
 interface Props { children: ReactNode }
 interface State { error: Error | null }
@@ -25,7 +26,13 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    // En dev, la stack est précieuse ; en prod elle pourra partir vers un backend.
+    // Cas fréquent après un déploiement : la page demandée est un fichier dont le nom
+    // a changé. Ce n'est pas un bug applicatif — on recharge au lieu d'afficher une
+    // erreur que l'utilisateur ne peut pas comprendre ni corriger.
+    if (estChunkObsolete(error) && tenterRechargementUnique()) return
+
+    // Journalisé SANS condition : c'est la seule trace exploitable quand un incident
+    // survient chez un utilisateur, où les outils de développement sont absents.
     console.error('[ErrorBoundary] Crash de rendu intercepté :', error, info.componentStack)
   }
 
@@ -113,20 +120,31 @@ export class ErrorBoundary extends Component<Props, State> {
             </button>
           </div>
 
-          {import.meta.env.DEV && (
+          {/* Détail technique disponible AUSSI en production, mais replié : sans lui,
+              un incident chez un utilisateur est impossible à diagnostiquer — il ne
+              peut que décrire « une erreur est survenue ». Replié par défaut pour ne
+              pas inquiéter, et copiable pour être transmis au support. */}
+          <details style={{ marginTop: 'var(--espace-5)', textAlign: 'left' }}>
+            <summary style={{
+              cursor: 'pointer', listStyle: 'none',
+              fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)',
+              textAlign: 'center',
+            }}>
+              {i18n.t('shell.errorDetails')}
+            </summary>
             <pre style={{
-              marginTop: 'var(--espace-5)', marginBottom: 0,
+              marginTop: 'var(--espace-3)', marginBottom: 0,
               padding: 'var(--espace-3)',
               background: 'var(--fond-surface-2)',
               border: '1px solid var(--bordure-legere)',
               borderRadius: 'var(--radius-sm)',
               fontSize: '11px', color: 'var(--erreur-accent)',
-              textAlign: 'left', whiteSpace: 'pre-wrap', overflow: 'auto',
+              whiteSpace: 'pre-wrap', overflow: 'auto',
               maxHeight: 160,
             }}>
-              {this.state.error.message}
+              {this.state.error.name}: {this.state.error.message}
             </pre>
-          )}
+          </details>
         </div>
       </div>
     )

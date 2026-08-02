@@ -14,18 +14,12 @@
 
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { toast } from '@workspace/ui/components/sonner'
-import { api, ApiError } from '@/lib/api'
+import { api, ApiError, tryRefreshToken } from '@/lib/api'
 import { useSessionStore } from '@/stores/session.store'
 import type { UserSession } from '@cms-saris/types'
 import i18n from '@/i18n/config'
 
 type Me = Omit<UserSession, 'token'>
-
-interface RefreshResponse {
-  accessToken:  string
-  refreshToken: string
-  user:         Me
-}
 
 export const ME_KEY = ['auth', 'me'] as const
 
@@ -42,21 +36,20 @@ export const ME_KEY = ['auth', 'me'] as const
  *   que les hooks `enabled: has(...)` se relancent avec les nouvelles permissions
  */
 /**
- * Renouvellement EN COURS, s'il y en a un. Le jeton de rafraîchissement est à usage
- * unique (rotation côté serveur) : deux appels concurrents se marchent dessus — le
- * premier consomme le jeton, le second reçoit un 401 et fait sauter la session.
- * Ça arrivait réellement au rechargement de page (bootstrap + un autre déclencheur
- * simultané), et le risque augmente maintenant que le temps réel peut lui aussi en
- * demander un. On mutualise donc : tout appel concurrent attend LE MÊME résultat.
+ * Renouvellement de session.
+ *
+ * Le verrou d'anti-concurrence vit dans `lib/api.ts` (`tryRefreshToken`) et il est le
+ * SEUL : le jeton de rafraîchissement étant à usage unique, deux appels simultanés se
+ * marchent dessus — le premier consomme le jeton, le second reçoit un 401 qui détruit
+ * la session. Cette fonction ne fait donc plus son propre appel à /auth/refresh ; elle
+ * délègue, puis ajoute ce qui la concerne : l'invalidation des requêtes React Query
+ * quand les permissions ont changé.
+ *
+ * Bénéfice secondaire : en passant par `fetch` direct plutôt que par `api.post`, on
+ * évite qu'un 401 sur l'appel de renouvellement déclenche… un renouvellement imbriqué.
  */
-let renouvellementEnCours: Promise<Me> | null = null
-
 export function performTokenRefresh(queryClient?: QueryClient): Promise<Me> {
-  if (renouvellementEnCours) return renouvellementEnCours
-  renouvellementEnCours = executerRenouvellement(queryClient).finally(() => {
-    renouvellementEnCours = null
-  })
-  return renouvellementEnCours
+  return executerRenouvellement(queryClient)
 }
 
 async function executerRenouvellement(queryClient?: QueryClient): Promise<Me> {
@@ -71,11 +64,10 @@ async function executerRenouvellement(queryClient?: QueryClient): Promise<Me> {
     state.setUser(result)
   } else {
     try {
-      const res = await api.post<RefreshResponse>('/auth/refresh', {
-        refreshToken: state.refreshToken,
-      })
-      state.setSession(res.user, res.accessToken, res.refreshToken)
-      result = res.user
+      // Mutualisé : un renouvellement déjà en vol est partagé au lieu d'être doublé.
+      await tryRefreshToken()
+      // tryRefreshToken a mis le store à jour (user + jetons) de façon atomique.
+      result = useSessionStore.getState().user as Me
     } catch {
       // Fallback : au moins UI à jour (mais JWT obsolète → reconnexion nécessaire)
       result = await api.get<Me>('/auth/me')

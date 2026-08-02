@@ -359,6 +359,7 @@ export const en: Resources = {
     errorDescription: 'The display encountered an unexpected problem. You can reload the page. If the problem persists, sign in again.',
     errorReload: 'Reload the page',
     errorReconnect: 'Sign in again',
+    errorDetails: 'Technical details',
     // DesktopTitleBar
     desktopSubtitle: '— Medical center',
     menu: 'Menu',
