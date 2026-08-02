@@ -18,9 +18,7 @@ import { useIsCompact } from '@/hooks/useMediaQuery'
 import {
   useUpdatePersonnel, useSetStatutPersonnel, useDeletePersonnel,
 } from '@/modules/acteurs/hooks/usePersonnel'
-import { labelMetier } from '@/config/labels'
-
-const METIERS = ['MEDECIN', 'INFIRMIER', 'SAGE_FEMME', 'TECHNICIEN_LAB', 'ADMINISTRATIF'] as const
+import { optionsFonction } from '@/config/fonctions'
 
 export interface FichePersonnel {
   id:        string
@@ -146,13 +144,12 @@ export function FichePersonnelModal({ fiche, onClose, canUpdate, canDelete }: {
             )}
           </Field>
           <Field
-            label={t('admin.metierLabel', { defaultValue: 'Métier' })}
+            label={t('admin.fonctionLabel', { defaultValue: 'Fonction' })}
             required
-            hint={t('admin.metierHint', { defaultValue: 'Sa fonction réelle — indépendante des droits accordés.' })}
           >
             {(id) => (
               <SelectBox id={id} value={metier} onChange={setMetier} disabled={!canUpdate}
-                options={METIERS.map(m => ({ value: m, label: labelMetier(m) }))} />
+                options={optionsFonction(fiche.metier)} />
             )}
           </Field>
         </div>

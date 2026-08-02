@@ -37,7 +37,7 @@ import { useSessionStore } from '@/stores/session.store'
 import { useUtilisateurs, useRoles, useSetStatut, useDeleteUtilisateur } from '../hooks/useAdmin'
 import { usePersonnel } from '@/modules/acteurs/hooks/usePersonnel'
 import { useSites } from '@/modules/referentiels/hooks/useReferentiels'
-import { labelMetier } from '@/config/labels'
+import { labelFonction } from '@/config/fonctions'
 import { CreerUtilisateurDrawer } from '../components/CreerUtilisateurDrawer'
 import { UtilisateurDrawer }      from '../components/UtilisateurDrawer'
 import { ResetPasswordDialog }    from '../components/ResetPasswordDialog'
@@ -65,6 +65,10 @@ export function UtilisateursPage({ embedded = false }: { embedded?: boolean } = 
   const { has } = usePermissions()
   const isCompact = useIsCompact()
   // Permissions backend distinctes — ne JAMAIS regrouper sous un seul "canWrite".
+  // Deux droits distincts se rencontrent sur cette page : voir les COMPTES et voir
+  // les PERSONNES. Le médecin chef détient `personnel.read` sans `utilisateur.read` :
+  // il doit continuer à gérer le personnel, sans rien apprendre des accès.
+  const canVoirComptes   = has('utilisateur.read')
   const canCreate        = has('utilisateur.create')
   const canUpdate        = has('utilisateur.update')          // toggle statut + édition compte
   const canResetPassword = has('utilisateur.reset_password')
@@ -104,7 +108,7 @@ export function UtilisateursPage({ embedded = false }: { embedded?: boolean } = 
     search: search.trim() || undefined,
     statut: statutF || undefined,
     roleId: roleF   || undefined,
-  })
+  }, canVoirComptes)
   // Filtre de site : purement client-side (commodité d'affichage), la liste
   // reçue est déjà globale (multi-site sans restriction).
   const users = useMemo(
@@ -165,6 +169,7 @@ export function UtilisateursPage({ embedded = false }: { embedded?: boolean } = 
     avec:     personnes.filter(p => p.compte).length,
     sans:     personnes.filter(p => !p.compte).length,
     bloques:  personnes.filter(p => p.compte?.statut === 'BLOQUE').length,
+    actives:  personnes.filter(p => p.ficheActive).length,
   }), [personnes])
 
   return (
@@ -209,27 +214,42 @@ export function UtilisateursPage({ embedded = false }: { embedded?: boolean } = 
             tone="accent"
             hint={t('admin.avecOuSansAcces', { defaultValue: 'Avec ou sans accès' })}
           />
-          <StatCard
-            icon={<UserCheck size={18} />}
-            label={t('admin.avecAcces', { defaultValue: 'Avec accès' })}
-            value={stats.avec}
-            tone="success"
-            hint={stats.total > 0 ? `${Math.round(stats.avec / stats.total * 100)} %` : '—'}
-          />
-          <StatCard
-            icon={<UserX size={18} />}
-            label={t('admin.sansAcces', { defaultValue: 'Sans accès' })}
-            value={stats.sans}
-            tone="neutral"
-            hint={t('admin.sansAccesHint', { defaultValue: 'Enregistrées, sans connexion' })}
-          />
-          <StatCard
-            icon={<Shield size={18} />}
-            label={t('admin.blocked')}
-            value={stats.bloques}
-            tone={stats.bloques > 0 ? 'warning' : 'neutral'}
-            hint={stats.bloques > 0 ? t('admin.failedAttempts') : t('admin.noBlocking')}
-          />
+          {/* Sans droit sur les comptes, on ne parle que des personnes : afficher
+              « avec / sans accès » laisserait croire que tout le monde est privé
+              d'accès, alors qu'on n'a simplement pas le droit de le savoir. */}
+          {canVoirComptes ? (
+            <>
+              <StatCard
+                icon={<UserCheck size={18} />}
+                label={t('admin.avecAcces', { defaultValue: 'Avec accès' })}
+                value={stats.avec}
+                tone="success"
+                hint={stats.total > 0 ? `${Math.round(stats.avec / stats.total * 100)} %` : '—'}
+              />
+              <StatCard
+                icon={<UserX size={18} />}
+                label={t('admin.sansAcces', { defaultValue: 'Sans accès' })}
+                value={stats.sans}
+                tone="neutral"
+                hint={t('admin.sansAccesHint', { defaultValue: 'Enregistrées, sans connexion' })}
+              />
+              <StatCard
+                icon={<Shield size={18} />}
+                label={t('admin.blocked')}
+                value={stats.bloques}
+                tone={stats.bloques > 0 ? 'warning' : 'neutral'}
+                hint={stats.bloques > 0 ? t('admin.failedAttempts') : t('admin.noBlocking')}
+              />
+            </>
+          ) : (
+            <StatCard
+              icon={<UserCheck size={18} />}
+              label={t('acteurs.filterActivesOnly', { defaultValue: 'Actifs' })}
+              value={stats.actives}
+              tone="success"
+              hint={stats.total > 0 ? `${Math.round(stats.actives / stats.total * 100)} %` : '—'}
+            />
+          )}
         </div>
 
         {/* ── Toolbar ──────────────────────────────────────────────────────── */}
@@ -241,6 +261,9 @@ export function UtilisateursPage({ embedded = false }: { embedded?: boolean } = 
               searchPlaceholder={t('admin.userSearchPlaceholder')}
               filters={
                 <>
+                  {/* Les filtres ci-dessous portent tous sur le COMPTE : sans droit
+                      de le consulter, ils n'auraient rien à filtrer. */}
+                  {canVoirComptes && <>
                   <div style={{ minWidth: 170 }}>
                     <SelectBox
                       size="sm"
@@ -298,6 +321,7 @@ export function UtilisateursPage({ embedded = false }: { embedded?: boolean } = 
                       />
                     </div>
                   )}
+                  </>}
                 </>
               }
             />
@@ -320,6 +344,7 @@ export function UtilisateursPage({ embedded = false }: { embedded?: boolean } = 
           onDelete={setOpenDelete}
           onDonnerAcces={setOpenAcces}
           onOpenFiche={setOpenFiche}
+          canVoirComptes={canVoirComptes}
         />
       </div>
 
@@ -431,7 +456,7 @@ const USER_COLS = '2.2fr 1.4fr 1.8fr 1fr 140px'
 function UserTableSection({
   personnes, isLoading, hasFilters,
   canCreate, canUpdate, canResetPassword, canDelete, meId,
-  onOpenCreer, onOpenDetail, onResetPassword, onDelete, onDonnerAcces, onOpenFiche,
+  onOpenCreer, onOpenDetail, onResetPassword, onDelete, onDonnerAcces, onOpenFiche, canVoirComptes,
 }: {
   personnes:        Personne[]
   isLoading:        boolean
@@ -447,6 +472,7 @@ function UserTableSection({
   onDelete:         (u: UtilisateurAdmin) => void
   onDonnerAcces:    (p: Personne) => void
   onOpenFiche:      (p: Personne) => void
+  canVoirComptes:   boolean
 }) {
   const { t } = useTranslation()
   const isCompact = useIsCompact()
@@ -497,8 +523,8 @@ function UserTableSection({
           }}>
             {[
               t('admin.colPersonne', { defaultValue: 'Personne' }),
-              t('admin.colSite'),
-              t('admin.colAcces', { defaultValue: 'Accès à l’application' }),
+              canVoirComptes ? t('admin.colSite') : t('admin.colFonction', { defaultValue: 'Fonction' }),
+              canVoirComptes ? t('admin.colAcces', { defaultValue: 'Accès à l’application' }) : '',
               t('admin.colStatus'),
               t('admin.colActions'),
             ].map((label, i, arr) => (
@@ -568,10 +594,11 @@ function UserTableSection({
                   personne={p}
                   cols={cols}
                   striped={i % 2 === 1}
-                  canDonnerAcces={canCreate}
+                  canDonnerAcces={canCreate && canVoirComptes}
                   onDonnerAcces={() => onDonnerAcces(p)}
                   canUpdate={canUpdate}
                   onOpenFiche={() => onOpenFiche(p)}
+                  canVoirComptes={canVoirComptes}
                 />
               )
             ))
@@ -595,7 +622,7 @@ function UserTableSection({
  * à une donnée manquante.
  */
 function PersonneSansAccesRow({
-  personne, cols, striped, canDonnerAcces, onDonnerAcces, canUpdate, onOpenFiche,
+  personne, cols, striped, canDonnerAcces, onDonnerAcces, canUpdate, onOpenFiche, canVoirComptes,
 }: {
   personne: Personne
   cols: string
@@ -604,6 +631,7 @@ function PersonneSansAccesRow({
   onDonnerAcces: () => void
   canUpdate: boolean
   onOpenFiche: () => void
+  canVoirComptes: boolean
 }) {
   const { t } = useTranslation()
 
@@ -644,21 +672,25 @@ function PersonneSansAccesRow({
             {personne.metier && (
               <>
                 <span>·</span>
-                <span style={{ fontFamily: 'inherit' }}>{labelMetier(personne.metier)}</span>
+                <span style={{ fontFamily: 'inherit' }}>{labelFonction(personne.metier)}</span>
               </>
             )}
           </p>
         </div>
       </div>
 
-      {/* Site — une personne sans compte n'est rattachée à aucun site de connexion */}
-      <div role="cell" />
+      {/* Site (ou fonction si l'on ne voit pas les comptes) */}
+      <div role="cell" style={{ fontSize: 'var(--font-size-body-sm)', color: 'var(--texte-secondaire)' }}>
+        {canVoirComptes ? '' : (personne.metier ? labelFonction(personne.metier) : '—')}
+      </div>
 
-      {/* Accès */}
+      {/* Accès — masqué faute de droit d'en connaître l'existence */}
       <div role="cell">
-        <StatusPill tone="neutral" dot={false}>
-          {t('admin.sansAcces', { defaultValue: 'Sans accès' })}
-        </StatusPill>
+        {canVoirComptes && (
+          <StatusPill tone="neutral" dot={false}>
+            {t('admin.sansAcces', { defaultValue: 'Sans accès' })}
+          </StatusPill>
+        )}
       </div>
 
       {/* Statut de la fiche */}
@@ -764,7 +796,7 @@ function UserRow({
               {metier && (
                 <>
                   <span>·</span>
-                  <span style={{ fontFamily: 'inherit' }}>{labelMetier(metier)}</span>
+                  <span style={{ fontFamily: 'inherit' }}>{labelFonction(metier)}</span>
                 </>
               )}
             </p>

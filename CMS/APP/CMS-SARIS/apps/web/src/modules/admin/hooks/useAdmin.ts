@@ -66,11 +66,17 @@ async function refreshCurrentSessionIfNeeded(condition: boolean, qc: QueryClient
 //  UTILISATEURS
 // ══════════════════════════════════════════════════════════════════════════════
 
-export function useUtilisateurs(params?: { search?: string; statut?: string; roleId?: string }) {
+export function useUtilisateurs(
+  params?: { search?: string; statut?: string; roleId?: string },
+  /** `false` quand l'appelant n'a pas `utilisateur.read` : la requête partirait
+   *  pour rien et reviendrait en 403. */
+  enabled = true,
+) {
   return useQuery({
     queryKey: [...ADMIN_KEYS.utilisateurs, params],
     queryFn:  () => adminApi.utilisateurs.list(params),
     staleTime: 15_000,
+    enabled,
   })
 }
 

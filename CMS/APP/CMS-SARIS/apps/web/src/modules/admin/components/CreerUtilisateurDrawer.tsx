@@ -31,7 +31,7 @@ import {
 import { Button, Field, TextInput, StatusPill, SelectBox } from '@/components/saris'
 import { useCreateUtilisateur, useRoles } from '../hooks/useAdmin'
 import { useCreatePersonnel } from '@/modules/acteurs/hooks/usePersonnel'
-import { labelMetier } from '@/config/labels'
+import { labelFonction, optionsFonction, roleParDefaut } from '@/config/fonctions'
 import { useSites } from '@/modules/referentiels/hooks/useReferentiels'
 import { useSessionStore } from '@/stores/session.store'
 import { usePermissions } from '@/hooks/usePermissions'
@@ -52,8 +52,6 @@ interface Props {
   personnel?: PersonneExistante | null
 }
 
-/** Métiers du centre. Distincts des rôles d'accès (qui portent les droits). */
-const METIERS = ['MEDECIN', 'INFIRMIER', 'SAGE_FEMME', 'TECHNICIEN_LAB', 'ADMINISTRATIF'] as const
 
 // Règles de validation alignées avec le backend (cf utilisateur.dto.ts).
 const LOGIN_REGEX    = /^[a-z][a-z0-9._-]*$/i
@@ -137,8 +135,21 @@ export function CreerUtilisateurDrawer({ open, onClose, personnel = null }: Prop
     setRoleIds(rs => rs.includes(id) ? rs.filter(r => r !== id) : [...rs, id])
   }
 
+  /**
+   * Coche le rôle qui découle de la fonction, s'il n'y a pas déjà un choix.
+   * Évite de redemander à l'étape 2 ce qui vient d'être dit à l'étape 1.
+   */
+  function proposerRolePourFonction() {
+    if (roleIds.length > 0) return
+    const code = roleParDefaut(metier)
+    const role = code ? roles.find(r => r.code === code) : undefined
+    if (role) setRoleIds([role.id])
+  }
+
   function goNext() {
-    if (identityValid) setStep(2)
+    if (!identityValid) return
+    proposerRolePourFonction()
+    setStep(2)
   }
 
   async function handleSubmit(e?: React.FormEvent) {
@@ -323,14 +334,13 @@ export function CreerUtilisateurDrawer({ open, onClose, personnel = null }: Prop
                   {(id) => <TextInput id={id} value={matricule} onChange={e => setMatricule(e.target.value)} placeholder="INF-001" />}
                 </Field>
                 <Field
-                  label={t('admin.metierLabel', { defaultValue: 'Métier' })}
+                  label={t('admin.fonctionLabel', { defaultValue: 'Fonction' })}
                   required
-                  hint={t('admin.metierHint', { defaultValue: 'Sa fonction réelle — indépendante des droits accordés.' })}
                 >
                   {(id) => (
                     <SelectBox
                       id={id} value={metier} onChange={setMetier}
-                      options={METIERS.map(m => ({ value: m, label: labelMetier(m) }))}
+                      options={optionsFonction(personnel?.role)}
                     />
                   )}
                 </Field>
@@ -355,7 +365,7 @@ export function CreerUtilisateurDrawer({ open, onClose, personnel = null }: Prop
                   {`${prenom} ${nom}`.trim()}
                 </span>
                 <span style={{ color: 'var(--texte-tertiaire)', fontFamily: 'monospace', fontSize: 'var(--font-size-caption)' }}>
-                  {matricule} · {labelMetier(metier)}
+                  {matricule} · {labelFonction(metier)}
                 </span>
               </div>
 
@@ -372,7 +382,7 @@ export function CreerUtilisateurDrawer({ open, onClose, personnel = null }: Prop
                   <input
                     type="checkbox"
                     checked={avecAcces}
-                    onChange={e => setAvecAcces(e.target.checked)}
+                    onChange={e => { setAvecAcces(e.target.checked); if (e.target.checked) proposerRolePourFonction() }}
                     style={{ width: 14, height: 14, accentColor: 'var(--ap-500)', marginTop: 2 }}
                   />
                   <div style={{ flex: 1, minWidth: 0 }}>

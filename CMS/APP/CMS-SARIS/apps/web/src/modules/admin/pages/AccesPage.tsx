@@ -21,7 +21,11 @@ export function AccesPage() {
   const { t } = useTranslation()
   const { has } = usePermissions()
   const isCompact = useIsCompact()
-  const canUsers = has('utilisateur.read')
+  // L'onglet Personnel s'ouvre à qui peut voir les COMPTES **ou** les PERSONNES :
+  // le médecin chef détient `personnel.read` sans `utilisateur.read`, et n'exiger
+  // que ce dernier lui aurait retiré la gestion du personnel qu'il avait toujours
+  // eue. La page masque d'elle-même ce qui relève des comptes.
+  const canUsers = has('utilisateur.read') || has('personnel.read')
   const canRoles = has('role.read')
   const canDeleg = has('delegation.read')   // le médecin-chef gère ici ses délégations
 
