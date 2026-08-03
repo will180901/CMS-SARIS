@@ -49,7 +49,12 @@ export interface CreateUtilisateurPayload {
   login:              string
   email:              string
   motDePasseInitial:  string
-  siteId:             string
+  /**
+   * Facultatif, comme le DTO backend : une personne n'est pas affectée à un site,
+   * elle intervient là où elle travaille. Omis, le serveur rattache le compte au
+   * site de l'appelant.
+   */
+  siteId?:            string
   personnelMedicalId?: string | null
   // Identité de la fiche clinique créée AVEC le compte (compte soignant) : le backend
   // crée la fiche PersonnelMedical liée. Requis si rôle clinique sans personnel existant.
