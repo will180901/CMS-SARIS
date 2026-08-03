@@ -72,11 +72,13 @@ export class SyncSupervisionService {
       //    (traçabilité seule, pas de relation FK — cf. createdBy/updatedBy ailleurs au schéma).
       //    `masque: false` — un poste qui resynchronise redevient visible même s'il avait été
       //    retiré (dismiss) de la liste de supervision entre-temps.
+      //    Le `siteId` reçu est celui de l'utilisateur connecté : il ne sert qu'à la
+      //    CRÉATION, jamais à la mise à jour — sinon un soignant de passage déplacerait
+      //    le poste sur son propre site (cf. heartbeat()).
       await this.prisma.posteLocal.upsert({
         where: { id: posteLocalId },
         update: {
           derniereSyncAt: now,
-          siteId,
           dernierUtilisateurId: userId,
           masque: false,
         },
@@ -146,6 +148,11 @@ export class SyncSupervisionService {
    *
    * `libelle` ne sert QU'À LA CRÉATION — jamais d'écrasement d'un nom déjà connu, pour ne
    * jamais effacer un renommage fait depuis la supervision (cf. renamePoste()).
+   *
+   * `siteId` NON PLUS ne sert qu'à la création. Le site reçu ici est celui de l'utilisateur
+   * connecté, pas celui du poste : l'écrire à chaque battement déplacerait le poste dès
+   * qu'un soignant d'un autre site s'y connecte, et le site choisi à l'installation ne
+   * survivrait pas 30 secondes. Le site d'un poste ne change que par `configurerPoste()`.
    */
   async heartbeat(
     siteId: string,
@@ -157,7 +164,9 @@ export class SyncSupervisionService {
     try {
       await this.prisma.posteLocal.upsert({
         where: { id: posteLocalId },
-        update: { derniereSyncAt: now, siteId, masque: false },
+        update: { derniereSyncAt: now, masque: false },
+        // Repli pour un poste jamais déclaré (installation ancienne, ou configuration
+        // perdue) : mieux vaut le site de l'appelant que pas de poste du tout.
         create: {
           id: posteLocalId,
           siteId,

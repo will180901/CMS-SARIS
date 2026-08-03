@@ -86,11 +86,11 @@ export class SyncController {
   /**
    * Déclare le site d'un poste, à sa première installation.
    *
-   * Volontairement ouvert à `synchronisation.read` et non à `.execute` : configurer
-   * son poste n'est pas administrer la synchronisation, c'est dire OÙ l'on se
-   * trouve. L'exiger d'un administrateur obligerait à en déranger un à chaque
-   * installation, et laisserait le poste sans site — donc inutilisable — en
-   * attendant.
+   * `synchronisation.read` ne restreint rien en pratique : le compte saisi à
+   * l'installation DEVIENT le compte de synchronisation du poste, et il lui faut de
+   * toute façon `synchronisation.execute` pour pousser/tirer ensuite. Autant garder ici
+   * la permission la plus étroite — déplacer un poste d'un site à l'autre change le site
+   * porté par tous ses actes, ce n'est pas un geste anodin.
    */
   @Post('poste')
   @RequirePermissions('synchronisation.read')

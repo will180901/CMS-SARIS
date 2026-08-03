@@ -21,8 +21,12 @@ interface SarisConfig {
   mode?: 'local' | 'remote'
   /** Serveur central pour la synchro en mode local. */
   serverUrl?: string
-  /** Site du poste (mode local) — fixé au 1er login central (depuis le JWT). */
+  /** Site du poste (mode local) — CHOISI par l'opérateur à la configuration (écran sync-setup). */
   siteId?: string
+  /** Le couple (poste → site) a-t-il été déclaré au serveur central (POST /sync/poste) ?
+   *  Faux tant que la déclaration n'a pas abouti : le démarrage réessaie alors, sans quoi
+   *  le serveur rattacherait les actes au site du COMPTE et non à celui de la machine. */
+  posteDeclare?: boolean
   /** Identifiant STABLE du poste local — généré au 1er lancement, persistant. */
   posteLocalId?: string
   /** Nom lisible du poste (« Bureau Accueil », etc.) — par défaut le nom de la machine,

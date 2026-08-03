@@ -17,7 +17,8 @@ import { initAutoUpdater, checkForUpdates, downloadUpdate, quitAndInstall } from
 import { startBackend, findFreePort, stopBackend } from './backend'
 import { ensureDb } from './db-init'
 import {
-  isSyncConfigured, authenticateSync, listPendingSites, createPendingSite, finalizeSyncSetup, discardPendingAuth,
+  isSyncConfigured, authenticateSync, listPendingSites, finalizeSyncSetup, discardPendingAuth,
+  declarerPosteAuServeur,
   refreshAccessToken, startRefreshTimer, stopRefreshTimer,
   clearSync, getPosteLocalId, getPosteLibelle, syncTokenFilePath,
 } from './sync-auth'
@@ -344,13 +345,8 @@ function registerIpc(): void {
     }
   })
 
-  ipcMain.handle('saris:sync-create-site', async (
-    _e,
-    params: { code: string; libelle: string; localisation?: string },
-  ) => createPendingSite(params))
-
-  ipcMain.handle('saris:sync-finalize', (_e, params: { siteId: string; posteLibelle?: string }) => {
-    const res = finalizeSyncSetup(params.siteId, params.posteLibelle)
+  ipcMain.handle('saris:sync-finalize', async (_e, params: { siteId: string; posteLibelle?: string }) => {
+    const res = await finalizeSyncSetup(params.siteId, params.posteLibelle)
     // On répond TOUT DE SUITE (l'écran affiche la progression via saris:setup-status), puis
     // on démarre le backend local + on charge l'app — ou on signale l'erreur, sans bloquer.
     if (res.ok) setImmediate(() => { void completeLocalStartup() })
@@ -490,6 +486,9 @@ async function initBackend(): Promise<void> {
     needsLocalSetup = true // refresh rejeté → reconfiguration requise
     return
   }
+  // Rattrapage : poste installé hors ligne, ou avant l'existence de POST /sync/poste. Sans
+  // cette déclaration le serveur ignore où se trouve la machine. Best-effort, jamais bloquant.
+  void declarerPosteAuServeur()
   await startLocalBackend() // 'ok' (jeton frais) ou 'offline' (on conserve le jeton existant)
 }
 

@@ -134,7 +134,10 @@ export async function authenticateSync(
 /** Étape 2 — liste les sites du référentiel (lecture seule) avec le jeton obtenu à l'étape 1. */
 export async function listPendingSites(): Promise<Site[]> {
   if (!pendingAuth) throw new Error('Authentification requise avant de lister les sites.')
-  const r = await fetch(pendingAuth.serverUrl + '/referentiels/sites?pageSize=200', {
+  // Pas de `?pageSize=` : l'endpoint refuse toute propriété inconnue (400) — il renvoie
+  // déjà tous les sites. Vérifié en direct : `?pageSize=200` → « property pageSize should
+  // not exist », et l'écran restait bloqué sur « Impossible de charger les sites ».
+  const r = await fetch(pendingAuth.serverUrl + '/referentiels/sites', {
     headers: { Authorization: `Bearer ${pendingAuth.accessToken}` },
   })
   if (!r.ok) throw new Error(`Erreur serveur (HTTP ${r.status}).`)
@@ -142,51 +145,86 @@ export async function listPendingSites(): Promise<Site[]> {
   return Array.isArray(data) ? data : (data.items ?? data.data ?? [])
 }
 
-export interface CreateSiteInput { code: string; libelle: string; localisation?: string }
-export interface CreateSiteResult { ok: boolean; site?: Site; error?: string }
-
-/**
- * Étape 2 bis — crée un NOUVEAU site avec le jeton obtenu à l'étape 1 (perm serveur
- * referentiel.site.create requise : réservé Admin Système / Médecin Chef). Le site créé
- * est ensuite sélectionné comme n'importe quel site trouvé par recherche (cf. sync-setup.html).
- */
-export async function createPendingSite(input: CreateSiteInput): Promise<CreateSiteResult> {
-  if (!pendingAuth) return { ok: false, error: 'Authentification requise avant de créer un site.' }
-  try {
-    const r = await fetch(pendingAuth.serverUrl + '/referentiels/sites', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${pendingAuth.accessToken}` },
-      body: JSON.stringify(input),
-    })
-    const body = await r.json().catch(() => null) as { message?: unknown } & Partial<Site> | null
-    if (r.status === 403)
-      return { ok: false, error: 'Compte non autorisé à créer un site (réservé aux administrateurs).' }
-    if (!r.ok) {
-      const m = body && 'message' in body ? body.message : undefined
-      return { ok: false, error: Array.isArray(m) ? m.join(', ') : m ? String(m) : `Erreur serveur (HTTP ${r.status}).` }
-    }
-    return { ok: true, site: body as Site }
-  } catch (e) {
-    return { ok: false, error: 'Serveur injoignable : ' + (e as Error).message }
-  }
-}
-
 /**
  * Étape 3 — l'opérateur a choisi le site DE CE POSTE (indépendant du site de son propre
- * compte) : persiste serverUrl + siteId + refreshToken (DPAPI) et écrit l'access token.
+ * compte) : persiste serverUrl + siteId + refreshToken (DPAPI), écrit l'access token, et
+ * DÉCLARE le poste au serveur central.
+ *
+ * La déclaration au serveur n'est pas un détail : sans elle, le site choisi ici ne vivrait
+ * que dans ce poste. Le serveur, lui, ignorerait où il se trouve et rattacherait chaque acte
+ * au site du COMPTE qui le saisit — un soignant de passage ferait porter ses triages à son
+ * site d'origine. C'est `POST /sync/poste` qui rend le site réellement porté par la machine.
+ *
+ * Échec réseau toléré : la configuration locale reste valable et le poste sera redéclaré au
+ * prochain lancement (cf. declarerPosteAuServeur). Bloquer ici laisserait un poste installé
+ * mais inutilisable pour une coupure passagère.
  */
-export function finalizeSyncSetup(siteId: string, posteLibelle?: string): SetupResult {
+export async function finalizeSyncSetup(siteId: string, posteLibelle?: string): Promise<SetupResult> {
   if (!pendingAuth) return { ok: false, error: 'Session d’authentification expirée — recommencez.' }
   if (!siteId) return { ok: false, error: 'Aucun site sélectionné.' }
   const { serverUrl, accessToken, refreshToken } = pendingAuth
   writeConfig({ mode: 'local', serverUrl, siteId })
   secureSet(REFRESH_KEY, refreshToken)
   fs.writeFileSync(syncTokenFilePath(), accessToken, 'utf8')
-  getPosteLocalId()
+  const posteLocalId = getPosteLocalId()
   if (posteLibelle) setPosteLibelle(posteLibelle)
   else getPosteLibelle() // assure un nom par défaut (hostname) même si le champ a été laissé vide
+
+  const declare = await declarerPoste(serverUrl, accessToken, posteLocalId, siteId, getPosteLibelle())
   pendingAuth = null
+  // Seule une erreur DE FOND arrête l'installation (site inexistant, compte non autorisé) :
+  // l'opérateur doit reprendre sa saisie. Une coupure réseau, elle, laisse l'installation
+  // valide — le poste se redéclarera au prochain lancement.
+  if (declare.fatal) return { ok: false, error: declare.error }
+  if (declare.ok) writeConfig({ posteDeclare: true })
   return { ok: true }
+}
+
+/** Appel brut de `POST /sync/poste` — partagé par la finalisation et le rattrapage au démarrage. */
+async function declarerPoste(
+  serverUrl: string,
+  accessToken: string,
+  posteLocalId: string,
+  siteId: string,
+  libelle?: string,
+): Promise<{ ok: boolean; error?: string; fatal?: boolean }> {
+  try {
+    const r = await fetch(trimUrl(serverUrl) + '/sync/poste', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify({ posteLocalId, siteId, libelle }),
+    })
+    if (r.status === 404)
+      return { ok: false, fatal: true, error: 'Site introuvable sur le serveur — reprenez la sélection.' }
+    if (r.status === 400)
+      return { ok: false, fatal: true, error: 'Site invalide — reprenez la sélection.' }
+    if (r.status === 403)
+      return { ok: false, fatal: true, error: 'Compte non autorisé à configurer un poste.' }
+    if (!r.ok) return { ok: false, error: `Erreur serveur (HTTP ${r.status}).` }
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, error: 'Serveur injoignable : ' + (e as Error).message }
+  }
+}
+
+/**
+ * Rattrapage au démarrage : redéclare le poste si la déclaration initiale a échoué (poste
+ * installé hors ligne) ou si le poste a été installé avant l'existence de `POST /sync/poste`.
+ * Silencieux et sans conséquence s'il est déjà déclaré.
+ */
+export async function declarerPosteAuServeur(): Promise<void> {
+  const cfg = readConfig()
+  if (cfg.posteDeclare) return
+  if (!cfg.serverUrl || !cfg.siteId) return
+  let accessToken: string
+  try {
+    accessToken = fs.readFileSync(syncTokenFilePath(), 'utf8').trim()
+  } catch {
+    return
+  }
+  if (!accessToken) return
+  const res = await declarerPoste(cfg.serverUrl, accessToken, getPosteLocalId(), cfg.siteId, getPosteLibelle())
+  if (res.ok) writeConfig({ posteDeclare: true })
 }
 
 /** Abandon de l'écran de configuration avant finalisation (retour à l'étape 1, changement de compte…). */

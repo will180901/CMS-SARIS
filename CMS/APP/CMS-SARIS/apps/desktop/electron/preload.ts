@@ -39,8 +39,10 @@ contextBridge.exposeInMainWorld('saris', {
   /**
    * Configuration du poste en mode local (écran de 1er lancement), en 2 étapes :
    *  1) syncAuthenticate — login/mdp (+ 2FA si besoin) contre le serveur central.
-   *  2) syncListSites / syncFinalize — l'opérateur choisit le site DE CE POSTE, puis le
-   *     processus principal démarre le backend embarqué + lance la 1ère synchro.
+   *  2) syncListSites / syncFinalize — l'opérateur choisit le site DE CE POSTE parmi ceux
+   *     qui existent déjà, puis le processus principal démarre le backend embarqué + lance
+   *     la 1ère synchro. Aucune création de site ici : les sites se gèrent dans
+   *     Référentiels → Sites, et nulle part ailleurs.
    */
   syncAuthenticate: (params: {
     serverUrl: string; login: string; password: string; totpCode?: string; tempToken?: string
@@ -48,13 +50,6 @@ contextBridge.exposeInMainWorld('saris', {
     ipcRenderer.invoke('saris:sync-authenticate', params),
   syncListSites: (): Promise<{ ok: boolean; sites?: { id: string; code: string; libelle: string; localisation?: string | null }[]; error?: string }> =>
     ipcRenderer.invoke('saris:sync-list-sites'),
-  /** Crée un nouveau site (réservé Admin Système / Médecin Chef côté serveur) — le site
-   *  créé est ensuite sélectionné comme n'importe quel site trouvé par recherche. */
-  syncCreateSite: (params: { code: string; libelle: string; localisation?: string }): Promise<{
-    ok: boolean
-    site?: { id: string; code: string; libelle: string; localisation?: string | null }
-    error?: string
-  }> => ipcRenderer.invoke('saris:sync-create-site', params),
   syncFinalize: (params: { siteId: string; posteLibelle?: string }): Promise<{ ok: boolean; error?: string }> =>
     ipcRenderer.invoke('saris:sync-finalize', params),
   /** Abandonne l'authentification en attente (retour à l'étape 1 depuis l'étape 2). */
