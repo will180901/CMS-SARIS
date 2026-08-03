@@ -2,17 +2,17 @@
  * CreerUtilisateurDrawer — assistant d'enregistrement d'une PERSONNE.
  *
  * Assistant en 2 étapes :
- *   1. Identité — nom, prénom, matricule, métier
- *   2. Accès    — facultatif : login, mot de passe, site, rôles
+ *   1. Identité — nom, prénom, matricule, fonction
+ *   2. Accès    — facultatif : login, mot de passe, rôles
  *
  * L'ordre compte : on enregistre d'abord QUI est la personne, et seulement
  * ensuite si elle peut se connecter. Un agent administratif ou un soignant pas
  * encore doté d'un compte s'arrête à l'étape 1 — auparavant c'était impossible
  * sans passer par un second écran, ce qui produisait des fiches en double.
  *
- * Le métier (sage-femme, technicien de laboratoire…) est saisi ici et non déduit
- * du rôle d'accès : le système n'a que trois rôles de droits pour cinq métiers,
- * et laisser le serveur deviner écrasait le métier réel.
+ * AUCUN site d'affectation n'est demandé : une personne n'appartient pas à un
+ * site, elle intervient là où elle travaille. C'est l'ACTE qui porte un site,
+ * celui du poste depuis lequel il est réalisé.
  *
  * Avec `personnel`, l'assistant sert à DONNER un accès à quelqu'un déjà
  * enregistré : l'identité est rappelée en lecture seule et on démarre à l'étape 2.
@@ -22,7 +22,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useIsCompact } from '@/hooks/useMediaQuery'
 import {
-  X, UserPlus, Eye, EyeOff, Stethoscope, Building2, ShieldCheck,
+  X, UserPlus, Eye, EyeOff, Stethoscope, ShieldCheck,
   Check, ChevronLeft, ChevronRight, KeyRound,
 } from 'lucide-react'
 import {
@@ -32,9 +32,6 @@ import { Button, Field, TextInput, StatusPill, SelectBox } from '@/components/sa
 import { useCreateUtilisateur, useRoles } from '../hooks/useAdmin'
 import { useCreatePersonnel } from '@/modules/acteurs/hooks/usePersonnel'
 import { labelFonction, optionsFonction, roleParDefaut } from '@/config/fonctions'
-import { useSites } from '@/modules/referentiels/hooks/useReferentiels'
-import { useSessionStore } from '@/stores/session.store'
-import { usePermissions } from '@/hooks/usePermissions'
 
 /** Personne déjà enregistrée à qui l'on vient donner un accès. */
 export interface PersonneExistante {
@@ -81,23 +78,16 @@ export function CreerUtilisateurDrawer({ open, onClose, personnel = null }: Prop
   // En mode « donner un accès », la question ne se pose pas : c'est le but même.
   const [avecAcces, setAvecAcces] = useState(modeAcces)
 
-  const { data: sites = [] } = useSites()
   const { data: roles = [] } = useRoles()
 
   const identityValid =
     nom.trim().length >= 2 && prenom.trim().length >= 2 && matricule.trim().length >= 2
 
-  // Cloisonnement multi-site : par défaut un admin crée sur SON propre site
-  // (JWT), site figé sans sélecteur. Un détenteur de `utilisateur.create`
-  // « multi-site » (ADMIN_SYSTEME, ou un MEDECIN_CHEF auquel l'admin a
-  // accordé ce droit) peut en revanche choisir librement Moutela OU Nkayi —
-  // cf. UtilisateursController#hasCrossSiteAccess (backend, même règle).
-  const { has } = usePermissions()
-  const crossSite = has('utilisateur.create')
-  const ownSiteId = useSessionStore(s => s.user?.siteId) ?? ''
-  const [siteId, setSiteId] = useState(ownSiteId)
-  const siteLabel = sites.find(s => s.id === siteId)?.libelle ?? '—'
-  const siteOptions = sites.map(s => ({ value: s.id, label: s.libelle }))
+  // Aucun site n'est demandé ni transmis : une personne n'est pas rattachée à un
+  // site, elle intervient là où elle travaille ce jour-là. Le serveur rattache le
+  // compte au site de l'appelant, faute de mieux tant que le site du POSTE n'est
+  // pas encore la source de vérité (il le deviendra avec la configuration à la
+  // première installation).
 
   // Erreurs par champ (affichées sous chaque champ)
   const loginError = login.length > 0 && (login.length < 3 || login.length > 32 || !LOGIN_REGEX.test(login))
@@ -116,7 +106,6 @@ export function CreerUtilisateurDrawer({ open, onClose, personnel = null }: Prop
     LOGIN_REGEX.test(login) && login.length >= 3 && login.length <= 32
     && EMAIL_REGEX.test(email)
     && PASSWORD_REGEX.test(mdp)
-    && !!siteId
     && roleIds.length > 0
   const valid = identityValid && (!avecAcces || accesValid)
 
@@ -127,7 +116,6 @@ export function CreerUtilisateurDrawer({ open, onClose, personnel = null }: Prop
     setNom(personnel?.nom ?? ''); setPrenom(personnel?.prenom ?? '')
     setMatricule(personnel?.matricule ?? ''); setMetier(personnel?.role ?? 'INFIRMIER')
     setAvecAcces(modeAcces)
-    setSiteId(ownSiteId)
   }
   function handleClose() { reset(); onClose() }
 
@@ -172,11 +160,12 @@ export function CreerUtilisateurDrawer({ open, onClose, personnel = null }: Prop
       //    reste enregistrée SANS accès — un état cohérent et rattrapable depuis
       //    la liste (« Donner un accès »), jamais une fiche à moitié créée.
       if (avecAcces) {
+        // `siteId` n'est volontairement PAS transmis : le serveur rattache le
+        // compte au site de l'appelant. Une personne ne s'affecte pas à un site.
         await create.mutateAsync({
           login: login.trim(),
           email: email.trim().toLowerCase(),
           motDePasseInitial: mdp,
-          siteId,
           roleIds,
           personnelMedicalId: personnelId,
         })
@@ -452,34 +441,9 @@ export function CreerUtilisateurDrawer({ open, onClose, personnel = null }: Prop
                 )}
               </Field>
 
-              <SectionTitle icon={<Building2 size={14} />} label={t('admin.assignedSite')} />
-              {crossSite ? (
-                <Field label={t('admin.siteLabel')} hint={t('admin.siteHintMultiSite')}>
-                  {(id) => (
-                    <SelectBox
-                      id={id} value={siteId} onChange={setSiteId}
-                      options={siteOptions}
-                    />
-                  )}
-                </Field>
-              ) : (
-                <Field label={t('admin.siteLabel')} hint={t('admin.siteHint')}>
-                  {() => (
-                    <div style={{
-                      display: 'flex', alignItems: 'center', gap: 'var(--espace-2)',
-                      padding: 'var(--espace-2) var(--espace-3)',
-                      border: '1px solid var(--bordure-legere)',
-                      borderRadius: 'var(--radius-md)',
-                      background: 'var(--fond-surface-2)',
-                      color: 'var(--texte-secondaire)',
-                      fontSize: 'var(--font-size-sm)',
-                    }}>
-                      <Building2 size={14} style={{ color: 'var(--texte-tertiaire)', flexShrink: 0 }} />
-                      <span style={{ color: 'var(--texte-primaire)', fontWeight: 500 }}>{siteLabel}</span>
-                    </div>
-                  )}
-                </Field>
-              )}
+              {/* Pas de site d'affectation : une personne n'appartient pas à un
+                  site, elle travaille là où elle se trouve. C'est l'ACTE qui porte
+                  un site — celui du poste depuis lequel il est réalisé. */}
 
               <SectionTitle icon={<ShieldCheck size={14} />} label={t('admin.assignedRoles')} />
               <Field

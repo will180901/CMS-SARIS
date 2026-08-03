@@ -2,8 +2,10 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  Logger,
 } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
+import { PatientService } from '../patient/patient.service'
 import { CI } from '../../common/prisma/search'
 import type {
   CreatePersonnelDto,
@@ -33,7 +35,12 @@ const DELEGATION_INCLUDE = {
 
 @Injectable()
 export class PersonnelService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(PersonnelService.name)
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly patients: PatientService,
+  ) {}
 
   // ══════════════════════════════════════════════════════════════════════════
   //  PERSONNEL MÉDICAL
@@ -91,7 +98,7 @@ export class PersonnelService {
     })
   }
 
-  async create(dto: CreatePersonnelDto) {
+  async create(dto: CreatePersonnelDto, siteId?: string, createdBy?: string) {
     // Contrôle d'unicité sur le client BRUT : il voit aussi les tombstones (agents soft-supprimés)
     // qui occupent encore le matricule @unique en base.
     const existing = await this.prisma.raw.personnelMedical.findUnique({
@@ -104,7 +111,23 @@ export class PersonnelService {
           : `Matricule "${dto.matricule}" déjà utilisé`,
       )
     }
-    return this.prisma.personnelMedical.create({ data: dto })
+    const agent = await this.prisma.personnelMedical.create({ data: dto })
+
+    // Le dossier patient s'ouvre dans la foulée : les soignants se soignent ici
+    // aussi, et leur faire ressaisir leur identité le jour d'une consultation
+    // créait des doublons. Best-effort STRICT : l'enregistrement de la personne
+    // ne doit jamais échouer parce que son dossier n'a pas pu être créé.
+    if (siteId) {
+      try {
+        await this.patients.createFromPersonnel(agent, siteId, createdBy)
+      } catch (e) {
+        this.logger.warn(
+          `Dossier patient non créé pour ${agent.matricule} : ${(e as Error).message}`,
+        )
+      }
+    }
+
+    return agent
   }
 
   async update(id: string, dto: UpdatePersonnelDto) {

@@ -32,8 +32,14 @@ export class CreateUtilisateurDto {
   @MaxLength(200)
   motDePasseInitial!: string
 
+  /**
+   * Facultatif : une personne n'est pas affectée à un site, elle intervient là où
+   * elle travaille. Omis, le serveur rattache le compte au site de l'appelant.
+   * Le champ subsiste pour les appels qui imposent encore un site précis.
+   */
+  @IsOptional()
   @IsUUID()
-  siteId!: string
+  siteId?: string
 
   @IsOptional()
   @IsUUID()

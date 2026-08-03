@@ -1483,6 +1483,72 @@ export class PatientService {
     return dossier
   }
 
+  /**
+   * Ouvre le dossier patient d'un membre du PERSONNEL du centre.
+   *
+   * Les soignants se soignent aussi ici : leur faire ressaisir nom, prénom et
+   * matricule le jour où ils consultent était une double saisie inutile, et une
+   * source de doublons (deux fiches pour la même personne, sous deux orthographes).
+   *
+   * Volontairement distinct de `createFromEmploye` : un membre du personnel n'est
+   * pas une ligne du registre SARIS, donc `employeId` reste vide — le renseigner
+   * pointerait vers un registre auquel il n'appartient pas.
+   *
+   * Silencieux et sans effet de bord : renvoie null si un dossier existe déjà
+   * (même matricule) ou si la catégorie est absente. La création d'une personne
+   * ne doit jamais échouer à cause de son dossier.
+   */
+  async createFromPersonnel(
+    personnel: { id: string; matricule: string; nom: string; prenom: string },
+    siteId: string,
+    createdBy?: string,
+    floorNum = 0,
+  ) {
+    const existing = await this.prisma.raw.patient.findFirst({
+      where: { matricule: personnel.matricule },
+      select: { id: true },
+    })
+    if (existing) return null
+
+    // Le personnel du centre est du personnel SARIS sous contrat permanent.
+    const categorie = await this.prisma.categoriePatient.findFirst({
+      where: { code: 'ASSURE_CDI' },
+      select: { id: true },
+    })
+    if (!categorie) return null
+
+    const numeroPatient = await this.generateNumeroPatient(siteId, floorNum)
+
+    // Date de naissance et sexe restent vides : ils seront complétés par
+    // l'intéressé à sa première visite (IdentitePatient les accepte nuls).
+    const dossier = await this.prisma.patient.create({
+      data: {
+        numeroPatient,
+        matricule: personnel.matricule,
+        siteCreationId: siteId,
+        categoriePatientId: categorie.id,
+        createdBy: createdBy ?? null,
+        identite: { create: { nom: personnel.nom, prenom: personnel.prenom } },
+      },
+    })
+
+    await this.notif.emit({
+      type: 'PATIENT_CREE',
+      niveau: 'INFO',
+      category: 'clinique',
+      titre: 'Dossier patient créé automatiquement (personnel)',
+      message: `${personnel.prenom} ${personnel.nom} · ${numeroPatient}`,
+      siteId: null,
+      requiredPermission: 'patient.read',
+      entiteType: 'patient',
+      entiteId: dossier.id,
+      lien: `/patients/${dossier.id}`,
+      createdById: createdBy ?? null,
+    })
+
+    return dossier
+  }
+
   // ── Mise à jour identité ──────────────────────────────────────────────────
 
   async updateIdentite(id: string, dto: UpdateIdentiteDto) {
