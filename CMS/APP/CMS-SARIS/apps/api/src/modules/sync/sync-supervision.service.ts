@@ -173,6 +173,68 @@ export class SyncSupervisionService {
     })
   }
 
+  /**
+   * Rattache un poste à son site, à la première installation.
+   *
+   * Différence essentielle avec `heartbeat` : ici le site est CHOISI et fait
+   * autorité, alors que le battement de vie se contente de refléter celui de
+   * l'utilisateur connecté. C'est ce choix qui permet ensuite aux actes de porter
+   * le site où ils ont réellement eu lieu, et non celui du compte qui les saisit.
+   *
+   * Le site doit exister : on ne crée jamais un site au passage — ils se gèrent
+   * dans Référentiels → Sites, et nulle part ailleurs.
+   */
+  async configurerPoste(
+    posteLocalId: string,
+    siteId: string,
+    libelle?: string,
+  ) {
+    const site = await this.prisma.site.findUnique({
+      where: { id: siteId },
+      select: { id: true, libelle: true },
+    })
+    if (!site) throw new NotFoundException('Site introuvable')
+
+    const poste = await this.prisma.posteLocal.upsert({
+      where: { id: posteLocalId },
+      // Reconfiguration assumée : un poste peut être déplacé d'un site à l'autre.
+      update: {
+        siteId,
+        ...(libelle?.trim() ? { libelle: libelle.trim() } : {}),
+        masque: false,
+      },
+      create: {
+        id: posteLocalId,
+        siteId,
+        libelle: libelle?.trim() || this.defaultLibelle(posteLocalId),
+      },
+    })
+
+    this.notifications.broadcastLive('SYNC_ACTIVITY', {
+      requiredPermission: 'synchronisation.read',
+    })
+    return { ...poste, site }
+  }
+
+  /**
+   * État de configuration d'un poste. Renvoie null s'il n'est pas encore déclaré —
+   * c'est ce que le client interroge au démarrage pour savoir s'il doit demander
+   * son site.
+   */
+  async lirePoste(posteLocalId: string) {
+    const poste = await this.prisma.posteLocal.findUnique({
+      where: { id: posteLocalId },
+    })
+    if (!poste) return null
+    // `PosteLocal` ne déclare pas de relation vers Site (simple colonne) : on
+    // résout le libellé séparément pour l'afficher.
+    const site = await this.prisma.site.findUnique({
+      where: { id: poste.siteId },
+      select: { id: true, code: true, libelle: true },
+    })
+    return { id: poste.id, libelle: poste.libelle, siteId: poste.siteId, site }
+  }
+
   /** Renomme un poste (supervision admin) — nom UNIQUE au sein du site. */
   async renamePoste(
     siteId: string,

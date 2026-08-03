@@ -49,6 +49,31 @@ export class SyncHeartbeatDto {
   libelle?: string
 }
 
+/**
+ * Configuration d'un poste à sa première installation.
+ *
+ * C'est le seul endroit où un site est CHOISI. Partout ailleurs le site est subi :
+ * un acte prend celui du poste qui le réalise. Une personne, elle, n'appartient à
+ * aucun site — un infirmier travaille là où il se trouve ce jour-là.
+ *
+ * Le site doit exister : il se choisit parmi ceux déjà enregistrés dans
+ * Référentiels → Sites, jamais créé au passage.
+ */
+export class ConfigurerPosteDto {
+  @IsString()
+  @IsNotEmpty()
+  posteLocalId!: string
+
+  @IsString()
+  @IsNotEmpty({ message: 'Le site du poste est requis' })
+  siteId!: string
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  libelle?: string
+}
+
 export class RenamePosteDto {
   @IsString()
   @IsNotEmpty({ message: 'Le nom du poste est requis' })

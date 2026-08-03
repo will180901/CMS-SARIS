@@ -255,7 +255,13 @@ export class SecurityService {
     }
 
     const roles = user.roles.map((ur) => ur.role.code) as Role[]
-    const siteId = user.siteId
+    // Le site de travail est celui du POSTE, pas celui du compte : un infirmier
+    // intervient là où il se trouve, et ses actes doivent porter ce lieu-là.
+    // Sans poste déclaré (navigateur), on retombe sur le site du compte.
+    const siteId = await this.resoudreSiteDeTravail(
+      user.siteId,
+      dto.posteLocalId,
+    )
     const permissions = await chargerPermissions(this.prisma, user.id)
     const personnelMedicalId = user.personnelMedicalId
 
@@ -399,9 +405,14 @@ export class SecurityService {
     const roles = user.roles.map((ur) => ur.role.code) as Role[]
     const permissions = await chargerPermissions(this.prisma, user.id)
     const personnelMedicalId = user.personnelMedicalId
+    // Même règle qu'à la connexion simple : le site de travail vient du poste.
+    const siteId = await this.resoudreSiteDeTravail(
+      user.siteId,
+      dto.posteLocalId,
+    )
     const tokens = await this.creerSession(
       user.id,
-      user.siteId,
+      siteId,
       roles,
       permissions,
       personnelMedicalId,
@@ -422,7 +433,7 @@ export class SecurityService {
       user: {
         id: user.id,
         login: user.login,
-        siteId: user.siteId,
+        siteId,
         roles,
         permissions,
         personnelMedicalId,
@@ -593,6 +604,37 @@ export class SecurityService {
   }
 
   // ── Helpers privés ────────────────────────────────────────────────────────
+
+  /**
+   * Site sur lequel la personne travaille pendant cette session.
+   *
+   * Une personne n'appartient pas à un site : elle intervient là où elle se
+   * trouve. C'est le POSTE — déclaré une fois à son installation — qui porte le
+   * lieu, et c'est lui qui doit se retrouver sur les actes (visites, dossiers
+   * ouverts). Résoudre le site ICI plutôt que sur chaque acte évite d'avoir à
+   * modifier tous les points d'écriture : `siteId` du jeton signifie désormais
+   * « là où je travaille », et non plus « ce à quoi j'appartiens ».
+   *
+   * Repli sur le site du compte quand aucun poste n'est déclaré (navigateur
+   * classique) ou que le poste est inconnu : l'application reste utilisable sans
+   * installation préalable.
+   */
+  private async resoudreSiteDeTravail(
+    siteDuCompte: string,
+    posteLocalId?: string | null,
+  ): Promise<string> {
+    if (!posteLocalId) return siteDuCompte
+    try {
+      const poste = await this.prisma.posteLocal.findUnique({
+        where: { id: posteLocalId },
+        select: { siteId: true },
+      })
+      return poste?.siteId ?? siteDuCompte
+    } catch {
+      // Un poste illisible ne doit jamais empêcher de se connecter.
+      return siteDuCompte
+    }
+  }
 
   /**
    * Crée une SessionUtilisateur en DB et retourne les deux tokens JWT.

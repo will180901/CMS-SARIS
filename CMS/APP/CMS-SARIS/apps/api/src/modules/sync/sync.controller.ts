@@ -23,6 +23,7 @@ import {
   SyncPushDto,
   SyncHeartbeatDto,
   RenamePosteDto,
+  ConfigurerPosteDto,
 } from './sync.dto'
 
 interface AuthedRequest {
@@ -80,6 +81,32 @@ export class SyncController {
     const { siteId } = requireUser(req)
     await this.supervision.heartbeat(siteId, body.posteLocalId, body.libelle)
     return { ok: true }
+  }
+
+  /**
+   * Déclare le site d'un poste, à sa première installation.
+   *
+   * Volontairement ouvert à `synchronisation.read` et non à `.execute` : configurer
+   * son poste n'est pas administrer la synchronisation, c'est dire OÙ l'on se
+   * trouve. L'exiger d'un administrateur obligerait à en déranger un à chaque
+   * installation, et laisserait le poste sans site — donc inutilisable — en
+   * attendant.
+   */
+  @Post('poste')
+  @RequirePermissions('synchronisation.read')
+  configurerPoste(@Body() dto: ConfigurerPosteDto) {
+    return this.supervision.configurerPoste(
+      dto.posteLocalId,
+      dto.siteId,
+      dto.libelle,
+    )
+  }
+
+  /** Le poste est-il déjà rattaché à un site ? `null` s'il n'est pas déclaré. */
+  @Get('poste/:id')
+  @RequirePermissions('synchronisation.read')
+  lirePoste(@Param('id') id: string) {
+    return this.supervision.lirePoste(id)
   }
 
   /** Renomme un poste (nom unique par site) — supervision admin. */
