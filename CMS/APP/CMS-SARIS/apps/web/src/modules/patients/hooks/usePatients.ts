@@ -11,6 +11,7 @@ import type {
 } from '../api/patients.api'
 import { ApiError, isOfflineQueued } from '@/lib/api'
 import i18n from '@/i18n/config'
+import { usePermissions } from '@/hooks/usePermissions'
 
 // ── Keys ──────────────────────────────────────────────────────────────────────
 
@@ -28,54 +29,60 @@ function toastError(err: unknown) {
 // ── Liste ─────────────────────────────────────────────────────────────────────
 
 export function usePatients(params?: PatientQueryParams) {
+  const { has } = usePermissions()
   return useQuery({
     queryKey: [...PATIENTS_KEY, params],
     queryFn:  () => patientsApi.list(params),
     staleTime: 30_000,
+    enabled:  has('patient.read'),
   })
 }
 
 // ── Dossier complet ───────────────────────────────────────────────────────────
 
 export function usePatientDossier(id: string) {
+  const { has } = usePermissions()
   return useQuery({
     queryKey: dossierKey(id),
     queryFn:  () => patientsApi.findById(id),
     staleTime: 20_000,
-    enabled:  !!id,
+    enabled:  !!id && has('patient.read'),
   })
 }
 
 // ── Historique des constantes vitales ───────────────────────────────────────────
 
 export function usePatientConstantes(id: string) {
+  const { has } = usePermissions()
   return useQuery({
     queryKey: ['patients', id, 'constantes'],
     queryFn:  () => patientsApi.constantes(id),
     staleTime: 20_000,
-    enabled:  !!id,
+    enabled:  !!id && has('patient.read'),
   })
 }
 
 // ── Alertes cliniques calculées ──────────────────────────────────────────────────
 
 export function usePatientAlertesCliniques(id: string, enabled = true) {
+  const { has } = usePermissions()
   return useQuery({
     queryKey: ['patients', id, 'alertes-cliniques'],
     queryFn:  () => patientsApi.alertesCliniques(id),
     staleTime: 20_000,
-    enabled:  !!id && enabled,
+    enabled:  !!id && enabled && has('patient.read'),
   })
 }
 
 // Suivi du dossier (traitement, évolution des pathologies chroniques, résultats d'examens) —
 // calculé sur l'historique complet du patient, tous sites (dossier centralisé).
 export function usePatientSuivi(id: string, enabled = true) {
+  const { has } = usePermissions()
   return useQuery({
     queryKey: ['patients', id, 'suivi'],
     queryFn:  () => patientsApi.suivi(id),
     staleTime: 20_000,
-    enabled:  !!id && enabled,
+    enabled:  !!id && enabled && has('patient.read'),
   })
 }
 
@@ -104,11 +111,12 @@ export function useUpdateSuiviChronique(patientId: string) {
 
 // Ayants droit (dépendants) d'un travailleur CDI + leur activité récente (traçabilité dossier).
 export function usePatientAyantsDroits(id: string, enabled = true) {
+  const { has } = usePermissions()
   return useQuery({
     queryKey: ['patients', id, 'ayants-droits'],
     queryFn:  () => patientsApi.ayantsDroits(id),
     staleTime: 20_000,
-    enabled:  !!id && enabled,
+    enabled:  !!id && enabled && has('patient.read'),
   })
 }
 
@@ -116,11 +124,12 @@ export function usePatientAyantsDroits(id: string, enabled = true) {
 
 /** Recherche de patients ressemblants. Activée seulement si nom+prénom ≥ 2 car. */
 export function useFindSimilarPatients(q: SimilarPatientQuery) {
+  const { has } = usePermissions()
   const enabled = (q.nom?.trim().length ?? 0) >= 2 && (q.prenom?.trim().length ?? 0) >= 2
   return useQuery({
     queryKey: ['patients', 'similar', q],
     queryFn:  () => patientsApi.findSimilar(q),
-    enabled,
+    enabled:  enabled && has('patient.read'),
     staleTime: 10_000,
   })
 }

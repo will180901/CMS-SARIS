@@ -6,6 +6,7 @@ import type {
 } from '../api/triage.api'
 import { ApiError, isOfflineQueued } from '@/lib/api'
 import i18n from '@/i18n/config'
+import { usePermissions } from '@/hooks/usePermissions'
 
 // ── Keys ──────────────────────────────────────────────────────────────────────
 
@@ -23,33 +24,37 @@ function toastError(err: unknown) {
 // ── Liste ─────────────────────────────────────────────────────────────────────
 
 export function useVisites(params?: VisiteQueryParams) {
+  const { has } = usePermissions()
   return useQuery({
     queryKey: [...VISITES_KEY, params],
     queryFn:  () => triageApi.list(params),
     refetchInterval: 30_000,   // Refresh auto toutes les 30s
     staleTime:       15_000,
+    enabled:  has('visite.read'),
   })
 }
 
 // ── Détail ────────────────────────────────────────────────────────────────────
 
 export function useVisite(id: string) {
+  const { has } = usePermissions()
   return useQuery({
     queryKey: visiteKey(id),
     queryFn:  () => triageApi.findById(id),
     staleTime: 15_000,
-    enabled:   !!id,
+    enabled:   !!id && has('visite.read'),
   })
 }
 
 // ── Visites d'un patient (dossier) ──────────────────────────────────────────────
 
 export function usePatientVisites(patientId: string) {
+  const { has } = usePermissions()
   return useQuery({
     queryKey: ['visites', 'patient', patientId] as const,
     queryFn:  () => triageApi.visitesByPatient(patientId),
     staleTime: 15_000,
-    enabled:   !!patientId,
+    enabled:   !!patientId && has('visite.read'),
   })
 }
 

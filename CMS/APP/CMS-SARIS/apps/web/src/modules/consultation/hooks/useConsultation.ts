@@ -9,6 +9,7 @@ import type {
 } from '../api/consultation.api'
 import { ApiError, isOfflineQueued } from '@/lib/api'
 import i18n from '@/i18n/config'
+import { usePermissions } from '@/hooks/usePermissions'
 
 // ── Keys ──────────────────────────────────────────────────────────────────────
 
@@ -35,10 +36,13 @@ function toastErrorUnlessCI(err: unknown) {
 // ── Liste ─────────────────────────────────────────────────────────────────────
 
 export function useConsultations(params?: ConsultationQueryParams, opts?: { enabled?: boolean }) {
+  const { has } = usePermissions()
   return useQuery({
     queryKey: [...CONSULTATIONS_KEY, params],
     queryFn:  () => consultationApi.list(params),
-    enabled:  opts?.enabled ?? true,   // requêtes annexes (clôturées/annulées) chargées à la demande
+    // `has(...)` en premier : sans droit de lecture, aucune requête ne part, quoi que
+    // demande l'appelant. Le reste (requêtes annexes clôturées/annulées) reste à la demande.
+    enabled:  has('consultation.read') && (opts?.enabled ?? true),
     refetchInterval: 30_000,           // ignoré tant que enabled=false (pas de polling inutile)
     staleTime:       15_000,
   })
@@ -47,33 +51,36 @@ export function useConsultations(params?: ConsultationQueryParams, opts?: { enab
 // ── Consultations d'un patient (dossier) ─────────────────────────────────────
 
 export function usePatientConsultations(patientId: string) {
+  const { has } = usePermissions()
   return useQuery({
     queryKey: [...CONSULTATIONS_KEY, 'patient', patientId],
     queryFn:  () => consultationApi.list({ patientId, statut: 'TOUTES' }),
     staleTime: 30_000,
-    enabled:   !!patientId,
+    enabled:   !!patientId && has('consultation.read'),
   })
 }
 
 // ── Documents générés d'un patient (dossier → onglet Documents) ──────────────
 
 export function usePatientDocuments(patientId: string) {
+  const { has } = usePermissions()
   return useQuery({
     queryKey: [...CONSULTATIONS_KEY, 'patient', patientId, 'documents'],
     queryFn:  () => consultationApi.patientDocuments(patientId),
     staleTime: 30_000,
-    enabled:   !!patientId,
+    enabled:   !!patientId && has('consultation.read'),
   })
 }
 
 // ── Détail ────────────────────────────────────────────────────────────────────
 
 export function useConsultation(id: string) {
+  const { has } = usePermissions()
   return useQuery({
     queryKey: consultationKey(id),
     queryFn:  () => consultationApi.findById(id),
     staleTime: 15_000,
-    enabled:   !!id,
+    enabled:   !!id && has('consultation.read'),
   })
 }
 

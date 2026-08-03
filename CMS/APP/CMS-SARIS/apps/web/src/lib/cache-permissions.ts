@@ -10,10 +10,11 @@
  * `removeQueries()` les efface pour de bon. C'est la différence entre « ne plus
  * rafraîchir » et « ne plus détenir ».
  *
- * Ne couvre que les données de RÉFÉRENTIEL, seules à être chargées globalement et
- * réutilisées loin de leur écran d'origine (la liste des médicaments sert aussi à
- * prescrire, celle des pathologies à diagnostiquer). Les données cliniques, elles,
- * sont déjà cloisonnées par leur propre écran.
+ * Couvre les référentiels (chargés globalement et réutilisés loin de leur écran
+ * d'origine : la liste des médicaments sert aussi à prescrire, celle des pathologies à
+ * diagnostiquer) ET les données cliniques. Ces dernières sont déjà protégées par la
+ * garde de route — on n'entre plus sur la page — mais ce qui a été chargé AVANT la
+ * révocation resterait sinon en mémoire jusqu'à la fermeture de l'onglet.
  */
 import type { QueryClient } from '@tanstack/react-query'
 import type { PermissionCode } from '@cms-saris/types'
@@ -30,6 +31,12 @@ const CACHE_PAR_PERMISSION: Partial<Record<PermissionCode, readonly (readonly un
   'referentiel.type_consultation.read': [['referentiels', 'types-consultation']],
   'sous_traitant.read':                 [['sous-traitants']],
   'employe.read':                       [['employes']],
+
+  // Données cliniques. Le dossier patient porte aussi les constantes, alertes, suivi
+  // et ayants droit sous la même racine ['patients', id, …] — le préfixe les emporte.
+  'patient.read':      [['patients']],
+  'visite.read':       [['visites']],
+  'consultation.read': [['consultations']],
 }
 
 /**
