@@ -25,6 +25,7 @@ import { DrawerShell }     from '../components/DrawerShell'
 import { PaginationBar }   from '../components/PaginationBar'
 import { DataTableHead, dataRowStyle, DATA_TABLE_CARD, useColumnResize } from '@/components/saris'
 import { codeReferentiel, libelle as libelleSchema } from '@/lib/validation'
+import { ListePrintSheet, type ColonneExport } from '@/components/print/ListePrintSheet'
 
 const examenSchema = z.object({
   code:    codeReferentiel(2, 30),
@@ -115,6 +116,14 @@ export function ExamensTab({ canCreate, canUpdate, canDelete }: { canCreate: boo
   }), [examens, search, statut])
 
   const pagination = usePagination(filtered, 5)
+  const [openExport, setOpenExport] = useState(false)
+  // Mêmes colonnes qu'à l'écran, rendues en texte pour le papier.
+  const colonnesExport = useMemo<ColonneExport<TypeExamen>[]>(() => [
+    { libelle: t('referentiels.examColDomain'),    valeur: e => e.domaine },
+    { libelle: t('referentiels.fieldCode'),        valeur: e => e.code },
+    { libelle: t('referentiels.fieldLabel'),       valeur: e => e.libelle },
+    { libelle: t('referentiels.examColStatus'),    valeur: e => (isActif(e.statut) ? 'Actif' : 'Inactif') },
+  ], [t])
   const rz = useColumnResize({ storageKey: 'ref-examens', ready: !isLoading && filtered.length > 0, cellsSelector: 'thead th' })
 
   function openCreate() { setEdit(null); form.reset({ code: '', libelle: '' } as ExamenForm); setDrawer(true) }
@@ -133,7 +142,7 @@ export function ExamensTab({ canCreate, canUpdate, canDelete }: { canCreate: boo
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, paddingBottom: '16px' }}>
       <div style={{ flexShrink: 0 }}>
         <TabToolbar search={search} onSearchChange={setSearch} statut={statut} onStatutChange={setStatut}
-          onNew={openCreate} newLabel={t('referentiels.examNew')} placeholder={t('referentiels.examSearchPlaceholder')} canCreate={canCreate} />
+          onNew={openCreate} newLabel={t('referentiels.examNew')} placeholder={t('referentiels.examSearchPlaceholder')} canCreate={canCreate} onExport={() => setOpenExport(true)} />
       </div>
       <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingBottom: '8px' }}>
         <div style={DATA_TABLE_CARD}>
@@ -191,6 +200,19 @@ export function ExamensTab({ canCreate, canUpdate, canDelete }: { canCreate: boo
         title={t('referentiels.examDeleteTitle')}
         description={t('referentiels.examDeleteDesc')}
         confirmLabel={t('referentiels.delete')} />
+
+      {openExport && (
+        <ListePrintSheet<TypeExamen>
+          rootId="export-examens"
+          titre={t('referentiels.printExamens')}
+          sousTitre={`${filtered.length} entrée${filtered.length > 1 ? 's' : ''}`}
+          lignes={filtered}
+          cleDe={x => x.id}
+          colonnes={colonnesExport}
+          onClose={() => setOpenExport(false)}
+        />
+      )}
+
     </div>
   )
 }

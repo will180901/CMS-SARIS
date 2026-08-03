@@ -24,6 +24,7 @@ import { DrawerShell }      from '../components/DrawerShell'
 import { PaginationBar }    from '../components/PaginationBar'
 import { DataTableHead, dataRowStyle, DATA_TABLE_CARD, useColumnResize } from '@/components/saris'
 import { libelle as libelleSchema, texteOpt } from '@/lib/validation'
+import { ListePrintSheet, type ColonneExport } from '@/components/print/ListePrintSheet'
 
 const medSchema = z.object({
   nomGenerique:  libelleSchema('Nom générique', 2, 150),
@@ -90,6 +91,14 @@ export function MedicamentsTab({ canCreate, canUpdate, canDelete }: { canCreate:
   }), [medicaments, search, statut])
 
   const pagination = usePagination(filtered, 5)
+  const [openExport, setOpenExport] = useState(false)
+  // Mêmes colonnes qu'à l'écran, rendues en texte pour le papier.
+  const colonnesExport = useMemo<ColonneExport<MedicamentReference>[]>(() => [
+    { libelle: t('referentiels.medColGeneric'),    valeur: m => m.nomGenerique },
+    { libelle: t('referentiels.medColCommercial'), valeur: m => m.nomCommercial ?? '—' },
+    { libelle: t('referentiels.medColFamily'),     valeur: m => m.familleThera ?? '—' },
+    { libelle: t('referentiels.medColStatus'),     valeur: m => (isActif(m.statut) ? 'Actif' : 'Inactif') },
+  ], [t])
   const rz = useColumnResize({ storageKey: 'ref-medicaments', ready: !isLoading && filtered.length > 0, cellsSelector: 'thead th' })
 
   function openCreate() { setEdit(null); form.reset({ nomGenerique: '', nomCommercial: '', familleThera: '' }); setDrawer(true) }
@@ -109,7 +118,7 @@ export function MedicamentsTab({ canCreate, canUpdate, canDelete }: { canCreate:
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, paddingBottom: '16px' }}>
       <div style={{ flexShrink: 0 }}>
         <TabToolbar search={search} onSearchChange={setSearch} statut={statut} onStatutChange={setStatut}
-          onNew={openCreate} newLabel={t('referentiels.medNew')} placeholder={t('referentiels.medSearchPlaceholder')} canCreate={canCreate} />
+          onNew={openCreate} newLabel={t('referentiels.medNew')} placeholder={t('referentiels.medSearchPlaceholder')} canCreate={canCreate} onExport={() => setOpenExport(true)} />
       </div>
       <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingBottom: '8px' }}>
         <div style={DATA_TABLE_CARD}>
@@ -167,6 +176,19 @@ export function MedicamentsTab({ canCreate, canUpdate, canDelete }: { canCreate:
         title={t('referentiels.medDeleteTitle')}
         description={t('referentiels.medDeleteDesc')}
         confirmLabel={t('referentiels.delete')} />
+
+      {openExport && (
+        <ListePrintSheet<MedicamentReference>
+          rootId="export-medicaments"
+          titre={t('referentiels.printMedicaments')}
+          sousTitre={`${filtered.length} entrée${filtered.length > 1 ? 's' : ''}`}
+          lignes={filtered}
+          cleDe={x => x.id}
+          colonnes={colonnesExport}
+          onClose={() => setOpenExport(false)}
+        />
+      )}
+
     </div>
   )
 }

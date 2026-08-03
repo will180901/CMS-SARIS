@@ -24,7 +24,7 @@ import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Users, Plus, Shield, KeyRound, UserCheck, UserX,
-  Stethoscope, Loader2, ChevronRight, Trash2, AlertTriangle, Pencil,
+  Stethoscope, Loader2, ChevronRight, Trash2, AlertTriangle, Pencil, Download,
 } from 'lucide-react'
 import { PageHeader, Toolbar, Card, Button, StatCard,
   StatusPill, UserAvatar, EmptyState, Skeleton, IconButton, SelectBox, PaginationBar, useColumnResize, Modal,
@@ -42,6 +42,7 @@ import { CreerUtilisateurDrawer } from '../components/CreerUtilisateurDrawer'
 import { UtilisateurDrawer }      from '../components/UtilisateurDrawer'
 import { ResetPasswordDialog }    from '../components/ResetPasswordDialog'
 import { FichePersonnelModal }    from '../components/FichePersonnelModal'
+import { ListePrintSheet, type ColonneExport } from '@/components/print/ListePrintSheet'
 import type { UtilisateurAdmin }  from '../api/admin.api'
 import { labelStatut } from '@/config/labels'
 
@@ -91,6 +92,7 @@ export function UtilisateursPage({ embedded = false }: { embedded?: boolean } = 
   const [openAcces,  setOpenAcces]  = useState<Personne | null>(null)
   /** Fiche (identité) en cours de modification. */
   const [openFiche,  setOpenFiche]  = useState<Personne | null>(null)
+  const [openExport, setOpenExport] = useState(false)
 
   const deleteUser = useDeleteUtilisateur()
 
@@ -163,6 +165,40 @@ export function UtilisateursPage({ embedded = false }: { embedded?: boolean } = 
     return liste.sort((a, b) => (a.nom + a.prenom).localeCompare(b.nom + b.prenom))
   }, [users, personnel, search, statutF, roleF, siteF, accesF])
 
+  /**
+   * Colonnes de l'extraction. Elles suivent celles de l'écran, mais rendues en
+   * texte : le papier n'a ni pastille de statut ni avatar. Les colonnes réservées
+   * aux comptes disparaissent pour qui n'a pas le droit de les voir — un document
+   * imprimé ne doit pas révéler ce que l'écran masque.
+   */
+  const colonnesExport = useMemo<ColonneExport<Personne>[]>(() => [
+    { libelle: t('admin.colPersonne', { defaultValue: 'Personne' }),
+      valeur: p => `${p.prenom} ${p.nom}`.trim() },
+    { libelle: t('admin.soignantMatricule', { defaultValue: 'Matricule' }),
+      valeur: p => p.matricule ?? '—' },
+    { libelle: t('admin.colFonction', { defaultValue: 'Fonction' }),
+      valeur: p => (p.metier ? labelFonction(p.metier) : '—') },
+    ...(canVoirComptes ? [
+      // Le login est en sous-titre de la colonne « Personne » à l'écran ; sur le
+      // papier il lui faut sa propre colonne, sinon il disparaît.
+      { libelle: t('admin.colLogin', { defaultValue: 'Login' }),
+        valeur: (p: Personne) => p.compte?.login ?? '—' },
+      { libelle: t('admin.colSite'),
+        valeur: (p: Personne) => p.compte?.site?.libelle ?? '—' },
+      // « Espace de travail » = les rôles, exactement comme les pastilles à l'écran.
+      { libelle: t('admin.colAcces', { defaultValue: 'Espace de travail' }),
+        valeur: (p: Personne) => (p.compte
+          ? (p.compte.roles.map(r => r.libelle).join(', ') || '—')
+          : t('admin.sansAcces', { defaultValue: 'Sans accès' })) },
+    ] : []),
+    { libelle: t('admin.colStatus'),
+      valeur: p => (p.compte?.statut === 'BLOQUE'
+        ? t('admin.blocked')
+        : p.ficheActive
+          ? t('acteurs.statutActif',   { defaultValue: 'Actif' })
+          : t('acteurs.statutInactif', { defaultValue: 'Inactif' })) },
+  ], [t, canVoirComptes])
+
   // KPI rapides — à l'échelle des PERSONNES, pas des seuls comptes.
   const stats = useMemo(() => ({
     total:    personnes.length,
@@ -182,21 +218,31 @@ export function UtilisateursPage({ embedded = false }: { embedded?: boolean } = 
           title={t('admin.usersTitle')}
           subtitle={t('admin.usersSubtitle')}
           actions={
-            canCreate && (
-              <Button leftIcon={<Plus size={15} />} onClick={() => setOpenCreer(true)}>
-                {t('admin.nouvellePersonne', { defaultValue: 'Nouvelle personne' })}
+            <div style={{ display: 'flex', gap: 'var(--espace-2)' }}>
+              <Button variant="secondary" leftIcon={<Download size={15} />} onClick={() => setOpenExport(true)}>
+                {t('common.exporter', { defaultValue: 'Exporter' })}
               </Button>
-            )
+              {canCreate && (
+                <Button leftIcon={<Plus size={15} />} onClick={() => setOpenCreer(true)}>
+                  {t('admin.nouvellePersonne', { defaultValue: 'Nouvelle personne' })}
+                </Button>
+              )}
+            </div>
           }
         />
         )}
 
         {/* Mode embarqué (module Accès & habilitations) : actions compactes, en-tête fourni par le parent */}
-        {embedded && canCreate && (
+        {embedded && (
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--espace-2)', padding: 'var(--espace-3) var(--espace-6) 0' }}>
-            <Button size="sm" leftIcon={<Plus size={15} />} onClick={() => setOpenCreer(true)}>
-              {t('admin.nouvellePersonne', { defaultValue: 'Nouvelle personne' })}
+            <Button size="sm" variant="secondary" leftIcon={<Download size={15} />} onClick={() => setOpenExport(true)}>
+              {t('common.exporter', { defaultValue: 'Exporter' })}
             </Button>
+            {canCreate && (
+              <Button size="sm" leftIcon={<Plus size={15} />} onClick={() => setOpenCreer(true)}>
+                {t('admin.nouvellePersonne', { defaultValue: 'Nouvelle personne' })}
+              </Button>
+            )}
           </div>
         )}
 
@@ -374,6 +420,18 @@ export function UtilisateursPage({ embedded = false }: { embedded?: boolean } = 
         />
       )}
 
+      {openExport && (
+        <ListePrintSheet<Personne>
+          rootId="export-personnel"
+          titre={t('admin.tabPersonnel', { defaultValue: 'Personnel' })}
+          sousTitre={`${personnes.length} personne${personnes.length > 1 ? 's' : ''}`}
+          lignes={personnes}
+          cleDe={p => p.cle}
+          colonnes={colonnesExport}
+          onClose={() => setOpenExport(false)}
+        />
+      )}
+
       {openFiche?.personnelId && (
         <FichePersonnelModal
           key={openFiche.personnelId}
@@ -524,7 +582,7 @@ function UserTableSection({
             {[
               t('admin.colPersonne', { defaultValue: 'Personne' }),
               canVoirComptes ? t('admin.colSite') : t('admin.colFonction', { defaultValue: 'Fonction' }),
-              canVoirComptes ? t('admin.colAcces', { defaultValue: 'Accès à l’application' }) : '',
+              canVoirComptes ? t('admin.colAcces', { defaultValue: 'Espace de travail' }) : '',
               t('admin.colStatus'),
               t('admin.colActions'),
             ].map((label, i, arr) => (
@@ -713,10 +771,18 @@ function PersonneSansAccesRow({
             onClick={onOpenFiche}
           />
         )}
+        {/* Bouton icône et non bouton texte : la colonne Actions doit garder la
+            même trame d'une ligne à l'autre, sinon les icônes des autres lignes
+            se décalent et l'œil ne suit plus. L'intitulé reste porté par
+            l'infobulle et le libellé d'accessibilité. */}
         {canDonnerAcces && (
-          <Button size="sm" variant="secondary" leftIcon={<KeyRound size={13} />} onClick={onDonnerAcces}>
-            {t('admin.donnerAccesAction', { defaultValue: 'Donner l’accès' })}
-          </Button>
+          <IconButton
+            aria-label={t('admin.donnerAccesAction', { defaultValue: 'Donner l’accès' })}
+            icon={<KeyRound size={14} />}
+            tone="accent"
+            size="sm"
+            onClick={onDonnerAcces}
+          />
         )}
       </div>
     </div>

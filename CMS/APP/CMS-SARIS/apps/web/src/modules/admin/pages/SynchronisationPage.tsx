@@ -10,7 +10,7 @@
  * Réservé aux administrateurs (synchronisation.read/execute).
  */
 
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import i18n from '@/i18n/config'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -19,7 +19,7 @@ import {
   HardDrive, CheckCircle2, AlertTriangle, Loader2, CloudUpload, Trash2,
   RotateCcw, Users, Stethoscope, Pill, Ambulance, FlaskConical, HardHat, ClipboardList,
   CalendarClock, MonitorSmartphone, Activity, GitMerge, Radio, LayoutGrid, List, Search,
-  X, Clock, LogIn, Pencil, User, MessageSquare,
+  X, Clock, LogIn, Pencil, User, MessageSquare, Download,
 } from 'lucide-react'
 import {
   PageHeader, Card, Button, StatusPill, Skeleton, EmptyState, Tooltip, Modal, SegmentedTabs,
@@ -31,6 +31,7 @@ import { usePermissions } from '@/hooks/usePermissions'
 import { usePagination } from '@/hooks/usePagination'
 import { useRowsPerPage } from '@/hooks/useRowsPerPage'
 import { formatDateTime, formatNumber } from '@/lib/intl'
+import { ListePrintSheet, type ColonneExport } from '@/components/print/ListePrintSheet'
 import { formatDuree } from '@/lib/duree'
 import { labelModule, labelStatut, labelAction, labelRole } from '@/config/labels'
 import { useConnectivityStore } from '@/stores/connectivity.store'
@@ -213,6 +214,23 @@ function SupervisionZone() {
 
   const [supTab, setSupTab] = useState<SupTab>('postes')
 
+  // ── Extraction PDF ────────────────────────────────────────────────────────
+  // Mêmes colonnes qu'à l'écran ; l'onglet actif décide du jeu imprimé.
+  const [openExport, setOpenExport] = useState(false)
+  const colonnesActivite = useMemo<ColonneExport<SyncSupervisionJournal>[]>(() => [
+    { libelle: t('admin.colPoste'),     valeur: j => j.poste },
+    { libelle: t('admin.colStatus'),    valeur: j => journalStatutLabel(t, j.statut) },
+    { libelle: t('admin.colStarted'),   valeur: j => formatDateTime(j.startedAt) },
+    { libelle: t('admin.colMutations'), valeur: j => formatNumber(j.nbMutations), align: 'right' },
+    { libelle: t('admin.colConflicts'), valeur: j => formatNumber(j.nbConflits),  align: 'right' },
+  ], [t])
+  const colonnesConflits = useMemo<ColonneExport<SyncSupervisionConflit>[]>(() => [
+    { libelle: t('admin.colEntity'), valeur: c => humanizeCode(c.entiteType) },
+    { libelle: t('admin.colType'),   valeur: c => humanizeCode(c.typeConflit) },
+    { libelle: t('admin.colDate'),   valeur: c => formatDateTime(c.createdAt) },
+    { libelle: t('admin.colStatus'), valeur: () => t('admin.supConflictBadge'), align: 'right' },
+  ], [t])
+
   const supTabs: SegmentedTab[] = [
     { key: 'postes',   label: t('admin.supPostesTitle'),   icon: <MonitorSmartphone size={13} />, badge: postes.length || undefined },
     { key: 'activite', label: t('admin.supActivityTitle'), icon: <Activity size={13} /> },
@@ -237,14 +255,41 @@ function SupervisionZone() {
         }
       />
       <Card.Body padding="md">
-        <div style={{ marginBottom: 'var(--espace-4)' }}>
+        <div style={{ marginBottom: 'var(--espace-4)', display: 'flex', alignItems: 'center', gap: 'var(--espace-3)', flexWrap: 'wrap' }}>
           <SegmentedTabs value={supTab} onChange={(k) => setSupTab(k as SupTab)} tabs={supTabs} size="sm" aria-label={t('admin.supTitle')} />
+          {supTab !== 'postes' && (
+            <Button size="sm" variant="outline" style={{ marginLeft: 'auto' }} onClick={() => setOpenExport(true)}>
+              <Download size={14} /> {t('common.exporter', { defaultValue: 'Exporter' })}
+            </Button>
+          )}
         </div>
 
         {supTab === 'postes' && <PostesSection postes={postes} enLigne={enLigne} loading={isLoading} canExecute={canExecute} />}
         {supTab === 'activite' && <ActiviteTable journaux={journaux} loading={isLoading} />}
         {supTab === 'conflits' && <ConflitsTable conflits={conflits} loading={isLoading} />}
       </Card.Body>
+
+      {openExport && (supTab === 'activite' ? (
+        <ListePrintSheet<SyncSupervisionJournal>
+          rootId="export-sync-activite"
+          titre={t('admin.supActivityTitle')}
+          sousTitre={`${journaux.length} entrée${journaux.length > 1 ? 's' : ''}`}
+          lignes={journaux}
+          cleDe={j => j.id}
+          colonnes={colonnesActivite}
+          onClose={() => setOpenExport(false)}
+        />
+      ) : (
+        <ListePrintSheet<SyncSupervisionConflit>
+          rootId="export-sync-conflits"
+          titre={t('admin.supConflictsTitle')}
+          sousTitre={`${conflits.length} conflit${conflits.length > 1 ? 's' : ''}`}
+          lignes={conflits}
+          cleDe={c => c.id}
+          colonnes={colonnesConflits}
+          onClose={() => setOpenExport(false)}
+        />
+      ))}
     </Card>
   )
 }

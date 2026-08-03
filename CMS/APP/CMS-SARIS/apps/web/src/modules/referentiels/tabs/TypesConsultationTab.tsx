@@ -24,6 +24,7 @@ import { DrawerShell }     from '../components/DrawerShell'
 import { PaginationBar }   from '../components/PaginationBar'
 import { DataTableHead, dataRowStyle, DATA_TABLE_CARD, useColumnResize } from '@/components/saris'
 import { codeReferentiel, libelle as libelleSchema } from '@/lib/validation'
+import { ListePrintSheet, type ColonneExport } from '@/components/print/ListePrintSheet'
 
 const schema = z.object({
   code:    codeReferentiel(2, 30),
@@ -80,6 +81,13 @@ export function TypesConsultationTab({ canCreate, canUpdate, canDelete }: { canC
   }), [items, search, statut])
 
   const pagination = usePagination(filtered, 5)
+  const [openExport, setOpenExport] = useState(false)
+  // Mêmes colonnes qu'à l'écran, rendues en texte pour le papier.
+  const colonnesExport = useMemo<ColonneExport<TypeConsultation>[]>(() => [
+    { libelle: t('referentiels.fieldCode'),        valeur: x => x.code },
+    { libelle: t('referentiels.fieldLabel'),       valeur: x => x.libelle },
+    { libelle: t('referentiels.motifColStatus', { defaultValue: 'Statut' }), valeur: x => (isActif(x.statut) ? 'Actif' : 'Inactif') },
+  ], [t])
   const rz = useColumnResize({ storageKey: 'ref-types-consultation', ready: !isLoading && filtered.length > 0, cellsSelector: 'thead th' })
 
   function openCreate() { setEdit(null); form.reset({ code: '', libelle: '' }); setDrawer(true) }
@@ -99,7 +107,7 @@ export function TypesConsultationTab({ canCreate, canUpdate, canDelete }: { canC
       <div style={{ flexShrink: 0 }}>
         <TabToolbar search={search} onSearchChange={setSearch} statut={statut} onStatutChange={setStatut}
           onNew={openCreate} newLabel={t('referentiels.typeConsultationNew', { defaultValue: 'Nouveau type' })}
-          placeholder={t('referentiels.typeConsultationSearchPlaceholder', { defaultValue: 'Rechercher un type de consultation…' })} canCreate={canCreate} />
+          placeholder={t('referentiels.typeConsultationSearchPlaceholder', { defaultValue: 'Rechercher un type de consultation…' })} canCreate={canCreate} onExport={() => setOpenExport(true)} />
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingBottom: '8px' }}>
@@ -156,6 +164,19 @@ export function TypesConsultationTab({ canCreate, canUpdate, canDelete }: { canC
         title={t('referentiels.typeConsultationDeleteTitle', { defaultValue: 'Supprimer ce type ?' })}
         description={t('referentiels.typeConsultationDeleteDesc', { defaultValue: 'Suppression définitive. Refusée s’il est déjà utilisé par des consultations.' })}
         confirmLabel={t('referentiels.delete')} />
+
+      {openExport && (
+        <ListePrintSheet<TypeConsultation>
+          rootId="export-types-consultation"
+          titre={t('referentiels.printTypesConsultation')}
+          sousTitre={`${filtered.length} entrée${filtered.length > 1 ? 's' : ''}`}
+          lignes={filtered}
+          cleDe={x => x.id}
+          colonnes={colonnesExport}
+          onClose={() => setOpenExport(false)}
+        />
+      )}
+
     </div>
   )
 }

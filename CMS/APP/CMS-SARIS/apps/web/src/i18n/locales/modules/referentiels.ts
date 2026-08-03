@@ -16,6 +16,19 @@ export const referentiels = {
     tabCategories: 'Cat. patients',
     tabExamens: 'Examens',
 
+    // ── Titres d'extraction ─────────────────────────────────────────
+    // Les intitulés d'onglets sont abrégés pour tenir dans la barre ;
+    // sur le papier on écrit le nom complet.
+    printSites: 'Sites',
+    printMotifs: 'Motifs de consultation',
+    printPathologies: 'Pathologies',
+    printMedicaments: 'Médicaments',
+    printCategories: 'Catégories de patient',
+    printExamens: "Types d'examen",
+    printTypesConsultation: 'Types de consultation',
+    printSousTraitants: 'Sociétés sous-traitantes',
+    printEmployes: 'Registre des employés',
+
     // ── Toolbar ─────────────────────────────────────────────────────
     searchPlaceholder: 'Rechercher…',
     statusAll: 'Tous les statuts',
@@ -249,6 +262,17 @@ export const referentiels = {
     tabMedicaments: 'Medications',
     tabCategories: 'Patient cat.',
     tabExamens: 'Tests',
+
+    // ── Extraction titles ───────────────────────────────────────────
+    printSites: 'Sites',
+    printMotifs: 'Consultation reasons',
+    printPathologies: 'Conditions',
+    printMedicaments: 'Medications',
+    printCategories: 'Patient categories',
+    printExamens: 'Test types',
+    printTypesConsultation: 'Consultation types',
+    printSousTraitants: 'Subcontracting companies',
+    printEmployes: 'Employee register',
 
     // ── Toolbar ─────────────────────────────────────────────────────
     searchPlaceholder: 'Search…',

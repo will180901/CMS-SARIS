@@ -25,6 +25,7 @@ import { DrawerShell }      from '../components/DrawerShell'
 import { PaginationBar }    from '../components/PaginationBar'
 import { DataTableHead, dataRowStyle, DATA_TABLE_CARD, useColumnResize } from '@/components/saris'
 import { codeReferentiel, libelle as libelleSchema } from '@/lib/validation'
+import { ListePrintSheet, type ColonneExport } from '@/components/print/ListePrintSheet'
 
 const pathoSchema = z.object({
   code:      codeReferentiel(2, 30),
@@ -116,6 +117,14 @@ export function PathologiesTab({ canCreate, canUpdate, canDelete }: { canCreate:
   }), [pathologies, search, statut])
 
   const pagination = usePagination(filtered, 5)
+  const [openExport, setOpenExport] = useState(false)
+  // Mêmes colonnes qu'à l'écran, rendues en texte pour le papier.
+  const colonnesExport = useMemo<ColonneExport<PathologieReference>[]>(() => [
+    { libelle: t('referentiels.fieldCode'),        valeur: p => p.code },
+    { libelle: t('referentiels.fieldLabel'),       valeur: p => p.libelle },
+    { libelle: t('referentiels.pathoColType'),     valeur: p => (p.chronique ? 'Chronique' : 'Aiguë') },
+    { libelle: t('referentiels.pathoColStatus'),   valeur: p => (isActif(p.statut) ? 'Actif' : 'Inactif') },
+  ], [t])
   const rz = useColumnResize({ storageKey: 'ref-pathologies', ready: !isLoading && filtered.length > 0, cellsSelector: 'thead th' })
 
   function openCreate() { setEdit(null); form.reset({ code: '', libelle: '', chronique: false, confidentialiteRenforcee: false }); setDrawer(true) }
@@ -134,7 +143,7 @@ export function PathologiesTab({ canCreate, canUpdate, canDelete }: { canCreate:
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, paddingBottom: '16px' }}>
       <div style={{ flexShrink: 0 }}>
         <TabToolbar search={search} onSearchChange={setSearch} statut={statut} onStatutChange={setStatut}
-          onNew={openCreate} newLabel={t('referentiels.pathoNew')} placeholder={t('referentiels.pathoSearchPlaceholder')} canCreate={canCreate} />
+          onNew={openCreate} newLabel={t('referentiels.pathoNew')} placeholder={t('referentiels.pathoSearchPlaceholder')} canCreate={canCreate} onExport={() => setOpenExport(true)} />
       </div>
       <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingBottom: '8px' }}>
         <div style={DATA_TABLE_CARD}>
@@ -192,6 +201,19 @@ export function PathologiesTab({ canCreate, canUpdate, canDelete }: { canCreate:
         title={t('referentiels.pathoDeleteTitle')}
         description={t('referentiels.pathoDeleteDesc')}
         confirmLabel={t('referentiels.delete')} />
+
+      {openExport && (
+        <ListePrintSheet<PathologieReference>
+          rootId="export-pathologies"
+          titre={t('referentiels.printPathologies')}
+          sousTitre={`${filtered.length} entrée${filtered.length > 1 ? 's' : ''}`}
+          lignes={filtered}
+          cleDe={x => x.id}
+          colonnes={colonnesExport}
+          onClose={() => setOpenExport(false)}
+        />
+      )}
+
     </div>
   )
 }

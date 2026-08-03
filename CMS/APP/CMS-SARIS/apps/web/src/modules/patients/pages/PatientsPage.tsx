@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef }  from 'react'
 import { useNavigate }        from 'react-router-dom'
 import { useTranslation }     from 'react-i18next'
-import { Search, X, Users, AlertTriangle, ChevronRight, ChevronLeft, Camera, Trash2 } from 'lucide-react'
+import { Search, X, Users, AlertTriangle, ChevronRight, ChevronLeft, Camera, Trash2, Download } from 'lucide-react'
 import { Input }              from '@workspace/ui/components/input'
 import { Button }             from '@workspace/ui/components/button'
 import { toast }              from '@workspace/ui/components/sonner'
@@ -18,6 +18,7 @@ import type { PatientListItem } from '@cms-saris/types'
 import { formatDate } from '@/lib/intl'
 import { calcAge } from '@/lib/age'
 import { PrivacyCurtain } from '@/components/PrivacyCurtain'
+import { ListePrintSheet, type ColonneExport } from '@/components/print/ListePrintSheet'
 
 const PHOTO_MAX_BYTES = 5 * 1024 * 1024
 const PHOTO_MIME_RE = /^image\/(jpeg|png|webp|gif)$/
@@ -377,6 +378,32 @@ export function PatientsPage() {
   const pagination = usePagination(filtered, useRowsPerPage())
   const selectedPatient = filtered.find(p => p.id === selected) ?? null
 
+  const [openExport, setOpenExport] = useState(false)
+
+  /**
+   * Colonnes de l'extraction — les mêmes informations que la ligne de liste,
+   * rendues en texte (le papier n'a ni avatar, ni pastille de catégorie).
+   * L'extraction porte sur la liste FILTRÉE, pas sur la page courante : on
+   * extrait ce que l'on a cherché, pas les vingt-cinq lignes sous les yeux.
+   */
+  const colonnesExport = useMemo<ColonneExport<PatientListItem>[]>(() => [
+    { libelle: t('patients.colNumero', { defaultValue: 'N° dossier' }),
+      valeur: p => p.numeroPatient },
+    { libelle: t('patients.colNom', { defaultValue: 'Nom & prénom' }),
+      valeur: p => (p.identite ? `${p.identite.nom.toUpperCase()} ${p.identite.prenom}` : '—') },
+    { libelle: t('patients.colAge', { defaultValue: 'Âge' }),
+      valeur: p => (p.identite?.dateNaissance ? `${calcAge(p.identite.dateNaissance)} ans` : '—') },
+    { libelle: t('patients.colSexe', { defaultValue: 'Sexe' }),
+      valeur: p => (p.identite?.sexe === 'M' ? 'Masculin' : p.identite?.sexe === 'F' ? 'Féminin' : '—') },
+    { libelle: t('patients.colCategorie', { defaultValue: 'Catégorie' }),
+      valeur: p => p.categoriePatient.libelle },
+    { libelle: t('patients.colSite', { defaultValue: 'Site' }),
+      valeur: p => p.siteCreation.libelle },
+    { libelle: t('patients.colStatut', { defaultValue: 'Statut' }),
+      // Même libellé que la pastille à l'écran, pas le code brut de la base.
+      valeur: p => (p.statut === 'ACTIF' ? 'Actif' : 'Inactif') },
+  ], [t])
+
   // ── Largeur redimensionnable du panneau liste (persistante) ──────────────
   // Minimum fixe suffisant pour afficher n° dossier + badge sans troncature.
   const LIST_MIN = 480, LIST_MAX = 720
@@ -431,6 +458,15 @@ export function PatientsPage() {
               </p>
             </div>
           </div>
+
+          <Button
+            variant="outline"
+            onClick={() => setOpenExport(true)}
+            disabled={isLoading || filtered.length === 0}
+            style={{ height: 34, fontSize: 13, gap: 6 }}
+          >
+            <Download size={14} /> {t('common.exporter', { defaultValue: 'Exporter' })}
+          </Button>
         </div>
 
         {/* Filtres */}
@@ -591,6 +627,18 @@ export function PatientsPage() {
         </div>
         )}
       </div>
+
+      {openExport && (
+        <ListePrintSheet<PatientListItem>
+          rootId="export-patients"
+          titre={t('patients.pageTitle')}
+          sousTitre={t(filtered.length > 1 ? 'patients.patientCountPlural' : 'patients.patientCountSingular', { count: filtered.length })}
+          lignes={filtered}
+          cleDe={p => p.id}
+          colonnes={colonnesExport}
+          onClose={() => setOpenExport(false)}
+        />
+      )}
     </div>
   )
 }

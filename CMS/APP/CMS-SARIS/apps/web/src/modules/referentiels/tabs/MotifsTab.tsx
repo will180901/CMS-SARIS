@@ -24,6 +24,7 @@ import { DrawerShell }     from '../components/DrawerShell'
 import { PaginationBar }   from '../components/PaginationBar'
 import { DataTableHead, dataRowStyle, DATA_TABLE_CARD, useColumnResize } from '@/components/saris'
 import { codeReferentiel, libelle as libelleSchema } from '@/lib/validation'
+import { ListePrintSheet, type ColonneExport } from '@/components/print/ListePrintSheet'
 
 const motifSchema = z.object({
   code:     codeReferentiel(2, 30),
@@ -89,6 +90,13 @@ export function MotifsTab({ canCreate, canUpdate, canDelete }: { canCreate: bool
   }), [motifs, search, statut])
 
   const pagination = usePagination(filtered, 5)
+  const [openExport, setOpenExport] = useState(false)
+  // Mêmes colonnes qu'à l'écran, rendues en texte pour le papier.
+  const colonnesExport = useMemo<ColonneExport<MotifConsultation>[]>(() => [
+    { libelle: t('referentiels.fieldCode'),        valeur: m => m.code },
+    { libelle: t('referentiels.fieldLabel'),       valeur: m => m.libelle },
+    { libelle: t('referentiels.motifColStatus'),   valeur: m => (isActif(m.statut) ? 'Actif' : 'Inactif') },
+  ], [t])
   const rz = useColumnResize({ storageKey: 'ref-motifs', ready: !isLoading && filtered.length > 0, cellsSelector: 'thead th' })
 
   function openCreate() { setEdit(null); form.reset({ code: '', libelle: '', triageAllege: false }); setDrawer(true) }
@@ -108,7 +116,7 @@ export function MotifsTab({ canCreate, canUpdate, canDelete }: { canCreate: bool
       {/* Toolbar fixe */}
       <div style={{ flexShrink: 0 }}>
         <TabToolbar search={search} onSearchChange={setSearch} statut={statut} onStatutChange={setStatut}
-          onNew={openCreate} newLabel={t('referentiels.motifNew')} placeholder={t('referentiels.motifSearchPlaceholder')} canCreate={canCreate} />
+          onNew={openCreate} newLabel={t('referentiels.motifNew')} placeholder={t('referentiels.motifSearchPlaceholder')} canCreate={canCreate} onExport={() => setOpenExport(true)} />
       </div>
 
       {/* Zone scrollable */}
@@ -168,6 +176,19 @@ export function MotifsTab({ canCreate, canUpdate, canDelete }: { canCreate: bool
         title={t('referentiels.motifDeleteTitle')}
         description={t('referentiels.motifDeleteDesc')}
         confirmLabel={t('referentiels.delete')} />
+
+      {openExport && (
+        <ListePrintSheet<MotifConsultation>
+          rootId="export-motifs"
+          titre={t('referentiels.printMotifs')}
+          sousTitre={`${filtered.length} entrée${filtered.length > 1 ? 's' : ''}`}
+          lignes={filtered}
+          cleDe={x => x.id}
+          colonnes={colonnesExport}
+          onClose={() => setOpenExport(false)}
+        />
+      )}
+
     </div>
   )
 }

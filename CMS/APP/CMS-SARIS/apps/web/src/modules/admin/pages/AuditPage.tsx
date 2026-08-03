@@ -19,7 +19,7 @@ import { DESKTOP_TITLEBAR_H } from '@/components/layout/DesktopTitleBar'
 import {
   History, Activity, KeyRound, ChevronRight, ChevronDown,
   CheckCircle2, XCircle, AlertTriangle, X, FileText, GitCompare, Code2,
-  ArrowRight, Plus, Minus, User, Clock, Globe, Layers, MapPin,
+  ArrowRight, Plus, Minus, User, Clock, Globe, Layers, MapPin, Download,
 } from 'lucide-react'
 import { parseUserAgent } from '@/lib/userAgent'
 import { formatCoords } from '@/lib/geo'
@@ -39,6 +39,7 @@ import {
 import type { AuditEntry, AuthLogEntry } from '../api/admin.api'
 import { labelModule, labelAction, labelStatut, labelEntite, labelRole, labelPermission } from '@/config/labels'
 import { buildPermissionTree, parsePermCode, labelPermAction } from '@/config/permission-tree'
+import { ListePrintSheet, type ColonneExport } from '@/components/print/ListePrintSheet'
 
 // Résultats d'authentification possibles (liste stable, indépendante des données
 // chargées — pour que le filtre reste complet après sélection).
@@ -137,6 +138,26 @@ export function AuditPage() {
   )
   const distinctResultats = AUTH_RESULTATS
 
+  // ── Extraction PDF ────────────────────────────────────────────────────────
+  // Deux jeux de colonnes : l'onglet actif décide de ce qui part à l'impression.
+  const [openExport, setOpenExport] = useState(false)
+  const colonnesActions = useMemo<ColonneExport<AuditEntry>[]>(() => [
+    { libelle: t('admin.colDate'),   valeur: e => formatAuditDateTime(e.createdAt) },
+    { libelle: t('admin.colUser'),   valeur: e => e.utilisateur?.login ?? t('admin.systemLower') },
+    { libelle: t('admin.colModule'), valeur: e => labelModule(e.module) },
+    { libelle: t('admin.colAction'), valeur: e => labelAction(e.action) },
+    { libelle: t('admin.colEntity'), valeur: e => (e.entiteType ? labelEntite(e.entiteType) : '—') },
+    { libelle: t('admin.colStatus'), valeur: e => labelStatut('audit_result', e.statut) },
+  ], [t])
+  const colonnesAuth = useMemo<ColonneExport<AuthLogEntry>[]>(() => [
+    { libelle: t('admin.colDate'),      valeur: e => formatAuditDateTime(e.createdAt) },
+    { libelle: t('admin.colLogin'),     valeur: e => e.login ?? '—' },
+    { libelle: t('admin.colResult'),    valeur: e => labelStatut('auth_result', e.resultat) },
+    { libelle: t('admin.colIpAddress'), valeur: e => e.ipAdresse ?? '—' },
+    { libelle: t('admin.colLocation'),  valeur: e => (e.localisation && e.localisation.label !== 'Localisation inconnue' ? e.localisation.label : '—') },
+    { libelle: t('admin.colBrowser'),   valeur: e => (e.userAgent ? parseUserAgent(e.userAgent).label : '—') },
+  ], [t])
+
   return (
     <>
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
@@ -221,6 +242,11 @@ export function AuditPage() {
                   />
                 </>
               }
+              actions={
+                <Button size="sm" variant="outline" onClick={() => setOpenExport(true)}>
+                  <Download size={14} /> {t('common.exporter', { defaultValue: 'Exporter' })}
+                </Button>
+              }
             />
           </Card>
         </div>
@@ -240,6 +266,28 @@ export function AuditPage() {
       {openEntry && (
         <AuditDetailDrawer entry={openEntry} onClose={() => setOpenEntry(null)} />
       )}
+
+      {openExport && (tab === 'actions' ? (
+        <ListePrintSheet<AuditEntry>
+          rootId="export-audit-actions"
+          titre={t('admin.businessActions')}
+          sousTitre={`${actionsFiltered.length} entrée${actionsFiltered.length > 1 ? 's' : ''}`}
+          lignes={actionsFiltered}
+          cleDe={e => e.id}
+          colonnes={colonnesActions}
+          onClose={() => setOpenExport(false)}
+        />
+      ) : (
+        <ListePrintSheet<AuthLogEntry>
+          rootId="export-audit-auth"
+          titre={t('admin.authentications')}
+          sousTitre={`${authFiltered.length} entrée${authFiltered.length > 1 ? 's' : ''}`}
+          lignes={authFiltered}
+          cleDe={e => e.id}
+          colonnes={colonnesAuth}
+          onClose={() => setOpenExport(false)}
+        />
+      ))}
     </>
   )
 }

@@ -4,7 +4,7 @@
  */
 
 import { useTranslation } from 'react-i18next'
-import { Search, X, Plus } from 'lucide-react'
+import { Search, X, Plus, Download } from 'lucide-react'
 import { Input }   from '@workspace/ui/components/input'
 import { Button }  from '@workspace/ui/components/button'
 import {
@@ -25,6 +25,8 @@ interface TabToolbarProps {
   placeholder?:    string
   /** Si false, cache le bouton "Nouveau" (lecture seule = pas de referentiel.create) */
   canCreate?:       boolean
+  /** Fourni = un bouton « Exporter » apparaît, qui ouvre l'aperçu d'extraction. */
+  onExport?:        () => void
 }
 
 export function TabToolbar({
@@ -36,6 +38,7 @@ export function TabToolbar({
   newLabel,
   placeholder,
   canCreate        = true,
+  onExport,
 }: TabToolbarProps) {
   const { t } = useTranslation()
   return (
@@ -119,6 +122,19 @@ export function TabToolbar({
 
       {/* ── Spacer ────────────────────────────────────────────────────── */}
       <div style={{ flex: 1 }} />
+
+      {/* ── Bouton Exporter ──────────────────────────────────────────── */}
+      {onExport && (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={onExport}
+          style={{ fontSize: '13px', height: '34px', gap: '6px', paddingLeft: '12px', paddingRight: '14px' }}
+        >
+          <Download size={14} />
+          {t('common.exporter', { defaultValue: 'Exporter' })}
+        </Button>
+      )}
 
       {/* ── Bouton Nouveau ───────────────────────────────────────────── */}
       {canCreate && (

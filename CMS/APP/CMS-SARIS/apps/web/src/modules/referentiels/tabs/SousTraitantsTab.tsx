@@ -3,7 +3,7 @@ import { useTranslation }      from 'react-i18next'
 import { useForm }             from 'react-hook-form'
 import { zodResolver }         from '@hookform/resolvers/zod'
 import { z }                   from 'zod'
-import { MoreVertical, Pencil, PowerOff, Power, Trash2, Building2, Search, X, Plus } from 'lucide-react'
+import { MoreVertical, Pencil, PowerOff, Power, Trash2, Building2, Search, X, Plus, Download } from 'lucide-react'
 import {
   DropdownMenu, DropdownMenuContent,
   DropdownMenuItem, DropdownMenuSeparator,
@@ -33,6 +33,7 @@ import { DrawerShell }   from '../components/DrawerShell'
 import { PaginationBar } from '../components/PaginationBar'
 import { DataTableHead, dataRowStyle, DATA_TABLE_CARD, useColumnResize } from '@/components/saris'
 import { isActif }       from '../api/referentiels.api'
+import { ListePrintSheet, type ColonneExport } from '@/components/print/ListePrintSheet'
 
 // ── Schéma ────────────────────────────────────────────────────────────────────
 
@@ -97,6 +98,12 @@ export function SousTraitantsTab({ canCreate, canUpdate, canDelete }: { canCreat
   }), [societes, search, statut])
 
   const pagination = usePagination(filtered, 5)
+  const [openExport, setOpenExport] = useState(false)
+  // Mêmes colonnes qu'à l'écran, rendues en texte pour le papier.
+  const colonnesExport = useMemo<ColonneExport<SocieteSousTraitante>[]>(() => [
+    { libelle: t('acteurs.colNomSociete'), valeur: s => s.nom },
+    { libelle: t('acteurs.colStatut'),     valeur: s => (isActif(s.statut) ? 'Actif' : 'Inactif') },
+  ], [t])
   const rz = useColumnResize({ storageKey: 'ref-soustraitants', ready: !isLoading && filtered.length > 0, cellsSelector: 'thead th' })
 
   function openCreate() { setEdit(null); form.reset({ nom: '' }); setDrawer(true) }
@@ -143,6 +150,16 @@ export function SousTraitantsTab({ canCreate, canUpdate, canDelete }: { canCreat
         </Select>
 
         <div style={{ flex: 1 }} />
+
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => setOpenExport(true)}
+          style={{ fontSize: '13px', height: '34px', gap: '6px', paddingLeft: '12px', paddingRight: '14px' }}
+        >
+          <Download size={14} />
+          {t('common.exporter', { defaultValue: 'Exporter' })}
+        </Button>
 
         {canCreate && (
           <Button
@@ -240,6 +257,18 @@ export function SousTraitantsTab({ canCreate, canUpdate, canDelete }: { canCreat
         description={t('acteurs.confirmDeleteSocieteDesc')}
         confirmLabel={t('acteurs.deletePermanently')}
       />
+
+      {openExport && (
+        <ListePrintSheet<SocieteSousTraitante>
+          rootId="export-soustraitants"
+          titre={t('referentiels.printSousTraitants')}
+          sousTitre={`${filtered.length} société${filtered.length > 1 ? 's' : ''}`}
+          lignes={filtered}
+          cleDe={s => s.id}
+          colonnes={colonnesExport}
+          onClose={() => setOpenExport(false)}
+        />
+      )}
     </div>
   )
 }

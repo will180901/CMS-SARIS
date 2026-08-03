@@ -24,6 +24,7 @@ import { DrawerShell }     from '../components/DrawerShell'
 import { PaginationBar }   from '../components/PaginationBar'
 import { DataTableHead, dataRowStyle, DATA_TABLE_CARD, useColumnResize } from '@/components/saris'
 import { codeReferentiel, libelle as libelleSchema, texteOpt } from '@/lib/validation'
+import { ListePrintSheet, type ColonneExport } from '@/components/print/ListePrintSheet'
 
 const siteSchema = z.object({
   code:         codeReferentiel(2, 30),
@@ -95,6 +96,14 @@ export function SitesTab({ canCreate, canUpdate, canDelete }: { canCreate: boole
   }), [sites, search, statut])
 
   const pagination = usePagination(filtered, 5)
+  const [openExport, setOpenExport] = useState(false)
+  // Mêmes colonnes qu'à l'écran, rendues en texte.
+  const colonnesExport = useMemo<ColonneExport<Site>[]>(() => [
+    { libelle: t('referentiels.fieldCode'),       valeur: s => s.code },
+    { libelle: t('referentiels.fieldLabel'),      valeur: s => s.libelle },
+    { libelle: t('referentiels.siteColLocation'), valeur: s => s.localisation ?? '—' },
+    { libelle: t('referentiels.siteColStatus'),   valeur: s => (isActif(s.statut) ? 'Actif' : 'Inactif') },
+  ], [t])
   const rz = useColumnResize({ storageKey: 'ref-sites', ready: !isLoading && filtered.length > 0, cellsSelector: 'thead th' })
 
   function openCreate() { setEdit(null); form.reset({ code: '', libelle: '', localisation: '' }); setDrawer(true) }
@@ -119,7 +128,7 @@ export function SitesTab({ canCreate, canUpdate, canDelete }: { canCreate: boole
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, paddingBottom: '16px' }}>
       <div style={{ flexShrink: 0 }}>
         <TabToolbar search={search} onSearchChange={setSearch} statut={statut} onStatutChange={setStatut}
-          onNew={openCreate} newLabel={t('referentiels.siteNew')} placeholder={t('referentiels.siteSearchPlaceholder')} canCreate={canCreate} />
+          onNew={openCreate} newLabel={t('referentiels.siteNew')} placeholder={t('referentiels.siteSearchPlaceholder')} canCreate={canCreate} onExport={() => setOpenExport(true)} />
       </div>
       <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingBottom: '8px' }}>
         <div style={DATA_TABLE_CARD}>
@@ -177,6 +186,18 @@ export function SitesTab({ canCreate, canUpdate, canDelete }: { canCreate: boole
         title={t('referentiels.siteDeleteTitle')}
         description={t('referentiels.siteDeleteDesc')}
         confirmLabel={t('referentiels.delete')} />
+
+      {openExport && (
+        <ListePrintSheet<Site>
+          rootId="export-sites"
+          titre={t('referentiels.printSites')}
+          sousTitre={`${filtered.length} entrée${filtered.length > 1 ? 's' : ''}`}
+          lignes={filtered}
+          cleDe={s => s.id}
+          colonnes={colonnesExport}
+          onClose={() => setOpenExport(false)}
+        />
+      )}
     </div>
   )
 }

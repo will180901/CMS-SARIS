@@ -24,6 +24,7 @@ import { DrawerShell }     from '../components/DrawerShell'
 import { PaginationBar }   from '../components/PaginationBar'
 import { DataTableHead, dataRowStyle, DATA_TABLE_CARD, useColumnResize } from '@/components/saris'
 import { codeReferentiel, libelle as libelleSchema } from '@/lib/validation'
+import { ListePrintSheet, type ColonneExport } from '@/components/print/ListePrintSheet'
 
 const catSchema = z.object({
   code:    codeReferentiel(2, 30),
@@ -87,6 +88,13 @@ export function CategoriesTab({ canCreate, canUpdate, canDelete }: { canCreate: 
   }), [categories, search, statut])
 
   const pagination = usePagination(filtered, 5)
+  const [openExport, setOpenExport] = useState(false)
+  // Mêmes colonnes qu'à l'écran, rendues en texte pour le papier.
+  const colonnesExport = useMemo<ColonneExport<CategoriePatient>[]>(() => [
+    { libelle: t('referentiels.fieldCode'),        valeur: c => c.code },
+    { libelle: t('referentiels.fieldLabel'),       valeur: c => c.libelle },
+    { libelle: t('referentiels.catColStatus'),     valeur: c => (isActif(c.statut) ? 'Actif' : 'Inactif') },
+  ], [t])
   const rz = useColumnResize({ storageKey: 'ref-categories', ready: !isLoading && filtered.length > 0, cellsSelector: 'thead th' })
 
   function openCreate() { setEdit(null); form.reset({ code: '', libelle: '' }); setDrawer(true) }
@@ -113,7 +121,7 @@ export function CategoriesTab({ canCreate, canUpdate, canDelete }: { canCreate: 
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, paddingBottom: '16px' }}>
       <div style={{ flexShrink: 0 }}>
         <TabToolbar search={search} onSearchChange={setSearch} statut={statut} onStatutChange={setStatut}
-          onNew={openCreate} newLabel={t('referentiels.catNew')} placeholder={t('referentiels.catSearchPlaceholder')} canCreate={canCreate} />
+          onNew={openCreate} newLabel={t('referentiels.catNew')} placeholder={t('referentiels.catSearchPlaceholder')} canCreate={canCreate} onExport={() => setOpenExport(true)} />
       </div>
       <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingBottom: '8px' }}>
         <div style={DATA_TABLE_CARD}>
@@ -170,6 +178,19 @@ export function CategoriesTab({ canCreate, canUpdate, canDelete }: { canCreate: 
         title={t('referentiels.catDeleteTitle')}
         description={t('referentiels.catDeleteDesc')}
         confirmLabel={t('referentiels.delete')} />
+
+      {openExport && (
+        <ListePrintSheet<CategoriePatient>
+          rootId="export-categories"
+          titre={t('referentiels.printCategories')}
+          sousTitre={`${filtered.length} entrée${filtered.length > 1 ? 's' : ''}`}
+          lignes={filtered}
+          cleDe={x => x.id}
+          colonnes={colonnesExport}
+          onClose={() => setOpenExport(false)}
+        />
+      )}
+
     </div>
   )
 }

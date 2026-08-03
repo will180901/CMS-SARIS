@@ -3,6 +3,7 @@ import type { Resources } from './fr'
 export const en: Resources = {
   common: {
     appName: 'CMS SARIS',
+    exporter: 'Export',
     tagline: 'Medical & Social Center · Congo',
     save: 'Save',
     cancel: 'Cancel',

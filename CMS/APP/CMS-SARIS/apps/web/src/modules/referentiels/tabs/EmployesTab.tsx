@@ -1,6 +1,6 @@
 import { useState, useMemo }   from 'react'
 import { useTranslation }      from 'react-i18next'
-import { MoreVertical, Pencil, PowerOff, Power, Trash2, IdCard, Search, X, Plus } from 'lucide-react'
+import { MoreVertical, Pencil, PowerOff, Power, Trash2, IdCard, Search, X, Plus, Download } from 'lucide-react'
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@workspace/ui/components/dropdown-menu'
@@ -23,6 +23,7 @@ import { DataTableHead, dataRowStyle, DATA_TABLE_CARD, useColumnResize } from '@
 import { useIsCompact }  from '@/hooks/useMediaQuery'
 import { isActif }       from '../api/referentiels.api'
 import { formatDate }    from '@/lib/intl'
+import { ListePrintSheet, type ColonneExport } from '@/components/print/ListePrintSheet'
 
 const CAT_LABEL: Record<string, string> = { ASSURE_CDI: 'CDI', ASSURE_CDD: 'CDD' }
 const EMPTY: EmployePayload = { matricule: '', nom: '', prenom: '', categorie: 'ASSURE_CDI', fonction: '', sectionPaie: '', service: '', departement: '', dateNaissance: '', sexe: '' }
@@ -61,6 +62,20 @@ export function EmployesTab({ canCreate, canUpdate, canDelete }: { canCreate: bo
   }), [employes, search, catFilter, statut])
 
   const pagination = usePagination(filtered, 6)
+  const [openExport, setOpenExport] = useState(false)
+  // Mêmes colonnes qu'à l'écran, rendues en texte pour le papier.
+  const colonnesExport = useMemo<ColonneExport<EmployeSaris>[]>(() => [
+    { libelle: t('employes.colMatricule',        { defaultValue: 'Matricule' }),       valeur: e => e.matricule },
+    { libelle: t('employes.colNom',              { defaultValue: 'Nom complet' }),     valeur: e => `${e.nom} ${e.prenom}` },
+    { libelle: t('employes.colCategorie',        { defaultValue: 'Catégorie' }),       valeur: e => CAT_LABEL[e.categorie] ?? e.categorie },
+    { libelle: t('patients.fieldNaissance',      { defaultValue: 'Naissance' }),       valeur: e => (e.dateNaissance ? formatDate(e.dateNaissance) : '—') },
+    { libelle: t('patients.fieldSexe',           { defaultValue: 'Sexe' }),            valeur: e => e.sexe ?? '—' },
+    { libelle: t('employes.colFonction',         { defaultValue: 'Fonction' }),        valeur: e => e.fonction ?? '—' },
+    { libelle: t('patients.fieldSectionPaie',    { defaultValue: 'Section de paie' }), valeur: e => e.sectionPaie ?? '—' },
+    { libelle: t('patients.fieldService',        { defaultValue: 'Service' }),         valeur: e => e.service ?? '—' },
+    { libelle: t('patients.fieldDepartement',    { defaultValue: 'Département' }),     valeur: e => e.departement ?? '—' },
+    { libelle: t('acteurs.colStatut',            { defaultValue: 'Statut' }),          valeur: e => (isActif(e.statut) ? 'Actif' : 'Inactif') },
+  ], [t])
   const rz = useColumnResize({ storageKey: 'ref-employes', ready: !isLoading && filtered.length > 0, cellsSelector: 'thead th' })
 
   function openCreate() { setEdit(null); setForm(EMPTY); setDrawer(true) }
@@ -112,6 +127,10 @@ export function EmployesTab({ canCreate, canUpdate, canDelete }: { canCreate: bo
           </SelectContent>
         </Select>
         <div style={{ flex: 1 }} />
+        <Button size="sm" variant="outline" onClick={() => setOpenExport(true)}
+          style={{ fontSize: '13px', height: '34px', gap: '6px', paddingLeft: '12px', paddingRight: '14px' }}>
+          <Download size={14} /> {t('common.exporter', { defaultValue: 'Exporter' })}
+        </Button>
         {canCreate && (
           <Button size="sm" onClick={openCreate} style={{ background: 'var(--ap-400)', color: '#fff', fontSize: '13px', height: '34px', gap: '6px', paddingLeft: '12px', paddingRight: '14px' }}>
             <Plus size={14} /> {t('employes.newEmploye', { defaultValue: 'Nouvel employé' })}
@@ -254,6 +273,18 @@ export function EmployesTab({ canCreate, canUpdate, canDelete }: { canCreate: bo
         description={t('employes.confirmDeleteDesc', { defaultValue: 'Suppression définitive (impossible s\'il est rattaché à des dossiers patients).' })}
         confirmLabel={t('acteurs.deletePermanently', { defaultValue: 'Supprimer définitivement' })}
       />
+
+      {openExport && (
+        <ListePrintSheet<EmployeSaris>
+          rootId="export-employes"
+          titre={t('referentiels.printEmployes')}
+          sousTitre={`${filtered.length} employé${filtered.length > 1 ? 's' : ''}`}
+          lignes={filtered}
+          cleDe={e => e.id}
+          colonnes={colonnesExport}
+          onClose={() => setOpenExport(false)}
+        />
+      )}
     </div>
   )
 }

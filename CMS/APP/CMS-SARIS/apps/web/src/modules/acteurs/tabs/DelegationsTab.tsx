@@ -3,7 +3,7 @@ import { useTranslation }           from 'react-i18next'
 import { useForm, Controller }      from 'react-hook-form'
 import { zodResolver }              from '@hookform/resolvers/zod'
 import { z }                        from 'zod'
-import { MoreVertical, Pencil, PauseCircle, PlayCircle, Trash2, GitBranch, Search, X, Plus } from 'lucide-react'
+import { MoreVertical, Pencil, PauseCircle, PlayCircle, Trash2, GitBranch, Search, X, Plus, Download } from 'lucide-react'
 import { DatePicker }                from '@/components/saris'
 import {
   DropdownMenu, DropdownMenuContent,
@@ -36,6 +36,7 @@ import { PaginationBar }  from '@/modules/referentiels/components/PaginationBar'
 import { DataTableHead, dataRowStyle, DATA_TABLE_CARD, useColumnResize } from '@/components/saris'
 import { useIsCompact } from '@/hooks/useMediaQuery'
 import { formatDate } from '@/lib/intl'
+import { ListePrintSheet, type ColonneExport } from '@/components/print/ListePrintSheet'
 
 // ── Helpers date ──────────────────────────────────────────────────────────────
 
@@ -279,6 +280,17 @@ export function DelegationsTab({ canCreate, canUpdate, canRevoke, canDelete }: {
   }), [delegations, search, filterStatut])
 
   const pagination = usePagination(filtered, 5)
+  const [openExport, setOpenExport] = useState(false)
+  // Mêmes colonnes qu'à l'écran, rendues en texte pour le papier.
+  const colonnesExport = useMemo<ColonneExport<DelegationPrescription>[]>(() => [
+    { libelle: t('acteurs.colMedecinChef'), valeur: d => `${d.medecinChef.nom} ${d.medecinChef.prenom}` },
+    { libelle: t('acteurs.colInfirmier'),   valeur: d => `${d.infirmier.nom} ${d.infirmier.prenom}` },
+    { libelle: t('acteurs.colPeriode'),     valeur: d => formatPeriod(d.dateDebut, d.dateFin) },
+    { libelle: t('acteurs.colStatut'),      valeur: d =>
+        d.statut === 'INACTIVE'    ? t('acteurs.delegationSuspendue')
+        : isExpired(d.dateFin)     ? t('acteurs.delegationExpiree')
+        :                            t('acteurs.delegationActive') },
+  ], [t])
   const rz = useColumnResize({ storageKey: 'act-delegations', ready: !isLoading && filtered.length > 0, cellsSelector: 'thead th' })
 
   // Handlers
@@ -350,6 +362,16 @@ export function DelegationsTab({ canCreate, canUpdate, canRevoke, canDelete }: {
         </Select>
 
         <div style={{ flex: 1 }} />
+
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => setOpenExport(true)}
+          style={{ fontSize: '13px', height: '34px', gap: '6px', paddingLeft: '12px', paddingRight: '14px' }}
+        >
+          <Download size={14} />
+          {t('common.exporter', { defaultValue: 'Exporter' })}
+        </Button>
 
         {canCreate && (
           <Button
@@ -462,6 +484,18 @@ export function DelegationsTab({ canCreate, canUpdate, canRevoke, canDelete }: {
         description={t('acteurs.confirmDeleteDelegationDesc')}
         confirmLabel={t('acteurs.deletePermanently')}
       />
+
+      {openExport && (
+        <ListePrintSheet<DelegationPrescription>
+          rootId="export-delegations"
+          titre={t('acteurs.tabDelegations', { defaultValue: 'Délégations de prescription' })}
+          sousTitre={`${filtered.length} délégation${filtered.length > 1 ? 's' : ''}`}
+          lignes={filtered}
+          cleDe={d => d.id}
+          colonnes={colonnesExport}
+          onClose={() => setOpenExport(false)}
+        />
+      )}
     </div>
   )
 }
