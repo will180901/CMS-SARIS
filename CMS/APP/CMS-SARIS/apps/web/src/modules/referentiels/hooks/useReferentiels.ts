@@ -12,6 +12,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from '@workspace/ui/components/sonner'
 import { referentielsApi, toggleStatut, isActif } from '../api/referentiels.api'
 import { ApiError, isOfflineQueued } from '@/lib/api'
+import { usePermissions } from '@/hooks/usePermissions'
 import i18n from '@/i18n/config'
 import type {
   CreateSitePayload, UpdateSitePayload,
@@ -56,10 +57,14 @@ function toastError(err: unknown) {
 // Créé depuis l'assistant de première installation du poste desktop, ou ici (admin
 // web) — même endpoint backend des deux côtés.
 export function useSites() {
+  const { has } = usePermissions()
   return useQuery({
     queryKey: QUERY_KEYS.sites,
     queryFn:  referentielsApi.sites.list,
     staleTime: 30_000,
+    // Sans la permission de lecture, la requête ne part pas : pas de 403 inutile,
+    // et surtout aucune donnée en cache qu'un écran pourrait ensuite afficher.
+    enabled:  has('referentiel.site.read'),
   })
 }
 
@@ -106,10 +111,14 @@ export function useToggleSiteStatut() {
 // ══════════════════════════════════════════════════════════════════════════════
 
 export function useMotifs() {
+  const { has } = usePermissions()
   return useQuery({
     queryKey: QUERY_KEYS.motifs,
     queryFn:  referentielsApi.motifs.list,
     staleTime: 30_000,
+    // Sans la permission de lecture, la requête ne part pas : pas de 403 inutile,
+    // et surtout aucune donnée en cache qu'un écran pourrait ensuite afficher.
+    enabled:  has('referentiel.motif.read'),
   })
 }
 
@@ -156,10 +165,14 @@ export function useToggleMotifStatut() {
 // ══════════════════════════════════════════════════════════════════════════════
 
 export function usePathologies() {
+  const { has } = usePermissions()
   return useQuery({
     queryKey: QUERY_KEYS.pathologies,
     queryFn:  referentielsApi.pathologies.list,
     staleTime: 30_000,
+    // Sans la permission de lecture, la requête ne part pas : pas de 403 inutile,
+    // et surtout aucune donnée en cache qu'un écran pourrait ensuite afficher.
+    enabled:  has('referentiel.pathologie.read'),
   })
 }
 
@@ -206,10 +219,14 @@ export function useTogglePathologieStatut() {
 // ══════════════════════════════════════════════════════════════════════════════
 
 export function useMedicaments() {
+  const { has } = usePermissions()
   return useQuery({
     queryKey: QUERY_KEYS.medicaments,
     queryFn:  referentielsApi.medicaments.list,
     staleTime: 30_000,
+    // Sans la permission de lecture, la requête ne part pas : pas de 403 inutile,
+    // et surtout aucune donnée en cache qu'un écran pourrait ensuite afficher.
+    enabled:  has('referentiel.medicament.read'),
   })
 }
 
@@ -256,10 +273,14 @@ export function useToggleMedicamentStatut() {
 // ══════════════════════════════════════════════════════════════════════════════
 
 export function useCategoriesPatient() {
+  const { has } = usePermissions()
   return useQuery({
     queryKey: QUERY_KEYS.categories,
     queryFn:  referentielsApi.categories.list,
     staleTime: 30_000,
+    // Sans la permission de lecture, la requête ne part pas : pas de 403 inutile,
+    // et surtout aucune donnée en cache qu'un écran pourrait ensuite afficher.
+    enabled:  has('referentiel.categorie.read'),
   })
 }
 
@@ -272,10 +293,14 @@ export function useCategoriesPatient() {
  * médicale (rare), jamais lors d'un simple renommage de catégorie.
  */
 export function useCategoriesDroits() {
+  const { has } = usePermissions()
   return useQuery({
     queryKey: QUERY_KEYS.categoriesDroits,
     queryFn:  referentielsApi.categories.droits,
     staleTime: 5 * 60_000,
+    // Sans la permission de lecture, la requête ne part pas : pas de 403 inutile,
+    // et surtout aucune donnée en cache qu'un écran pourrait ensuite afficher.
+    enabled:  has('referentiel.categorie.read'),
   })
 }
 
@@ -322,10 +347,14 @@ export function useToggleCategorieStatut() {
 // ══════════════════════════════════════════════════════════════════════════════
 
 export function useTypesExamen() {
+  const { has } = usePermissions()
   return useQuery({
     queryKey: QUERY_KEYS.examens,
     queryFn:  referentielsApi.examens.list,
     staleTime: 30_000,
+    // Sans la permission de lecture, la requête ne part pas : pas de 403 inutile,
+    // et surtout aucune donnée en cache qu'un écran pourrait ensuite afficher.
+    enabled:  has('referentiel.examen.read'),
   })
 }
 
@@ -372,10 +401,14 @@ export function useToggleTypeExamenStatut() {
 // ══════════════════════════════════════════════════════════════════════════════
 
 export function useTypesConsultation() {
+  const { has } = usePermissions()
   return useQuery({
     queryKey: QUERY_KEYS.typesConsultation,
     queryFn:  referentielsApi.typesConsultation.list,
     staleTime: 30_000,
+    // Sans la permission de lecture, la requête ne part pas : pas de 403 inutile,
+    // et surtout aucune donnée en cache qu'un écran pourrait ensuite afficher.
+    enabled:  has('referentiel.type_consultation.read'),
   })
 }
 

@@ -11,8 +11,8 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Tabs, TabsContent } from '@workspace/ui/components/tabs'
-import { Database } from 'lucide-react'
-import { SegmentedTabs, TILE_TONE_MAP } from '@/components/saris'
+import { Database, Lock } from 'lucide-react'
+import { SegmentedTabs, TILE_TONE_MAP, EmptyState } from '@/components/saris'
 import { useSites, useMotifs, usePathologies, useMedicaments, useCategoriesPatient, useTypesExamen, useTypesConsultation } from '../hooks/useReferentiels'
 import { useSousTraitants } from '../hooks/useSousTraitants'
 import { useEmployes } from '../hooks/useEmployes'
@@ -74,19 +74,31 @@ export function ReferentielsPage() {
     employes:          employes?.filter(e => isActif(e.statut)).length,
   }
 
-  const TABS = [
-    { value: 'sites',       label: t('referentiels.tabSites'),        count: counts.sites,        Component: SitesTab       },
-    { value: 'motifs',      label: t('referentiels.tabMotifs'),       count: counts.motifs,       Component: MotifsTab      },
-    { value: 'pathologies', label: t('referentiels.tabPathologies'),  count: counts.pathologies,  Component: PathologiesTab  },
-    { value: 'medicaments', label: t('referentiels.tabMedicaments'),  count: counts.medicaments,  Component: MedicamentsTab  },
-    { value: 'categories',  label: t('referentiels.tabCategories'),   count: counts.categories,   Component: CategoriesTab  },
-    { value: 'examens',     label: t('referentiels.tabExamens'),      count: counts.examens,      Component: ExamensTab     },
-    { value: 'typesConsultation', label: t('referentiels.tabTypesConsultation', { defaultValue: 'Types consultation' }), count: counts.typesConsultation, Component: TypesConsultationTab },
-    { value: 'sousTraitants',     label: t('referentiels.tabSousTraitants', { defaultValue: 'Sous-traitants' }),         count: counts.sousTraitants,     Component: SousTraitantsTab },
-    { value: 'employes',          label: t('referentiels.tabEmployes', { defaultValue: 'Registre employé' }),           count: counts.employes,          Component: EmployesTab },
+  // Un onglet n'existe QUE si sa permission de lecture est détenue. Retirer
+  // `referentiel.medicament.read` fait disparaître l'onglet Médicaments — il ne devient
+  // pas grisé, il n'est pas là : ni le libellé, ni le compteur, ni le contenu ne sont
+  // rendus, et le hook correspondant ne part pas (cf. useReferentiels).
+  const TOUS_TABS = [
+    { value: 'sites',       perm: 'referentiel.site.read',        label: t('referentiels.tabSites'),        count: counts.sites,        Component: SitesTab       },
+    { value: 'motifs',      perm: 'referentiel.motif.read',       label: t('referentiels.tabMotifs'),       count: counts.motifs,       Component: MotifsTab      },
+    { value: 'pathologies', perm: 'referentiel.pathologie.read',  label: t('referentiels.tabPathologies'),  count: counts.pathologies,  Component: PathologiesTab  },
+    { value: 'medicaments', perm: 'referentiel.medicament.read',  label: t('referentiels.tabMedicaments'),  count: counts.medicaments,  Component: MedicamentsTab  },
+    { value: 'categories',  perm: 'referentiel.categorie.read',   label: t('referentiels.tabCategories'),   count: counts.categories,   Component: CategoriesTab  },
+    { value: 'examens',     perm: 'referentiel.examen.read',      label: t('referentiels.tabExamens'),      count: counts.examens,      Component: ExamensTab     },
+    { value: 'typesConsultation', perm: 'referentiel.type_consultation.read', label: t('referentiels.tabTypesConsultation', { defaultValue: 'Types consultation' }), count: counts.typesConsultation, Component: TypesConsultationTab },
+    { value: 'sousTraitants',     perm: 'sous_traitant.read',     label: t('referentiels.tabSousTraitants', { defaultValue: 'Sous-traitants' }),         count: counts.sousTraitants,     Component: SousTraitantsTab },
+    { value: 'employes',          perm: 'employe.read',           label: t('referentiels.tabEmployes', { defaultValue: 'Registre employé' }),           count: counts.employes,          Component: EmployesTab },
   ] as const
 
-  const [tab, setTab] = useState<string>('sites')
+  const TABS = TOUS_TABS.filter(o => has(o.perm))
+
+  // L'onglet affiché est DÉRIVÉ, pas stocké : celui que l'utilisateur a demandé s'il
+  // reste autorisé, sinon le premier qui l'est. Une permission révoquée en cours de
+  // session (l'admin la retire, le SSE la propage) fait donc basculer la vue au rendu
+  // suivant — sans effet ni setState en cascade, et sans onglet en dur qui afficherait
+  // du vide à qui n'a pas `referentiel.site.read`.
+  const [tabDemande, setTab] = useState<string>('')
+  const tab = TABS.some(o => o.value === tabDemande) ? tabDemande : (TABS[0]?.value ?? '')
 
   return (
     <>
@@ -113,7 +125,20 @@ export function ReferentielsPage() {
           </div>
         </div>
 
-        {/* ── Onglets ─────────────────────────────────────────────────────── */}
+        {/* Aucun référentiel lisible : on le dit, plutôt que d'afficher une page vide
+            qui ressemblerait à un bug. Le menu peut mener ici avec `referentiel.read`
+            sans qu'aucune permission de service ne soit accordée. */}
+        {TABS.length === 0 ? (
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--espace-6)' }}>
+            <EmptyState
+              icon={<Lock size={20} />}
+              title={t('referentiels.aucunAcces', { defaultValue: 'Aucun référentiel accessible' })}
+              description={t('referentiels.aucunAccesDesc', { defaultValue: 'Votre compte n’a de droit de lecture sur aucun référentiel. Rapprochez-vous d’un administrateur.' })}
+              variant="subtle"
+            />
+          </div>
+        ) : (
+        /* ── Onglets ─────────────────────────────────────────────────────── */
         <Tabs
           value={tab}
           onValueChange={setTab}
@@ -151,6 +176,7 @@ export function ReferentielsPage() {
             </TabsContent>
           ))}
         </Tabs>
+        )}
       </div>
     </>
   )

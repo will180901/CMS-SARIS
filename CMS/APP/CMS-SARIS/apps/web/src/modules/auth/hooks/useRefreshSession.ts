@@ -16,6 +16,7 @@ import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tansta
 import { toast } from '@workspace/ui/components/sonner'
 import { api, ApiError, tryRefreshToken } from '@/lib/api'
 import { useSessionStore } from '@/stores/session.store'
+import { purgerCachePermissionsPerdues } from '@/lib/cache-permissions'
 import type { UserSession } from '@cms-saris/types'
 import i18n from '@/i18n/config'
 
@@ -84,6 +85,10 @@ async function executerRenouvellement(queryClient?: QueryClient): Promise<Me> {
       prevPermissions.some(p => !newPermissions.includes(p)) ||
       newPermissions.some(p => !prevPermissions.includes(p))
     if (changed) {
+      // D'abord EFFACER ce qui n'est plus lisible : invalidateQueries se contente de
+      // marquer périmé et de relancer les requêtes actives — un hook devenu
+      // `enabled: false` ne relance rien, donc ses données survivraient dans le cache.
+      purgerCachePermissionsPerdues(queryClient, prevPermissions, newPermissions)
       queryClient.invalidateQueries()
     }
   }
