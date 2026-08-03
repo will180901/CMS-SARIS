@@ -908,7 +908,14 @@ export class MessagerieService {
       include: {
         expediteur: { select: USER_SELECT },
         piecesJointes: { select: PJ_META_SELECT },
-        reactions: { select: { emoji: true, utilisateurId: true } },
+        // `where` OBLIGATOIRE : l'extension de soft-delete ne couvre pas les relations
+        // incluses (cf. prisma/soft-delete.extension.ts). Sans lui, une réaction retirée
+        // — donc seulement marquée `deletedAt` — continuait d'être renvoyée, et la
+        // pastille restait affichée alors que le serveur avait bien enregistré le retrait.
+        reactions: {
+          where:  { deletedAt: null },
+          select: { emoji: true, utilisateurId: true },
+        },
         replyTo: {
           select: {
             id: true,
