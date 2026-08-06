@@ -192,6 +192,10 @@ model SessionUtilisateur {
   createdAt        DateTime    @default(now())
   expiresAt        DateTime
   revokedAt        DateTime?
+  /// Dernier signe de vie (renouvellement de jeton) — cf. schéma PostgreSQL.
+  derniereActiviteAt DateTime?
+  /// Identifiant stable de l'appareil (reconnexion depuis le même poste) — cf. schéma PostgreSQL.
+  appareilId       String?
   utilisateur      Utilisateur @relation(fields: [utilisateurId], references: [id])
 }
 

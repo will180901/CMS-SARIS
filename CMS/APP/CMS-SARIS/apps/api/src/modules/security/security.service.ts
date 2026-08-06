@@ -8,6 +8,7 @@ import * as bcrypt from 'bcrypt'
 import { verifySync } from 'otplib'
 import { PrismaService } from '../../prisma/prisma.service'
 import { decryptSecret } from '../../common/crypto/totp-secret'
+import { resolveGeo } from '../../common/geo/geo.util'
 import { ParametresService } from '../parametres/parametres.service'
 import type {
   Role,
@@ -19,6 +20,7 @@ import { LoginDto } from './dto/login.dto'
 import { TotpVerifyDto } from './dto/totp-verify.dto'
 import { RefreshDto } from './dto/refresh.dto'
 import { ChangePasswordDto } from './dto/change-password.dto'
+import { ConfirmerSessionDto } from './dto/confirmer-session.dto'
 
 // ── Types internes ────────────────────────────────────────────────────────────
 
@@ -26,9 +28,25 @@ interface TempTokenPayload {
   sub: string
   siteId: string
   roles: Role[]
-  step: 'totp'
+  /** `totp` = double authentification en attente ; `session` = double connexion à trancher. */
+  step: 'totp' | 'session'
+  /** Repris tel quel au 2e temps : le poste et l'appareil ne se redéduisent pas. */
+  posteLocalId?: string | null
+  appareilId?: string | null
   iat: number
   exp: number
+}
+
+/** Session déjà ouverte ailleurs, telle que présentée à l'utilisateur qui se connecte. */
+export interface SessionConcurrente {
+  /** Depuis quand elle est ouverte. */
+  ouverteA: Date
+  /** Dernier signe de vie — `null` pour les sessions ouvertes avant le suivi d'activité. */
+  derniereActiviteA: Date | null
+  /** Brut : c'est le client qui sait le mettre en forme (parseUserAgent). */
+  userAgent: string | null
+  /** Ville/pays déduits de l'IP, ou `null` si indéterminable. */
+  lieu: string | null
 }
 
 /**
@@ -84,6 +102,9 @@ async function chargerPermissions(
 
 type LoginResult =
   | { requireTotp: true; tempToken: string }
+  /** Une session tourne déjà sur un AUTRE appareil : rien n'est créé tant que
+   *  l'utilisateur n'a pas tranché (cf. confirmerSession). */
+  | { sessionActive: true; tempToken: string; session: SessionConcurrente }
   | {
       requireTotp: false
       accessToken: string
@@ -278,7 +299,34 @@ export class SecurityService {
       return { requireTotp: true, tempToken }
     }
 
-    // 7. Pas de TOTP → créer la session finale
+    // 7. Une session tourne-t-elle déjà sur un AUTRE appareil ? On ne crée alors RIEN :
+    //    fermer la session de quelqu'un d'autre sans le lui dire n'est pas une décision
+    //    qui revient au serveur. Les sessions de synchro sont exemptées (cf. la méthode).
+    if (!dto.posteLocalId) {
+      const concurrente = await this.detecterSessionConcurrente(
+        user.id,
+        dto.appareilId,
+      )
+      if (concurrente) {
+        const tempToken = await this.signSessionToken(
+          user.id,
+          siteId,
+          roles,
+          dto.posteLocalId,
+          dto.appareilId,
+        )
+        await this.journaliser(
+          user.id,
+          dto.login,
+          'SUCCES_LOGIN_SESSION_ACTIVE',
+          ipAdresse,
+          userAgent,
+        )
+        return { sessionActive: true, tempToken, session: concurrente }
+      }
+    }
+
+    // 8. Aucun conflit → créer la session finale
     const tokens = await this.creerSession(
       user.id,
       siteId,
@@ -288,6 +336,7 @@ export class SecurityService {
       ipAdresse,
       userAgent,
       dto.posteLocalId,
+      dto.appareilId,
     )
     await this.journaliser(
       user.id,
@@ -318,11 +367,14 @@ export class SecurityService {
     dto: TotpVerifyDto,
     ipAdresse?: string,
     userAgent?: string,
-  ): Promise<{
-    accessToken: string
-    refreshToken: string
-    user: Omit<UserSession, 'token'>
-  }> {
+  ): Promise<
+    | { sessionActive: true; tempToken: string; session: SessionConcurrente }
+    | {
+        accessToken: string
+        refreshToken: string
+        user: Omit<UserSession, 'token'>
+      }
+  > {
     // 1. Vérifier le token temporaire
     let payload: TempTokenPayload
 
@@ -410,6 +462,32 @@ export class SecurityService {
       user.siteId,
       dto.posteLocalId,
     )
+    // Même contrôle qu'à la connexion simple, mais APRÈS le second facteur : c'est
+    // seulement ici que l'identité est pleinement établie.
+    if (!dto.posteLocalId) {
+      const concurrente = await this.detecterSessionConcurrente(
+        user.id,
+        dto.appareilId,
+      )
+      if (concurrente) {
+        const tempToken = await this.signSessionToken(
+          user.id,
+          siteId,
+          roles,
+          dto.posteLocalId,
+          dto.appareilId,
+        )
+        await this.journaliser(
+          user.id,
+          user.login,
+          'SUCCES_LOGIN_SESSION_ACTIVE',
+          ipAdresse,
+          userAgent,
+        )
+        return { sessionActive: true, tempToken, session: concurrente }
+      }
+    }
+
     const tokens = await this.creerSession(
       user.id,
       siteId,
@@ -419,6 +497,7 @@ export class SecurityService {
       ipAdresse,
       userAgent,
       dto.posteLocalId,
+      dto.appareilId,
     )
     await this.journaliser(
       user.id,
@@ -484,6 +563,7 @@ export class SecurityService {
       expiresAt: Date
       refreshTokenHash: string
       posteLocalId: string | null
+      appareilId: string | null
     }
     let matchingSession: SessionLite | null = null
     if (sid) {
@@ -540,6 +620,9 @@ export class SecurityService {
     const permissions = await chargerPermissions(this.prisma, user.id)
     const personnelMedicalId = user.personnelMedicalId
     // Préserve le type de session (synchro vs app) : on conserve le posteLocalId d'origine.
+    // `appareilId` est repris pour la même raison : la rotation crée une session NEUVE, et
+    // sans lui l'appareil deviendrait inconnu — l'utilisateur serait averti d'une « autre
+    // session » à chaque renouvellement de jeton, sur son propre poste.
     const tokens = await this.creerSession(
       user.id,
       user.siteId,
@@ -549,6 +632,7 @@ export class SecurityService {
       undefined,
       undefined,
       matchingSession.posteLocalId,
+      matchingSession.appareilId,
     )
 
     return {
@@ -650,6 +734,8 @@ export class SecurityService {
     /** Si rempli → session de SYNCHRO (backend embarqué d'un poste) : EXEMPTÉE de la
      *  « session unique » (sinon le login app casserait la synchro du poste). */
     posteLocalId?: string | null,
+    /** Appareil d'origine — sert à ne pas avertir lors d'une reconnexion depuis le même poste. */
+    appareilId?: string | null,
   ): Promise<{ accessToken: string; refreshToken: string }> {
     // Identifiant de session pré-généré → embarqué dans le JWT (sid) ET utilisé
     // comme clé primaire de la SessionUtilisateur, pour la gestion des sessions.
@@ -695,6 +781,8 @@ export class SecurityService {
         userAgent,
         expiresAt,
         posteLocalId: posteLocalId ?? null,
+        appareilId: appareilId ?? null,
+        derniereActiviteAt: new Date(),
       },
     })
 
@@ -742,6 +830,195 @@ export class SecurityService {
   ): Promise<string> {
     return this.jwt.signAsync(
       { sub, siteId, roles, step: 'totp' },
+      { expiresIn: this.TEMP_TOKEN_TTL },
+    )
+  }
+
+  // ── Double connexion ──────────────────────────────────────────────────────
+
+  /**
+   * Une session applicative tourne-t-elle déjà sur un AUTRE appareil ?
+   *
+   * Appelée UNIQUEMENT après validation du mot de passe (et du code TOTP le cas
+   * échéant). Répondre plus tôt renseignerait n'importe qui sur l'activité d'un compte
+   * à partir du seul identifiant.
+   *
+   * Deux exclusions volontaires :
+   *  - les sessions de SYNCHRO (`posteLocalId` rempli) — un poste desktop synchronise en
+   *    permanence en arrière-plan, ce n'est pas quelqu'un devant un écran ;
+   *  - le MÊME appareil — application relancée ou page rechargée : c'est manifestement
+   *    la même personne, l'avertir serait du bruit, et un avertissement routinier qu'on
+   *    clique sans lire ne protège plus.
+   */
+  private async detecterSessionConcurrente(
+    utilisateurId: string,
+    appareilId?: string | null,
+  ): Promise<SessionConcurrente | null> {
+    const sessions = await this.prisma.sessionUtilisateur.findMany({
+      where: {
+        utilisateurId,
+        revokedAt: null,
+        posteLocalId: null,
+        expiresAt: { gt: new Date() },
+        ...(appareilId ? { NOT: { appareilId } } : {}),
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 1,
+      select: {
+        createdAt: true,
+        derniereActiviteAt: true,
+        userAgent: true,
+        ipAdresse: true,
+      },
+    })
+    const s = sessions[0]
+    if (!s) return null
+
+    // La géolocalisation ne doit jamais bloquer une connexion : sans lieu, l'écran
+    // affiche simplement l'appareil et l'heure.
+    let lieu: string | null = null
+    try {
+      const geo = await resolveGeo(s.ipAdresse)
+      lieu = geo.label && geo.label !== 'Localisation inconnue' ? geo.label : null
+    } catch {
+      /* best-effort */
+    }
+
+    return {
+      ouverteA: s.createdAt,
+      derniereActiviteA: s.derniereActiviteAt,
+      userAgent: s.userAgent,
+      lieu,
+    }
+  }
+
+  /**
+   * 2e temps : l'utilisateur a tranché sur la session déjà ouverte ailleurs.
+   *
+   * `REMPLACER` — « c'était moi » : la session est créée, et `creerSession` révoque les
+   *               autres au passage (session unique inchangée).
+   * `SIGNALER`  — « ce n'est pas moi » : on ne connecte PAS. Toutes les sessions
+   *               applicatives sont fermées, l'événement est journalisé et les
+   *               administrateurs sont alertés. Entrer dans un compte que l'on croit
+   *               compromis reviendrait à cohabiter avec l'intrus ; le refermer coupe
+   *               son accès immédiatement, en attendant un changement de mot de passe.
+   */
+  async confirmerSession(
+    dto: ConfirmerSessionDto,
+    ipAdresse?: string,
+    userAgent?: string,
+  ): Promise<
+    | { signale: true }
+    | {
+        accessToken: string
+        refreshToken: string
+        user: Omit<UserSession, 'token'>
+      }
+  > {
+    let payload: TempTokenPayload
+    try {
+      payload = await this.jwt.verifyAsync<TempTokenPayload>(dto.tempToken, {
+        secret: this.config.getOrThrow<string>('JWT_SECRET'),
+      })
+    } catch {
+      throw new UnauthorizedException('Token temporaire invalide ou expiré')
+    }
+    // `step` distinct de 'totp' : un token de double authentification ne doit pas
+    // pouvoir ouvrir une session en sautant la vérification du code.
+    if (payload.step !== 'session') {
+      throw new UnauthorizedException('Token invalide')
+    }
+
+    const user = await this.prisma.utilisateur.findUnique({
+      where: { id: payload.sub },
+      include: { roles: { include: { role: true } } },
+    })
+    // Mêmes garde-fous qu'au login : le compte a pu être désactivé, bloqué ou supprimé
+    // entre le mot de passe et cette confirmation (5 min de fenêtre).
+    if (!user || user.deletedAt || user.statut !== 'ACTIF') {
+      throw new UnauthorizedException('Compte introuvable ou désactivé')
+    }
+
+    // ── « Ce n'est pas moi » ────────────────────────────────────────────────
+    if (dto.action === 'SIGNALER') {
+      const sessions = await this.prisma.sessionUtilisateur.findMany({
+        where: { utilisateurId: user.id, revokedAt: null, posteLocalId: null },
+        select: { id: true },
+      })
+      if (sessions.length) {
+        await this.prisma.sessionUtilisateur.updateMany({
+          where: { id: { in: sessions.map((s) => s.id) } },
+          data: { revokedAt: new Date() },
+        })
+        try {
+          this.moduleRef
+            .get(NotificationService, { strict: false })
+            .pushSessionRevoked(
+              user.id,
+              sessions.map((s) => s.id),
+            )
+        } catch {
+          /* best-effort : la révocation en base fait foi */
+        }
+      }
+      await this.journaliser(
+        user.id,
+        user.login,
+        'ALERTE_SESSION_NON_RECONNUE',
+        ipAdresse,
+        userAgent,
+      )
+      this.logger.warn(
+        `Session non reconnue signalée par « ${user.login} » — ${sessions.length} session(s) fermée(s).`,
+      )
+      return { signale: true }
+    }
+
+    // ── « C'était moi » ─────────────────────────────────────────────────────
+    const roles = user.roles.map((ur) => ur.role.code) as Role[]
+    const permissions = await chargerPermissions(this.prisma, user.id)
+    const tokens = await this.creerSession(
+      user.id,
+      payload.siteId,
+      roles,
+      permissions,
+      user.personnelMedicalId,
+      ipAdresse,
+      userAgent,
+      payload.posteLocalId,
+      payload.appareilId,
+    )
+    await this.journaliser(
+      user.id,
+      user.login,
+      'SUCCES_LOGIN_SESSION_REMPLACEE',
+      ipAdresse,
+      userAgent,
+    )
+    return {
+      ...tokens,
+      user: {
+        id: user.id,
+        login: user.login,
+        siteId: payload.siteId,
+        roles,
+        permissions,
+        personnelMedicalId: user.personnelMedicalId,
+        photoUrl: user.photoUrl,
+      },
+    }
+  }
+
+  /** Token du 2e temps : le mot de passe est déjà validé, on ne fait que trancher. */
+  private signSessionToken(
+    sub: string,
+    siteId: string,
+    roles: Role[],
+    posteLocalId?: string | null,
+    appareilId?: string | null,
+  ): Promise<string> {
+    return this.jwt.signAsync(
+      { sub, siteId, roles, step: 'session', posteLocalId, appareilId },
       { expiresIn: this.TEMP_TOKEN_TTL },
     )
   }

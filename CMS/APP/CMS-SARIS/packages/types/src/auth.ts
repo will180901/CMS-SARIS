@@ -31,11 +31,32 @@ export interface UserSession {
 export interface LoginDto {
   login:    string
   password: string
+  /** Identifiant stable du poste — évite l'avertissement de double connexion lors
+   *  d'une simple reconnexion depuis le même appareil (cf. lib/appareil.ts). */
+  appareilId?: string
 }
 
 export interface TotpVerifyDto {
   code:       string
   tempToken:  string
+  appareilId?: string
+}
+
+/** Session déjà ouverte ailleurs, présentée à l'utilisateur qui se connecte. */
+export interface SessionConcurrente {
+  ouverteA:          string
+  /** `null` pour les sessions ouvertes avant le suivi d'activité. */
+  derniereActiviteA: string | null
+  /** Brut : mis en forme côté client (parseUserAgent). */
+  userAgent:         string | null
+  lieu:              string | null
+}
+
+/** Décision de l'utilisateur face à une session concurrente. */
+export interface ConfirmerSessionDto {
+  tempToken: string
+  /** `REMPLACER` = « c'était moi » ; `SIGNALER` = « ce n'est pas moi ». */
+  action:    'REMPLACER' | 'SIGNALER'
 }
 
 export interface AuthResponse {

@@ -25,4 +25,10 @@ export class TotpVerifyDto {
   @IsString()
   @MaxLength(100)
   posteLocalId?: string
+
+  /** Cf. LoginDto : identifiant stable de l'appareil (reconnexion depuis le même poste). */
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  appareilId?: string
 }

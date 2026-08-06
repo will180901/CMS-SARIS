@@ -18,4 +18,18 @@ export class LoginDto {
   @IsString()
   @MaxLength(100)
   posteLocalId?: string
+
+  /**
+   * Identifiant STABLE de l'appareil, généré et conservé par le client.
+   *
+   * Sert uniquement à reconnaître une reconnexion depuis le MÊME poste (application
+   * relancée, page rechargée) : dans ce cas l'avertissement de double connexion serait
+   * du bruit, et un avertissement qu'on clique sans lire ne protège plus personne.
+   *
+   * Ce n'est PAS un secret et il ne donne aucun droit : le mot de passe reste seul juge.
+   */
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  appareilId?: string
 }

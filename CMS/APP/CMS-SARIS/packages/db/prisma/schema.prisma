@@ -197,7 +197,21 @@ model SessionUtilisateur {
   createdAt        DateTime    @default(now())
   expiresAt        DateTime
   revokedAt        DateTime?
+  /// Dernier signe de vie de la session (renouvellement de jeton). `createdAt` seul ne
+  /// suffit pas à l'avertissement de double connexion : une session ouverte le matin et
+  /// abandonnée (poste éteint) paraîtrait active toute la journée. « Active il y a 30 s »
+  /// et « plus rien depuis 6 h » appellent des réactions opposées.
+  derniereActiviteAt DateTime?
+  /// Identifiant STABLE de l'appareil, généré par le client et conservé localement.
+  /// Sert à reconnaître une reconnexion depuis le MÊME poste (app plantée, page
+  /// rechargée) : dans ce cas on ne dérange pas l'utilisateur. Distinct de
+  /// `posteLocalId`, qui n'est rempli que par la session de SYNCHRO d'un poste desktop.
+  appareilId       String?
   utilisateur      Utilisateur @relation(fields: [utilisateurId], references: [id])
+
+  /// Les sessions actives d'un utilisateur sont cherchées à CHAQUE connexion
+  /// (détection de double session) — sans index, c'est un balayage de toute la table.
+  @@index([utilisateurId, revokedAt])
 }
 
 model ConfigurationTotp {

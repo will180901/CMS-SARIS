@@ -45,6 +45,11 @@ import { ListePrintSheet, type ColonneExport } from '@/components/print/ListePri
 // chargées — pour que le filtre reste complet après sélection).
 const AUTH_RESULTATS = [
   'SUCCES_LOGIN', 'SUCCES_LOGIN_TOTP', 'SUCCES_LOGIN_TOTP_REQUIS', 'SUCCES_LOGOUT', 'SUCCES_CHANGEMENT_MDP',
+  // Double connexion : session déjà ouverte ailleurs, puis décision de l'utilisateur.
+  // `ALERTE_SESSION_NON_RECONNUE` est le signalement « ce n'est pas moi » — sans lui dans
+  // cette liste, l'administrateur ne pourrait pas filtrer sur l'événement qui l'intéresse
+  // le plus.
+  'SUCCES_LOGIN_SESSION_ACTIVE', 'SUCCES_LOGIN_SESSION_REMPLACEE', 'ALERTE_SESSION_NON_RECONNUE',
   'ECHEC_MOT_DE_PASSE', 'ECHEC_LOGIN_INCONNU', 'ECHEC_COMPTE_DESACTIVE', 'ECHEC_COMPTE_BLOQUE', 'ECHEC_CODE_TOTP',
 ]
 

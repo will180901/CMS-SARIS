@@ -12,7 +12,11 @@ import { Label }        from '@workspace/ui/components/label'
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@workspace/ui/components/input-otp'
 import { TotpCountdown }    from '@/components/saris'
 import { ConditionsModal }  from '@/components/ConditionsModal'
-import { useLoginMutation, useTotpVerifyMutation } from '../hooks/useLogin'
+import {
+  useLoginMutation, useTotpVerifyMutation, useConfirmerSessionMutation, estSessionActive,
+} from '../hooks/useLogin'
+import type { SessionConcurrente } from '@cms-saris/types'
+import { SessionConcurrenteStep } from '../components/SessionConcurrenteStep'
 import { useTranslation } from 'react-i18next'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 
@@ -40,7 +44,8 @@ type TotpForm  = z.infer<typeof totpSchema>
 
 export function LoginPage() {
   const { t } = useTranslation()
-  const [step, setStep]           = useState<'login' | 'totp'>('login')
+  const [step, setStep]           = useState<'login' | 'totp' | 'session'>('login')
+  const [autreSession, setAutreSession] = useState<SessionConcurrente | null>(null)
   const [totpMode, setTotpMode]   = useState<'app' | 'backup'>('app')
   const [tempToken, setTempToken] = useState<string | null>(null)
   const [showCgu, setShowCgu]     = useState(false)
@@ -48,6 +53,7 @@ export function LoginPage() {
 
   const loginMutation = useLoginMutation()
   const totpMutation  = useTotpVerifyMutation()
+  const sessionMutation = useConfirmerSessionMutation()
 
   // ── Formulaire étape 1 ──────────────────────────────────────────────────
 
@@ -68,11 +74,18 @@ export function LoginPage() {
   async function onLoginSubmit(data: LoginForm) {
     try {
       const result = await loginMutation.mutateAsync(data)
+      // Une session tourne déjà ailleurs : à l'utilisateur de trancher, rien n'est ouvert.
+      if (estSessionActive(result)) {
+        setTempToken(result.tempToken)
+        setAutreSession(result.session)
+        setStep('session')
+        return
+      }
       if (result.requireTotp) {
         setTempToken(result.tempToken)
         setStep('totp')
       }
-      // Si !requireTotp → useLoginMutation.onSuccess appelle setSession → App rerend
+      // Sinon → useLoginMutation.onSuccess appelle setSession → App rerend
     } catch {
       // L'erreur est dans loginMutation.error
     }
@@ -81,7 +94,14 @@ export function LoginPage() {
   async function onTotpSubmit(data: TotpForm) {
     if (!tempToken) return
     try {
-      await totpMutation.mutateAsync({ code: data.code, tempToken })
+      const result = await totpMutation.mutateAsync({ code: data.code, tempToken })
+      // Le second facteur peut, lui aussi, déboucher sur une session concurrente.
+      if (estSessionActive(result)) {
+        setTempToken(result.tempToken)
+        setAutreSession(result.session)
+        setStep('session')
+        return
+      }
       // onSuccess → setSession → App rerend
     } catch {
       // L'erreur est dans totpMutation.error
@@ -92,9 +112,25 @@ export function LoginPage() {
     setStep('login')
     setTotpMode('app')
     setTempToken(null)
+    setAutreSession(null)
     totpForm.reset()
     loginMutation.reset()
     totpMutation.reset()
+    sessionMutation.reset()
+  }
+
+  /** « C'était moi » / « Ce n'est pas moi » — cf. SessionConcurrenteStep. */
+  async function onDecisionSession(action: 'REMPLACER' | 'SIGNALER') {
+    if (!tempToken) return
+    try {
+      const res = await sessionMutation.mutateAsync({ tempToken, action })
+      // SIGNALER ne délivre aucun jeton : on revient à l'écran de connexion, le
+      // composant ayant déjà affiché ce qui a été fait.
+      if ('signale' in res) setStep('login')
+      // REMPLACER → onSuccess a posé la session → App rerend
+    } catch {
+      // L'erreur est dans sessionMutation.error
+    }
   }
 
   function switchTotpMode(mode: 'app' | 'backup') {
@@ -160,6 +196,19 @@ export function LoginPage() {
                 <ChevronLeft size={13} strokeWidth={2.5} />
                 {t('auth.backToLogin')}
               </button>
+            )}
+
+            {/* ══════════════════════════════════════════════════════════
+                ÉTAPE 3 — Une session tourne déjà ailleurs
+            ══════════════════════════════════════════════════════════ */}
+            {step === 'session' && autreSession && (
+              <SessionConcurrenteStep
+                session={autreSession}
+                onDecider={onDecisionSession}
+                enCours={sessionMutation.isPending}
+                erreur={sessionMutation.error?.serverMessage}
+                onAnnuler={goBack}
+              />
             )}
 
             {/* ══════════════════════════════════════════════════════════

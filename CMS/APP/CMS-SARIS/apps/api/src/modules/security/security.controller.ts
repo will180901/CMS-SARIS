@@ -17,6 +17,7 @@ import { LoginDto } from './dto/login.dto'
 import { TotpVerifyDto } from './dto/totp-verify.dto'
 import { RefreshDto } from './dto/refresh.dto'
 import { ChangePasswordDto } from './dto/change-password.dto'
+import { ConfirmerSessionDto } from './dto/confirmer-session.dto'
 import type { UserSession } from '@cms-saris/types'
 
 /**
@@ -69,6 +70,29 @@ export class SecurityController {
     @Headers('user-agent') userAgent: string,
   ) {
     return this.securityService.verifyTotp(dto, ip, userAgent)
+  }
+
+  /**
+   * POST /auth/session/confirmer
+   *
+   * 2e temps de la connexion quand une session tourne déjà sur un AUTRE appareil.
+   * Le mot de passe (et le code TOTP le cas échéant) sont déjà validés : `tempToken`
+   * en fait foi et vaut 5 minutes.
+   *
+   * Corps : { tempToken, action: 'REMPLACER' | 'SIGNALER' }
+   * Réponse : { accessToken, refreshToken, user }  |  { signale: true }
+   */
+  @Post('session/confirmer')
+  @HttpCode(HttpStatus.OK)
+  // Même plafond que le TOTP : le token est court, mais on ne laisse pas marteler
+  // l'endpoint qui ferme des sessions.
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  confirmerSession(
+    @Body() dto: ConfirmerSessionDto,
+    @Ip() ip: string,
+    @Headers('user-agent') userAgent: string,
+  ) {
+    return this.securityService.confirmerSession(dto, ip, userAgent)
   }
 
   /**
