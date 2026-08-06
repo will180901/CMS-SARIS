@@ -160,7 +160,11 @@ export function useNotificationStream() {
         if (n.type === 'SESSION_REVOKED') {
           const mySid = sidFromToken(useSessionStore.getState().token)
           if (mySid && (n.entiteId ?? '').split(',').includes(mySid)) {
-            toast.error('Session fermée', { description: 'Votre compte a été ouvert sur un autre poste.' })
+            // Titre et message viennent du serveur : une fermeture après signalement
+            // « ce n'est pas moi » ne dit pas la même chose qu'une connexion ailleurs.
+            toast.error(n.titre || 'Session fermée', {
+              description: n.message || 'Votre compte a été ouvert sur un autre poste.',
+            })
             useSessionStore.getState().clearSession()
           }
           return

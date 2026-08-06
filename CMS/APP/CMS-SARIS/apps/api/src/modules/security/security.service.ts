@@ -956,6 +956,11 @@ export class SecurityService {
             .pushSessionRevoked(
               user.id,
               sessions.map((s) => s.id),
+              {
+                titre: 'Session fermée par sécurité',
+                message:
+                  'Une connexion non reconnue a été signalée sur ce compte. Toutes les sessions ont été fermées.',
+              },
             )
         } catch {
           /* best-effort : la révocation en base fait foi */
@@ -971,6 +976,29 @@ export class SecurityService {
       this.logger.warn(
         `Session non reconnue signalée par « ${user.login} » — ${sessions.length} session(s) fermée(s).`,
       )
+      // L'écran de connexion PROMET qu'un administrateur sera alerté : un log serveur
+      // que personne ne lit ne tient pas cette promesse. `requiredPermission` restreint
+      // la notification à ceux qui peuvent agir ; `siteId: null` la rend globale, car un
+      // compte compromis n'est pas l'affaire d'un seul site.
+      try {
+        await this.moduleRef
+          .get(NotificationService, { strict: false })
+          .emit({
+            type: 'SECURITE_SESSION_NON_RECONNUE',
+            niveau: 'CRITIQUE',
+            category: 'systeme',
+            titre: 'Session non reconnue signalée',
+            message:
+              `« ${user.login} » déclare ne pas être à l'origine d'une session ouverte sur son compte. ` +
+              `${sessions.length} session(s) ont été fermées. Le compte doit changer de mot de passe.`,
+            siteId: null,
+            requiredPermission: 'utilisateur.read',
+            entiteType: 'Utilisateur',
+            entiteId: user.id,
+          })
+      } catch {
+        /* la révocation et le journal font foi ; l'alerte est best-effort */
+      }
       return { signale: true }
     }
 

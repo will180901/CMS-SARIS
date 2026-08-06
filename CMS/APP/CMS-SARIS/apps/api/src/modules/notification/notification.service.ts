@@ -394,7 +394,14 @@ export class NotificationService {
    * virgules) → seul l'ANCIEN poste se déconnecte ; le NOUVEAU (qui vient de se connecter)
    * n'est pas dans la liste et l'ignore.
    */
-  pushSessionRevoked(userId: string, revokedSids: string[]): void {
+  pushSessionRevoked(
+    userId: string,
+    revokedSids: string[],
+    /** Pourquoi la session se ferme. Une fermeture consécutive à un signalement
+     *  « ce n'est pas moi » n'a pas le même sens qu'une simple connexion ailleurs :
+     *  l'écran qui se vide doit dire laquelle des deux s'est produite. */
+    motif?: { titre: string; message: string },
+  ): void {
     if (!revokedSids.length) return
     this.stream$.next({
       id: `revoke-${Date.now()}`,
@@ -404,8 +411,8 @@ export class NotificationService {
       requiredPermission: null,
       type: 'SESSION_REVOKED',
       niveau: 'CRITIQUE',
-      titre: 'Session fermée',
-      message: 'Votre compte a été ouvert sur un autre poste.',
+      titre: motif?.titre ?? 'Session fermée',
+      message: motif?.message ?? 'Votre compte a été ouvert sur un autre poste.',
       entiteType: 'session',
       entiteId: revokedSids.join(','),
       lien: null,

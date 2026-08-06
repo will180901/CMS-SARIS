@@ -27,9 +27,10 @@ interface Props {
 }
 
 /** « il y a 3 minutes », « il y a 2 heures »… Volontairement grossier : l'ordre de
- *  grandeur suffit à décider, la précision à la seconde n'apporte rien. */
-function depuis(iso: string, t: TFunction): string {
-  const ms = Date.now() - new Date(iso).getTime()
+ *  grandeur suffit à décider, la précision à la seconde n'apporte rien.
+ *  `maintenant` est passé en paramètre — figé au montage, pour que le rendu reste pur. */
+function depuis(iso: string, maintenant: number, t: TFunction): string {
+  const ms = maintenant - new Date(iso).getTime()
   const min = Math.round(ms / 60_000)
   if (min < 1)  return t('auth.sessionMaintenant',  { defaultValue: "à l'instant" })
   if (min < 60) return t('auth.sessionIlYaMin',     { defaultValue: 'il y a {{n}} min', n: min })
@@ -42,6 +43,10 @@ function depuis(iso: string, t: TFunction): string {
 export function SessionConcurrenteStep({ session, onDecider, enCours, erreur, onAnnuler }: Props) {
   const { t } = useTranslation()
   const [confirmeSignalement, setConfirmeSignalement] = useState(false)
+  // Instant de référence figé à l'ouverture de l'écran : lire l'horloge à chaque rendu
+  // rendrait le rendu impur (et l'écran ne vit que quelques secondes — la fraîcheur au
+  // montage suffit amplement pour un « il y a 2 min »).
+  const [maintenant] = useState(() => Date.now())
 
   const appareil = session.userAgent
     ? parseUserAgent(session.userAgent).label
@@ -50,7 +55,7 @@ export function SessionConcurrenteStep({ session, onDecider, enCours, erreur, on
   // La dernière activité prime sur l'heure d'ouverture : c'est elle qui dit si
   // quelqu'un est encore devant l'écran.
   const reference = session.derniereActiviteA ?? session.ouverteA
-  const active = Date.now() - new Date(reference).getTime() < 5 * 60_000
+  const active = maintenant - new Date(reference).getTime() < 5 * 60_000
 
   return (
     <div className="animate-in fade-in-0 slide-in-from-bottom-2 duration-200">
@@ -93,7 +98,7 @@ export function SessionConcurrenteStep({ session, onDecider, enCours, erreur, on
             session.derniereActiviteA
               ? t('auth.sessionDerniereActivite', {
                   defaultValue: 'Dernière activité {{quand}}',
-                  quand: depuis(session.derniereActiviteA, t),
+                  quand: depuis(session.derniereActiviteA, maintenant, t),
                 })
               : t('auth.sessionOuverteLe', {
                   defaultValue: 'Ouverte le {{quand}}',
