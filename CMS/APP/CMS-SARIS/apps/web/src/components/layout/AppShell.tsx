@@ -85,6 +85,7 @@ const RapportsPage        = lazy(() => import('@/modules/rapports/pages/Rapports
 const ParametresPage      = lazy(() => import('@/modules/admin/pages/ParametresPage').then(m => ({ default: m.ParametresPage })))
 const ParametresSystemePage = lazy(() => import('@/modules/admin/pages/ParametresSystemePage').then(m => ({ default: m.ParametresSystemePage })))
 const SynchronisationPage = lazy(() => import('@/modules/admin/pages/SynchronisationPage').then(m => ({ default: m.SynchronisationPage })))
+const BaseDonneesPage = lazy(() => import('@/modules/admin/pages/BaseDonneesPage').then(m => ({ default: m.BaseDonneesPage })))
 const MessageriePage      = lazy(() => import('@/modules/messagerie/pages/MessageriePage').then(m => ({ default: m.MessageriePage })))
 
 /** Fallback de route (Suspense) — même langage visuel que LoadingScreen, mais scopé à
@@ -247,6 +248,14 @@ export function AppShell() {
             element={
               <PermissionGate any={['synchronisation.read']}>
                 <SynchronisationPage />
+              </PermissionGate>
+            }
+          />
+          <Route
+            path="/base-donnees"
+            element={
+              <PermissionGate any={['synchronisation.read']}>
+                <BaseDonneesPage />
               </PermissionGate>
             }
           />

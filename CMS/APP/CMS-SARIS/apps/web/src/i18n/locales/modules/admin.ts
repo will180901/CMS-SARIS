@@ -436,8 +436,10 @@ export const admin = {
 
     // ── Synchronisation & sauvegardes (SynchronisationPage) ──────────────────────
     // En-tête de page
-    syncPageTitle: 'Synchronisation & sauvegardes',
-    syncPageSubtitle: 'Synchronisation hors-ligne du terrain, sauvegardes système et volumétrie des données',
+    syncPageTitle: 'Synchronisation',
+    syncPageSubtitle: 'État des postes du terrain, en temps réel',
+    bddPageTitle: 'Base de données',
+    bddPageSubtitle: 'Sauvegardes de configuration et volumétrie des données',
     // Temps relatif (helper relative())
     relativeNever: 'jamais',
     relativeNow: 'à l\'instant',
@@ -991,8 +993,10 @@ export const admin = {
 
     // ── Synchronization & backups (SynchronisationPage) ──────────────────────────
     // Page header
-    syncPageTitle: 'Synchronization & backups',
-    syncPageSubtitle: 'Offline field synchronization, system backups and data volumetry',
+    syncPageTitle: 'Synchronization',
+    syncPageSubtitle: 'Field workstation status, in real time',
+    bddPageTitle: 'Database',
+    bddPageSubtitle: 'Configuration backups and data volumetry',
     // Relative time (relative() helper)
     relativeNever: 'never',
     relativeNow: 'just now',

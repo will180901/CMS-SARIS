@@ -40,7 +40,7 @@ import { BandeauEtatSync, SEUIL_MUET_MS, type EtatSync } from '../components/Ban
 import { useSyncStore } from '@/stores/sync.store'
 import { syncCycle, listMutations, purgeMutations, retryRejected } from '@/lib/sync'
 import {
-  useSyncStatus, useSauvegardes, useRestaurerSauvegarde,
+  useSyncStatus, useRestaurerSauvegarde,
 } from '../hooks/useAdmin'
 import {
   useSyncStatus as useDataSyncStatus, useSyncRun, useSyncSupervision, usePosteDetail, useMasquerPoste, useRenamePoste,
@@ -112,14 +112,7 @@ function mutationStatutLabel(t: TFn, statut: string): string {
 
 export function SynchronisationPage() {
   const { t } = useTranslation()
-  const { has } = usePermissions()
-  const canRestore = has('synchronisation.restore')
-
-  const { data: status, isLoading: ls } = useSyncStatus()
-  const { data: sauvegardes = [], isLoading: lh } = useSauvegardes()
   const { data: sup, isLoading: lsup } = useSyncSupervision()
-
-  const totalEnregistrements = status?.modules.reduce((a, m) => a + m.count, 0) ?? 0
 
   // État du parc, calculé une fois ici et passé au bandeau : la page entière raisonne
   // sur les mêmes chiffres que sa phrase d'accroche.
@@ -170,13 +163,10 @@ export function SynchronisationPage() {
         {/* 4. Le terrain hors-ligne (file d'attente locale) */}
         {isDesktop && <SyncTerrainZone />}
 
-        {/* 5. Base de données — conservé ici tant que l'écran dédié n'existe pas, mais
-               replié en bas : on ne restaure pas une sauvegarde par accident. */}
-        <SauvegardesZone
-          sauvegardes={sauvegardes} loading={lh} canRestore={canRestore}
-          planification={status?.planification}
-        />
-        <VolumetrieZone status={status} loading={ls} total={totalEnregistrements} />
+        {/* Sauvegardes et volumétrie sont parties vers « Base de données » : restaurer
+            une sauvegarde ou lire des compteurs de stockage n'a rien à voir avec
+            surveiller un parc de postes. Les mêler obligeait à traverser un tableau de
+            bord d'exploitation pour un geste d'administration de base. */}
       </div>
     </div>
   )
@@ -1005,7 +995,7 @@ function MutationRow({ m, striped }: { m: FileMutation; striped: boolean }) {
 //  ZONE 2 — Sauvegardes serveur
 // ════════════════════════════════════════════════════════════════════════════════
 
-function SauvegardesZone({ sauvegardes, loading, canRestore, planification }: {
+export function SauvegardesZone({ sauvegardes, loading, canRestore, planification }: {
   sauvegardes: SauvegardeSysteme[]
   loading: boolean
   canRestore: boolean
@@ -1173,7 +1163,7 @@ function SauvegardeRow({ s, striped, canRestore, onRestore }: {
 //  ZONE 3 — Volumétrie & journaux
 // ════════════════════════════════════════════════════════════════════════════════
 
-function VolumetrieZone({ status, loading, total }: {
+export function VolumetrieZone({ status, loading, total }: {
   status: ReturnType<typeof useSyncStatus>['data']
   loading: boolean
   total: number

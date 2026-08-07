@@ -30,6 +30,7 @@ import {
   SlidersHorizontal,
   History,
   RefreshCw,
+  Database,
 } from 'lucide-react'
 import type { LucideIcon }     from 'lucide-react'
 import type { PermissionCode, Role } from '@cms-saris/types'
@@ -171,7 +172,17 @@ export const NAV_GROUPS: NavGroup[] = [
         icon:        RefreshCw,
         href:        '/synchronisation',
         permissions: ['synchronisation.read'],
-        description: 'Postes locaux, sauvegardes et restauration',
+        description: 'État des postes du terrain, en temps réel',
+      },
+      {
+        // Séparé de la synchronisation : restaurer une sauvegarde ou lire des
+        // compteurs de stockage n'a rien à voir avec surveiller un parc de postes.
+        key:         'baseDonnees',
+        label:       'Base de données',
+        icon:        Database,
+        href:        '/base-donnees',
+        permissions: ['synchronisation.read'],
+        description: 'Sauvegardes de configuration et volumétrie',
       },
     ],
   },
