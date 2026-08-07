@@ -1,11 +1,18 @@
 /**
- * sync-permissions.ts — Synchronisation NON DESTRUCTIVE du catalogue de permissions.
+ * sync-permissions.ts — Aligne la base sur le catalogue de permissions du code.
  *
  * Contrairement au seed (qui réinitialise rôles + mot de passe admin), ce script :
  *   1. Upsert chaque permission du catalogue ALL_PERMISSIONS (création si absente).
- *   2. Rattache aux 7 rôles système les permissions DEFAULT manquantes
- *      (sans supprimer les affectations existantes ni les personnalisations).
- *   3. Ne touche NI au mot de passe admin NI aux dérogations individuelles.
+ *   2. RÉALIGNE les rôles SYSTÈME sur DEFAULT_ROLE_PERMISSIONS — ajouts ET retraits.
+ *   3. Complète les rôles PERSONNALISÉS quand une permission a été scindée en droits
+ *      plus fins (jamais de retrait : ces rôles appartiennent à l'administrateur).
+ *   4. Ne touche NI au mot de passe admin NI aux dérogations individuelles.
+ *
+ * Pourquoi le retrait (étape 2) : longtemps le script fut purement additif. Résultat,
+ * une permission retirée du code restait active en base pour toujours — constaté en
+ * production le 07/08/2026 : Médecin Chef y portait 112 droits contre 107 au code, et
+ * Infirmier 61 contre 57. Des droits explicitement révoqués côté code restaient donc
+ * exerçables. Un rôle « système » n'a de sens que si le code en est la source unique.
  *
  * Idempotent. À lancer après ajout de permissions au catalogue :
  *   pnpm --filter @cms-saris/db exec tsx prisma/sync-permissions.ts
@@ -13,7 +20,7 @@
 
 import { PrismaClient } from '@prisma/client'
 import {
-  ALL_PERMISSIONS, PERMISSION_META, DEFAULT_ROLE_PERMISSIONS, ROLE_CATALOG,
+  ALL_PERMISSIONS, PERMISSION_META, DEFAULT_ROLE_PERMISSIONS, ROLE_CATALOG, SYSTEM_ROLES,
 } from '../../types/src/permissions.js'
 
 const prisma = new PrismaClient()
@@ -44,25 +51,45 @@ async function main() {
   }
   console.log(`   ✓ ${ROLE_CATALOG.length} rôles présents (${rolesCreated} nouveau(x))`)
 
-  // 2. Rattachement additif des permissions DEFAULT aux rôles système
+  // 2. Rôles SYSTÈME : réalignement EXACT sur le code (ajouts + retraits).
+  //    Les rôles personnalisés sont ignorés ici — ils appartiennent à l'administrateur.
   const roles = await prisma.role.findMany()
+  const estSysteme = (code: string) => (SYSTEM_ROLES as readonly string[]).includes(code)
   let attached = 0
+  let detached = 0
   for (const role of roles) {
     const wanted = DEFAULT_ROLE_PERMISSIONS[role.code] ?? []
+    if (!estSysteme(role.code)) continue
+
+    const voulus = new Set(wanted)
+    const actuels = await prisma.rolePermission.findMany({
+      where: { roleId: role.id },
+      include: { permission: true },
+    })
+    const detenus = new Set(actuels.map((rp) => rp.permission.code))
+
+    // 2a. Ce que le code accorde et qui manque en base.
     for (const permCode of wanted) {
+      if (detenus.has(permCode)) continue
       const perm = await prisma.permission.findUnique({ where: { code: permCode } })
       if (!perm) continue
-      const exists = await prisma.rolePermission.findFirst({
-        where: { roleId: role.id, permissionId: perm.id },
+      await prisma.rolePermission.create({ data: { roleId: role.id, permissionId: perm.id } })
+      attached++
+      console.log(`   + ${role.code} ← ${permCode}`)
+    }
+
+    // 2b. Ce que la base porte encore et que le code n'accorde plus. C'est CE retrait
+    //     qui manquait : sans lui, un droit supprimé du code restait exerçable à vie.
+    const enTrop = actuels.filter((rp) => !voulus.has(rp.permission.code))
+    if (enTrop.length) {
+      await prisma.rolePermission.deleteMany({
+        where: { roleId: role.id, permissionId: { in: enTrop.map((rp) => rp.permissionId) } },
       })
-      if (!exists) {
-        await prisma.rolePermission.create({ data: { roleId: role.id, permissionId: perm.id } })
-        attached++
-        console.log(`   + ${role.code} ← ${permCode}`)
-      }
+      detached += enTrop.length
+      for (const rp of enTrop) console.log(`   − ${role.code} ⊘ ${rp.permission.code} (absent du code)`)
     }
   }
-  console.log(`   ✓ ${attached} rattachement(s) ajouté(s) (aucune suppression)`)
+  console.log(`   ✓ rôles système réalignés : ${attached} ajout(s), ${detached} retrait(s)`)
 
   // 3. Reprise de compatibilité — découpage d'anciennes permissions « fourre-tout ».
   //
@@ -87,6 +114,9 @@ async function main() {
 
   let backfilled = 0
   for (const role of roles) {
+    // Les rôles système viennent d'être réalignés à l'étape 2 : leur appliquer la reprise
+    // les ferait diverger du code aussitôt (elle ajoute des droits que DEFAULT n'a pas).
+    if (estSysteme(role.code)) continue
     const codesDuRole = new Set(
       (await prisma.rolePermission.findMany({
         where:   { roleId: role.id },

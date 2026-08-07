@@ -608,3 +608,16 @@ export const ROLE_CATALOG: { code: string; libelle: string }[] = [
   { code: 'MEDECIN_CHEF',  libelle: 'Médecin Chef' },
   { code: 'INFIRMIER',     libelle: 'Infirmier' },
 ]
+
+/**
+ * Rôles dont le CODE fait autorité : leurs permissions sont exactement
+ * `DEFAULT_ROLE_PERMISSIONS`, et `sync-permissions` les y réaligne à chaque
+ * déploiement — ajouts ET retraits.
+ *
+ * C'est ce qui distingue un rôle système d'un rôle personnalisé : le second est
+ * gouverné par l'administrateur et n'est jamais touché par le script.
+ *
+ * ⚠️ `apps/api` ne peut pas importer de VALEUR depuis ce paquet (cf. la copie locale
+ * dans roles.service.ts) : les deux listes doivent rester identiques.
+ */
+export const SYSTEM_ROLES = ['ADMIN_SYSTEME', 'MEDECIN_CHEF', 'INFIRMIER'] as const

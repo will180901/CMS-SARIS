@@ -10,7 +10,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Shield, ShieldCheck, Plus, Trash2, ChevronRight, ChevronLeft,
-  Lock, Users as UsersIcon, Search, Check,
+  Lock, Users as UsersIcon, Search, Check, AlertTriangle,
 } from 'lucide-react'
 import {
   PageHeader, Card, Button, StatCard, StatusPill, EmptyState,
@@ -531,6 +531,29 @@ function RoleEditor({ role, permissions, canUpdate, canDelete, onBack }: {
               </StatusPill>
             </h3>
           </div>
+
+          {/* Rôle système : le CODE en est la source de vérité, et `sync-permissions`
+              l'y réaligne à chaque déploiement — ajouts comme retraits. Modifier ici
+              reste possible, mais l'effet ne survivra pas à la prochaine mise en ligne :
+              mieux vaut le dire que de laisser découvrir un droit qui « se remet tout
+              seul ». Pour un droit durable et individuel → dérogation sur la personne. */}
+          {role.isSystem && (
+            <div style={{
+              margin: '0 0 var(--espace-3)', padding: '9px 11px',
+              display: 'flex', alignItems: 'flex-start', gap: 8,
+              borderRadius: 'var(--radius-md)',
+              background: 'var(--avert-fond)',
+              border: '1px solid var(--avert-bordure, var(--bordure-legere))',
+            }}>
+              <AlertTriangle size={13} style={{ flexShrink: 0, marginTop: 1, color: 'var(--avert-texte)' }} />
+              <p style={{ margin: 0, fontSize: 'var(--font-size-caption)', color: 'var(--avert-texte)', lineHeight: 1.5 }}>
+                {t('admin.roleSystemeAvertissement', {
+                  defaultValue:
+                    'Rôle système : ses permissions sont définies dans le code et rétablies à chaque mise en ligne. Une modification faite ici sera annulée au prochain déploiement — pour un droit durable, passez par une dérogation sur la personne.',
+                })}
+              </p>
+            </div>
+          )}
 
           {/* Rappel de la règle de cohérence appliquée par l'interface ET le serveur */}
           <p style={{
