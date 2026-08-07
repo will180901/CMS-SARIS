@@ -192,11 +192,21 @@ model SessionUtilisateur {
   createdAt        DateTime    @default(now())
   expiresAt        DateTime
   revokedAt        DateTime?
-  /// Dernier signe de vie (renouvellement de jeton) — cf. schéma PostgreSQL.
+  /// Dernier signe de vie de la session (renouvellement de jeton). `createdAt` seul ne
+  /// suffit pas à l'avertissement de double connexion : une session ouverte le matin et
+  /// abandonnée (poste éteint) paraîtrait active toute la journée. « Active il y a 30 s »
+  /// et « plus rien depuis 6 h » appellent des réactions opposées.
   derniereActiviteAt DateTime?
-  /// Identifiant stable de l'appareil (reconnexion depuis le même poste) — cf. schéma PostgreSQL.
+  /// Identifiant STABLE de l'appareil, généré par le client et conservé localement.
+  /// Sert à reconnaître une reconnexion depuis le MÊME poste (app plantée, page
+  /// rechargée) : dans ce cas on ne dérange pas l'utilisateur. Distinct de
+  /// `posteLocalId`, qui n'est rempli que par la session de SYNCHRO d'un poste desktop.
   appareilId       String?
   utilisateur      Utilisateur @relation(fields: [utilisateurId], references: [id])
+
+  /// Les sessions actives d'un utilisateur sont cherchées à CHAQUE connexion
+  /// (détection de double session) — sans index, c'est un balayage de toute la table.
+  @@index([utilisateurId, revokedAt])
 }
 
 model ConfigurationTotp {
@@ -1099,8 +1109,10 @@ model BonExamen {
   consultationId   String
   // Traçabilité vers l'ordonnance PRESCRIPTION_EXAMEN d'origine (refonte génération de bon).
   // Nullable (bons historiques) et volontairement PAS @unique : un bon annulé ne doit pas
-  // bloquer la régénération d'un nouveau bon pour la même ordonnance — la règle "un seul bon
-  // ACTIF à la fois" est vérifiée en service, pas en contrainte DB.
+  // bloquer la régénération d'un nouveau bon pour la même ordonnance. La règle "un seul bon
+  // ACTIF à la fois" est vérifiée en service ET renforcée par un index unique PARTIEL en base
+  // (WHERE statut != 'ANNULE' AND deletedAt IS NULL — non représentable ici, voir migration
+  // 20260721160000_bon_ordonnanceid_partial_unique) pour fermer la fenêtre de race.
   ordonnanceId     String?
   indicationClinik String
   etablissementId  String?
@@ -1142,8 +1154,9 @@ model ResultatExamen {
   @@index([updatedAt])
 }
 
-// Bon de pharmacie (recueil) — voucher de retrait de médicaments (gratuits) DISTINCT de
-// l'ordonnance. Réservé au personnel CDI + ayants droit (garde MEDICAMENT). Calque BonExamen.
+// Bon de pharmacie (recueil) — voucher de retrait de médicaments (gratuits), généré depuis une
+// ordonnance PHARMACEUTIQUE validée (ordonnanceId). Réservé au personnel CDI + ayants droit
+// (garde MEDICAMENT). Calque BonExamen.
 model BonPharmacie {
   updatedAt       DateTime            @default(now()) @updatedAt
   deletedAt       DateTime?
@@ -1151,7 +1164,8 @@ model BonPharmacie {
   consultationId  String
   prescripteurId  String
   // Traçabilité vers l'ordonnance PHARMACEUTIQUE d'origine (refonte génération de bon).
-  // Nullable (bons historiques) et volontairement PAS @unique — cf. commentaire BonExamen.ordonnanceId.
+  // Nullable (bons historiques) et volontairement PAS @unique — cf. commentaire
+  // BonExamen.ordonnanceId (même index unique partiel en base, même raison).
   ordonnanceId    String?
   statut          String              @default("EN_ATTENTE") // EN_ATTENTE | DELIVRE | ANNULE
   observations    String?
@@ -1257,9 +1271,9 @@ model SuiviEvacuation {
 // MODULE : SUIVI DE TRAITEMENT
 // ─────────────────────────────────────────────
 // Épisode de suivi (contrôle d'état de santé, évolution d'une maladie, traitement
-// en cours) ouvert depuis une consultation clôturée (décision SUIVI_TRAITEMENT,
-// comme EVACUATION) — les fiches datées s'ajoutent ensuite depuis le dossier
-// patient, sans repasser par le triage ou la consultation.
+// en cours) généré depuis l'étape Décision d'une consultation encore OUVERTE (décision
+// SUIVI_TRAITEMENT, comme EVACUATION), avant sa clôture — les fiches datées s'ajoutent
+// ensuite depuis le dossier patient, sans repasser par le triage ou la consultation.
 model SuiviTraitement {
   updatedAt       DateTime               @default(now()) @updatedAt
   deletedAt       DateTime?
