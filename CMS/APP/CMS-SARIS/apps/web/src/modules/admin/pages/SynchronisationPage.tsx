@@ -37,6 +37,7 @@ import { labelModule, labelStatut, labelAction, labelRole } from '@/config/label
 import { useConnectivityStore } from '@/stores/connectivity.store'
 import { isDesktop } from '@/lib/desktop'
 import { BandeauEtatSync, SEUIL_MUET_MS, type EtatSync } from '../components/BandeauEtatSync'
+import { CePosteCard } from '../components/CePosteCard'
 import { useSyncStore } from '@/stores/sync.store'
 import { syncCycle, listMutations, purgeMutations, retryRejected } from '@/lib/sync'
 import {
@@ -154,7 +155,10 @@ export function SynchronisationPage() {
         <BandeauEtatSync etat={etat} loading={lsup} />
 
         {/* 2. Ce poste-ci — DESKTOP uniquement : l'application y est elle-même une
-               machine du parc, et sa propre situation prime sur celle des autres. */}
+               machine du parc, et sa propre situation prime sur celle des autres.
+               Son IDENTITÉ d'abord (nom donné à l'installation, site, réseau), puis
+               l'état de sa synchronisation. */}
+        {isDesktop && <CePosteCard />}
         {isDesktop && <DataSyncZone />}
 
         {/* 3. Le parc : postes, activité, conflits */}

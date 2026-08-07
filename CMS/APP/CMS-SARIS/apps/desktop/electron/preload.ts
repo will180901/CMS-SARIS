@@ -17,6 +17,11 @@ interface BootConfig {
   serverUrl: string
   /** Nom de poste par défaut (hostname) — pré-remplit le champ « Nom de ce poste ». */
   posteLibelleDefault: string
+  /** Identité de CETTE machine dans le parc (nom donné à la configuration, id stable,
+   *  site de rattachement). Absente côté web : un navigateur n'est pas un poste. */
+  posteLibelle: string
+  posteLocalId: string
+  posteSiteId: string | null
 }
 
 const boot = ipcRenderer.sendSync('saris:config') as BootConfig
@@ -34,6 +39,9 @@ contextBridge.exposeInMainWorld('saris', {
   platform: boot.platform,
   serverUrl: boot.serverUrl,
   posteLibelleDefault: boot.posteLibelleDefault,
+  posteLibelle: boot.posteLibelle,
+  posteLocalId: boot.posteLocalId,
+  posteSiteId: boot.posteSiteId,
   /** Enregistre l'URL du serveur puis relance l'application. */
   setApiUrl: (url: string): Promise<{ ok: boolean }> => ipcRenderer.invoke('saris:set-api-url', url),
   /**

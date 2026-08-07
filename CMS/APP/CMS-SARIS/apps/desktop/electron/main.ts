@@ -308,6 +308,12 @@ function registerIpc(): void {
       serverUrl: resolveServerUrl(),
       // Nom de poste par défaut (hostname) — pré-remplit le champ de l'écran de configuration.
       posteLibelleDefault: getPosteLibelle(),
+      // Identité de CETTE machine. Le desktop est lui-même un poste du parc : sa page
+      // Synchronisation doit répondre à « où suis-je, où en suis-je ? » avant de montrer
+      // les autres. Le web n'a pas ces valeurs — il n'est pas une machine du parc.
+      posteLibelle: getPosteLibelle(),
+      posteLocalId: getPosteLocalId(),
+      posteSiteId: readConfig().siteId ?? null,
     }
   })
   ipcMain.handle('saris:get-config', () => ({ apiUrl: resolveApiUrl(), appVersion: app.getVersion() }))

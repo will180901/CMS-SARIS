@@ -21,6 +21,12 @@ export interface SarisDesktopBridge {
   apiUrl: string
   appVersion: string
   platform: string
+  /** Identité de CETTE machine dans le parc — le desktop est lui-même un poste, et sa
+   *  page Synchronisation doit répondre à « où suis-je ? » avant de montrer les autres.
+   *  Absentes en web : un navigateur n'est pas une machine du parc. */
+  posteLibelle?: string
+  posteLocalId?: string
+  posteSiteId?: string | null
   setApiUrl: (url: string) => Promise<{ ok: boolean }>
   getConfig: () => Promise<{ apiUrl: string; appVersion: string }>
   /** Bascule « online-first » : pousse l'URL d'API active (central en ligne / local hors-ligne). */
