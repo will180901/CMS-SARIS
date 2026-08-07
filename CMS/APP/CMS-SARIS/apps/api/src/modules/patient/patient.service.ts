@@ -11,6 +11,7 @@ import {
   ConflictException,
   ForbiddenException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common'
 import { StatutPatient, Prisma, type EmployeSaris } from '@prisma/client'
 import sharp from 'sharp'
@@ -172,6 +173,8 @@ const DOSSIER_INCLUDE = {
 
 @Injectable()
 export class PatientService {
+  private readonly logger = new Logger(PatientService.name)
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly notif: NotificationService,
@@ -1551,6 +1554,56 @@ export class PatientService {
 
   // ── Mise à jour identité ──────────────────────────────────────────────────
 
+  /**
+   * Répercute une correction d'identité du DOSSIER vers le REGISTRE des employés.
+   *
+   * Pendant exact de `EmployeService.propagerVersDossier` : les deux sens doivent
+   * exister, sinon corriger au bon endroit dépend de l'endroit où l'on se trouve. Une
+   * seule personne, une seule identité — quel que soit l'écran par lequel on la corrige.
+   *
+   * Portée volontairement étroite : nom, prénom, date de naissance, sexe. Le MATRICULE
+   * n'est jamais touché — c'est la clé qui rattache les ayants droit à leur travailleur ;
+   * le changer depuis un dossier médical romprait ces liens sans que personne le voie.
+   * Les données d'emploi (fonction, section de paie) ne le sont pas non plus : elles
+   * appartiennent à l'employeur.
+   *
+   * Pas de boucle avec le sens inverse : on écrit ici directement sur `employeSaris`,
+   * sans repasser par `EmployeService.update()` — donc rien ne re-déclenche la
+   * propagation retour.
+   *
+   * Best-effort : corriger un dossier ne doit jamais échouer parce que le registre
+   * est indisponible.
+   */
+  private async propagerVersRegistre(
+    patientId: string,
+    identite: { nom?: string; prenom?: string; sexe?: string },
+    dateNaissance?: string,
+  ): Promise<void> {
+    const champs = {
+      ...(identite.nom !== undefined && { nom: identite.nom.trim() }),
+      ...(identite.prenom !== undefined && { prenom: identite.prenom.trim() }),
+      ...(identite.sexe !== undefined && { sexe: identite.sexe || null }),
+      ...(dateNaissance && { dateNaissance: new Date(dateNaissance) }),
+    }
+    if (!Object.keys(champs).length) return
+
+    try {
+      const patient = await this.prisma.patient.findUnique({
+        where: { id: patientId },
+        select: { employeId: true },
+      })
+      if (!patient?.employeId) return
+      await this.prisma.employeSaris.update({
+        where: { id: patient.employeId },
+        data: champs,
+      })
+    } catch (e) {
+      this.logger.warn(
+        `Propagation du dossier ${patientId} vers le registre ignorée : ${(e as Error).message}`,
+      )
+    }
+  }
+
   async updateIdentite(id: string, dto: UpdateIdentiteDto) {
     await this.assertPatientExists(id)
     const {
@@ -1629,6 +1682,7 @@ export class PatientService {
           adresse: identiteFields.adresse ?? null,
         },
       })
+      await this.propagerVersRegistre(id, identiteFields, dateNaissance)
     }
 
     // Mise à jour contact urgence
