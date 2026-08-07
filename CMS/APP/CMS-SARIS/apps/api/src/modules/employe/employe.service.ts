@@ -9,6 +9,7 @@ import {
   forwardRef,
   NotFoundException,
   ConflictException,
+  Logger,
 } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
 import { CI } from '../../common/prisma/search'
@@ -21,6 +22,8 @@ import type {
 
 @Injectable()
 export class EmployeService {
+  private readonly logger = new Logger(EmployeService.name)
+
   constructor(
     private readonly prisma: PrismaService,
     @Inject(forwardRef(() => PatientService))
@@ -117,7 +120,7 @@ export class EmployeService {
           `Le matricule ${dto.matricule.trim()} est déjà utilisé`,
         )
     }
-    return this.prisma.employeSaris.update({
+    const maj = await this.prisma.employeSaris.update({
       where: { id },
       data: {
         ...(dto.matricule !== undefined && { matricule: dto.matricule.trim() }),
@@ -143,6 +146,55 @@ export class EmployeService {
         ...(dto.statut !== undefined && { statut: dto.statut }),
       },
     })
+
+    await this.propagerVersDossier(id, dto)
+    return maj
+  }
+
+  /**
+   * Répercute une correction du registre sur le DOSSIER PATIENT de l'employé.
+   *
+   * L'identité du dossier est une COPIE faite à sa création (cf. createFromEmploye) :
+   * sans cette propagation, corriger « MABIALA » en « MABIKA » dans le registre laissait
+   * l'ancien nom dans le dossier, et l'infirmier cherchait au triage un patient qui,
+   * pour lui, n'existait plus sous ce nom. Deux vérités pour une seule personne.
+   *
+   * Ne touche QUE les champs venus du registre employeur, qui fait autorité sur l'état
+   * civil. Téléphone, adresse et photo restent au dossier : ils ont été saisis au centre
+   * médical, le registre RH ne les connaît pas.
+   *
+   * Best-effort : une correction de registre ne doit jamais échouer parce qu'un dossier
+   * est absent ou verrouillé.
+   */
+  private async propagerVersDossier(
+    employeId: string,
+    dto: UpdateEmployeDto,
+  ): Promise<void> {
+    const champs = {
+      ...(dto.nom !== undefined && { nom: dto.nom.trim() }),
+      ...(dto.prenom !== undefined && { prenom: dto.prenom.trim() }),
+      ...(dto.dateNaissance !== undefined && {
+        dateNaissance: dto.dateNaissance ? new Date(dto.dateNaissance) : null,
+      }),
+      ...(dto.sexe !== undefined && { sexe: dto.sexe || null }),
+    }
+    if (!Object.keys(champs).length) return
+
+    try {
+      const patients = await this.prisma.patient.findMany({
+        where: { employeId, deletedAt: null },
+        select: { id: true },
+      })
+      if (!patients.length) return
+      await this.prisma.identitePatient.updateMany({
+        where: { patientId: { in: patients.map((p) => p.id) }, deletedAt: null },
+        data: champs,
+      })
+    } catch (e) {
+      this.logger.warn(
+        `Propagation de l'employé ${employeId} vers son dossier ignorée : ${(e as Error).message}`,
+      )
+    }
   }
 
   /** Suppression — bloquée si l'employé est lié à un patient ou à un rattachement ayant droit. */

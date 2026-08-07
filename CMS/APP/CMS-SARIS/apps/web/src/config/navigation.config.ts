@@ -89,11 +89,15 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       {
         key:         'patients',
-        label:       'Patients',
+        // « Dossiers médicaux » et non « Patients » : TOUTE personne connue du centre a un
+        // dossier — employé, ayant droit, sous-traitant, riverain — y compris en bonne
+        // santé. Le dossier est créé dès l'enregistrement de la personne, bien avant
+        // qu'elle ne devienne patiente. (Libellé affiché : cf. `nav.patients` en i18n.)
+        label:       'Dossiers médicaux',
         icon:        Users,
         href:        '/patients',
         permissions: ['patient.read'],
-        description: 'Registre des dossiers patients',
+        description: 'Dossiers de toutes les personnes suivies par le centre',
       },
       {
         key:         'consultations',

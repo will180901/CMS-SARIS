@@ -62,7 +62,7 @@ export const en: Resources = {
   nav: {
     dashboard: 'Dashboard',
     rapports: 'Reports',
-    patients: 'Patients',
+    patients: 'Medical records',
     triage: 'Triage',
     consultations: 'Consultations',
     messagerie: 'Messaging',

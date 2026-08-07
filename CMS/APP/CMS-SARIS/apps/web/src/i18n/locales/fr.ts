@@ -60,7 +60,7 @@ export const fr = {
   nav: {
     dashboard: 'Tableau de bord',
     rapports: 'Rapports',
-    patients: 'Patients',
+    patients: 'Dossiers médicaux',
     triage: 'Triage',
     consultations: 'Consultations',
     messagerie: 'Messagerie',
