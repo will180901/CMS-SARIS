@@ -50,7 +50,10 @@ services:
     # (constaté en production le 07/08/2026 : tableau de bord en erreur). Idempotent et
     # inoffensif : quand tout va bien, il ne fait rien. Il a donc sa place ici,
     # contrairement au nettoyage, qui est destructeur.
-    startCommand: pnpm --filter @cms-saris/db exec prisma migrate deploy && { pnpm --filter @cms-saris/db db:sync-permissions || echo "⚠️  Synchronisation des permissions ÉCHOUÉE — le catalogue en base peut être en retard sur le code."; } && { pnpm --filter @cms-saris/db exec node prisma/assurer-admin.mjs || echo "⚠️  assurer-admin a échoué."; } && node --experimental-require-module apps/api/dist/main.js
+    #
+    # ⚠️⚠️ REMISE À ZÉRO PONCTUELLE DE NEON — À RETIRER APRÈS CE DÉPLOIEMENT ⚠️⚠️
+    # (`creer-admin` d'abord : sans compte, la remise à zéro s'interrompt.)
+    startCommand: pnpm --filter @cms-saris/db exec prisma migrate deploy && { pnpm --filter @cms-saris/db db:sync-permissions || echo "⚠️  Synchronisation des permissions ÉCHOUÉE — le catalogue en base peut être en retard sur le code."; } && { pnpm --filter @cms-saris/db exec node prisma/creer-admin.mjs && pnpm --filter @cms-saris/db exec node prisma/remise-a-zero.mjs --appliquer && pnpm --filter @cms-saris/db exec node prisma/creer-admin.mjs || echo "⚠️  REMISE À ZÉRO ÉCHOUÉE."; } && node --experimental-require-module apps/api/dist/main.js
     healthCheckPath: /health
     envVars:
       - key: NODE_VERSION
