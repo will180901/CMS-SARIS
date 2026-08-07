@@ -39,19 +39,12 @@ services:
     # --experimental-require-module : Node 20.18 refuse require() d'un module ESM
     # (@scure/base via otplib) ; le flag (dispo dès Node 20.17) l'autorise. Même fix que le desktop.
     #
-    # ⚠️⚠️ NETTOYAGE PONCTUEL DE NEON — À RETIRER APRÈS CE DÉPLOIEMENT ⚠️⚠️
-    #
-    # Vide la base de ses données de test (dossiers, visites, consultations, journaux,
-    # postes, comptes sauf `admin`) en conservant les référentiels, les rôles et le
-    # catalogue de permissions. C'est le SEUL moyen d'agir sur Neon depuis cette chaîne :
-    # l'URL de la base est un secret du service, jamais exposée au dépôt.
-    #
-    # Non bloquant (`|| echo`) : un échec du nettoyage n'empêche pas l'API de démarrer.
-    #
-    # ⚠️ TANT QUE CETTE ÉTAPE EST PRÉSENTE, elle se rejoue à CHAQUE redémarrage du
-    # service (déploiement, plantage, réveil après mise en veille). Toute donnée saisie
-    # entre-temps serait donc effacée. LA RETIRER dès le résultat vérifié.
-    startCommand: pnpm --filter @cms-saris/db exec prisma migrate deploy && { pnpm --filter @cms-saris/db db:sync-permissions || echo "⚠️  Synchronisation des permissions ÉCHOUÉE — le catalogue en base peut être en retard sur le code."; } && { pnpm --filter @cms-saris/db exec tsx prisma/nettoyer-base.ts --appliquer && pnpm --filter @cms-saris/db exec node prisma/nettoyer-residus.mjs && pnpm --filter @cms-saris/db exec node prisma/controle-base.mjs || echo "⚠️  NETTOYAGE NEON ÉCHOUÉ — voir les lignes ci-dessus."; } && node --experimental-require-module apps/api/dist/main.js
+    # Le nettoyage ponctuel de Neon a été greffé ici le 07/08/2026 puis RETIRÉ aussitôt :
+    # rattaché au démarrage, il se rejouait à chaque redémarrage du service (déploiement,
+    # réveil après mise en veille) — et effaçait donc au passage tout ce qui avait été
+    # saisi entre-temps, sessions comprises. Les scripts restent versionnés dans
+    # packages/db/prisma/ pour un usage ponctuel ; ils n'ont pas leur place au démarrage.
+    startCommand: pnpm --filter @cms-saris/db exec prisma migrate deploy && { pnpm --filter @cms-saris/db db:sync-permissions || echo "⚠️  Synchronisation des permissions ÉCHOUÉE — le catalogue en base peut être en retard sur le code."; } && node --experimental-require-module apps/api/dist/main.js
     healthCheckPath: /health
     envVars:
       - key: NODE_VERSION
