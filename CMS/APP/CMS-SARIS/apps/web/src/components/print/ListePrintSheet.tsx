@@ -93,7 +93,23 @@ export function ListePrintSheet<T>({
           /* Neutralise la mise à l'échelle de l'aperçu : un ancêtre 'transform'
              redéfinit le référentiel du position:fixed et casse la pagination. */
           .lps-scale { transform: none !important; }
-          .lps-wrap  { width: auto !important; height: auto !important; overflow: visible !important; }
+          /* TOUS les conteneurs de la fenetre d'apercu doivent cesser de borner la
+             hauteur. L'overlay est en position:fixed (donc haut d'un ecran) et le modal
+             porte max-height:92vh + overflow:hidden : sans cette liberation, tout ce qui
+             depasse le premier ecran est coupe — l'imprimante ne recevait qu'UNE feuille,
+             quel que soit le nombre de pages affichees dans l'apercu. */
+          .lps-overlay, .lps-modal, .lps-wrap {
+            position: static !important; inset: auto !important;
+            width: auto !important; height: auto !important;
+            max-width: none !important; max-height: none !important;
+            overflow: visible !important;
+            padding: 0 !important; margin: 0 !important;
+            background: none !important; box-shadow: none !important;
+            border-radius: 0 !important; display: block !important;
+          }
+          /* La barre d'outils de l'apercu (zoom, imprimer, fermer) n'a rien a faire sur
+             le papier. */
+          .lps-barre { display: none !important; }
           /* Un position:fixed sur le conteneur ferait tenir TOUTES les pages au même
              endroit : une seule sortirait. Le conteneur redevient un bloc normal, et ce
              sont les pages qui se succèdent. */
@@ -124,7 +140,7 @@ export function ListePrintSheet<T>({
   }
 
   const barre = (
-    <div style={{
+    <div className="lps-barre" style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       gap: 12, padding: '10px 14px',
       borderBottom: '1px solid var(--bordure-legere)',
@@ -279,7 +295,7 @@ export function ListePrintSheet<T>({
   )
 
   return createPortal(
-    <div style={{
+    <div className="lps-overlay" style={{
       position: 'fixed', inset: 0, zIndex: 1000,
       top: isDesktop ? DESKTOP_TITLEBAR_H : 0,
       background: 'rgba(15, 23, 32, 0.55)',
@@ -287,6 +303,7 @@ export function ListePrintSheet<T>({
       padding: 20,
     }} onClick={onClose}>
       <div
+        className="lps-modal"
         onClick={e => e.stopPropagation()}
         style={{
           background: 'var(--fond-surface)',
