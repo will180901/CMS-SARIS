@@ -19,7 +19,7 @@ import { X, Printer, FileText, ZoomIn, ZoomOut } from 'lucide-react'
 import { labelMetier } from '@/config/labels'
 import { isDesktop } from '@/lib/desktop'
 import { DESKTOP_TITLEBAR_H } from '@/components/layout/DesktopTitleBar'
-import { formatDate as intlFormatDate } from '@/lib/intl'
+import { formatDate as intlFormatDate, formatDateTime as intlFormatDateTime } from '@/lib/intl'
 import { calcAge } from '@/lib/age'
 
 const LOGO_URL = `${import.meta.env.BASE_URL}logo_cms_saris.png`
@@ -38,6 +38,15 @@ const SHEET_H = 297 * 3.78
 // zone de travail de la consultation) dans lequel l'aperçu inline se PORTALISE — pour
 // échapper au `backdrop-filter` des Cards (qui en ferait un bloc conteneur trop petit).
 export const PreviewHostContext = createContext<HTMLElement | null>(null)
+
+/** « 07 août 2026 à 14:32 » — moment exact de l'édition. Un document médical peut être
+ *  réimprimé : sans l'heure, deux tirages du même jour sont indiscernables. */
+function formatDateHeure(d: Date) {
+  return intlFormatDateTime(d.toISOString(), {
+    day: '2-digit', month: 'long', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  })
+}
 
 function formatDate(iso: string) {
   return intlFormatDate(iso, { day: '2-digit', month: 'long', year: 'numeric' })
@@ -218,7 +227,7 @@ export function MedicalPrintSheet({
           ['Nom & prénom', soignant?.prenom || soignant?.nom ? `${soignant?.prenom ?? ''} ${(soignant?.nom ?? '').toUpperCase()}`.trim() : '—'],
           ['Fonction', soignant?.role ? labelMetier(soignant.role) : '—'],
           ['Matricule', soignant?.matricule ?? '—', true],
-          ["Date d'émission", formatDate(now.toISOString())],
+          ["Date d'émission", formatDateHeure(now)],
         ]} />
       </div>
 
@@ -233,7 +242,10 @@ export function MedicalPrintSheet({
 
       {/* PIED DE PAGE */}
       <div style={{ borderTop: `2px solid ${ACCENT}`, padding: '8px 40px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
-        <p style={{ margin: 0, fontSize: 8, color: MUTED }}>CMS SARIS · Document confidentiel à usage médical — généré le {formatDate(now.toISOString())}</p>
+        {/* Plus de « généré le » ici : la même date figure déjà, nommée, en « Date
+            d'émission » dans le bloc du soignant. Deux fois la même information sur un
+            document médical déjà dense n'apportait rien. */}
+        <p style={{ margin: 0, fontSize: 8, color: MUTED }}>CMS SARIS · Document confidentiel à usage médical</p>
         <p style={{ margin: 0, fontSize: 8, color: MUTED, fontFamily: 'monospace' }}>{patient.numeroPatient} · Réf. {numero}</p>
       </div>
     </div>
