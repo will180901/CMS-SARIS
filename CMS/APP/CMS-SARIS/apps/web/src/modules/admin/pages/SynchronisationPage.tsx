@@ -36,6 +36,7 @@ import { formatDuree } from '@/lib/duree'
 import { labelModule, labelStatut, labelAction, labelRole } from '@/config/labels'
 import { useConnectivityStore } from '@/stores/connectivity.store'
 import { isDesktop } from '@/lib/desktop'
+import { BandeauEtatSync, SEUIL_MUET_MS, type EtatSync } from '../components/BandeauEtatSync'
 import { useSyncStore } from '@/stores/sync.store'
 import { syncCycle, listMutations, purgeMutations, retryRejected } from '@/lib/sync'
 import {
@@ -109,8 +110,6 @@ function mutationStatutLabel(t: TFn, statut: string): string {
 //  PAGE
 // ════════════════════════════════════════════════════════════════════════════════
 
-type SyncTab = 'supervision' | 'terrain' | 'backups' | 'volumetry'
-
 export function SynchronisationPage() {
   const { t } = useTranslation()
   const { has } = usePermissions()
@@ -118,17 +117,29 @@ export function SynchronisationPage() {
 
   const { data: status, isLoading: ls } = useSyncStatus()
   const { data: sauvegardes = [], isLoading: lh } = useSauvegardes()
+  const { data: sup, isLoading: lsup } = useSyncSupervision()
 
   const totalEnregistrements = status?.modules.reduce((a, m) => a + m.count, 0) ?? 0
 
-  const [tab, setTab] = useState<SyncTab>('supervision')
-
-  const tabs = [
-    { key: 'supervision', label: t('admin.tabSupervision'), icon: <Radio size={14} /> },
-    { key: 'terrain',     label: t('admin.tabTerrain'),     icon: <CloudUpload size={14} /> },
-    { key: 'backups',     label: t('admin.tabBackups'),     icon: <Save size={14} />, badge: sauvegardes.length || undefined },
-    { key: 'volumetry',   label: t('admin.tabVolumetry'),   icon: <HardDrive size={14} /> },
-  ]
+  // État du parc, calculé une fois ici et passé au bandeau : la page entière raisonne
+  // sur les mêmes chiffres que sa phrase d'accroche.
+  //
+  // `maintenant` est figé au montage plutôt que relu à chaque rendu : lire l'horloge
+  // pendant le rendu le rend impur (react-hooks/purity). Les données se rafraîchissent
+  // de toute façon par le flux temps réel, qui remonte un nouvel objet — le calcul se
+  // refait alors avec une horloge fraîche.
+  const [maintenant] = useState(() => Date.now())
+  const postes = useMemo(() => sup?.postes ?? [], [sup?.postes])
+  const conflits = useMemo(() => sup?.conflits ?? [], [sup?.conflits])
+  const etat = useMemo<EtatSync>(() => ({
+    total:    postes.length,
+    enLigne:  postes.filter(p => p.enLigne).length,
+    // Muet ≠ hors ligne : un poste éteint la nuit est normal. C'est le silence
+    // PROLONGÉ d'une machine qui devrait travailler qui mérite d'être signalé.
+    muets:    postes.filter(p => !p.enLigne && p.derniereSyncAt
+                && maintenant - new Date(p.derniereSyncAt).getTime() > SEUIL_MUET_MS).length,
+    conflits: conflits.length,
+  }), [postes, conflits, maintenant])
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'auto' }}>
@@ -139,26 +150,33 @@ export function SynchronisationPage() {
         tone="neutral"
       />
 
-      {/* Onglets de regroupement (scroll horizontal sur petit écran) */}
-      <div style={{ padding: 'var(--espace-4) var(--espace-6) 0', overflowX: 'auto', scrollbarWidth: 'none' }}>
-        <SegmentedTabs value={tab} onChange={(k) => setTab(k as SyncTab)} tabs={tabs} aria-label={t('admin.syncPageTitle')} />
-      </div>
-
+      {/* Écran UNIQUE, ordonné par urgence décroissante — plus d'onglets de premier
+          niveau. Superviser, c'est répondre à « est-ce que tout va bien ? » : la réponse
+          doit être lisible avant le premier clic, pas cachée derrière deux niveaux de
+          navigation. Sauvegardes et volumétrie sont partis vers « Base de données » :
+          ce sont des sujets de stockage, pas de synchronisation. */}
       <div style={{ padding: 'var(--espace-4) var(--espace-6) var(--espace-6)', display: 'flex', flexDirection: 'column', gap: 'var(--espace-4)' }}>
-        {tab === 'supervision' && (
-          <>
-            <SupervisionZone />
-            <DataSyncZone />
-          </>
-        )}
-        {tab === 'terrain' && <SyncTerrainZone />}
-        {tab === 'backups' && (
-          <SauvegardesZone
-            sauvegardes={sauvegardes} loading={lh} canRestore={canRestore}
-            planification={status?.planification}
-          />
-        )}
-        {tab === 'volumetry' && <VolumetrieZone status={status} loading={ls} total={totalEnregistrements} />}
+
+        {/* 1. L'état, en une phrase */}
+        <BandeauEtatSync etat={etat} loading={lsup} />
+
+        {/* 2. Ce poste-ci — DESKTOP uniquement : l'application y est elle-même une
+               machine du parc, et sa propre situation prime sur celle des autres. */}
+        {isDesktop && <DataSyncZone />}
+
+        {/* 3. Le parc : postes, activité, conflits */}
+        <SupervisionZone />
+
+        {/* 4. Le terrain hors-ligne (file d'attente locale) */}
+        {isDesktop && <SyncTerrainZone />}
+
+        {/* 5. Base de données — conservé ici tant que l'écran dédié n'existe pas, mais
+               replié en bas : on ne restaure pas une sauvegarde par accident. */}
+        <SauvegardesZone
+          sauvegardes={sauvegardes} loading={lh} canRestore={canRestore}
+          planification={status?.planification}
+        />
+        <VolumetrieZone status={status} loading={ls} total={totalEnregistrements} />
       </div>
     </div>
   )
