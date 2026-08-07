@@ -44,7 +44,13 @@ services:
     # réveil après mise en veille) — et effaçait donc au passage tout ce qui avait été
     # saisi entre-temps, sessions comprises. Les scripts restent versionnés dans
     # packages/db/prisma/ pour un usage ponctuel ; ils n'ont pas leur place au démarrage.
-    startCommand: pnpm --filter @cms-saris/db exec prisma migrate deploy && { pnpm --filter @cms-saris/db db:sync-permissions || echo "⚠️  Synchronisation des permissions ÉCHOUÉE — le catalogue en base peut être en retard sur le code."; } && node --experimental-require-module apps/api/dist/main.js
+    #
+    # `assurer-admin` : garde-fou permanent. Un compte sans rôle se connecte mais n'a
+    # AUCUN droit — l'application s'effondre alors sans que la cause soit visible
+    # (constaté en production le 07/08/2026 : tableau de bord en erreur). Idempotent et
+    # inoffensif : quand tout va bien, il ne fait rien. Il a donc sa place ici,
+    # contrairement au nettoyage, qui est destructeur.
+    startCommand: pnpm --filter @cms-saris/db exec prisma migrate deploy && { pnpm --filter @cms-saris/db db:sync-permissions || echo "⚠️  Synchronisation des permissions ÉCHOUÉE — le catalogue en base peut être en retard sur le code."; } && { pnpm --filter @cms-saris/db exec node prisma/assurer-admin.mjs || echo "⚠️  assurer-admin a échoué."; } && node --experimental-require-module apps/api/dist/main.js
     healthCheckPath: /health
     envVars:
       - key: NODE_VERSION
