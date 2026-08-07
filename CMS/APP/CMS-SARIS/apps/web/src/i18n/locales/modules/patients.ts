@@ -5,7 +5,7 @@
 export const patients = {
   fr: {
     // ── Page principale (liste) ─────────────────────────────────────
-    pageTitle: 'Dossiers patients',
+    pageTitle: 'Dossiers médicaux',
     patientCountSingular: '{{count}} patient',
     patientCountPlural: '{{count}} patients',
     filterActifs: 'Actifs',
@@ -544,7 +544,7 @@ export const patients = {
   },
   en: {
     // ── Page principale (liste) ─────────────────────────────────────
-    pageTitle: 'Patient records',
+    pageTitle: 'Medical records',
     patientCountSingular: '{{count}} patient',
     patientCountPlural: '{{count}} patients',
     filterActifs: 'Active',
