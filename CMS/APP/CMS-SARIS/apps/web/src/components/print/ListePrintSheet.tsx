@@ -22,7 +22,7 @@ import { createPortal } from 'react-dom'
 import { X, Printer, ZoomIn, ZoomOut } from 'lucide-react'
 import { isDesktop } from '@/lib/desktop'
 import { DESKTOP_TITLEBAR_H } from '@/components/layout/DesktopTitleBar'
-import { formatDate as intlFormatDate } from '@/lib/intl'
+import { formatDateTime as intlFormatDateTime } from '@/lib/intl'
 
 const LOGO_URL = `${import.meta.env.BASE_URL}logo_cms_saris.png`
 
@@ -38,8 +38,12 @@ const LINE   = '#e4e8ec'
 const SHEET_W = 297 * 3.78
 const SHEET_H = 210 * 3.78
 
-function formatDate(iso: string) {
-  return intlFormatDate(iso, { day: '2-digit', month: 'long', year: 'numeric' })
+/** « 07 août 2026 à 14:32 » — date d'édition de l'extraction, mentionnée une seule fois. */
+function formatDateHeure(d: Date) {
+  return intlFormatDateTime(d.toISOString(), {
+    day: '2-digit', month: 'long', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  })
 }
 
 export interface ColonneExport<T> {
@@ -156,7 +160,11 @@ export function ListePrintSheet<T>({
         <div style={{ textAlign: 'right', flexShrink: 0 }}>
           <p style={{ margin: 0, fontSize: 16, fontWeight: 800, color: ACCENT, letterSpacing: '0.04em', textTransform: 'uppercase' }}>{titre}</p>
           {sousTitre && <p style={{ margin: '5px 0 0', fontSize: 9.5, color: MUTED }}>{sousTitre}</p>}
-          <p style={{ margin: '2px 0 0', fontSize: 9.5, color: MUTED }}>{formatDate(now.toISOString())}</p>
+          {/* Date ET heure : une liste est une photo à un instant donné. Deux extractions
+              du même jour ne se distingueraient pas sans l'heure — or c'est justement ce
+              qu'on veut savoir en comparant deux tirages. Mentionnée ICI seulement : le
+              pied de page répétait la même date, sans rien apporter. */}
+          <p style={{ margin: '2px 0 0', fontSize: 9.5, color: MUTED }}>{formatDateHeure(now)}</p>
         </div>
       </div>
       <div style={{ height: 2, background: ACCENT, margin: '0 34px' }} />
@@ -206,7 +214,7 @@ export function ListePrintSheet<T>({
       {/* PIED DE PAGE */}
       <div style={{ borderTop: `2px solid ${ACCENT}`, padding: '8px 34px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
         <p style={{ margin: 0, fontSize: 8, color: MUTED }}>
-          CMS SARIS · Document confidentiel — généré le {formatDate(now.toISOString())}
+          CMS SARIS · Document confidentiel
         </p>
         <p style={{ margin: 0, fontSize: 8, color: MUTED, fontFamily: 'monospace' }}>
           {lignes.length} ligne{lignes.length > 1 ? 's' : ''}
