@@ -94,14 +94,26 @@ export function ListePrintSheet<T>({
              redéfinit le référentiel du position:fixed et casse la pagination. */
           .lps-scale { transform: none !important; }
           .lps-wrap  { width: auto !important; height: auto !important; overflow: visible !important; }
+          /* Un position:fixed sur le conteneur ferait tenir TOUTES les pages au même
+             endroit : une seule sortirait. Le conteneur redevient un bloc normal, et ce
+             sont les pages qui se succèdent. */
           #${rootId} {
-            position: fixed !important; top: 0 !important; left: 0 !important;
-            width: 297mm !important; min-height: 210mm !important;
+            position: absolute !important; top: 0 !important; left: 0 !important;
             margin: 0 !important; padding: 0 !important; background: white !important; box-shadow: none !important;
           }
-          /* L'en-tête se répète sur chaque page, et aucune ligne n'est coupée en deux. */
-          #${rootId} thead { display: table-header-group !important; }
-          #${rootId} tr    { break-inside: avoid !important; page-break-inside: avoid !important; }
+          /* Une feuille = une page papier, exactement. Le break-after pousse la suivante ;
+             la dernière n'en met pas, sinon l'imprimante sort une page blanche finale. */
+          #${rootId} .lps-page {
+            width: 297mm !important; height: 210mm !important;
+            margin: 0 !important; box-shadow: none !important;
+            break-after: page; page-break-after: always;
+            break-inside: avoid; page-break-inside: avoid;
+            overflow: hidden !important;
+          }
+          #${rootId} .lps-page:last-child { break-after: auto; page-break-after: auto; }
+          /* Le découpage est fait en amont (une page = une tranche de lignes) : le
+             navigateur n'a plus à paginer le tableau, mais on garde le garde-fou. */
+          #${rootId} tr { break-inside: avoid !important; page-break-inside: avoid !important; }
           @page { size: A4 landscape; margin: 0; }
         }`
       document.head.appendChild(style)
@@ -142,16 +154,31 @@ export function ListePrintSheet<T>({
     </div>
   )
 
-  const feuille = (
-    <div id={rootId} style={{
-      width: SHEET_W, minHeight: SHEET_H, background: '#fff',
-      fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
-      fontSize: 10, color: INK, lineHeight: 1.45,
-      display: 'flex', flexDirection: 'column',
-      printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact',
-    } as React.CSSProperties}>
+  // ── Pagination A4 réelle ─────────────────────────────────────────────────
+  // Une seule <div> qui s'allonge donnait un aperçu trompeur : à l'écran on voyait une
+  // feuille interminable, alors que l'imprimante, elle, découpait. On découpe donc nous-
+  // mêmes, et l'aperçu montre exactement ce qui sortira — page par page.
+  //
+  // Le nombre de lignes tenables est calculé à partir des hauteurs réelles du gabarit
+  // plutôt que fixé au doigt mouillé : si l'en-tête ou le pied changent, la pagination
+  // suit sans qu'on ait à y repenser.
+  const H_ENTETE  = 104   // logo + établissement + titre + filet teal
+  const H_PIED    = 40    // filet + mentions
+  const H_PADDING = 32    // 14 en haut + 18 en bas de la zone tableau
+  const H_THEAD   = 25    // ligne d'en-tête du tableau, répétée sur chaque page
+  const H_LIGNE   = 27    // 6+6 de padding + ~9.5px de texte en interligne 1.45
+  const lignesParPage = Math.max(
+    5,
+    Math.floor((SHEET_H - H_ENTETE - H_PIED - H_PADDING - H_THEAD) / H_LIGNE),
+  )
 
-      {/* EN-TÊTE — même composition que les documents médicaux */}
+  const pages: T[][] = lignes.length === 0
+    ? [[]]  // liste vide : une page quand même, avec le message « aucune donnée »
+    : Array.from({ length: Math.ceil(lignes.length / lignesParPage) }, (_, i) =>
+        lignes.slice(i * lignesParPage, (i + 1) * lignesParPage))
+
+  const enTete = (
+    <>
       <div style={{ padding: '26px 34px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 24 }}>
         <div style={{ minWidth: 0 }}>
           <img src={LOGO_URL} alt="CMS SARIS" style={{ height: 34, width: 'auto', display: 'block' }} />
@@ -161,65 +188,93 @@ export function ListePrintSheet<T>({
           <p style={{ margin: 0, fontSize: 16, fontWeight: 800, color: ACCENT, letterSpacing: '0.04em', textTransform: 'uppercase' }}>{titre}</p>
           {sousTitre && <p style={{ margin: '5px 0 0', fontSize: 9.5, color: MUTED }}>{sousTitre}</p>}
           {/* Date ET heure : une liste est une photo à un instant donné. Deux extractions
-              du même jour ne se distingueraient pas sans l'heure — or c'est justement ce
-              qu'on veut savoir en comparant deux tirages. Mentionnée ICI seulement : le
-              pied de page répétait la même date, sans rien apporter. */}
+              du même jour ne se distingueraient pas sans l'heure. */}
           <p style={{ margin: '2px 0 0', fontSize: 9.5, color: MUTED }}>{formatDateHeure(now)}</p>
         </div>
       </div>
       <div style={{ height: 2, background: ACCENT, margin: '0 34px' }} />
+    </>
+  )
 
-      {/* TABLEAU */}
-      <div style={{ padding: '14px 34px 18px', flex: 1 }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr>
-              {colonnes.map((c, i) => (
-                <th key={i} style={{
-                  textAlign: c.align ?? 'left',
-                  padding: '7px 8px',
-                  background: SOFT,
-                  borderBottom: `1px solid ${LINE}`,
-                  fontSize: 8, fontWeight: 700, color: MUTED,
-                  textTransform: 'uppercase', letterSpacing: '0.07em',
-                  whiteSpace: 'nowrap',
-                }}>{c.libelle}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {lignes.length === 0 ? (
-              <tr>
-                <td colSpan={colonnes.length} style={{ padding: '18px 8px', textAlign: 'center', color: MUTED, fontStyle: 'italic' }}>
-                  Aucune donnée à extraire
-                </td>
-              </tr>
-            ) : lignes.map((l, i) => (
-              <tr key={cleDe(l, i)} style={{ background: i % 2 === 1 ? '#fafbfc' : '#fff' }}>
-                {colonnes.map((c, j) => (
-                  <td key={j} style={{
-                    textAlign: c.align ?? 'left',
-                    padding: '6px 8px',
-                    borderBottom: `1px solid ${LINE}`,
-                    fontSize: 9.5, color: INK,
-                    verticalAlign: 'top',
-                  }}>{c.valeur(l)}</td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+  const feuille = (
+    <div id={rootId}>
+      {pages.map((lignesPage, iPage) => (
+        <div
+          key={iPage}
+          className="lps-page"
+          style={{
+            width: SHEET_W, height: SHEET_H, background: '#fff',
+            fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
+            fontSize: 10, color: INK, lineHeight: 1.45,
+            display: 'flex', flexDirection: 'column',
+            // Marge entre les feuilles À L'ÉCRAN seulement : neutralisée à l'impression
+            // (cf. la règle `.lps-page` du <style> print), sinon elle décalerait le contenu.
+            marginBottom: iPage < pages.length - 1 ? 18 : 0,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.10)',
+            printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact',
+            overflow: 'hidden',
+          } as React.CSSProperties}
+        >
+          {/* En-tête RÉPÉTÉ sur chaque page : une page 2 anonyme, sans titre ni date,
+              n'est plus rattachable au document dont elle est issue. */}
+          {enTete}
 
-      {/* PIED DE PAGE */}
-      <div style={{ borderTop: `2px solid ${ACCENT}`, padding: '8px 34px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
-        <p style={{ margin: 0, fontSize: 8, color: MUTED }}>
-          CMS SARIS · Document confidentiel
-        </p>
-        <p style={{ margin: 0, fontSize: 8, color: MUTED, fontFamily: 'monospace' }}>
-          {lignes.length} ligne{lignes.length > 1 ? 's' : ''}
-        </p>
-      </div>
+          <div style={{ padding: '14px 34px 18px', flex: 1 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  {colonnes.map((c, i) => (
+                    <th key={i} style={{
+                      textAlign: c.align ?? 'left',
+                      padding: '7px 8px',
+                      background: SOFT,
+                      borderBottom: `1px solid ${LINE}`,
+                      fontSize: 8, fontWeight: 700, color: MUTED,
+                      textTransform: 'uppercase', letterSpacing: '0.07em',
+                      whiteSpace: 'nowrap',
+                    }}>{c.libelle}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {lignesPage.length === 0 ? (
+                  <tr>
+                    <td colSpan={colonnes.length} style={{ padding: '18px 8px', textAlign: 'center', color: MUTED, fontStyle: 'italic' }}>
+                      Aucune donnée à extraire
+                    </td>
+                  </tr>
+                ) : lignesPage.map((l, i) => {
+                  // Index ABSOLU : sans lui, l'alternance des fonds se réinitialiserait à
+                  // chaque page et deux lignes voisines auraient la même couleur au saut.
+                  const abs = iPage * lignesParPage + i
+                  return (
+                    <tr key={cleDe(l, abs)} style={{ background: abs % 2 === 1 ? '#fafbfc' : '#fff' }}>
+                      {colonnes.map((c, j) => (
+                        <td key={j} style={{
+                          textAlign: c.align ?? 'left',
+                          padding: '6px 8px',
+                          borderBottom: `1px solid ${LINE}`,
+                          fontSize: 9.5, color: INK,
+                          verticalAlign: 'top',
+                        }}>{c.valeur(l)}</td>
+                      ))}
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div style={{ borderTop: `2px solid ${ACCENT}`, padding: '8px 34px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
+            <p style={{ margin: 0, fontSize: 8, color: MUTED }}>
+              CMS SARIS · Document confidentiel
+            </p>
+            <p style={{ margin: 0, fontSize: 8, color: MUTED, fontFamily: 'monospace' }}>
+              {lignes.length} ligne{lignes.length > 1 ? 's' : ''} · page {iPage + 1}/{pages.length}
+            </p>
+          </div>
+        </div>
+      ))}
     </div>
   )
 
