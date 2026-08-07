@@ -51,9 +51,16 @@ services:
     # inoffensif : quand tout va bien, il ne fait rien. Il a donc sa place ici,
     # contrairement au nettoyage, qui est destructeur.
     #
-    # ⚠️⚠️ REMISE À ZÉRO PONCTUELLE DE NEON — À RETIRER APRÈS CE DÉPLOIEMENT ⚠️⚠️
-    # (`creer-admin` d'abord : sans compte, la remise à zéro s'interrompt.)
-    startCommand: pnpm --filter @cms-saris/db exec prisma migrate deploy && { pnpm --filter @cms-saris/db db:sync-permissions || echo "⚠️  Synchronisation des permissions ÉCHOUÉE — le catalogue en base peut être en retard sur le code."; } && { pnpm --filter @cms-saris/db exec node prisma/creer-admin.mjs && pnpm --filter @cms-saris/db exec node prisma/remise-a-zero.mjs --appliquer && pnpm --filter @cms-saris/db exec node prisma/creer-admin.mjs || echo "⚠️  REMISE À ZÉRO ÉCHOUÉE."; } && node --experimental-require-module apps/api/dist/main.js
+    # `creer-admin` : garde-fou PERMANENT. Une base sans compte, ou dont le compte a
+    # perdu son rôle, ne peut plus être débloquée depuis l'interface — il faut être
+    # connecté pour créer un compte ou attribuer un rôle. Idempotent et inoffensif :
+    # quand tout va bien, il ne fait rien. Il a donc sa place ici.
+    #
+    # La remise à zéro de Neon (07/08/2026) a été greffée ici puis RETIRÉE aussitôt :
+    # une opération destructrice n'a rien à faire dans une commande de DÉMARRAGE, qui se
+    # rejoue à chaque réveil du service. Le script reste disponible dans
+    # packages/db/prisma/remise-a-zero.mjs pour un usage ponctuel et volontaire.
+    startCommand: pnpm --filter @cms-saris/db exec prisma migrate deploy && { pnpm --filter @cms-saris/db db:sync-permissions || echo "⚠️  Synchronisation des permissions ÉCHOUÉE — le catalogue en base peut être en retard sur le code."; } && { pnpm --filter @cms-saris/db exec node prisma/creer-admin.mjs || echo "⚠️  creer-admin a échoué."; } && node --experimental-require-module apps/api/dist/main.js
     healthCheckPath: /health
     envVars:
       - key: NODE_VERSION
