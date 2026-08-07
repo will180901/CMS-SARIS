@@ -58,7 +58,9 @@ export function DossierPrintModal({ dossier, onClose }: { dossier: PatientDossie
       titre={t('patients.printTitle')}
       apercuLabel={t('patients.printPreviewLabel')}
       numero={dossier.numeroPatient}
-      date={new Date().toISOString()}
+      // `date` volontairement omis : un dossier n'est pas « établi » à une date, il est
+      // édité à l'instant où on l'imprime — sa date d'établissement serait exactement sa
+      // date d'émission. Seule cette dernière a un sens ici.
       patient={{
         identite: dossier.identite,
         numeroPatient: dossier.numeroPatient,

@@ -67,8 +67,12 @@ interface Props {
   numero:        string
   /** ISO — date de CRÉATION du document (`createdAt`). Distincte de la date d'émission,
    *  qui est le moment de l'impression : un bon établi le 12 juillet peut être réimprimé
-   *  le 7 août. Les deux figurent donc, chacune nommée. */
-  date:          string
+   *  le 7 août. Les deux figurent donc, chacune nommée.
+   *
+   *  OMETTRE pour un document qui n'a pas d'existence propre — un dossier patient est
+   *  une photo prise à l'instant de l'impression, sa « date d'établissement » serait
+   *  exactement sa date d'émission. Deux fois la même date, encore. */
+  date?:         string
   patient:       PrintPatient
   soignant?:     PrintSoignant | null
   /** Titre du bloc identité + libellé de la 1ʳᵉ signature (par défaut : un acte
@@ -214,8 +218,10 @@ export function MedicalPrintSheet({
           <p style={{ margin: '6px 0 0', fontSize: 9.5, color: MUTED }}>N° <span style={{ fontWeight: 700, color: INK, fontFamily: 'monospace' }}>{numero}</span></p>
           {/* Étiquetée : sans « Établi le », cette date restait muette — et comme elle
               diffère de la date d'émission, on ne pouvait pas deviner laquelle est
-              laquelle. */}
-          <p style={{ margin: '2px 0 0', fontSize: 9.5, color: MUTED }}>Établi le {formatDate(date)}</p>
+              laquelle. Absente quand le document n'a pas de date propre. */}
+          {date && (
+            <p style={{ margin: '2px 0 0', fontSize: 9.5, color: MUTED }}>Établi le {formatDate(date)}</p>
+          )}
         </div>
       </div>
       <div style={{ height: 2, background: ACCENT, margin: '0 40px' }} />

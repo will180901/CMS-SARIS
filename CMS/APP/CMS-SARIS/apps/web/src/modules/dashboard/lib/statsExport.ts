@@ -6,6 +6,7 @@
 import writeXlsxFile from 'write-excel-file/browser'
 import type { Sheet } from 'write-excel-file/browser'
 import type { StatistiquesActivite } from '../api/dashboard.api'
+import { formatDateTime } from '@/lib/intl'
 
 const ACCENT = '#2f6f86'   // teal profond SARIS
 const SOFT   = '#eef4f7'   // teal très clair (lignes alternées)
@@ -91,6 +92,13 @@ function statsPrintBody(stats: StatistiquesActivite) {
   return `
     <h1>Statistiques d'activité</h1>
     <p class="ps-sub">Période : ${escapeHtml(stats.periode.from)} au ${escapeHtml(stats.periode.to)} · CMS SARIS</p>
+    <!-- Date d'édition : les deux autres modèles d'impression la portent, celui-ci n'en
+         avait aucune. Une feuille de statistiques qui circule sans dire quand elle a été
+         sortie ne se compare à rien — et la PÉRIODE analysée ne dit pas cela. Avec
+         l'heure, pour la même raison qu'ailleurs : deux tirages du même jour. -->
+    <p class="ps-sub">Édité le ${escapeHtml(formatDateTime(new Date().toISOString(), {
+      day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
+    }))}</p>
     <div class="ps-kpis">
       <div class="ps-kpi"><div class="v">${stats.totalConsultations}</div><div class="l">Consultations</div></div>
       <div class="ps-kpi"><div class="v">${stats.repos.totalJours}</div><div class="l">Jours de repos prescrits</div></div>
