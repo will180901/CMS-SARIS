@@ -272,11 +272,11 @@ export function ConsultationDetail({ consultationId, initialDocView }: Props) {
         .cons-resize:hover > div     { background: var(--ap-400) !important; }
       `}</style>
 
+      {/* `consultationId`/`canUpdate` retirés : ils ne servaient qu'au sélecteur de type,
+          désormais à l'étape Examen. Le rail est redevenu purement consultatif. */}
       <PatientContextRail
         consultation={consultation}
-        consultationId={consultationId}
         isActive={isActive}
-        canUpdate={canUpdate}
         width={sidebarWidth}
       />
 
@@ -368,6 +368,30 @@ export function ConsultationDetail({ consultationId, initialDocView }: Props) {
         {/* ① Examen & diagnostic */}
         {step === 1 && (
           <>
+            {/* Type de consultation — EN TÊTE de l'étape Examen : c'est le premier geste
+                du médecin, qualifier l'acte qu'il commence. Il conditionne la clôture
+                (cf. consultation.service : « type requis avant de clôturer ») — le placer
+                ici évite de découvrir un champ obligatoire au moment de fermer. */}
+            <div style={{
+              padding: '10px 12px', borderRadius: 8,
+              background: 'var(--fond-surface)', border: '1px solid var(--bordure-legere)',
+            }}>
+              <p style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--texte-tertiaire)', margin: '0 0 6px' }}>
+                {t('consultation.railTypeConsultation', { defaultValue: 'Type de consultation' })}
+              </p>
+              <TypeConsultationSelect
+                consultationId={consultationId}
+                currentTypeId={consultation.typeConsultation?.id ?? null}
+                readonly={!isActive || !canUpdate}
+                categorieCode={patient.categoriePatient.code}
+              />
+              {!consultation.typeConsultation && isActive && canUpdate && (
+                <p style={{ fontSize: '11px', color: 'var(--avert-texte)', margin: '6px 0 0' }}>
+                  {t('consultation.typeRequisCloture', { defaultValue: 'Requis pour clôturer la consultation.' })}
+                </p>
+              )}
+            </div>
+
             {visite.notesAccueil && (
               <div style={{
                 padding: '10px 12px', borderRadius: 8,
@@ -1209,11 +1233,9 @@ function RailVital({ label, value, warn }: { label: string; value: string; warn?
   )
 }
 
-function PatientContextRail({ consultation, consultationId, isActive, canUpdate, width }: {
+function PatientContextRail({ consultation, isActive, width }: {
   consultation: ReturnType<typeof useConsultation>['data'] & {}
-  consultationId: string
   isActive: boolean
-  canUpdate: boolean
   width: number
 }) {
   const { t } = useTranslation()
@@ -1279,10 +1301,16 @@ function PatientContextRail({ consultation, consultationId, isActive, canUpdate,
         </div>
       )}
 
-      {/* Motif + type */}
-      <RailSection title={t('consultation.railMotifType')}>
-        <p style={{ margin: '0 0 8px', fontSize: '13px', color: 'var(--texte-primaire)', fontWeight: 500 }}>{visite.motifPrincipal.libelle}</p>
-        <TypeConsultationSelect consultationId={consultationId} currentTypeId={consultation.typeConsultation?.id ?? null} readonly={!isActive || !canUpdate} categorieCode={patient.categoriePatient.code} />
+      {/* Motif de venue — information d'ACCUEIL, pas une décision : le rail se lit, il ne
+          se remplit pas. Le type de consultation, lui, a rejoint l'étape Examen (zone de
+          droite), là où le médecin qualifie l'acte qu'il réalise. Les garder ensemble dans
+          un bloc « Motif & type » collait une donnée figée à un champ à saisir, et les
+          deux affichaient souvent le même libellé — d'où la confusion. */}
+      <RailSection title={t('consultation.railMotif', { defaultValue: 'Motif de venue' })}>
+        <p style={{ margin: 0, fontSize: '13px', color: 'var(--texte-primaire)', fontWeight: 500 }}>{visite.motifPrincipal.libelle}</p>
+        <p style={{ margin: '4px 0 0', fontSize: '11px', color: 'var(--texte-tertiaire)' }}>
+          {t('consultation.motifDepuisTriage', { defaultValue: 'Saisi au triage' })}
+        </p>
       </RailSection>
 
       {/* Notes d'accueil */}
