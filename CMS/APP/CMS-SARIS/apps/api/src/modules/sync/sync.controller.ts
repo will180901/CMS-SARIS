@@ -124,9 +124,9 @@ export class SyncController {
   /** Supervision (serveur central) : postes, activité récente, conflits — scope par site. */
   @Get('supervision')
   @RequirePermissions('synchronisation.read')
-  getSupervision(@Req() req: AuthedRequest) {
-    const { siteId } = requireUser(req)
-    return this.supervision.getSupervision(siteId)
+  getSupervision() {
+    // Plus de siteId : la supervision couvre tout le parc (cf. service).
+    return this.supervision.getSupervision()
   }
 
   /** Détail d'un poste (modale) : identité + fenêtre de sa dernière session connectée. */

@@ -280,20 +280,29 @@ export class SyncSupervisionService {
    *  `take` généreux (pas de vraie pagination serveur) : suffisant pour que la pagination
    *  CLIENT de l'écran (Activité/Conflits) reste utile à mesure que le parc de postes grossit,
    *  sans pour autant renvoyer un historique illimité. */
-  async getSupervision(siteId: string) {
+  /**
+   * Supervision du PARC — tous sites confondus.
+   *
+   * Le filtre par site a ete retire : superviser un parc, c'est voir toutes les machines,
+   * pas seulement celles du site ou l'on se trouve. Un administrateur connecte a Moutela
+   * ne voyait pas qu'un poste de Nkayi etait muet depuis deux jours — precisement
+   * l'information que cette page existe pour donner. La visibilite reste gouvernee par la
+   * permission `synchronisation.read`, comme partout ailleurs depuis le passage au
+   * multi-site sans cloisonnement.
+   */
+  async getSupervision() {
     const [postes, journaux, conflits] = await Promise.all([
       this.prisma.posteLocal.findMany({
-        where: { siteId, masque: false },
+        where: { masque: false },
         orderBy: { derniereSyncAt: 'desc' },
       }),
       this.prisma.journalSynchronisation.findMany({
-        where: { posteLocal: { siteId } },
         orderBy: { startedAt: 'desc' },
         take: 200,
-        include: { posteLocal: { select: { libelle: true } } },
+        include: { posteLocal: { select: { libelle: true, siteId: true } } },
       }),
       this.prisma.conflitSynchronisation.findMany({
-        where: { statut: 'EN_ATTENTE', journal: { posteLocal: { siteId } } },
+        where: { statut: 'EN_ATTENTE' },
         orderBy: { createdAt: 'desc' },
         take: 200,
       }),
