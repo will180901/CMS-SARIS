@@ -23,7 +23,7 @@
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
-  Users, Plus, Shield, KeyRound, UserCheck, UserX,
+  Users, Plus, Shield, KeyRound, UserCheck, UserX, LogIn,
   Stethoscope, Loader2, ChevronRight, Trash2, AlertTriangle, Pencil, Download,
 } from 'lucide-react'
 import { PageHeader, Toolbar, Card, Button, StatCard,
@@ -775,10 +775,14 @@ function PersonneSansAccesRow({
             même trame d'une ligne à l'autre, sinon les icônes des autres lignes
             se décalent et l'œil ne suit plus. L'intitulé reste porté par
             l'infobulle et le libellé d'accessibilité. */}
+        {/* `LogIn` et non `KeyRound` : la clé désigne DÉJÀ la réinitialisation du mot de
+            passe sur les lignes voisines. Deux actions très différentes — ouvrir un accès
+            à quelqu'un qui n'en a pas / changer le mot de passe de quelqu'un qui en a —
+            ne peuvent pas porter le même symbole dans une seule et même liste. */}
         {canDonnerAcces && (
           <IconButton
             aria-label={t('admin.donnerAccesAction', { defaultValue: 'Donner l’accès' })}
-            icon={<KeyRound size={14} />}
+            icon={<LogIn size={14} />}
             tone="accent"
             size="sm"
             onClick={onDonnerAcces}
