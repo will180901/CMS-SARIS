@@ -131,6 +131,11 @@ if (!fs.existsSync(iconDst)) {
   console.log('[build-local] build/icon.png recréé depuis electron/setup-logo.png')
 }
 run('node scripts/gen-installer-assets.mjs', { cwd: desktopDir })
+// Frames du panneau gauche ANIMÉ (page Bienvenue de l'installateur sur-mesure).
+// `installer/build-installer.mjs` refuse de compiler sans elles ; les générer ici évite
+// d'avoir à s'en souvenir — et évite surtout de retomber, faute de frames, sur
+// l'installateur générique d'electron-builder, sans barres de progression ni animation.
+run('node scripts/gen-installer-anim.mjs', { cwd: desktopDir })
 
 // 8 — packaging
 const ebMode = dirOnly ? '--dir' : ''

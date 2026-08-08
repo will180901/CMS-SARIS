@@ -223,12 +223,23 @@ de synchro + cron de purge.
 précédente :
 
 ```bash
+# depuis la racine — enchaîne les DEUX étapes ci-dessous
+pnpm --filter @cms-saris/desktop dist
+```
+
+Soit, en détail :
+
+```bash
 # depuis apps/desktop — build complet du client autonome (dossier non empaqueté)
 node scripts/build-local.mjs --dir
 
 # puis, l'installeur NSIS sur-mesure (affichage temps réel + double barre de progression) :
 node installer/build-installer.mjs
 ```
+
+⚠️ Ne PAS produire l'installeur avec `electron-builder` seul : il génère un assistant
+générique, sans barres de progression ni panneau animé, et sous le MÊME nom de fichier —
+il écraserait silencieusement l'installeur sur-mesure.
 
 `scripts/build-local.mjs` enchaîne : build du renderer (`vite build --mode desktop`) →
 compilation Electron → **build de `apps/api`** (`pnpm --filter api build`) → génération du

@@ -411,17 +411,12 @@ export function useSauvegardes() {
   })
 }
 
-export function useDeclencherSauvegarde() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: () => adminApi.synchronisation.declencher(),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: SYNC_KEY })
-      toast.success(i18n.t('admin.toastBackupCreated'))
-    },
-    onError: toastErr,
-  })
-}
+// `useDeclencherSauvegarde` a été retiré : le déclenchement MANUEL d'une sauvegarde a
+// été supprimé de l'interface en juillet (la sauvegarde est planifiée), mais le hook
+// était resté — défini, appelé nulle part, et laissant croire que la fonction existait
+// encore quelque part. L'endpoint serveur, lui, reste en place
+// (POST /synchronisation/sauvegardes/manuelle) : rebrancher un bouton demanderait de
+// recréer ces dix lignes, rien de plus.
 
 /**
  * Supprime une sauvegarde. Contrairement à la restauration, la configuration en place
