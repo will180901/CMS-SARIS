@@ -558,10 +558,39 @@ async function probeCentralOnline(): Promise<boolean> {
   }
 }
 
+/** URL du serveur central, normalisée (sans slash final). */
+function centralUrl(): string {
+  return (resolveServerUrl() || '').replace(/\/+$/, '')
+}
+
 /** URL d'API que le renderer doit utiliser : central si en ligne, backend local sinon. */
 function computeRendererUrl(): string {
-  const central = (resolveServerUrl() || '').replace(/\/+$/, '')
+  const central = centralUrl()
   return serverOnline && central ? central : (effectiveApiUrl ?? central)
+}
+
+/**
+ * Ce poste a-t-il encore des écritures hors-ligne à remonter ?
+ *
+ * Interroge le backend EMBARQUÉ (loopback) — lui seul connaît sa file. En cas de doute
+ * (backend muet, réponse illisible) on répond OUI : mieux vaut rester une tournée de plus
+ * sur le local que de montrer à l'utilisateur une vue où son travail manque.
+ */
+async function localBackendHasPendingPush(): Promise<boolean> {
+  if (!effectiveApiUrl) return false
+  try {
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), 2500)
+    const res = await fetch(`${effectiveApiUrl}/sync/ready`, { signal: ctrl.signal })
+    clearTimeout(timer)
+    if (!res.ok) return true
+    const body = (await res.json()) as { pendingPush?: boolean; enabled?: boolean }
+    // `enabled: false` = pas de backend embarqué (mode distant) : rien à attendre.
+    if (body.enabled === false) return false
+    return body.pendingPush !== false
+  } catch {
+    return true
+  }
 }
 
 /** Pousse l'URL active au renderer (et la mémorise pour le prochain saris:config). */
@@ -590,14 +619,30 @@ async function startConnectivityWatch(): Promise<void> {
   connectivityTimer = setInterval(() => {
     void (async () => {
       const now = await probeCentralOnline()
+
+      // Déjà en ligne, mais le renderer est resté sur le backend local : c'est qu'on
+      // attend la fin de la remontée (cf. plus bas). On réessaie à chaque tour.
+      if (now && serverOnline && rendererApiUrl !== centralUrl()) {
+        if (!(await localBackendHasPendingPush())) pushRendererUrl()
+        return
+      }
+
       if (now === serverOnline) { flips = 0; return }
       if (++flips < 2) return
       flips = 0
       serverOnline = now
       if (now) {
-        // RECONNEXION : laisser le backend embarqué POUSSER ses changements hors-ligne (~3 s)
-        // avant de rendre la main au central (sinon on lirait des données pas encore remontées).
-        setTimeout(() => pushRendererUrl(), 3000)
+        // RECONNEXION — on NE rend PAS la main au central tant que ce poste a du travail
+        // à remonter. Auparavant on attendait 3 secondes en espérant que ça suffise :
+        // une supposition, pas une garantie. Un soignant ayant travaillé deux heures
+        // hors-ligne peut avoir des centaines d'écritures à envoyer sur un réseau faible ;
+        // basculer avant la fin lui montrait une vue amputée de ce qu'il venait de saisir.
+        //
+        // On reste donc sur le backend local — qui contient TOUT son travail — et le tour
+        // suivant refera le test. S'il ne passe jamais (serveur qui refuse), il continue
+        // simplement de travailler en local : jamais de données invisibles.
+        if (!(await localBackendHasPendingPush())) pushRendererUrl()
+        else log.info('[connectivité] serveur revenu — on garde le local le temps de remonter les écritures')
       } else {
         pushRendererUrl() // HORS-LIGNE → bascule IMMÉDIATE sur le backend local
       }

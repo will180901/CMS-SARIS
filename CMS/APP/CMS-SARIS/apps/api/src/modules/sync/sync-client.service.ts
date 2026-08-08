@@ -270,6 +270,31 @@ export class SyncClientService implements OnApplicationBootstrap {
     return applied
   }
 
+  /**
+   * Reste-t-il des écritures locales non remontées ?
+   *
+   * Sert au processus Electron pour décider quand rendre la main au serveur central
+   * après une reconnexion : tant que ce poste a du travail à remonter, l'afficher
+   * depuis le central montrerait à l'utilisateur une vue AMPUTÉE de ce qu'il vient
+   * de saisir hors-ligne — il le croirait perdu, et le ressaisirait.
+   *
+   * Volontairement bon marché : une page d'UN élément suffit à répondre par oui ou non,
+   * là où `push()` énumère tout. Appelé toutes les 5 s, ça compte.
+   */
+  async hasPendingPush(): Promise<boolean> {
+    if (!this.enabled) return false
+    try {
+      const { lastPushedAt } = await this.cursor()
+      const page = await this.sync.pull(this.siteId, lastPushedAt, 1)
+      return page.changes.length > 0
+    } catch {
+      // Base locale illisible : on ne peut pas affirmer que tout est remonté.
+      // Prudence — on répond « il reste quelque chose » plutôt que de risquer une
+      // bascule prématurée vers le central.
+      return true
+    }
+  }
+
   /** PUSH : envoie au serveur les changements locaux depuis le dernier push. */
   async push(): Promise<SyncPushResponseV2 | null> {
     const { lastPushedAt } = await this.cursor()

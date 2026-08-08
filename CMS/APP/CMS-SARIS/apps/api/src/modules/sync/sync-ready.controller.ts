@@ -17,7 +17,14 @@ export class SyncReadyController {
   constructor(private readonly client: SyncClientService) {}
 
   @Get('ready')
-  ready(): { ready: boolean; enabled: boolean } {
-    return { ready: this.client.ready, enabled: this.client.enabled }
+  async ready(): Promise<{ ready: boolean; enabled: boolean; pendingPush: boolean }> {
+    return {
+      ready: this.client.ready,
+      enabled: this.client.enabled,
+      // `pendingPush` : ce poste a-t-il encore des écritures hors-ligne à remonter ?
+      // Le processus Electron s'en sert pour ne rendre la main au serveur central
+      // qu'une fois le travail de l'utilisateur réellement arrivé là-bas.
+      pendingPush: await this.client.hasPendingPush(),
+    }
   }
 }

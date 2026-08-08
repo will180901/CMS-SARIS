@@ -138,4 +138,21 @@ run(`pnpm --filter @cms-saris/desktop exec electron-builder --win ${ebMode}`, {
   env: { ...process.env, CSC_IDENTITY_AUTO_DISCOVERY: 'false' },
 })
 
+// 9 — RESTAURATION de l'environnement de développement.
+//
+// L'étape 7 (`pnpm deploy --config.node-linker=hoisted`) aplatit les node_modules pour
+// produire un runtime autonome — et laisse au passage `apps/api/node_modules` dans un
+// état hoisted. L'API de dev ne démarre alors plus : « Cannot find module 'busboy' »,
+// une dépendance transitive de multer que le mode hoisted ne relie plus.
+//
+// Le symptôme apparaît LOIN de sa cause : on construit un installateur, et c'est le
+// serveur de dev qui refuse de démarrer une heure plus tard. On remet donc les liens en
+// place ici, tant qu'on sait pourquoi.
+console.log('\n[build-local] restauration des node_modules de développement…')
+try {
+  run('pnpm install --prefer-offline')
+} catch {
+  console.warn('⚠️  `pnpm install` a échoué — relancez-le à la main avant de démarrer l’API de dev.')
+}
+
 console.log('\n✅ Build local terminé. Sortie : apps/desktop/release/')
