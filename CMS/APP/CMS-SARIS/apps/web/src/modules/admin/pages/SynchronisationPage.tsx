@@ -44,7 +44,7 @@ import {
   useSyncStatus, useRestaurerSauvegarde,
 } from '../hooks/useAdmin'
 import {
-  useSyncStatus as useDataSyncStatus, useSyncRun, useSyncSupervision, usePosteDetail, useMasquerPoste, useRenamePoste,
+  useSyncStatus as useDataSyncStatus, useSyncRun, useSyncSupervision, useSyncActivite, usePosteDetail, useMasquerPoste, useRenamePoste,
 } from '../hooks/useSync'
 import type { SauvegardeSysteme } from '../api/admin.api'
 import type {
@@ -243,11 +243,34 @@ function SupervisionZone() {
   const canExecute = has('synchronisation.execute')
   const { data, isLoading } = useSyncSupervision()
   const postes   = data?.postes   ?? []
-  const journaux = data?.journaux ?? []
   const conflits = data?.conflits ?? []
   const enLigne  = postes.filter(p => p.enLigne).length
 
   const [supTab, setSupTab] = useState<SupTab>('postes')
+
+  // ── Journal d'activité : état des filtres, requête côté serveur ───────────────
+  // Il ne vit plus dans la charge de supervision : le parc en produit des milliers de
+  // lignes par jour, et l'onglet n'est même pas ouvert la plupart du temps. `enabled`
+  // fait que rien n'est demandé tant qu'on ne l'affiche pas.
+  const [actPage, setActPage]     = useState(1)
+  const [actTaille, setActTaille] = useState<number | null>(null)
+  const [actPoste, setActPoste]   = useState('')
+  const [actStatut, setActStatut] = useState('')
+  const lignesParDefaut = useRowsPerPage()
+  const taille = actTaille ?? lignesParDefaut
+  const { data: activite, isFetching: actLoading } = useSyncActivite(
+    {
+      page: actPage,
+      pageSize: taille,
+      posteId: actPoste || undefined,
+      statut: actStatut || undefined,
+    },
+    supTab === 'activite',
+  )
+  const journaux = activite?.items ?? []
+  // Tout changement de filtre ramène à la première page : rester page 7 après avoir
+  // restreint à un poste qui n'a que 12 entrées afficherait un tableau vide.
+  const filtrer = (maj: () => void) => { maj(); setActPage(1) }
 
   // ── Extraction PDF ────────────────────────────────────────────────────────
   // Mêmes colonnes qu'à l'écran ; l'onglet actif décide du jeu imprimé.
@@ -300,7 +323,19 @@ function SupervisionZone() {
         </div>
 
         {supTab === 'postes' && <PostesSection postes={postes} enLigne={enLigne} loading={isLoading} canExecute={canExecute} />}
-        {supTab === 'activite' && <ActiviteTable journaux={journaux} loading={isLoading} />}
+        {supTab === 'activite' && (
+          <ActiviteTable
+            journaux={journaux}
+            total={activite?.total ?? 0}
+            page={actPage} pageSize={taille}
+            onPage={setActPage}
+            onPageSize={(n) => filtrer(() => setActTaille(n))}
+            postes={postes}
+            posteId={actPoste} onPosteId={(v) => filtrer(() => setActPoste(v))}
+            statut={actStatut}  onStatut={(v) => filtrer(() => setActStatut(v))}
+            loading={actLoading}
+          />
+        )}
         {supTab === 'conflits' && <ConflitsTable conflits={conflits} loading={isLoading} />}
       </Card.Body>
 
@@ -308,7 +343,10 @@ function SupervisionZone() {
         <ListePrintSheet<SyncSupervisionJournal>
           rootId="export-sync-activite"
           titre={t('admin.supActivityTitle')}
-          sousTitre={`${journaux.length} entrée${journaux.length > 1 ? 's' : ''}`}
+          /* L'export porte sur ce qui est À L'ÉCRAN — page et filtres courants. Avec un
+             journal de plusieurs milliers de lignes, « tout exporter » n'aurait pas de
+             sens ; on le dit dans le sous-titre plutôt que de laisser croire au contraire. */
+          sousTitre={t('admin.supExportPortee', { count: journaux.length, total: activite?.total ?? 0 })}
           lignes={journaux}
           cleDe={j => j.id}
           colonnes={colonnesActivite}
@@ -792,17 +830,116 @@ function DetailRow({ icon, label, value }: { icon: ReactNode; label: string; val
 
 // ── Onglet Activité récente : tableau propre (comme les autres pages) ────────
 
-function ActiviteTable({ journaux, loading }: { journaux: SyncSupervisionJournal[]; loading: boolean }) {
+/**
+ * Journal d'activité. La pagination est SERVEUR : `journaux` ne contient que la page
+ * demandée, et `total` dit combien d'entrées correspondent aux filtres. On ne peut donc
+ * pas s'appuyer sur usePagination, qui découpe un tableau déjà complet — l'objet passé à
+ * PaginationBar est construit à la main à partir de ce que le serveur a répondu.
+ */
+function ActiviteTable({
+  journaux, total, page, pageSize, onPage, onPageSize,
+  postes, posteId, onPosteId, statut, onStatut, loading,
+}: {
+  journaux: SyncSupervisionJournal[]; total: number
+  page: number; pageSize: number
+  onPage: (p: number) => void; onPageSize: (n: number) => void
+  postes: SyncSupervisionPoste[]
+  posteId: string; onPosteId: (v: string) => void
+  statut: string;  onStatut: (v: string) => void
+  loading: boolean
+}) {
   const { t } = useTranslation()
-  const pagination = usePagination(journaux, useRowsPerPage())
-  if (loading) {
-    return <div>{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} height={40} style={{ marginBottom: 6 }} />)}</div>
+
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
+  const pagination = {
+    page, pageSize, totalPages, total,
+    // `start` est un DÉCALAGE à partir de 0 : PaginationBar affiche `start + 1`.
+    // Y mettre le numéro de la première ligne décalerait tout d'un cran (« 2 – 10 »).
+    start: (page - 1) * pageSize,
+    end:   Math.min(page * pageSize, total),
+    setPage: onPage, setPageSize: onPageSize,
+    goFirst: () => onPage(1),
+    goLast:  () => onPage(totalPages),
+    goPrev:  () => onPage(Math.max(1, page - 1)),
+    goNext:  () => onPage(Math.min(totalPages, page + 1)),
+    canGoPrev: page > 1,
+    canGoNext: page < totalPages,
+  }
+
+  const filtreActif = !!posteId || !!statut
+
+  // Les filtres restent affichés même pendant le chargement et même si la page revient
+  // vide : les masquer enfermerait dans un filtre trop restrictif, sans moyen d'en sortir.
+  const barreFiltres = (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 'var(--espace-2)',
+      marginBottom: 'var(--espace-3)', flexWrap: 'wrap',
+    }}>
+      <select
+        value={posteId}
+        onChange={(e) => onPosteId(e.target.value)}
+        aria-label={t('admin.supFiltrePoste')}
+        style={{
+          height: 30, maxWidth: 260, padding: '0 var(--espace-2)',
+          borderRadius: 'var(--radius-md)', border: '1px solid var(--bordure-legere)',
+          background: 'var(--fond-surface)', color: 'var(--texte-primaire)',
+          fontSize: 'var(--font-size-caption)', cursor: 'pointer',
+        }}
+      >
+        <option value="">{t('admin.supFiltreTousPostes')}</option>
+        {postes.map(p => <option key={p.id} value={p.id}>{p.libelle}</option>)}
+      </select>
+
+      <div style={{ display: 'flex', gap: 3, padding: 3, borderRadius: 'var(--radius-md)', background: 'var(--fond-surface-2)', border: '1px solid var(--bordure-legere)' }}>
+        {[
+          { key: '',         label: t('admin.supFiltreTout') },
+          { key: 'CONFLITS', label: t('admin.supConflictsTitle') },
+        ].map(f => (
+          <button
+            key={f.key || 'tout'} type="button" onClick={() => onStatut(f.key)}
+            style={{
+              padding: '4px 10px', borderRadius: 'var(--radius-sm)', border: 'none', cursor: 'pointer',
+              fontSize: 'var(--font-size-caption)', fontWeight: 600,
+              background: statut === f.key ? 'var(--fond-surface)' : 'transparent',
+              color:      statut === f.key ? 'var(--texte-primaire)' : 'var(--texte-tertiaire)',
+              boxShadow:  statut === f.key ? 'var(--ombre-1)' : 'none',
+            }}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      <span style={{ marginLeft: 'auto', fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)' }}>
+        {t('admin.supActiviteTotal', { count: total })}
+      </span>
+    </div>
+  )
+
+  if (loading && journaux.length === 0) {
+    return (
+      <>
+        {barreFiltres}
+        <div>{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} height={40} style={{ marginBottom: 6 }} />)}</div>
+      </>
+    )
   }
   if (journaux.length === 0) {
-    return <EmptyState icon={<Activity size={18} />} title={t('admin.supNoActivityTitle')} description={t('admin.supNoActivityDesc')} variant="subtle" />
+    return (
+      <>
+        {barreFiltres}
+        <EmptyState
+          icon={<Activity size={18} />}
+          title={filtreActif ? t('admin.supNoMatchTitle') : t('admin.supNoActivityTitle')}
+          description={filtreActif ? t('admin.supNoActiviteFiltreDesc') : t('admin.supNoActivityDesc')}
+          variant="subtle"
+        />
+      </>
+    )
   }
   return (
     <>
+      {barreFiltres}
       <div style={DATA_TABLE_CARD}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <DataTableHead columns={[
@@ -813,7 +950,7 @@ function ActiviteTable({ journaux, loading }: { journaux: SyncSupervisionJournal
             { label: t('admin.colConflicts'), align: 'right', width: 100 },
           ]} />
           <tbody>
-            {pagination.pageData.map((j, i) => {
+            {journaux.map((j, i) => {
               const tone = JOURNAL_STATUT_TONE[(j.statut || '').toUpperCase()] ?? 'neutral'
               return (
                 <tr key={j.id} style={dataRowStyle(i % 2 === 1, false)}>

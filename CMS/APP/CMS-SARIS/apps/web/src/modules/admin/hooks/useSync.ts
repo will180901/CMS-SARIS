@@ -4,6 +4,7 @@
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { syncApi } from '../api/sync.api'
+import type { ActiviteParams } from '../api/sync.api'
 
 export function useSyncStatus(enabled = true) {
   return useQuery({
@@ -32,6 +33,23 @@ export function useSyncSupervision(enabled = true) {
     enabled,
     staleTime: 5_000,
     refetchInterval: 60_000,
+  })
+}
+
+/**
+ * Journal d'activité — une page à la fois, filtrée par le serveur.
+ *
+ * `placeholderData` conserve la page précédente pendant le chargement de la suivante :
+ * sans cela, chaque changement de page ou de filtre vide le tableau et fait sauter la
+ * mise en page. La clé inclut les paramètres, donc chaque combinaison a son cache.
+ */
+export function useSyncActivite(params: ActiviteParams, enabled = true) {
+  return useQuery({
+    queryKey: ['admin', 'sync', 'supervision', 'activite', params],
+    queryFn: () => syncApi.activite(params),
+    enabled,
+    staleTime: 5_000,
+    placeholderData: (prev) => prev,
   })
 }
 

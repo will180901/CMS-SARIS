@@ -80,3 +80,37 @@ export class RenamePosteDto {
   @MaxLength(80)
   libelle!: string
 }
+
+/**
+ * Filtres du journal d'activité. Tous facultatifs : sans aucun paramètre, l'écran
+ * affiche simplement la première page de l'activité la plus récente.
+ */
+export class ActiviteQueryDto {
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  page?: number
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(200)
+  pageSize?: number
+
+  /** Restreindre à un poste précis. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  posteId?: string
+
+  /** Statut du cycle : REUSSIE, CONFLITS… */
+  @IsOptional()
+  @IsString()
+  @MaxLength(30)
+  statut?: string
+
+  /** Borne basse sur la date de début. */
+  @IsOptional()
+  @IsISO8601()
+  depuis?: string
+}

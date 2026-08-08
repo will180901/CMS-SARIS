@@ -64,14 +64,36 @@ export interface SyncSupervisionConflit {
 }
 export interface SyncSupervision {
   postes: SyncSupervisionPoste[]
-  journaux: SyncSupervisionJournal[]
   conflits: SyncSupervisionConflit[]
+}
+
+/** Filtres du journal d'activité — tous facultatifs. */
+export interface ActiviteParams {
+  page?: number
+  pageSize?: number
+  posteId?: string
+  statut?: string
+  depuis?: string
+}
+export interface ActivitePage {
+  items: SyncSupervisionJournal[]
+  total: number
+  page: number
+  pageSize: number
 }
 
 export const syncApi = {
   status: () => api.get<SyncStatusResponse>('/sync/status'),
   run: () => api.post<SyncRunResult>('/sync/run', {}),
   supervision: () => api.get<SyncSupervision>('/sync/supervision'),
+  /** Journal d'activité paginé et filtré par le serveur — le parc peut en produire
+   *  des milliers de lignes par jour, on n'en rapatrie qu'une page. */
+  activite: (p: ActiviteParams = {}) => {
+    const q = new URLSearchParams()
+    for (const [k, v] of Object.entries(p)) if (v !== undefined && v !== '') q.set(k, String(v))
+    const s = q.toString()
+    return api.get<ActivitePage>(`/sync/supervision/activite${s ? `?${s}` : ''}`)
+  },
   posteDetail: (id: string) => api.get<SyncSupervisionPosteDetail>(`/sync/supervision/postes/${id}`),
   masquerPoste: (id: string) => api.delete<{ ok: boolean }>(`/sync/supervision/postes/${id}`),
   renamePoste: (id: string, libelle: string) =>

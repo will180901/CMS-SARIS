@@ -17,6 +17,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common'
+import type { Prisma } from '@prisma/client'
 import { PrismaService } from '../../prisma/prisma.service'
 import { NotificationService } from '../notification/notification.service'
 
@@ -296,15 +297,10 @@ export class SyncSupervisionService {
    * multi-site sans cloisonnement.
    */
   async getSupervision() {
-    const [postes, journaux, conflits] = await Promise.all([
+    const [postes, conflits] = await Promise.all([
       this.prisma.posteLocal.findMany({
         where: { masque: false },
         orderBy: { derniereSyncAt: 'desc' },
-      }),
-      this.prisma.journalSynchronisation.findMany({
-        orderBy: { startedAt: 'desc' },
-        take: 200,
-        include: { posteLocal: { select: { libelle: true, siteId: true } } },
       }),
       this.prisma.conflitSynchronisation.findMany({
         where: { statut: 'EN_ATTENTE' },
@@ -315,7 +311,63 @@ export class SyncSupervisionService {
 
     return {
       postes: await this.enrichPostes(postes),
-      journaux: journaux.map((j) => ({
+      conflits: conflits.map((c) => ({
+        id: c.id,
+        entiteType: c.entiteType,
+        entiteId: c.entiteId,
+        typeConflit: c.typeConflit,
+        createdAt: c.createdAt,
+      })),
+    }
+  }
+
+  /**
+   * Journal d'activité — PAGINÉ ET FILTRÉ CÔTÉ SERVEUR.
+   *
+   * Il était auparavant livré avec le reste de la supervision, plafonné aux 200 dernières
+   * entrées. Une entrée est écrite à chaque envoi réel de données par un poste : sur un
+   * parc de 200 machines en activité, ces 200 lignes ne couvrent plus qu'une vingtaine de
+   * minutes. Le journal cessait d'être un journal pour devenir un fil d'actualité.
+   *
+   * Relever le plafond ne réglerait rien : renvoyer 5 000 lignes pour en afficher 25 est
+   * un gaspillage, et l'on ne consulte jamais un journal « en entier » — on y cherche
+   * quelque chose de précis. D'où le filtrage ici plutôt qu'un `take` plus généreux.
+   */
+  async getActivite(params: {
+    page?: number
+    pageSize?: number
+    posteId?: string
+    /** 'CONFLITS' pour ne garder que les cycles ayant produit un désaccord. */
+    statut?: string
+    /** Borne basse sur la date de début (ISO) — « depuis lundi ». */
+    depuis?: string
+  }) {
+    const pageSize = Math.min(Math.max(params.pageSize ?? 25, 1), 200)
+    const page = Math.max(params.page ?? 1, 1)
+
+    const where: Prisma.JournalSynchronisationWhereInput = {}
+    if (params.posteId) where.posteLocalId = params.posteId
+    if (params.statut) where.statut = params.statut
+    if (params.depuis) {
+      const d = new Date(params.depuis)
+      // Une date illisible est ignorée plutôt que de faire échouer la requête : l'écran
+      // doit rester consultable même si un paramètre d'URL a été bricolé.
+      if (!Number.isNaN(+d)) where.startedAt = { gte: d }
+    }
+
+    const [items, total] = await Promise.all([
+      this.prisma.journalSynchronisation.findMany({
+        where,
+        orderBy: { startedAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        include: { posteLocal: { select: { libelle: true } } },
+      }),
+      this.prisma.journalSynchronisation.count({ where }),
+    ])
+
+    return {
+      items: items.map((j) => ({
         id: j.id,
         poste: j.posteLocal.libelle,
         startedAt: j.startedAt,
@@ -324,13 +376,9 @@ export class SyncSupervisionService {
         nbMutations: j.nbMutations,
         nbConflits: j.nbConflits,
       })),
-      conflits: conflits.map((c) => ({
-        id: c.id,
-        entiteType: c.entiteType,
-        entiteId: c.entiteId,
-        typeConflit: c.typeConflit,
-        createdAt: c.createdAt,
-      })),
+      total,
+      page,
+      pageSize,
     }
   }
 

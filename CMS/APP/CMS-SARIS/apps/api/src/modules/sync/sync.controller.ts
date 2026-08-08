@@ -24,6 +24,7 @@ import {
   SyncHeartbeatDto,
   RenamePosteDto,
   ConfigurerPosteDto,
+  ActiviteQueryDto,
 } from './sync.dto'
 
 interface AuthedRequest {
@@ -128,6 +129,13 @@ export class SyncController {
   getSupervision() {
     // Plus de siteId : la supervision couvre tout le parc (cf. service).
     return this.supervision.getSupervision()
+  }
+
+  /** Journal d'activité : pagination et filtres CÔTÉ SERVEUR (cf. service pour le pourquoi). */
+  @Get('supervision/activite')
+  @RequirePermissions('synchronisation.read')
+  getActivite(@Query() q: ActiviteQueryDto) {
+    return this.supervision.getActivite(q)
   }
 
   /** Détail d'un poste (modale) : identité + fenêtre de sa dernière session connectée. */
