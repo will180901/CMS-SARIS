@@ -265,6 +265,45 @@ export class SynchronisationService {
     return { id, restored: true }
   }
 
+  /**
+   * Supprime une sauvegarde — irréversible.
+   *
+   * La rétention automatique fait déjà le ménage ; cette suppression sert aux cas
+   * qu'elle ne couvre pas : une sauvegarde ratée, ou une entrée historique sans
+   * contenu restaurable qui encombre la liste.
+   *
+   * REFUS si c'est la dernière : une liste vide est un état dont on ne veut jamais,
+   * et on ne peut l'atteindre que par erreur. Le coût du garde-fou est une phrase,
+   * celui de l'oubli est un centre médical sans point de retour. Il ne se déclenche
+   * en pratique qu'après une purge manuelle ou sur une installation neuve — la
+   * rétention maintient sinon plusieurs dizaines d'entrées.
+   */
+  async supprimerSauvegarde(id: string, acteurId: string | null) {
+    const sauvegarde = await this.prisma.sauvegardeSysteme.findUnique({
+      where: { id },
+      select: { id: true, createdAt: true, type: true },
+    })
+    if (!sauvegarde) throw new NotFoundException('Sauvegarde introuvable')
+
+    const total = await this.prisma.sauvegardeSysteme.count()
+    if (total <= 1) {
+      throw new BadRequestException(
+        'Impossible de supprimer la dernière sauvegarde : le système resterait sans aucun point de restauration.',
+      )
+    }
+
+    await this.prisma.sauvegardeSysteme.delete({ where: { id } })
+    await this.audit(
+      acteurId,
+      'DELETE',
+      id,
+      { sauvegardeId: id, createdAt: sauvegarde.createdAt, type: sauvegarde.type },
+      'SUCCES',
+    )
+    this.notif.broadcastLive('LIVE_SYNC')
+    return { id, deleted: true }
+  }
+
   // ── Ré-encryption des messages (nettoyage post-rotation de clé) ─────────────
 
   /**

@@ -21,6 +21,9 @@ export function BaseDonneesPage() {
   const { t } = useTranslation()
   const { has } = usePermissions()
   const canRestore = has('synchronisation.restore')
+  // Supprimer relève de l'entretien du jeu de sauvegardes, comme en créer une —
+  // d'où `execute` et non `restore`, qui protège la réécriture de la configuration.
+  const canDelete = has('synchronisation.execute')
 
   const { data: status, isLoading: ls } = useSyncStatus()
   const { data: sauvegardes = [], isLoading: lh } = useSauvegardes()
@@ -48,6 +51,7 @@ export function BaseDonneesPage() {
           sauvegardes={sauvegardes}
           loading={lh}
           canRestore={canRestore}
+          canDelete={canDelete}
           planification={status?.planification}
         />
         <VolumetrieZone status={status} loading={ls} total={totalEnregistrements} />

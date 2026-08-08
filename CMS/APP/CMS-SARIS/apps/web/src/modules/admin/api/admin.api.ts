@@ -327,5 +327,6 @@ export const adminApi = {
     sauvegardes:   () => api.get<SauvegardeSysteme[]>('/synchronisation/sauvegardes'),
     declencher:    () => api.post<SauvegardeSysteme>('/synchronisation/sauvegardes/manuelle', {}),
     restaurer:     (id: string) => api.post<{ id: string; restored: true }>(`/synchronisation/sauvegardes/${id}/restaurer`, {}),
+    supprimer:     (id: string) => api.delete<{ id: string; deleted: true }>(`/synchronisation/sauvegardes/${id}`),
   },
 }

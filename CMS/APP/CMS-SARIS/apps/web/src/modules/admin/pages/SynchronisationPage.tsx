@@ -23,7 +23,7 @@ import {
 } from 'lucide-react'
 import {
   PageHeader, Card, Button, StatusPill, Skeleton, EmptyState, Tooltip, Modal, SegmentedTabs,
-  Toolbar, DataTableHead, DATA_TABLE_CARD, DATA_TD_PADDING, dataRowStyle, PaginationBar,
+  Toolbar, DataTableHead, DATA_TABLE_CARD, DATA_TD_PADDING, dataRowStyle, PaginationBar, IconButton,
 } from '@/components/saris'
 import type { SegmentedTab } from '@/components/saris'
 import { toast } from '@workspace/ui/components/sonner'
@@ -41,7 +41,7 @@ import { CePosteCard } from '../components/CePosteCard'
 import { useSyncStore } from '@/stores/sync.store'
 import { syncCycle, listMutations, purgeMutations, retryRejected } from '@/lib/sync'
 import {
-  useSyncStatus, useRestaurerSauvegarde,
+  useSyncStatus, useRestaurerSauvegarde, useSupprimerSauvegarde,
 } from '../hooks/useAdmin'
 import {
   useSyncStatus as useDataSyncStatus, useSyncRun, useSyncSupervision, useSyncActivite, usePosteDetail, useMasquerPoste, useRenamePoste,
@@ -1304,16 +1304,22 @@ function MutationRow({ m, striped }: { m: FileMutation; striped: boolean }) {
 //  ZONE 2 — Sauvegardes serveur
 // ════════════════════════════════════════════════════════════════════════════════
 
-export function SauvegardesZone({ sauvegardes, loading, canRestore, planification }: {
+export function SauvegardesZone({ sauvegardes, loading, canRestore, canDelete, planification }: {
   sauvegardes: SauvegardeSysteme[]
   loading: boolean
   canRestore: boolean
+  canDelete?: boolean
   planification?: { actif: boolean; frequence?: string; heure?: string; expression?: string; retention: number }
 }) {
   const { t } = useTranslation()
   const derniere = sauvegardes[0]
   const restaurer = useRestaurerSauvegarde()
+  const supprimer = useSupprimerSauvegarde()
   const [restoreTarget, setRestoreTarget] = useState<SauvegardeSysteme | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<SauvegardeSysteme | null>(null)
+  // Le serveur refuse de supprimer la dernière ; on ne propose donc pas le geste plutôt
+  // que de le laisser échouer. Un bouton qui ne peut qu'échouer ne devrait pas exister.
+  const suppressionPossible = !!canDelete && sauvegardes.length > 1
   // La sauvegarde automatique tourne tous les jours : cette liste grossit toute seule,
   // sans que personne ne l'alimente. Elle était rendue d'un bloc, jusqu'aux 50 entrées
   // renvoyées par le serveur — sept semaines à faire défiler pour atteindre la dernière.
@@ -1382,7 +1388,8 @@ export function SauvegardesZone({ sauvegardes, loading, canRestore, planificatio
             <div style={{ border: '1px solid var(--bordure-legere)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
               {pagination.pageData.map((s, i) => (
                 <SauvegardeRow key={s.id} s={s} striped={i % 2 === 1}
-                  canRestore={canRestore} onRestore={() => setRestoreTarget(s)} />
+                  canRestore={canRestore} onRestore={() => setRestoreTarget(s)}
+                  canDelete={suppressionPossible} onDelete={() => setDeleteTarget(s)} />
               ))}
             </div>
             <div style={{ marginTop: 'var(--espace-3)' }}>
@@ -1417,6 +1424,34 @@ export function SauvegardesZone({ sauvegardes, loading, canRestore, planificatio
           </p>
         </Modal>
       )}
+
+      {/* Suppression : irréversible et sans effet sur la configuration en place. On
+          nomme la sauvegarde par sa date — « supprimer cet élément » ne dit pas lequel. */}
+      {deleteTarget && (
+        <Modal
+          icon={<Trash2 size={18} style={{ color: 'var(--erreur-accent)' }} />}
+          title={t('admin.backupDeleteTitle')}
+          subtitle={t('admin.backupDeleteSubtitle', { date: formatDate(deleteTarget.createdAt) })}
+          width={460}
+          onClose={() => setDeleteTarget(null)}
+          footer={
+            <>
+              <Button variant="ghost" onClick={() => setDeleteTarget(null)}>{t('admin.cancel')}</Button>
+              <Button
+                variant="danger"
+                loading={supprimer.isPending}
+                onClick={() => supprimer.mutate(deleteTarget.id, { onSuccess: () => setDeleteTarget(null) })}
+              >
+                {t('admin.backupDelete')}
+              </Button>
+            </>
+          }
+        >
+          <p style={{ fontSize: 13, color: 'var(--texte-secondaire)', margin: 0, lineHeight: 1.55 }}>
+            {t('admin.backupDeleteBody')}
+          </p>
+        </Modal>
+      )}
     </Card>
   )
 }
@@ -1441,8 +1476,10 @@ function formatTaille(o?: number | null): string {
   return `${(o / 1024 / 1024).toFixed(1)} ${i18n.t('admin.unitMegabytes')}`
 }
 
-function SauvegardeRow({ s, striped, canRestore, onRestore }: {
-  s: SauvegardeSysteme; striped: boolean; canRestore: boolean; onRestore: () => void
+function SauvegardeRow({ s, striped, canRestore, onRestore, canDelete, onDelete }: {
+  s: SauvegardeSysteme; striped: boolean
+  canRestore: boolean; onRestore: () => void
+  canDelete?: boolean;  onDelete?: () => void
 }) {
   const { t } = useTranslation()
   const tone = s.statut === 'REUSSIE' ? 'success' : s.statut === 'ECHEC' ? 'error' : s.statut === 'EN_COURS' ? 'warning' : 'neutral'
@@ -1472,6 +1509,20 @@ function SauvegardeRow({ s, striped, canRestore, onRestore }: {
             <span style={{ fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)' }}>—</span>
           </Tooltip>
         )
+      ) : <span />}
+
+      {/* Suppression : discrète, en icône seule. Restaurer est le geste courant ici ;
+          supprimer ne doit pas lui disputer l'attention, ni s'attraper au passage. */}
+      {canDelete && onDelete ? (
+        <Tooltip label={t('admin.backupDelete')}>
+          <IconButton
+            aria-label={t('admin.backupDelete')}
+            icon={<Trash2 size={13} />}
+            tone="danger"
+            size="sm"
+            onClick={onDelete}
+          />
+        </Tooltip>
       ) : <span />}
     </div>
   )

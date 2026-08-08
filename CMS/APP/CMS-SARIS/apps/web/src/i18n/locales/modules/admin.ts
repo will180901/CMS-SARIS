@@ -440,6 +440,11 @@ export const admin = {
     syncPageSubtitle: 'État des postes du terrain, en temps réel',
     bddPageTitle: 'Base de données',
     bddPageSubtitle: 'Sauvegardes de configuration et volumétrie des données',
+    backupDelete: 'Supprimer',
+    backupDeleteTitle: 'Supprimer cette sauvegarde ?',
+    backupDeleteSubtitle: 'Sauvegarde du {{date}}',
+    backupDeleteBody: 'Cette sauvegarde sera définitivement effacée et ne pourra plus servir de point de restauration. La configuration actuelle du système n’est pas modifiée.',
+    toastBackupDeleted: 'Sauvegarde supprimée',
     // Temps relatif (helper relative())
     relativeNever: 'jamais',
     relativeNow: 'à l\'instant',
@@ -1015,6 +1020,11 @@ export const admin = {
     syncPageSubtitle: 'Field workstation status, in real time',
     bddPageTitle: 'Database',
     bddPageSubtitle: 'Configuration backups and data volumetry',
+    backupDelete: 'Delete',
+    backupDeleteTitle: 'Delete this backup?',
+    backupDeleteSubtitle: 'Backup from {{date}}',
+    backupDeleteBody: 'This backup will be permanently erased and can no longer serve as a restore point. The current system configuration is not modified.',
+    toastBackupDeleted: 'Backup deleted',
     // Relative time (relative() helper)
     relativeNever: 'never',
     relativeNow: 'just now',

@@ -1,5 +1,6 @@
 import {
   Controller,
+  Delete,
   Get,
   Post,
   Param,
@@ -42,6 +43,18 @@ export class SynchronisationController {
   @HttpCode(HttpStatus.OK)
   restaurer(@Param('id') id: string, @Req() req: any) {
     return this.svc.restaurerSauvegarde(id, req.user?.id ?? null)
+  }
+
+  /**
+   * Supprime une sauvegarde. Gardée sous `synchronisation.execute` et non sous
+   * `.restore` : c'est un geste d'entretien du jeu de sauvegardes, comme en créer
+   * une — alors que `.restore` protège l'acte de réécrire la configuration en place.
+   */
+  @Delete('sauvegardes/:id')
+  @RequirePermissions('synchronisation.execute')
+  @HttpCode(HttpStatus.OK)
+  supprimer(@Param('id') id: string, @Req() req: any) {
+    return this.svc.supprimerSauvegarde(id, req.user?.id ?? null)
   }
 
   /** Ré-encrypte la messagerie vers la clé courante (nettoyage après rotation de clé). */

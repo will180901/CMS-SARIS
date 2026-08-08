@@ -423,6 +423,22 @@ export function useDeclencherSauvegarde() {
   })
 }
 
+/**
+ * Supprime une sauvegarde. Contrairement à la restauration, la configuration en place
+ * n'est pas touchée : on n'invalide donc que la liste des sauvegardes, pas tout le cache.
+ */
+export function useSupprimerSauvegarde() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => adminApi.synchronisation.supprimer(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'sauvegardes'] })
+      toast.success(i18n.t('admin.toastBackupDeleted', { defaultValue: 'Sauvegarde supprimée' }))
+    },
+    onError: toastErr,
+  })
+}
+
 export function useRestaurerSauvegarde() {
   const qc = useQueryClient()
   return useMutation({
