@@ -84,3 +84,27 @@ export async function assurerJetonLocal(): Promise<boolean> {
   if (!identifiantsEnMemoire) return false
   return obtenirJetonLocal(identifiantsEnMemoire.login, identifiantsEnMemoire.password)
 }
+
+/**
+ * Donne au poste son identité de synchronisation à partir de la PREMIÈRE connexion.
+ *
+ * L'installation ne demande que l'adresse du serveur : aucun mot de passe administrateur
+ * confié au technicien qui déploie les machines. Ce sont donc les jetons du premier
+ * utilisateur qui se connecte qui provisionnent le poste, et SON site qui devient celui
+ * de la machine.
+ *
+ * Sans effet si le poste est déjà provisionné (le processus principal le vérifie), et
+ * sans conséquence en cas d'échec : le poste continue de travailler contre le central,
+ * simplement sans hors-ligne, et l'on retentera à la connexion suivante.
+ */
+export function provisionnerPosteDepuisConnexion(
+  accessToken: string,
+  refreshToken: string,
+  siteId?: string | null,
+): void {
+  const bridge = desktopBridge()
+  if (!bridge?.provisionPoste || !siteId) return
+  void bridge.provisionPoste({ accessToken, refreshToken, siteId }).catch(() => {
+    /* best-effort : jamais bloquant pour l'utilisateur qui vient de se connecter */
+  })
+}

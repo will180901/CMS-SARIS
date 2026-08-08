@@ -18,6 +18,7 @@ import { startBackend, findFreePort, stopBackend } from './backend'
 import { ensureDb } from './db-init'
 import {
   isSyncConfigured, authenticateSync, listPendingSites, finalizeSyncSetup, discardPendingAuth,
+  serveurRenseigne, enregistrerServeur, provisionnerPoste,
   declarerPosteAuServeur,
   refreshAccessToken, startRefreshTimer, stopRefreshTimer,
   clearSync, getPosteLocalId, getPosteLibelle, syncTokenFilePath,
@@ -212,8 +213,11 @@ function createMainWindow(): void {
   })
 
   // Backend prêt → app ; mode local non configuré → écran de config ; sinon → connexion serveur.
+  // `needsLocalSetup` = adresse du serveur inconnue. On demande UNIQUEMENT cette
+  // adresse (server-config.html) : plus d'identifiants a l'installation. L'ecran a deux
+  // etapes (sync-setup.html) n'est plus emprunte — cf. decision « le site vient de la
+  // premiere connexion ».
   if (effectiveApiUrl) loadApplication()
-  else if (needsLocalSetup) loadSyncSetup()
   else loadServerConfig()
 }
 
@@ -364,6 +368,53 @@ function registerIpc(): void {
   })
 
   ipcMain.handle('saris:sync-discard', () => { discardPendingAuth() })
+
+  /**
+   * INSTALLATION — seule étape : l'adresse du serveur. Aucun identifiant demandé : un
+   * technicien qui déploie vingt postes n'a pas à détenir le mot de passe administrateur.
+   * On vérifie que le serveur répond, on mémorise, et l'on ouvre l'application — qui
+   * présentera son écran de connexion habituel, contre le central.
+   */
+  ipcMain.handle('saris:sync-set-server', async (_e, params: { serverUrl: string }) => {
+    const res = await enregistrerServeur(params.serverUrl)
+    if (res.ok) {
+      effectiveApiUrl = resolveServerUrl()
+      serverOnline = true
+      rendererApiUrl = effectiveApiUrl
+      setImmediate(() => loadApplication())
+    }
+    return res
+  })
+
+  /**
+   * PREMIÈRE CONNEXION — le poste reçoit son identité de synchronisation.
+   *
+   * Appelé par l'application après une connexion réussie, tant que le poste n'est pas
+   * provisionné. Les jetons de l'utilisateur deviennent ceux de la machine, et SON site
+   * devient celui du poste (décision : le site vient de la première connexion).
+   *
+   * Best-effort : en cas d'échec, le poste continue de fonctionner contre le central —
+   * simplement sans hors-ligne — et l'on retentera à la connexion suivante.
+   */
+  ipcMain.handle('saris:provision-poste', async (
+    _e,
+    params: { accessToken: string; refreshToken: string; siteId: string },
+  ) => {
+    if (isSyncConfigured()) return { ok: true } // déjà fait : rien à refaire
+    const res = await provisionnerPoste(params.accessToken, params.refreshToken, params.siteId)
+    if (!res.ok) { log.warn(`[provision] echec : ${res.error ?? '?'}`); return res }
+    log.info('[provision] poste provisionné — démarrage du backend embarqué')
+    // Démarrage en arrière-plan : l'utilisateur est DÉJÀ dans l'application, connecté au
+    // central. La bascule vers le local se fera par la sonde de connectivité, sans rien
+    // interrompre de ce qu'il est en train de faire.
+    setImmediate(() => {
+      void (async () => {
+        await startLocalBackend()
+        if (effectiveApiUrl) await startConnectivityWatch()
+      })()
+    })
+    return res
+  })
   ipcMain.handle('saris:check-updates', () => checkForUpdates())
   ipcMain.handle('saris:update-download', () => downloadUpdate())
   ipcMain.handle('saris:update-install', () => quitAndInstall())
@@ -483,10 +534,22 @@ async function initBackend(): Promise<void> {
     effectiveApiUrl = resolveApiUrl()
     return
   }
-  // Mode local : base SQLite + synchro depuis le serveur central (offline-first). PAS de
-  // seed → la base se remplit par la synchro. 1er lancement / session expirée → config.
-  if (!isSyncConfigured()) {
+  // 1er lancement : l'installation ne demande QUE l'adresse du serveur.
+  if (!serveurRenseigne()) {
     needsLocalSetup = true
+    return
+  }
+  // Adresse connue, mais poste PAS ENCORE PROVISIONNÉ : personne ne s'est encore connecté,
+  // donc aucun jeton de synchronisation. On ouvre l'application en CLIENT DISTANT, contre
+  // le central — l'utilisateur travaille normalement. Le backend embarqué démarrera à la
+  // première connexion, quand on aura ses jetons (cf. `saris:provision-poste`).
+  //
+  // C'est ce qui rend l'installation sans mot de passe possible sans rien casser : tant
+  // qu'on n'est pas provisionné, le poste se comporte exactement comme un client web.
+  if (!isSyncConfigured()) {
+    effectiveApiUrl = resolveServerUrl()
+    serverOnline = true
+    rendererApiUrl = effectiveApiUrl
     return
   }
   // Configuré : on rafraîchit l'access token (best-effort) avant de démarrer le backend.

@@ -29,6 +29,9 @@ export interface SarisDesktopBridge {
   posteSiteId?: string | null
   /** URL du backend embarqué (mode local) — vide en mode distant. */
   localApiUrl?: string
+  /** Provisionne le poste à partir de la PREMIÈRE connexion (jetons + site du compte). */
+  provisionPoste?: (params: { accessToken: string; refreshToken: string; siteId: string })
+    => Promise<{ ok: boolean; error?: string }>
   setApiUrl: (url: string) => Promise<{ ok: boolean }>
   getConfig: () => Promise<{ apiUrl: string; appVersion: string }>
   /** Bascule « online-first » : pousse l'URL d'API active (central en ligne / local hors-ligne). */

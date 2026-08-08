@@ -89,6 +89,63 @@ export function isSyncConfigured(): boolean {
   return !!(cfg.serverUrl && cfg.siteId) && !!secureGet(REFRESH_KEY)
 }
 
+/** L'adresse du serveur est-elle connue ? C'est la SEULE chose demandée à l'installation. */
+export function serveurRenseigne(): boolean {
+  return !!readConfig().serverUrl
+}
+
+/** Enregistre l'adresse du serveur central après l'avoir jointe. Seule étape d'installation. */
+export async function enregistrerServeur(serverUrl: string): Promise<SetupResult> {
+  const server = trimUrl(serverUrl)
+  if (!/^https?:\/\//i.test(server)) {
+    return { ok: false, error: 'L’adresse doit commencer par http:// ou https://' }
+  }
+  try {
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), 8000)
+    const res = await fetch(server + '/health/ping', { signal: ctrl.signal })
+    clearTimeout(timer)
+    if (!res.ok) return { ok: false, error: `Le serveur a répondu ${res.status}. Vérifiez l’adresse.` }
+  } catch {
+    return { ok: false, error: 'Serveur injoignable à cette adresse. Vérifiez le réseau et l’adresse.' }
+  }
+  // `mode: 'local'` dès maintenant : ce poste EST un poste autonome. Il n'a simplement
+  // pas encore de jetons — il travaillera donc contre le central en attendant.
+  writeConfig({ mode: 'local', serverUrl: server })
+  return { ok: true }
+}
+
+/**
+ * Provisionne le poste À PARTIR DE LA PREMIÈRE CONNEXION d'un utilisateur.
+ *
+ * L'installation ne demande plus que l'adresse du serveur : plus de login administrateur
+ * à confier au technicien qui déploie vingt machines. Ce sont les jetons du PREMIER
+ * utilisateur qui se connecte qui donnent au poste son identité de synchronisation, et
+ * c'est SON site qui devient celui du poste.
+ *
+ * Sans conséquence si ça échoue : le poste continue de fonctionner contre le central,
+ * simplement sans mode hors-ligne, et l'on retentera à la connexion suivante.
+ */
+export async function provisionnerPoste(
+  accessToken: string,
+  refreshToken: string,
+  siteId: string,
+): Promise<SetupResult> {
+  const serverUrl = readConfig().serverUrl
+  if (!serverUrl) return { ok: false, error: 'Adresse du serveur inconnue.' }
+  if (!siteId) return { ok: false, error: 'Le compte connecté n’est rattaché à aucun site.' }
+
+  writeConfig({ mode: 'local', serverUrl, siteId })
+  secureSet(REFRESH_KEY, refreshToken)
+  fs.writeFileSync(syncTokenFilePath(), accessToken, 'utf8')
+  getPosteLibelle() // fixe le nom par défaut (nom de la machine) s'il n'existe pas encore
+
+  const declare = await declarerPoste(serverUrl, accessToken, getPosteLocalId(), siteId, getPosteLibelle())
+  if (declare.fatal) return { ok: false, error: declare.error }
+  if (declare.ok) writeConfig({ posteDeclare: true })
+  return { ok: true }
+}
+
 const trimUrl = (u: string): string => u.trim().replace(/\/+$/, '')
 
 interface AuthResponse {

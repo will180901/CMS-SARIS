@@ -64,6 +64,12 @@ contextBridge.exposeInMainWorld('saris', {
     ipcRenderer.invoke('saris:sync-finalize', params),
   /** Abandonne l'authentification en attente (retour à l'étape 1 depuis l'étape 2). */
   syncDiscard: (): Promise<void> => ipcRenderer.invoke('saris:sync-discard'),
+  /** INSTALLATION — seule etape : l'adresse du serveur (aucun identifiant demande). */
+  syncSetServer: (params: { serverUrl: string }): Promise<{ ok: boolean; error?: string }> =>
+    ipcRenderer.invoke('saris:sync-set-server', params),
+  /** PREMIERE CONNEXION — donne au poste son identite de synchro + son site. */
+  provisionPoste: (params: { accessToken: string; refreshToken: string; siteId: string }): Promise<{ ok: boolean; error?: string }> =>
+    ipcRenderer.invoke('saris:provision-poste', params),
   /** Progression après « Connecter » : { step: 'backend'|'done'|'error', message }. */
   onSetupStatus: (cb: (s: { step: string; message: string }) => void): (() => void) => {
     const listener = (_e: unknown, payload: { step: string; message: string }): void => cb(payload)
