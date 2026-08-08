@@ -3,7 +3,7 @@
  * fichiers + 2 barres de progression, ce qu'electron-builder interdit.
  *
  * Pré-requis : `win-unpacked` doit exister (produit par build-local.mjs, ou
- *   `pnpm --filter @cms-saris/desktop exec electron-builder --dir --config electron-builder.local.yml`).
+ *   `pnpm --filter @cms-saris/desktop dist:unpacked`).
  * Usage : node installer/build-installer.mjs   (depuis apps/desktop)
  */
 import { execFileSync } from 'node:child_process'
@@ -23,8 +23,8 @@ const assets = path.join(desktop, 'build')
 // Nom distinct de l'installeur "remote" par défaut (electron-builder.yml, sans backend
 // embarqué) : ce script ne produit QUE l'installeur "local" autonome (SQLite + API
 // embarqués) — mêmes noms = confusion possible si les deux se retrouvent dans le même
-// dossier de diffusion. Cohérent avec electron-builder.local.yml (artifactName "-Local-").
-const outfile = path.join(desktop, 'release', `CMS SARIS-Local-Setup-${version}.exe`)
+// dossier de diffusion. Cohérent avec electron-builder.yml (artifactName "-Setup-").
+const outfile = path.join(desktop, 'release', `CMS SARIS-Setup-${version}.exe`)
 const nsi = path.join(here, 'cms-saris.nsi')
 
 // Localise signtool.exe (SDK Windows), en préférant x64 puis x86.

@@ -10,8 +10,8 @@
     "build:main": "tsc -p tsconfig.json",
     "build": "pnpm run build:renderer && pnpm run build:main && node scripts/copy-renderer.mjs",
     "start": "electron .",
-    "dist": "pnpm run build && electron-builder --win",
-    "dist:unpacked": "pnpm run build && electron-builder --win --dir",
+    "dist": "node scripts/build-local.mjs",
+    "dist:unpacked": "node scripts/build-local.mjs --dir",
     "clean": "node -e \"for (const d of ['dist-electron','app','release']) require('fs').rmSync(d,{recursive:true,force:true})\""
   },
   "dependencies": {

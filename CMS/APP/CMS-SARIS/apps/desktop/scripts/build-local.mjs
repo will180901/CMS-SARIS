@@ -4,7 +4,7 @@
  * Le mode REMOTE par défaut se build avec `pnpm --filter @cms-saris/desktop dist`
  * (config `electron-builder.yml`). Le mode LOCAL exige des artefacts supplémentaires
  * (API compilée + node_modules à plat, client Prisma SQLite, base pré-migrée) que ce
- * script prépare AVANT d'appeler electron-builder avec `electron-builder.local.yml`.
+ * script prépare AVANT d'appeler electron-builder (`electron-builder.yml`).
  *
  * Étapes (toutes validées manuellement) :
  *   1. build renderer (web, mode desktop) + copie dans app/
@@ -14,7 +14,7 @@
  *   5. seed.db pré-migrée (db push)         → build/seed.db (toutes les tables)
  *   6. client SQLite copié                  → build/sqlite-client
  *   7. deploy API à plat + binaires natifs  → build/api-runtime (node_modules complet)
- *   8. electron-builder (config locale)     → release/CMS SARIS-Local-Setup-*.exe
+ *   8. electron-builder                     → release/CMS SARIS-Setup-*.exe
  *
  * Usage :  node scripts/build-local.mjs            (depuis apps/desktop)
  *          node scripts/build-local.mjs --dir      (dossier non empaqueté, sans NSIS)
@@ -134,7 +134,7 @@ run('node scripts/gen-installer-assets.mjs', { cwd: desktopDir })
 
 // 8 — packaging
 const ebMode = dirOnly ? '--dir' : ''
-run(`pnpm --filter @cms-saris/desktop exec electron-builder --win ${ebMode} --config electron-builder.local.yml`, {
+run(`pnpm --filter @cms-saris/desktop exec electron-builder --win ${ebMode}`, {
   env: { ...process.env, CSC_IDENTITY_AUTO_DISCOVERY: 'false' },
 })
 

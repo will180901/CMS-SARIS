@@ -105,7 +105,7 @@ pnpm --filter @cms-saris/desktop dist
 
 Le canal est **déjà configuré** sur **GitHub Releases** (`publish: provider github`,
 dépôt `will180901/CMS-SARIS`) dans [`electron-builder.yml`](./electron-builder.yml)
-et `electron-builder.local.yml`.
+et `electron-builder.yml`.
 
 **Expérience utilisateur (façon grandes apps).** Au démarrage, l'app vérifie
 silencieusement la dernière release. Si une version plus récente existe, une **bulle
@@ -236,14 +236,14 @@ client Prisma SQLite + **`build/seed.db`** (base SQLite pré-migrée, schéma se
 donnée — copiée par `electron/db-init.ts` vers `%APPDATA%\CMS SARIS\cms-saris.db` au 1er
 lancement) → déploiement de l'API compilée (avec ses dépendances à plat) dans
 `build/api-runtime/` → écriture de `dist-electron/defaults.json` (mode `local` + secrets
-lus depuis `apps/api/.env`) → `electron-builder --win --config electron-builder.local.yml`
+lus depuis `apps/api/.env`) → `electron-builder --win`
 (config **séparée** de `electron-builder.yml`, avec ses propres `extraResources`
 `build/api-runtime → api`, `build/sqlite-client → sqlite-client`, `build/seed.db → seed.db`).
 Le mode distant par défaut n'est jamais affecté : ce pipeline ne touche à aucun fichier
 utilisé par `pnpm --filter @cms-saris/desktop dist`.
 
 `installer/build-installer.mjs` prend ensuite le relais pour produire l'installeur final
-signé (`release/CMS SARIS-Local-Setup-<version>.exe` + `latest.yml`) à partir du
+signé (`release/CMS SARIS-Setup-<version>.exe` + `latest.yml`) à partir du
 `win-unpacked` généré ci-dessus — voir [`installer/cms-saris.nsi`](./installer/cms-saris.nsi).
 
 ⚠️ Pipeline vérifié statiquement (chemins, noms de fichiers, options electron-builder
