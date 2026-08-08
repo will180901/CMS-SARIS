@@ -19,7 +19,7 @@ import {
   HardDrive, CheckCircle2, AlertTriangle, Loader2, CloudUpload, Trash2,
   RotateCcw, Users, Stethoscope, Pill, Ambulance, FlaskConical, HardHat, ClipboardList,
   CalendarClock, MonitorSmartphone, Activity, GitMerge, Radio, LayoutGrid, List, Search,
-  X, Clock, LogIn, Pencil, User, MessageSquare, Download,
+  X, Clock, LogIn, Pencil, User, MessageSquare, Download, ChevronRight, ChevronDown,
 } from 'lucide-react'
 import {
   PageHeader, Card, Button, StatusPill, Skeleton, EmptyState, Tooltip, Modal, SegmentedTabs,
@@ -377,6 +377,36 @@ function PostesSection({ postes, enLigne, loading, canExecute }: {
 
   const pagination = usePagination(filtered, useRowsPerPage())
 
+  // ── Regroupement par site ────────────────────────────────────────────────────
+  // Un humain ne dit pas « poste-47 est muet », il dit « Nkayi ne remonte plus ». Le site
+  // est l'unité dans laquelle on raisonne, et replier les groupes sains ramène un parc de
+  // 200 machines à une dizaine de lignes.
+  const groupes = useMemo(() => {
+    const parSite = new Map<string, { libelle: string; postes: SyncSupervisionPoste[] }>()
+    for (const p of filtered) {
+      const cle = p.siteId || '__sans_site'
+      let g = parSite.get(cle)
+      if (!g) { g = { libelle: p.siteLibelle ?? t('admin.supSiteInconnu'), postes: [] }; parSite.set(cle, g) }
+      g.postes.push(p)
+    }
+    return [...parSite.entries()]
+      .map(([id, g]) => ({ id, ...g, aSurveiller: g.postes.filter(p => aBesoinAttention(p, maintenant)).length }))
+      // Les sites qui réclament une action remontent ; à égalité, ordre alphabétique
+      // pour que la liste reste stable d'un rafraîchissement à l'autre.
+      .sort((a, b) => b.aSurveiller - a.aSurveiller || a.libelle.localeCompare(b.libelle))
+  }, [filtered, maintenant, t])
+
+  // Le regroupement ne s'active que s'il apporte quelque chose : plusieurs sites, et assez
+  // de postes pour que la liste à plat devienne pénible. Sur 4 anomalies réparties sur
+  // 3 sites, des en-têtes de groupe ajouteraient du bruit sans rien clarifier — le nom du
+  // site figure alors directement sur chaque carte.
+  const grouper = groupes.length > 1 && filtered.length > SEUIL_PARC_IMPORTANT
+
+  // Repli : ouvert par défaut si le site a des anomalies, replié sinon. Un clic sur
+  // l'en-tête inscrit un choix explicite, qui l'emporte ensuite.
+  const [ouvertures, setOuvertures] = useState<Record<string, boolean>>({})
+  const estOuvert = (g: { id: string; aSurveiller: number }) => ouvertures[g.id] ?? g.aSurveiller > 0
+
   if (loading) {
     return (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 'var(--espace-2)' }}>
@@ -465,6 +495,67 @@ function PostesSection({ postes, enLigne, loading, canExecute }: {
         ) : (
           <EmptyState icon={<Search size={18} />} title={t('admin.supNoMatchTitle')} description={t('admin.supNoMatchDesc')} variant="subtle" />
         )
+      ) : grouper ? (
+        // Vue groupée : le repli remplace la pagination. Douze sites repliés tiennent en
+        // douze lignes — on n'a plus besoin de tourner les pages pour balayer le parc.
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--espace-2)' }}>
+          {groupes.map(g => {
+            const ouvert = estOuvert(g)
+            return (
+              <div key={g.id}>
+                <button
+                  type="button"
+                  onClick={() => setOuvertures(o => ({ ...o, [g.id]: !ouvert }))}
+                  aria-expanded={ouvert}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 'var(--espace-2)', width: '100%',
+                    padding: 'var(--espace-2) var(--espace-3)', borderRadius: 'var(--radius-lg)',
+                    border: '1px solid var(--bordure-legere)',
+                    background: g.aSurveiller > 0 ? 'var(--avert-fond)' : 'var(--fond-surface-2)',
+                    cursor: 'pointer', textAlign: 'left',
+                  }}
+                >
+                  {ouvert ? <ChevronDown size={15} style={{ color: 'var(--texte-tertiaire)', flexShrink: 0 }} />
+                          : <ChevronRight size={15} style={{ color: 'var(--texte-tertiaire)', flexShrink: 0 }} />}
+                  <span style={{
+                    flex: 1, minWidth: 0, fontSize: 'var(--font-size-body-sm)', fontWeight: 700,
+                    color: g.aSurveiller > 0 ? 'var(--avert-texte)' : 'var(--texte-primaire)',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {g.libelle}
+                  </span>
+                  <span style={{ fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)', flexShrink: 0 }}>
+                    {t('admin.supGroupePostes', { count: g.postes.length })}
+                  </span>
+                  {g.aSurveiller > 0 && (
+                    <StatusPill tone="warning" size="sm">
+                      {t('admin.supGroupeASurveiller', { count: g.aSurveiller })}
+                    </StatusPill>
+                  )}
+                </button>
+
+                {ouvert && (
+                  <div style={{
+                    marginTop: 'var(--espace-2)', paddingLeft: 'var(--espace-5)',
+                    ...(vue === 'grid'
+                      ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 'var(--espace-2)' }
+                      : { display: 'flex', flexDirection: 'column', gap: 'var(--espace-2)' }),
+                  }}>
+                    {g.postes.map(p => (
+                      <PosteCard
+                        key={p.id} poste={p} masquerSite
+                        onOpenDetail={() => setDetailId(p.id)}
+                        onMasquer={canExecute ? () => masquer.mutate(p.id, {
+                          onSuccess: () => toast.success(t('admin.supPosteRemoved')),
+                        }) : undefined}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
       ) : (
         <>
           <div style={vue === 'grid'
@@ -509,8 +600,10 @@ function PostesSection({ postes, enLigne, loading, canExecute }: {
   )
 }
 
-function PosteCard({ poste, onOpenDetail, onMasquer }: {
-  poste: SyncSupervisionPoste; onOpenDetail: () => void; onMasquer?: () => void
+/** `masquerSite` : à l'intérieur d'un groupe de site, répéter le nom du site sur chaque
+ *  carte n'apprend rien — l'en-tête du groupe le dit déjà. */
+function PosteCard({ poste, onOpenDetail, onMasquer, masquerSite }: {
+  poste: SyncSupervisionPoste; onOpenDetail: () => void; onMasquer?: () => void; masquerSite?: boolean
 }) {
   const { t } = useTranslation()
   const [hovered, setHovered] = useState(false)
@@ -545,6 +638,9 @@ function PosteCard({ poste, onOpenDetail, onMasquer }: {
           {poste.libelle}
         </p>
         <p style={{ margin: '1px 0 0', fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {/* Le site vient EN PREMIER : hors regroupement, savoir où se trouve la machine
+              prime sur savoir qui s'en est servi en dernier. */}
+          {!masquerSite && poste.siteLibelle && `${poste.siteLibelle} · `}
           {poste.utilisateurNom && `${poste.utilisateurNom} · `}
           {t('admin.supLastSync')} · {relative(poste.derniereSyncAt)}
         </p>

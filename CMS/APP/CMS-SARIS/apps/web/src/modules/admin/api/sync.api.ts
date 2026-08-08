@@ -29,6 +29,10 @@ export interface SyncRunResult {
 export interface SyncSupervisionPoste {
   id: string
   libelle: string
+  /** Site de rattachement, choisi une fois pour toutes à l'installation du poste. */
+  siteId: string
+  /** Libellé lisible de ce site — `null` si le site a été supprimé depuis. */
+  siteLibelle: string | null
   /** Nom (ou identifiant) du dernier utilisateur ayant synchronisé depuis ce poste. */
   utilisateurNom: string | null
   /** Rôle de ce dernier utilisateur (le plus élevé s'il en porte plusieurs). */

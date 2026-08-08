@@ -109,19 +109,20 @@ export class SyncController {
     return this.supervision.lirePoste(id)
   }
 
-  /** Renomme un poste (nom unique par site) — supervision admin. */
+  /** Renomme un poste (nom unique par site) — supervision admin.
+   *
+   *  Les trois routes de supervision ci-dessous ne filtrent plus sur le site de
+   *  l'appelant : la liste couvre tout le parc, un poste qu'on y voit doit pouvoir
+   *  être ouvert, renommé et retiré. Le filtre héritait du cloisonnement retiré et
+   *  produisait un « Poste introuvable » sur une machine pourtant affichée. La
+   *  protection reste la permission `synchronisation.execute`. */
   @Patch('supervision/postes/:id')
   @RequirePermissions('synchronisation.execute')
-  renamePoste(
-    @Req() req: AuthedRequest,
-    @Param('id') id: string,
-    @Body() dto: RenamePosteDto,
-  ) {
-    const { siteId } = requireUser(req)
-    return this.supervision.renamePoste(siteId, id, dto.libelle)
+  renamePoste(@Param('id') id: string, @Body() dto: RenamePosteDto) {
+    return this.supervision.renamePoste(id, dto.libelle)
   }
 
-  /** Supervision (serveur central) : postes, activité récente, conflits — scope par site. */
+  /** Supervision (serveur central) : postes, activité récente, conflits — tout le parc. */
   @Get('supervision')
   @RequirePermissions('synchronisation.read')
   getSupervision() {
@@ -132,17 +133,15 @@ export class SyncController {
   /** Détail d'un poste (modale) : identité + fenêtre de sa dernière session connectée. */
   @Get('supervision/postes/:id')
   @RequirePermissions('synchronisation.read')
-  getPosteDetail(@Req() req: AuthedRequest, @Param('id') id: string) {
-    const { siteId } = requireUser(req)
-    return this.supervision.getPosteDetail(siteId, id)
+  getPosteDetail(@Param('id') id: string) {
+    return this.supervision.getPosteDetail(id)
   }
 
   /** Retire un poste de la liste de supervision (dismiss) — réapparaît à sa prochaine synchro. */
   @Delete('supervision/postes/:id')
   @RequirePermissions('synchronisation.execute')
-  async masquerPoste(@Req() req: AuthedRequest, @Param('id') id: string) {
-    const { siteId } = requireUser(req)
-    await this.supervision.masquerPoste(siteId, id)
+  async masquerPoste(@Param('id') id: string) {
+    await this.supervision.masquerPoste(id)
     return { ok: true }
   }
 

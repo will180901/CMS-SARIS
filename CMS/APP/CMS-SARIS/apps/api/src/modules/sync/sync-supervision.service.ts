@@ -244,22 +244,27 @@ export class SyncSupervisionService {
     return { id: poste.id, libelle: poste.libelle, siteId: poste.siteId, site }
   }
 
-  /** Renomme un poste (supervision admin) — nom UNIQUE au sein du site. */
+  /** Renomme un poste (supervision admin) — nom UNIQUE au sein du site.
+   *
+   *  Pas de filtre sur le site de l'appelant : la supervision couvre TOUT le parc depuis
+   *  le retrait du cloisonnement, et un poste visible dans la liste doit être gérable.
+   *  Le contraire donnait un « Poste introuvable » sur une machine affichée à l'écran. */
   async renamePoste(
-    siteId: string,
     posteId: string,
     libelle: string,
   ): Promise<{ libelle: string }> {
     const trimmed = libelle.trim()
     if (!trimmed) throw new BadRequestException('Le nom du poste est requis')
 
-    const poste = await this.prisma.posteLocal.findFirst({
-      where: { id: posteId, siteId },
+    const poste = await this.prisma.posteLocal.findUnique({
+      where: { id: posteId },
     })
     if (!poste) throw new NotFoundException('Poste introuvable')
 
+    // Unicité au sein du site DU POSTE, et non de celui qui renomme : deux sites
+    // peuvent tous deux avoir un « Bureau Accueil » sans que cela prête à confusion.
     const doublon = await this.prisma.posteLocal.findFirst({
-      where: { siteId, libelle: trimmed, id: { not: posteId } },
+      where: { siteId: poste.siteId, libelle: trimmed, id: { not: posteId } },
     })
     if (doublon)
       throw new BadRequestException(
@@ -334,9 +339,10 @@ export class SyncSupervisionService {
    * session connectée (début → fin), déduite de la suite CONTIGUË de journaux de synchro la
    * plus récente (un écart > ONLINE_WINDOW_MS entre deux cycles marque une déconnexion).
    */
-  async getPosteDetail(siteId: string, posteId: string) {
-    const poste = await this.prisma.posteLocal.findFirst({
-      where: { id: posteId, siteId },
+  async getPosteDetail(posteId: string) {
+    // Tout le parc est visible dans la liste : tout poste de la liste doit s'ouvrir.
+    const poste = await this.prisma.posteLocal.findUnique({
+      where: { id: posteId },
     })
     if (!poste) throw new NotFoundException('Poste introuvable')
 
@@ -364,22 +370,31 @@ export class SyncSupervisionService {
     return { ...enrichi, sessionDebut, sessionFin }
   }
 
-  /** Retire un poste de la liste de supervision (dismiss) — cf. record() pour le retour. */
-  async masquerPoste(siteId: string, posteId: string): Promise<void> {
+  /** Retire un poste de la liste de supervision (dismiss) — cf. record() pour le retour.
+   *  Sans filtre de site, pour la même raison que getPosteDetail. */
+  async masquerPoste(posteId: string): Promise<void> {
     const { count } = await this.prisma.posteLocal.updateMany({
-      where: { id: posteId, siteId },
+      where: { id: posteId },
       data: { masque: true },
     })
     if (!count) throw new NotFoundException('Poste introuvable')
   }
 
   /** Enrichit des postes avec le nom + rôle du DERNIER utilisateur connecté (nom lisible au lieu
-   *  de l'identifiant machine). `dernierUtilisateurId` n'est PAS une relation Prisma (cf.
-   *  createdBy/updatedBy ailleurs au schéma) → jointure manuelle, une seule requête groupée. */
+   *  de l'identifiant machine) et le LIBELLÉ de leur site de rattachement.
+   *
+   *  Ni `dernierUtilisateurId` ni `siteId` ne sont des relations Prisma sur PosteLocal
+   *  (cf. createdBy/updatedBy ailleurs au schéma) → jointures manuelles, une requête
+   *  groupée chacune. Deux requêtes fixes quel que soit le nombre de postes : sur un parc
+   *  de 200 machines, une jointure par poste en ferait 400.
+   *
+   *  Le site est renvoyé parce que l'écran de supervision raisonne par site : « Nkayi ne
+   *  remonte plus » est une phrase qu'un humain prononce, « poste-47 est muet » non. */
   private async enrichPostes<
     T extends {
       id: string
       libelle: string
+      siteId: string
       dernierUtilisateurId: string | null
       derniereSyncAt: Date | null
     },
@@ -392,8 +407,13 @@ export class SyncSupervisionService {
           .filter((id): id is string => !!id),
       ),
     ]
-    const utilisateurs = utilisateurIds.length
-      ? await this.prisma.utilisateur.findMany({
+    const siteIds = [...new Set(postes.map((p) => p.siteId).filter(Boolean))]
+
+    // Promesses nommées plutôt qu'un littéral dans Promise.all : mélanger une promesse
+    // et un tableau vide dans le même littéral fait perdre l'inférence de TypeScript,
+    // qui retombe alors sur `{}` pour les éléments.
+    const utilisateursP = utilisateurIds.length
+      ? this.prisma.utilisateur.findMany({
           where: { id: { in: utilisateurIds } },
           select: {
             id: true,
@@ -402,8 +422,18 @@ export class SyncSupervisionService {
             roles: { select: { role: { select: { code: true } } } },
           },
         })
-      : []
-    const utilisateurById = new Map(utilisateurs.map((u) => [u.id, u]))
+      : Promise.resolve([])
+    const sitesP = siteIds.length
+      ? this.prisma.site.findMany({
+          where: { id: { in: siteIds } },
+          select: { id: true, libelle: true },
+        })
+      : Promise.resolve([])
+    const [utilisateurs, sites] = await Promise.all([utilisateursP, sitesP])
+    // `as const` : sans lui, `.map()` produit un tableau et non un couple, et le Map
+    // retombe sur Map<unknown, unknown> — d'où des `{}` à la lecture plus bas.
+    const utilisateurById = new Map(utilisateurs.map((u) => [u.id, u] as const))
+    const siteById = new Map(sites.map((s) => [s.id, s.libelle] as const))
 
     return postes.map((p) => {
       const u = p.dernierUtilisateurId
@@ -420,6 +450,10 @@ export class SyncSupervisionService {
       return {
         id: p.id,
         libelle: p.libelle,
+        siteId: p.siteId,
+        // Un site supprimé depuis laisse ses postes orphelins : on le dit plutôt que
+        // d'afficher un identifiant technique ou un blanc.
+        siteLibelle: siteById.get(p.siteId) ?? null,
         utilisateurNom,
         utilisateurRole,
         derniereSyncAt: p.derniereSyncAt,
