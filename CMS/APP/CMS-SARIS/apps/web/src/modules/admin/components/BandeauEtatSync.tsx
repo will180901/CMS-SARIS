@@ -6,13 +6,17 @@
  * Un écran de supervision doit dire l'essentiel AVANT qu'on ait cliqué.
  *
  * Une seule phrase, dont le ton suit la gravité réelle :
- *   • rien d'anormal          → vert, on passe son chemin ;
- *   • des postes muets        → orange, avec leur nombre ;
- *   • des conflits en attente → rouge, car ils demandent une décision humaine.
+ *   • rien d'anormal           → vert, on passe son chemin ;
+ *   • des postes à surveiller  → orange, avec leur nombre ;
+ *   • des conflits en attente  → rouge, car ils demandent une décision humaine.
  *
- * Un poste « muet » n'est pas un poste hors ligne : un poste éteint la nuit est normal.
- * C'est le silence PROLONGÉ d'une machine qui devrait travailler qui mérite l'alerte —
- * d'où le seuil en heures plutôt qu'en minutes.
+ * « À surveiller » n'est pas « hors ligne » : un poste éteint la nuit est normal. C'est
+ * le silence PROLONGÉ d'une machine qui devrait travailler — ou un poste qui n'a jamais
+ * rien remonté — qui mérite l'alerte. D'où le seuil en heures plutôt qu'en minutes.
+ *
+ * Ce compteur doit rester IDENTIQUE à celui de la pastille « À surveiller » de la liste :
+ * deux chiffres différents sur le même écran pour désigner les mêmes postes, et l'écran
+ * cesse d'être crédible. Les deux s'appuient sur `aBesoinAttention()`.
  */
 import { useTranslation } from 'react-i18next'
 import { CheckCircle2, AlertTriangle, XCircle, Radio } from 'lucide-react'
@@ -21,10 +25,10 @@ import { CheckCircle2, AlertTriangle, XCircle, Radio } from 'lucide-react'
 export const SEUIL_MUET_MS = 2 * 60 * 60 * 1000
 
 export interface EtatSync {
-  total:      number
-  enLigne:    number
-  muets:      number
-  conflits:   number
+  total:       number
+  enLigne:     number
+  aSurveiller: number
+  conflits:    number
 }
 
 type Ton = 'ok' | 'attention' | 'critique'
@@ -32,7 +36,7 @@ type Ton = 'ok' | 'attention' | 'critique'
 export function BandeauEtatSync({ etat, loading }: { etat: EtatSync; loading?: boolean }) {
   const { t } = useTranslation()
 
-  const ton: Ton = etat.conflits > 0 ? 'critique' : etat.muets > 0 ? 'attention' : 'ok'
+  const ton: Ton = etat.conflits > 0 ? 'critique' : etat.aSurveiller > 0 ? 'attention' : 'ok'
 
   const COULEURS: Record<Ton, { fond: string; texte: string; bordure: string }> = {
     ok:        { fond: 'var(--succes-fond)', texte: 'var(--succes-texte)', bordure: 'var(--succes-accent)' },
@@ -52,10 +56,12 @@ export function BandeauEtatSync({ etat, loading }: { etat: EtatSync; loading?: b
             defaultValue: '{{n}} conflit(s) à trancher — des données divergent entre un poste et le serveur.',
             n: etat.conflits,
           })
-        : etat.muets > 0
+        : etat.aSurveiller > 0
+          // Formulation volontairement large : elle doit couvrir aussi bien la machine
+          // devenue silencieuse que celle qui n'a jamais rien remonté.
           ? t('admin.syncEtatMuets', {
-              defaultValue: '{{n}} poste(s) sans signe de vie depuis plus de 2 h.',
-              n: etat.muets,
+              defaultValue: '{{n}} poste(s) ne donnent pas signe de vie.',
+              n: etat.aSurveiller,
             })
           : t('admin.syncEtatOk', {
               defaultValue: 'Tout est à jour — {{n}} poste(s) synchronisé(s).',

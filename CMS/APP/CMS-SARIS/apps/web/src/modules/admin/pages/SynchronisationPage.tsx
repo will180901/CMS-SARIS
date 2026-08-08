@@ -126,13 +126,12 @@ export function SynchronisationPage() {
   const postes = useMemo(() => sup?.postes ?? [], [sup?.postes])
   const conflits = useMemo(() => sup?.conflits ?? [], [sup?.conflits])
   const etat = useMemo<EtatSync>(() => ({
-    total:    postes.length,
-    enLigne:  postes.filter(p => p.enLigne).length,
-    // Muet ≠ hors ligne : un poste éteint la nuit est normal. C'est le silence
-    // PROLONGÉ d'une machine qui devrait travailler qui mérite d'être signalé.
-    muets:    postes.filter(p => !p.enLigne && p.derniereSyncAt
-                && maintenant - new Date(p.derniereSyncAt).getTime() > SEUIL_MUET_MS).length,
-    conflits: conflits.length,
+    total:       postes.length,
+    enLigne:     postes.filter(p => p.enLigne).length,
+    // Même prédicat que la pastille « À surveiller » de la liste, à dessein : le bandeau
+    // annonce un nombre, la liste doit contenir exactement ces postes-là.
+    aSurveiller: postes.filter(p => aBesoinAttention(p, maintenant)).length,
+    conflits:    conflits.length,
   }), [postes, conflits, maintenant])
 
   return (
@@ -211,8 +210,32 @@ function journalStatutLabel(t: TFn, statut: string): string {
 }
 
 type SupTab = 'postes' | 'activite' | 'conflits'
-type PosteFiltre = 'tous' | 'ligne' | 'horsligne'
+type PosteFiltre = 'attention' | 'tous' | 'ligne' | 'horsligne'
 type PosteVue = 'grid' | 'list'
+
+/**
+ * Au-delà de ce nombre de postes, la liste complète cesse d'informer : sur un parc de
+ * 200 machines, 190 vont bien un jour normal, et les faire défiler revient à ranger
+ * proprement du bruit. On bascule donc par défaut sur les seules anomalies.
+ *
+ * En deçà, l'inventaire garde du sens : avec cinq postes, on veut les voir tous les cinq,
+ * pas devoir cliquer pour les afficher.
+ */
+const SEUIL_PARC_IMPORTANT = 12
+
+/**
+ * Un poste « à surveiller » est un poste dont le silence n'a pas d'explication normale :
+ *   - muet : plus aucune nouvelle depuis des heures alors qu'il devrait travailler ;
+ *   - jamais synchronisé : enregistré, mais qui n'a jamais rien remonté.
+ *
+ * Un poste simplement hors ligne n'en fait PAS partie — une machine éteinte le soir ou
+ * sur un site fermé est un fonctionnement attendu, pas un incident.
+ */
+function aBesoinAttention(p: SyncSupervisionPoste, maintenant: number): boolean {
+  if (p.enLigne) return false
+  if (!p.derniereSyncAt) return true
+  return maintenant - new Date(p.derniereSyncAt).getTime() > SEUIL_MUET_MS
+}
 
 function SupervisionZone() {
   const { t } = useTranslation()
@@ -313,19 +336,34 @@ function PostesSection({ postes, enLigne, loading, canExecute }: {
 }) {
   const { t } = useTranslation()
   const [search, setSearch] = useState('')
-  const [filtre, setFiltre] = useState<PosteFiltre>('tous')
+  // `null` = l'opérateur n'a pas encore choisi : le filtre découle alors de la taille du
+  // parc. Stocker directement un défaut ne marcherait pas — l'état s'initialiserait
+  // pendant le chargement, avec 0 poste, et resterait figé sur ce mauvais calcul.
+  const [filtreChoisi, setFiltreChoisi] = useState<PosteFiltre | null>(null)
   const [vue, setVue] = useState<PosteVue>('grid')
   const [detailId, setDetailId] = useState<string | null>(null)
   const masquer = useMasquerPoste()
+  // Horloge figée au montage : la relire à chaque rendu le rendrait impur. Les données
+  // temps réel remontent un nouvel objet, le calcul se refait alors avec l'heure fraîche.
+  const [maintenant] = useState(() => Date.now())
 
+  const aSurveiller = postes.filter(p => aBesoinAttention(p, maintenant))
   const horsLigne = postes.length - enLigne
+
+  // Sur un grand parc, l'écran s'ouvre sur ce qui réclame une action plutôt que sur
+  // l'inventaire complet. Dès que l'opérateur touche une pastille, son choix l'emporte.
+  const filtre: PosteFiltre = filtreChoisi
+    ?? (postes.length > SEUIL_PARC_IMPORTANT ? 'attention' : 'tous')
+
   const pillFiltres: { key: PosteFiltre; label: string; count: number }[] = [
+    { key: 'attention', label: t('admin.supFilterAttention'), count: aSurveiller.length },
     { key: 'tous',      label: t('admin.supFilterAll'), count: postes.length },
     { key: 'ligne',     label: t('admin.supOnline'),    count: enLigne },
     { key: 'horsligne', label: t('admin.supOffline'),   count: horsLigne },
   ]
 
   const filtered = postes.filter(p => {
+    if (filtre === 'attention' && !aBesoinAttention(p, maintenant)) return false
     if (filtre === 'ligne' && !p.enLigne) return false
     if (filtre === 'horsligne' && p.enLigne) return false
     if (search.trim()) {
@@ -361,7 +399,7 @@ function PostesSection({ postes, enLigne, loading, canExecute }: {
             <div style={{ display: 'flex', gap: 3, padding: 3, borderRadius: 'var(--radius-md)', background: 'var(--fond-surface-2)', border: '1px solid var(--bordure-legere)' }}>
               {pillFiltres.map(f => (
                 <button
-                  key={f.key} type="button" onClick={() => setFiltre(f.key)}
+                  key={f.key} type="button" onClick={() => setFiltreChoisi(f.key)}
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: 5,
                     padding: '4px 10px', borderRadius: 'var(--radius-sm)', border: 'none', cursor: 'pointer',
@@ -415,7 +453,18 @@ function PostesSection({ postes, enLigne, loading, canExecute }: {
       </Card>
 
       {filtered.length === 0 ? (
-        <EmptyState icon={<Search size={18} />} title={t('admin.supNoMatchTitle')} description={t('admin.supNoMatchDesc')} variant="subtle" />
+        // Zéro anomalie n'est pas « aucun résultat » : c'est la bonne nouvelle que
+        // l'écran est censé annoncer. On le dit franchement, au lieu du vide habituel.
+        filtre === 'attention' && !search.trim() ? (
+          <EmptyState
+            icon={<CheckCircle2 size={18} />}
+            title={t('admin.supAllHealthyTitle')}
+            description={t('admin.supAllHealthyDesc', { count: postes.length })}
+            variant="subtle"
+          />
+        ) : (
+          <EmptyState icon={<Search size={18} />} title={t('admin.supNoMatchTitle')} description={t('admin.supNoMatchDesc')} variant="subtle" />
+        )
       ) : (
         <>
           <div style={vue === 'grid'
@@ -436,6 +485,23 @@ function PostesSection({ postes, enLigne, loading, canExecute }: {
             <PaginationBar {...pagination} />
           </div>
         </>
+      )}
+
+      {/* Le reste du parc, replié derrière une ligne discrète. Ce qui va bien ne doit
+          pas disparaître — il ne doit simplement pas occuper l'écran par défaut. */}
+      {filtre === 'attention' && postes.length > aSurveiller.length && (
+        <button
+          type="button"
+          onClick={() => setFiltreChoisi('tous')}
+          style={{
+            display: 'block', width: '100%', marginTop: 'var(--espace-3)',
+            padding: 'var(--espace-2)', border: 'none', background: 'none', cursor: 'pointer',
+            fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)',
+            textAlign: 'center',
+          }}
+        >
+          {t('admin.supShowHealthy', { count: postes.length - aSurveiller.length })}
+        </button>
       )}
 
       {detailId && <PosteDetailModal id={detailId} onClose={() => setDetailId(null)} />}
