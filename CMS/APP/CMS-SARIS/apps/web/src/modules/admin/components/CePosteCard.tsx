@@ -17,11 +17,17 @@ import { MonitorSmartphone, MapPin, Wifi, WifiOff, CloudUpload } from 'lucide-re
 import { Card, StatusPill } from '@/components/saris'
 import { desktopBridge } from '@/lib/desktop'
 import { useConnectivityStore } from '@/stores/connectivity.store'
+import { useSites } from '@/modules/referentiels/hooks/useReferentiels'
 
 export function CePosteCard({ enAttente }: { enAttente?: number }) {
   const { t } = useTranslation()
   const bridge = desktopBridge()
   const online = useConnectivityStore(s => s.online)
+  // « Rattaché à un site » n'apprend rien à qui veut savoir OÙ est la machine.
+  // On nomme le site ; on ne retombe sur la mention générique que si le référentiel
+  // n'est pas encore chargé (première synchro) ou si le site a été supprimé depuis.
+  const { data: sites = [] } = useSites()
+  const site = sites.find(s => s.id === bridge?.posteSiteId)
 
   // Sans nom de poste, la carte n'aurait rien à dire : mieux vaut ne pas l'afficher que
   // montrer un cadre vide (poste jamais configuré, ou pont desktop indisponible).
@@ -67,7 +73,9 @@ export function CePosteCard({ enAttente }: { enAttente?: number }) {
               fontSize: 'var(--font-size-caption)', color: 'var(--texte-secondaire)',
             }}>
               <MapPin size={13} />
-              {t('admin.cePosteRattache', { defaultValue: 'Rattaché à un site' })}
+              {site
+                ? t('admin.cePosteSite', { site: site.libelle })
+                : t('admin.cePosteRattache')}
             </span>
           )}
 
