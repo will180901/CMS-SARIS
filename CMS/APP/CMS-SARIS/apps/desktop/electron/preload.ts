@@ -22,6 +22,7 @@ interface BootConfig {
   posteLibelle: string
   posteLocalId: string
   posteSiteId: string | null
+  localApiUrl: string
 }
 
 const boot = ipcRenderer.sendSync('saris:config') as BootConfig
@@ -42,6 +43,7 @@ contextBridge.exposeInMainWorld('saris', {
   posteLibelle: boot.posteLibelle,
   posteLocalId: boot.posteLocalId,
   posteSiteId: boot.posteSiteId,
+  localApiUrl: boot.localApiUrl,
   /** Enregistre l'URL du serveur puis relance l'application. */
   setApiUrl: (url: string): Promise<{ ok: boolean }> => ipcRenderer.invoke('saris:set-api-url', url),
   /**

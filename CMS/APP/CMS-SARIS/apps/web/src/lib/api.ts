@@ -1,3 +1,4 @@
+import { useConnectivityStore } from '@/stores/connectivity.store'
 import { useSessionStore } from '@/stores/session.store'
 import { toast } from '@workspace/ui/components/sonner'
 import { enqueueMutation } from './sync'
@@ -190,7 +191,7 @@ function canQueueOffline(method: string, path: string, isForm: boolean): boolean
  * (utilisé par le moteur de synchronisation). Renvoie le statut HTTP.
  */
 export async function replayRequest(method: string, path: string, body: unknown): Promise<number> {
-  const token = useSessionStore.getState().token
+  const token = jetonCourant()
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (token) headers['Authorization'] = `Bearer ${token}`
   const res = await fetch(`${BASE_URL}${path}`, {
@@ -201,8 +202,26 @@ export async function replayRequest(method: string, path: string, body: unknown)
   return res.status
 }
 
+
+/**
+ * Jeton à présenter au serveur actuellement interrogé.
+ *
+ * Le client de bureau en mode local parle à DEUX serveurs selon la connectivité, et
+ * chacun signe ses jetons avec son propre secret : celui du central est rejeté par le
+ * backend embarqué, et réciproquement. Envoyer le mauvais donne un 401 — ce qui, hors
+ * ligne, faisait boucler puis déconnecter l'application.
+ *
+ * Repli sur le jeton central si aucun jeton local n'a pu être obtenu : mieux vaut une
+ * requête qui échoue en 401 qu'une requête anonyme, dont l'erreur serait moins parlante.
+ */
+function jetonCourant(): string | null {
+  const s = useSessionStore.getState()
+  if (useConnectivityStore.getState().mode === 'local') return s.localToken ?? s.token
+  return s.token
+}
+
 async function request<T>(path: string, options: RequestInit = {}, isRetry = false): Promise<T> {
-  const token = useSessionStore.getState().token
+  const token = jetonCourant()
 
   // Pour un FormData (upload de fichier), on NE fixe PAS Content-Type : le
   // navigateur ajoute lui-même le boundary multipart correct.

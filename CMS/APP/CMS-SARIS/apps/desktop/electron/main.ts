@@ -314,6 +314,10 @@ function registerIpc(): void {
       posteLibelle: getPosteLibelle(),
       posteLocalId: getPosteLocalId(),
       posteSiteId: readConfig().siteId ?? null,
+      // URL du backend EMBARQUÉ, connue même quand on travaille en ligne : le renderer
+      // en a besoin AU MOMENT DE LA CONNEXION pour obtenir aussi un jeton local (cf.
+      // authentification double). Vide en mode distant.
+      localApiUrl: effectiveApiUrl ?? '',
     }
   })
   ipcMain.handle('saris:get-config', () => ({ apiUrl: resolveApiUrl(), appVersion: app.getVersion() }))

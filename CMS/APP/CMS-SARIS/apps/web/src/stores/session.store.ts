@@ -8,6 +8,10 @@ type SessionUser = Omit<UserSession, 'token'>
 interface SessionState {
   user:            SessionUser | null
   token:           string | null
+  /** Jeton du backend EMBARQUÉ (client de bureau, mode local). Distinct de `token`,
+   *  délivré par le CENTRAL : deux autorités, deux secrets de signature. cf. lib/localAuth. */
+  localToken:      string | null
+  localRefreshToken: string | null
   refreshToken:    string | null
   isAuthenticated: boolean
 
@@ -25,6 +29,8 @@ interface SessionState {
 
   /** Appelé après login réussi (ou verify TOTP) */
   setSession: (user: SessionUser, token: string, refreshToken: string) => void
+  /** Mémorise le jeton obtenu auprès du backend embarqué (n'affecte pas la session centrale). */
+  setLocalSession: (token: string, refreshToken: string) => void
 
   /** Appelé au logout ou expiration du token */
   clearSession: () => void
@@ -45,6 +51,8 @@ export const useSessionStore = create<SessionState>()(
       user:            null,
       token:           null,
       refreshToken:    null,
+      localToken:      null,
+      localRefreshToken: null,
       isAuthenticated: false,
       _hasHydrated:    false,
       needsBootstrapRefresh: false,
@@ -56,8 +64,10 @@ export const useSessionStore = create<SessionState>()(
       setSession: (user, token, refreshToken) =>
         set({ user, token, refreshToken, isAuthenticated: true, needsBootstrapRefresh: false }),
 
+      setLocalSession: (localToken, localRefreshToken) => set({ localToken, localRefreshToken }),
+
       clearSession: () =>
-        set({ user: null, token: null, refreshToken: null, isAuthenticated: false }),
+        set({ user: null, token: null, refreshToken: null, localToken: null, localRefreshToken: null, isAuthenticated: false }),
 
       updateTokens: (accessToken, refreshToken) => set({ token: accessToken, refreshToken }),
 
@@ -70,7 +80,7 @@ export const useSessionStore = create<SessionState>()(
       // ./session-storage.ts.
       storage: createJSONStorage(() => sessionPersistStorage),
       // Ne PAS persister le flag d'hydratation (toujours recalculé au démarrage).
-      partialize: (s) => ({ user: s.user, token: s.token, refreshToken: s.refreshToken, isAuthenticated: s.isAuthenticated }),
+      partialize: (s) => ({ user: s.user, token: s.token, refreshToken: s.refreshToken, localToken: s.localToken, localRefreshToken: s.localRefreshToken, isAuthenticated: s.isAuthenticated }),
       // Hydratation terminée → on lève le flag (App peut décider login vs shell sans flash).
       // Si une session était persistée (= RECHARGEMENT de page), on demande la re-sync bootstrap
       // (permissions à jour). Après un login frais, ce chemin n'est pas emprunté → pas de re-sync.

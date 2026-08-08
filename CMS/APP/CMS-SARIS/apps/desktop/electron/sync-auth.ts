@@ -16,6 +16,7 @@ import path from 'node:path'
 import fs from 'node:fs'
 import crypto from 'node:crypto'
 import os from 'node:os'
+import { execSync } from 'node:child_process'
 import { readConfig, writeConfig, secureGet, secureSet, secureDel } from './config'
 
 const REFRESH_KEY = 'cms-saris-sync-refresh' // clé DPAPI du refresh token
@@ -25,11 +26,43 @@ export function syncTokenFilePath(): string {
   return path.join(app.getPath('userData'), 'sync-token')
 }
 
-/** Identifiant STABLE du poste local — généré une seule fois, persistant. */
+/**
+ * Empreinte STABLE de la machine : le MachineGuid de Windows, pose a l'installation du
+ * systeme et inchange par nos installations/desinstallations. Repli sur le nom reseau.
+ */
+function empreinteMachine(): string {
+  try {
+    const out = execSync(
+      'reg query "HKLM\\SOFTWARE\\Microsoft\\Cryptography" /v MachineGuid',
+      { encoding: 'utf8', windowsHide: true, timeout: 4000 },
+    )
+    const m = out.match(/MachineGuid\s+REG_SZ\s+([0-9a-fA-F-]{36})/)
+    if (m) return m[1]
+  } catch { /* pas Windows, ou cle inaccessible */ }
+  return os.hostname().trim() || 'poste-inconnu'
+}
+
+/**
+ * Identifiant du poste — DERIVE de la machine, donc reproductible.
+ *
+ * Il etait tire au hasard (`randomUUID`) et conserve dans `%APPDATA%`. Or une
+ * desinstallation efface ce dossier : la reinstallation sur le MEME ordinateur tirait un
+ * NOUVEL identifiant, et le serveur voyait apparaitre un poste de plus. Apres quelques
+ * essais, la meme machine figurait plusieurs fois dans la supervision — impossible de
+ * savoir laquelle est vivante, et les compteurs du parc devenaient faux.
+ *
+ * L'identifiant est desormais calcule a partir de l'empreinte de la machine : reinstaller
+ * redonne le MEME identifiant, et le serveur met a jour la ligne existante au lieu d'en
+ * creer une. On continue de l'ecrire dans la configuration — c'est un cache, plus une
+ * source de verite.
+ */
 export function getPosteLocalId(): string {
   const cfg = readConfig()
   if (cfg.posteLocalId) return cfg.posteLocalId
-  const id = crypto.randomUUID()
+  const h = crypto.createHash('sha256').update('cms-saris-poste:' + empreinteMachine()).digest('hex')
+  // Mise en forme UUID (version 5, variante RFC 4122) — meme apparence qu'avant, pour
+  // ne rien casser cote serveur ou en base.
+  const id = `${h.slice(0, 8)}-${h.slice(8, 12)}-5${h.slice(13, 16)}-a${h.slice(17, 20)}-${h.slice(20, 32)}`
   writeConfig({ posteLocalId: id })
   return id
 }
