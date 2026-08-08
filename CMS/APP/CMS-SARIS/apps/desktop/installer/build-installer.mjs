@@ -126,3 +126,24 @@ fs.writeFileSync(path.join(desktop, 'release', 'latest.yml'), [
   ``,
 ].join('\n'))
 console.log('latest.yml genere (auto-update)')
+
+// ── Menage du dossier de diffusion ───────────────────────────────────────────
+// `release/` accumule sinon les artefacts de TOUTES les versions passees : a la 1.7.0,
+// l'installeur 1.6.0 reste la, et l'on ne sait plus lequel remettre au client. Pire,
+// `latest.yml` ne designe qu'un seul fichier : les autres sont du bruit qui peut etre
+// distribue par erreur.
+//
+// On ne garde donc que les artefacts de la version qu'on vient de produire. Le dossier
+// de travail `win-unpacked` reste : il sert a relancer l'installeur sans tout
+// reconstruire, et a `dist:unpacked`.
+const releaseDir = path.join(desktop, 'release')
+const garder = new Set([base, `${base}.blockmap`, 'latest.yml', 'builder-debug.yml'])
+let retires = 0
+for (const f of fs.readdirSync(releaseDir)) {
+  if (garder.has(f)) continue
+  if (!/\.(exe|blockmap|7z|zip|yml)$/i.test(f)) continue // jamais les dossiers
+  fs.rmSync(path.join(releaseDir, f), { force: true })
+  console.log(`  menage : ${f}`)
+  retires++
+}
+console.log(retires ? `${retires} artefact(s) d'une autre version retire(s).` : 'Dossier de diffusion deja propre.')
