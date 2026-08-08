@@ -17,6 +17,7 @@ import { labels } from './locales/modules/labels'
 import { messagerie } from './locales/modules/messagerie'
 import { patients } from './locales/modules/patients'
 import { personnelSoignant } from './locales/modules/personnelSoignant'
+import { rapports } from './locales/modules/rapports'
 import { referentiels } from './locales/modules/referentiels'
 import { sorties } from './locales/modules/sorties'
 import { suiviTraitement } from './locales/modules/suiviTraitement'
@@ -27,12 +28,14 @@ const MODULES_FR = {
   acteurs: acteurs.fr, admin: admin.fr, bonExamen: bonExamen.fr, bonPharmacie: bonPharmacie.fr, consultation: consultation.fr,
   dashboard: dashboard.fr, employes: employes.fr, labels: labels.fr, messagerie: messagerie.fr, patients: patients.fr,
   personnelSoignant: personnelSoignant.fr,
+  rapports: rapports.fr,
   referentiels: referentiels.fr, sorties: sorties.fr, suiviTraitement: suiviTraitement.fr, triage: triage.fr,
 }
 const MODULES_EN = {
   acteurs: acteurs.en, admin: admin.en, bonExamen: bonExamen.en, bonPharmacie: bonPharmacie.en, consultation: consultation.en,
   dashboard: dashboard.en, employes: employes.en, labels: labels.en, messagerie: messagerie.en, patients: patients.en,
   personnelSoignant: personnelSoignant.en,
+  rapports: rapports.en,
   referentiels: referentiels.en, sorties: sorties.en, suiviTraitement: suiviTraitement.en, triage: triage.en,
 }
 

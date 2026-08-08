@@ -10,6 +10,8 @@
  * redimensionnable (poignée glissable), filtres en pastilles arrondies.
  */
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { FileBarChart, Download, Calendar, Stethoscope, BedSingle, ChevronRight, ChevronLeft } from 'lucide-react'
 import { Card, Skeleton, EmptyState, StatCard, DonutChart, RankedBars, TILE_TONE_MAP, type DonutSlice } from '@/components/saris'
 import { useIsCompact } from '@/hooks/useMediaQuery'
@@ -20,11 +22,10 @@ import { useRapports, useRapport } from '../hooks/useRapports'
 import { exportStatsXlsx } from '@/modules/dashboard/lib/statsExport'
 import type { TypeRapport } from '../api/rapports.api'
 
-const TYPE_LABEL: Record<TypeRapport, string> = {
-  HEBDOMADAIRE: 'Hebdomadaire',
-  MENSUEL:      'Mensuel',
-  ANNUEL:       'Annuel',
-}
+/** Libellé traduit d'une période. Une fonction et non une table figée : la table serait
+ *  construite au chargement du module, avant que la langue soit connue, et ne suivrait
+ *  pas un changement de langue en cours de session. */
+const typeLabel = (t: TFunction, type: TypeRapport): string => t(`rapports.type${type}`)
 
 const TYPE_TINT: Record<TypeRapport, { bg: string; text: string }> = {
   HEBDOMADAIRE: { bg: 'var(--info-fond)',   text: 'var(--info-texte)'   },
@@ -35,6 +36,7 @@ const TYPE_TINT: Record<TypeRapport, { bg: string; text: string }> = {
 const LIST_MIN = 260, LIST_MAX = 420, LIST_DEFAULT = 320
 
 export function RapportsPage() {
+  const { t } = useTranslation()
   const isCompact = useIsCompact()
   const { has } = usePermissions()
   const canExport = has('rapport.export')
@@ -85,9 +87,9 @@ export function RapportsPage() {
               <FileBarChart size={16} style={{ color: TILE_TONE_MAP.violet.color }} />
             </div>
             <div>
-              <h1 style={{ fontSize: 'var(--font-size-h2)', fontWeight: 600, color: 'var(--texte-primaire)', margin: 0 }}>Rapports</h1>
+              <h1 style={{ fontSize: 'var(--font-size-h2)', fontWeight: 600, color: 'var(--texte-primaire)', margin: 0 }}>{t('rapports.pageTitle')}</h1>
               <p style={{ fontSize: 13, color: 'var(--texte-tertiaire)', margin: '2px 0 0' }}>
-                {isLoading ? '…' : `${rapports.length} rapport${rapports.length > 1 ? 's' : ''}`} · Générés automatiquement
+                {isLoading ? '…' : t('rapports.countAndOrigin', { count: rapports.length })}
               </p>
             </div>
           </div>
@@ -103,7 +105,7 @@ export function RapportsPage() {
 
           {/* Filtres — pastilles arrondies (même style que Triage) */}
           <div style={{ padding: '10px 12px', borderBottom: '1px solid var(--bordure-legere)', flexShrink: 0, background: 'var(--fond-surface)' }}>
-            <div role="tablist" aria-label="Type de rapport" style={{ display: 'flex', gap: 6, overflowX: 'auto' }}>
+            <div role="tablist" aria-label={t('rapports.filterAria')} style={{ display: 'flex', gap: 6, overflowX: 'auto' }}>
               {(['ALL', 'HEBDOMADAIRE', 'MENSUEL', 'ANNUEL'] as const).map(key => {
                 const active = filtreType === key
                 const count  = key === 'ALL' ? rapports.length : rapports.filter(r => r.type === key).length
@@ -119,7 +121,7 @@ export function RapportsPage() {
                       border: `1px solid ${active ? 'var(--ap-200)' : 'var(--bordure-normale)'}`,
                       transition: 'all 0.1s',
                     }}>
-                    {key === 'ALL' ? 'Tous' : TYPE_LABEL[key]}
+                    {key === 'ALL' ? t('rapports.typeAll') : typeLabel(t, key)}
                     <span style={{
                       minWidth: 16, height: 16, borderRadius: 8, padding: '0 4px',
                       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -141,7 +143,7 @@ export function RapportsPage() {
               <div style={{ padding: 12 }}><Skeleton height={200} /></div>
             ) : filtered.length === 0 ? (
               <div style={{ padding: '60px 32px' }}>
-                <EmptyState icon={<FileBarChart size={24} />} title="Aucun rapport" description="Le premier rapport apparaîtra après la prochaine génération planifiée." />
+                <EmptyState icon={<FileBarChart size={24} />} title={t('rapports.emptyTitle')} description={t('rapports.emptyDesc')} />
               </div>
             ) : (
               filtered.map(r => {
@@ -159,14 +161,14 @@ export function RapportsPage() {
                       transition: 'background 0.1s',
                     }}>
                     <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 99, background: tint.bg, color: tint.text, flexShrink: 0 }}>
-                      {TYPE_LABEL[r.type]}
+                      {typeLabel(t, r.type)}
                     </span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--texte-primaire)' }}>
                         {formatDate(r.periodeDebut, { day: '2-digit', month: 'short', year: 'numeric' })} → {formatDate(r.periodeFin, { day: '2-digit', month: 'short', year: 'numeric' })}
                       </p>
                       <p style={{ margin: '3px 0 0', fontSize: 11, color: 'var(--texte-tertiaire)' }}>
-                        Généré le {formatDate(r.genereLe, { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                        {t('rapports.generatedOn', { date: formatDate(r.genereLe, { day: '2-digit', month: '2-digit', year: 'numeric' }) })}
                       </p>
                     </div>
                     <ChevronRight size={13} style={{ color: 'var(--texte-tertiaire)', flexShrink: 0 }} />
@@ -183,7 +185,7 @@ export function RapportsPage() {
         <div
           onMouseDown={() => setIsResizing(true)}
           onDoubleClick={() => setListWidth(LIST_DEFAULT)}
-          title="Glisser pour redimensionner — double-clic pour réinitialiser"
+          title={t('rapports.resizeHint')}
           className="rap-resize"
           style={{
             width: 5, flexShrink: 0, cursor: 'col-resize', position: 'relative',
@@ -205,45 +207,52 @@ export function RapportsPage() {
           {isCompact && selectedId && (
             <button onClick={() => setSelectedId(null)}
               style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, padding: '9px 12px', borderBottom: '1px solid var(--bordure-legere)', background: 'var(--fond-surface)', border: 'none', cursor: 'pointer', color: 'var(--texte-secondaire)', fontSize: 13, fontWeight: 600, textAlign: 'left' }}>
-              <ChevronLeft size={18} /> Retour
+              <ChevronLeft size={18} /> {t('rapports.back')}
             </button>
           )}
 
           {!selectedId ? (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <EmptyState icon={<Calendar size={24} />} title="Sélectionnez un rapport" description="Choisissez un rapport dans la liste pour en voir le contenu." />
+              <EmptyState icon={<Calendar size={24} />} title={t('rapports.noSelectionTitle')} description={t('rapports.noSelectionDesc')} />
             </div>
           ) : loadingDetail || !detail ? (
             <div style={{ padding: 'var(--espace-6)' }}><Skeleton height={300} /></div>
           ) : (
             <>
               <Card.Header
-                title={`${TYPE_LABEL[detail.type]} — ${formatDate(detail.periodeDebut, { day: '2-digit', month: 'long', year: 'numeric' })} → ${formatDate(detail.periodeFin, { day: '2-digit', month: 'long', year: 'numeric' })}`}
-                subtitle={`${detail.contenu.totalConsultations} consultation${detail.contenu.totalConsultations > 1 ? 's' : ''} · ${detail.contenu.repos.totalJours} jour(s) de repos prescrits`}
+                title={t('rapports.detailTitle', {
+                  type:  typeLabel(t, detail.type),
+                  debut: formatDate(detail.periodeDebut, { day: '2-digit', month: 'long', year: 'numeric' }),
+                  fin:   formatDate(detail.periodeFin,   { day: '2-digit', month: 'long', year: 'numeric' }),
+                })}
+                subtitle={t('rapports.detailSubtitle', {
+                  count: detail.contenu.totalConsultations,
+                  jours: detail.contenu.repos.totalJours,
+                })}
                 actions={
                   // L'export est produit entièrement côté navigateur (aucune route à
                   // garder) : `rapport.export` s'applique ICI.
                   canExport ? (
                     <button type="button" onClick={() => void exportStatsXlsx(detail.contenu)} style={rapportExportBtn}>
-                      <Download size={12} /> Excel
+                      <Download size={12} /> {t('rapports.export')}
                     </button>
                   ) : null
                 }
               />
               <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--espace-6)', display: 'flex', flexDirection: 'column', gap: 'var(--espace-6)' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 'var(--espace-4)' }}>
-                  <StatCard icon={<Stethoscope size={18} />} label="Consultations" value={detail.contenu.totalConsultations} tone="accent" />
-                  <StatCard icon={<BedSingle size={18} />} label="Jours de repos prescrits" value={detail.contenu.repos.totalJours} tone="gold"
-                    hint={`${detail.contenu.repos.consultationsAvecRepos} consultation(s) avec repos`} />
+                  <StatCard icon={<Stethoscope size={18} />} label={t('rapports.statConsultations')} value={detail.contenu.totalConsultations} tone="accent" />
+                  <StatCard icon={<BedSingle size={18} />} label={t('rapports.statReposDays')} value={detail.contenu.repos.totalJours} tone="gold"
+                    hint={t('rapports.statReposHint', { count: detail.contenu.repos.consultationsAvecRepos })} />
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: 'var(--espace-6)' }}>
-                  <RapportDonutBlock title="Par type de consultation" rows={detail.contenu.parType} />
-                  <RapportDonutBlock title="Par catégorie de patient" rows={detail.contenu.parCategorie} />
-                  <RapportDonutBlock title="Par département / direction" rows={detail.contenu.parDepartement} />
+                  <RapportDonutBlock title={t('rapports.byType')} rows={detail.contenu.parType} />
+                  <RapportDonutBlock title={t('rapports.byCategory')} rows={detail.contenu.parCategorie} />
+                  <RapportDonutBlock title={t('rapports.byDepartment')} rows={detail.contenu.parDepartement} />
                 </div>
 
-                <RapportBlock title="Top pathologies (diagnostic principal)" empty={detail.contenu.parPathologie.length === 0}>
+                <RapportBlock title={t('rapports.topPathologies')} empty={detail.contenu.parPathologie.length === 0}>
                   <RankedBars data={detail.contenu.parPathologie.slice(0, 10)} />
                 </RapportBlock>
               </div>
@@ -263,21 +272,25 @@ const rapportExportBtn: React.CSSProperties = {
   border: '1px solid var(--bordure-normale)',
 }
 
+/** Les titres arrivent déjà traduits par l'appelant ; ces composants ne traduisent que
+ *  leurs propres textes (état vide, légende centrale du donut). */
 function RapportBlock({ title, empty, children }: { title: string; empty: boolean; children: React.ReactNode }) {
+  const { t } = useTranslation()
   return (
     <div>
       <p style={{ margin: '0 0 12px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--texte-tertiaire)' }}>{title}</p>
       {empty ? (
-        <p style={{ margin: 0, fontSize: 12, color: 'var(--texte-tertiaire)', fontStyle: 'italic' }}>Aucune donnée sur la période.</p>
+        <p style={{ margin: 0, fontSize: 12, color: 'var(--texte-tertiaire)', fontStyle: 'italic' }}>{t('rapports.noDataPeriod')}</p>
       ) : children}
     </div>
   )
 }
 
 function RapportDonutBlock({ title, rows }: { title: string; rows: { libelle: string; count: number }[] }) {
+  const { t } = useTranslation()
   return (
     <RapportBlock title={title} empty={rows.length === 0}>
-      <DonutChart height={170} centerLabel="actes" data={rows.slice(0, 6).map((r): DonutSlice => ({ name: r.libelle, value: r.count }))} />
+      <DonutChart height={170} centerLabel={t('rapports.donutCenter')} data={rows.slice(0, 6).map((r): DonutSlice => ({ name: r.libelle, value: r.count }))} />
     </RapportBlock>
   )
 }
