@@ -25,13 +25,14 @@ const SEG_TKEY: Record<string, string> = {
   parametres: 'nav.parametres',
   'parametres-systeme': 'nav.parametresSysteme',
   synchronisation: 'nav.synchronisation',
+  'base-donnees': 'nav.baseDonnees',
 }
 
 // Chemins réellement routés : un crumb n'est cliquable que s'il pointe vers une page existante.
 // (/admin/utilisateurs et /admin/roles ne sont que des redirections vers /admin/acces.)
 const KNOWN_ROUTES = new Set([
   '/dashboard', '/rapports', '/patients', '/triage', '/consultations',
-  '/messagerie', '/referentiels', '/synchronisation',
+  '/messagerie', '/referentiels', '/synchronisation', '/base-donnees',
   '/admin/acces', '/admin/audit', '/admin/parametres', '/admin/parametres-systeme',
 ])
 

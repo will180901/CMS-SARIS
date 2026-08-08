@@ -5,6 +5,7 @@
  * Le visuel est calé sur celui de la page Référentiels (référence UX).
  */
 
+import { useTranslation } from 'react-i18next'
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
 import { IconButton } from './IconButton'
 import { SelectBox } from './SelectBox'
@@ -33,6 +34,8 @@ export function PaginationBar<T>({
   pageSizeOptions = PAGE_SIZE_OPTIONS,
   attached,
 }: PaginationBarProps<T>) {
+  // Appelé avant tout retour anticipé : un hook ne peut pas être conditionnel.
+  const { t } = useTranslation()
   if (total === 0) return null
 
   return (
@@ -60,14 +63,14 @@ export function PaginationBar<T>({
           color: 'var(--texte-tertiaire)',
           whiteSpace: 'nowrap',
         }}>
-          Lignes par page
+          {t('pagination.rowsPerPage')}
         </span>
         <div style={{ width: 76 }}>
           <SelectBox
             size="sm"
             value={String(pageSize)}
             onChange={(v) => setPageSize(Number(v))}
-            aria-label="Nombre de lignes par page"
+            aria-label={t('pagination.rowsPerPageAria')}
             fullWidth
             options={pageSizeOptions.map(n => ({ value: String(n), label: String(n) }))}
           />
@@ -84,22 +87,21 @@ export function PaginationBar<T>({
           whiteSpace: 'nowrap',
         }}
       >
-        {total === 0
-          ? 'Aucun résultat'
-          : `${start + 1} – ${end} sur ${total} résultat${total > 1 ? 's' : ''}`}
+        {/* `count` porte le total : c'est lui qui décide du singulier ou du pluriel. */}
+        {t('pagination.range', { count: total, start: start + 1, end })}
       </span>
 
       {/* ── Navigation ──────────────────────────────────────────────── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
         <IconButton
-          aria-label="Première page"
+          aria-label={t('pagination.first')}
           icon={<ChevronsLeft size={13} />}
           tone="neutral" size="sm"
           onClick={goFirst}
           disabled={!canGoPrev}
         />
         <IconButton
-          aria-label="Page précédente"
+          aria-label={t('pagination.prev')}
           icon={<ChevronLeft size={13} />}
           tone="neutral" size="sm"
           onClick={goPrev}
@@ -119,14 +121,14 @@ export function PaginationBar<T>({
         </span>
 
         <IconButton
-          aria-label="Page suivante"
+          aria-label={t('pagination.next')}
           icon={<ChevronRight size={13} />}
           tone="neutral" size="sm"
           onClick={goNext}
           disabled={!canGoNext}
         />
         <IconButton
-          aria-label="Dernière page"
+          aria-label={t('pagination.last')}
           icon={<ChevronsRight size={13} />}
           tone="neutral" size="sm"
           onClick={goLast}

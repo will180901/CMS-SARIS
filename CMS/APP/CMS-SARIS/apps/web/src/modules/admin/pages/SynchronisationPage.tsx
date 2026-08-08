@@ -1314,6 +1314,10 @@ export function SauvegardesZone({ sauvegardes, loading, canRestore, planificatio
   const derniere = sauvegardes[0]
   const restaurer = useRestaurerSauvegarde()
   const [restoreTarget, setRestoreTarget] = useState<SauvegardeSysteme | null>(null)
+  // La sauvegarde automatique tourne tous les jours : cette liste grossit toute seule,
+  // sans que personne ne l'alimente. Elle était rendue d'un bloc, jusqu'aux 50 entrées
+  // renvoyées par le serveur — sept semaines à faire défiler pour atteindre la dernière.
+  const pagination = usePagination(sauvegardes, useRowsPerPage())
 
   return (
     <Card padding="none">
@@ -1374,12 +1378,17 @@ export function SauvegardesZone({ sauvegardes, loading, canRestore, planificatio
             variant="subtle"
           />
         ) : (
-          <div style={{ border: '1px solid var(--bordure-legere)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
-            {sauvegardes.map((s, i) => (
-              <SauvegardeRow key={s.id} s={s} striped={i % 2 === 1}
-                canRestore={canRestore} onRestore={() => setRestoreTarget(s)} />
-            ))}
-          </div>
+          <>
+            <div style={{ border: '1px solid var(--bordure-legere)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+              {pagination.pageData.map((s, i) => (
+                <SauvegardeRow key={s.id} s={s} striped={i % 2 === 1}
+                  canRestore={canRestore} onRestore={() => setRestoreTarget(s)} />
+              ))}
+            </div>
+            <div style={{ marginTop: 'var(--espace-3)' }}>
+              <PaginationBar {...pagination} />
+            </div>
+          </>
         )}
       </Card.Body>
 

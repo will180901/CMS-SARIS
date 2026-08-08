@@ -57,6 +57,7 @@ const ITEM_TKEY: Record<string, string> = {
   referentiels: 'nav.referentiels',
   acces: 'nav.acces', parametresSysteme: 'nav.parametresSysteme',
   audit: 'nav.audit', synchronisation: 'nav.synchronisation',
+  baseDonnees: 'nav.baseDonnees',
 }
 
 // ── Composant ─────────────────────────────────────────────────────────────────

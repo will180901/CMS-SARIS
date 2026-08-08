@@ -69,7 +69,19 @@ export const fr = {
     parametresSysteme: 'Paramètres système',
     audit: 'Journaux d’audit',
     synchronisation: 'Synchronisation',
+    baseDonnees: 'Base de données',
     parametres: 'Paramètres',
+  },
+  // Barre de pagination — composant partagé par TOUTES les listes de l'application.
+  pagination: {
+    rowsPerPage: 'Lignes par page',
+    rowsPerPageAria: 'Nombre de lignes par page',
+    range_one: '{{start}} – {{end}} sur {{count}} résultat',
+    range_other: '{{start}} – {{end}} sur {{count}} résultats',
+    first: 'Première page',
+    prev: 'Page précédente',
+    next: 'Page suivante',
+    last: 'Dernière page',
   },
   breadcrumb: {
     aria: "Fil d'Ariane",

@@ -71,7 +71,19 @@ export const en: Resources = {
     parametresSysteme: 'System settings',
     audit: 'Audit logs',
     synchronisation: 'Synchronization',
+    baseDonnees: 'Database',
     parametres: 'Settings',
+  },
+  // Pagination bar — shared by EVERY list in the application.
+  pagination: {
+    rowsPerPage: 'Rows per page',
+    rowsPerPageAria: 'Number of rows per page',
+    range_one: '{{start}} – {{end}} of {{count}} result',
+    range_other: '{{start}} – {{end}} of {{count}} results',
+    first: 'First page',
+    prev: 'Previous page',
+    next: 'Next page',
+    last: 'Last page',
   },
   breadcrumb: {
     aria: 'Breadcrumb',
