@@ -14,6 +14,7 @@ import { Label }  from '@workspace/ui/components/label'
 import type { MedicamentReference } from '@cms-saris/types'
 import { useMedicaments, useCreateMedicament, useUpdateMedicament, useToggleMedicamentStatut, useDeleteMedicament } from '../hooks/useReferentiels'
 import { usePagination } from '../hooks/usePagination'
+import { useRowsPerPage } from '@/hooks/useRowsPerPage'
 import { isActif }          from '../api/referentiels.api'
 import { TabToolbar }       from '../components/TabToolbar'
 import { StatutBadge }      from '../components/badges/StatutBadge'
@@ -90,7 +91,7 @@ export function MedicamentsTab({ canCreate, canUpdate, canDelete }: { canCreate:
     return true
   }), [medicaments, search, statut])
 
-  const pagination = usePagination(filtered, 5)
+  const pagination = usePagination(filtered, useRowsPerPage())
   const [openExport, setOpenExport] = useState(false)
   // Mêmes colonnes qu'à l'écran, rendues en texte pour le papier.
   const colonnesExport = useMemo<ColonneExport<MedicamentReference>[]>(() => [

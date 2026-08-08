@@ -14,6 +14,7 @@ import { Label }  from '@workspace/ui/components/label'
 import type { Site } from '@cms-saris/types'
 import { useSites, useCreateSite, useUpdateSite, useToggleSiteStatut, useDeleteSite } from '../hooks/useReferentiels'
 import { usePagination } from '../hooks/usePagination'
+import { useRowsPerPage } from '@/hooks/useRowsPerPage'
 import { isActif }         from '../api/referentiels.api'
 import { TabToolbar }      from '../components/TabToolbar'
 import { StatutBadge }     from '../components/badges/StatutBadge'
@@ -95,7 +96,7 @@ export function SitesTab({ canCreate, canUpdate, canDelete }: { canCreate: boole
     return true
   }), [sites, search, statut])
 
-  const pagination = usePagination(filtered, 5)
+  const pagination = usePagination(filtered, useRowsPerPage())
   const [openExport, setOpenExport] = useState(false)
   // Mêmes colonnes qu'à l'écran, rendues en texte.
   const colonnesExport = useMemo<ColonneExport<Site>[]>(() => [

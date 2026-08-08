@@ -13,6 +13,7 @@ import { Label }  from '@workspace/ui/components/label'
 import { useEmployes, useCreateEmploye, useUpdateEmploye, useDeleteEmploye } from '../hooks/useEmployes'
 import type { EmployeSaris, EmployePayload } from '../api/employes.api'
 import { usePagination } from '../hooks/usePagination'
+import { useRowsPerPage } from '@/hooks/useRowsPerPage'
 import { StatutBadge }   from '../components/badges/StatutBadge'
 import { SkeletonRows }  from '../components/SkeletonRows'
 import { EmptyState }    from '../components/EmptyState'
@@ -61,7 +62,7 @@ export function EmployesTab({ canCreate, canUpdate, canDelete }: { canCreate: bo
     return true
   }), [employes, search, catFilter, statut])
 
-  const pagination = usePagination(filtered, 6)
+  const pagination = usePagination(filtered, useRowsPerPage())
   const [openExport, setOpenExport] = useState(false)
   // Mêmes colonnes qu'à l'écran, rendues en texte pour le papier.
   const colonnesExport = useMemo<ColonneExport<EmployeSaris>[]>(() => [

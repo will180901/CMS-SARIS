@@ -14,6 +14,7 @@ import { Label }  from '@workspace/ui/components/label'
 import type { MotifConsultation } from '@cms-saris/types'
 import { useMotifs, useCreateMotif, useUpdateMotif, useToggleMotifStatut, useDeleteMotif } from '../hooks/useReferentiels'
 import { usePagination } from '../hooks/usePagination'
+import { useRowsPerPage } from '@/hooks/useRowsPerPage'
 import { isActif }         from '../api/referentiels.api'
 import { TabToolbar }      from '../components/TabToolbar'
 import { StatutBadge }     from '../components/badges/StatutBadge'
@@ -89,7 +90,7 @@ export function MotifsTab({ canCreate, canUpdate, canDelete }: { canCreate: bool
     return true
   }), [motifs, search, statut])
 
-  const pagination = usePagination(filtered, 5)
+  const pagination = usePagination(filtered, useRowsPerPage())
   const [openExport, setOpenExport] = useState(false)
   // Mêmes colonnes qu'à l'écran, rendues en texte pour le papier.
   const colonnesExport = useMemo<ColonneExport<MotifConsultation>[]>(() => [

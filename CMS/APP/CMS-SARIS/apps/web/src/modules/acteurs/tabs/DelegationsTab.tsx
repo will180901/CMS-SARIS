@@ -28,6 +28,7 @@ import {
 } from '../hooks/useDelegations'
 import { useSoignants }  from '@/modules/triage/hooks/useSoignants'
 import { usePagination }  from '@/modules/referentiels/hooks/usePagination'
+import { useRowsPerPage } from '@/hooks/useRowsPerPage'
 import { SkeletonRows }   from '@/modules/referentiels/components/SkeletonRows'
 import { EmptyState }     from '@/modules/referentiels/components/EmptyState'
 import { ConfirmDialog }  from '@/modules/referentiels/components/ConfirmDialog'
@@ -279,7 +280,7 @@ export function DelegationsTab({ canCreate, canUpdate, canRevoke, canDelete }: {
     return true
   }), [delegations, search, filterStatut])
 
-  const pagination = usePagination(filtered, 5)
+  const pagination = usePagination(filtered, useRowsPerPage())
   const [openExport, setOpenExport] = useState(false)
   // Mêmes colonnes qu'à l'écran, rendues en texte pour le papier.
   const colonnesExport = useMemo<ColonneExport<DelegationPrescription>[]>(() => [

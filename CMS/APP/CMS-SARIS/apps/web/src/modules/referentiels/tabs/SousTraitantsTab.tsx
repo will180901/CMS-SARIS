@@ -25,6 +25,7 @@ import {
   useDeleteSousTraitant,
 } from '../hooks/useSousTraitants'
 import { usePagination } from '../hooks/usePagination'
+import { useRowsPerPage } from '@/hooks/useRowsPerPage'
 import { StatutBadge }   from '../components/badges/StatutBadge'
 import { SkeletonRows }  from '../components/SkeletonRows'
 import { EmptyState }    from '../components/EmptyState'
@@ -97,7 +98,7 @@ export function SousTraitantsTab({ canCreate, canUpdate, canDelete }: { canCreat
     return true
   }), [societes, search, statut])
 
-  const pagination = usePagination(filtered, 5)
+  const pagination = usePagination(filtered, useRowsPerPage())
   const [openExport, setOpenExport] = useState(false)
   // Mêmes colonnes qu'à l'écran, rendues en texte pour le papier.
   const colonnesExport = useMemo<ColonneExport<SocieteSousTraitante>[]>(() => [

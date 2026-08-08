@@ -868,9 +868,15 @@ function ActiviteTable({
 
   const filtreActif = !!posteId || !!statut
 
-  // Les filtres restent affichés même pendant le chargement et même si la page revient
-  // vide : les masquer enfermerait dans un filtre trop restrictif, sans moyen d'en sortir.
-  const barreFiltres = (
+  // Filtrer suppose qu'il y ait de quoi filtrer. Sans aucun poste ni aucune entrée, la
+  // barre n'offre qu'un menu vide et deux boutons sans effet — du décor. Elle réapparaît
+  // dès qu'un filtre est posé, sans quoi on se retrouverait enfermé dans une sélection
+  // trop restrictive sans moyen d'en sortir.
+  const filtrable = postes.length > 0 || total > 0 || filtreActif
+
+  // Les filtres restent affichés pendant le chargement et même si la page revient vide,
+  // pour cette même raison.
+  const barreFiltres = !filtrable ? null : (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 'var(--espace-2)',
       marginBottom: 'var(--espace-3)', flexWrap: 'wrap',

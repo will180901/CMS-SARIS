@@ -14,6 +14,7 @@ import { Label }  from '@workspace/ui/components/label'
 import type { TypeExamen } from '@cms-saris/types'
 import { useTypesExamen, useCreateTypeExamen, useUpdateTypeExamen, useToggleTypeExamenStatut, useDeleteTypeExamen } from '../hooks/useReferentiels'
 import { usePagination } from '../hooks/usePagination'
+import { useRowsPerPage } from '@/hooks/useRowsPerPage'
 import { isActif }         from '../api/referentiels.api'
 import { TabToolbar }      from '../components/TabToolbar'
 import { DomaineBadge }    from '../components/badges/DomaineBadge'
@@ -115,7 +116,7 @@ export function ExamensTab({ canCreate, canUpdate, canDelete }: { canCreate: boo
     return true
   }), [examens, search, statut])
 
-  const pagination = usePagination(filtered, 5)
+  const pagination = usePagination(filtered, useRowsPerPage())
   const [openExport, setOpenExport] = useState(false)
   // Mêmes colonnes qu'à l'écran, rendues en texte pour le papier.
   const colonnesExport = useMemo<ColonneExport<TypeExamen>[]>(() => [
