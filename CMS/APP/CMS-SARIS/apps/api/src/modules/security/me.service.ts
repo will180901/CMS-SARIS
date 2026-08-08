@@ -33,7 +33,11 @@ const PREF_DEFAULTS = {
   // "dashboard" pour ne pas toucher aux comptes existants : seuls les comptes SANS
   // ligne de préférences reçoivent 'auto'.
   pageAccueil: 'auto',
-  lignesParPage: 25,
+  // 10 et non 25 : une page courte se balaie d'un coup d'œil, sans faire défiler.
+  // C'est ici la SOURCE DE VÉRITÉ du défaut — les deux chemins de création d'une ligne
+  // de préférences passent par cet objet, si bien que le `@default()` du schéma Prisma
+  // n'est jamais utilisé en pratique (il est resté à 25, sans effet).
+  lignesParPage: 10,
   notifEmail: true,
 }
 
