@@ -63,9 +63,17 @@
       button.primary:hover { background: var(--ap-500); }
       button:disabled { opacity: 0.6; cursor: default; }
       .hint { font-size: 11px; color: var(--texte-3); margin-top: 16px; line-height: 1.5; }
+      /* Poignée de déplacement : la fenêtre est sans cadre, rien n'est déplaçable
+         tant qu'une zone `drag` n'est pas déclarée. Même bande que sync-setup.html.
+         `right: 140px` laisse les boutons système natifs cliquables. */
+      .titlebar {
+        position: fixed; top: 0; left: 0; right: 140px; height: 40px;
+        -webkit-app-region: drag; z-index: 5;
+      }
     </style>
   </head>
   <body>
+    <div class="titlebar"></div>
     <main>
       <div class="badge"><img src="setup-logo.png" alt="CMS SARIS" /></div>
       <h1>Connexion au serveur</h1>

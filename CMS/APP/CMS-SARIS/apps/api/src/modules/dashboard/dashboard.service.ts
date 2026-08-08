@@ -257,8 +257,14 @@ export class DashboardService {
           createdAt: { gte: since24h },
         },
       }),
+      // « Connexions en cours » compte des PERSONNES, pas des machines. Les sessions
+      // portant un `posteLocalId` sont celles de la SYNCHRO d'un poste desktop : elles
+      // vivent sans que personne ne soit au clavier, et sont d'ailleurs exemptées de la
+      // règle de session unique. Les compter faisait afficher « 2 » à un administrateur
+      // seul devant son écran, et rendait l'indicateur inutilisable pour ce qu'il sert :
+      // repérer un compte utilisé simultanément à deux endroits.
       this.prisma.sessionUtilisateur.count({
-        where: { revokedAt: null, expiresAt: { gt: new Date() } },
+        where: { revokedAt: null, expiresAt: { gt: new Date() }, posteLocalId: null },
       }),
     ])
 

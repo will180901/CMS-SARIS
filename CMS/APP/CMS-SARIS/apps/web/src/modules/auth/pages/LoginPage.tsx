@@ -19,6 +19,7 @@ import type { SessionConcurrente } from '@cms-saris/types'
 import { SessionConcurrenteStep } from '../components/SessionConcurrenteStep'
 import { useTranslation } from 'react-i18next'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
+import { DesktopDragStrip } from '@/components/layout/DesktopTitleBar'
 
 // ── Schémas Zod ───────────────────────────────────────────────────────────────
 
@@ -155,6 +156,10 @@ export function LoginPage() {
         backgroundSize:   '28px 28px',
       }}
     >
+      {/* Poignée de déplacement de la fenêtre (client de bureau uniquement) : cet écran
+          vit hors du shell, donc hors de la barre de titre qui la porte ailleurs. */}
+      <DesktopDragStrip />
+
       <div className="w-full max-w-[400px]">
 
         {/* ── Card ──────────────────────────────────────────────────────── */}

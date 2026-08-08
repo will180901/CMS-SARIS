@@ -11,7 +11,7 @@
  */
 import { MoreVertical } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { desktopBridge } from '@/lib/desktop'
+import { desktopBridge, isDesktop } from '@/lib/desktop'
 
 /** Hauteur de la barre — doit correspondre à `titleBarOverlay.height` (Electron). */
 export const DESKTOP_TITLEBAR_H = 40
@@ -81,5 +81,35 @@ export function DesktopTitleBar() {
         <MoreVertical size={18} />
       </button>
     </header>
+  )
+}
+
+/**
+ * Bande de déplacement seule, pour les écrans rendus HORS du shell — la page de
+ * connexion en premier lieu.
+ *
+ * La fenêtre est sans cadre : Windows ne dessine que les boutons réduire/fermer, et
+ * rien n'est déplaçable tant que l'application ne déclare pas elle-même une zone
+ * `-webkit-app-region: drag`. Le shell le fait via DesktopTitleBar ; la page de
+ * connexion, elle, vit en dehors et restait donc clouée au centre de l'écran —
+ * impossible de l'écarter pour lire ce qu'il y a derrière.
+ *
+ * Volontairement nue (ni logo ni menu) : sur une fenêtre de 460 px de large dont
+ * 140 sont déjà pris par les boutons système, une barre de titre complète serait à
+ * l'étroit. Ici on ne veut que la poignée.
+ */
+export function DesktopDragStrip() {
+  if (!isDesktop) return null
+  return (
+    <div
+      aria-hidden
+      style={{
+        position: 'fixed', top: 0, left: 0, right: OVERLAY_RESERVED,
+        height: DESKTOP_TITLEBAR_H,
+        // Au-dessus du fond, sous les éventuelles fenêtres modales.
+        zIndex: 5,
+        ...DRAG,
+      }}
+    />
   )
 }
