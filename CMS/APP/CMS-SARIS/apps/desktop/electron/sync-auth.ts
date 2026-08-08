@@ -291,6 +291,22 @@ async function declarerPoste(
     if (r.status === 403)
       return { ok: false, fatal: true, error: 'Compte non autorisé à configurer un poste.' }
     if (!r.ok) return { ok: false, error: `Erreur serveur (HTTP ${r.status}).` }
+
+    // LE SERVEUR FAIT FOI pour le nom et le site du poste.
+    //
+    // Un administrateur peut renommer un poste ou le rattacher à un autre site depuis la
+    // page Synchronisation. Jusqu'ici la machine n'en savait rien : elle gardait le nom
+    // écrit à l'installation, et le bloc « Ce poste » affichait « Bureau Accueil » alors
+    // que la supervision affichait « Salle de soins 2 ». Deux vérités pour un même poste.
+    //
+    // La réponse contient l'état réel : on l'adopte. Best-effort — une réponse illisible
+    // ne doit pas faire échouer une déclaration qui a réussi côté serveur.
+    try {
+      const poste = (await r.json()) as { libelle?: string; siteId?: string }
+      if (poste?.libelle) setPosteLibelle(poste.libelle)
+      if (poste?.siteId) writeConfig({ siteId: poste.siteId })
+    } catch { /* corps absent ou illisible : sans conséquence */ }
+
     return { ok: true }
   } catch (e) {
     return { ok: false, error: 'Serveur injoignable : ' + (e as Error).message }

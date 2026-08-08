@@ -380,7 +380,6 @@ function PostesSection({ postes, enLigne, loading, canExecute }: {
   const [filtreChoisi, setFiltreChoisi] = useState<PosteFiltre | null>(null)
   const [vue, setVue] = useState<PosteVue>('grid')
   const [detailId, setDetailId] = useState<string | null>(null)
-  const masquer = useMasquerPoste()
   // Horloge figée au montage : la relire à chaque rendu le rendrait impur. Les données
   // temps réel remontent un nouvel objet, le calcul se refait alors avec l'heure fraîche.
   const [maintenant] = useState(() => Date.now())
@@ -583,9 +582,6 @@ function PostesSection({ postes, enLigne, loading, canExecute }: {
                       <PosteCard
                         key={p.id} poste={p} masquerSite
                         onOpenDetail={() => setDetailId(p.id)}
-                        onMasquer={canExecute ? () => masquer.mutate(p.id, {
-                          onSuccess: () => toast.success(t('admin.supPosteRemoved')),
-                        }) : undefined}
                       />
                     ))}
                   </div>
@@ -604,9 +600,6 @@ function PostesSection({ postes, enLigne, loading, canExecute }: {
               <PosteCard
                 key={p.id} poste={p}
                 onOpenDetail={() => setDetailId(p.id)}
-                onMasquer={canExecute ? () => masquer.mutate(p.id, {
-                  onSuccess: () => toast.success(t('admin.supPosteRemoved')),
-                }) : undefined}
               />
             ))}
           </div>
@@ -633,23 +626,23 @@ function PostesSection({ postes, enLigne, loading, canExecute }: {
         </button>
       )}
 
-      {detailId && <PosteDetailModal id={detailId} onClose={() => setDetailId(null)} />}
+      {detailId && <PosteDetailModal id={detailId} onClose={() => setDetailId(null)} canExecute={canExecute} />}
     </div>
   )
 }
 
 /** `masquerSite` : à l'intérieur d'un groupe de site, répéter le nom du site sur chaque
- *  carte n'apprend rien — l'en-tête du groupe le dit déjà. */
-function PosteCard({ poste, onOpenDetail, onMasquer, masquerSite }: {
-  poste: SyncSupervisionPoste; onOpenDetail: () => void; onMasquer?: () => void; masquerSite?: boolean
+ *  carte n'apprend rien — l'en-tête du groupe le dit déjà.
+ *
+ *  La carte n'a plus d'action de retrait : elle ouvre la fiche, et rien d'autre. Le
+ *  retrait du parc a rejoint la fiche, où il est confirmé (cf. PosteDetailModal). */
+function PosteCard({ poste, onOpenDetail, masquerSite }: {
+  poste: SyncSupervisionPoste; onOpenDetail: () => void; masquerSite?: boolean
 }) {
   const { t } = useTranslation()
-  const [hovered, setHovered] = useState(false)
   return (
     <div
       onClick={onOpenDetail}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenDetail() } }}
@@ -687,32 +680,25 @@ function PosteCard({ poste, onOpenDetail, onMasquer, masquerSite }: {
         {poste.enLigne ? t('admin.supOnline') : t('admin.supOffline')}
       </StatusPill>
 
-      {onMasquer && hovered && (
-        <Tooltip label={t('admin.supPosteRemove')}>
-          <button
-            type="button"
-            aria-label={t('admin.supPosteRemove')}
-            onClick={(e) => { e.stopPropagation(); onMasquer() }}
-            style={{
-              position: 'absolute', top: -7, right: -7, zIndex: 1,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              width: 20, height: 20, borderRadius: '50%', border: '1px solid var(--bordure-legere)',
-              background: 'var(--fond-surface)', color: 'var(--erreur-accent)',
-              boxShadow: 'var(--ombre-1)', cursor: 'pointer',
-            }}
-          >
-            <X size={12} />
-          </button>
-        </Tooltip>
-      )}
     </div>
   )
 }
 
-/** Modale de détail d'un poste : identité (renommable) + dernière session connectée. */
-function PosteDetailModal({ id, onClose }: { id: string; onClose: () => void }) {
+/**
+ * Fiche d'un poste. Le RETRAIT DU PARC vit ici, et non plus en croix au survol de la
+ * carte : une croix minuscule posée sur une carte cliquable s'attrape en visant la
+ * voisine — c'est arrivé en cours de mise au point, et un poste a disparu de la liste
+ * sans que personne ne l'ait voulu. Retirer une machine du parc est rare et durable
+ * (un poste mort ne resynchronise jamais, donc ne revient jamais) : deux clics et une
+ * confirmation nommant la machine sont le bon prix.
+ */
+function PosteDetailModal({ id, onClose, canExecute }: {
+  id: string; onClose: () => void; canExecute?: boolean
+}) {
   const { t } = useTranslation()
   const { data, isLoading } = usePosteDetail(id)
+  const masquer = useMasquerPoste()
+  const [confirmeRetrait, setConfirmeRetrait] = useState(false)
 
   return (
     <Modal
@@ -720,6 +706,26 @@ function PosteDetailModal({ id, onClose }: { id: string; onClose: () => void }) 
       title={data?.libelle ?? t('admin.supPosteDetailTitle')}
       width={440}
       onClose={onClose}
+      footer={canExecute && data ? (
+        confirmeRetrait ? (
+          <>
+            <Button variant="ghost" onClick={() => setConfirmeRetrait(false)}>{t('admin.cancel')}</Button>
+            <Button
+              variant="danger"
+              loading={masquer.isPending}
+              onClick={() => masquer.mutate(id, {
+                onSuccess: () => { toast.success(t('admin.supPosteRemoved')); onClose() },
+              })}
+            >
+              {t('admin.supPosteRemove')}
+            </Button>
+          </>
+        ) : (
+          <Button variant="outline" leftIcon={<X size={13} />} onClick={() => setConfirmeRetrait(true)}>
+            {t('admin.supPosteRemove')}
+          </Button>
+        )
+      ) : undefined}
     >
       {isLoading || !data ? (
         <div>{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} height={48} style={{ marginBottom: 6 }} />)}</div>
@@ -745,6 +751,15 @@ function PosteDetailModal({ id, onClose }: { id: string; onClose: () => void }) 
               ? formatDateTime(data.derniereSyncAt, { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })
               : t('admin.relativeNever')}
           />
+          {confirmeRetrait && (
+            <p style={{
+              margin: 'var(--espace-3) 0 0', padding: 'var(--espace-2) var(--espace-3)',
+              borderRadius: 'var(--radius-md)', background: 'var(--avert-fond)',
+              color: 'var(--avert-texte)', fontSize: 'var(--font-size-caption)', lineHeight: 1.5,
+            }}>
+              {t('admin.supPosteRemoveBody')}
+            </p>
+          )}
           <DetailRow
             icon={<Clock size={14} />}
             label={t('admin.supDetailSessionDuration')}
