@@ -682,10 +682,28 @@ async function completeLocalStartup(): Promise<void> {
  *  ou jusqu'au délai max. Au-delà, on ouvre quand même (la synchro continue en arrière-plan). */
 async function waitForInitialSync(apiUrl: string, timeoutMs: number): Promise<void> {
   const deadline = Date.now() + timeoutMs
+  let dernierAffiche = -1
   while (Date.now() < deadline) {
     try {
       const res = await fetch(`${apiUrl}/sync/ready`)
-      if (res.ok && ((await res.json()) as { ready?: boolean }).ready) return
+      if (res.ok) {
+        const body = (await res.json()) as { ready?: boolean; recus?: number }
+        if (body.ready) return
+        // Compteur VIVANT plutôt qu'un texte figé : c'est la seule chose qui distingue
+        // « ça travaille » de « c'est planté » pour la personne qui attend. Tant que rien
+        // n'est arrivé, on parle de la connexion — annoncer « 0 enregistrement » donnerait
+        // l'impression d'un échec alors qu'on n'a simplement pas encore commencé.
+        const recus = body.recus ?? 0
+        if (recus !== dernierAffiche) {
+          dernierAffiche = recus
+          sendSetupStatus(
+            'backend',
+            recus > 0
+              ? `Récupération des données du site… ${recus.toLocaleString('fr-FR')} enregistrement${recus > 1 ? 's' : ''} reçu${recus > 1 ? 's' : ''}`
+              : 'Connexion au serveur…',
+          )
+        }
+      }
     } catch {
       /* backend pas encore prêt à répondre */
     }

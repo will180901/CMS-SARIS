@@ -17,10 +17,19 @@ export class SyncReadyController {
   constructor(private readonly client: SyncClientService) {}
 
   @Get('ready')
-  async ready(): Promise<{ ready: boolean; enabled: boolean; pendingPush: boolean }> {
+  async ready(): Promise<{
+    ready: boolean
+    enabled: boolean
+    pendingPush: boolean
+    recus: number
+  }> {
     return {
       ready: this.client.ready,
       enabled: this.client.enabled,
+      // Compteur du 1er chargement : l'écran d'attente l'affiche pour montrer que les
+      // données arrivent. Un texte figé fait croire à un blocage — on ferme, et le poste
+      // repart de zéro au lancement suivant.
+      recus: this.client.recusPremierChargement,
       // `pendingPush` : ce poste a-t-il encore des écritures hors-ligne à remonter ?
       // Le processus Electron s'en sert pour ne rendre la main au serveur central
       // qu'une fois le travail de l'utilisateur réellement arrivé là-bas.

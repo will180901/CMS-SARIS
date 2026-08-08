@@ -246,6 +246,11 @@ export class SyncClientService implements OnApplicationBootstrap {
   async pull(): Promise<number> {
     let since = (await this.cursor()).lastPulledAt
     let applied = 0
+    // Premier chargement : le poste s'ouvre sur un écran d'attente pendant que les
+    // données du site arrivent. Sans compteur, cet écran est un texte figé et l'on ne
+    // sait pas si quelque chose se passe — on croit à un blocage et on ferme. On publie
+    // donc l'avancement au fil de l'eau, pour que l'attente soit habitée.
+    const premierChargement = !since
     let serverTime: string | undefined
     for (let guard = 0; guard < 1000; guard++) {
       // Le site est résolu par le serveur depuis le JWT (jamais envoyé dans l'URL).
@@ -259,6 +264,7 @@ export class SyncClientService implements OnApplicationBootstrap {
       }
       serverTime = body.serverTime
       since = body.nextSince
+      if (premierChargement) this.premierChargementRecus = applied
       // Reprise incrémentale : on persiste le curseur APRÈS chaque page appliquée, pour
       // reprendre EXACTEMENT là où on s'est arrêté en cas d'interruption (réseau coupé).
       if (body.nextSince)
@@ -325,6 +331,13 @@ export class SyncClientService implements OnApplicationBootstrap {
    *  1er pull a abouti. Le desktop attend `ready` avant d'ouvrir l'app (ouverture fluide). */
   get ready(): boolean {
     return !this.enabled || this.initialSyncDone
+  }
+
+  /** Enregistrements reçus pendant le TOUT PREMIER chargement — publié page par page,
+   *  pour que l'écran d'attente affiche un compteur qui avance au lieu d'un texte figé. */
+  private premierChargementRecus = 0
+  get recusPremierChargement(): number {
+    return this.premierChargementRecus
   }
 
   /** État de synchro pour l'UI (mode local). */
