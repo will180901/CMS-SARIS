@@ -370,6 +370,30 @@ function registerIpc(): void {
   ipcMain.handle('saris:sync-discard', () => { discardPendingAuth() })
 
   /**
+   * Le SYSTEME signale la perte ou le retour du reseau (carte debranchee, Wi-Fi coupe).
+   *
+   * La sonde interroge le serveur toutes les 5 s et exige deux reponses concordantes
+   * avant de basculer — une protection utile contre un reseau qui hoquette, mais qui
+   * faisait attendre jusqu'a 10 secondes apres un debranchement. Or Windows le sait
+   * INSTANTANEMENT : autant l'ecouter plutot que de le deviner.
+   *
+   * PERTE -> on bascule tout de suite sur le local. Il n'y a rien a confirmer : sans
+   * carte reseau, le central est injoignable, point.
+   *
+   * RETOUR -> on ne fait qu'accelerer la prochaine sonde. Une carte reseau qui remonte
+   * ne prouve pas que le serveur repond (portail captif, VPN, serveur en veille) : c'est
+   * la sonde qui tranche, et la remontee reste soumise a la remontee des ecritures.
+   */
+  ipcMain.on('saris:network', (_e, online: boolean) => {
+    if (!online) {
+      if (!serverOnline) return
+      serverOnline = false
+      log.info('[connectivité] le système signale la perte du réseau → bascule immédiate sur le local')
+      pushRendererUrl()
+    }
+  })
+
+  /**
    * INSTALLATION — seule étape : l'adresse du serveur. Aucun identifiant demandé : un
    * technicien qui déploie vingt postes n'a pas à détenir le mot de passe administrateur.
    * On vérifie que le serveur répond, on mémorise, et l'on ouvre l'application — qui

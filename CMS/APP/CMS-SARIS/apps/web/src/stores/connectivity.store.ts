@@ -65,9 +65,21 @@ export function useApiEndpointSwitch(): void {
       }
       apply(s.url, s.mode as Mode ?? 'central', s.online ?? true, s.seq)
     })
+    // Le NAVIGATEUR sait immediatement que la carte reseau est tombee — pas besoin
+    // d'attendre qu'une sonde expire. On previent le processus principal, qui bascule
+    // aussitot sur le backend local. Au retour, on le signale aussi, mais c'est la sonde
+    // qui tranchera : une carte qui remonte ne prouve pas que le serveur repond.
+    const signaler = (): void => saris.notifyNetwork?.(navigator.onLine)
+    window.addEventListener('offline', signaler)
+    window.addEventListener('online', signaler)
+
     saris.getConnectivity?.()
       .then((s) => { if (s && s.url) apply(s.url, s.mode as Mode, s.online, s.seq) })
       .catch(() => { /* best-effort : ancien build sans getConnectivity, ou erreur IPC */ })
-    return off
+    return () => {
+      window.removeEventListener('offline', signaler)
+      window.removeEventListener('online', signaler)
+      off()
+    }
   }, [apply])
 }

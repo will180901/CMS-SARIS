@@ -64,6 +64,8 @@ contextBridge.exposeInMainWorld('saris', {
     ipcRenderer.invoke('saris:sync-finalize', params),
   /** Abandonne l'authentification en attente (retour à l'étape 1 depuis l'étape 2). */
   syncDiscard: (): Promise<void> => ipcRenderer.invoke('saris:sync-discard'),
+  /** Le navigateur signale la perte/retour du reseau (evenements offline/online). */
+  notifyNetwork: (online: boolean): void => ipcRenderer.send('saris:network', online),
   /** INSTALLATION — seule etape : l'adresse du serveur (aucun identifiant demande). */
   syncSetServer: (params: { serverUrl: string }): Promise<{ ok: boolean; error?: string }> =>
     ipcRenderer.invoke('saris:sync-set-server', params),

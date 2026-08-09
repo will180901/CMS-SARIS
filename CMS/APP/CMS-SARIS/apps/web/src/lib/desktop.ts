@@ -29,6 +29,8 @@ export interface SarisDesktopBridge {
   posteSiteId?: string | null
   /** URL du backend embarqué (mode local) — vide en mode distant. */
   localApiUrl?: string
+  /** Signale au processus principal la perte/retour du réseau (bascule immédiate). */
+  notifyNetwork?: (online: boolean) => void
   /** Provisionne le poste à partir de la PREMIÈRE connexion (jetons + site du compte). */
   provisionPoste?: (params: { accessToken: string; refreshToken: string; siteId: string })
     => Promise<{ ok: boolean; error?: string }>
