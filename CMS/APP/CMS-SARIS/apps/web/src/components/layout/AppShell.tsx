@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { Sidebar, SIDEBAR_RAIL } from './Sidebar'
 import { TopHeader }        from './TopHeader'
 import { DesktopTitleBar }  from './DesktopTitleBar'
+import { BulleSynchro }     from './BulleSynchro'
 import { isDesktop }        from '@/lib/desktop'
 import { CguGate }          from '@/components/CguGate'
 import { PermissionGate }   from '@/components/auth/PermissionGate'
@@ -110,6 +111,8 @@ export function AppShell() {
   return (
     <div className="flex flex-col h-screen overflow-hidden">
       {isDesktop && <DesktopTitleBar />}
+      {/* Bulle de synchronisation — flottante, en haut au centre, comme les notifications. */}
+      {isDesktop && <BulleSynchro />}
       <div className="flex flex-1 min-h-0 overflow-hidden">
       <CguGate />
       <Sidebar />

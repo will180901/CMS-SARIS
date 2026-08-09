@@ -374,6 +374,9 @@ export const fr = {
     errorDetails: 'Détail technique',
     // DesktopTitleBar
     desktopSubtitle: '— Centre médical',
+    // Bulle de synchronisation (client de bureau) — n'apparaît que s'il se passe quelque chose.
+    syncEnCours: 'Synchronisation en cours…',
+    syncEnAttente: 'Données en attente d’envoi',
     menu: 'Menu',
     menuAria: 'Menu de l’application',
   },

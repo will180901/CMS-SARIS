@@ -46,6 +46,7 @@ export class SyncReadyController {
     enabled: boolean
     pendingPush: boolean
     recus: number
+    enCours: boolean
   }> {
     return {
       ready: this.client.ready,
@@ -54,6 +55,8 @@ export class SyncReadyController {
       // données arrivent. Un texte figé fait croire à un blocage — on ferme, et le poste
       // repart de zéro au lancement suivant.
       recus: this.client.recusPremierChargement,
+      // Cycle en cours → l'application affiche sa bulle de synchronisation.
+      enCours: this.client.enCours,
       // `pendingPush` : ce poste a-t-il encore des écritures hors-ligne à remonter ?
       // Le processus Electron s'en sert pour ne rendre la main au serveur central
       // qu'une fois le travail de l'utilisateur réellement arrivé là-bas.

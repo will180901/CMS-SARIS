@@ -376,6 +376,9 @@ export const en: Resources = {
     errorDetails: 'Technical details',
     // DesktopTitleBar
     desktopSubtitle: '— Medical center',
+    // Sync bubble (desktop client) — shown only when something is happening.
+    syncEnCours: 'Synchronizing…',
+    syncEnAttente: 'Data waiting to be sent',
     menu: 'Menu',
     menuAria: 'Application menu',
   },

@@ -333,6 +333,13 @@ export class SyncClientService implements OnApplicationBootstrap {
     return !this.enabled || this.initialSyncDone
   }
 
+  /** Un cycle de synchronisation est-il en cours ? Affiché en direct par l'application
+   *  (bulle de synchronisation) : sans cela, la synchro est un travail invisible et l'on
+   *  ne sait jamais si les données sont à jour ou en train de l'être. */
+  get enCours(): boolean {
+    return this.running
+  }
+
   /** Enregistrements reçus pendant le TOUT PREMIER chargement — publié page par page,
    *  pour que l'écran d'attente affiche un compteur qui avance au lieu d'un texte figé. */
   private premierChargementRecus = 0
