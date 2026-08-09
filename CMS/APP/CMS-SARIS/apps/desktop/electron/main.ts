@@ -616,6 +616,14 @@ async function startLocalBackend(): Promise<void> {
     startRefreshTimer()
     log.info('[backend] embarqué démarré sur ' + effectiveApiUrl)
     await startConnectivityWatch() // décide central(en ligne)/local(hors-ligne) AVANT le renderer
+    // Le reseau a pu tomber PENDANT le demarrage (une vingtaine de secondes au premier
+    // lancement). Dans ce cas, la bascule hors-ligne n'avait rien pu pousser — faute de
+    // backend. Maintenant qu'il repond, on pousse : sans cela l'application resterait
+    // pointee sur un central injoignable, badge « Hors ligne » a l'appui.
+    if (!serverOnline) {
+      log.info('[connectivité] backend prêt et réseau absent → bascule sur le local')
+      pushRendererUrl()
+    }
   } catch (e) {
     log.error('[backend] échec du démarrage embarqué', e)
     effectiveApiUrl = null
@@ -654,10 +662,22 @@ function centralUrl(): string {
   return (resolveServerUrl() || '').replace(/\/+$/, '')
 }
 
-/** URL d'API que le renderer doit utiliser : central si en ligne, backend local sinon. */
+/**
+ * URL d'API que le renderer doit utiliser : central en ligne, backend local hors-ligne.
+ *
+ * Renvoie une chaine VIDE si l'on est hors-ligne et que le backend local n'a pas encore
+ * fini de demarrer. C'est le correctif d'un defaut grave : le repli retombait alors sur
+ * le CENTRAL — c'est-a-dire sur un serveur injoignable, justement parce qu'on est
+ * hors-ligne. Le badge affichait « Hors ligne » pendant que chaque requete partait vers
+ * Render et echouait. L'utilisateur voyait un mode hors-ligne qui ne marchait pas.
+ *
+ * Mieux vaut ne rien pousser et attendre le backend (une vingtaine de secondes au
+ * premier demarrage) que de pointer vers une adresse dont on SAIT qu'elle ne repond pas.
+ */
 function computeRendererUrl(): string {
   const central = centralUrl()
-  return serverOnline && central ? central : (effectiveApiUrl ?? central)
+  if (serverOnline && central) return central
+  return effectiveApiUrl ?? ''
 }
 
 /**
@@ -686,7 +706,14 @@ async function localBackendHasPendingPush(): Promise<boolean> {
 
 /** Pousse l'URL active au renderer (et la mémorise pour le prochain saris:config). */
 function pushRendererUrl(): void {
-  rendererApiUrl = computeRendererUrl()
+  const url = computeRendererUrl()
+  // Hors-ligne, backend pas encore pret : on ne pousse RIEN. Le renderer garde son URL
+  // courante et l'on repoussera des que le backend repond (cf. startLocalBackend).
+  if (!url) {
+    log.info('[connectivité] hors-ligne mais backend local pas encore prêt — on attend')
+    return
+  }
+  rendererApiUrl = url
   connectivitySeq++
   mainWindow?.webContents.send('saris:api-url', {
     url: rendererApiUrl,

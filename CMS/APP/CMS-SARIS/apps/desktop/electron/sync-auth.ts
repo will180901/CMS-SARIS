@@ -102,7 +102,10 @@ export async function enregistrerServeur(serverUrl: string): Promise<SetupResult
   }
   try {
     const ctrl = new AbortController()
-    const timer = setTimeout(() => ctrl.abort(), 8000)
+    // 70 s, pas 8 : un serveur gratuit (Render) mis en veille met une cinquantaine de
+    // secondes a se reveiller sur la 1re requete. Avec un delai court, l'installation
+    // echouait sur un serveur parfaitement sain — il fallait s'y reprendre a trois fois.
+    const timer = setTimeout(() => ctrl.abort(), 70000)
     const res = await fetch(server + '/health/ping', { signal: ctrl.signal })
     clearTimeout(timer)
     if (!res.ok) return { ok: false, error: `Le serveur a répondu ${res.status}. Vérifiez l’adresse.` }
