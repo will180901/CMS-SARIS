@@ -19,7 +19,7 @@ import {
   HardDrive, CheckCircle2, AlertTriangle, Loader2, CloudUpload, Trash2,
   RotateCcw, Users, Stethoscope, Pill, Ambulance, FlaskConical, HardHat, ClipboardList,
   CalendarClock, MonitorSmartphone, Activity, GitMerge, Radio, LayoutGrid, List, Search,
-  X, Clock, LogIn, Pencil, User, MessageSquare, Download, ChevronRight, ChevronDown,
+  X, Clock, LogIn, Pencil, User, MessageSquare, Download, ChevronRight, ChevronDown, MapPin,
 } from 'lucide-react'
 import {
   PageHeader, Card, Button, StatusPill, Skeleton, EmptyState, Tooltip, Modal, SegmentedTabs,
@@ -28,6 +28,7 @@ import {
 import type { SegmentedTab } from '@/components/saris'
 import { toast } from '@workspace/ui/components/sonner'
 import { usePermissions } from '@/hooks/usePermissions'
+import { useSites } from '@/modules/referentiels/hooks/useReferentiels'
 import { usePagination } from '@/hooks/usePagination'
 import { useRowsPerPage } from '@/hooks/useRowsPerPage'
 import { formatDateTime, formatNumber } from '@/lib/intl'
@@ -44,7 +45,7 @@ import {
   useSyncStatus, useRestaurerSauvegarde, useSupprimerSauvegarde,
 } from '../hooks/useAdmin'
 import {
-  useSyncStatus as useDataSyncStatus, useSyncRun, useSyncSupervision, useSyncActivite, usePosteDetail, useMasquerPoste, useRenamePoste,
+  useSyncStatus as useDataSyncStatus, useSyncRun, useSyncSupervision, useSyncActivite, usePosteDetail, useMasquerPoste, useRenamePoste, useConfigurerPoste,
 } from '../hooks/useSync'
 import type { SauvegardeSysteme } from '../api/admin.api'
 import type {
@@ -732,6 +733,7 @@ function PosteDetailModal({ id, onClose, canExecute }: {
       ) : (
         <>
           <RenamePosteField posteId={id} currentLibelle={data.libelle} />
+          <SitePosteField posteId={id} siteId={data.siteId} canExecute={canExecute} />
           <DetailRow
             icon={<span style={{ width: 8, height: 8, borderRadius: '50%', display: 'block', background: data.enLigne ? 'var(--succes-accent)' : 'var(--texte-tertiaire)' }} />}
             label={t('admin.supDetailStatus')}
@@ -774,6 +776,61 @@ function PosteDetailModal({ id, onClose, canExecute }: {
 }
 
 /** Champ de renommage du poste — nom UNIQUE par site, validé côté serveur. */
+/**
+ * Site de rattachement du poste — modifiable par un administrateur.
+ *
+ * Le site appartient à la MACHINE, pas à la personne : c'est le lieu réel où l'on saisit,
+ * et il est porté par les actes. Il était fixé à la première connexion et plus jamais
+ * modifiable : une machine qui déménageait d'un bâtiment à l'autre restait éternellement
+ * annoncée au mauvais endroit, sans autre recours que de réinstaller.
+ *
+ * Le changement redescend sur la machine à sa prochaine déclaration (cf. declarerPoste,
+ * où le serveur fait foi) — inutile d'aller la toucher.
+ */
+function SitePosteField({ posteId, siteId, canExecute }: {
+  posteId: string; siteId: string; canExecute?: boolean
+}) {
+  const { t } = useTranslation()
+  const { data: sites = [] } = useSites()
+  const configurer = useConfigurerPoste()
+  const courant = sites.find((s: { id: string }) => s.id === siteId)
+
+  if (!canExecute) {
+    return (
+      <DetailRow
+        icon={<MapPin size={14} />}
+        label={t('admin.supDetailSite')}
+        value={courant?.libelle ?? t('admin.supSiteInconnu')}
+      />
+    )
+  }
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--espace-2)', padding: 'var(--espace-2) 0' }}>
+      <MapPin size={14} style={{ color: 'var(--texte-tertiaire)', flexShrink: 0 }} />
+      <span style={{ fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)', flex: 1 }}>
+        {t('admin.supDetailSite')}
+      </span>
+      <select
+        value={siteId}
+        disabled={configurer.isPending}
+        onChange={(e) => configurer.mutate(
+          { id: posteId, siteId: e.target.value },
+          { onSuccess: () => toast.success(t('admin.supSiteChange')) },
+        )}
+        aria-label={t('admin.supDetailSite')}
+        style={{
+          height: 28, maxWidth: 220, padding: '0 var(--espace-2)',
+          borderRadius: 'var(--radius-md)', border: '1px solid var(--bordure-legere)',
+          background: 'var(--fond-surface)', color: 'var(--texte-primaire)',
+          fontSize: 'var(--font-size-caption)', cursor: 'pointer',
+        }}
+      >
+        {sites.map((s: { id: string; libelle: string }) => <option key={s.id} value={s.id}>{s.libelle}</option>)}
+      </select>
+    </div>
+  )
+}
+
 function RenamePosteField({ posteId, currentLibelle }: { posteId: string; currentLibelle: string }) {
   const { t } = useTranslation()
   const [editing, setEditing] = useState(false)

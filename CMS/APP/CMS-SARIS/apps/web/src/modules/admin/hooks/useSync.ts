@@ -71,6 +71,15 @@ export function useMasquerPoste() {
   })
 }
 
+/** Change le site de rattachement d'un poste (déménagement d'une machine). */
+export function useConfigurerPoste() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, siteId }: { id: string; siteId: string }) => syncApi.configurerPoste(id, siteId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'sync', 'supervision'] }),
+  })
+}
+
 /** Renomme un poste (nom unique par site) — supervision admin. */
 export function useRenamePoste() {
   const qc = useQueryClient()

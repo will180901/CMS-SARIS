@@ -96,6 +96,10 @@ export const syncApi = {
   },
   posteDetail: (id: string) => api.get<SyncSupervisionPosteDetail>(`/sync/supervision/postes/${id}`),
   masquerPoste: (id: string) => api.delete<{ ok: boolean }>(`/sync/supervision/postes/${id}`),
+  /** Rattache un poste à un AUTRE site. Le site appartient au poste, pas à la personne :
+   *  seul un administrateur le change, et la machine l'adopte à sa prochaine déclaration. */
+  configurerPoste: (posteLocalId: string, siteId: string) =>
+    api.post<{ id: string; siteId: string }>('/sync/poste', { posteLocalId, siteId }),
   renamePoste: (id: string, libelle: string) =>
     api.patch<{ libelle: string }>(`/sync/supervision/postes/${id}`, { libelle }),
 }
