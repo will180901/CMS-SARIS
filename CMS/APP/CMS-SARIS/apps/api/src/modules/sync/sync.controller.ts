@@ -10,7 +10,10 @@ import {
   Req,
   UnauthorizedException,
   UseGuards,
+  Sse,
 } from '@nestjs/common'
+import type { MessageEvent } from '@nestjs/common'
+import type { Observable } from 'rxjs'
 import { Throttle } from '@nestjs/throttler'
 import { JwtAuthGuard } from '../security/guards/jwt-auth.guard'
 import { PermissionsGuard } from '../security/guards/permissions.guard'
@@ -63,6 +66,29 @@ export class SyncController {
   pull(@Req() req: AuthedRequest, @Query() q: SyncPullQueryDto) {
     const { siteId } = requireUser(req)
     return this.svc.pull(siteId, q.since, q.limit)
+  }
+
+  /**
+   * SONNETTE TEMPS RÉEL — le canal séparé vers le central, distinct de la synchronisation.
+   *
+   * Pourquoi un canal à part : la synchro fonctionne par cycles ; entre deux cycles, un
+   * message envoyé depuis un autre poste attend. Pour une messagerie, attendre, c'est être
+   * cassé. Cette sonnette réveille le poste à la milliseconde où quelque chose le concerne.
+   *
+   * Elle ne transporte AUCUNE donnée : juste un signal. Le poste va ensuite chercher le
+   * contenu par /sync/pull, qui applique déjà les règles d'accès. Un canal muet ne peut
+   * pas fuiter, et il n'y a pas deux endroits où maintenir la même règle de visibilité.
+   *
+   * L'authentification est celle de la classe (JWT + permission) : le client est ici le
+   * backend embarqué, un client Node — il envoie donc un en-tête `Authorization`, et le
+   * jeton ne se retrouve jamais dans une URL.
+   */
+  @Sse('events')
+  @RequirePermissions('synchronisation.read')
+  events(@Query('posteLocalId') posteLocalId?: string): Observable<MessageEvent> {
+    // Le poste ne doit pas être réveillé par sa PROPRE écriture : il détient déjà la
+    // donnée, et un aller-retour inutile toutes les frappes coûterait cher sur un parc.
+    return this.svc.clochePour(posteLocalId ?? null)
   }
 
   @Post('push')

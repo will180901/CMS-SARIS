@@ -65,6 +65,10 @@ const LIVE_INVALIDATIONS: Record<string, readonly (readonly string[])[]> = {
   // quitte la file active) → rafraîchir ['visites'] sur tous les postes.
   LIVE_CONSULTATION: [['consultations'], ['visites']],
   LIVE_SYNC:         [['admin', 'sync']],
+  // Arrivée d'un message par la SYNCHRONISATION (client de bureau) : on recharge les
+  // conversations sans faire sonner quoi que ce soit — l'expéditeur, lui, a déjà été
+  // notifié par le chemin normal.
+  LIVE_MESSAGERIE:   [['messagerie'], ['notifications']],
   SYNC_ACTIVITY:     [['admin', 'sync']],
 }
 

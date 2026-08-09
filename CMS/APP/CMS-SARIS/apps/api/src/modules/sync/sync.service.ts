@@ -13,6 +13,10 @@
  * traité ici (restauration SQL) — à confirmer en base.
  */
 import { Injectable, Logger } from '@nestjs/common'
+import { Subject, interval, merge, type Observable } from 'rxjs'
+import { filter, map } from 'rxjs/operators'
+import type { MessageEvent } from '@nestjs/common'
+import { NotificationService } from '../notification/notification.service'
 import { PrismaService } from '../../prisma/prisma.service'
 import {
   SYNC_MODELS,
@@ -42,10 +46,55 @@ interface AnyDelegate {
 @Injectable()
 export class SyncService {
   private readonly logger = new Logger('Sync')
+  /**
+   * SONNETTE TEMPS RÉEL (serveur central uniquement).
+   *
+   * Ne transporte AUCUNE donnée : uniquement « il y a du neuf, et voici qui l'a produit ».
+   * Les postes abonnés déclenchent alors une synchronisation immédiate, qui passe par les
+   * contrôles d'accès habituels. Un canal muet ne peut pas fuiter.
+   */
+  private readonly cloche$ = new Subject<{ origine: string | null }>()
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly supervision: SyncSupervisionService,
-  ) {}
+    private readonly notif: NotificationService,
+  ) {
+    // Écritures faites depuis le WEB (navigateur branché sur le central) : elles ne
+    // passent pas par /sync/push, donc personne ne sonnerait. On se greffe sur le flux
+    // des notifications, qui couvre précisément ce qui doit apparaître sans délai.
+    this.notif.activite$.subscribe(() => this.sonner(null))
+  }
+
+  /** Fait sonner. `origine` = le poste à l'origine de l'écriture, pour ne pas le réveiller
+   *  pour son propre travail (il a déjà les données : c'est lui qui les a écrites). */
+  sonner(origine: string | null): void {
+    this.cloche$.next({ origine })
+  }
+
+  /**
+   * Abonnement d'un poste à la sonnette.
+   *
+   * BATTEMENT : un canal muet est coupé par les intermédiaires réseau (Render, proxies
+   * d'entreprise) au bout d'une minute environ. Sans battement, chaque poste se
+   * reconnecterait sans cesse — sur un parc de 200 postes, un flot permanent de
+   * reconnexions pour zéro information. On envoie donc un signe de vie régulier, plus
+   * court que le délai de coupure le plus agressif rencontré en pratique.
+   *
+   * Le battement porte un type DIFFÉRENT de la sonnerie : le poste ne doit surtout pas
+   * synchroniser à chaque battement, sinon on aurait réinventé l'interrogation périodique
+   * qu'on cherchait justement à supprimer.
+   */
+  clochePour(posteLocalId: string | null): Observable<MessageEvent> {
+    const sonneries = this.cloche$.pipe(
+      filter((e) => !e.origine || e.origine !== posteLocalId),
+      map(() => ({ data: { t: 'sync' } }) as MessageEvent),
+    )
+    const battement = interval(25000).pipe(
+      map(() => ({ data: { t: 'ping' } }) as MessageEvent),
+    )
+    return merge(sonneries, battement)
+  }
 
   private get isSqlite(): boolean {
     return process.env['DATABASE_PROVIDER'] === 'sqlite'
@@ -226,6 +275,12 @@ export class SyncService {
         conflicts: conflictDetails,
       })
     }
+
+    // Un poste vient d'écrire : on prévient TOUS LES AUTRES sur-le-champ, sans attendre
+    // leur prochain cycle. C'est ce qui rend la messagerie instantanée entre postes.
+    // On ne sonne que si quelque chose a réellement été appliqué — un push vide (le cas
+    // le plus fréquent) ne doit réveiller personne.
+    if (applied.length > 0) this.sonner(posteLocalId ?? null)
 
     return { applied, skipped, conflicts, serverTime: new Date().toISOString() }
   }

@@ -15,6 +15,10 @@ import fs from 'node:fs'
 import { Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
 import { SyncService } from './sync.service'
+import {
+  NotificationService,
+  type NotifRow,
+} from '../notification/notification.service'
 import type {
   SyncPullResponseV2,
   SyncPushResponseV2,
@@ -29,6 +33,17 @@ interface SyncStateDelegate {
   upsert: (a: unknown) => Promise<unknown>
 }
 
+/** Modèles porteurs de la messagerie (alignés sur `sync-models.ts`) : leur arrivée doit
+ *  rafraîchir l'écran sans délai, mais SANS faire sonner de notification. */
+const MODELES_MESSAGERIE = new Set([
+  'Conversation',
+  'ConversationParticipant',
+  'Message',
+  'MessageReaction',
+  'MessageMasque',
+  'MessagePieceJointe',
+])
+
 @Injectable()
 export class SyncClientService implements OnApplicationBootstrap {
   private readonly logger = new Logger('SyncClient')
@@ -41,6 +56,7 @@ export class SyncClientService implements OnApplicationBootstrap {
   constructor(
     private readonly prisma: PrismaService,
     private readonly sync: SyncService,
+    private readonly notif: NotificationService,
   ) {}
 
   /**
@@ -67,6 +83,8 @@ export class SyncClientService implements OnApplicationBootstrap {
     void this.heartbeat()
     const heartbeatSec = Number(process.env['SYNC_HEARTBEAT_SEC'] ?? '30')
     setInterval(() => void this.heartbeat(), Math.max(10, heartbeatSec) * 1000)
+    // CANAL TEMPS RÉEL vers le central, séparé des cycles de synchronisation.
+    void this.ecouterCloche()
   }
 
   private get libelle(): string {
@@ -260,7 +278,10 @@ export class SyncClientService implements OnApplicationBootstrap {
       const body = (await res.json()) as SyncPullResponseV2
       for (const env of body.changes) {
         const r = await this.sync.ingest(env)
-        if (r.applied) applied++
+        if (r.applied) {
+          applied++
+          this.rediffuser(env)
+        }
       }
       serverTime = body.serverTime
       since = body.nextSince
@@ -274,6 +295,91 @@ export class SyncClientService implements OnApplicationBootstrap {
     if (serverTime)
       await this.saveCursor({ lastPulledAt: new Date(serverTime) })
     return applied
+  }
+
+  /**
+   * Rediffuse localement ce qui vient d'arriver par la synchronisation.
+   *
+   * Le moteur écrit directement en base : sans cette étape, une notification ou un message
+   * venu d'un autre poste attendait le prochain rafraîchissement de l'écran. C'est le
+   * dernier maillon de la chaîne temps réel — sonnette, synchro, puis affichage.
+   *
+   * Deux traitements, parce que les deux cas ne se ressemblent pas :
+   *  - une NOTIFICATION est rediffusée telle quelle : le flux local applique déjà ses
+   *    règles de visibilité à l'abonnement, on n'en réimplémente pas une deuxième ;
+   *  - la MESSAGERIE reçoit un signal silencieux `LIVE_MESSAGERIE` (ni cloche, ni son,
+   *    ni bandeau) qui invite simplement l'écran à recharger ses conversations. Rediffuser
+   *    le message lui-même ferait sonner une notification pour chaque ligne synchronisée,
+   *    y compris ses propres messages relus — insupportable à l'usage.
+   */
+  private rediffuser(env: SyncEntityEnvelope): void {
+    try {
+      if (env.op === 'delete') return
+      if (env.model === 'Notification') {
+        this.notif.rediffuserDepuisSynchro(env.data as unknown as NotifRow)
+        return
+      }
+      if (MODELES_MESSAGERIE.has(env.model)) {
+        this.notif.broadcastLive('LIVE_MESSAGERIE')
+      }
+    } catch (e) {
+      // L'affichage temps réel est un confort : il ne doit JAMAIS faire échouer une
+      // ingestion. Une donnée bien enregistrée qui s'affiche une seconde plus tard vaut
+      // infiniment mieux qu'une synchronisation interrompue.
+      this.logger.warn(`Rediffusion ignorée : ${(e as Error).message}`)
+    }
+  }
+
+  /**
+   * SONNETTE : écoute permanente du canal temps réel du serveur central.
+   *
+   * Pourquoi ce canal EN PLUS de la synchronisation : la synchro travaille par cycles.
+   * Entre deux cycles, un message envoyé depuis un autre poste attend. Pour une
+   * messagerie, attendre c'est être cassé. Le central sonne, le poste synchronise
+   * immédiatement — le délai tombe du cycle à la milliseconde.
+   *
+   * Le canal ne transporte aucune donnée : il ne fait que réveiller. Toute la sécurité
+   * reste dans /sync/pull, qui n'a pas changé.
+   *
+   * Robustesse : reconnexion perpétuelle avec attente progressive plafonnée. Une coupure
+   * réseau, un serveur qui redémarre ou une veille prolongée de la machine se soldent par
+   * une reconnexion, jamais par un canal silencieusement mort — cas le plus dangereux,
+   * puisqu'il donnerait une application qui semble marcher mais n'apprend plus rien.
+   */
+  private async ecouterCloche(): Promise<void> {
+    let attente = 0
+    for (;;) {
+      try {
+        const url = `${this.serverUrl}/sync/events?posteLocalId=${encodeURIComponent(this.posteLocalId)}`
+        const res = await fetch(url, {
+          headers: { ...this.headers(), Accept: 'text/event-stream' },
+        })
+        if (!res.ok || !res.body) throw new Error(`cloche HTTP ${res.status}`)
+        this.logger.log('Canal temps réel ouvert vers le serveur central')
+        attente = 0
+        const lecteur = res.body.getReader()
+        const decodeur = new TextDecoder()
+        for (;;) {
+          const { done, value } = await lecteur.read()
+          if (done) break
+          // On ne synchronise QUE sur une vraie sonnerie. Le canal porte aussi un
+          // battement de vie, destiné aux intermédiaires réseau : le confondre avec une
+          // sonnerie ferait synchroniser tout le parc toutes les 25 secondes — soit
+          // exactement l'interrogation périodique que ce canal remplace.
+          if (!value?.length) continue
+          if (decodeur.decode(value, { stream: true }).includes('"sync"')) {
+            void this.triggerSync('temps réel')
+          }
+        }
+        throw new Error('canal fermé par le serveur')
+      } catch (e) {
+        // Hors-ligne, c'est le cas NORMAL : on n'inonde pas le journal. Le canal se
+        // rétablira tout seul, et la synchronisation périodique prend le relais entre-temps.
+        this.logger.debug?.(`Canal temps réel indisponible : ${(e as Error).message}`)
+        attente = Math.min(attente ? attente * 2 : 3000, 60000)
+        await new Promise((r) => setTimeout(r, attente))
+      }
+    }
   }
 
   /**

@@ -60,7 +60,7 @@ model PreferenceUtilisateur {
   densite       String    @default("confort") // confort | compact
   langue        String    @default("fr") // fr | en
   pageAccueil   String    @default("dashboard") // route après connexion
-  lignesParPage Int       @default(25) // pagination par défaut
+  lignesParPage Int       @default(25) // INERTE : le défaut réel est 10, dans PREF_DEFAULTS (me.service.ts) — les deux chemins de création renseignent la colonne explicitement
   notifEmail    Boolean   @default(true) // notifications par e-mail
   notifApp      Boolean   @default(true) // notifications dans l'application (cloche)
   cguAccepteeLe DateTime? // date d'acceptation des conditions d'utilisation

@@ -46,7 +46,7 @@ export interface NotifAudience {
   permissions: string[]
 }
 
-interface NotifRow {
+export interface NotifRow {
   id: string
   createdAt: Date
   destinataireId: string | null
@@ -422,6 +422,34 @@ export class NotificationService {
   }
 
   // ── Temps réel (SSE) ──────────────────────────────────────────────────────────
+
+  /**
+   * Rediffuse une notification arrivée par la SYNCHRONISATION.
+   *
+   * Le moteur de synchro écrit en base directement (Prisma), sans passer par `emit()` :
+   * une notification créée sur un AUTRE poste atterrissait donc bien dans la base locale,
+   * mais aucun événement ne partait vers l'écran — on ne la voyait qu'au rafraîchissement
+   * suivant. Pour une messagerie, ce délai est la différence entre « ça marche » et
+   * « c'est cassé ».
+   *
+   * Le filtrage par destinataire reste celui de `streamFor()` : on republie tel quel, la
+   * visibilité est décidée à l'abonnement.
+   */
+  rediffuserDepuisSynchro(n: NotifRow): void {
+    this.stream$.next(n)
+  }
+
+  /**
+   * Signal d'activité SANS DONNÉE — sert de sonnette au serveur central.
+   *
+   * Volontairement vidé de son contenu : les postes distants apprennent qu'il s'est passé
+   * quelque chose, puis vont chercher les données par le canal de synchronisation normal,
+   * qui applique déjà les règles de visibilité. Rien de confidentiel ne transite par la
+   * sonnette, donc rien à filtrer — et aucune règle d'accès à réimplémenter ailleurs.
+   */
+  get activite$(): Observable<void> {
+    return this.stream$.pipe(map(() => undefined))
+  }
 
   /** Flux SSE filtré : seules les notifications visibles par cet utilisateur. */
   streamFor(a: NotifAudience): Observable<MessageEvent> {
