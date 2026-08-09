@@ -1,3 +1,4 @@
+import { desktopBridge } from './desktop'
 import { useSessionStore } from '@/stores/session.store'
 import { toast } from '@workspace/ui/components/sonner'
 import { enqueueMutation } from './sync'
@@ -242,6 +243,30 @@ function jetonCourant(): string | null {
   return s.token
 }
 
+
+/**
+ * MIROIR LOCAL — apres une ecriture reussie sur le serveur CENTRAL, on demande au backend
+ * embarque d'aller chercher immediatement ce qui vient de changer.
+ *
+ * Sans cela, la base locale n'apprend le changement qu'au rendez-vous periodique, jusqu'a
+ * CINQ MINUTES plus tard. Le reseau tombant entre-temps, le poste bascule sur une base qui
+ * ignore le travail des dernieres minutes — y compris celui de la personne devant l'ecran,
+ * qui le croit perdu. Les deux serveurs doivent avancer ensemble, pour que le local puisse
+ * prendre le relais EXACTEMENT la ou l'ecriture s'est arretee.
+ *
+ * On ne rejoue pas l'ecriture localement : ce serait deux identifiants pour une seule
+ * saisie, donc un doublon des la synchro suivante. On declenche une RECUPERATION.
+ *
+ * Silencieux et sans attente : ni l'echec ni la lenteur du miroir ne doivent se voir dans
+ * l'action que la personne vient de faire.
+ */
+function mirroirLocal(): void {
+  if (modeCourant !== 'central') return
+  const url = desktopBridge()?.localApiUrl
+  if (!url) return
+  void fetch(`${url.replace(/\/+$/, '')}/sync/now`, { method: 'POST' }).catch(() => {})
+}
+
 async function request<T>(path: string, options: RequestInit = {}, isRetry = false): Promise<T> {
   const token = jetonCourant()
 
@@ -285,7 +310,10 @@ async function request<T>(path: string, options: RequestInit = {}, isRetry = fal
   }
 
   // 204 No Content — pas de body
-  if (response.status === 204) return undefined as T
+  if (response.status === 204) {
+    if (WRITE_METHODS.has(method)) mirroirLocal()
+    return undefined as T
+  }
 
   // 401 → tentative de refresh SEULEMENT si on avait déjà un token
   // (évite de déclencher le refresh sur un login avec mauvais mot de passe)
@@ -304,6 +332,9 @@ async function request<T>(path: string, options: RequestInit = {}, isRetry = fal
     const body = await response.json().catch(() => ({}))
     throw new ApiError(response.status, body, `HTTP ${response.status} — ${path}`)
   }
+
+  // Ecriture acceptee par le central : la base locale doit la connaitre TOUT DE SUITE.
+  if (WRITE_METHODS.has(method)) mirroirLocal()
 
   return response.json() as Promise<T>
 }
