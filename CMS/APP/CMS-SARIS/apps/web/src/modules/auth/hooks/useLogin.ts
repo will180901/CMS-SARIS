@@ -6,6 +6,7 @@ import type {
   LoginDto, TotpVerifyDto, UserSession, SessionConcurrente, ConfirmerSessionDto,
 } from '@cms-saris/types'
 import { getAppareilId } from '@/lib/appareil'
+import { desktopBridge } from '@/lib/desktop'
 
 // ── Types de réponse backend ──────────────────────────────────────────────────
 
@@ -45,7 +46,20 @@ export function useLoginMutation() {
     // `appareilId` ajouté ici et pas au niveau du formulaire : aucun appelant ne peut
     // l'oublier, et il n'a aucune raison d'être saisi ou vu par l'utilisateur.
     mutationFn: (dto) =>
-      api.post<LoginResponse>('/auth/login', { ...dto, appareilId: getAppareilId() }),
+      api.post<LoginResponse>('/auth/login', {
+        ...dto,
+        appareilId: getAppareilId(),
+        // CLIENT DE BUREAU : on s'authentifie contre le BACKEND EMBARQUÉ (architecture
+        // locale d'abord). `posteLocalId` exempte cette connexion de la règle de session
+        // unique — indispensable, car les sessions font partie des données SYNCHRONISÉES :
+        // le backend local y verrait une session ouverte ailleurs, la croirait concurrente,
+        // et refuserait de connecter la personne assise devant la machine.
+        //
+        // La règle garde tout son sens sur le serveur central, où plusieurs postes se
+        // partagent réellement les comptes. Elle n'en a aucun sur un backend en loopback
+        // qui ne sert qu'un seul écran.
+        ...(desktopBridge()?.posteLocalId ? { posteLocalId: desktopBridge()!.posteLocalId } : {}),
+      }),
 
     onSuccess: (data, dto) => {
       // Deux cas laissent la main au composant : TOTP à saisir, ou session concurrente

@@ -662,9 +662,25 @@ function centralUrl(): string {
  * premier demarrage) que de pointer vers une adresse dont on SAIT qu'elle ne repond pas.
  */
 function computeRendererUrl(): string {
-  const central = centralUrl()
-  if (serverOnline && central) return central
-  return effectiveApiUrl ?? ''
+  // ARCHITECTURE « LOCAL D'ABORD ». En mode local, l'application ne parle QU'AU BACKEND
+  // EMBARQUE — en ligne comme hors-ligne. Le serveur central n'est plus jamais son
+  // interlocuteur : c'est le moteur de synchronisation, seul, qui lui parle.
+  //
+  // POURQUOI. Faire changer d'interlocuteur a l'application au gre du reseau a produit
+  // quatre pannes, toutes de la meme racine : deux autorites d'authentification donc deux
+  // jetons ; une file d'attente concue pour le navigateur qui detournait les ecritures ;
+  // une URL de repli qui pointait sur un serveur injoignable ; une session locale prise
+  // pour concurrente parce que les sessions sont synchronisees. Chaque difference entre
+  // les deux serveurs devenait un bug.
+  //
+  // Avec un seul interlocuteur, ces classes de bugs n'existent plus : un jeton, une
+  // adresse, aucune bascule. La coupure reseau devient un NON-EVENEMENT pour
+  // l'application — elle parlait deja au local.
+  //
+  // `serverOnline` n'est plus une decision, seulement une INFORMATION : le badge et la
+  // bulle de synchronisation. Repli sur le central uniquement si le backend embarque
+  // n'existe pas encore (mode distant, ou tout premier instant du demarrage).
+  return effectiveApiUrl ?? centralUrl()
 }
 
 /**
@@ -704,7 +720,11 @@ function pushRendererUrl(): void {
   connectivitySeq++
   mainWindow?.webContents.send('saris:api-url', {
     url: rendererApiUrl,
-    mode: serverOnline ? 'central' : 'local',
+    // `mode` decrit l'INTERLOCUTEUR, pas l'etat du reseau : en architecture locale
+    // d'abord, c'est toujours le backend embarque des lors qu'il tourne.
+    mode: effectiveApiUrl ? 'local' : 'central',
+    // `online` reste l'etat du RESEAU — il n'a plus d'effet sur l'adresse, il informe
+    // seulement l'utilisateur (badge, bulle de synchronisation).
     online: serverOnline,
     seq: connectivitySeq,
   })
@@ -769,18 +789,17 @@ async function completeLocalStartup(): Promise<void> {
     sendSetupStatus('error', 'Le service local n’a pas pu démarrer. Réessayez ; si le problème persiste, consultez les journaux.')
     return
   }
-  if (serverOnline) {
-    // EN LIGNE : on ouvre TOUT DE SUITE sur le CENTRAL (données déjà là, messagerie instantanée).
-    // La 1ère synchro locale (pour le futur hors-ligne) se poursuit en arrière-plan.
-    sendSetupStatus('done', 'Connecté — ouverture de l’application.')
-    loadApplication()
-  } else {
-    // HORS-LIGNE : on attend que la base locale soit prête avant d'ouvrir (pas d'écran « à vide »).
-    sendSetupStatus('backend', 'Synchronisation des données du site…')
-    await waitForInitialSync(effectiveApiUrl, 90000)
-    sendSetupStatus('done', 'Données prêtes — ouverture de l’application.')
-    loadApplication()
-  }
+  // L'application travaille sur la base LOCALE : on ne l'ouvre donc qu'une fois cette base
+  // remplie, en ligne comme hors-ligne. Ouvrir avant afficherait une application vide en
+  // attendant que les données arrivent — l'utilisateur croirait à une panne.
+  //
+  // Le compteur de la 1re synchronisation avance pendant l'attente (cf. waitForInitialSync).
+  // Passé le délai, on ouvre quand même : la synchro continue en arrière-plan, mieux vaut
+  // une application utilisable qu'un écran d'attente sans fin.
+  sendSetupStatus('backend', 'Synchronisation des données du site…')
+  await waitForInitialSync(effectiveApiUrl, 90000)
+  sendSetupStatus('done', 'Données prêtes — ouverture de l’application.')
+  loadApplication()
 }
 
 /** Sonde GET /sync/ready jusqu'à ce que la 1ère synchro soit faite (données du site en place)
