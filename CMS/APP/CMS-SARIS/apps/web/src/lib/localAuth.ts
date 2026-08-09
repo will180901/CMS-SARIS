@@ -42,10 +42,17 @@ export async function obtenirJetonLocal(login: string, password: string): Promis
     const res = await fetch(`${url.replace(/\/+$/, '')}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      // Pas d'`appareilId` : cette session-ci n'est pas une session « humaine » de plus,
-      // c'est le pendant local de celle du central. Le backend embarqué est seul sur
-      // 127.0.0.1 — il n'a personne avec qui entrer en concurrence.
-      body: JSON.stringify({ login, password }),
+      // `posteLocalId` EXEMPTE de la règle de session unique — et c'est indispensable ici.
+      //
+      // Sans lui, le backend embarqué cherchait une session concurrente. Or les sessions
+      // sont SYNCHRONISÉES depuis le central : il y voyait la session que l'utilisateur
+      // vient d'ouvrir sur le serveur, la croyait concurrente, et refusait de délivrer un
+      // jeton. Faute de jeton local, l'application présentait hors-ligne celui du central,
+      // que le backend rejette — chaque écriture tournait indéfiniment.
+      //
+      // Cette détection n'a de toute façon aucun sens ici : le backend est en loopback et
+      // ne sert qu'une personne, celle qui est devant la machine.
+      body: JSON.stringify({ login, password, posteLocalId: desktopBridge()?.posteLocalId }),
     })
     if (!res.ok) return false
     const data = (await res.json()) as ReponseLocale
