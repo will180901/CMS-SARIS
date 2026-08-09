@@ -6,7 +6,6 @@ import type {
   LoginDto, TotpVerifyDto, UserSession, SessionConcurrente, ConfirmerSessionDto,
 } from '@cms-saris/types'
 import { getAppareilId } from '@/lib/appareil'
-import { desktopBridge } from '@/lib/desktop'
 
 // ── Types de réponse backend ──────────────────────────────────────────────────
 
@@ -48,17 +47,14 @@ export function useLoginMutation() {
     mutationFn: (dto) =>
       api.post<LoginResponse>('/auth/login', {
         ...dto,
-        appareilId: getAppareilId(),
-        // CLIENT DE BUREAU : on s'authentifie contre le BACKEND EMBARQUÉ (architecture
-        // locale d'abord). `posteLocalId` exempte cette connexion de la règle de session
-        // unique — indispensable, car les sessions font partie des données SYNCHRONISÉES :
-        // le backend local y verrait une session ouverte ailleurs, la croirait concurrente,
-        // et refuserait de connecter la personne assise devant la machine.
+        // `appareilId` porte à lui seul la règle de session unique, y compris sur le
+        // backend embarqué : la détection exclut les sessions du MÊME appareil, si bien
+        // qu'une application relancée retrouve la sienne au lieu de la croire concurrente.
         //
-        // La règle garde tout son sens sur le serveur central, où plusieurs postes se
-        // partagent réellement les comptes. Elle n'en a aucun sur un backend en loopback
-        // qui ne sert qu'un seul écran.
-        ...(desktopBridge()?.posteLocalId ? { posteLocalId: desktopBridge()!.posteLocalId } : {}),
+        // Ne PAS exempter ici avec `posteLocalId` : la règle resterait vraie entre postes
+        // (le poste B voit, une fois la synchro passée, la session ouverte sur le poste A)
+        // et l'exemption la ferait disparaître partout sur le client de bureau.
+        appareilId: getAppareilId(),
       }),
 
     onSuccess: (data, dto) => {
