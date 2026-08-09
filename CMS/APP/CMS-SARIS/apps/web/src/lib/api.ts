@@ -1,4 +1,3 @@
-import { useConnectivityStore } from '@/stores/connectivity.store'
 import { useSessionStore } from '@/stores/session.store'
 import { toast } from '@workspace/ui/components/sonner'
 import { enqueueMutation } from './sync'
@@ -18,9 +17,20 @@ export let BASE_URL =
  * backend LOCAL SQLite quand il est hors-ligne. `export let` = liaison vive : tous les `fetch`
  * (qui lisent BASE_URL au moment de l'appel) utilisent la nouvelle valeur immédiatement.
  */
-export function setApiBaseUrl(url: string): void {
+/**
+ * Serveur actuellement interroge : 'local' = backend embarque du poste, sinon le central.
+ *
+ * Volontairement une variable de CE module, et non une lecture du store de connectivite :
+ * `api.ts` ne doit RIEN importer de ce store, qui lui-meme importe `api.ts`. Le cycle
+ * ainsi cree laissait l'un des deux modules encore vide au chargement d'un build de
+ * production — l'application affichait une page blanche.
+ */
+let modeCourant: 'web' | 'central' | 'local' = 'web'
+
+export function setApiBaseUrl(url: string, mode?: 'web' | 'central' | 'local'): void {
   const clean = (url || '').replace(/\/+$/, '')
   if (clean) BASE_URL = clean
+  if (mode) modeCourant = mode
 }
 
 // ── Classe d'erreur enrichie ──────────────────────────────────────────────────
@@ -216,7 +226,7 @@ export async function replayRequest(method: string, path: string, body: unknown)
  */
 function jetonCourant(): string | null {
   const s = useSessionStore.getState()
-  if (useConnectivityStore.getState().mode === 'local') return s.localToken ?? s.token
+  if (modeCourant === 'local') return s.localToken ?? s.token
   return s.token
 }
 

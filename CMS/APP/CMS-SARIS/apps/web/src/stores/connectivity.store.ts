@@ -36,7 +36,7 @@ export const useConnectivityStore = create<ConnectivityState>((set, get) => ({
     // Une mise à jour porteuse d'un seq <= au dernier appliqué est PÉRIMÉE (arrivée en
     // désordre entre le pull initial au montage et un push concurrent) → ignorée.
     if (typeof seq === 'number' && seq <= get().seq) return
-    setApiBaseUrl(apiUrl) // bascule l'URL de TOUS les fetch (liaison vive)
+    setApiBaseUrl(apiUrl, mode) // bascule l'URL ET le mode pour TOUS les fetch (liaison vive)
     set({ apiUrl: (apiUrl || '').replace(/\/+$/, ''), mode, online, version: get().version + 1, seq: seq ?? get().seq })
   },
 }))
