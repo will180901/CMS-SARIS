@@ -189,6 +189,18 @@ const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
  * les uploads FormData (non rejouables tels quels).
  */
 function canQueueOffline(method: string, path: string, isForm: boolean): boolean {
+  // CLIENT DE BUREAU EN MODE LOCAL : jamais de file d'attente.
+  //
+  // La file existe pour le NAVIGATEUR, ou « hors-ligne » signifie qu'aucun serveur n'est
+  // joignable : on memorise l'ecriture pour la rejouer plus tard. Sur un poste desktop,
+  // « hors-ligne » signifie tout autre chose — le backend embarque tourne en loopback
+  // (127.0.0.1) et repond parfaitement, cable debranche ou non.
+  //
+  // Les deux mecanismes se marchaient dessus : `navigator.onLine` passait a faux des le
+  // debranchement, et TOUTE ecriture partait en file au lieu d'etre envoyee au backend
+  // local. L'utilisateur voyait son bouton tourner indefiniment — le hors-ligne, la
+  // raison d'etre de ce client, ne pouvait pas fonctionner.
+  if (modeCourant === 'local') return false
   if (!WRITE_METHODS.has(method)) return false
   if (isForm) return false
   if (path.startsWith('/auth')) return false
