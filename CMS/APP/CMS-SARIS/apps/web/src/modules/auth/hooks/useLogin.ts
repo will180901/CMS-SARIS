@@ -1,7 +1,7 @@
 import { useMutation } from '@tanstack/react-query'
 import { api, ApiError } from '@/lib/api'
 import { useSessionStore } from '@/stores/session.store'
-import { obtenirJetonLocal, memoriserPourRetentative, provisionnerPosteDepuisConnexion } from '@/lib/localAuth'
+import { obtenirJetonLocal, memoriserPourRetentative } from '@/lib/localAuth'
 import type {
   LoginDto, TotpVerifyDto, UserSession, SessionConcurrente, ConfirmerSessionDto,
 } from '@cms-saris/types'
@@ -59,9 +59,6 @@ export function useLoginMutation() {
       // ne sont pas encore synchronisés, on réessaiera (cf. assurerJetonLocal).
       memoriserPourRetentative(dto.login, dto.password)
       void obtenirJetonLocal(dto.login, dto.password)
-      // Et, si ce poste n'a pas encore d'identite de synchro, il la recoit ici : ses
-      // jetons et son site viennent du PREMIER utilisateur qui se connecte.
-      provisionnerPosteDepuisConnexion(data.accessToken, data.refreshToken, data.user?.siteId)
     },
   })
 }

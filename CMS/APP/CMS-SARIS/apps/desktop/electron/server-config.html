@@ -105,20 +105,6 @@
         if (!url) return setMsg('Saisissez une adresse.', 'err')
         if (!/^https?:\/\//i.test(url)) return setMsg('L’adresse doit commencer par http:// ou https://', 'err')
         $('save').disabled = true
-        // Poste AUTONOME (mode local) : on enregistre l'adresse et l'application s'ouvre
-        // sur son ecran de connexion habituel — aucun identifiant n'est demande ici. Le
-        // poste recevra son identite de synchronisation a la premiere connexion.
-        // Repli sur l'ancien chemin (setApiUrl + redemarrage) pour un client purement
-        // distant, ou si le pont ne connait pas encore syncSetServer.
-        if (window.saris.syncSetServer) {
-          setMsg('Verification du serveur…')
-          const res = await window.saris.syncSetServer({ serverUrl: url })
-          if (!res || !res.ok) {
-            $('save').disabled = false
-            return setMsg((res && res.error) || 'Impossible d’enregistrer cette adresse.', 'err')
-          }
-          return setMsg('Serveur enregistre — ouverture de l’application…', 'ok')
-        }
         setMsg('Enregistrement… l’application va redémarrer.')
         await window.saris.setApiUrl(url) // écrit la config puis relance l'app
       }

@@ -213,11 +213,8 @@ function createMainWindow(): void {
   })
 
   // Backend prêt → app ; mode local non configuré → écran de config ; sinon → connexion serveur.
-  // `needsLocalSetup` = adresse du serveur inconnue. On demande UNIQUEMENT cette
-  // adresse (server-config.html) : plus d'identifiants a l'installation. L'ecran a deux
-  // etapes (sync-setup.html) n'est plus emprunte — cf. decision « le site vient de la
-  // premiere connexion ».
   if (effectiveApiUrl) loadApplication()
+  else if (needsLocalSetup) loadSyncSetup()
   else loadServerConfig()
 }
 
@@ -558,22 +555,12 @@ async function initBackend(): Promise<void> {
     effectiveApiUrl = resolveApiUrl()
     return
   }
-  // 1er lancement : l'installation ne demande QUE l'adresse du serveur.
-  if (!serveurRenseigne()) {
-    needsLocalSetup = true
-    return
-  }
-  // Adresse connue, mais poste PAS ENCORE PROVISIONNÉ : personne ne s'est encore connecté,
-  // donc aucun jeton de synchronisation. On ouvre l'application en CLIENT DISTANT, contre
-  // le central — l'utilisateur travaille normalement. Le backend embarqué démarrera à la
-  // première connexion, quand on aura ses jetons (cf. `saris:provision-poste`).
-  //
-  // C'est ce qui rend l'installation sans mot de passe possible sans rien casser : tant
-  // qu'on n'est pas provisionné, le poste se comporte exactement comme un client web.
+  // Poste pas encore configuré → écran d'installation : serveur, identifiants, puis SITE.
+  // Le site est celui de la MACHINE : il se fixe LÀ, une fois pour toutes. Il ne se déduit
+  // pas du premier compte qui se connecte — un poste ne déménage pas, et le site est porté
+  // par tous les actes qu'on y saisit.
   if (!isSyncConfigured()) {
-    effectiveApiUrl = resolveServerUrl()
-    serverOnline = true
-    rendererApiUrl = effectiveApiUrl
+    needsLocalSetup = true
     return
   }
   // Configuré : on rafraîchit l'access token (best-effort) avant de démarrer le backend.
