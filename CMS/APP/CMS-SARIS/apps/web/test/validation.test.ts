@@ -129,6 +129,7 @@ const DTO_RANGES: Record<string, { min: number; max: number }> = {
   tensionSystolique: { min: 50, max: 300 },
   tensionDiastolique: { min: 30, max: 200 },
   frequenceCardiaque: { min: 20, max: 300 },
+  frequenceRespiratoire: { min: 4, max: 80 },
   saturationO2: { min: 50, max: 100 },
   poids: { min: 0.5, max: 300 },
   taille: { min: 30, max: 250 },
@@ -141,8 +142,13 @@ for (const [key, dto] of Object.entries(DTO_RANGES)) {
     assert.equal(front.max, dto.max, `max ${key}`)
   })
 }
-test('toutes les clés vitales du front existent (8)', () => {
-  assert.equal(Object.keys(VITAL_RANGES).length, 8)
+// Le décompte est volontairement figé : si une constante est ajoutée au front sans
+// être reportée dans DTO_RANGES ci-dessus, ce test casse — c'est exactement ce qui
+// s'était produit pour `frequenceRespiratoire`, ajoutée des deux côtés mais absente
+// du garde-fou, qui ne comparait donc plus que 8 plages sur 9 sans que rien ne le signale.
+test('toutes les clés vitales du front sont couvertes par le garde-fou (9)', () => {
+  assert.equal(Object.keys(VITAL_RANGES).length, 9)
+  assert.equal(Object.keys(DTO_RANGES).length, 9)
 })
 
 console.log('\n' + passed + ' reussis, ' + failed + ' echoues')

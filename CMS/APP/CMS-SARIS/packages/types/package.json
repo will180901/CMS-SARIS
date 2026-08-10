@@ -14,9 +14,11 @@
     ".":              "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "tsx test/sync-conflict.test.ts"
   },
   "devDependencies": {
+    "tsx": "^4.19.0",
     "typescript": "^5.9.3"
   }
 }
