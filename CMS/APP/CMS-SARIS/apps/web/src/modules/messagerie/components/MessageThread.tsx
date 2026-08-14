@@ -1065,7 +1065,14 @@ function Bubble({
                 // où l'on ne distingue plus un message retiré d'un message jamais écrit.
                 <div style={{ padding: '8px 12px', fontSize: 13, fontStyle: 'italic', color: 'var(--texte-tertiaire)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                   <Ban size={13} style={{ flexShrink: 0 }} />
-                  {t('messagerie.messageSupprime')}
+                  {/* Le texte dit QUI a supprimé : « vous » n'est pas la même information
+                      que « l'autre ». Dans un groupe on nomme la personne, sans quoi la
+                      trace ne dit rien d'utile à plusieurs. */}
+                  {m.deMoi
+                    ? t('messagerie.messageSupprimeParMoi')
+                    : isGroupe
+                      ? t('messagerie.messageSupprimePar', { nom: m.expediteur })
+                      : t('messagerie.messageSupprime')}
                 </div>
               ) : isEditing ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 12px' }}>
