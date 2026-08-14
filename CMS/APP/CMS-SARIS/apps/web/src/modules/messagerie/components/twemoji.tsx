@@ -75,9 +75,84 @@ const MENTION_ONE = /^@\[([^\]]+)\]\([0-9a-fA-F-]{36}\)$/
  * Rend un texte de message : @mentions → puces surlignées, emojis → images Twemoji,
  * URLs → liens cliquables, le reste en texte. `size` = taille des emojis (px).
  */
+/**
+ * MISE EN FORME façon WhatsApp : *gras*, _italique_, ~barré~, +souligné+.
+ *
+ * On encadre le texte de MARQUEURS au lieu de stocker du HTML. Ce choix n'est pas
+ * cosmétique : le message reste du TEXTE, donc il se chiffre, se cite, se modifie, se
+ * recherche et se relit partout — y compris dans une notification ou un aperçu de liste.
+ * Stocker du HTML aurait ouvert la porte à l'injection dans un fil de discussion, sur des
+ * messages venus d'ailleurs par synchronisation.
+ *
+ * Le souligné n'existe pas dans WhatsApp ; « + » est donc notre marqueur, choisi parce
+ * qu'il ne heurte aucune des trois conventions établies.
+ */
+const MARQUEURS: Record<string, (contenu: React.ReactNode[], k: number) => React.ReactNode> = {
+  '*': (c, k) => <strong key={k}>{c}</strong>,
+  '_': (c, k) => <em key={k}>{c}</em>,
+  '~': (c, k) => <s key={k}>{c}</s>,
+  '+': (c, k) => <u key={k}>{c}</u>,
+}
+
+/** Vide, espace, tabulation ou saut de ligne — sans expression régulière. */
+function estEspace(c: string | undefined): boolean {
+  return !c || c.trim() === ''
+}
+
+/** Lettre ou chiffre — sans expression régulière, et valable au-delà de l'alphabet latin. */
+function estAlphanumerique(c: string | undefined): boolean {
+  if (!c) return false
+  if (c >= '0' && c <= '9') return true
+  return c.toLowerCase() !== c.toUpperCase()
+}
+
+/**
+ * Cherche le prochain marqueur OUVRANT qui possède un fermant valide.
+ *
+ * Deux règles, chacune née d'un vrai faux positif :
+ *  - le marqueur est COLLÉ à son contenu — « 2 * 3 * 4 » reste une multiplication,
+ *    « 5 + 2 + 3 » reste une addition ;
+ *  - il ouvre un MOT — sinon « BON_EXAMEN_ACTION » ou « dossier_patient_2026 », qui
+ *    parsèment cette application, partiraient en italique au milieu d'une phrase.
+ *    WhatsApp accepte ce défaut ; ici les codes à souligné sont trop courants.
+ */
+function prochainMarqueur(text: string, depuis: number): { debut: number; fin: number; car: string } | null {
+  for (let i = depuis; i < text.length; i++) {
+    const c = text[i]!
+    if (!MARQUEURS[c]) continue
+    if (estEspace(text[i + 1])) continue
+    if (estAlphanumerique(text[i - 1])) continue
+    for (let j = i + 2; j < text.length; j++) {
+      if (text[j] !== c || estEspace(text[j - 1])) continue
+      return { debut: i, fin: j, car: c }
+    }
+  }
+  return null
+}
+
 export function renderRich(text: string, size = 19): React.ReactNode[] {
   const out: React.ReactNode[] = []
   const ref = { key: 0 }
+  renderFormate(text, size, out, ref)
+  return out
+}
+
+/** Couche de mise en forme. Récursive : *gras avec _italique_ dedans* fonctionne. */
+function renderFormate(text: string, size: number, out: React.ReactNode[], ref: { key: number }): void {
+  let i = 0
+  for (;;) {
+    const trouve = prochainMarqueur(text, i)
+    if (!trouve) { renderMentions(text.slice(i), size, out, ref); return }
+    if (trouve.debut > i) renderMentions(text.slice(i, trouve.debut), size, out, ref)
+    const interne: React.ReactNode[] = []
+    renderFormate(text.slice(trouve.debut + 1, trouve.fin), size, interne, ref)
+    out.push(MARQUEURS[trouve.car]!(interne, ref.key++))
+    i = trouve.fin + 1
+  }
+}
+
+/** Mentions @quelqu'un, puis délègue le reste (URLs + emojis) à renderPlain. */
+function renderMentions(text: string, size: number, out: React.ReactNode[], ref: { key: number }): void {
   for (const part of text.split(MENTION_RE)) {
     if (!part) continue
     const m = part.match(MENTION_ONE)
@@ -89,7 +164,6 @@ export function renderRich(text: string, size = 19): React.ReactNode[] {
     }
     renderPlain(part, size, out, ref)
   }
-  return out
 }
 
 // URLs + emojis (sans mentions) — partie « texte ordinaire » de renderRich.

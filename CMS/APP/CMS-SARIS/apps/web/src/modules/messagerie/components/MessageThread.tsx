@@ -17,6 +17,7 @@ import {
   Users, Paperclip, ChevronUp, ChevronDown, Clock, Loader2,
   Reply, Copy, Image as ImageIcon, FileText, Smile, Info, Music, Mic, ListChecks, Plus, ChevronLeft,
   Pin, PinOff, Forward, MoreVertical, Bell, BellOff, LogOut,
+  Type, Bold, Italic, Strikethrough, Underline,
 } from 'lucide-react'
 import { Avatar, UserAvatar } from '@/components/saris'
 import { Popover, PopoverContent, PopoverTrigger } from '@workspace/ui/components/popover'
@@ -126,6 +127,17 @@ function formatLastSeen(iso: string, t: TFunction): string {
   return t('messagerie.seenOn', { date: formatDate(iso, { day: '2-digit', month: '2-digit' }), heure: formatHour(iso) })
 }
 
+/**
+ * Les quatre mises en forme proposées. Les raccourcis suivent WhatsApp Web (Ctrl+Maj+X
+ * pour le barré) ; le souligné n'y existe pas, on prend Ctrl+U des traitements de texte.
+ */
+const FORMATS = [
+  { marqueur: '*', Icone: Bold,          cle: 'messagerie.formatBold',      raccourci: 'Ctrl+B' },
+  { marqueur: '_', Icone: Italic,        cle: 'messagerie.formatItalic',    raccourci: 'Ctrl+I' },
+  { marqueur: '~', Icone: Strikethrough, cle: 'messagerie.formatStrike',    raccourci: 'Ctrl+Maj+X' },
+  { marqueur: '+', Icone: Underline,     cle: 'messagerie.formatUnderline', raccourci: 'Ctrl+U' },
+] as const
+
 export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem; onLeft?: () => void; onBack?: () => void }) {
   const { t } = useTranslation()
   const conversationId = conv.id
@@ -146,6 +158,7 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
   const { data: pinned = [] } = usePinnedMessages(conversationId)
 
   const [draft, setDraft]       = useState('')
+  const [formatOpen, setFormatOpen] = useState(false)
   const [mediaFiles, setMediaFiles] = useState<File[]>([])
   const [viewerPj, setViewerPj]     = useState<PieceJointeMeta | null>(null)
   const [recording, setRecording]   = useState(false)
@@ -351,13 +364,45 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
     loadingOlderRef.current = true; fetchNextPage()
   }
 
-  function openPreview(list: FileList | null) {
+  /**
+   * Ouvre l'aperçu avant envoi. Accepte un FileList (choix de fichier) ou un tableau
+   * (presse-papiers : `clipboardData.files` n'est pas toujours un FileList exploitable).
+   */
+  function openPreview(list: FileList | File[] | null) {
     setAttachOpen(false)
     if (!list?.length) return
     setMediaFiles(Array.from(list))
     if (imgInputRef.current) imgInputRef.current.value = ''
     if (audioInputRef.current) audioInputRef.current.value = ''
     if (docInputRef.current) docInputRef.current.value = ''
+  }
+
+  /**
+   * Encadre la sélection avec un marqueur de mise en forme (*gras*, _italique_, ~barré~,
+   * +souligné+). Rappuyer sur le même bouton RETIRE la mise en forme : un seul bouton met
+   * et enlève, comme dans n'importe quel éditeur — sinon on ne sait plus comment défaire.
+   *
+   * Sans sélection, on pose la paire et on place le curseur au milieu : on peut donc
+   * activer le gras AVANT d'écrire, et pas seulement après.
+   */
+  function appliquerFormat(marqueur: string) {
+    const el = composerRef.current
+    if (!el) return
+    const debut = el.selectionStart ?? draft.length
+    const fin   = el.selectionEnd ?? debut
+    const choisi = draft.slice(debut, fin)
+
+    const deja = choisi.length > 1 && choisi.startsWith(marqueur) && choisi.endsWith(marqueur)
+    const remplace = deja ? choisi.slice(1, -1) : marqueur + choisi + marqueur
+    setDraft(draft.slice(0, debut) + remplace + draft.slice(fin))
+
+    // On rend la main au composeur, sélection replacée : sans cela il faut re-cliquer
+    // dans le champ pour continuer à écrire, et on perd le fil de sa phrase.
+    const decalage = deja ? -1 : 1
+    requestAnimationFrame(() => {
+      el.focus()
+      el.setSelectionRange(debut + decalage, fin + decalage)
+    })
   }
 
   async function sendMedia(processed: File[], caption: string) {
@@ -657,6 +702,23 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
           <VoiceRecorder onCancel={() => setRecording(false)} onSend={sendVoice} />
         ) : (
         <>
+        {/* Mise en forme du texte */}
+        <Popover open={formatOpen} onOpenChange={setFormatOpen}>
+          <PopoverTrigger asChild>
+            <button title={t('messagerie.format')} style={composerBtn}><Type size={18} /></button>
+          </PopoverTrigger>
+          <PopoverContent align="start" side="top" sideOffset={4}
+            style={{ width: 'auto', padding: 4, display: 'flex', gap: 2, background: 'var(--fond-surface)', border: '1px solid var(--bordure-legere)', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.14)' }}>
+            {FORMATS.map(f => (
+              <button key={f.marqueur} style={composerBtn}
+                title={`${t(f.cle)} (${f.raccourci})`}
+                onClick={() => { appliquerFormat(f.marqueur); setFormatOpen(false) }}>
+                <f.Icone size={16} />
+              </button>
+            ))}
+          </PopoverContent>
+        </Popover>
+
         {/* Emoji */}
         <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
           <PopoverTrigger asChild>
@@ -697,7 +759,25 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
           )}
           <textarea
             ref={composerRef} value={draft} onChange={onComposerChange}
+            onPaste={e => {
+              // COLLER une image, un document, une capture d'écran : on ouvre le MÊME
+              // aperçu que le trombone, plutôt que d'envoyer à l'aveugle. Coller du TEXTE
+              // garde le comportement natif — c'est ce qu'on attend d'un champ de saisie.
+              const fichiers = Array.from(e.clipboardData?.files ?? [])
+              if (!fichiers.length) return
+              e.preventDefault()
+              openPreview(fichiers)
+            }}
             onKeyDown={e => {
+              // Raccourcis de mise en forme, alignés sur WhatsApp Web et sur les
+              // traitements de texte : la main ne quitte pas le clavier.
+              if (e.ctrlKey || e.metaKey) {
+                const k = e.key.toLowerCase()
+                if (e.shiftKey && k === 'x') { e.preventDefault(); appliquerFormat('~'); return }
+                if (!e.shiftKey && k === 'b') { e.preventDefault(); appliquerFormat('*'); return }
+                if (!e.shiftKey && k === 'i') { e.preventDefault(); appliquerFormat('_'); return }
+                if (!e.shiftKey && k === 'u') { e.preventDefault(); appliquerFormat('+'); return }
+              }
               if (mention && mentionCandidates.length > 0 && (e.key === 'Enter' || e.key === 'Tab')) { e.preventDefault(); pickMention(mentionCandidates[0]!); return }
               if (e.key === 'Escape' && mention) { setMention(null); return }
               if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
