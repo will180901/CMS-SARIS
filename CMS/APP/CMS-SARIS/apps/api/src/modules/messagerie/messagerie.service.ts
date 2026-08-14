@@ -894,10 +894,15 @@ export class MessagerieService {
     this.presence.setViewing(userId, conversationId) // l'utilisateur regarde cette conversation
 
     const beforeDate = before ? new Date(before) : null
-    const rows = await this.prisma.message.findMany({
+    // CLIENT BRUT, volontairement. L'extension soft-delete masque partout les lignes
+    // `deletedAt` — ici on a besoin de les VOIR : un message « supprimé pour tout le
+    // monde » doit rester dans le fil sous forme de trace, comme dans WhatsApp. Sans
+    // cela il s'évaporait, et la conversation devenait incompréhensible pour l'autre :
+    // on ne distingue pas un message retiré d'un message jamais envoyé.
+    // (Même raison que la synchronisation, qui passe déjà par `raw` pour ses tombstones.)
+    const rows = await this.prisma.raw.message.findMany({
       where: {
         conversationId,
-        deletedAt: null,
         masques: { none: { utilisateurId: userId } }, // « supprimé pour moi »
         ...(beforeDate && !isNaN(beforeDate.getTime())
           ? { createdAt: { lt: beforeDate } }
@@ -982,6 +987,37 @@ export class MessagerieService {
 
     const messages = page.map((m) => {
       const deMoi = m.expediteurId === userId
+
+      // TRACE d'un message supprimé pour tout le monde. On renvoie une coquille : ni
+      // texte, ni pièce jointe, ni réaction, ni citation — le contenu est réellement
+      // hors de portée, seule subsiste l'information « il y avait un message ici ».
+      // Aucune action possible dessus non plus (ni modifier, ni resupprimer).
+      if (m.deletedAt) {
+        return {
+          id: m.id,
+          type: 'TEXTE' as const,
+          contenu: '',
+          expediteurId: m.expediteurId,
+          expediteur: displayName(m.expediteur as UserLite),
+          deMoi,
+          supprime: true,
+          edite: false,
+          epingle: false,
+          transfere: false,
+          createdAt: m.createdAt,
+          piecesJointes: [],
+          reactions: [],
+          replyTo: null,
+          vu: false,
+          vuAt: null,
+          luPar: 0,
+          luParTous: false,
+          remis: false,
+          remisPar: 0,
+          modifiable: false,
+          supprimable: false,
+        }
+      }
       let vu = false,
         luPar = 0,
         remisPar = 0
@@ -1013,6 +1049,7 @@ export class MessagerieService {
         expediteurId: m.expediteurId,
         expediteur: displayName(m.expediteur as UserLite),
         deMoi,
+        supprime: false,
         edite: !!m.editedAt,
         epingle: m.epingle,
         transfere: m.transfere,
@@ -1290,7 +1327,9 @@ export class MessagerieService {
       where: { id: messageId },
       select: { conversationId: true, deletedAt: true },
     })
-    if (!m || m.deletedAt) throw new NotFoundException('Message introuvable')
+    // Une TRACE de suppression reste masquable pour soi : sans cela elle s'incrusterait
+    // définitivement dans le fil, sans aucun moyen de la retirer de sa propre vue.
+    if (!m) throw new NotFoundException('Message introuvable')
     await this.assertParticipant(m.conversationId, userId)
     await this.prisma.messageMasque.upsert({
       where: { messageId_utilisateurId: { messageId, utilisateurId: userId } },

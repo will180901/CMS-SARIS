@@ -133,6 +133,7 @@ export function useSendMessage(conversationId: string) {
         id:           tempId,
         type:         'TEXTE',
         contenu,
+        supprime:     false,
         expediteurId: 'me',
         expediteur:   'Moi',
         deMoi:        true,

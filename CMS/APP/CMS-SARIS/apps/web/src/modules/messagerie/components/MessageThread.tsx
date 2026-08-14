@@ -17,7 +17,7 @@ import {
   Users, Paperclip, ChevronUp, ChevronDown, Clock, Loader2,
   Reply, Copy, Image as ImageIcon, FileText, Smile, Info, Music, Mic, ListChecks, Plus, ChevronLeft,
   Pin, PinOff, Forward, MoreVertical, Bell, BellOff, LogOut,
-  Type, Bold, Italic, Strikethrough, Underline,
+  Type, Bold, Italic, Strikethrough, Underline, Ban,
 } from 'lucide-react'
 import { Avatar, UserAvatar } from '@/components/saris'
 import { Popover, PopoverContent, PopoverTrigger } from '@workspace/ui/components/popover'
@@ -981,8 +981,9 @@ function Bubble({
           const isVisual = (pj: PieceJointeMeta) => pj.mimeType.startsWith('image/') || pj.mimeType.startsWith('video/')
           const visuals = m.piecesJointes.filter(isVisual)
           const others = m.piecesJointes.filter(pj => !isVisual(pj))
-          const hasMedia = m.piecesJointes.length > 0
-          const hasText = !!m.contenu
+          // Une trace de suppression n'a ni média ni texte : la bulle se réduit à sa mention.
+          const hasMedia = !m.supprime && m.piecesJointes.length > 0
+          const hasText = !m.supprime && !!m.contenu
           if (!hasMedia && !hasText && !isEditing && !m.replyTo) return null
           return (
             <div style={{
@@ -1028,7 +1029,15 @@ function Bubble({
               )}
 
               {/* Légende / texte / éditeur — DANS la même bulle */}
-              {isEditing ? (
+              {m.supprime ? (
+                // On garde la BULLE, vide : l'autre voit qu'il y a eu un message et qu'il
+                // a été retiré. Le faire disparaître laisserait une conversation trouée,
+                // où l'on ne distingue plus un message retiré d'un message jamais écrit.
+                <div style={{ padding: '8px 12px', fontSize: 13, fontStyle: 'italic', color: 'var(--texte-tertiaire)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <Ban size={13} style={{ flexShrink: 0 }} />
+                  {t('messagerie.messageSupprime')}
+                </div>
+              ) : isEditing ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 12px' }}>
                   <textarea value={editText} onChange={e => setEditText(e.target.value)} autoFocus rows={2}
                     onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSaveEdit() } if (e.key === 'Escape') onCancelEdit() }}
@@ -1042,7 +1051,7 @@ function Bubble({
                 <div style={{ padding: hasMedia ? '5px 10px 7px' : '8px 12px', fontSize: 13, lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{renderRich(m.contenu)}</div>
               ) : null}
 
-              {!isEditing && <ChevronMenu {...{ t, m, mine, hover, menuOpen, setMenuOpen, canEdit, onStartEdit, onCopy, onReply, onDelete, onReact, onDetails, onEnterSelect, onTogglePin, onForward }} />}
+              {!isEditing && !m.supprime && <ChevronMenu {...{ t, m, mine, hover, menuOpen, setMenuOpen, canEdit, onStartEdit, onCopy, onReply, onDelete, onReact, onDetails, onEnterSelect, onTogglePin, onForward }} />}
             </div>
           )
         })()}

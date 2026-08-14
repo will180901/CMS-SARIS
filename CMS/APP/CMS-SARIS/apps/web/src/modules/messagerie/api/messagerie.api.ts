@@ -72,6 +72,8 @@ export interface MessageItem {
   expediteur:    string
   deMoi:         boolean
   edite:         boolean
+  /** Message supprimé pour tout le monde : il ne reste qu'une trace. */
+  supprime:      boolean
   epingle:       boolean
   transfere:     boolean
   createdAt:     string
