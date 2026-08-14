@@ -29,6 +29,13 @@
   --ap-500: #3D7A92;   /* ACCENT teal conservé (boutons / hover) */
   --ap-600: #586472;   /* icônes décoratives → graphite (monochrome) */
   --ap-700: #3F4A58;   /* états actifs (texte) → graphite foncé */
+
+  /* ACCUSÉ DE LECTURE — le bleu des deux coches, façon WhatsApp.
+     Jeton DÉDIÉ, et c'est volontaire : il utilisait --ap-600, qui a été redéfini en
+     graphite lors du passage des icônes en monochrome. La coche « lu » est alors devenue
+     grise — indistinguable de « remis », donc l'accusé ne disait plus rien. Une couleur
+     qui PORTE UNE INFORMATION ne doit pas partager son jeton avec de la décoration. */
+  --accuse-lu: #1D8FE1;
   --ap-800: #2F3845;
   --ap-900: #1F2731;
 
@@ -259,6 +266,9 @@
   --ap-500: #5B9BB0;   /* ACCENT teal conservé (boutons / hover) */
   --ap-600: #98A6B5;   /* icônes décoratives → gris clair (monochrome) */
   --ap-700: #B7C0CB;   /* états actifs (texte) → gris plus clair */
+
+  /* Plus clair sur fond sombre, pour rester lisible (même rôle que ci-dessus). */
+  --accuse-lu: #53BDEB;
   --ap-800: #CFD6DE;
   --ap-900: #E0E5EB;
 

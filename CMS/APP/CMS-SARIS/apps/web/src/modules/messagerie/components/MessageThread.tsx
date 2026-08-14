@@ -1070,7 +1070,7 @@ function Bubble({
           {mine && m.pending && <Clock size={11} style={{ color: 'var(--texte-tertiaire)' }} />}
           {mine && !m.pending && (
             m.vu
-              ? <CheckCheck size={14} style={{ color: 'var(--ap-600)' }} />
+              ? <CheckCheck size={14} style={{ color: 'var(--accuse-lu)' }} />
               : m.remis
                 ? <CheckCheck size={14} style={{ color: 'var(--texte-tertiaire)' }} />
                 : <Check size={14} style={{ color: 'var(--texte-tertiaire)' }} />
@@ -1220,7 +1220,7 @@ function MessageDetailsModal({ messageId, onClose }: { messageId: string; onClos
                   <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--texte-primaire)' }}>{d.nom}</p>
                   {d.enLigne && <p style={{ margin: '1px 0 0', fontSize: 11, color: 'var(--succes-accent)', fontWeight: 600 }}>{t('messagerie.online')}</p>}
                 </div>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, flexShrink: 0, color: d.lu ? 'var(--ap-600)' : 'var(--texte-tertiaire)' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, flexShrink: 0, color: d.lu ? 'var(--accuse-lu)' : 'var(--texte-tertiaire)' }}>
                   {d.lu
                     ? <><CheckCheck size={14} /> {d.luAt ? t('messagerie.detailReadAt', { heure: formatHour(d.luAt) }) : t('messagerie.detailRead')}</>
                     : d.remis
