@@ -8,7 +8,12 @@
 export type MediaKind = 'image' | 'video' | 'audio' | 'document'
 
 /** Durée vidéo maximale autorisée (2 min, comme WhatsApp). */
-export const VIDEO_MAX_SEC = 120
+// Durée maximale d'une vidéo envoyée. À 120 s, toute vidéo de moins de deux minutes était
+// sélectionnée EN ENTIER par le rogneur : la fenêtre couvrant tout le film, il ne restait
+// aucune marge pour la déplacer — on croyait le sélecteur bloqué au début. À 30 s, dès
+// qu'une vidéo dépasse ce seuil la fenêtre devient plus courte que le film, donc mobile :
+// on choisit vraiment le passage à envoyer.
+export const VIDEO_MAX_SEC = 30
 
 /** Limites de taille (octets) par type, après compression éventuelle. */
 export const LIMITS: Record<MediaKind, number> = {
