@@ -17,7 +17,7 @@ import {
   Users, Paperclip, ChevronUp, ChevronDown, Clock, Loader2,
   Reply, Copy, Image as ImageIcon, FileText, Smile, Info, Music, Mic, ListChecks, Plus, ChevronLeft,
   Pin, PinOff, Forward, MoreVertical, Bell, BellOff, LogOut,
-  Type, Bold, Italic, Strikethrough, Underline, Ban,
+  Bold, Italic, Strikethrough, Underline, Ban,
 } from 'lucide-react'
 import { Avatar, UserAvatar } from '@/components/saris'
 import { Popover, PopoverContent, PopoverTrigger } from '@workspace/ui/components/popover'
@@ -158,7 +158,8 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
   const { data: pinned = [] } = usePinnedMessages(conversationId)
 
   const [draft, setDraft]       = useState('')
-  const [formatOpen, setFormatOpen] = useState(false)
+  /** Du texte est-il selectionne dans le composeur ? Pilote la barre de mise en forme. */
+  const [selActive, setSelActive] = useState(false)
   const [mediaFiles, setMediaFiles] = useState<File[]>([])
   const [viewerPj, setViewerPj]     = useState<PieceJointeMeta | null>(null)
   const [recording, setRecording]   = useState(false)
@@ -385,6 +386,17 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
    * Sans sélection, on pose la paire et on place le curseur au milieu : on peut donc
    * activer le gras AVANT d'écrire, et pas seulement après.
    */
+  /**
+   * Suit la sélection du composeur. La barre de mise en forme n'apparaît QUE lorsqu'un
+   * texte est sélectionné — comme dans WhatsApp. Un bouton permanent de plus dans une
+   * barre déjà chargée se serait fait oublier ; une barre qui surgit sur la sélection
+   * arrive au moment précis où l'on en a besoin.
+   */
+  function majSelection() {
+    const el = composerRef.current
+    setSelActive(!!el && (el.selectionEnd ?? 0) > (el.selectionStart ?? 0))
+  }
+
   function appliquerFormat(marqueur: string) {
     const el = composerRef.current
     if (!el) return
@@ -702,23 +714,6 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
           <VoiceRecorder onCancel={() => setRecording(false)} onSend={sendVoice} />
         ) : (
         <>
-        {/* Mise en forme du texte */}
-        <Popover open={formatOpen} onOpenChange={setFormatOpen}>
-          <PopoverTrigger asChild>
-            <button title={t('messagerie.format')} style={composerBtn}><Type size={18} /></button>
-          </PopoverTrigger>
-          <PopoverContent align="start" side="top" sideOffset={4}
-            style={{ width: 'auto', padding: 4, display: 'flex', gap: 2, background: 'var(--fond-surface)', border: '1px solid var(--bordure-legere)', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.14)' }}>
-            {FORMATS.map(f => (
-              <button key={f.marqueur} style={composerBtn}
-                title={`${t(f.cle)} (${f.raccourci})`}
-                onClick={() => { appliquerFormat(f.marqueur); setFormatOpen(false) }}>
-                <f.Icone size={16} />
-              </button>
-            ))}
-          </PopoverContent>
-        </Popover>
-
         {/* Emoji */}
         <Popover open={emojiOpen} onOpenChange={setEmojiOpen}>
           <PopoverTrigger asChild>
@@ -757,8 +752,26 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
               ))}
             </div>
           )}
+          {/* Barre de mise en forme — surgit sur la sélection */}
+          {selActive && !(mention && mentionCandidates.length > 0) && (
+            <div style={{ position: 'absolute', bottom: 'calc(100% + 6px)', left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: 2, padding: 4, background: 'var(--fond-surface)', border: '1px solid var(--bordure-legere)', borderRadius: 9999, boxShadow: '0 8px 24px rgba(0,0,0,0.16)', zIndex: 30 }}>
+              {FORMATS.map(f => (
+                <button key={f.marqueur} type="button" title={`${t(f.cle)} (${f.raccourci})`}
+                  // `preventDefault` sur l'appui : sans lui, le composeur perd le focus AVANT
+                  // le clic, la sélection s'efface, et le bouton s'appliquerait sur du vide.
+                  onMouseDown={e => e.preventDefault()}
+                  onClick={() => appliquerFormat(f.marqueur)}
+                  style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 9999, background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--texte-secondaire)' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--fond-surface-2)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                  <f.Icone size={15} />
+                </button>
+              ))}
+            </div>
+          )}
           <textarea
             ref={composerRef} value={draft} onChange={onComposerChange}
+            onSelect={majSelection} onKeyUp={majSelection} onMouseUp={majSelection}
             onPaste={e => {
               // COLLER une image, un document, une capture d'écran : on ouvre le MÊME
               // aperçu que le trombone, plutôt que d'envoyer à l'aveugle. Coller du TEXTE
@@ -783,7 +796,7 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
               if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
             }}
             onClick={e => detectMention(draft, (e.target as HTMLTextAreaElement).selectionStart ?? draft.length)}
-            onBlur={() => setTimeout(() => setMention(null), 120)}
+            onBlur={() => { setSelActive(false); setTimeout(() => setMention(null), 120) }}
             placeholder={t('messagerie.composerPlaceholder')} rows={1}
             style={{ width: '100%', boxSizing: 'border-box', resize: 'none', maxHeight: 120, minHeight: 38, padding: '9px 14px', borderRadius: 20, fontSize: 13, lineHeight: 1.4, border: '1px solid var(--bordure-normale)', background: 'var(--fond-surface)', color: 'var(--texte-primaire)', fontFamily: 'inherit', outline: 'none' }}
           />
@@ -960,6 +973,17 @@ function Bubble({
   return (
     <div
       onClick={selectMode && !m.pending ? () => onToggleSelect(m.id) : undefined}
+      // CLIC DROIT = le menu d'actions du message, comme dans WhatsApp. Le chevron reste,
+      // mais il faut d'abord survoler la bulle pour le voir ; le clic droit est le geste
+      // qu'on tente d'instinct. On l'ouvre au même endroit que le chevron.
+      // On ne fait rien sur une trace de suppression (aucune action n'a de sens dessus),
+      // ni pendant l'envoi, ni en mode sélection multiple — où le clic sert déjà à cocher.
+      onContextMenu={e => {
+        if (m.supprime || m.pending || selectMode) return
+        e.preventDefault()
+        setHover(true)
+        setMenuOpen(true)
+      }}
       style={{ display: 'flex', justifyContent: mine ? 'flex-end' : 'flex-start', gap: 8, alignItems: 'center', cursor: selectMode && !m.pending ? 'pointer' : undefined, background: isSel ? 'color-mix(in srgb, var(--ap-400) 14%, transparent)' : undefined, borderRadius: 8, padding: selectMode ? '2px 6px' : undefined }}
       onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
       {selectMode && !m.pending && (

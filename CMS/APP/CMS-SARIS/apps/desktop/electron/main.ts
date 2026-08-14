@@ -6,7 +6,7 @@
  * (indispensable pour le flux SSE des notifications). Aucun serveur ni base de
  * données n'est embarqué — l'app dialogue en HTTPS avec l'API distante.
  */
-import { app, BrowserWindow, Menu, dialog, ipcMain, nativeTheme, protocol, shell } from 'electron'
+import { app, BrowserWindow, clipboard, Menu, dialog, ipcMain, nativeTheme, protocol, shell } from 'electron'
 import type { MenuItemConstructorOptions } from 'electron'
 import path from 'node:path'
 import fs from 'node:fs'
@@ -185,6 +185,9 @@ function createMainWindow(): void {
 
   mainWindow.once('ready-to-show', () => mainWindow?.show())
 
+  // Clic droit dans TOUTE l'application (Electron n'en fournit aucun par défaut).
+  brancherMenuContextuel(mainWindow)
+
   // Liens externes → navigateur par défaut (jamais dans la fenêtre de l'app).
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('http://') || url.startsWith('https://')) void shell.openExternal(url)
@@ -297,6 +300,65 @@ function buildAppMenu(): void {
   ]
   appMenu = Menu.buildFromTemplate(template)
   Menu.setApplicationMenu(null) // pas de barre de menu native
+}
+
+/**
+ * MENU CONTEXTUEL (clic droit) pour toute l'application.
+ *
+ * Un navigateur en fournit un d'office ; Electron, NON. Sans ce branchement, le clic droit
+ * ne fait donc RIEN nulle part dans le client de bureau — pas de copier, pas de coller,
+ * pas de « tout sélectionner ». C'est un manque qu'on impute à l'application, alors qu'il
+ * suffit de le déclarer.
+ *
+ * Le menu s'adapte à ce qui est sous le curseur : champ de saisie, texte sélectionné,
+ * image ou lien. On s'appuie sur les `role` d'Electron plutôt que sur des raccourcis
+ * simulés — ils parlent au champ réellement focalisé, y compris dans une zone native.
+ *
+ * `editFlags` vient du moteur de rendu : il dit ce qui est POSSIBLE ici et maintenant
+ * (rien à copier sans sélection, rien à coller si le presse-papiers est vide). Griser
+ * plutôt que masquer garde une position stable d'une fois sur l'autre.
+ */
+function brancherMenuContextuel(win: BrowserWindow): void {
+  win.webContents.on('context-menu', (_evenement, params) => {
+    const items: MenuItemConstructorOptions[] = []
+    const f = params.editFlags
+
+    if (params.isEditable) {
+      items.push(
+        { role: 'undo', label: 'Annuler', enabled: f.canUndo },
+        { role: 'redo', label: 'Rétablir', enabled: f.canRedo },
+        { type: 'separator' },
+        { role: 'cut', label: 'Couper', enabled: f.canCut },
+        { role: 'copy', label: 'Copier', enabled: f.canCopy },
+        { role: 'paste', label: 'Coller', enabled: f.canPaste },
+        { type: 'separator' },
+        { role: 'selectAll', label: 'Tout sélectionner', enabled: f.canSelectAll },
+      )
+    } else if (params.selectionText.trim()) {
+      items.push({ role: 'copy', label: 'Copier', enabled: f.canCopy })
+    }
+
+    if (params.mediaType === 'image' && params.srcURL) {
+      if (items.length) items.push({ type: 'separator' })
+      items.push({
+        label: "Copier l'image",
+        click: () => win.webContents.copyImageAt(params.x, params.y),
+      })
+    }
+
+    if (params.linkURL) {
+      if (items.length) items.push({ type: 'separator' })
+      items.push({
+        label: "Copier l'adresse du lien",
+        click: () => { void clipboard.writeText(params.linkURL) },
+      })
+    }
+
+    // Rien de pertinent sous le curseur : on n'affiche pas un menu vide, qui donnerait
+    // l'impression d'une application qui répond de travers.
+    if (!items.length) return
+    Menu.buildFromTemplate(items).popup({ window: win })
+  })
 }
 
 function registerIpc(): void {
