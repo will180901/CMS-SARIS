@@ -1,7 +1,6 @@
 import { useEffect } from 'react'
 import { create } from 'zustand'
 import { BASE_URL, setApiBaseUrl } from '@/lib/api'
-import { assurerJetonLocal } from '@/lib/localAuth'
 import type { SarisDesktopBridge } from '@/lib/desktop'
 
 type Mode = 'central' | 'local' | 'web'
@@ -54,16 +53,10 @@ export function useApiEndpointSwitch(): void {
     if (!saris?.onApiUrl) return
     const off = saris.onApiUrl((s) => {
       if (!s || !s.url) return
-      // Bascule vers le backend EMBARQUÉ : on s'assure d'avoir un jeton signé PAR LUI
-      // avant de lui adresser la moindre requête. Sans cela, on lui enverrait le jeton
-      // du central, qu'il rejette — l'application boucle en 401 puis déconnecte.
-      // On applique l'URL dans tous les cas : rester sur un central injoignable serait
-      // pire que d'échouer proprement sur le local.
-      if ((s.mode as Mode) === 'local') {
-        void assurerJetonLocal().finally(() => apply(s.url, 'local', s.online ?? false, s.seq))
-        return
-      }
-      apply(s.url, s.mode as Mode ?? 'central', s.online ?? true, s.seq)
+      // Plus rien à négocier avant d'appliquer : un seul jeton vaut pour les deux
+      // serveurs, et en architecture locale d'abord l'adresse ne change de toute façon
+      // plus au gré du réseau — ce signal ne porte plus qu'une INFORMATION d'état.
+      apply(s.url, (s.mode as Mode) ?? 'central', s.online ?? true, s.seq)
     })
     // Le NAVIGATEUR sait immediatement que la carte reseau est tombee — pas besoin
     // d'attendre qu'une sonde expire. On previent le processus principal, qui bascule

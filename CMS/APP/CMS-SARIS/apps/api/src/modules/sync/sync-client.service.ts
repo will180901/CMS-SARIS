@@ -359,16 +359,36 @@ export class SyncClientService implements OnApplicationBootstrap {
         attente = 0
         const lecteur = res.body.getReader()
         const decodeur = new TextDecoder()
+        // TAMPON OBLIGATOIRE. Un flux SSE n'arrive PAS découpé en événements : il arrive
+        // découpé en paquets réseau. Une trame peut être coupée n'importe où — y compris
+        // au milieu du mot « sync » — puis reprise dans le paquet suivant. Chercher le mot
+        // dans chaque paquet pris isolément fait donc MANQUER des sonneries, précisément
+        // le silence que ce canal existe pour empêcher.
+        //
+        // On accumule donc, et on ne juge que des événements COMPLETS, délimités par la
+        // ligne vide du protocole.
+        let tampon = ''
         for (;;) {
           const { done, value } = await lecteur.read()
           if (done) break
-          // On ne synchronise QUE sur une vraie sonnerie. Le canal porte aussi un
-          // battement de vie, destiné aux intermédiaires réseau : le confondre avec une
-          // sonnerie ferait synchroniser tout le parc toutes les 25 secondes — soit
-          // exactement l'interrogation périodique que ce canal remplace.
           if (!value?.length) continue
-          if (decodeur.decode(value, { stream: true }).includes('"sync"')) {
-            void this.triggerSync('temps réel')
+          tampon += decodeur.decode(value, { stream: true })
+
+          // Découpage sur le séparateur d'événements SSE (ligne vide). Le dernier morceau
+          // est un reliquat éventuellement incomplet : il repart dans le tampon.
+          const morceaux = tampon.split(/\r?\n\r?\n/)
+          tampon = morceaux.pop() ?? ''
+
+          // Garde-fou : un serveur défaillant qui enverrait un flot continu sans jamais
+          // délimiter d'événement ferait grossir ce tampon sans fin. On le borne.
+          if (tampon.length > 64 * 1024) tampon = ''
+
+          for (const evenement of morceaux) {
+            // On ne synchronise QUE sur une vraie sonnerie. Le canal porte aussi un
+            // battement de vie, destiné aux intermédiaires réseau : le confondre avec une
+            // sonnerie ferait synchroniser tout le parc toutes les 25 secondes — soit
+            // exactement l'interrogation périodique que ce canal remplace.
+            if (evenement.includes('"sync"')) void this.triggerSync('temps réel')
           }
         }
         throw new Error('canal fermé par le serveur')

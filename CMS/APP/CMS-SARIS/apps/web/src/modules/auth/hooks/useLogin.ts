@@ -1,7 +1,6 @@
 import { useMutation } from '@tanstack/react-query'
 import { api, ApiError } from '@/lib/api'
 import { useSessionStore } from '@/stores/session.store'
-import { obtenirJetonLocal, memoriserPourRetentative } from '@/lib/localAuth'
 import type {
   LoginDto, TotpVerifyDto, UserSession, SessionConcurrente, ConfirmerSessionDto,
 } from '@cms-saris/types'
@@ -57,18 +56,11 @@ export function useLoginMutation() {
         appareilId: getAppareilId(),
       }),
 
-    onSuccess: (data, dto) => {
+    onSuccess: (data) => {
       // Deux cas laissent la main au composant : TOTP à saisir, ou session concurrente
       // à trancher. Dans les deux, aucune session n'existe encore.
       if (estSessionActive(data) || data.requireTotp) return
       setSession(data.user, data.accessToken, data.refreshToken)
-      // Client de bureau en mode local : on s'authentifie AUSSI auprès du backend
-      // embarqué. Sans ce second jeton, la bascule hors-ligne envoie au backend local
-      // un jeton signé par le central, qu'il rejette — l'application boucle puis
-      // déconnecte. Non bloquant : si le poste vient d'être installé et que les comptes
-      // ne sont pas encore synchronisés, on réessaiera (cf. assurerJetonLocal).
-      memoriserPourRetentative(dto.login, dto.password)
-      void obtenirJetonLocal(dto.login, dto.password)
     },
   })
 }
