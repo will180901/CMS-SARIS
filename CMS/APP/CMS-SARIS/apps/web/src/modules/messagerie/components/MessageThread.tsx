@@ -984,13 +984,19 @@ function Bubble({
           // Une trace de suppression n'a ni média ni texte : la bulle se réduit à sa mention.
           const hasMedia = !m.supprime && m.piecesJointes.length > 0
           const hasText = !m.supprime && !!m.contenu
-          if (!hasMedia && !hasText && !isEditing && !m.replyTo) return null
+          // `!m.supprime` EST INDISPENSABLE ICI. Une trace de suppression n'a ni texte ni
+          // média : sans cette exception elle retombe dans cette garde et la bulle n'est
+          // jamais rendue — le message disparaît, exactement ce qu'on voulait empêcher.
+          if (!hasMedia && !hasText && !isEditing && !m.replyTo && !m.supprime) return null
           return (
             <div style={{
               position: 'relative', borderRadius: 12, overflow: 'hidden',
               borderBottomRightRadius: mine && !grouped ? 3 : 12, borderBottomLeftRadius: !mine && !grouped ? 3 : 12,
-              background: mine ? 'var(--ap-400)' : 'var(--fond-surface)', color: mine ? '#fff' : 'var(--texte-primaire)',
-              border: mine ? 'none' : '1px solid var(--bordure-legere)', opacity: m.pending ? 0.75 : 1,
+              // Une trace est GRISE des deux côtés : la garder teal côté expéditeur lui
+              // donnerait l'allure d'un message vivant, alors qu'il n'y a plus rien dedans.
+              background: m.supprime ? 'var(--fond-surface-2)' : mine ? 'var(--ap-400)' : 'var(--fond-surface)',
+              color: m.supprime ? 'var(--texte-tertiaire)' : mine ? '#fff' : 'var(--texte-primaire)',
+              border: m.supprime || !mine ? '1px solid var(--bordure-legere)' : 'none', opacity: m.pending ? 0.75 : 1,
               boxShadow: mine ? 'none' : '0 1px 1px rgba(0,0,0,0.04)', maxWidth: hasMedia ? 320 : undefined,
             }}>
               {/* Épinglé / Transféré — indicateur discret en haut de la bulle */}
