@@ -1348,6 +1348,22 @@ model PosteLocal {
   /** Dernier utilisateur ayant synchronisé depuis ce poste (traçabilité, comme createdBy/updatedBy — pas de relation FK, cf. Patient). */
   dernierUtilisateurId String?
   derniereSyncAt       DateTime?
+  /**
+   * Position GÉOGRAPHIQUE DU POSTE, relevée UNE FOIS à son installation, avec
+   * l'accord explicite de l'administrateur qui l'installe.
+   *
+   * C'est la position d'une MACHINE, pas d'une personne : elle ne bouge qu'à une
+   * reconfiguration du poste, et n'est jamais rafraîchie à chaque connexion. On
+   * obtient ainsi une carte réelle des postes sans jamais pister les agents — le
+   * journal d'authentification, lui, continue de ne connaître que l'adresse IP.
+   *
+   * `precisionM` est la marge annoncée par le navigateur (mètres) : sur un poste
+   * fixe sans Wi-Fi, elle se compte en kilomètres, et c'est une information utile.
+   */
+  latitude             Float?
+  longitude            Float?
+  precisionM           Int?
+  positionAt           DateTime?
   /** Retiré de la liste de supervision (dismiss admin) — n'affecte pas la synchro réelle : le
    *  poste redevient visible automatiquement dès son prochain cycle de synchro (record()). */
   masque               Boolean                  @default(false)

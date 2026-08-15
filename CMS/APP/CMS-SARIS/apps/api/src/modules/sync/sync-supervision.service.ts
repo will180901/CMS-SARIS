@@ -198,6 +198,7 @@ export class SyncSupervisionService {
     posteLocalId: string,
     siteId: string,
     libelle?: string,
+    position?: { latitude: number; longitude: number; precisionM?: number },
   ) {
     const site = await this.prisma.site.findUnique({
       where: { id: siteId },
@@ -205,18 +206,35 @@ export class SyncSupervisionService {
     })
     if (!site) throw new NotFoundException('Site introuvable')
 
+    // Position relevée à l'installation. Écrite SEULEMENT si elle est fournie : un
+    // poste déjà positionné qu'on reconfigure sans réautoriser la géolocalisation
+    // garde la sienne, plutôt que de la perdre silencieusement.
+    const champsPosition = position
+      ? {
+          latitude: position.latitude,
+          longitude: position.longitude,
+          precisionM:
+            position.precisionM !== undefined
+              ? Math.round(position.precisionM)
+              : null,
+          positionAt: new Date(),
+        }
+      : {}
+
     const poste = await this.prisma.posteLocal.upsert({
       where: { id: posteLocalId },
       // Reconfiguration assumée : un poste peut être déplacé d'un site à l'autre.
       update: {
         siteId,
         ...(libelle?.trim() ? { libelle: libelle.trim() } : {}),
+        ...champsPosition,
         masque: false,
       },
       create: {
         id: posteLocalId,
         siteId,
         libelle: libelle?.trim() || this.defaultLibelle(posteLocalId),
+        ...champsPosition,
       },
     })
 

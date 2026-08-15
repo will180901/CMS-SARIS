@@ -126,6 +126,13 @@ export class SyncController {
       dto.posteLocalId,
       dto.siteId,
       dto.libelle,
+      dto.latitude !== undefined && dto.longitude !== undefined
+        ? {
+            latitude: dto.latitude,
+            longitude: dto.longitude,
+            precisionM: dto.precisionM,
+          }
+        : undefined,
     )
   }
 

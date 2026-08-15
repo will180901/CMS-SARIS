@@ -1320,6 +1320,13 @@ model PosteLocal {
   /** Dernier utilisateur ayant synchronisé depuis ce poste (traçabilité, comme createdBy/updatedBy — pas de relation FK, cf. Patient). */
   dernierUtilisateurId String?
   derniereSyncAt       DateTime?
+  /** Position du POSTE, relevée une fois à l'installation (cf. schéma PostgreSQL).
+   *  Position d'une machine, jamais d'une personne : elle ne bouge qu'à une
+   *  reconfiguration, et n'est pas rafraîchie à chaque connexion. */
+  latitude             Float?
+  longitude            Float?
+  precisionM           Int?
+  positionAt           DateTime?
   /** Retiré de la liste de supervision (dismiss admin) — n'affecte pas la synchro réelle : le
    *  poste redevient visible automatiquement dès son prochain cycle de synchro (record()). */
   masque               Boolean                  @default(false)

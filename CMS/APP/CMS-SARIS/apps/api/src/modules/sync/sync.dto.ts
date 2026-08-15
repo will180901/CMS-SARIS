@@ -3,6 +3,7 @@ import {
   IsISO8601,
   IsInt,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
   Max,
@@ -72,6 +73,30 @@ export class ConfigurerPosteDto {
   @IsString()
   @MaxLength(80)
   libelle?: string
+
+  /**
+   * Position du POSTE, relevée par le navigateur À L'INSTALLATION, avec l'accord
+   * explicite de la personne qui installe. Facultative de bout en bout : un refus,
+   * un navigateur sans capteur ou une machine en salle blanche n'empêchent jamais
+   * de configurer le poste.
+   */
+  @IsOptional()
+  @IsNumber()
+  @Min(-90)
+  @Max(90)
+  latitude?: number
+
+  @IsOptional()
+  @IsNumber()
+  @Min(-180)
+  @Max(180)
+  longitude?: number
+
+  /** Marge annoncée par le navigateur, en mètres. */
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  precisionM?: number
 }
 
 export class RenamePosteDto {
