@@ -370,14 +370,19 @@ export function Sidebar() {
                     }}>
                       {user.login}
                     </p>
-                    <p style={{
-                      margin: '2px 0 0',
-                      fontSize: 'var(--font-size-caption)',
-                      color: 'var(--texte-tertiaire)',
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    }}>
-                      {siteName}
-                    </p>
+                    {/* Site du POSTE — client de bureau UNIQUEMENT (cf. TopHeader).
+                        Sous le nom du compte, ce libellé se lisait comme « le site DE cette
+                        personne » : exactement le lien qui n'existe pas. */}
+                    {isDesktop && (
+                      <p style={{
+                        margin: '2px 0 0',
+                        fontSize: 'var(--font-size-caption)',
+                        color: 'var(--texte-tertiaire)',
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      }}>
+                        {siteName}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 'var(--espace-2)' }}>

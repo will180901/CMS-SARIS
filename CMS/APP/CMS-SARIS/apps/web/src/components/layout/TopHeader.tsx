@@ -116,8 +116,12 @@ export function TopHeader() {
           </Tooltip>
         )}
 
-        {/* Site auquel ce poste est rattaché (repère de traçabilité, pas un filtre) */}
-        <SiteActifSwitch />
+        {/* Site du POSTE — client de bureau UNIQUEMENT.
+            Un compte n'appartient à aucun site : le site se rattache au parcours de soin,
+            pas à la personne qui se connecte. Sur un poste de bureau il a un sens — il est
+            fixé à l'installation et identifie la machine. Dans un navigateur il n'en a
+            aucun, et l'afficher laissait croire à un cloisonnement qui n'existe pas. */}
+        {isDesktop && <SiteActifSwitch />}
 
         {/* Interrupteur du rideau de confidentialité (zones de détail) */}
         <Tooltip label={curtain ? t('privacy.disable') : t('privacy.enable')}>
