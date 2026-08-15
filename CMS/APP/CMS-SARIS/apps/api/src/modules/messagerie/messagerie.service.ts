@@ -303,13 +303,50 @@ export class MessagerieService {
 
     const unread = await this.unreadByConversation(userId)
 
+    // LIEN ROMPU À RATTRAPER. Supprimer une conversation directe DÉTRUIT la ligne de
+    // participation de celui qui supprime — `ConversationParticipant` n'est pas en
+    // soft-delete, la ligne part pour de bon. Chez l'autre, il ne reste alors plus
+    // personne « en face » : le nom retombait sur « Utilisateur » et la conversation
+    // perdait son identité, alors qu'elle est toujours bien vivante de son côté.
+    //
+    // L'interlocuteur reste pourtant identifiable : ses MESSAGES sont là, et ils portent
+    // son auteur. On le retrouve par là, en une seule requête pour toutes les
+    // conversations concernées.
+    const orphelines = parts
+      .filter(
+        (p) =>
+          p.conversation.type !== 'GROUPE' &&
+          !p.conversation.participants.some((cp) => cp.utilisateurId !== userId),
+      )
+      .map((p) => p.conversation.id)
+
+    const rattrapes = new Map<string, UserLite>()
+    if (orphelines.length) {
+      // Client BRUT : un message supprimé porte encore l'identité de son auteur, et c'est
+      // la seule chose dont on ait besoin ici.
+      const traces = await this.prisma.raw.message.findMany({
+        where: {
+          conversationId: { in: orphelines },
+          expediteurId: { not: userId },
+        },
+        distinct: ['conversationId'],
+        orderBy: { createdAt: 'desc' },
+        select: { conversationId: true, expediteur: { select: USER_SELECT } },
+      })
+      for (const tr of traces)
+        if (tr.expediteur)
+          rattrapes.set(tr.conversationId, tr.expediteur as UserLite)
+    }
+
     const result = parts.map((p) => {
       const conv = p.conversation
       const isGroupe = conv.type === 'GROUPE'
       const autres = conv.participants.filter(
         (cp) => cp.utilisateurId !== userId,
       )
-      const interlocuteur = autres[0]?.utilisateur as UserLite | undefined
+      const interlocuteur =
+        (autres[0]?.utilisateur as UserLite | undefined) ??
+        (isGroupe ? undefined : rattrapes.get(conv.id))
       const dernier = conv.messages[0]
 
       let apercu: string | null = null
@@ -1318,7 +1355,35 @@ export class MessagerieService {
       where: { id: messageId },
       data: { deletedAt: new Date() },
     })
+    // TEMPS RÉEL. Sans ce signal, les autres continuent de voir le message INTACT
+    // jusqu'à leur prochain rafraîchissement — ils peuvent même y répondre alors qu'il
+    // n'existe plus. La trace doit apparaître chez eux au moment où on supprime.
+    void this.diffuserChangementMessagerie(m.conversationId, userId)
     return { id: messageId, deleted: true }
+  }
+
+  /**
+   * Prévient les AUTRES participants qu'un contenu de la conversation a changé, pour que
+   * leur écran se mette à jour sans attendre. Volontairement silencieux : ce n'est pas un
+   * nouveau message, il ne doit ni sonner ni allumer la cloche.
+   *
+   * Best-effort : un échec de diffusion ne doit jamais faire échouer l'action elle-même,
+   * qui, elle, est déjà enregistrée.
+   */
+  private async diffuserChangementMessagerie(
+    conversationId: string,
+    sauf: string,
+  ): Promise<void> {
+    try {
+      const parts = await this.prisma.conversationParticipant.findMany({
+        where: { conversationId, utilisateurId: { not: sauf } },
+        select: { utilisateurId: true },
+      })
+      for (const p of parts)
+        this.notif.pushLive(p.utilisateurId, 'LIVE_MESSAGERIE', conversationId)
+    } catch {
+      /* best-effort */
+    }
   }
 
   /** Supprimer POUR MOI : masque le message pour cet utilisateur (tout message, tout âge). */
