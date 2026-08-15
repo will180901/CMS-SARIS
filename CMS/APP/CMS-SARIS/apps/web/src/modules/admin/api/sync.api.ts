@@ -98,4 +98,32 @@ export const syncApi = {
   masquerPoste: (id: string) => api.delete<{ ok: boolean }>(`/sync/supervision/postes/${id}`),
   renamePoste: (id: string, libelle: string) =>
     api.patch<{ libelle: string }>(`/sync/supervision/postes/${id}`, { libelle }),
+
+  /** État de configuration d'un poste — `null` s'il n'est pas encore déclaré. */
+  lirePoste: (id: string) => api.get<PosteConfiguration | null>(`/sync/poste/${id}`),
+
+  /**
+   * Déclare (ou reconfigure) un poste : son site, son nom, et éventuellement sa
+   * POSITION. La position est celle de la MACHINE, relevée une fois — voir
+   * `CePosteCard`, seul endroit d'où elle peut être demandée, puisqu'il faut être
+   * physiquement devant le poste pour que le relevé ait un sens.
+   */
+  configurerPoste: (body: {
+    posteLocalId: string
+    siteId: string
+    libelle?: string
+    latitude?: number
+    longitude?: number
+    precisionM?: number
+  }) => api.post<PosteConfiguration>('/sync/poste', body),
+}
+
+export interface PosteConfiguration {
+  id: string
+  libelle: string
+  siteId: string
+  latitude?: number | null
+  longitude?: number | null
+  precisionM?: number | null
+  positionAt?: string | null
 }

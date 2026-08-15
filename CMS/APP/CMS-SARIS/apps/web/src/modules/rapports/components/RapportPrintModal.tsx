@@ -57,6 +57,7 @@ function tableauRepartition(
 /** Place les répartitions deux par deux quand elles sont courtes, seules sinon. */
 function poserRepartitions(tableaux: BlocTableau[]): BlocImprimable[] {
   const blocs: BlocImprimable[] = []
+
   let attente: BlocTableau | null = null
 
   const vider = () => {
@@ -118,6 +119,22 @@ export function RapportPrintModal({ rapport, onClose }: { rapport: RapportDetail
   const vide = c.totalConsultations === 0 && visites === 0
 
   const blocs: BlocImprimable[] = []
+
+  // PAGE DE GARDE. Un rapport destiné à une Direction s'ouvre sur ce qu'il est et pour
+  // quelle période — pas sur un tableau. Les trois chiffres donnent le ton avant même
+  // qu'on tourne la page : l'activité, ce qu'elle a coûté en absence, et la gravité.
+  blocs.push({
+    type: 'couverture',
+    titre: t('rapports.printTitre'),
+    periode,
+    edite: formatDate(new Date(), { day: '2-digit', month: 'long', year: 'numeric' }),
+    destinataire: t('rapports.printDestinataire'),
+    faits: vide ? undefined : [
+      { label: t('rapports.kpiConsultations'), valeur: c.totalConsultations },
+      { label: t('rapports.kpiJoursArret'), valeur: c.repos.totalJours },
+      { label: t('rapports.kpiAccidents'), valeur: at },
+    ],
+  })
 
   if (vide) {
     blocs.push({ type: 'synthese', titre: t('rapports.syntheseTitle'), texte: `${t('rapports.periodeVide')} ${t('rapports.periodeVideHint')}` })

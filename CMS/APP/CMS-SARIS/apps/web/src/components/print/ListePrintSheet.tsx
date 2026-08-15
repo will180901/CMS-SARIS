@@ -71,6 +71,25 @@ export interface ColonneBloc {
 
 export type BlocImprimable =
   /** Encadré d'ouverture : ce qu'il faut retenir, en toutes lettres. */
+  /**
+   * PAGE DE GARDE — un bloc que seuls les documents qui la demandent emettent.
+   *
+   * Additif par construction : les listes existantes (registre des employes, etc.)
+   * n'en produisent jamais, leur rendu est donc inchange au pixel pres.
+   *
+   * Elle occupe sa page a elle seule : un document destine a une Direction s'ouvre
+   * sur ce qu'il est et pour quelle periode, pas sur un tableau.
+   */
+  | {
+      type: 'couverture'
+      titre: string
+      periode: string
+      site?: string
+      destinataire?: string
+      edite: string
+      /** Trois ou quatre chiffres qui donnent le ton avant meme d'ouvrir. */
+      faits?: { label: string; valeur: string | number }[]
+    }
   | { type: 'synthese'; titre: string; texte: string }
   /** Constats qui sortent de l'ordinaire, chacun sur sa ligne colorée. */
   | { type: 'alertes'; titre: string; items: { ton: 'critique' | 'attention' | 'info'; texte: string }[] }
@@ -419,6 +438,11 @@ const CARTES_RANG  = 4    // cartes par rangée en A4 paysage
 /** Hauteur qu'un bloc occupera une fois imprimé. */
 function hauteurBloc(b: BlocImprimable): number {
   switch (b.type) {
+    // Volontairement enorme : aucun autre bloc ne peut tenir a cote, la couverture
+    // obtient donc sa page entiere sans qu'on ait a cabler un cas particulier dans
+    // l'algorithme de pagination.
+    case 'couverture':
+      return 100_000
     case 'synthese':
       // ~150 caractères par ligne à cette largeur et cette taille de police.
       return 30 + Math.ceil(b.texte.length / 150) * 15 + 16
@@ -561,6 +585,70 @@ function TableauBloc({ bloc }: { bloc: BlocTableau }) {
 
 function RenduBloc({ bloc }: { bloc: BlocImprimable }) {
   switch (bloc.type) {
+    case 'couverture':
+      return (
+        <div style={{
+          display: 'flex', flexDirection: 'column', justifyContent: 'center',
+          minHeight: 560, padding: '0 24px',
+        }}>
+          {/* Filet d'accent : la seule fioriture, et elle sert a poser le titre. */}
+          <div style={{ width: 54, height: 4, background: ACCENT, marginBottom: 22 }} />
+
+          <p style={{
+            margin: 0, fontSize: 11, fontWeight: 700, letterSpacing: '0.22em',
+            textTransform: 'uppercase', color: ACCENT,
+          }}>
+            {bloc.site ?? 'Centre Médico-Social'}
+          </p>
+
+          <h1 style={{
+            margin: '10px 0 0', fontSize: 38, lineHeight: 1.1, fontWeight: 800,
+            letterSpacing: '-0.02em', color: INK,
+          }}>
+            {bloc.titre}
+          </h1>
+
+          <p style={{ margin: '14px 0 0', fontSize: 15, color: INK, fontWeight: 600 }}>
+            {bloc.periode}
+          </p>
+
+          {bloc.faits && bloc.faits.length > 0 && (
+            <div style={{ display: 'flex', gap: 34, marginTop: 34, flexWrap: 'wrap' }}>
+              {bloc.faits.map(f => (
+                <div key={f.label}>
+                  <p style={{ margin: 0, fontSize: 30, fontWeight: 800, color: ACCENT, lineHeight: 1 }}>
+                    {f.valeur}
+                  </p>
+                  <p style={{
+                    margin: '5px 0 0', fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
+                    textTransform: 'uppercase', color: '#6b7f88',
+                  }}>
+                    {f.label}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div style={{ marginTop: 'auto', paddingTop: 40, borderTop: '1px solid #dfe7ea', display: 'flex', gap: 40 }}>
+            {bloc.destinataire && (
+              <div>
+                <p style={{ margin: 0, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8fa3ab' }}>
+                  Destinataire
+                </p>
+                <p style={{ margin: '3px 0 0', fontSize: 11, color: INK }}>{bloc.destinataire}</p>
+              </div>
+            )}
+            <div>
+              <p style={{ margin: 0, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8fa3ab' }}>
+                Édité le
+              </p>
+              <p style={{ margin: '3px 0 0', fontSize: 11, color: INK }}>{bloc.edite}</p>
+            </div>
+          </div>
+        </div>
+      )
+
     case 'synthese':
       return (
         <div style={{ background: SOFT, borderLeft: `3px solid ${ACCENT}`, padding: '9px 12px' }}>

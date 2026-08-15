@@ -12,17 +12,33 @@
  * « Salle de soins 2 » — et non l'identifiant technique de la machine, qui ne dit rien
  * à personne.
  */
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { MonitorSmartphone, MapPin, Wifi, WifiOff, CloudUpload } from 'lucide-react'
-import { Card, StatusPill } from '@/components/saris'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { MonitorSmartphone, MapPin, Wifi, WifiOff, CloudUpload, Crosshair, Loader2 } from 'lucide-react'
+import { Card, StatusPill, Button, Tooltip } from '@/components/saris'
+import { toast } from '@workspace/ui/components/sonner'
 import { desktopBridge } from '@/lib/desktop'
 import { useConnectivityStore } from '@/stores/connectivity.store'
 import { useSites } from '@/modules/referentiels/hooks/useReferentiels'
+import { syncApi } from '../api/sync.api'
+import { releverPosition, messageErreurPosition } from '@/lib/position'
 
 export function CePosteCard({ enAttente }: { enAttente?: number }) {
   const { t } = useTranslation()
   const bridge = desktopBridge()
   const online = useConnectivityStore(s => s.online)
+  const qc = useQueryClient()
+  const [releve, setReleve] = useState(false)
+
+  // Position DÉJÀ enregistrée pour ce poste — pour dire s'il en a une, et depuis quand.
+  const posteId = bridge?.posteLocalId
+  const { data: config } = useQuery({
+    queryKey: ['sync', 'poste', posteId],
+    queryFn: () => syncApi.lirePoste(posteId as string),
+    enabled: !!posteId,
+    staleTime: 60_000,
+  })
   // « Rattaché à un site » n'apprend rien à qui veut savoir OÙ est la machine.
   // On nomme le site ; on ne retombe sur la mention générique que si le référentiel
   // n'est pas encore chargé (première synchro) ou si le site a été supprimé depuis.
@@ -33,6 +49,34 @@ export function CePosteCard({ enAttente }: { enAttente?: number }) {
   // montrer un cadre vide (poste jamais configuré, ou pont desktop indisponible).
   const nom = bridge?.posteLibelle
   if (!nom) return null
+
+  /**
+   * Relève la position de CETTE machine et l'enregistre sur le poste.
+   *
+   * Le geste est manuel et se fait depuis le poste concerné : c'est la seule façon
+   * d'obtenir une position qui veuille dire quelque chose. Un refus n'a aucune
+   * conséquence — le poste continue de fonctionner sans position.
+   */
+  async function enregistrerPosition() {
+    if (!posteId || !bridge?.posteSiteId) return
+    setReleve(true)
+    try {
+      const pos = await releverPosition()
+      await syncApi.configurerPoste({
+        posteLocalId: posteId,
+        siteId: bridge.posteSiteId,
+        latitude: pos.latitude,
+        longitude: pos.longitude,
+        precisionM: pos.precisionM,
+      })
+      await qc.invalidateQueries({ queryKey: ['sync', 'poste', posteId] })
+      toast.success(t('admin.postePosition.enregistree', { metres: pos.precisionM }))
+    } catch (e) {
+      toast.error(t(messageErreurPosition(e)))
+    } finally {
+      setReleve(false)
+    }
+  }
 
   return (
     <Card padding="none">
@@ -78,6 +122,34 @@ export function CePosteCard({ enAttente }: { enAttente?: number }) {
                 : t('admin.cePosteRattache')}
             </span>
           )}
+
+          {/* Position du poste — relevée une fois, à l'installation. On affiche la
+              marge annoncée par le navigateur : sans elle, « position enregistrée »
+              laisserait croire à une exactitude que le relevé n'a pas forcément. */}
+          {config?.latitude != null && config.longitude != null ? (
+            <Tooltip label={t('admin.postePosition.detail', {
+              lat: config.latitude.toFixed(5),
+              lon: config.longitude.toFixed(5),
+              metres: config.precisionM ?? '?',
+            })}>
+              <StatusPill tone="neutral" size="sm">
+                <Crosshair size={11} style={{ marginRight: 3 }} />
+                {t('admin.postePosition.situee', { metres: config.precisionM ?? '?' })}
+              </StatusPill>
+            </Tooltip>
+          ) : bridge?.posteSiteId ? (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={releve}
+              leftIcon={releve ? <Loader2 size={12} className="animate-spin" /> : <Crosshair size={12} />}
+              onClick={enregistrerPosition}
+            >
+              {releve
+                ? t('admin.postePosition.enCours')
+                : t('admin.postePosition.action')}
+            </Button>
+          ) : null}
 
           {enAttente != null && enAttente > 0 && (
             <StatusPill tone="warning" size="sm">

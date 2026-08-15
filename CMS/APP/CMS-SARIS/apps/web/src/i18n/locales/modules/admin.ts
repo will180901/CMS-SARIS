@@ -459,6 +459,20 @@ export const admin = {
     cePosteEnAttente: '{{n}} en attente d’envoi',
     cePosteEnLigne: 'En ligne',
     cePosteHorsLigne: 'Hors ligne — les données seront envoyées au retour du réseau',
+    // Position du POSTE, relevée une fois à l'installation — jamais celle d'une personne.
+    postePosition: {
+      action: 'Situer ce poste',
+      enCours: 'Relevé en cours…',
+      situee: 'Situé à ± {{metres}} m',
+      detail: 'Position enregistrée : {{lat}}, {{lon}} — marge annoncée ± {{metres}} m',
+      enregistree: 'Position du poste enregistrée (marge ± {{metres}} m)',
+      echec: {
+        non_supporte: 'Ce navigateur ne sait pas fournir de position.',
+        refuse: 'Position refusée. Le navigateur retient ce refus : pour l’autoriser, passez par ses réglages de site.',
+        indisponible: 'Position indisponible — aucun repère exploitable (ni GPS, ni réseau Wi-Fi connu).',
+        delai_depasse: 'Le relevé a pris trop de temps. Réessayez, de préférence près d’une fenêtre ou avec le Wi-Fi actif.',
+      },
+    },
     backupDelete: 'Supprimer',
     backupDeleteLastHint: 'Dernière sauvegarde : elle ne peut pas être supprimée, le système resterait sans point de restauration.',
     backupDeleteTitle: 'Supprimer cette sauvegarde ?',
@@ -1062,6 +1076,20 @@ export const admin = {
     cePosteEnAttente: '{{n}} pending upload',
     cePosteEnLigne: 'Online',
     cePosteHorsLigne: 'Offline — data will be sent when the network returns',
+    // Position of the WORKSTATION, taken once at setup — never a person's.
+    postePosition: {
+      action: 'Locate this workstation',
+      enCours: 'Taking a reading…',
+      situee: 'Located to ± {{metres}} m',
+      detail: 'Saved position: {{lat}}, {{lon}} — stated margin ± {{metres}} m',
+      enregistree: 'Workstation position saved (margin ± {{metres}} m)',
+      echec: {
+        non_supporte: 'This browser cannot provide a position.',
+        refuse: 'Position denied. The browser remembers this refusal: to allow it, go through its site settings.',
+        indisponible: 'Position unavailable — no usable reference (neither GPS nor known Wi-Fi network).',
+        delai_depasse: 'The reading took too long. Try again, ideally near a window or with Wi-Fi on.',
+      },
+    },
     backupDelete: 'Delete',
     backupDeleteLastHint: 'Last backup: it cannot be deleted, the system would be left without a restore point.',
     backupDeleteTitle: 'Delete this backup?',
