@@ -334,8 +334,7 @@ export function RapportsPage() {
         </div>
         )}
       </div>
-    </div>
-  )
+
       {/* Confirmation de suppression — modale SARIS, pas la boite native du navigateur. */}
       {confirmSuppr && detail != null && (
         <Modal
@@ -374,7 +373,8 @@ export function RapportsPage() {
       {apercuOuvert && detail != null && (
         <RapportPrintModal rapport={detail!} onClose={() => setApercuOuvert(false)} />
       )}
-
+    </div>
+  )
 }
 
 const rapportGenererBtn: React.CSSProperties = {
