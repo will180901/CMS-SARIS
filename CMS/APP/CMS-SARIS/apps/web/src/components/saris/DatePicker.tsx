@@ -12,6 +12,7 @@ import { CalendarDays, X } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@workspace/ui/components/popover'
 import { Calendar } from '@workspace/ui/components/calendar'
 import { formatDate } from '@/lib/intl'
+import { SelectBox } from './SelectBox'
 
 interface Props {
   value:        string | null | undefined        // yyyy-MM-dd
@@ -84,6 +85,21 @@ export function DatePicker({
   const minDate = parseISO(min)
   const maxDate = parseISO(max)
 
+  // MOIS AFFICHÉ, piloté par nous. react-day-picker sait le faire seul, mais son en-tête
+  // « dropdown » rend des <select> NATIFS — une fenêtre du système, qui ignore le thème.
+  // On le met donc en mode « label » (chevrons seuls) et on fournit nos propres combos.
+  const [moisAffiche, setMoisAffiche] = useState<Date>(selected ?? new Date())
+  const debutPlage = minDate ?? new Date(1920, 0)
+  const finPlage = maxDate ?? new Date(new Date().getFullYear() + 5, 11)
+
+  const optionsMois = Array.from({ length: 12 }, (_, i) => ({
+    value: String(i),
+    label: formatDate(new Date(2000, i, 1), { month: 'long' }),
+  }))
+  const optionsAnnees: { value: string; label: string }[] = []
+  for (let a = finPlage.getFullYear(); a >= debutPlage.getFullYear(); a--)
+    optionsAnnees.push({ value: String(a), label: String(a) })
+
   // Jours désactivés (react-day-picker v10 : fromDate/toDate ne suffisent plus).
   // Garantit qu'on ne peut pas choisir une date hors de la plage [min, max].
   const dayMatchers: Array<{ before: Date } | { after: Date }> = []
@@ -102,7 +118,15 @@ export function DatePicker({
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover
+      open={open}
+      onOpenChange={(o) => {
+        // À chaque ouverture on repart de la date choisie (ou d'aujourd'hui) : sans cela,
+        // le calendrier rouvrirait sur le dernier mois consulté, ce qui désoriente.
+        if (o) setMoisAffiche(selected ?? new Date())
+        setOpen(o)
+      }}
+    >
       <PopoverTrigger asChild>
         <button
           id={id}
@@ -170,6 +194,32 @@ export function DatePicker({
           width: 'auto',
         }}
       >
+        {captionLayout === 'dropdown' && (
+          <div style={{
+            display: 'flex', gap: 6, padding: 8,
+            borderBottom: '1px solid var(--bordure-legere)',
+          }}>
+            <div style={{ flex: 1.4, minWidth: 0 }}>
+              <SelectBox
+                size="sm"
+                aria-label="Mois"
+                value={String(moisAffiche.getMonth())}
+                onChange={(v) => setMoisAffiche(new Date(moisAffiche.getFullYear(), Number(v), 1))}
+                options={optionsMois}
+              />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <SelectBox
+                size="sm"
+                aria-label="Année"
+                value={String(moisAffiche.getFullYear())}
+                onChange={(v) => setMoisAffiche(new Date(Number(v), moisAffiche.getMonth(), 1))}
+                options={optionsAnnees}
+              />
+            </div>
+          </div>
+        )}
+
         <Calendar
           mode="single"
           selected={selected}
@@ -177,9 +227,13 @@ export function DatePicker({
           disabled={dayMatchers.length ? dayMatchers : undefined}
           locale={undefined}
           weekStartsOn={1}    // lundi
-          captionLayout={captionLayout}
-          startMonth={minDate ?? new Date(1920, 0)}
-          endMonth={maxDate ?? new Date(new Date().getFullYear() + 5, 11)}
+          month={moisAffiche}
+          onMonthChange={setMoisAffiche}
+          // TOUJOURS « label » : le mode « dropdown » de react-day-picker rend des combos
+          // NATIFS. Nos propres combos sont au-dessus.
+          captionLayout="label"
+          startMonth={debutPlage}
+          endMonth={finPlage}
         />
       </PopoverContent>
     </Popover>

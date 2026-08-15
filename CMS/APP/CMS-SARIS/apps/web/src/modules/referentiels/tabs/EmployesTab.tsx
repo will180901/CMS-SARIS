@@ -20,7 +20,7 @@ import { EmptyState }    from '../components/EmptyState'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { DrawerShell }   from '../components/DrawerShell'
 import { PaginationBar } from '../components/PaginationBar'
-import { DataTableHead, dataRowStyle, DATA_TABLE_CARD, useColumnResize } from '@/components/saris'
+import { DataTableHead, dataRowStyle, DATA_TABLE_CARD, useColumnResize, DatePicker } from '@/components/saris'
 import { useIsCompact }  from '@/hooks/useMediaQuery'
 import { isActif }       from '../api/referentiels.api'
 import { formatDate }    from '@/lib/intl'
@@ -217,7 +217,12 @@ export function EmployesTab({ canCreate, canUpdate, canDelete }: { canCreate: bo
           <div style={{ display: 'grid', gridTemplateColumns: cols2, gap: '12px' }}>
             <div>
               <Label style={lbl}>{t('patients.fieldNaissance', { defaultValue: 'Naissance' })}</Label>
-              <Input type="date" value={form.dateNaissance} onChange={e => patch({ dateNaissance: e.target.value })} style={{ fontSize: '13px' }} />
+              <DatePicker
+                value={form.dateNaissance}
+                onChange={v => patch({ dateNaissance: v ?? '' })}
+                size="sm"
+                placeholder={t('patients.fieldNaissance', { defaultValue: 'Naissance' })}
+              />
             </div>
             <div>
               <Label style={lbl}>{t('patients.fieldSexe', { defaultValue: 'Sexe' })}</Label>

@@ -11,7 +11,7 @@ import {
   Clock, Check, NotebookPen, MapPin,
   FileText, ChevronLeft, ChevronRight, Plus, X, ExternalLink,
 } from 'lucide-react'
-import { SegmentedTabs, Button } from '@/components/saris'
+import { SegmentedTabs, Button, DatePicker } from '@/components/saris'
 import { useIsCompact } from '@/hooks/useMediaQuery'
 import { calcAge } from '@/lib/age'
 import {
@@ -629,7 +629,13 @@ function AnamneseSection({
       <div style={{ padding: '12px 14px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10 }}>
         <div style={fld}>
           <label style={lbl}>{t('consultation.anamneseDateDebut')}</label>
-          <input type="date" value={dateDebut} disabled={readonly} onChange={e => setDateDebut(e.target.value)} style={inp} />
+          <DatePicker
+            value={dateDebut}
+            onChange={v => setDateDebut(v ?? '')}
+            disabled={readonly}
+            size="sm"
+            placeholder={t('consultation.anamneseDateDebut')}
+          />
         </div>
         <div style={fld}>
           <label style={lbl}>{t('consultation.anamneseDuree')}</label>

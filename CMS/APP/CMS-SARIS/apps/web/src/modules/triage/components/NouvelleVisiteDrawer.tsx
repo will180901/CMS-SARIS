@@ -4,7 +4,7 @@ import {
   Search, X, UserSearch, FileText, AlertCircle, Stethoscope, PenLine, HeartPulse,
   ChevronLeft, UserPlus, AlertTriangle,
 } from 'lucide-react'
-import { Button as SButton, SelectBox } from '@/components/saris'
+import { Button as SButton, SelectBox, DatePicker } from '@/components/saris'
 import { Input }  from '@workspace/ui/components/input'
 import { Label }  from '@workspace/ui/components/label'
 import { ApiError } from '@/lib/api'
@@ -775,7 +775,14 @@ function NewPatientForm({ np, setNp, categories, societes, employeReconnu, emplo
         </div>
         <div>
           <Label style={{ ...lbl, fontSize: '12px' }}>{t('triage.naissance')} <span style={{ color: 'var(--erreur-texte)' }}>*</span></Label>
-          <input type="date" value={np.dateNaissance} min={minBirthISO()} max={todayISO()} onChange={e => patch({ dateNaissance: e.target.value })} style={errInput(!!dateErr)} />
+          <DatePicker
+            value={np.dateNaissance}
+            onChange={v => patch({ dateNaissance: v ?? '' })}
+            min={minBirthISO()} max={todayISO()}
+            invalid={!!dateErr}
+            size="sm"
+            placeholder={t('triage.naissance')}
+          />
           {dateErr && <p style={errText}>{dateErr}</p>}
         </div>
         <div>
