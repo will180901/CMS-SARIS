@@ -11,6 +11,7 @@
  */
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { SelectBox } from '@/components/saris/SelectBox'
 import { useTranslation } from 'react-i18next'
 import i18n from '@/i18n/config'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -922,20 +923,19 @@ function ActiviteTable({
       display: 'flex', alignItems: 'center', gap: 'var(--espace-2)',
       marginBottom: 'var(--espace-3)', flexWrap: 'wrap',
     }}>
-      <select
-        value={posteId}
-        onChange={(e) => onPosteId(e.target.value)}
-        aria-label={t('admin.supFiltrePoste')}
-        style={{
-          height: 30, maxWidth: 260, padding: '0 var(--espace-2)',
-          borderRadius: 'var(--radius-md)', border: '1px solid var(--bordure-legere)',
-          background: 'var(--fond-surface)', color: 'var(--texte-primaire)',
-          fontSize: 'var(--font-size-caption)', cursor: 'pointer',
-        }}
-      >
-        <option value="">{t('admin.supFiltreTousPostes')}</option>
-        {postes.map(p => <option key={p.id} value={p.id}>{p.libelle}</option>)}
-      </select>
+      {/* Dernier <select> natif de l'application, remplace par le combo SARIS. */}
+      <div style={{ width: 220 }}>
+        <SelectBox
+          value={posteId}
+          onChange={onPosteId}
+          size="sm"
+          aria-label={t('admin.supFiltrePoste')}
+          options={[
+            { value: '', label: t('admin.supFiltreTousPostes') },
+            ...postes.map(p => ({ value: p.id, label: p.libelle })),
+          ]}
+        />
+      </div>
 
       <div style={{ display: 'flex', gap: 3, padding: 3, borderRadius: 'var(--radius-md)', background: 'var(--fond-surface-2)', border: '1px solid var(--bordure-legere)' }}>
         {[

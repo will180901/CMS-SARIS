@@ -23,6 +23,7 @@ import { MapPin, Check, Loader2 } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useSessionStore } from '@/stores/session.store'
 import { useSites } from '@/modules/referentiels/hooks/useReferentiels'
+import { SelectBox } from '@/components/saris/SelectBox'
 import { isDesktop } from '@/lib/desktop'
 import type { UserSession } from '@cms-saris/types'
 
@@ -98,19 +99,17 @@ export function ConfirmationSiteModal() {
           {t('site.confirmHelp')}
         </p>
 
-        <select
+        {/* SelectBox et non un <select> natif : le combo natif est rendu par le systeme
+            d'exploitation, il ignore donc le theme de l'application et jure avec le reste
+            des ecrans. */}
+        <SelectBox
           value={valeur}
-          onChange={e => setChoisi(e.target.value)}
+          onChange={setChoisi}
           disabled={isLoading || envoi}
-          style={{
-            width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: 8,
-            border: '1px solid var(--bordure-normale)', background: 'var(--fond-surface)',
-            color: 'var(--texte-primaire)', fontSize: 13, fontFamily: 'inherit', outline: 'none',
-          }}>
-          {sites.map(s => (
-            <option key={s.id} value={s.id}>{s.libelle}</option>
-          ))}
-        </select>
+          size="lg"
+          aria-label={t('site.confirmTitle')}
+          options={sites.map(s => ({ value: s.id, label: s.libelle }))}
+        />
 
         {erreur && (
           <p style={{ margin: '10px 0 0', fontSize: 12, color: 'var(--erreur-texte, #b3261e)' }}>{erreur}</p>

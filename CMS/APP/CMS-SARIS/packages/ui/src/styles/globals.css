@@ -657,3 +657,55 @@
   outline: 2px solid var(--anneau-focus);
   outline-offset: -2px;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   CHAMPS NATIFS — mise au ton SARIS
+
+   Une case à cocher, un bouton radio ou un champ date natif n'est pas dessiné par
+   la feuille de style : il est dessiné par le SYSTÈME D'EXPLOITATION. Il ignore
+   donc la palette de l'application, et détonne au milieu d'écrans par ailleurs
+   soignés — c'est particulièrement voyant en thème sombre, où le calendrier natif
+   s'ouvre en blanc.
+
+   Deux propriétés suffisent à les faire entrer dans le thème, PARTOUT et d'un coup
+   (web comme client de bureau), sans réécrire un seul composant ni toucher à leur
+   comportement — donc sans risque de régression :
+
+     `color-scheme`  → indique au système le thème courant. Cases, boutons radio,
+                       sélecteurs de date/heure, barres de défilement et champs
+                       natifs suivent alors le thème au lieu de rester en clair.
+     `accent-color`  → colore la coche et le point des cases/radios/curseurs avec
+                       le teal SARIS, à la place du bleu du système.
+
+   Les combos, eux, ne se laissent pas mettre au ton : leur liste déroulante est une
+   fenêtre du système. C'est pourquoi l'application utilise `SelectBox` (Radix) et
+   plus aucun `<select>` natif.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  color-scheme: light;
+  accent-color: var(--ap-400);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { color-scheme: dark; }
+}
+
+:root[data-theme="dark"]  { color-scheme: dark; }
+:root[data-theme="light"] { color-scheme: light; }
+
+/* Confort de pointage : les cases natives sont minuscules par défaut sur Windows. */
+input[type="checkbox"],
+input[type="radio"] {
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
+/* Les champs de date héritent de la typographie de l'application, et leur icône de
+   calendrier cesse d'être noire sur fond sombre. */
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"] {
+  font-family: inherit;
+}
