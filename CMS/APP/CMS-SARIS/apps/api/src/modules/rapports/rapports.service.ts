@@ -12,12 +12,43 @@
  * (même shape que l'export manuel existant `statsExport.ts` côté web).
  */
 
-import { Injectable, Logger, NotFoundException } from '@nestjs/common'
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common'
 import { Cron, CronExpression } from '@nestjs/schedule'
 import { PrismaService } from '../../prisma/prisma.service'
 import { DashboardService } from '../dashboard/dashboard.service'
 
 export type TypeRapport = 'HEBDOMADAIRE' | 'MENSUEL' | 'ANNUEL'
+
+/** Forme renvoyee par `DashboardService.getStatistiques()`. */
+type StatsPeriode = Awaited<ReturnType<DashboardService['getStatistiques']>>
+
+/** Un point de la courbe de tendance. */
+interface PointSerie {
+  debut: string
+  fin: string
+  consultations: number
+  reposJours: number
+}
+
+/**
+ * Constat notable, STRUCTURE et non redige : le client compose la phrase dans la langue
+ * de la personne. Rediger ici figerait le rapport en francais pour tout le monde.
+ */
+interface AlerteRapport {
+  code:
+    | 'ACTIVITE_HAUSSE'
+    | 'ACTIVITE_BAISSE'
+    | 'AT_CONCENTRATION'
+    | 'PATHOLOGIE_HAUSSE'
+    | 'REPOS_HAUSSE'
+  niveau: 'info' | 'attention' | 'critique'
+  params: Record<string, string | number>
+}
 
 function dayKey(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -74,16 +105,170 @@ export class RapportsService {
     }
   }
 
+  /**
+   * Recule une periode d'un cran. Le pas suit la NATURE du rapport : un mois n'a pas une
+   * duree fixe, et comparer un mois calendaire aux « 30 jours precedents » fausserait la
+   * lecture de fevrier a mars.
+   */
+  private periodePrecedente(
+    type: TypeRapport,
+    debut: Date,
+    fin: Date,
+  ): { debut: Date; fin: Date } {
+    if (type === 'MENSUEL') {
+      return {
+        debut: new Date(debut.getFullYear(), debut.getMonth() - 1, 1),
+        fin: new Date(debut),
+      }
+    }
+    if (type === 'ANNUEL') {
+      return {
+        debut: new Date(debut.getFullYear() - 1, 0, 1),
+        fin: new Date(debut),
+      }
+    }
+    const duree = fin.getTime() - debut.getTime()
+    return { debut: new Date(debut.getTime() - duree), fin: new Date(debut) }
+  }
+
+  /** Statistiques d'une periode (la borne de fin est exclusive). */
+  private statsDe(debut: Date, fin: Date) {
+    return this.dashboard.getStatistiques(
+      dayKey(debut),
+      dayKey(new Date(fin.getTime() - 1)),
+    )
+  }
+
+  /**
+   * ALERTES — ce qui SORT DE L'ORDINAIRE, et rien d'autre.
+   *
+   * Un rapport qui aligne des compteurs oblige son lecteur a faire lui-meme le travail de
+   * comparaison ; en pratique il ne le fait pas. On calcule donc ici les quelques constats
+   * qui meritent qu'on leve les yeux. Volontairement PEU nombreux : une page couverte
+   * d'avertissements ne se lit plus, et plafonnee a cinq.
+   */
+  private calculerAlertes(
+    stats: StatsPeriode,
+    precedent: StatsPeriode | null,
+  ): AlerteRapport[] {
+    const alertes: AlerteRapport[] = []
+    const total = stats.totalConsultations
+    const totalAvant = precedent?.totalConsultations ?? 0
+
+    // 1. Variation d'activite marquee. Seuil PLANCHER volontaire : passer de 2 a 3 actes
+    //    fait +50% et ne signifie rien. Sans ce garde-fou, l'alerte devient du bruit.
+    if (precedent && totalAvant >= 5) {
+      const ecart = Math.round(((total - totalAvant) / totalAvant) * 100)
+      if (ecart >= 30) {
+        alertes.push({
+          code: 'ACTIVITE_HAUSSE',
+          niveau: 'info',
+          params: { pct: ecart, avant: totalAvant, apres: total },
+        })
+      } else if (ecart <= -30) {
+        alertes.push({
+          code: 'ACTIVITE_BAISSE',
+          niveau: 'info',
+          params: { pct: Math.abs(ecart), avant: totalAvant, apres: total },
+        })
+      }
+    }
+
+    // 2. Accidents du travail concentres sur un departement : le constat le plus utile
+    //    pour un centre d'entreprise, parce qu'il designe OU agir.
+    const at = stats.parType.find((x) => /accident/i.test(x.libelle))
+    if (at && at.count >= 2) {
+      const top = [...stats.parDepartement].sort((a, b) => b.count - a.count)[0]
+      if (top && top.count >= 2 && top.count / Math.max(total, 1) >= 0.5) {
+        alertes.push({
+          code: 'AT_CONCENTRATION',
+          niveau: 'critique',
+          params: { departement: top.libelle, cas: top.count, accidents: at.count },
+        })
+      }
+    }
+
+    // 3. Pathologie qui double : debut d'episode collectif, c'est de la veille sanitaire.
+    if (precedent) {
+      for (const path of stats.parPathologie) {
+        const avant =
+          precedent.parPathologie.find((x) => x.libelle === path.libelle)?.count ?? 0
+        if (path.count >= 3 && path.count >= avant * 2) {
+          alertes.push({
+            code: 'PATHOLOGIE_HAUSSE',
+            niveau: 'attention',
+            params: { libelle: path.libelle, avant, apres: path.count },
+          })
+        }
+      }
+    }
+
+    // 4. Absenteisme prescrit en forte hausse : c'est le COUT, donc ce qui parle a la
+    //    Direction Generale.
+    const jours = stats.repos.totalJours
+    const joursAvant = precedent?.repos.totalJours ?? 0
+    if (joursAvant >= 5 && jours >= joursAvant * 1.5) {
+      alertes.push({
+        code: 'REPOS_HAUSSE',
+        niveau: 'attention',
+        params: { avant: joursAvant, apres: jours },
+      })
+    }
+
+    return alertes.slice(0, 5)
+  }
+
   /** Génère (ou régénère) le rapport global d'une période donnée. Idempotent. */
   async genererRapport(
     type: TypeRapport,
     periodeDebut: Date,
     periodeFin: Date,
   ) {
-    const contenu = await this.dashboard.getStatistiques(
-      dayKey(periodeDebut),
-      dayKey(new Date(periodeFin.getTime() - 1)),
-    )
+    const stats = await this.statsDe(periodeDebut, periodeFin)
+
+    // COMPARAISON. Sans elle, un chiffre n'informe pas : « 5 consultations » ne dit rien,
+    // « 5 consultations, -40% » dit quelque chose.
+    const pp = this.periodePrecedente(type, periodeDebut, periodeFin)
+    let precedent: StatsPeriode | null = null
+    try {
+      precedent = await this.statsDe(pp.debut, pp.fin)
+    } catch {
+      /* premiere periode du systeme : il n'y a pas de passe, ce n'est pas une erreur */
+    }
+
+    // SERIE — six periodes, de la plus ancienne a la courante. Une tendance se lit d'un
+    // coup d'oeil la ou une suite de rapports isoles oblige a tout rouvrir.
+    const bornes: { debut: Date; fin: Date }[] = []
+    let cd = periodeDebut
+    let cf = periodeFin
+    for (let i = 0; i < 6; i++) {
+      bornes.unshift({ debut: cd, fin: cf })
+      const prec = this.periodePrecedente(type, cd, cf)
+      cd = prec.debut
+      cf = prec.fin
+    }
+    const serie: PointSerie[] = []
+    for (const b of bornes) {
+      try {
+        const st = await this.statsDe(b.debut, b.fin)
+        serie.push({
+          debut: b.debut.toISOString(),
+          fin: b.fin.toISOString(),
+          consultations: st.totalConsultations,
+          reposJours: st.repos.totalJours,
+        })
+      } catch {
+        /* periode anterieure aux donnees : on la saute plutot que d'afficher un zero,
+           qui se lirait comme « aucune activite » alors qu'il n'y avait pas de systeme */
+      }
+    }
+
+    const contenu = {
+      ...stats,
+      precedent,
+      serie,
+      alertes: this.calculerAlertes(stats, precedent),
+    }
     const existant = await this.prisma.rapportGenere.findFirst({
       where: { type, periodeDebut, periodeFin },
       select: { id: true },
@@ -98,6 +283,35 @@ export class RapportsService {
     return this.prisma.rapportGenere.create({
       data: { type, periodeDebut, periodeFin, contenuJson },
     })
+  }
+
+  /**
+   * Génération A LA DEMANDE, sur une période libre.
+   *
+   * Sans elle, un centre qui vient d'installer le système voit une page vide jusqu'au
+   * prochain passage de l'horloge — jusqu'au 1er du mois pour un rapport mensuel. On ne
+   * peut pas non plus produire un bilan sur une période choisie, ce qui est pourtant la
+   * demande la plus courante avant une réunion.
+   *
+   * Idempotent comme la génération planifiée : relancer sur la même période met à jour le
+   * rapport existant au lieu d'en empiler un second.
+   */
+  async genererMaintenant(type: TypeRapport, debutISO: string, finISO: string) {
+    const debut = new Date(debutISO)
+    const fin = new Date(finISO)
+    if (isNaN(debut.getTime()) || isNaN(fin.getTime()))
+      throw new BadRequestException('Dates invalides')
+    if (fin <= debut)
+      throw new BadRequestException('La fin doit être postérieure au début')
+    // Borne haute : au-delà, la série de six périodes ferait autant de parcours complets
+    // de la base pour un résultat que personne ne lit.
+    const jours = (fin.getTime() - debut.getTime()) / 86_400_000
+    if (jours > 800)
+      throw new BadRequestException('Période trop longue (2 ans maximum)')
+
+    debut.setHours(0, 0, 0, 0)
+    fin.setHours(0, 0, 0, 0)
+    return this.genererRapport(type, debut, fin)
   }
 
   // ── Consultation ──────────────────────────────────────────────────────────
