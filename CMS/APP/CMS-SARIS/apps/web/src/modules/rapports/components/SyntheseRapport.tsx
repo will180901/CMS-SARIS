@@ -82,6 +82,27 @@ export function SyntheseRapport({ contenu }: { contenu: ContenuRapport }) {
         ? 'var(--succes-accent)'
         : 'var(--avert-texte)'
 
+  // PERIODE SANS ACTIVITE. Un mur de zeros se lit comme une panne : on croit que le
+  // rapport n'a pas su calculer, alors qu'il n'y avait simplement rien a compter. On le
+  // DIT, une bonne fois, en tete — et on se tait sur le reste.
+  const vide = total === 0 && (contenu.volets?.activite.visites ?? 0) === 0
+  if (vide) {
+    return (
+      <div style={{
+        padding: 'var(--espace-5)', borderRadius: 'var(--radius-lg)',
+        background: 'var(--fond-surface-2)', border: '1px solid var(--bordure-legere)',
+        textAlign: 'center',
+      }}>
+        <p style={{ margin: 0, fontSize: 'var(--font-size-body)', fontWeight: 600, color: 'var(--texte-primaire)' }}>
+          {t('rapports.periodeVide')}
+        </p>
+        <p style={{ margin: '6px 0 0', fontSize: 'var(--font-size-body-sm)', color: 'var(--texte-tertiaire)', lineHeight: 1.5 }}>
+          {t('rapports.periodeVideHint')}
+        </p>
+      </div>
+    )
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--espace-4)' }}>
       {/* ── Alertes ─────────────────────────────────────────────────────────── */}
