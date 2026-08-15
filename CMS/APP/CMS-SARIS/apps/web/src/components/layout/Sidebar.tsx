@@ -165,17 +165,22 @@ export function Sidebar() {
               }}>
                 CMS SARIS
               </p>
-              <p style={{
-                margin: '2px 0 0',
-                fontSize: 'var(--font-size-overline)',
-                fontWeight: 600,
-                textTransform: 'uppercase',
-                letterSpacing: '0.07em',
-                color: 'var(--texte-tertiaire)',
-                lineHeight: 1,
-              }}>
-                {siteName}
-              </p>
+              {/* Site du POSTE — client de bureau UNIQUEMENT (3e et dernier emplacement,
+                  cf. TopHeader et la carte utilisateur plus bas). Sur le web, la marque
+                  s'arrete a « CMS SARIS » : aucun compte n'appartient a un site. */}
+              {isDesktop && (
+                <p style={{
+                  margin: '2px 0 0',
+                  fontSize: 'var(--font-size-overline)',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.07em',
+                  color: 'var(--texte-tertiaire)',
+                  lineHeight: 1,
+                }}>
+                  {siteName}
+                </p>
+              )}
             </div>
           )}
         </div>
