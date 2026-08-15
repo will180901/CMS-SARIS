@@ -12,19 +12,23 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
-import { FileBarChart, Download, Calendar, Stethoscope, BedSingle, ChevronRight, ChevronLeft, RefreshCw, Loader2, Trash2 } from 'lucide-react'
-import { Card, Skeleton, EmptyState, StatCard, RankedBars, TILE_TONE_MAP, Modal, Button } from '@/components/saris'
+import { FileBarChart, Download, Calendar, Stethoscope, BedSingle, ChevronRight, ChevronLeft, RefreshCw, Loader2, Trash2, ListChecks } from 'lucide-react'
+import {
+  Card, Skeleton, EmptyState, StatCard, RankedBars, TILE_TONE_MAP, Modal, Button,
+  CheckBox, useSelectionLot, BarreSelectionLot,
+} from '@/components/saris'
 import { useIsCompact } from '@/hooks/useMediaQuery'
 import { usePermissions } from '@/hooks/usePermissions'
 import { usePersistedState } from '@/hooks/usePersistedState'
 import { formatDate } from '@/lib/intl'
 import { useRapports, useRapport, useGenererRapport, useSupprimerRapport } from '../hooks/useRapports'
+import { rapportsApi } from '../api/rapports.api'
 import { toast } from '@workspace/ui/components/sonner'
 import { exportStatsXlsx } from '@/modules/dashboard/lib/statsExport'
 import { SyntheseRapport } from '../components/SyntheseRapport'
 import { RapportPrintModal } from '../components/RapportPrintModal'
 import { VoletsRapport } from '../components/VoletsRapport'
-import type { TypeRapport } from '../api/rapports.api'
+import type { TypeRapport, RapportResume } from '../api/rapports.api'
 
 /** Libellé traduit d'une période. Une fonction et non une table figée : la table serait
  *  construite au chargement du module, avant que la langue soit connue, et ne suivrait
@@ -52,9 +56,25 @@ export function RapportsPage() {
   const supprimer = useSupprimerRapport()
   const [confirmSuppr, setConfirmSuppr] = useState(false)
   const [apercuOuvert, setApercuOuvert] = useState(false)
+  const [survol, setSurvol] = useState<string | null>(null)
   const canDelete = has('rapport.delete')
 
   const filtered = filtreType === 'ALL' ? rapports : rapports.filter(r => r.type === filtreType)
+
+  // Sélection multiple sur la liste : sans elle, effacer cinq rapports demande cinq
+  // allers-retours par le détail. Même endpoint que le bouton unitaire de l'en-tête.
+  const sel = useSelectionLot<RapportResume>({
+    idDe: r => r.id,
+    supprimer: id => rapportsApi.supprimer(id),
+    invalider: [['rapports']],
+  })
+
+  // Le détail se referme dès que le rapport affiché n'existe plus — qu'il vienne
+  // d'être supprimé en lot, à l'unité, ou depuis un autre poste. Le panneau de droite
+  // ne peut pas rester sur un rapport disparu.
+  useEffect(() => {
+    if (!isLoading && selectedId && !rapports.some(r => r.id === selectedId)) setSelectedId(null)
+  }, [isLoading, rapports, selectedId, setSelectedId])
 
   /* Redimensionnement panneau liste (même mécanisme que Triage) */
   const splitRef = useRef<HTMLDivElement>(null)
@@ -175,6 +195,12 @@ export function RapportsPage() {
             </div>
           </div>
 
+          {sel.actif && (
+            <div style={{ padding: '10px 12px 0', flexShrink: 0, background: 'var(--fond-surface)' }}>
+              <BarreSelectionLot sel={sel} lignes={filtered} />
+            </div>
+          )}
+
           {/* Liste scrollable */}
           <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
             {isLoading ? (
@@ -187,17 +213,34 @@ export function RapportsPage() {
               filtered.map(r => {
                 const tint = TYPE_TINT[r.type]
                 const selected = r.id === selectedId
+                const coche = sel.estSelectionne(r)
+                // Un clic ouvre le rapport, un second le referme — et pendant le mode
+                // sélection il coche, sans jamais ouvrir le détail.
+                const basculer = () => {
+                  if (sel.actif) sel.basculer(r)
+                  else setSelectedId(r.id === selectedId ? null : r.id)
+                }
                 return (
-                  <div key={r.id} role="button" tabIndex={0} aria-pressed={selected}
-                    onClick={() => setSelectedId(r.id)}
-                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedId(r.id) } }}
+                  <div key={r.id} role="button" tabIndex={0} aria-pressed={sel.actif ? coche : selected}
+                    onClick={basculer}
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); basculer() } }}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', cursor: 'pointer',
                       borderBottom: '1px solid var(--bordure-legere)',
-                      background: selected ? 'var(--ap-50)' : 'transparent',
-                      borderLeft: `3px solid ${selected ? 'var(--ap-500)' : 'transparent'}`,
+                      // Pendant le mode sélection, seule la COCHE colore la ligne : garder
+                      // aussi la teinte du rapport ouvert ferait deux surlignages qui ne
+                      // veulent pas dire la même chose.
+                      background: (sel.actif ? coche : selected) ? 'var(--ap-50)' : 'transparent',
+                      borderLeft: `3px solid ${selected && !sel.actif ? 'var(--ap-500)' : 'transparent'}`,
                       transition: 'background 0.1s',
-                    }}>
+                    }}
+                    onMouseEnter={() => setSurvol(r.id)}
+                    onMouseLeave={() => setSurvol(s => (s === r.id ? null : s))}>
+                    {sel.actif && (
+                      <span onClick={e => e.stopPropagation()} style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>
+                        <CheckBox size={15} checked={coche} onChange={() => sel.basculer(r)} aria-label={t('selection.selectRow')} />
+                      </span>
+                    )}
                     <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 99, background: tint.bg, color: tint.text, flexShrink: 0 }}>
                       {typeLabel(t, r.type)}
                     </span>
@@ -209,7 +252,25 @@ export function RapportsPage() {
                         {t('rapports.generatedOn', { date: formatDate(r.genereLe, { day: '2-digit', month: '2-digit', year: 'numeric' }) })}
                       </p>
                     </div>
-                    <ChevronRight size={13} style={{ color: 'var(--texte-tertiaire)', flexShrink: 0 }} />
+                    {/* Entrée dans le mode sélection, au survol et à la place du chevron —
+                        comme sur Dossiers médicaux. */}
+                    {!sel.actif && canDelete && survol === r.id ? (
+                      <button
+                        type="button"
+                        title={t('selection.enterMode')}
+                        aria-label={t('selection.enterMode')}
+                        onClick={e => { e.stopPropagation(); sel.entrer(r) }}
+                        style={{
+                          flexShrink: 0, width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          borderRadius: 'var(--radius-sm)', background: 'var(--fond-surface)',
+                          border: '1px solid var(--bordure-normale)', color: 'var(--texte-secondaire)', cursor: 'pointer',
+                        }}
+                      >
+                        <ListChecks size={14} />
+                      </button>
+                    ) : (
+                      <ChevronRight size={13} style={{ color: 'var(--texte-tertiaire)', flexShrink: 0 }} />
+                    )}
                   </div>
                 )
               })
