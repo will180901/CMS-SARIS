@@ -292,12 +292,20 @@ export function RapportsPage() {
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: 'var(--espace-6)' }}>
-                  <RapportBarBlock title={t('rapports.byType')} rows={detail.contenu.parType} />
-                  <RapportBarBlock title={t('rapports.byCategory')} rows={detail.contenu.parCategorie} />
-                  <RapportBarBlock title={t('rapports.byDepartment')} rows={detail.contenu.parDepartement} />
+                  <RapportBarBlock title={t('rapports.byType')}
+                    hint={t('rapports.byTypeHint', { count: detail.contenu.totalConsultations })}
+                    rows={detail.contenu.parType} />
+                  <RapportBarBlock title={t('rapports.byCategory')}
+                    hint={t('rapports.byCategoryHint', { count: detail.contenu.totalConsultations })}
+                    rows={detail.contenu.parCategorie} />
+                  <RapportBarBlock title={t('rapports.byDepartment')}
+                    hint={t('rapports.byDepartmentHint', { count: detail.contenu.totalConsultations })}
+                    rows={detail.contenu.parDepartement} />
                 </div>
 
-                <RapportBlock title={t('rapports.topPathologies')} empty={detail.contenu.parPathologie.length === 0}>
+                <RapportBlock title={t('rapports.topPathologies')}
+                  hint={t('rapports.topPathologiesHint')}
+                  empty={detail.contenu.parPathologie.length === 0}>
                   <RankedBars data={detail.contenu.parPathologie.slice(0, 10)} />
                 </RapportBlock>
               </div>
@@ -326,11 +334,23 @@ const rapportExportBtn: React.CSSProperties = {
 
 /** Les titres arrivent déjà traduits par l'appelant ; ces composants ne traduisent que
  *  leurs propres textes (état vide, légende centrale du donut). */
-function RapportBlock({ title, empty, children }: { title: string; empty: boolean; children: React.ReactNode }) {
+/**
+ * Bloc de repartition, avec une ligne qui DIT CE QU'ON COMPTE.
+ *
+ * Un titre comme « Par type de consultation » surmontant un « 5 » ne dit ni cinq quoi, ni
+ * sur quelle periode, ni selon quelle regle. Le lecteur doit deviner — et il devine mal.
+ * Chaque bloc annonce donc explicitement son unite et son perimetre.
+ */
+function RapportBlock({ title, hint, empty, children }: { title: string; hint?: string; empty: boolean; children: React.ReactNode }) {
   const { t } = useTranslation()
   return (
     <div>
-      <p style={{ margin: '0 0 12px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--texte-tertiaire)' }}>{title}</p>
+      <p style={{ margin: hint ? '0 0 3px' : '0 0 12px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--texte-tertiaire)' }}>{title}</p>
+      {hint && (
+        <p style={{ margin: '0 0 12px', fontSize: 11.5, color: 'var(--texte-tertiaire)', lineHeight: 1.4 }}>
+          {hint}
+        </p>
+      )}
       {empty ? (
         <p style={{ margin: 0, fontSize: 12, color: 'var(--texte-tertiaire)', fontStyle: 'italic' }}>{t('rapports.noDataPeriod')}</p>
       ) : children}
@@ -345,9 +365,9 @@ function RapportBlock({ title, empty, children }: { title: string; empty: boolea
  * pour lire « 3 et 2 » — beaucoup d'encre pour peu d'information. Des barres triées se
  * lisent d'un coup d'œil, et restent lisibles quel que soit le nombre de catégories.
  */
-function RapportBarBlock({ title, rows }: { title: string; rows: { libelle: string; count: number }[] }) {
+function RapportBarBlock({ title, hint, rows }: { title: string; hint?: string; rows: { libelle: string; count: number }[] }) {
   return (
-    <RapportBlock title={title} empty={rows.length === 0}>
+    <RapportBlock title={title} hint={hint} empty={rows.length === 0}>
       <RankedBars data={[...rows].sort((a, b) => b.count - a.count).slice(0, 8)} />
     </RapportBlock>
   )

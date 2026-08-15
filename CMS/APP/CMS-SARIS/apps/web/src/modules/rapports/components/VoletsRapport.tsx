@@ -92,7 +92,7 @@ export function VoletsRapport({ contenu }: { contenu: ContenuRapport }) {
         titre={t('rapports.voletActivite')}
         items={[
           { label: t('rapports.kpiVisites'), valeur: visites, hint: t('rapports.kpiVisitesHint') },
-          { label: t('rapports.kpiConsultations'), valeur: consultations },
+          { label: t('rapports.kpiConsultations'), valeur: consultations, hint: t('rapports.kpiConsultationsHint') },
           ...(tauxPassage !== null
             ? [{ label: t('rapports.kpiTauxPassage'), valeur: `${tauxPassage} %`, hint: t('rapports.kpiTauxPassageHint') }]
             : []),
@@ -105,7 +105,7 @@ export function VoletsRapport({ contenu }: { contenu: ContenuRapport }) {
         items={[
           { label: t('rapports.kpiAccidents'), valeur: at, hint: t('rapports.kpiAccidentsHint') },
           { label: t('rapports.kpiJoursArret'), valeur: contenu.repos.totalJours, hint: t('rapports.kpiJoursArretHint') },
-          { label: t('rapports.kpiCertificats'), valeur: v.santeTravail.certificats },
+          { label: t('rapports.kpiCertificats'), valeur: v.santeTravail.certificats, hint: t('rapports.kpiCertificatsHint') },
         ]}
       />
 
@@ -120,8 +120,8 @@ export function VoletsRapport({ contenu }: { contenu: ContenuRapport }) {
       <Volet
         titre={t('rapports.voletPharmacie')}
         items={[
-          { label: t('rapports.kpiOrdonnances'), valeur: v.pharmacieExamens.ordonnances },
-          { label: t('rapports.kpiBonsExamen'), valeur: v.pharmacieExamens.bonsExamen },
+          { label: t('rapports.kpiOrdonnances'), valeur: v.pharmacieExamens.ordonnances, hint: t('rapports.kpiFluxHint') },
+          { label: t('rapports.kpiBonsExamen'), valeur: v.pharmacieExamens.bonsExamen, hint: t('rapports.kpiFluxHint') },
           { label: t('rapports.kpiResultats'), valeur: v.pharmacieExamens.resultatsRecus, hint: t('rapports.kpiResultatsHint') },
         ]}
       />

@@ -38,6 +38,13 @@ export const rapports = {
     statReposHint: '{{count}} consultation(s) avec repos',
 
     // ── Blocs d'analyse ──────────────────────────────────────────────
+    byTypeHint: 'Les {{count}} consultations de la periode, reparties selon le type d\'acte.',
+    byCategoryHint: 'Les memes {{count}} consultations, selon la categorie du patient recu.',
+    byDepartmentHint: 'Les memes {{count}} consultations, selon le departement de l\'employe.',
+    topPathologiesHint: 'Diagnostics poses pendant la periode. Une consultation peut en porter plusieurs.',
+    kpiConsultationsHint: 'Actes medicaux issus de ces passages',
+    kpiCertificatsHint: 'Aptitude, repos, reprise',
+    kpiFluxHint: 'Emis sur la periode',
     voletActivite: 'Activite du centre',
     voletSanteTravail: 'Sante au travail',
     voletPopulation: 'Population suivie',
@@ -126,6 +133,13 @@ export const rapports = {
     statReposHint: '{{count}} consultation(s) with rest',
 
     // ── Analysis blocks ──────────────────────────────────────────────
+    byTypeHint: 'The {{count}} consultations of the period, split by type of visit.',
+    byCategoryHint: 'The same {{count}} consultations, by patient category.',
+    byDepartmentHint: 'The same {{count}} consultations, by employee department.',
+    topPathologiesHint: 'Diagnoses recorded during the period. A consultation may carry several.',
+    kpiConsultationsHint: 'Medical acts resulting from those visits',
+    kpiCertificatsHint: 'Fitness, rest, return to work',
+    kpiFluxHint: 'Issued during the period',
     voletActivite: 'Centre activity',
     voletSanteTravail: 'Occupational health',
     voletPopulation: 'Covered population',
