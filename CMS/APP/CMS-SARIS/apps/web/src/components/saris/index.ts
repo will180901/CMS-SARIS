@@ -19,6 +19,8 @@ export type { Tone }                      from './tones'
 
 export { Field, TextInput, Textarea }     from './Field'
 
+export { CheckBox }                       from './CheckBox'
+
 export { Modal }                          from './Modal'
 
 export { PhotoCropModal }                 from './PhotoCropModal'

@@ -14,7 +14,7 @@ import i18n from '@/i18n/config'
 import { toast } from '@workspace/ui/components/sonner'
 import { isDesktop, desktopBridge } from '@/lib/desktop'
 import { DESKTOP_TITLEBAR_H } from './DesktopTitleBar'
-import { IconButton, EmptyState, Modal, Button, TextInput, SelectBox, Textarea, Field } from '@/components/saris'
+import { IconButton, EmptyState, Modal, Button, TextInput, SelectBox, Textarea, Field, CheckBox } from '@/components/saris'
 import {
   useNotificationsFeed, useMarkAllRead, useMarkNotificationRead,
   useDismissNotification, useDismissManyNotifications, useDismissAllNotifications,
@@ -350,7 +350,7 @@ function AnnonceModal({ onClose }: { onClose: () => void }) {
 
         {/* Mode « mise à jour de l'application » : ajoute un lien d'installation à l'annonce */}
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--texte-secondaire)', cursor: 'pointer', userSelect: 'none' }}>
-          <input type="checkbox" checked={isUpdate} onChange={e => toggleUpdate(e.target.checked)} style={{ width: 15, height: 15, accentColor: 'var(--ap-600)' }} />
+          <CheckBox checked={isUpdate} onChange={toggleUpdate} />
           {t('shell.annonceUpdateToggle', { defaultValue: 'Annonce de mise à jour (avec lien d\'installation)' })}
         </label>
         {isUpdate && (

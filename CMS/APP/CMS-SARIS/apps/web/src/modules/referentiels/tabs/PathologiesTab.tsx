@@ -24,7 +24,7 @@ import { EmptyState }       from '../components/EmptyState'
 import { ConfirmDialog }    from '../components/ConfirmDialog'
 import { DrawerShell }      from '../components/DrawerShell'
 import { PaginationBar }    from '../components/PaginationBar'
-import { DataTableHead, dataRowStyle, DATA_TABLE_CARD, useColumnResize } from '@/components/saris'
+import { DataTableHead, dataRowStyle, DATA_TABLE_CARD, useColumnResize, CheckBox } from '@/components/saris'
 import { codeReferentiel, libelle as libelleSchema } from '@/lib/validation'
 import { ListePrintSheet, type ColonneExport } from '@/components/print/ListePrintSheet'
 
@@ -82,8 +82,9 @@ function PathoFormFields({ form }: { form: ReturnType<typeof useForm<PathoForm>>
         )} />
       </div>
       <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer' }}>
-        <input type="checkbox" checked={watch('confidentialiteRenforcee')} onChange={e => setValue('confidentialiteRenforcee', e.target.checked, { shouldDirty: true })}
-          style={{ marginTop: 3 }} />
+        <div style={{ marginTop: 3 }}>
+          <CheckBox checked={!!watch('confidentialiteRenforcee')} onChange={v => setValue('confidentialiteRenforcee', v, { shouldDirty: true })} />
+        </div>
         <span>
           <span style={{ fontSize: '13px', fontWeight: '500', color: 'var(--texte-primaire)', display: 'block' }}>{t('referentiels.pathoConfidentialiteRenforcee')}</span>
           <span style={{ fontSize: '12px', color: 'var(--texte-tertiaire)' }}>{t('referentiels.pathoConfidentialiteRenforceeHint')}</span>

@@ -19,7 +19,7 @@ import {
   Pin, PinOff, Forward, MoreVertical, Bell, BellOff, LogOut,
   Bold, Italic, Strikethrough, Underline, Ban,
 } from 'lucide-react'
-import { Avatar, UserAvatar } from '@/components/saris'
+import { Avatar, UserAvatar, CheckBox } from '@/components/saris'
 import { Popover, PopoverContent, PopoverTrigger } from '@workspace/ui/components/popover'
 import { toast } from '@workspace/ui/components/sonner'
 import { isOfflineQueued, isUploadTimeout } from '@/lib/api'
@@ -1348,7 +1348,7 @@ function ForwardPickerModal({ message, currentConversationId, onClose }: { messa
         <div style={{ flex: 1, overflowY: 'auto', padding: '4px 8px' }}>
           {candidates.map(c => (
             <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 8px', borderRadius: 8, cursor: 'pointer' }}>
-              <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} />
+              <CheckBox checked={selected.has(c.id)} onChange={() => toggle(c.id)} />
               {c.type === 'GROUPE'
                 ? (c.photoUrl
                     ? <img src={c.photoUrl} alt={c.titre} style={{ width: 30, height: 30, borderRadius: 'var(--radius-md)', objectFit: 'cover' }} />

@@ -25,7 +25,7 @@ import {
 } from 'lucide-react'
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@workspace/ui/components/sheet'
 import { toast } from '@workspace/ui/components/sonner'
-import { Button, UserAvatar, Skeleton, SegmentedTabs, Modal } from '@/components/saris'
+import { Button, UserAvatar, Skeleton, SegmentedTabs, Modal, CheckBox } from '@/components/saris'
 import {
   useUtilisateur, useRoles, useSetRoles, useSetStatut, useAuditAuth, useDeleteUtilisateur,
   useResetTotp, useRegenerateBackupCodes, useRevokeSessions,
@@ -694,11 +694,7 @@ function RolesTab({
                   cursor: 'pointer', transition: 'all 0.12s',
                 }}
               >
-                <input
-                  type="checkbox" checked={checked}
-                  onChange={() => toggleRole(r.id)}
-                  style={{ width: 15, height: 15, accentColor: 'var(--ap-500)', cursor: 'pointer' }}
-                />
+                <CheckBox checked={checked} onChange={() => toggleRole(r.id)} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{
                     margin: 0, fontWeight: 600, fontSize: 'var(--font-size-body-sm)',

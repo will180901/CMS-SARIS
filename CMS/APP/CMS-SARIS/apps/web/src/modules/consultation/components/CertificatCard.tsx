@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next'
 import { Bed, Check, Printer } from 'lucide-react'
 import { useSetRepos } from '../hooks/useConsultation'
 import { formatDate } from '@/lib/intl'
+import { CheckBox } from '@/components/saris'
 
 interface Props {
   consultationId:  string
@@ -101,8 +102,8 @@ export function CertificatCard({ consultationId, reposJours, reposInclutJour, da
               placeholder="0" style={{ ...INPUT, width: 110, maxWidth: '100%' }} />
           </label>
           <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '12px', color: 'var(--texte-secondaire)', paddingBottom: 8, cursor: reposRO ? 'default' : 'pointer' }}>
-            <input type="checkbox" checked={inclut} disabled={reposRO}
-              onChange={e => { setInclut(e.target.checked); persistRepos({ inclut: e.target.checked }) }} />
+            <CheckBox checked={inclut} disabled={reposRO}
+              onChange={v => { setInclut(v); persistRepos({ inclut: v }) }} />
             {t('consultation.certIncludeDay')}
           </label>
           {/* Date de reprise : calculée serveur, jamais saisie — affichage seul. */}

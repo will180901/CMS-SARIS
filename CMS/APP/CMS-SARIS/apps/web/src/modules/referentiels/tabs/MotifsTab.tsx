@@ -23,7 +23,7 @@ import { EmptyState }      from '../components/EmptyState'
 import { ConfirmDialog }   from '../components/ConfirmDialog'
 import { DrawerShell }     from '../components/DrawerShell'
 import { PaginationBar }   from '../components/PaginationBar'
-import { DataTableHead, dataRowStyle, DATA_TABLE_CARD, useColumnResize } from '@/components/saris'
+import { DataTableHead, dataRowStyle, DATA_TABLE_CARD, useColumnResize, CheckBox } from '@/components/saris'
 import { codeReferentiel, libelle as libelleSchema } from '@/lib/validation'
 import { ListePrintSheet, type ColonneExport } from '@/components/print/ListePrintSheet'
 
@@ -55,8 +55,9 @@ function MotifFormFields({ form }: { form: ReturnType<typeof useForm<MotifForm>>
         {errors.libelle && <p style={{ fontSize: '12px', color: 'var(--erreur-texte)', marginTop: '4px' }}>{errors.libelle.message}</p>}
       </div>
       <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer' }}>
-        <input type="checkbox" checked={watch('triageAllege')} onChange={e => setValue('triageAllege', e.target.checked, { shouldDirty: true })}
-          style={{ marginTop: 3 }} />
+        <div style={{ marginTop: 3 }}>
+          <CheckBox checked={!!watch('triageAllege')} onChange={v => setValue('triageAllege', v, { shouldDirty: true })} />
+        </div>
         <span>
           <span style={{ fontSize: '13px', fontWeight: '500', color: 'var(--texte-primaire)', display: 'block' }}>{t('referentiels.motifTriageAllege')}</span>
           <span style={{ fontSize: '12px', color: 'var(--texte-tertiaire)' }}>{t('referentiels.motifTriageAllegeHint')}</span>

@@ -14,8 +14,7 @@ import {
 } from 'lucide-react'
 import {
   PageHeader, Card, Button, StatCard, StatusPill, EmptyState,
-  IconButton, Skeleton, Field, TextInput, UserAvatar, SegmentedTabs, Modal,
-} from '@/components/saris'
+  IconButton, Skeleton, Field, TextInput, UserAvatar, SegmentedTabs, Modal, CheckBox } from '@/components/saris'
 import {
   useRoles, usePermissions as useAdminPermissions, useRoleUtilisateurs,
   useCreateRole, useUpdateRole, useDeleteRole,
@@ -615,13 +614,12 @@ function RoleEditor({ role, permissions, canUpdate, canDelete, onBack }: {
                     borderBottom: '1px solid var(--bordure-legere)',
                     display: 'flex', alignItems: 'center', gap: 'var(--espace-2)',
                   }}>
-                    <input
-                      type="checkbox"
+                    <CheckBox
+                      size={14}
                       checked={allSel}
-                      ref={el => { if (el) el.indeterminate = someSel && !allSel }}
+                      indeterminate={someSel && !allSel}
                       onChange={() => toggleModule(node.module, node.codes)}
                       disabled={!canUpdate}
-                      style={{ width: 14, height: 14, accentColor: 'var(--ap-500)', cursor: canUpdate ? 'pointer' : 'not-allowed' }}
                     />
                     <p style={{ margin: 0, flex: 1, fontSize: 'var(--font-size-body-sm)', fontWeight: 700, color: 'var(--texte-primaire)' }}>
                       {node.label}
@@ -640,13 +638,12 @@ function RoleEditor({ role, permissions, canUpdate, canDelete, onBack }: {
                         <div key={sg.key}>
                           {sg.sub && (
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-                              <input
-                                type="checkbox"
+                              <CheckBox
+                                size={14}
                                 checked={sgAll}
-                                ref={el => { if (el) el.indeterminate = sgSome && !sgAll }}
+                                indeterminate={sgSome && !sgAll}
                                 onChange={() => toggleModule(sg.key, sg.codes)}
                                 disabled={!canUpdate}
-                                style={{ width: 12, height: 12, accentColor: 'var(--ap-500)', cursor: canUpdate ? 'pointer' : 'not-allowed' }}
                               />
                               <span style={{ fontSize: 'var(--font-size-overline)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--texte-tertiaire)' }}>
                                 {sg.label}

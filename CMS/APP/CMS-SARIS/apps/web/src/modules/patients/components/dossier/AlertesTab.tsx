@@ -20,6 +20,7 @@ import { useCreateAllergie, useUpdateAllergie, useDeleteAllergie, useCreateAlert
 import { formatDate } from '@/lib/intl'
 import type { PatientDossier, AllergiePatient, AlerteMedicale } from '@cms-saris/types'
 import { humanizeCode } from '@/config/labels'
+import { CheckBox } from '@/components/saris'
 
 // ── Config sévérités ──────────────────────────────────────────────────────────
 
@@ -338,7 +339,11 @@ export function AlertesTab({ dossier, canWrite }: { dossier: PatientDossier; can
             </div>
           </div>
           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: 'var(--texte-secondaire)' }}>
-            <input type="checkbox" {...allergieForm.register('confirme')} style={{ accentColor: 'var(--ap-500)', width: 14, height: 14 }} />
+            <CheckBox
+              size={14}
+              checked={!!allergieForm.watch('confirme')}
+              onChange={v => allergieForm.setValue('confirme', v, { shouldDirty: true })}
+            />
             {t('patients.allergyConfirmedCheckbox')}
           </label>
         </div>

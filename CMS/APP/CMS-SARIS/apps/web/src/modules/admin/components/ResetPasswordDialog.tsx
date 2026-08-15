@@ -5,7 +5,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { KeyRound, Eye, EyeOff, AlertTriangle } from 'lucide-react'
-import { Button, Field, TextInput, Modal } from '@/components/saris'
+import { Button, Field, TextInput, Modal, CheckBox } from '@/components/saris'
 import { useResetPassword } from '../hooks/useAdmin'
 import type { UtilisateurAdmin } from '../api/admin.api'
 
@@ -97,12 +97,7 @@ export function ResetPasswordDialog({ utilisateur, onClose }: Props) {
           </Field>
 
           <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--espace-2)', cursor: 'pointer' }}>
-            <input
-              type="checkbox"
-              checked={forcer}
-              onChange={e => setForcer(e.target.checked)}
-              style={{ width: 14, height: 14, accentColor: 'var(--ap-500)' }}
-            />
+            <CheckBox size={14} checked={forcer} onChange={setForcer} />
             <span style={{ fontSize: 'var(--font-size-body-sm)', color: 'var(--texte-secondaire)' }}>
               {t('admin.forcePasswordChange')}
             </span>

@@ -28,7 +28,7 @@ import {
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from '@workspace/ui/components/sheet'
-import { Button, Field, TextInput, StatusPill, SelectBox } from '@/components/saris'
+import { Button, Field, TextInput, StatusPill, SelectBox, CheckBox } from '@/components/saris'
 import { useCreateUtilisateur, useRoles } from '../hooks/useAdmin'
 import { useCreatePersonnel } from '@/modules/acteurs/hooks/usePersonnel'
 import { labelFonction, optionsFonction, roleParDefaut } from '@/config/fonctions'
@@ -368,12 +368,13 @@ export function CreerUtilisateurDrawer({ open, onClose, personnel = null }: Prop
                   background: avecAcces ? 'var(--ap-50)' : 'var(--fond-surface)',
                   cursor: 'pointer', transition: 'all 0.12s',
                 }}>
-                  <input
-                    type="checkbox"
-                    checked={avecAcces}
-                    onChange={e => { setAvecAcces(e.target.checked); if (e.target.checked) proposerRolePourFonction() }}
-                    style={{ width: 14, height: 14, accentColor: 'var(--ap-500)', marginTop: 2 }}
-                  />
+                  <div style={{ marginTop: 2 }}>
+                    <CheckBox
+                      size={14}
+                      checked={avecAcces}
+                      onChange={v => { setAvecAcces(v); if (v) proposerRolePourFonction() }}
+                    />
+                  </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ margin: 0, fontSize: 'var(--font-size-body-sm)', fontWeight: 600, color: avecAcces ? 'var(--ap-700)' : 'var(--texte-primaire)' }}>
                       {t('admin.donnerAcces', { defaultValue: 'Donner un accès à l’application' })}
@@ -474,12 +475,7 @@ export function CreerUtilisateurDrawer({ open, onClose, personnel = null }: Prop
                             flexShrink: 0,
                           }}
                         >
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={() => toggleRole(r.id)}
-                            style={{ width: 14, height: 14, accentColor: 'var(--ap-500)' }}
-                          />
+                          <CheckBox size={14} checked={checked} onChange={() => toggleRole(r.id)} />
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <p style={{ margin: 0, fontSize: 'var(--font-size-body-sm)', fontWeight: 600, color: checked ? 'var(--ap-700)' : 'var(--texte-primaire)' }}>
                               {r.libelle}

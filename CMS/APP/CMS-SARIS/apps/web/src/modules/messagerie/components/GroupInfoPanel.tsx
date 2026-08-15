@@ -11,7 +11,7 @@ import {
   X, Camera, Pencil, Check, Shield, ShieldOff, UserPlus, UserMinus, LogOut, Users,
 } from 'lucide-react'
 import { toast } from '@workspace/ui/components/sonner'
-import { UserAvatar, PhotoCropModal } from '@/components/saris'
+import { UserAvatar, PhotoCropModal, CheckBox } from '@/components/saris'
 import { isDesktop } from '@/lib/desktop'
 import { DESKTOP_TITLEBAR_H } from '@/components/layout/DesktopTitleBar'
 import {
@@ -228,7 +228,7 @@ function AddMembersModal({ conversationId, existing, onClose }: { conversationId
         <div style={{ flex: 1, overflowY: 'auto', padding: '0 8px' }}>
           {candidates.map(c => (
             <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 8px', borderRadius: 8, cursor: 'pointer' }}>
-              <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggle(c.id)} />
+              <CheckBox checked={selected.has(c.id)} onChange={() => toggle(c.id)} />
               <UserAvatar userId={c.id} nom={c.nom} size={30} clickable={false} />
               <span style={{ fontSize: 13, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--texte-primaire)' }}>{c.nom}</span>
             </label>
