@@ -1,13 +1,26 @@
 /**
- * Géolocalisation IP — ville + coordonnées géographiques.
+ * Géolocalisation IP — ville + coordonnées approximatives.
+ *
+ * CE QUE C'EST, ET CE QUE ÇA N'EST PAS. Une adresse IP ne contient aucune position :
+ * elle est simplement rattachée, dans des bases tenues par des tiers, au point de
+ * présence de l'opérateur qui l'a attribuée. On obtient donc la VILLE de sortie du
+ * réseau, avec un point central approximatif — jamais une position GPS. Sur un
+ * mobile ou une liaison satellitaire, ce point peut désigner une autre ville, voire
+ * un autre pays. Aucun fournisseur, gratuit ou payant, ne fait mieux à partir d'une
+ * IP seule ; seul le navigateur, avec l'accord explicite de l'utilisateur, donne une
+ * vraie position GPS.
  *
  * Stratégie (précision d'abord, repli hors-ligne ensuite) :
  *   1. Service externe ip-api.com (précis : ville + lat/lon + fuseau, en français).
- *      - IP publique  → /json/{ip}
- *      - IP privée/loopback (dev local) → /json/  (résout l'IP PUBLIQUE de la
- *        machine — « il suffit d'être connecté »).
  *   2. Repli HORS-LIGNE geoip-lite (base embarquée) si le service externe échoue
  *      (hors-ligne, quota atteint…). Toujours disponible, même sans Internet.
+ *
+ * RÈGLE ABSOLUE : sans IP client exploitable, on ne localise RIEN. On ne demande
+ * jamais au service « où suis-je ? » — la réponse serait la position du SERVEUR, et
+ * on l'afficherait comme étant celle de l'utilisateur. C'est ce qui se produisait :
+ * les déconnexions, journalisées sans adresse, s'affichaient à Francfort, siège de
+ * l'hébergeur, pour un utilisateur assis à Brazzaville. Un journal d'audit qui
+ * invente des lieux est pire qu'un journal qui avoue ne pas savoir.
  *
  * Résultats mis en cache PAR IP (TTL 1 h) → pas de sur-sollicitation de l'API
  * lors de l'affichage répété des sessions / du journal d'authentification.
@@ -80,6 +93,8 @@ function num(v: unknown): number | null {
   return typeof n === 'number' && !Number.isNaN(n) ? n : null
 }
 
+/** Aucune localisation exploitable. Le libellé distingue les deux causes : une IP
+ *  de réseau privé (le poste est sur place) d'une trace sans adresse du tout. */
 const INCONNUE = (ip: string | null): GeoLocalisation => ({
   ip,
   ville: null,
@@ -88,7 +103,7 @@ const INCONNUE = (ip: string | null): GeoLocalisation => ({
   latitude: null,
   longitude: null,
   timezone: null,
-  label: 'Réseau local',
+  label: ip ? 'Réseau local' : 'Localisation indisponible',
   source: 'inconnue',
 })
 
@@ -120,7 +135,10 @@ async function fetchIpApi(ipOrEmpty: string): Promise<GeoLocalisation | null> {
     const d: any = await res.json()
     if (!d || d.status !== 'success') return null
     const ville = d.city || null
-    const pays = d.country || null
+    // Nom de pays dérivé du CODE et non du libellé du service : ip-api dit
+    // « République du Congo » là où le repli hors-ligne dit « Congo », et la même
+    // ville s'affichait sous deux pays différents d'une ligne à l'autre du journal.
+    const pays = countryName(d.countryCode) ?? d.country ?? null
     return {
       ip: d.query ?? null,
       ville,
@@ -188,16 +206,22 @@ async function resolveCached(
 }
 
 /**
- * Résout la localisation complète (ville + coordonnées) d'une IP.
- * IP publique → ip-api (repli geoip-lite). IP privée/loopback → IP publique de la
- * machine via ip-api (repli geoip-lite sur cette IP publique).
+ * Résout la localisation approximative d'une IP CLIENT.
+ *
+ * Une IP publique est résolue via ip-api, avec repli hors-ligne geoip-lite. Toute
+ * autre situation — IP absente, loopback, réseau privé — renvoie « inconnue » : voir
+ * la règle absolue en tête de fichier.
+ *
+ * Exception réservée au POSTE DE DÉVELOPPEMENT (`GEO_IP_LOCALE=1`, jamais en
+ * production) : là, et seulement là, on accepte de résoudre l'IP publique de la
+ * machine, faute de quoi tout est « Réseau local » sur un portable de dev.
  */
 export async function resolveGeo(
   rawIp?: string | null,
 ): Promise<GeoLocalisation> {
   const ip = normalizeIp(rawIp)
 
-  // Cas IP publique connue.
+  // Cas IP publique connue — le seul qui parle vraiment du client.
   if (ip && !isPrivate(ip)) {
     return resolveCached(ip, async () => {
       const ext = await fetchIpApi(ip)
@@ -206,11 +230,16 @@ export async function resolveGeo(
     })
   }
 
-  // Cas IP privée / loopback (dev local) → IP publique de la machine.
+  const devLocal =
+    process.env['GEO_IP_LOCALE'] === '1' &&
+    process.env['NODE_ENV'] !== 'production'
+  if (!devLocal) return INCONNUE(ip)
+
+  // Poste de développement uniquement : l'IP publique de la machine EST celle du
+  // développeur, puisque le serveur tourne sur son poste.
   return resolveCached('__machine__', async () => {
     const ext = await fetchIpApi('') // ip-api détecte l'IP publique de l'appelant
     if (ext) return ext
-    // Repli : on tente de récupérer l'IP publique puis geoip-lite hors-ligne.
     const pub = await fetchPublicIp()
     if (pub) {
       const g = fromLite(pub)

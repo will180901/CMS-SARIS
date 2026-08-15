@@ -154,6 +154,22 @@ export const PARAMETRES_CATALOGUE: ParametreDef[] = [
     description: 'Durée de conservation des notifications (jours)',
     group: 'Notifications',
   },
+
+  // ── Journaux d'audit (lu par AuditPurgeCron) ──
+  // Plancher à 30 jours et non 7 : un journal d'audit sert justement à revenir sur
+  // ce qui s'est passé « le mois dernier ». Le mettre à zéro reste possible, mais
+  // par le bouton de purge, qui est un geste explicite et tracé — pas par un
+  // réglage qu'on baisse une fois et qui efface silencieusement pour toujours.
+  {
+    cle: 'audit.retention_jours',
+    type: 'number',
+    defaultVal: '365',
+    min: 30,
+    max: 3650,
+    description:
+      "Durée de conservation des journaux d'audit (jours) — au-delà, les entrées sont supprimées automatiquement chaque nuit",
+    group: "Journaux d'audit",
+  },
 ]
 
 const CATALOGUE_MAP = new Map(PARAMETRES_CATALOGUE.map((d) => [d.cle, d]))

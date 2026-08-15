@@ -158,8 +158,15 @@ export class SecurityController {
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
-  logout(@CurrentUser() user: UserSession) {
-    return this.securityService.logout(user.id)
+  logout(
+    @CurrentUser() user: UserSession,
+    @Ip() ip: string,
+    @Headers('user-agent') userAgent: string,
+  ) {
+    // L'IP et l'agent sont transmis comme au login : sans eux, la déconnexion
+    // s'inscrivait au journal sans adresse, et la localisation retombait sur celle
+    // du serveur — Francfort pour un utilisateur assis à Brazzaville.
+    return this.securityService.logout(user.id, ip, userAgent)
   }
 
   /**

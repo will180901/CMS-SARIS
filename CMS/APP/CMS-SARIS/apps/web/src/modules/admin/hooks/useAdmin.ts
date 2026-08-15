@@ -349,6 +349,20 @@ export function useAuditAuth(params?: Record<string, string | undefined>) {
   })
 }
 
+/** Purge des journaux. Invalide les DEUX listes : la purge trace sa propre exécution,
+ *  donc le journal des actions n'est jamais vide juste après. */
+export function usePurgerAudit() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (portee: 'actions' | 'authentifications' | 'tout' = 'tout') =>
+      adminApi.audit.purger(portee),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ADMIN_KEYS.audit })
+      void qc.invalidateQueries({ queryKey: ADMIN_KEYS.auth })
+    },
+  })
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
 //  PARAMÈTRES SYSTÈME
 // ══════════════════════════════════════════════════════════════════════════════

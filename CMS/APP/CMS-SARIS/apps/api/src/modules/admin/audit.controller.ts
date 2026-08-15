@@ -1,5 +1,8 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common'
-import { AuditService } from './audit.service'
+import {
+  Controller, Get, Delete, Query, Req, UseGuards, HttpCode, HttpStatus,
+  BadRequestException,
+} from '@nestjs/common'
+import { AuditService, type PortailPurge } from './audit.service'
 import { JwtAuthGuard } from '../security/guards/jwt-auth.guard'
 import { PermissionsGuard } from '../security/guards/permissions.guard'
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator'
@@ -51,5 +54,21 @@ export class AuditController {
       limit:
         limit && Number.isFinite(Number(limit)) ? Number(limit) : undefined,
     })
+  }
+
+  /**
+   * Vide les journaux. Sous `audit.purge` et NON `audit.read` : consulter des traces
+   * et les effacer ne sont pas le même pouvoir. La purge se journalise elle-même,
+   * de sorte qu'il reste toujours trace de qui a effacé quoi, et quand.
+   */
+  @Delete()
+  @RequirePermissions('audit.purge')
+  @HttpCode(HttpStatus.OK)
+  purger(@Req() req: any, @Query('portee') portee?: string) {
+    const p = (portee ?? 'tout') as PortailPurge
+    if (p !== 'actions' && p !== 'authentifications' && p !== 'tout') {
+      throw new BadRequestException('Portée de purge inconnue')
+    }
+    return this.svc.purger(p, req.user?.id ?? null)
   }
 }

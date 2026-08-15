@@ -282,6 +282,9 @@ export const fr = {
       evenements_administratifs: 'Notifier les événements administratifs sensibles (comptes, rôles, permissions, paramètres) aux administrateurs',
       retention_jours: 'Durée de conservation des notifications (jours)',
     },
+    audit: {
+      retention_jours: 'Durée de conservation des journaux d’audit (jours) — au-delà, les entrées sont supprimées automatiquement chaque nuit',
+    },
   },
   sync: {
     dataTitle: 'Synchronisation des données (mode local)',

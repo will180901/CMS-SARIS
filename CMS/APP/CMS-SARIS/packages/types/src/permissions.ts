@@ -175,6 +175,9 @@ export const PERMISSIONS = {
 
   // Audit
   AUDIT_READ:              'audit.read',
+  // Effacer des traces est un acte de gouvernance, pas de consultation : il lui
+  // faut son propre droit, distinct de la lecture.
+  AUDIT_PURGE:             'audit.purge',
 
   // Paramètres système
   PARAMETRE_READ:          'parametre.read',
@@ -358,6 +361,7 @@ export const PERMISSION_META: Record<PermissionCode, { libelle: string; module: 
   'rapport.delete':              { libelle: 'Supprimer un rapport genere', module: 'rapport' },
 
   'audit.read':                  { libelle: 'Consulter les journaux d\'audit', module: 'audit' },
+  'audit.purge':                 { libelle: 'Purger les journaux d\'audit', module: 'audit' },
 
   // Paramètres
   'parametre.read':              { libelle: 'Consulter les paramètres système', module: 'parametre' },

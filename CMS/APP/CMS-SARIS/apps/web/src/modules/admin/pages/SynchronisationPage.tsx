@@ -1358,8 +1358,10 @@ export function SauvegardesZone({ sauvegardes, loading, canRestore, canDelete, p
   const supprimer = useSupprimerSauvegarde()
   const [restoreTarget, setRestoreTarget] = useState<SauvegardeSysteme | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<SauvegardeSysteme | null>(null)
-  // Le serveur refuse de supprimer la dernière ; on ne propose donc pas le geste plutôt
-  // que de le laisser échouer. Un bouton qui ne peut qu'échouer ne devrait pas exister.
+  // Le serveur refuse de supprimer la DERNIÈRE sauvegarde : le système resterait sans
+  // point de restauration. Le bouton reste néanmoins AFFICHÉ, désactivé, avec la raison
+  // en infobulle — le faire disparaître laissait chercher une action qu'on croyait
+  // absente, alors qu'elle n'était qu'indisponible pour un moment.
   const suppressionPossible = !!canDelete && sauvegardes.length > 1
   // La sauvegarde automatique tourne tous les jours : cette liste grossit toute seule,
   // sans que personne ne l'alimente. Elle était rendue d'un bloc, jusqu'aux 50 entrées
@@ -1430,7 +1432,8 @@ export function SauvegardesZone({ sauvegardes, loading, canRestore, canDelete, p
               {pagination.pageData.map((s, i) => (
                 <SauvegardeRow key={s.id} s={s} striped={i % 2 === 1}
                   canRestore={canRestore} onRestore={() => setRestoreTarget(s)}
-                  canDelete={suppressionPossible} onDelete={() => setDeleteTarget(s)} />
+                  canDelete={!!canDelete} derniereRestante={!suppressionPossible}
+                  onDelete={() => setDeleteTarget(s)} />
               ))}
             </div>
             <div style={{ marginTop: 'var(--espace-3)' }}>
@@ -1517,10 +1520,12 @@ function formatTaille(o?: number | null): string {
   return `${(o / 1024 / 1024).toFixed(1)} ${i18n.t('admin.unitMegabytes')}`
 }
 
-function SauvegardeRow({ s, striped, canRestore, onRestore, canDelete, onDelete }: {
+function SauvegardeRow({ s, striped, canRestore, onRestore, canDelete, onDelete, derniereRestante }: {
   s: SauvegardeSysteme; striped: boolean
   canRestore: boolean; onRestore: () => void
   canDelete?: boolean;  onDelete?: () => void
+  /** Seule sauvegarde du système : le serveur refuse de la supprimer. */
+  derniereRestante?: boolean
 }) {
   const { t } = useTranslation()
   const tone = s.statut === 'REUSSIE' ? 'success' : s.statut === 'ECHEC' ? 'error' : s.statut === 'EN_COURS' ? 'warning' : 'neutral'
@@ -1555,12 +1560,13 @@ function SauvegardeRow({ s, striped, canRestore, onRestore, canDelete, onDelete 
       {/* Suppression : discrète, en icône seule. Restaurer est le geste courant ici ;
           supprimer ne doit pas lui disputer l'attention, ni s'attraper au passage. */}
       {canDelete && onDelete ? (
-        <Tooltip label={t('admin.backupDelete')}>
+        <Tooltip label={derniereRestante ? t('admin.backupDeleteLastHint') : t('admin.backupDelete')}>
           <IconButton
             aria-label={t('admin.backupDelete')}
             icon={<Trash2 size={13} />}
             tone="danger"
             size="sm"
+            disabled={derniereRestante}
             onClick={onDelete}
           />
         </Tooltip>

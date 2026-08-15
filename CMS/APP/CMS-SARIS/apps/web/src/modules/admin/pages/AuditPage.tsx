@@ -19,22 +19,25 @@ import { DESKTOP_TITLEBAR_H } from '@/components/layout/DesktopTitleBar'
 import {
   History, Activity, KeyRound, ChevronRight, ChevronDown,
   CheckCircle2, XCircle, AlertTriangle, X, FileText, GitCompare, Code2,
-  ArrowRight, Plus, Minus, User, Clock, Globe, Layers, MapPin, Download,
+  ArrowRight, Plus, Minus, User, Clock, Globe, Layers, MapPin, Download, Trash2,
 } from 'lucide-react'
 import { parseUserAgent } from '@/lib/userAgent'
 import { formatCoords } from '@/lib/geo'
 import { formatDateTime } from '@/lib/intl'
 import { useIsCompact } from '@/hooks/useMediaQuery'
 import {
-  PageHeader, Card, Button, IconButton, StatusPill,
+  PageHeader, Card, Button, IconButton, StatusPill, Modal,
   UserAvatar, EmptyState, Skeleton, Toolbar, SelectBox, DatePicker, PaginationBar, SegmentedTabs,
   useColumnResize,
 } from '@/components/saris'
 import type { ColumnResize } from '@/components/saris'
 import { usePagination } from '@/hooks/usePagination'
 import { useRowsPerPage } from '@/hooks/useRowsPerPage'
+import { usePermissions } from '@/hooks/usePermissions'
+import { toast } from '@workspace/ui/components/sonner'
 import {
   useAuditActions, useAuditAuth, useUtilisateurs, usePermissions as useAdminPermissions,
+  usePurgerAudit,
 } from '../hooks/useAdmin'
 import type { AuditEntry, AuthLogEntry } from '../api/admin.api'
 import { labelModule, labelAction, labelStatut, labelEntite, labelRole, labelPermission } from '@/config/labels'
@@ -79,6 +82,11 @@ export function AuditPage() {
   const [dateMax,       setDateMax]       = useState('')
   const [heureMax,      setHeureMax]      = useState('')   // HH:mm, optionnel (requiert dateMax)
   const [openEntry,     setOpenEntry]     = useState<AuditEntry | null>(null)
+  const [openPurge,     setOpenPurge]     = useState(false)
+
+  const { has } = usePermissions()
+  const canPurge = has('audit.purge')
+  const purger = usePurgerAudit()
 
   const { data: users = [] } = useUtilisateurs()
   const { data: permsCatalog = [] } = useAdminPermissions()
@@ -248,9 +256,19 @@ export function AuditPage() {
                 </>
               }
               actions={
-                <Button size="sm" variant="outline" onClick={() => setOpenExport(true)}>
-                  <Download size={14} /> {t('common.exporter', { defaultValue: 'Exporter' })}
-                </Button>
+                <>
+                  <Button size="sm" variant="outline" onClick={() => setOpenExport(true)}>
+                    <Download size={14} /> {t('common.exporter', { defaultValue: 'Exporter' })}
+                  </Button>
+                  {/* Purge : à droite de l'export, et jamais avant lui — l'ordre des
+                      boutons suggère le bon réflexe, extraire puis effacer. */}
+                  {canPurge && (
+                    <Button size="sm" variant="outline" onClick={() => setOpenPurge(true)}
+                      style={{ color: 'var(--erreur-texte)', borderColor: 'var(--erreur-accent)' }}>
+                      <Trash2 size={14} /> {t('admin.auditPurge')}
+                    </Button>
+                  )}
+                </>
               }
             />
           </Card>
@@ -270,6 +288,43 @@ export function AuditPage() {
 
       {openEntry && (
         <AuditDetailDrawer entry={openEntry} onClose={() => setOpenEntry(null)} />
+      )}
+
+      {/* Purge — irréversible, et sur la TOTALITÉ des deux journaux. On annonce les
+          nombres réels plutôt qu'un « êtes-vous sûr ? » qui n'apprend rien. */}
+      {openPurge && (
+        <Modal
+          icon={<Trash2 size={18} />}
+          tone="error"
+          title={t('admin.auditPurgeTitle')}
+          subtitle={t('admin.auditPurgeSubtitle', { actions: actionsTotal, auth: authTotal })}
+          width={480}
+          onClose={() => setOpenPurge(false)}
+          footer={
+            <>
+              <Button variant="ghost" onClick={() => setOpenPurge(false)}>{t('common.cancel')}</Button>
+              <Button
+                variant="danger"
+                loading={purger.isPending}
+                onClick={() => purger.mutate('tout', {
+                  onSuccess: res => {
+                    setOpenPurge(false)
+                    toast.success(t('admin.auditPurgeDone', {
+                      actions: res.actions, auth: res.authentifications,
+                    }))
+                  },
+                  onError: () => toast.error(t('admin.auditPurgeError')),
+                })}
+              >
+                {t('admin.auditPurge')}
+              </Button>
+            </>
+          }
+        >
+          <p style={{ margin: 0, fontSize: 13, color: 'var(--texte-secondaire)', lineHeight: 1.6 }}>
+            {t('admin.auditPurgeBody')}
+          </p>
+        </Modal>
       )}
 
       {openExport && (tab === 'actions' ? (

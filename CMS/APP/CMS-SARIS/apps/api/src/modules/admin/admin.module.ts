@@ -18,6 +18,7 @@ import { RolesController } from './roles.controller'
 import { RolesService } from './roles.service'
 import { AuditController } from './audit.controller'
 import { AuditService } from './audit.service'
+import { AuditPurgeCron } from './audit-purge.cron'
 import { ParametresController } from './parametres.controller'
 import { SynchronisationController } from './synchronisation.controller'
 import { SynchronisationService } from './synchronisation.service'
@@ -35,6 +36,7 @@ import { SynchronisationService } from './synchronisation.service'
     UtilisateursService,
     RolesService,
     AuditService,
+    AuditPurgeCron,
     SynchronisationService,
   ],
   exports: [

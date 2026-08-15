@@ -289,6 +289,11 @@ export const adminApi = {
       api.get<AuditPageResult<AuditEntry>>('/admin/audit/actions', params as Record<string, string>),
     authentifications: (params?: Record<string, string | undefined>) =>
       api.get<AuditPageResult<AuthLogEntry>>('/admin/audit/authentifications', params as Record<string, string>),
+    /** Vide les journaux (permission `audit.purge`). La purge se journalise elle-même. */
+    purger: (portee: 'actions' | 'authentifications' | 'tout' = 'tout') =>
+      api.delete<{ actions: number; authentifications: number }>(
+        `/admin/audit?portee=${portee}`,
+      ),
   },
 
   parametres: {

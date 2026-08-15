@@ -284,6 +284,9 @@ export const en: Resources = {
       evenements_administratifs: 'Notify sensitive administrative events (accounts, roles, permissions, settings) to administrators',
       retention_jours: 'How long notifications are kept (days)',
     },
+    audit: {
+      retention_jours: 'How long audit logs are kept (days) — beyond that, entries are deleted automatically every night',
+    },
   },
   sync: {
     dataTitle: 'Data synchronization (local mode)',

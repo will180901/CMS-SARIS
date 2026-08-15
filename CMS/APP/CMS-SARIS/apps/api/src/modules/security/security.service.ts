@@ -1126,12 +1126,29 @@ export class SecurityService {
    * son propre poste en se déconnectant (l'app rebascule alors sur l'écran de 1er
    * lancement au prochain démarrage, au lieu de l'écran de connexion).
    */
-  async logout(utilisateurId: string): Promise<void> {
+  async logout(
+    utilisateurId: string,
+    ipAdresse?: string,
+    userAgent?: string,
+  ): Promise<void> {
     await this.prisma.sessionUtilisateur.updateMany({
       where: { utilisateurId, revokedAt: null, posteLocalId: null },
       data: { revokedAt: new Date() },
     })
-    await this.journaliser(utilisateurId, utilisateurId, 'SUCCES_LOGOUT')
+    // Le LOGIN, pas l'identifiant technique : la colonne « Login » du journal
+    // affichait un UUID pour chaque déconnexion, illisible et impossible à
+    // rapprocher de la ligne de connexion correspondante.
+    const compte = await this.prisma.utilisateur.findUnique({
+      where: { id: utilisateurId },
+      select: { login: true },
+    })
+    await this.journaliser(
+      utilisateurId,
+      compte?.login ?? utilisateurId,
+      'SUCCES_LOGOUT',
+      ipAdresse,
+      userAgent,
+    )
   }
 
   // ── GET /auth/me ─────────────────────────────────────────────────────────
