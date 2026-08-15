@@ -47,7 +47,27 @@ export class HealthController {
     }
   }
 
-  /** Sonde DÉDIÉE au frontend — jamais interrogée par Render (cf. note ci-dessus). */
+  /**
+   * Sonde DÉDIÉE au frontend — jamais interrogée par Render (cf. note ci-dessus).
+   *
+   * DEUX adresses pour la MÊME sonde, et ce n'est pas une négligence :
+   *
+   *  - `/health/etat` est la bonne. Le mot « ping » figure dans les listes de filtres des
+   *    bloqueurs de publicité, qui y voient du traçage : la requête était annulée par le
+   *    navigateur (`ERR_BLOCKED_BY_CLIENT`), l'application se croyait HORS LIGNE et mettait
+   *    les actions en file d'attente au lieu de les exécuter. Un bloqueur ne doit pas
+   *    pouvoir faire croire à une panne réseau.
+   *
+   *  - `/health/ping` reste servie : les postes de bureau déjà installés l'interrogent
+   *    toutes les cinq secondes. La retirer les basculerait tous en « hors ligne » du jour
+   *    au lendemain, sans qu'ils aient rien demandé.
+   */
+  @Get('etat')
+  @HttpCode(HttpStatus.OK)
+  etat() {
+    return this.ping()
+  }
+
   @Get('ping')
   @HttpCode(HttpStatus.OK)
   ping() {
