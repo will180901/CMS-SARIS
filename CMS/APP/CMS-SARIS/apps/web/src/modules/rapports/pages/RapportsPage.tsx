@@ -13,15 +13,16 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { FileBarChart, Download, Calendar, Stethoscope, BedSingle, ChevronRight, ChevronLeft, RefreshCw, Loader2, Trash2 } from 'lucide-react'
-import { Card, Skeleton, EmptyState, StatCard, RankedBars, TILE_TONE_MAP } from '@/components/saris'
+import { Card, Skeleton, EmptyState, StatCard, RankedBars, TILE_TONE_MAP, Modal, Button } from '@/components/saris'
 import { useIsCompact } from '@/hooks/useMediaQuery'
 import { usePermissions } from '@/hooks/usePermissions'
 import { usePersistedState } from '@/hooks/usePersistedState'
 import { formatDate } from '@/lib/intl'
 import { useRapports, useRapport, useGenererRapport, useSupprimerRapport } from '../hooks/useRapports'
 import { toast } from '@workspace/ui/components/sonner'
-import { exportStatsXlsx, exportStatsPdf } from '@/modules/dashboard/lib/statsExport'
+import { exportStatsXlsx } from '@/modules/dashboard/lib/statsExport'
 import { SyntheseRapport } from '../components/SyntheseRapport'
+import { RapportPrintModal } from '../components/RapportPrintModal'
 import { VoletsRapport } from '../components/VoletsRapport'
 import type { TypeRapport } from '../api/rapports.api'
 
@@ -49,6 +50,8 @@ export function RapportsPage() {
   const { data: detail, isLoading: loadingDetail } = useRapport(selectedId)
   const generer = useGenererRapport()
   const supprimer = useSupprimerRapport()
+  const [confirmSuppr, setConfirmSuppr] = useState(false)
+  const [apercuOuvert, setApercuOuvert] = useState(false)
   const canDelete = has('rapport.delete')
 
   const filtered = filtreType === 'ALL' ? rapports : rapports.filter(r => r.type === filtreType)
@@ -273,22 +276,16 @@ export function RapportsPage() {
                       <button
                         type="button"
                         disabled={supprimer.isPending}
-                        onClick={() => {
-                          // Confirmation explicite : l'action est irreversible depuis l'ecran,
-                          // meme si le rapport se regenere ensuite a l'identique.
-                          if (!window.confirm(t('rapports.supprimerConfirm'))) return
-                          supprimer.mutate(detail.id, {
-                            onSuccess: () => { setSelectedId(null); toast.success(t('rapports.supprimeOk')) },
-                            onError:   () => toast.error(t('rapports.supprimeErreur')),
-                          })
-                        }}
+                        // Modale SARIS et non `window.confirm` : la boite native est dessinee
+                        // par le navigateur, annonce le nom de domaine et ignore le theme.
+                        onClick={() => setConfirmSuppr(true)}
                         style={{ ...rapportExportBtn, color: 'var(--erreur-texte)' }}>
                         <Trash2 size={12} /> {t('rapports.supprimer')}
                       </button>
                     )}
                     {canExport && (
                     <>
-                    <button type="button" onClick={() => exportStatsPdf(detail.contenu)} style={rapportExportBtn}>
+                    <button type="button" onClick={() => setApercuOuvert(true)} style={rapportExportBtn}>
                       <Download size={12} /> PDF
                     </button>
                     <button type="button" onClick={() => void exportStatsXlsx(detail.contenu)} style={rapportExportBtn}>
@@ -339,6 +336,45 @@ export function RapportsPage() {
       </div>
     </div>
   )
+      {/* Confirmation de suppression — modale SARIS, pas la boite native du navigateur. */}
+      {confirmSuppr && detail != null && (
+        <Modal
+          icon={<Trash2 size={18} />}
+          tone="error"
+          title={t('rapports.supprimerTitre')}
+          subtitle={t('rapports.detailTitle', {
+            type:  typeLabel(t, detail!.type),
+            debut: formatDate(detail!.periodeDebut, { day: '2-digit', month: 'long', year: 'numeric' }),
+            fin:   formatDate(detail!.periodeFin,   { day: '2-digit', month: 'long', year: 'numeric' }),
+          })}
+          onClose={() => setConfirmSuppr(false)}
+          footer={
+            <>
+              <Button variant="ghost" onClick={() => setConfirmSuppr(false)}>{t('common.cancel')}</Button>
+              <Button
+                variant="danger"
+                disabled={supprimer.isPending}
+                onClick={() => {
+                  supprimer.mutate(detail!.id, {
+                    onSuccess: () => { setConfirmSuppr(false); setSelectedId(null); toast.success(t('rapports.supprimeOk')) },
+                    onError:   () => { setConfirmSuppr(false); toast.error(t('rapports.supprimeErreur')) },
+                  })
+                }}>
+                {t('rapports.supprimer')}
+              </Button>
+            </>
+          }>
+          <p style={{ margin: 0, fontSize: 'var(--font-size-body)', lineHeight: 1.6, color: 'var(--texte-secondaire)' }}>
+            {t('rapports.supprimerConfirm')}
+          </p>
+        </Modal>
+      )}
+
+      {/* Apercu A4 — meme gabarit que les documents medicaux de l'application. */}
+      {apercuOuvert && detail != null && (
+        <RapportPrintModal rapport={detail!} onClose={() => setApercuOuvert(false)} />
+      )}
+
 }
 
 const rapportGenererBtn: React.CSSProperties = {
