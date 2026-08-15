@@ -97,12 +97,29 @@ export default defineConfig(({ mode }) => {
             {
               // Lecture des données API (GET) : réseau d'abord, repli sur le
               // dernier cache connu hors-ligne. Exclut /health, /auth et le flux SSE.
-              urlPattern: ({ url, request }) =>
-                url.origin === apiOrigin &&
-                request.method === "GET" &&
-                !url.pathname.startsWith("/health") &&
-                !url.pathname.startsWith("/auth") &&
-                !url.pathname.startsWith("/notifications/stream"),
+              //
+              // EXPRESSION REGULIERE, ET SURTOUT PAS UNE FONCTION.
+              //
+              // Workbox SERIALISE `urlPattern` en TEXTE dans sw.js. Une fonction qui
+              // referencait `apiOrigin` — variable de ce fichier de configuration —
+              // arrivait donc dans le worker sans cette variable :
+              //
+              //     sw.js  Uncaught ReferenceError: apiOrigin is not defined
+              //
+              // Et comme le routeur plante AVANT de repondre, le worker cassait TOUTE
+              // requete : chargement des morceaux de code differes compris. L'application
+              // paraissait alors morte — des boutons sans effet, un ecran qui ne change
+              // pas — sans aucun rapport apparent avec le cache.
+              //
+              // Une expression reguliere, elle, se serialise litteralement : rien a
+              // resoudre a l'execution, donc rien qui puisse manquer. Les exclusions
+              // passent par une assertion negative, et le filtre GET par `method`.
+              urlPattern: new RegExp(
+                "^" +
+                  apiOrigin.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") +
+                  "/(?!health|auth|notifications/stream)",
+              ),
+              method: "GET",
               handler: "NetworkFirst",
               options: {
                 cacheName: "saris-api-get",
