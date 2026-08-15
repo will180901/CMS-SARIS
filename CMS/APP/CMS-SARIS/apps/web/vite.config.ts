@@ -32,6 +32,15 @@ export default defineConfig(({ mode }) => {
       ...(isDesktop ? [] : [VitePWA({
         registerType: "autoUpdate",
         injectRegister: "auto",
+        // MISE A JOUR IMMEDIATE. Par defaut, un nouveau service worker ATTEND que TOUS les
+        // onglets du site soient fermes avant de prendre la main : un simple rechargement,
+        // meme force, continue de servir l'ancienne version. En pratique on deploie, on
+        // recharge, on ne voit rien changer — et on conclut que le correctif n'a pas ete
+        // fait. C'est arrive plusieurs fois.
+        //
+        //  fait prendre la main au nouveau worker sans attendre ; 
+        // lui rattache les onglets deja ouverts. Le premier rechargement apres un deploiement
+        // sert donc la nouvelle version.
         // PWA désactivée en dev (évite les surprises de cache pendant le HMR) ;
         // active dès qu'on build / preview.
         devOptions: { enabled: false },
@@ -55,6 +64,24 @@ export default defineConfig(({ mode }) => {
           ],
         },
         workbox: {
+          // MISE A JOUR IMMEDIATE APRES DEPLOIEMENT.
+          //
+          // Par defaut, un nouveau service worker ATTEND que TOUS les onglets du site
+          // soient fermes avant de prendre la main. Un rechargement, meme force, continue
+          // donc de servir l'ancienne version : on deploie, on recharge, on ne voit rien
+          // changer — et on en conclut que le correctif n'a pas ete fait. C'est arrive
+          // plusieurs fois, sur les badges de site puis sur l'apercu des rapports.
+          //
+          // `skipWaiting` fait prendre la main au nouveau worker sans attendre ;
+          // `clientsClaim` lui rattache les onglets deja ouverts. Le premier rechargement
+          // apres un deploiement sert desormais la nouvelle version.
+          //
+          // Contrepartie assumee : un onglet reste ouvert pendant un deploiement peut voir
+          // ses ressources changer sous lui. Pour cette application — interne, rechargee
+          // souvent — c'est bien moins couteux que de croire un correctif absent.
+          // (`clientsClaim` etait deja present plus bas : seul `skipWaiting` manquait,
+          //  et c'est LUI qui evitait au nouveau worker d'attendre la fermeture des onglets.)
+          skipWaiting: true,
           // App shell : tout le bundle est pré-caché → l'application se charge
           // intégralement même sans réseau.
           globPatterns: ["**/*.{js,css,html,svg,woff,woff2,ttf,png,ico}"],
