@@ -12,13 +12,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
-import { FileBarChart, Download, Calendar, Stethoscope, BedSingle, ChevronRight, ChevronLeft } from 'lucide-react'
+import { FileBarChart, Download, Calendar, Stethoscope, BedSingle, ChevronRight, ChevronLeft, RefreshCw, Loader2 } from 'lucide-react'
 import { Card, Skeleton, EmptyState, StatCard, RankedBars, TILE_TONE_MAP } from '@/components/saris'
 import { useIsCompact } from '@/hooks/useMediaQuery'
 import { usePermissions } from '@/hooks/usePermissions'
 import { usePersistedState } from '@/hooks/usePersistedState'
 import { formatDate } from '@/lib/intl'
-import { useRapports, useRapport } from '../hooks/useRapports'
+import { useRapports, useRapport, useGenererRapport } from '../hooks/useRapports'
+import { toast } from '@workspace/ui/components/sonner'
 import { exportStatsXlsx, exportStatsPdf } from '@/modules/dashboard/lib/statsExport'
 import { SyntheseRapport } from '../components/SyntheseRapport'
 import type { TypeRapport } from '../api/rapports.api'
@@ -45,6 +46,7 @@ export function RapportsPage() {
   const { data: rapports = [], isLoading } = useRapports()
   const [selectedId, setSelectedId] = usePersistedState<string | null>('rapports', 'selectedId', null)
   const { data: detail, isLoading: loadingDetail } = useRapport(selectedId)
+  const generer = useGenererRapport()
 
   const filtered = filtreType === 'ALL' ? rapports : rapports.filter(r => r.type === filtreType)
 
@@ -94,6 +96,35 @@ export function RapportsPage() {
               </p>
             </div>
           </div>
+
+          {/* GÉNÉRER MAINTENANT — sur le mois EN COURS. Sans ce bouton, un centre qui vient
+              d'installer le système attend le 1er du mois avant de voir le moindre rapport,
+              et on ne peut pas produire un bilan juste avant une réunion. */}
+          {canExport && (
+            <button
+              type="button"
+              disabled={generer.isPending}
+              onClick={() => {
+                // Fin = DEMAIN : la borne de fin est exclusive côté serveur, sans quoi la
+                // journée en cours serait absente du bilan qu'on vient de demander.
+                const auj = new Date()
+                const debut = new Date(auj.getFullYear(), auj.getMonth(), 1)
+                const fin = new Date(auj.getFullYear(), auj.getMonth(), auj.getDate() + 1)
+                generer.mutate(
+                  { type: 'MENSUEL', debut: debut.toISOString(), fin: fin.toISOString() },
+                  {
+                    onSuccess: () => toast.success(t('rapports.genereOk')),
+                    onError: () => toast.error(t('rapports.genereErreur')),
+                  },
+                )
+              }}
+              style={rapportGenererBtn}>
+              {generer.isPending
+                ? <Loader2 size={13} className="animate-spin" />
+                : <RefreshCw size={13} />}
+              {t('rapports.genererMaintenant')}
+            </button>
+          )}
         </div>
       </div>
 
@@ -272,6 +303,13 @@ export function RapportsPage() {
       </div>
     </div>
   )
+}
+
+const rapportGenererBtn: React.CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0,
+  height: 32, padding: '0 12px', borderRadius: 'var(--radius-md)',
+  border: '1px solid var(--bordure-normale)', background: 'var(--fond-surface)',
+  color: 'var(--texte-secondaire)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
 }
 
 const rapportExportBtn: React.CSSProperties = {

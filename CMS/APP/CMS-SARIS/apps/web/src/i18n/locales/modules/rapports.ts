@@ -38,6 +38,9 @@ export const rapports = {
     statReposHint: '{{count}} consultation(s) avec repos',
 
     // ── Blocs d'analyse ──────────────────────────────────────────────
+    genererMaintenant: 'Generer maintenant',
+    genereOk: 'Rapport du mois en cours genere.',
+    genereErreur: 'La generation a echoue.',
     syntheseTitle: 'Ce qu\'il faut retenir',
     tendanceTitle: 'Tendance sur les 6 dernieres periodes',
     syntheseActes: '{{count}} consultation(s) sur la periode.',
@@ -94,6 +97,9 @@ export const rapports = {
     statReposHint: '{{count}} consultation(s) with rest',
 
     // ── Analysis blocks ──────────────────────────────────────────────
+    genererMaintenant: 'Generate now',
+    genereOk: 'Report for the current month generated.',
+    genereErreur: 'Generation failed.',
     syntheseTitle: 'Key takeaways',
     tendanceTitle: 'Trend over the last 6 periods',
     syntheseActes: '{{count}} consultation(s) over the period.',
