@@ -33,8 +33,22 @@ export interface PointSerie {
  * Les trois derniers champs sont optionnels : les rapports générés avant cette évolution
  * ne les portent pas, et doivent rester lisibles.
  */
+/**
+ * Les cinq volets : ce qui fait qu'un rapport parle du CENTRE et pas seulement des
+ * consultations. Un FLUX se compte sur la période, un ÉTAT se constate à la date du
+ * rapport — la distinction est tenue dans les libellés.
+ */
+export interface VoletsRapportData {
+  activite:         { visites: number; evacuations: number }
+  santeTravail:     { certificats: number }
+  population:       { nouveauxDossiers: number; dossiersActifs: number }
+  pharmacieExamens: { ordonnances: number; bonsExamen: number; resultatsRecus: number }
+  suiviRisques:     { suivisChroniques: number; grossessesSuivies: number; alertesActives: number }
+}
+
 export interface ContenuRapport extends StatistiquesActivite {
   precedent?: StatistiquesActivite | null
+  volets?:    VoletsRapportData
   serie?:     PointSerie[]
   alertes?:   AlerteRapport[]
 }

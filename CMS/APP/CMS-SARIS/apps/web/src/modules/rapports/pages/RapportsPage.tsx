@@ -22,6 +22,7 @@ import { useRapports, useRapport, useGenererRapport } from '../hooks/useRapports
 import { toast } from '@workspace/ui/components/sonner'
 import { exportStatsXlsx, exportStatsPdf } from '@/modules/dashboard/lib/statsExport'
 import { SyntheseRapport } from '../components/SyntheseRapport'
+import { VoletsRapport } from '../components/VoletsRapport'
 import type { TypeRapport } from '../api/rapports.api'
 
 /** Libellé traduit d'une période. Une fonction et non une table figée : la table serait
@@ -279,6 +280,10 @@ export function RapportsPage() {
               <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--espace-6)', display: 'flex', flexDirection: 'column', gap: 'var(--espace-6)' }}>
                 {/* CE QU'IL FAUT RETENIR, avant les chiffres : alertes, synthese, tendance. */}
                 <SyntheseRapport contenu={detail.contenu} />
+
+                {/* LES CINQ VOLETS : activite reelle, sante au travail, population,
+                    pharmacie/examens, suivi et risques. */}
+                <VoletsRapport contenu={detail.contenu} />
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 'var(--espace-4)' }}>
                   <StatCard icon={<Stethoscope size={18} />} label={t('rapports.statConsultations')} value={detail.contenu.totalConsultations} tone="accent" />

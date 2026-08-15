@@ -218,6 +218,77 @@ export class RapportsService {
     return alertes.slice(0, 5)
   }
 
+  /**
+   * LES CINQ VOLETS — ce qui fait qu'un rapport parle du CENTRE, et plus seulement des
+   * consultations.
+   *
+   * Le rapport ne lisait qu'une table sur les quatre-vingt-dix de la base : `Consultation`.
+   * Il ignorait donc combien de personnes etaient passees au centre, combien de dossiers
+   * avaient ete ouverts, ce qui avait ete prescrit, et qui restait a suivre. Pour un centre
+   * medical d'entreprise, ce sont precisement les questions qu'on pose.
+   *
+   * Volontairement des COMPTAGES : chacun est verifiable, aucun ne repose sur une
+   * interpretation de statut dont la valeur pourrait changer. Un indicateur faux dans un
+   * rapport medical est pire qu'un indicateur absent.
+   */
+  private async calculerVolets(debut: Date, fin: Date) {
+    const periode = { gte: debut, lt: fin }
+
+    const [
+      visites,
+      evacuations,
+      certificats,
+      nouveauxDossiers,
+      dossiersActifs,
+      ordonnances,
+      bonsExamen,
+      resultatsRecus,
+      suivisChroniques,
+      grossessesSuivies,
+      alertesActives,
+    ] = await Promise.all([
+      // Volet 1 — ACTIVITE : la visite est le vrai volume de passage. La consultation n'en
+      // est qu'une suite possible ; compter les consultations seules sous-estime le travail
+      // du centre de tout le triage qui n'a pas donne lieu a un acte medical.
+      this.prisma.visite.count({ where: { dateOuverture: periode } }),
+      this.prisma.evacuation.count({ where: { createdAt: periode } }),
+
+      // Volet 2 — SANTE AU TRAVAIL. Les jours d'arret figurent deja dans `repos` ; on
+      // ajoute le nombre de certificats emis, qui mesure l'activite administrative reelle.
+      this.prisma.certificatMedical.count({ where: { createdAt: periode } }),
+
+      // Volet 3 — POPULATION. Les nouveaux dossiers disent la progression de la couverture ;
+      // les dossiers actifs disent la population suivie a ce jour (donc HORS periode : c'est
+      // un etat, pas un flux).
+      this.prisma.patient.count({ where: { createdAt: periode } }),
+      this.prisma.patient.count({ where: { statut: 'ACTIF' } }),
+
+      // Volet 4 — PHARMACIE ET EXAMENS. Ce qui est prescrit, donc consomme et budgete.
+      this.prisma.ordonnance.count({ where: { createdAt: periode } }),
+      this.prisma.bonExamen.count({ where: { createdAt: periode } }),
+      this.prisma.resultatExamen.count({ where: { createdAt: periode } }),
+
+      // Volet 5 — SUIVI ET RISQUES. Des ETATS a la date du rapport, pas des flux : ce qui
+      // reste ouvert est ce qui demande de l'attention.
+      this.prisma.suiviChronique.count({ where: { closedAt: null } }),
+      this.prisma.suiviGrossesse.count({ where: { dateFinReelle: null } }),
+      this.prisma.alerteMedicale.count({ where: { resolvedAt: null } }),
+    ])
+
+    return {
+      activite: {
+        visites,
+        evacuations,
+        // Part des visites qui ont donne lieu a une consultation. Se calcule cote client
+        // avec le total de consultations deja present : on ne duplique pas la donnee.
+      },
+      santeTravail: { certificats },
+      population: { nouveauxDossiers, dossiersActifs },
+      pharmacieExamens: { ordonnances, bonsExamen, resultatsRecus },
+      suiviRisques: { suivisChroniques, grossessesSuivies, alertesActives },
+    }
+  }
+
   /** Génère (ou régénère) le rapport global d'une période donnée. Idempotent. */
   async genererRapport(
     type: TypeRapport,
@@ -263,10 +334,13 @@ export class RapportsService {
       }
     }
 
+    const volets = await this.calculerVolets(periodeDebut, periodeFin)
+
     const contenu = {
       ...stats,
       precedent,
       serie,
+      volets,
       alertes: this.calculerAlertes(stats, precedent),
     }
     const existant = await this.prisma.rapportGenere.findFirst({
