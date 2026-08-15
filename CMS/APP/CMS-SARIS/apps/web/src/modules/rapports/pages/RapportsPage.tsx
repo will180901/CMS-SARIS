@@ -12,13 +12,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
-import { FileBarChart, Download, Calendar, Stethoscope, BedSingle, ChevronRight, ChevronLeft, RefreshCw, Loader2 } from 'lucide-react'
+import { FileBarChart, Download, Calendar, Stethoscope, BedSingle, ChevronRight, ChevronLeft, RefreshCw, Loader2, Trash2 } from 'lucide-react'
 import { Card, Skeleton, EmptyState, StatCard, RankedBars, TILE_TONE_MAP } from '@/components/saris'
 import { useIsCompact } from '@/hooks/useMediaQuery'
 import { usePermissions } from '@/hooks/usePermissions'
 import { usePersistedState } from '@/hooks/usePersistedState'
 import { formatDate } from '@/lib/intl'
-import { useRapports, useRapport, useGenererRapport } from '../hooks/useRapports'
+import { useRapports, useRapport, useGenererRapport, useSupprimerRapport } from '../hooks/useRapports'
 import { toast } from '@workspace/ui/components/sonner'
 import { exportStatsXlsx, exportStatsPdf } from '@/modules/dashboard/lib/statsExport'
 import { SyntheseRapport } from '../components/SyntheseRapport'
@@ -48,6 +48,8 @@ export function RapportsPage() {
   const [selectedId, setSelectedId] = usePersistedState<string | null>('rapports', 'selectedId', null)
   const { data: detail, isLoading: loadingDetail } = useRapport(selectedId)
   const generer = useGenererRapport()
+  const supprimer = useSupprimerRapport()
+  const canDelete = has('rapport.delete')
 
   const filtered = filtreType === 'ALL' ? rapports : rapports.filter(r => r.type === filtreType)
 
@@ -265,7 +267,26 @@ export function RapportsPage() {
                 actions={
                   // L'export est produit entièrement côté navigateur (aucune route à
                   // garder) : `rapport.export` s'applique ICI.
-                  canExport ? (
+                  (canExport || canDelete) ? (
+                    <>
+                    {canDelete && (
+                      <button
+                        type="button"
+                        disabled={supprimer.isPending}
+                        onClick={() => {
+                          // Confirmation explicite : l'action est irreversible depuis l'ecran,
+                          // meme si le rapport se regenere ensuite a l'identique.
+                          if (!window.confirm(t('rapports.supprimerConfirm'))) return
+                          supprimer.mutate(detail.id, {
+                            onSuccess: () => { setSelectedId(null); toast.success(t('rapports.supprimeOk')) },
+                            onError:   () => toast.error(t('rapports.supprimeErreur')),
+                          })
+                        }}
+                        style={{ ...rapportExportBtn, color: 'var(--erreur-texte)' }}>
+                        <Trash2 size={12} /> {t('rapports.supprimer')}
+                      </button>
+                    )}
+                    {canExport && (
                     <>
                     <button type="button" onClick={() => exportStatsPdf(detail.contenu)} style={rapportExportBtn}>
                       <Download size={12} /> PDF
@@ -273,6 +294,8 @@ export function RapportsPage() {
                     <button type="button" onClick={() => void exportStatsXlsx(detail.contenu)} style={rapportExportBtn}>
                       <Download size={12} /> {t('rapports.export')}
                     </button>
+                    </>
+                    )}
                     </>
                   ) : null
                 }

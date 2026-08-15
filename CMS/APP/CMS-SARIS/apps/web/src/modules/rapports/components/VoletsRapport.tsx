@@ -17,7 +17,8 @@
  * date du rapport. Les mélanger ferait dire n'importe quoi aux chiffres.
  */
 import { useTranslation } from 'react-i18next'
-import type { ContenuRapport } from '../api/rapports.api'
+import type { ContenuRapport, Repartition } from '../api/rapports.api'
+import { RankedBars } from '@/components/saris'
 
 interface Indicateur {
   label: string
@@ -71,6 +72,24 @@ function Volet({ titre, items }: { titre: string; items: Indicateur[] }) {
   )
 }
 
+/**
+ * Repartition affichee SOUS un volet, quand elle ne porte pas sur les consultations.
+ *
+ * C'est la reponse au reproche « on ne parle que des consultations » : les trois blocs
+ * d'origine decoupaient tous le meme ensemble. Ceux-ci portent sur ce pour quoi les gens
+ * viennent, ce qu'on leur prescrit, et qui compose la population suivie.
+ */
+function SousRepartition({ titre, hint, rows }: { titre: string; hint: string; rows?: Repartition[] }) {
+  if (!rows || rows.length === 0) return null
+  return (
+    <div style={{ marginTop: 'var(--espace-3)' }}>
+      <p style={{ margin: '0 0 2px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--texte-tertiaire)' }}>{titre}</p>
+      <p style={{ margin: '0 0 10px', fontSize: 11.5, color: 'var(--texte-tertiaire)', lineHeight: 1.4 }}>{hint}</p>
+      <RankedBars data={rows} />
+    </div>
+  )
+}
+
 export function VoletsRapport({ contenu }: { contenu: ContenuRapport }) {
   const { t } = useTranslation()
   const v = contenu.volets
@@ -99,6 +118,7 @@ export function VoletsRapport({ contenu }: { contenu: ContenuRapport }) {
           { label: t('rapports.kpiEvacuations'), valeur: v.activite.evacuations, hint: t('rapports.kpiEvacuationsHint') },
         ]}
       />
+      <SousRepartition titre={t('rapports.parMotif')} hint={t('rapports.parMotifHint')} rows={v.activite.parMotif} />
 
       <Volet
         titre={t('rapports.voletSanteTravail')}
@@ -116,6 +136,7 @@ export function VoletsRapport({ contenu }: { contenu: ContenuRapport }) {
           { label: t('rapports.kpiDossiersActifs'), valeur: v.population.dossiersActifs, hint: t('rapports.kpiEtatHint') },
         ]}
       />
+      <SousRepartition titre={t('rapports.parCategoriePop')} hint={t('rapports.parCategoriePopHint')} rows={v.population.parCategorie} />
 
       <Volet
         titre={t('rapports.voletPharmacie')}
@@ -125,6 +146,8 @@ export function VoletsRapport({ contenu }: { contenu: ContenuRapport }) {
           { label: t('rapports.kpiResultats'), valeur: v.pharmacieExamens.resultatsRecus, hint: t('rapports.kpiResultatsHint') },
         ]}
       />
+      <SousRepartition titre={t('rapports.parMedicament')} hint={t('rapports.parMedicamentHint')} rows={v.pharmacieExamens.parMedicament} />
+      <SousRepartition titre={t('rapports.parExamen')} hint={t('rapports.parExamenHint')} rows={v.pharmacieExamens.parExamen} />
 
       <Volet
         titre={t('rapports.voletSuivi')}

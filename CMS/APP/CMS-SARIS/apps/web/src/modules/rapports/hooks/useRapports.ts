@@ -35,3 +35,14 @@ export function useGenererRapport() {
     },
   })
 }
+
+/** Supprime un rapport genere. Sans danger : il se regenere a l'identique. */
+export function useSupprimerRapport() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => rapportsApi.supprimer(id),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['rapports'] })
+    },
+  })
+}

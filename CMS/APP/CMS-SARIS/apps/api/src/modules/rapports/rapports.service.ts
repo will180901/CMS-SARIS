@@ -275,16 +275,83 @@ export class RapportsService {
       this.prisma.alerteMedicale.count({ where: { resolvedAt: null } }),
     ])
 
+    // REPARTITIONS QUI NE PARLENT PAS DE CONSULTATIONS. Les trois camemberts d'origine
+    // decoupaient tous le MEME ensemble — les consultations — ce qui donnait l'impression
+    // que le centre ne faisait que ca. Ces quatre-la portent sur d'autres realites : ce
+    // pour quoi les gens viennent, ce qu'on leur prescrit, ce qu'on leur demande comme
+    // examens, et qui compose la population suivie.
+    const [motifsBruts, medsBruts, examensBruts, popBrute] = await Promise.all([
+      this.prisma.visite.groupBy({
+        by: ['motifPrincipalId'],
+        where: { dateOuverture: periode },
+        _count: { _all: true },
+      }),
+      this.prisma.ligneOrdonnance.groupBy({
+        by: ['medicamentId'],
+        where: { ordonnance: { createdAt: periode } },
+        _count: { _all: true },
+      }),
+      this.prisma.ligneExamen.groupBy({
+        by: ['typeExamenId'],
+        where: { bon: { createdAt: periode } },
+        _count: { _all: true },
+      }),
+      this.prisma.patient.groupBy({
+        by: ['categoriePatientId'],
+        where: { statut: 'ACTIF' },
+        _count: { _all: true },
+      }),
+    ])
+
+    // Resolution des libelles en UNE requete par referentiel : sans cela on ferait une
+    // lecture par ligne, ce qui s'effondre des que le centre tourne vraiment.
+    const idsMotifs = motifsBruts.map((r) => r.motifPrincipalId).filter(Boolean) as string[]
+    const idsMeds = medsBruts.map((r) => r.medicamentId).filter(Boolean) as string[]
+    const idsExamens = examensBruts.map((r) => r.typeExamenId).filter(Boolean) as string[]
+    const idsCat = popBrute.map((r) => r.categoriePatientId).filter(Boolean) as string[]
+
+    const [motifsRef, medsRef, examensRef, catRef] = await Promise.all([
+      this.prisma.motifConsultation.findMany({ where: { id: { in: idsMotifs } }, select: { id: true, libelle: true } }),
+      this.prisma.medicamentReference.findMany({ where: { id: { in: idsMeds } }, select: { id: true, nomGenerique: true } }),
+      this.prisma.typeExamen.findMany({ where: { id: { in: idsExamens } }, select: { id: true, libelle: true } }),
+      this.prisma.categoriePatient.findMany({ where: { id: { in: idsCat } }, select: { id: true, libelle: true } }),
+    ])
+
+    const nomDe = (liste: { id: string; libelle?: string; nomGenerique?: string }[], id: string | null) =>
+      (liste.find((x) => x.id === id) as { libelle?: string; nomGenerique?: string } | undefined)?.libelle ??
+      (liste.find((x) => x.id === id) as { nomGenerique?: string } | undefined)?.nomGenerique ??
+      'Non precise'
+
+    const classer = (rows: { _count: { _all: number } }[], cle: string, ref: { id: string }[]) =>
+      rows
+        .map((r) => ({
+          libelle: nomDe(ref as never, (r as unknown as Record<string, string | null>)[cle]),
+          count: r._count._all,
+        }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10)
+
     return {
       activite: {
         visites,
         evacuations,
+        parMotif: classer(motifsBruts, 'motifPrincipalId', motifsRef),
         // Part des visites qui ont donne lieu a une consultation. Se calcule cote client
         // avec le total de consultations deja present : on ne duplique pas la donnee.
       },
       santeTravail: { certificats },
-      population: { nouveauxDossiers, dossiersActifs },
-      pharmacieExamens: { ordonnances, bonsExamen, resultatsRecus },
+      population: {
+        nouveauxDossiers,
+        dossiersActifs,
+        parCategorie: classer(popBrute, 'categoriePatientId', catRef),
+      },
+      pharmacieExamens: {
+        ordonnances,
+        bonsExamen,
+        resultatsRecus,
+        parMedicament: classer(medsBruts, 'medicamentId', medsRef),
+        parExamen: classer(examensBruts, 'typeExamenId', examensRef),
+      },
       suiviRisques: { suivisChroniques, grossessesSuivies, alertesActives },
     }
   }
@@ -402,6 +469,20 @@ export class RapportsService {
         genereLe: true,
       },
     })
+  }
+
+  /**
+   * Supprime un rapport genere.
+   *
+   * Sans risque pour les donnees de soin : un rapport est une PHOTOGRAPHIE recalculable a
+   * l'identique par `genererMaintenant` sur la meme periode. On supprime un doublon, un
+   * essai ou une periode sans interet, jamais une source.
+   */
+  async supprimer(id: string) {
+    const existe = await this.prisma.rapportGenere.findFirst({ where: { id }, select: { id: true } })
+    if (!existe) throw new NotFoundException('Rapport introuvable')
+    await this.prisma.rapportGenere.delete({ where: { id } })
+    return { id, deleted: true }
   }
 
   async findOne(id: string) {

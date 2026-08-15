@@ -171,6 +171,7 @@ export const PERMISSIONS = {
   // ce qui rendait impossible d'accorder les consultations sans les rapports (ou l'inverse).
   RAPPORT_READ:            'rapport.read',
   RAPPORT_EXPORT:          'rapport.export',
+  RAPPORT_DELETE:          'rapport.delete',
 
   // Audit
   AUDIT_READ:              'audit.read',
@@ -354,6 +355,7 @@ export const PERMISSION_META: Record<PermissionCode, { libelle: string; module: 
   // Rapports
   'rapport.read':                { libelle: 'Consulter les rapports statistiques', module: 'rapport' },
   'rapport.export':              { libelle: 'Exporter un rapport (Excel/PDF)', module: 'rapport' },
+  'rapport.delete':              { libelle: 'Supprimer un rapport genere', module: 'rapport' },
 
   'audit.read':                  { libelle: 'Consulter les journaux d\'audit', module: 'audit' },
 
@@ -510,7 +512,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionCode[]> = {
     'bon_examen.validate', 'bon_examen.cancel', 'bon_examen.result',
     'bon_pharmacie.read', 'bon_pharmacie.create', 'bon_pharmacie.deliver', 'bon_pharmacie.cancel',
     // Rapports statistiques (module autonome depuis l'ajout de rapport.*)
-    'rapport.read', 'rapport.export',
+    'rapport.read', 'rapport.export', 'rapport.delete',
     'evacuation.read', 'evacuation.create', 'evacuation.update', 'evacuation.cancel', 'evacuation.close', 'evacuation.delete',
     // Suivi de traitement : ouvrable par le médecin chef (comme l'évacuation) ET
     // par l'infirmier (voir INFIRMIER ci-dessous) — contrôle de suivi partagé.

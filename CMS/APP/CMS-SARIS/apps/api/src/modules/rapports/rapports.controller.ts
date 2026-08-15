@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Query, UseGuards } from '@nestjs/common'
+import { Controller, Get, Post, Delete, Body, Param, Query, UseGuards } from '@nestjs/common'
 import { RapportsService } from './rapports.service'
 import type { TypeRapport } from './rapports.service'
 import { JwtAuthGuard } from '../security/guards/jwt-auth.guard'
@@ -38,5 +38,15 @@ export class RapportsController {
   @RequirePermissions('rapport.read')
   findOne(@Param('id') id: string) {
     return this.svc.findOne(id)
+  }
+
+  /**
+   * Supprime un rapport genere. Permission DEDIEE : effacer n'est pas exporter.
+   * Sans danger — un rapport se regenere a l'identique sur la meme periode.
+   */
+  @Delete(':id')
+  @RequirePermissions('rapport.delete')
+  supprimer(@Param('id') id: string) {
+    return this.svc.supprimer(id)
   }
 }

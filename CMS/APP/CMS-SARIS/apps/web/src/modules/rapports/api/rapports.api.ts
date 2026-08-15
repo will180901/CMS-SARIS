@@ -38,11 +38,14 @@ export interface PointSerie {
  * consultations. Un FLUX se compte sur la période, un ÉTAT se constate à la date du
  * rapport — la distinction est tenue dans les libellés.
  */
+/** Une ligne de repartition : un libelle, un nombre. */
+export interface Repartition { libelle: string; count: number }
+
 export interface VoletsRapportData {
-  activite:         { visites: number; evacuations: number }
+  activite:         { visites: number; evacuations: number; parMotif?: Repartition[] }
   santeTravail:     { certificats: number }
-  population:       { nouveauxDossiers: number; dossiersActifs: number }
-  pharmacieExamens: { ordonnances: number; bonsExamen: number; resultatsRecus: number }
+  population:       { nouveauxDossiers: number; dossiersActifs: number; parCategorie?: Repartition[] }
+  pharmacieExamens: { ordonnances: number; bonsExamen: number; resultatsRecus: number; parMedicament?: Repartition[]; parExamen?: Repartition[] }
   suiviRisques:     { suivisChroniques: number; grossessesSuivies: number; alertesActives: number }
 }
 
@@ -60,6 +63,8 @@ export interface RapportDetail extends RapportResume {
 export const rapportsApi = {
   list:    (type?: TypeRapport) => api.get<RapportResume[]>('/rapports', type ? { type } : undefined),
   findOne: (id: string) => api.get<RapportDetail>(`/rapports/${id}`),
+  /** Supprime un rapport généré (permission rapport.delete). */
+  supprimer: (id: string) => api.delete<{ id: string }>(`/rapports/${id}`),
   /** Génère un rapport MAINTENANT sur une période choisie (permission rapport.export). */
   generer: (type: TypeRapport, debut: string, fin: string) =>
     api.post<RapportResume>('/rapports/generer', { type, debut, fin }),
