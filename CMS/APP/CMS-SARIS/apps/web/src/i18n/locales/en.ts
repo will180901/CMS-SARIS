@@ -93,6 +93,12 @@ export const en: Resources = {
     dossier: 'Record',
     detail: 'Detail',
   },
+  site: {
+    confirmTitle: 'Working site',
+    confirmHelp: 'Confirm the site you are working at. It will be attached to the records, visits and consultations you register during this session.',
+    confirmAction: 'Confirm',
+    confirmError: 'The site could not be confirmed. Please try again.',
+  },
   privacy: {
     enable: 'Enable privacy curtain',
     disable: 'Disable privacy curtain',

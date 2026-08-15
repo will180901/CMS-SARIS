@@ -1,4 +1,9 @@
-import { Injectable, UnauthorizedException, Logger } from '@nestjs/common'
+import {
+  Injectable,
+  UnauthorizedException,
+  BadRequestException,
+  Logger,
+} from '@nestjs/common'
 import { ModuleRef } from '@nestjs/core'
 import { JwtService } from '@nestjs/jwt'
 import { ConfigService } from '@nestjs/config'
@@ -10,6 +15,7 @@ import { PrismaService } from '../../prisma/prisma.service'
 import { decryptSecret } from '../../common/crypto/totp-secret'
 import { resolveGeo } from '../../common/geo/geo.util'
 import { ParametresService } from '../parametres/parametres.service'
+import { ConfirmerSiteDto } from './dto/confirmer-site.dto'
 import type {
   Role,
   JwtPayload,
@@ -527,7 +533,12 @@ export class SecurityService {
    * Échange un refresh token valide contre un nouveau couple access/refresh token.
    * Rotation : l'ancienne session est révoquée, une nouvelle est créée.
    */
-  async refresh(dto: RefreshDto): Promise<{
+  async refresh(
+    dto: RefreshDto,
+    /** Site EXPLICITEMENT choisi (confirmation à la connexion). Ignoré sur un poste de
+     *  bureau, où c'est la machine qui décide — cf. `confirmerSite`. */
+    siteForce?: string,
+  ): Promise<{
     accessToken: string
     refreshToken: string
     user: Omit<UserSession, 'token'>
@@ -535,17 +546,20 @@ export class SecurityService {
     // 1. Décoder + vérifier la signature du refresh token
     let sub: string
     let sid: string | undefined
+    let siteDuJeton: string | undefined
     try {
       const payload = await this.jwt.verifyAsync<{
         sub: string
         type: string
         sid?: string
+        siteId?: string
       }>(dto.refreshToken, {
         secret: this.config.getOrThrow<string>('JWT_SECRET'),
       })
       if (payload.type !== 'refresh') throw new Error('mauvais type')
       sub = payload.sub
       sid = payload.sid
+      siteDuJeton = payload.siteId
     } catch {
       throw new UnauthorizedException('Refresh token invalide ou expiré')
     }
@@ -623,9 +637,22 @@ export class SecurityService {
     // `appareilId` est repris pour la même raison : la rotation crée une session NEUVE, et
     // sans lui l'appareil deviendrait inconnu — l'utilisateur serait averti d'une « autre
     // session » à chaque renouvellement de jeton, sur son propre poste.
+    // SITE DE LA SESSION — il doit survivre à la rotation, sinon le choix fait à la
+    // connexion serait perdu au premier renouvellement de jeton, sans que personne ne
+    // comprenne pourquoi les actes changent de site en cours de journée.
+    const siteSession = matchingSession.posteLocalId
+      // Poste de bureau : la MACHINE décide, toujours. On re-résout depuis le poste, ce qui
+      // corrige au passage un défaut latent — la rotation retombait sur le site du compte.
+      ? await this.resoudreSiteDeTravail(
+          user.siteId,
+          matchingSession.posteLocalId,
+        )
+      // Web : le site confirmé à la connexion, transporté par le refresh token.
+      : (siteForce ?? siteDuJeton ?? user.siteId)
+
     const tokens = await this.creerSession(
       user.id,
-      user.siteId,
+      siteSession,
       roles,
       permissions,
       personnelMedicalId,
@@ -640,7 +667,9 @@ export class SecurityService {
       user: {
         id: user.id,
         login: user.login,
-        siteId: user.siteId,
+        // Le site de la SESSION, pas celui du compte : c'est lui qui sera recopié sur
+        // chaque acte, et c'est donc lui que l'écran doit afficher.
+        siteId: siteSession,
         roles,
         permissions,
         personnelMedicalId,
@@ -703,6 +732,36 @@ export class SecurityService {
    * classique) ou que le poste est inconnu : l'application reste utilisable sans
    * installation préalable.
    */
+  /**
+   * CONFIRMATION DU SITE DE TRAVAIL, juste après la connexion (web).
+   *
+   * Le site n'appartient pas au compte : il appartient à l'ACTE. Chaque visite, chaque
+   * consultation recopie le site porté par la session au moment où elle est enregistrée.
+   * On demande donc à la personne de confirmer, une fois, sur quel site elle travaille —
+   * et ce choix ne vit que le temps de la session.
+   *
+   * Sur un POSTE DE BUREAU, le choix est REFUSÉ : le site y est fixé à l'installation et
+   * identifie la machine. Accepter un choix ici permettrait de contourner cette
+   * configuration depuis l'écran, ce qui viderait de son sens la configuration du poste.
+   *
+   * Techniquement, on réutilise la rotation de `refresh` plutôt que d'écrire un second
+   * chemin d'émission de jetons : un seul chemin, donc un seul endroit où se tromper.
+   */
+  async confirmerSite(dto: ConfirmerSiteDto): Promise<{
+    accessToken: string
+    refreshToken: string
+    user: Omit<UserSession, 'token'>
+  }> {
+    // `findFirst` et non `findUnique` : l'extension soft-delete y injecte `deletedAt: null`,
+    // donc un site supprimé est introuvable sans qu'on ait à y penser.
+    const site = await this.prisma.site.findFirst({
+      where: { id: dto.siteId },
+      select: { id: true },
+    })
+    if (!site) throw new BadRequestException('Site introuvable')
+    return this.refresh({ refreshToken: dto.refreshToken }, site.id)
+  }
+
   private async resoudreSiteDeTravail(
     siteDuCompte: string,
     posteLocalId?: string | null,
@@ -762,8 +821,12 @@ export class SecurityService {
       // `sid` rend CHAQUE refresh token UNIQUE (sinon deux tokens du même user signés dans
       // la même seconde sont identiques → même hash sur plusieurs sessions → la rotation ne
       // révoque pas réellement l'ancien token). Lié à sa session par construction.
+      // `siteId` est embarqué ICI, et c'est le coeur du mécanisme : le site de travail
+      // appartient à la SESSION, pas au compte. Le porter dans le refresh token le fait
+      // survivre à chaque rotation, et disparaître de lui-même quand la session expire —
+      // sans colonne en base, donc sans rien à nettoyer ni à oublier.
       this.jwt.signAsync(
-        { sub: utilisateurId, type: 'refresh', sid },
+        { sub: utilisateurId, type: 'refresh', sid, siteId },
         { expiresIn: this.REFRESH_TOKEN_TTL },
       ),
     ])

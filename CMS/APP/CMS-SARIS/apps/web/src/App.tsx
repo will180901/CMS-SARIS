@@ -4,6 +4,7 @@ import { useSessionStore } from '@/stores/session.store'
 import { AppShell }   from '@/components/layout/AppShell'
 import { LoginPage }  from '@/modules/auth/pages/LoginPage'
 import { SessionBootstrap } from '@/modules/auth/components/SessionBootstrap'
+import { ConfirmationSiteModal } from '@/modules/auth/components/ConfirmationSiteModal'
 import { PreferencesSync } from '@/components/PreferencesSync'
 import { LoadingScreen } from '@/components/LoadingScreen'
 import { desktopBridge } from '@/lib/desktop'
@@ -33,6 +34,8 @@ export function App() {
           <SessionBootstrap />
           {/* Applique les préférences (thème, densité, langue) de l'utilisateur */}
           <PreferencesSync />
+          {/* Confirmation du site de travail — bloquante, une fois par session (web). */}
+          <ConfirmationSiteModal />
           <AppShell />
         </>
       ) : (

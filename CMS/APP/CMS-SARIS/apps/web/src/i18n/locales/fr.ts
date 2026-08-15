@@ -91,6 +91,12 @@ export const fr = {
     dossier: 'Dossier',
     detail: 'Détail',
   },
+  site: {
+    confirmTitle: 'Site de travail',
+    confirmHelp: "Confirmez le site sur lequel vous travaillez. Il sera rattaché aux dossiers, visites et consultations que vous enregistrerez pendant cette session.",
+    confirmAction: 'Confirmer',
+    confirmError: "Le site n'a pas pu être confirmé. Réessayez.",
+  },
   privacy: {
     enable: 'Activer le rideau de confidentialité',
     disable: 'Désactiver le rideau de confidentialité',

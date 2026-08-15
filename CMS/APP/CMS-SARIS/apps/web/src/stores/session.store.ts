@@ -9,6 +9,10 @@ interface SessionState {
   user:            SessionUser | null
   token:           string | null
   refreshToken:    string | null
+  /** Le site de travail a-t-il ete confirme pour CETTE session ? Faux a chaque nouvelle
+   *  connexion sur le web ; toujours vrai sur le client de bureau, ou le site vient du
+   *  poste et ne se choisit pas. */
+  siteConfirme:    boolean
   isAuthenticated: boolean
 
   /** Hydratation (lecture du stockage persistant) TERMINÉE ? Tant que false, l'app affiche
@@ -25,6 +29,7 @@ interface SessionState {
 
   /** Appelé après login réussi (ou verify TOTP) */
   setSession: (user: SessionUser, token: string, refreshToken: string) => void
+  setSiteConfirme: (v: boolean) => void
   /** Mémorise le jeton obtenu auprès du backend embarqué (n'affecte pas la session centrale). */
 
   /** Appelé au logout ou expiration du token */
@@ -46,6 +51,7 @@ export const useSessionStore = create<SessionState>()(
       user:            null,
       token:           null,
       refreshToken:    null,
+      siteConfirme:    false,
       isAuthenticated: false,
       _hasHydrated:    false,
       needsBootstrapRefresh: false,
@@ -54,12 +60,18 @@ export const useSessionStore = create<SessionState>()(
       setNeedsBootstrapRefresh: (v) => set({ needsBootstrapRefresh: v }),
 
       // Login / refresh : tokens frais → pas de re-sync bootstrap à déclencher.
+      // `siteConfirme` n'est PAS remis a false ici : setSession sert aussi bien a la
+      // connexion qu'a la rotation des jetons, et le remettre a false ferait resurgir la
+      // question du site a chaque renouvellement. C'est `clearSession` qui le remet a zero,
+      // donc a la deconnexion — exactement la duree d'une session.
       setSession: (user, token, refreshToken) =>
         set({ user, token, refreshToken, isAuthenticated: true, needsBootstrapRefresh: false }),
 
+      setSiteConfirme: (v) => set({ siteConfirme: v }),
+
 
       clearSession: () =>
-        set({ user: null, token: null, refreshToken: null, isAuthenticated: false }),
+        set({ user: null, token: null, refreshToken: null, siteConfirme: false, isAuthenticated: false }),
 
       updateTokens: (accessToken, refreshToken) => set({ token: accessToken, refreshToken }),
 
@@ -72,7 +84,7 @@ export const useSessionStore = create<SessionState>()(
       // ./session-storage.ts.
       storage: createJSONStorage(() => sessionPersistStorage),
       // Ne PAS persister le flag d'hydratation (toujours recalculé au démarrage).
-      partialize: (s) => ({ user: s.user, token: s.token, refreshToken: s.refreshToken, isAuthenticated: s.isAuthenticated }),
+      partialize: (s) => ({ user: s.user, token: s.token, refreshToken: s.refreshToken, siteConfirme: s.siteConfirme, isAuthenticated: s.isAuthenticated }),
       // Hydratation terminée → on lève le flag (App peut décider login vs shell sans flash).
       // Si une session était persistée (= RECHARGEMENT de page), on demande la re-sync bootstrap
       // (permissions à jour). Après un login frais, ce chemin n'est pas emprunté → pas de re-sync.

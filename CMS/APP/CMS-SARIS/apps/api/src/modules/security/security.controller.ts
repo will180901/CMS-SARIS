@@ -18,6 +18,7 @@ import { TotpVerifyDto } from './dto/totp-verify.dto'
 import { RefreshDto } from './dto/refresh.dto'
 import { ChangePasswordDto } from './dto/change-password.dto'
 import { ConfirmerSessionDto } from './dto/confirmer-session.dto'
+import { ConfirmerSiteDto } from './dto/confirmer-site.dto'
 import type { UserSession } from '@cms-saris/types'
 
 /**
@@ -93,6 +94,25 @@ export class SecurityController {
     @Headers('user-agent') userAgent: string,
   ) {
     return this.securityService.confirmerSession(dto, ip, userAgent)
+  }
+
+  /**
+   * POST /auth/site/confirmer
+   *
+   * Corps : { refreshToken: string, siteId: string }
+   *
+   * Confirme le SITE DE TRAVAIL de la session, juste après la connexion (web). Le site
+   * n'est jamais écrit sur le compte : il ne vit que le temps de la session, porté par
+   * les jetons. Réponse identique à /auth/refresh (jetons + utilisateur).
+   *
+   * Non protégé par JwtAuthGuard, comme /auth/refresh : c'est le refresh token qui fait
+   * foi, et le jeton d'accès peut déjà être en cours de remplacement à cet instant.
+   */
+  @Post('site/confirmer')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  confirmerSite(@Body() dto: ConfirmerSiteDto) {
+    return this.securityService.confirmerSite(dto)
   }
 
   /**

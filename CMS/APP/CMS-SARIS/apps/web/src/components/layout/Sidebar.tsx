@@ -165,22 +165,19 @@ export function Sidebar() {
               }}>
                 CMS SARIS
               </p>
-              {/* Site du POSTE — client de bureau UNIQUEMENT (3e et dernier emplacement,
-                  cf. TopHeader et la carte utilisateur plus bas). Sur le web, la marque
-                  s'arrete a « CMS SARIS » : aucun compte n'appartient a un site. */}
-              {isDesktop && (
-                <p style={{
+              {/* Site DE LA SESSION (web) ou DU POSTE (bureau) — dans les deux cas le site
+                  sur lequel on travaille en ce moment, jamais « le site de la personne ». */}
+              <p style={{
                   margin: '2px 0 0',
                   fontSize: 'var(--font-size-overline)',
                   fontWeight: 600,
                   textTransform: 'uppercase',
                   letterSpacing: '0.07em',
                   color: 'var(--texte-tertiaire)',
-                  lineHeight: 1,
-                }}>
-                  {siteName}
-                </p>
-              )}
+                lineHeight: 1,
+              }}>
+                {siteName}
+              </p>
             </div>
           )}
         </div>
@@ -375,19 +372,16 @@ export function Sidebar() {
                     }}>
                       {user.login}
                     </p>
-                    {/* Site du POSTE — client de bureau UNIQUEMENT (cf. TopHeader).
-                        Sous le nom du compte, ce libellé se lisait comme « le site DE cette
-                        personne » : exactement le lien qui n'existe pas. */}
-                    {isDesktop && (
-                      <p style={{
+                    {/* Site DE LA SESSION, choisi à la connexion (web) ou fixé par le
+                        poste (bureau). Pas « le site de cette personne ». */}
+                    <p style={{
                         margin: '2px 0 0',
                         fontSize: 'var(--font-size-caption)',
                         color: 'var(--texte-tertiaire)',
-                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                      }}>
-                        {siteName}
-                      </p>
-                    )}
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>
+                      {siteName}
+                    </p>
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 'var(--espace-2)' }}>

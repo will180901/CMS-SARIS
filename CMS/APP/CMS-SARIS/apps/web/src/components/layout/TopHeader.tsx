@@ -121,7 +121,7 @@ export function TopHeader() {
             pas à la personne qui se connecte. Sur un poste de bureau il a un sens — il est
             fixé à l'installation et identifie la machine. Dans un navigateur il n'en a
             aucun, et l'afficher laissait croire à un cloisonnement qui n'existe pas. */}
-        {isDesktop && <SiteActifSwitch />}
+        <SiteActifSwitch />
 
         {/* Interrupteur du rideau de confidentialité (zones de détail) */}
         <Tooltip label={curtain ? t('privacy.disable') : t('privacy.enable')}>
