@@ -59,6 +59,9 @@ export type { DataColumn }                 from './DataTable'
 export { useColumnResize }                 from './useColumnResize'
 export type { ColumnResize }               from './useColumnResize'
 
+export { useSelectionLot, BarreSelectionLot, CaseSelectionLigne, ActionSelectionner, proprietesLigne } from './SelectionLot'
+export type { SelectionLot }               from './SelectionLot'
+
 export { AreaTrend, MiniBars, DonutChart, RankedBars, SparkLine, CHART_PALETTE } from './Charts'
 export type { AreaSeries, DonutSlice, RankedBarRow } from './Charts'
 

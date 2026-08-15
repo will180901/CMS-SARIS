@@ -25,7 +25,9 @@ import {
   useUpdateDelegation,
   useToggleDelegationStatut,
   useDeleteDelegation,
+  DELEGATIONS_KEY,
 } from '../hooks/useDelegations'
+import { acteursApi } from '../api/acteurs.api'
 import { useSoignants }  from '@/modules/triage/hooks/useSoignants'
 import { usePagination }  from '@/modules/referentiels/hooks/usePagination'
 import { useRowsPerPage } from '@/hooks/useRowsPerPage'
@@ -34,7 +36,7 @@ import { EmptyState }     from '@/modules/referentiels/components/EmptyState'
 import { ConfirmDialog }  from '@/modules/referentiels/components/ConfirmDialog'
 import { DrawerShell }    from '@/modules/referentiels/components/DrawerShell'
 import { PaginationBar }  from '@/modules/referentiels/components/PaginationBar'
-import { DataTableHead, dataRowStyle, DATA_TABLE_CARD, useColumnResize } from '@/components/saris'
+import { DataTableHead, dataRowStyle, DATA_TABLE_CARD, useColumnResize, useSelectionLot, BarreSelectionLot, CaseSelectionLigne, ActionSelectionner, proprietesLigne, type SelectionLot } from '@/components/saris'
 import { useIsCompact } from '@/hooks/useMediaQuery'
 import { formatDate } from '@/lib/intl'
 import { ListePrintSheet, type ColonneExport } from '@/components/print/ListePrintSheet'
@@ -294,6 +296,12 @@ export function DelegationsTab({ canCreate, canUpdate, canRevoke, canDelete }: {
   ], [t])
   const rz = useColumnResize({ storageKey: 'act-delegations', ready: !isLoading && filtered.length > 0, cellsSelector: 'thead th' })
 
+  const sel = useSelectionLot<DelegationPrescription>({
+    idDe: x => x.id,
+    supprimer: id => acteursApi.delegations.remove(id),
+    invalider: [DELEGATIONS_KEY],
+  })
+
   // Handlers
   function openCreate() {
     setEdit(null)
@@ -386,6 +394,8 @@ export function DelegationsTab({ canCreate, canUpdate, canRevoke, canDelete }: {
         )}
       </div>
 
+      {canDelete && <BarreSelectionLot sel={sel} lignes={filtered} />}
+
       {/* ── Zone scrollable ───────────────────────────────────────────────── */}
       <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingBottom: '8px' }}>
         <div style={DATA_TABLE_CARD}>
@@ -423,6 +433,7 @@ export function DelegationsTab({ canCreate, canUpdate, canRevoke, canDelete }: {
                     canUpdate={canUpdate}
                     canRevoke={canRevoke}
                     canDelete={canDelete}
+                    sel={sel}
                   />
                 ))
               )}
@@ -504,7 +515,7 @@ export function DelegationsTab({ canCreate, canUpdate, canRevoke, canDelete }: {
 // ── Ligne ─────────────────────────────────────────────────────────────────────
 
 function DelegationRow({
-  delegation, striped, onEdit, onToggle, onDelete, canUpdate, canRevoke, canDelete,
+  delegation, striped, onEdit, onToggle, onDelete, canUpdate, canRevoke, canDelete, sel,
 }: {
   delegation: DelegationPrescription
   striped:    boolean
@@ -514,6 +525,7 @@ function DelegationRow({
   canUpdate:  boolean
   canRevoke:  boolean
   canDelete:  boolean
+  sel:        SelectionLot<DelegationPrescription>
 }) {
   const { t } = useTranslation()
   const [hovered, setHovered] = useState(false)
@@ -524,16 +536,18 @@ function DelegationRow({
     <tr
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      style={dataRowStyle(striped, hovered)}
+      {...proprietesLigne(sel, delegation, dataRowStyle(striped, hovered || sel.estSelectionne(delegation)))}
     >
       {/* Médecin */}
       <td style={{ padding: 'var(--espace-2) var(--espace-4)' }}>
-        <span style={{ fontSize: '13px', fontWeight: '500', color: 'var(--texte-primaire)', textTransform: 'uppercase' }}>
-          {delegation.medecinChef.nom}
-        </span>
-        <span style={{ fontSize: '12px', color: 'var(--texte-tertiaire)', marginLeft: '4px' }}>
-          {delegation.medecinChef.prenom}
-        </span>
+        <CaseSelectionLigne sel={sel} ligne={delegation}>
+          <span style={{ fontSize: '13px', fontWeight: '500', color: 'var(--texte-primaire)', textTransform: 'uppercase' }}>
+            {delegation.medecinChef.nom}
+          </span>
+          <span style={{ fontSize: '12px', color: 'var(--texte-tertiaire)', marginLeft: '4px' }}>
+            {delegation.medecinChef.prenom}
+          </span>
+        </CaseSelectionLigne>
       </td>
 
       {/* Infirmier */}
@@ -557,7 +571,7 @@ function DelegationRow({
       </td>
 
       {/* Actions */}
-      <td style={{ padding: 'var(--espace-2) var(--espace-4)', textAlign: 'right', width: '48px' }}>
+      <td style={{ padding: 'var(--espace-2) var(--espace-4)', textAlign: 'right', width: '48px' }} onClick={e => e.stopPropagation()}>
         {showMenu && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -570,6 +584,8 @@ function DelegationRow({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" style={{ minWidth: '168px', fontSize: '13px' }}>
+              {canDelete && <ActionSelectionner onClick={() => sel.entrer(delegation)} />}
+              {canDelete && <DropdownMenuSeparator />}
               {canUpdate && (
                 <DropdownMenuItem onClick={() => onEdit(delegation)} style={{ gap: '8px', cursor: 'pointer' }}>
                   <Pencil size={13} /> {t('acteurs.edit')}

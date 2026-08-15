@@ -12,10 +12,10 @@ import { Button } from '@workspace/ui/components/button'
 import { Input }  from '@workspace/ui/components/input'
 import { Label }  from '@workspace/ui/components/label'
 import type { TypeConsultation } from '@cms-saris/types'
-import { useTypesConsultation, useCreateTypeConsultation, useUpdateTypeConsultation, useToggleTypeConsultationStatut, useDeleteTypeConsultation } from '../hooks/useReferentiels'
+import { useTypesConsultation, useCreateTypeConsultation, useUpdateTypeConsultation, useToggleTypeConsultationStatut, QUERY_KEYS, useDeleteTypeConsultation } from '../hooks/useReferentiels'
 import { usePagination } from '../hooks/usePagination'
 import { useRowsPerPage } from '@/hooks/useRowsPerPage'
-import { isActif }         from '../api/referentiels.api'
+import { isActif, referentielsApi }         from '../api/referentiels.api'
 import { TabToolbar }      from '../components/TabToolbar'
 import { StatutBadge }     from '../components/badges/StatutBadge'
 import { SkeletonRows }    from '../components/SkeletonRows'
@@ -23,7 +23,7 @@ import { EmptyState }      from '../components/EmptyState'
 import { ConfirmDialog }   from '../components/ConfirmDialog'
 import { DrawerShell }     from '../components/DrawerShell'
 import { PaginationBar }   from '../components/PaginationBar'
-import { DataTableHead, dataRowStyle, DATA_TABLE_CARD, useColumnResize } from '@/components/saris'
+import { DataTableHead, dataRowStyle, DATA_TABLE_CARD, useColumnResize, useSelectionLot, BarreSelectionLot, CaseSelectionLigne, ActionSelectionner, proprietesLigne, type SelectionLot } from '@/components/saris'
 import { codeReferentiel, libelle as libelleSchema } from '@/lib/validation'
 import { ListePrintSheet, type ColonneExport } from '@/components/print/ListePrintSheet'
 
@@ -91,6 +91,12 @@ export function TypesConsultationTab({ canCreate, canUpdate, canDelete }: { canC
   ], [t])
   const rz = useColumnResize({ storageKey: 'ref-types-consultation', ready: !isLoading && filtered.length > 0, cellsSelector: 'thead th' })
 
+  const sel = useSelectionLot<TypeConsultation>({
+    idDe: x => x.id,
+    supprimer: id => referentielsApi.typesConsultation.remove(id),
+    invalider: [QUERY_KEYS.typesConsultation],
+  })
+
   function openCreate() { setEdit(null); form.reset({ code: '', libelle: '' }); setDrawer(true) }
   function openEdit(m: TypeConsultation) { setEdit(m); form.reset({ code: m.code, libelle: m.libelle }); setDrawer(true) }
   function closeDrawer() { setDrawer(false); setEdit(null); form.reset() }
@@ -111,6 +117,7 @@ export function TypesConsultationTab({ canCreate, canUpdate, canDelete }: { canC
           placeholder={t('referentiels.typeConsultationSearchPlaceholder', { defaultValue: 'Rechercher un type de consultation…' })} canCreate={canCreate} onExport={() => setOpenExport(true)} />
       </div>
 
+      {canDelete && <BarreSelectionLot sel={sel} lignes={filtered} />}
       <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingBottom: '8px' }}>
         <div style={DATA_TABLE_CARD}>
           <table ref={rz.containerRef} style={{ width: '100%', borderCollapse: 'collapse', tableLayout: rz.tableLayout }}>
@@ -132,7 +139,7 @@ export function TypesConsultationTab({ canCreate, canUpdate, canDelete }: { canC
                 pagination.pageData.map((m, i) => (
                   <Row key={m.id} item={m} striped={i % 2 === 1}
                     onEdit={openEdit} onToggle={() => setConfirm(m)} onDelete={() => setConfirmDel(m)}
-                    canUpdate={canUpdate} canDelete={canDelete} />
+                    canUpdate={canUpdate} canDelete={canDelete} sel={sel} />
                 ))
               )}
             </tbody>
@@ -182,22 +189,25 @@ export function TypesConsultationTab({ canCreate, canUpdate, canDelete }: { canC
   )
 }
 
-function Row({ item, striped, onEdit, onToggle, onDelete, canUpdate, canDelete }: {
+function Row({ item, striped, onEdit, onToggle, onDelete, canUpdate, canDelete, sel }: {
   item: TypeConsultation; striped: boolean; onEdit: (m: TypeConsultation) => void; onToggle: () => void; onDelete: () => void; canUpdate: boolean; canDelete: boolean
+  sel: SelectionLot<TypeConsultation>
 }) {
   const { t } = useTranslation()
   const showMenu = canUpdate || canDelete
   const [hovered, setHovered] = useState(false)
   return (
-    <tr onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} style={dataRowStyle(striped, hovered)}>
+    <tr onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} {...proprietesLigne(sel, item, dataRowStyle(striped, hovered || sel.estSelectionne(item)))}>
       <td style={{ padding: 'var(--espace-2) var(--espace-4)', width: '200px' }}>
+        <CaseSelectionLigne sel={sel} ligne={item}>
         <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', color: 'var(--texte-tertiaire)' }}>{item.code}</span>
+        </CaseSelectionLigne>
       </td>
       <td style={{ padding: 'var(--espace-2) var(--espace-4)' }}>
         <span style={{ fontSize: '13px', fontWeight: '500', color: 'var(--texte-primaire)' }}>{item.libelle}</span>
       </td>
       <td style={{ padding: 'var(--espace-2) var(--espace-4)' }}><StatutBadge statut={item.statut} /></td>
-      <td style={{ padding: 'var(--espace-2) var(--espace-4)', textAlign: 'right', width: '48px' }}>
+      <td style={{ padding: 'var(--espace-2) var(--espace-4)', textAlign: 'right', width: '48px' }} onClick={e => e.stopPropagation()}>
         {showMenu && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -206,6 +216,8 @@ function Row({ item, striped, onEdit, onToggle, onDelete, canUpdate, canDelete }
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" style={{ minWidth: '160px', fontSize: '13px' }}>
+              {canDelete && <ActionSelectionner onClick={() => sel.entrer(item)} />}
+              {canDelete && <DropdownMenuSeparator />}
               {canUpdate && (
                 <DropdownMenuItem onClick={() => onEdit(item)} style={{ gap: '8px', cursor: 'pointer' }}><Pencil size={13} /> {t('referentiels.actionEdit')}</DropdownMenuItem>
               )}

@@ -23,6 +23,7 @@ import {
   useUpdateSousTraitant,
   useToggleSousTraitantStatut,
   useDeleteSousTraitant,
+  SOUS_TRAITANTS_KEY,
 } from '../hooks/useSousTraitants'
 import { usePagination } from '../hooks/usePagination'
 import { useRowsPerPage } from '@/hooks/useRowsPerPage'
@@ -32,8 +33,8 @@ import { EmptyState }    from '../components/EmptyState'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { DrawerShell }   from '../components/DrawerShell'
 import { PaginationBar } from '../components/PaginationBar'
-import { DataTableHead, dataRowStyle, DATA_TABLE_CARD, useColumnResize } from '@/components/saris'
-import { isActif }       from '../api/referentiels.api'
+import { DataTableHead, dataRowStyle, DATA_TABLE_CARD, useColumnResize, useSelectionLot, BarreSelectionLot, CaseSelectionLigne, ActionSelectionner, proprietesLigne, type SelectionLot } from '@/components/saris'
+import { isActif, sousTraitantsApi } from '../api/referentiels.api'
 import { ListePrintSheet, type ColonneExport } from '@/components/print/ListePrintSheet'
 
 // ── Schéma ────────────────────────────────────────────────────────────────────
@@ -107,6 +108,12 @@ export function SousTraitantsTab({ canCreate, canUpdate, canDelete }: { canCreat
   ], [t])
   const rz = useColumnResize({ storageKey: 'ref-soustraitants', ready: !isLoading && filtered.length > 0, cellsSelector: 'thead th' })
 
+  const sel = useSelectionLot<SocieteSousTraitante>({
+    idDe: x => x.id,
+    supprimer: id => sousTraitantsApi.remove(id),
+    invalider: [SOUS_TRAITANTS_KEY],
+  })
+
   function openCreate() { setEdit(null); form.reset({ nom: '' }); setDrawer(true) }
   function openEdit(s: SocieteSousTraitante) { setEdit(s); form.reset({ nom: s.nom }); setDrawer(true) }
   function closeDrawer() { setDrawer(false); setEdit(null); form.reset() }
@@ -174,6 +181,8 @@ export function SousTraitantsTab({ canCreate, canUpdate, canDelete }: { canCreat
         )}
       </div>
 
+      {canDelete && <BarreSelectionLot sel={sel} lignes={filtered} />}
+
       {/* ── Zone scrollable ───────────────────────────────────────────────── */}
       <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingBottom: '8px' }}>
         <div style={DATA_TABLE_CARD}>
@@ -206,6 +215,7 @@ export function SousTraitantsTab({ canCreate, canUpdate, canDelete }: { canCreat
                     onDelete={() => setConfirmDelete(s)}
                     canUpdate={canUpdate}
                     canDelete={canDelete}
+                    sel={sel}
                   />
                 ))
               )}
@@ -277,7 +287,7 @@ export function SousTraitantsTab({ canCreate, canUpdate, canDelete }: { canCreat
 // ── Ligne ─────────────────────────────────────────────────────────────────────
 
 function SousTraitantRow({
-  societe, striped, onEdit, onToggle, onDelete, canUpdate, canDelete,
+  societe, striped, onEdit, onToggle, onDelete, canUpdate, canDelete, sel,
 }: {
   societe:  SocieteSousTraitante
   striped:  boolean
@@ -286,6 +296,7 @@ function SousTraitantRow({
   onDelete: () => void
   canUpdate: boolean
   canDelete: boolean
+  sel: SelectionLot<SocieteSousTraitante>
 }) {
   const { t } = useTranslation()
   const showMenu = canUpdate || canDelete
@@ -294,20 +305,22 @@ function SousTraitantRow({
     <tr
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      style={dataRowStyle(striped, hovered)}
+      {...proprietesLigne(sel, societe, dataRowStyle(striped, hovered || sel.estSelectionne(societe)))}
     >
       <td style={{ padding: 'var(--espace-2) var(--espace-4)' }}>
+        <CaseSelectionLigne sel={sel} ligne={societe}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: 'var(--fond-surface-2)', border: '1px solid var(--bordure-legere)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <Building2 size={13} style={{ color: 'var(--texte-tertiaire)' }} />
           </div>
           <span style={{ fontSize: '13px', fontWeight: '500', color: 'var(--texte-primaire)' }}>{societe.nom}</span>
         </div>
+        </CaseSelectionLigne>
       </td>
       <td style={{ padding: 'var(--espace-2) var(--espace-4)' }}>
         <StatutBadge statut={societe.statut} />
       </td>
-      <td style={{ padding: 'var(--espace-2) var(--espace-4)', textAlign: 'right', width: '48px' }}>
+      <td style={{ padding: 'var(--espace-2) var(--espace-4)', textAlign: 'right', width: '48px' }} onClick={e => e.stopPropagation()}>
         {showMenu && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -316,6 +329,8 @@ function SousTraitantRow({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" style={{ minWidth: '160px', fontSize: '13px' }}>
+              {canDelete && <ActionSelectionner onClick={() => sel.entrer(societe)} />}
+              {canDelete && <DropdownMenuSeparator />}
               {canUpdate && (
                 <DropdownMenuItem onClick={() => onEdit(societe)} style={{ gap: '8px', cursor: 'pointer' }}>
                   <Pencil size={13} /> {t('acteurs.edit')}

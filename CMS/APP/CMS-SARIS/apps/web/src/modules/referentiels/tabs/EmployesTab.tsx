@@ -10,8 +10,8 @@ import {
 import { Button } from '@workspace/ui/components/button'
 import { Input }  from '@workspace/ui/components/input'
 import { Label }  from '@workspace/ui/components/label'
-import { useEmployes, useCreateEmploye, useUpdateEmploye, useDeleteEmploye } from '../hooks/useEmployes'
-import type { EmployeSaris, EmployePayload } from '../api/employes.api'
+import { useEmployes, useCreateEmploye, useUpdateEmploye, useDeleteEmploye, EMPLOYES_KEY } from '../hooks/useEmployes'
+import { employesApi, type EmployeSaris, type EmployePayload } from '../api/employes.api'
 import { usePagination } from '../hooks/usePagination'
 import { useRowsPerPage } from '@/hooks/useRowsPerPage'
 import { StatutBadge }   from '../components/badges/StatutBadge'
@@ -20,7 +20,7 @@ import { EmptyState }    from '../components/EmptyState'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { DrawerShell }   from '../components/DrawerShell'
 import { PaginationBar } from '../components/PaginationBar'
-import { DataTableHead, dataRowStyle, DATA_TABLE_CARD, useColumnResize, DatePicker } from '@/components/saris'
+import { DataTableHead, dataRowStyle, DATA_TABLE_CARD, useColumnResize, DatePicker, useSelectionLot, BarreSelectionLot, CaseSelectionLigne, ActionSelectionner, proprietesLigne, type SelectionLot } from '@/components/saris'
 import { useIsCompact }  from '@/hooks/useMediaQuery'
 import { isActif }       from '../api/referentiels.api'
 import { formatDate }    from '@/lib/intl'
@@ -78,6 +78,12 @@ export function EmployesTab({ canCreate, canUpdate, canDelete }: { canCreate: bo
     { libelle: t('acteurs.colStatut',            { defaultValue: 'Statut' }),          valeur: e => (isActif(e.statut) ? 'Actif' : 'Inactif') },
   ], [t])
   const rz = useColumnResize({ storageKey: 'ref-employes', ready: !isLoading && filtered.length > 0, cellsSelector: 'thead th' })
+
+  const sel = useSelectionLot<EmployeSaris>({
+    idDe: x => x.id,
+    supprimer: id => employesApi.remove(id),
+    invalider: [EMPLOYES_KEY],
+  })
 
   function openCreate() { setEdit(null); setForm(EMPTY); setDrawer(true) }
   function openEdit(e: EmployeSaris) {
@@ -139,6 +145,7 @@ export function EmployesTab({ canCreate, canUpdate, canDelete }: { canCreate: bo
         )}
       </div>
 
+      {canDelete && <BarreSelectionLot sel={sel} lignes={filtered} />}
       <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingBottom: '8px' }}>
         <div style={DATA_TABLE_CARD}>
           <table ref={rz.containerRef} style={{ width: '100%', borderCollapse: 'collapse', tableLayout: rz.tableLayout }}>
@@ -157,7 +164,8 @@ export function EmployesTab({ canCreate, canUpdate, canDelete }: { canCreate: bo
             ]} />
             <tbody>
               {isLoading ? (
-                <SkeletonRows rows={6} cols={11} widths={[0.11, 0.16, 0.08, 0.09, 0.06, 0.13, 0.11, 0.1, 0.1, 0.08, 0.06]} />
+                <SkeletonRows rows={6} cols={11}
+                  widths={[0.11, 0.16, 0.08, 0.09, 0.06, 0.13, 0.11, 0.1, 0.1, 0.08, 0.06]} />
               ) : filtered.length === 0 ? (
                 <EmptyState
                   icon={IdCard}
@@ -167,7 +175,7 @@ export function EmployesTab({ canCreate, canUpdate, canDelete }: { canCreate: bo
                 />
               ) : (
                 pagination.pageData.map((e, idx) => (
-                  <EmployeRow key={e.id} employe={e} striped={idx % 2 === 1} onEdit={openEdit} onToggle={() => setConfirm(e)} onDelete={() => setConfirmDelete(e)} canUpdate={canUpdate} canDelete={canDelete} />
+                  <EmployeRow key={e.id} employe={e} striped={idx % 2 === 1} onEdit={openEdit} onToggle={() => setConfirm(e)} onDelete={() => setConfirmDelete(e)} canUpdate={canUpdate} canDelete={canDelete} sel={sel} />
                 ))
               )}
             </tbody>
@@ -300,8 +308,9 @@ const SEXE_LABEL: Record<string, { key: string; fallback: string }> = {
   F: { key: 'sexeFeminin', fallback: 'Féminin' },
 }
 
-function EmployeRow({ employe, striped, onEdit, onToggle, onDelete, canUpdate, canDelete }: {
+function EmployeRow({ employe, striped, onEdit, onToggle, onDelete, canUpdate, canDelete, sel }: {
   employe: EmployeSaris; striped: boolean; onEdit: (e: EmployeSaris) => void; onToggle: () => void; onDelete: () => void; canUpdate: boolean; canDelete: boolean
+  sel: SelectionLot<EmployeSaris>
 }) {
   const { t } = useTranslation()
   const showMenu = canUpdate || canDelete
@@ -309,8 +318,10 @@ function EmployeRow({ employe, striped, onEdit, onToggle, onDelete, canUpdate, c
   const isCompact = useIsCompact()
   const cellStyle = { padding: 'var(--espace-2) var(--espace-4)', fontSize: '12px', color: 'var(--texte-secondaire)' }
   return (
-    <tr onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} style={dataRowStyle(striped, hovered)}>
-      <td style={{ padding: 'var(--espace-2) var(--espace-4)', fontSize: '12px', fontFamily: 'monospace', color: 'var(--texte-secondaire)' }}>{employe.matricule}</td>
+    <tr onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} {...proprietesLigne(sel, employe, dataRowStyle(striped, hovered || sel.estSelectionne(employe)))}>
+      <td style={{ padding: 'var(--espace-2) var(--espace-4)', fontSize: '12px', fontFamily: 'monospace', color: 'var(--texte-secondaire)' }}>
+        <CaseSelectionLigne sel={sel} ligne={employe}>{employe.matricule}</CaseSelectionLigne>
+      </td>
       <td style={{ padding: 'var(--espace-2) var(--espace-4)' }}>
         <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--texte-primaire)', textTransform: 'uppercase' }}>{employe.nom}</span>
         <span style={{ fontSize: '12px', color: 'var(--texte-tertiaire)', marginLeft: 4 }}>{employe.prenom}</span>
@@ -323,13 +334,15 @@ function EmployeRow({ employe, striped, onEdit, onToggle, onDelete, canUpdate, c
       <td style={cellStyle}>{employe.service ?? '—'}</td>
       <td style={cellStyle}>{employe.departement ?? '—'}</td>
       <td style={{ padding: 'var(--espace-2) var(--espace-4)' }}><StatutBadge statut={employe.statut} /></td>
-      <td style={{ padding: 'var(--espace-2) var(--espace-4)', textAlign: 'right', width: '48px' }}>
+      <td style={{ padding: 'var(--espace-2) var(--espace-4)', textAlign: 'right', width: '48px' }} onClick={e => e.stopPropagation()}>
         {showMenu && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" style={{ width: '28px', height: '28px', opacity: (hovered || isCompact) ? 1 : 0, transition: 'opacity 0.15s' }}><MoreVertical size={14} /></Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" style={{ minWidth: '160px', fontSize: '13px' }}>
+              {canDelete && <ActionSelectionner onClick={() => sel.entrer(employe)} />}
+              {canDelete && <DropdownMenuSeparator />}
               {canUpdate && <DropdownMenuItem onClick={() => onEdit(employe)} style={{ gap: '8px', cursor: 'pointer' }}><Pencil size={13} /> {t('acteurs.edit', { defaultValue: 'Modifier' })}</DropdownMenuItem>}
               {canUpdate && canDelete && <DropdownMenuSeparator />}
               {canDelete && (

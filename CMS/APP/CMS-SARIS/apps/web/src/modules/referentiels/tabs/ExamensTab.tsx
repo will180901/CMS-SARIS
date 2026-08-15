@@ -12,10 +12,10 @@ import { Button } from '@workspace/ui/components/button'
 import { Input }  from '@workspace/ui/components/input'
 import { Label }  from '@workspace/ui/components/label'
 import type { TypeExamen } from '@cms-saris/types'
-import { useTypesExamen, useCreateTypeExamen, useUpdateTypeExamen, useToggleTypeExamenStatut, useDeleteTypeExamen } from '../hooks/useReferentiels'
+import { useTypesExamen, useCreateTypeExamen, useUpdateTypeExamen, useToggleTypeExamenStatut, QUERY_KEYS, useDeleteTypeExamen } from '../hooks/useReferentiels'
 import { usePagination } from '../hooks/usePagination'
 import { useRowsPerPage } from '@/hooks/useRowsPerPage'
-import { isActif }         from '../api/referentiels.api'
+import { isActif, referentielsApi }         from '../api/referentiels.api'
 import { TabToolbar }      from '../components/TabToolbar'
 import { DomaineBadge }    from '../components/badges/DomaineBadge'
 import { StatutBadge }     from '../components/badges/StatutBadge'
@@ -24,7 +24,7 @@ import { EmptyState }      from '../components/EmptyState'
 import { ConfirmDialog }   from '../components/ConfirmDialog'
 import { DrawerShell }     from '../components/DrawerShell'
 import { PaginationBar }   from '../components/PaginationBar'
-import { DataTableHead, dataRowStyle, DATA_TABLE_CARD, useColumnResize } from '@/components/saris'
+import { DataTableHead, dataRowStyle, DATA_TABLE_CARD, useColumnResize, useSelectionLot, BarreSelectionLot, CaseSelectionLigne, ActionSelectionner, proprietesLigne, type SelectionLot } from '@/components/saris'
 import { codeReferentiel, libelle as libelleSchema } from '@/lib/validation'
 import { ListePrintSheet, type ColonneExport } from '@/components/print/ListePrintSheet'
 
@@ -127,6 +127,12 @@ export function ExamensTab({ canCreate, canUpdate, canDelete }: { canCreate: boo
   ], [t])
   const rz = useColumnResize({ storageKey: 'ref-examens', ready: !isLoading && filtered.length > 0, cellsSelector: 'thead th' })
 
+  const sel = useSelectionLot<TypeExamen>({
+    idDe: x => x.id,
+    supprimer: id => referentielsApi.examens.remove(id),
+    invalider: [QUERY_KEYS.examens],
+  })
+
   function openCreate() { setEdit(null); form.reset({ code: '', libelle: '' } as ExamenForm); setDrawer(true) }
   function openEdit(e: TypeExamen) { setEdit(e); form.reset({ code: e.code, libelle: e.libelle, domaine: e.domaine }); setDrawer(true) }
   function closeDrawer() { setDrawer(false); setEdit(null); form.reset() }
@@ -145,6 +151,7 @@ export function ExamensTab({ canCreate, canUpdate, canDelete }: { canCreate: boo
         <TabToolbar search={search} onSearchChange={setSearch} statut={statut} onStatutChange={setStatut}
           onNew={openCreate} newLabel={t('referentiels.examNew')} placeholder={t('referentiels.examSearchPlaceholder')} canCreate={canCreate} onExport={() => setOpenExport(true)} />
       </div>
+      {canDelete && <BarreSelectionLot sel={sel} lignes={filtered} />}
       <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingBottom: '8px' }}>
         <div style={DATA_TABLE_CARD}>
           <table ref={rz.containerRef} style={{ width: '100%', borderCollapse: 'collapse', tableLayout: rz.tableLayout }}>
@@ -167,7 +174,7 @@ export function ExamensTab({ canCreate, canUpdate, canDelete }: { canCreate: boo
                 pagination.pageData.map((e, i) => (
                   <ExamenRow key={e.id} examen={e} striped={i % 2 === 1}
                     onEdit={openEdit} onToggle={() => setConfirm(e)} onDelete={() => setConfirmDel(e)}
-                    canUpdate={canUpdate} canDelete={canDelete} />
+                    canUpdate={canUpdate} canDelete={canDelete} sel={sel} />
                 ))
               )}
             </tbody>
@@ -218,16 +225,20 @@ export function ExamensTab({ canCreate, canUpdate, canDelete }: { canCreate: boo
   )
 }
 
-function ExamenRow({ examen, striped, onEdit, onToggle, onDelete, canUpdate, canDelete }: {
+function ExamenRow({ examen, striped, onEdit, onToggle, onDelete, canUpdate, canDelete, sel }: {
   examen: TypeExamen; striped: boolean; onEdit: (e: TypeExamen) => void; onToggle: () => void; onDelete: () => void; canUpdate: boolean; canDelete: boolean
+  sel: SelectionLot<TypeExamen>
 }) {
   const { t } = useTranslation()
   const [hovered, setHovered] = useState(false)
   const showMenu = canUpdate || canDelete
   return (
     <tr onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
-      style={dataRowStyle(striped, hovered)}>
-      <td style={{ padding: 'var(--espace-2) var(--espace-4)', width: '120px' }}><DomaineBadge domaine={examen.domaine} /></td>
+      {...proprietesLigne(sel, examen, dataRowStyle(striped, hovered || sel.estSelectionne(examen)))}>
+      <td style={{ padding: 'var(--espace-2) var(--espace-4)', width: '120px' }}>
+        <CaseSelectionLigne sel={sel} ligne={examen}><DomaineBadge domaine={examen.domaine} />
+        </CaseSelectionLigne>
+      </td>
       <td style={{ padding: 'var(--espace-2) var(--espace-4)', width: '160px' }}>
         <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', color: 'var(--texte-tertiaire)' }}>{examen.code}</span>
       </td>
@@ -235,7 +246,7 @@ function ExamenRow({ examen, striped, onEdit, onToggle, onDelete, canUpdate, can
         <span style={{ fontSize: '13px', fontWeight: '500', color: 'var(--texte-primaire)' }}>{examen.libelle}</span>
       </td>
       <td style={{ padding: 'var(--espace-2) var(--espace-4)' }}><StatutBadge statut={examen.statut} /></td>
-      <td style={{ padding: 'var(--espace-2) var(--espace-4)', textAlign: 'right', width: '48px' }}>
+      <td style={{ padding: 'var(--espace-2) var(--espace-4)', textAlign: 'right', width: '48px' }} onClick={e => e.stopPropagation()}>
         {showMenu && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -244,6 +255,8 @@ function ExamenRow({ examen, striped, onEdit, onToggle, onDelete, canUpdate, can
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" style={{ minWidth: '160px', fontSize: '13px' }}>
+              {canDelete && <ActionSelectionner onClick={() => sel.entrer(examen)} />}
+              {canDelete && <DropdownMenuSeparator />}
               {canUpdate && (
                 <DropdownMenuItem onClick={() => onEdit(examen)} style={{ gap: '8px', cursor: 'pointer' }}><Pencil size={13} /> {t('referentiels.actionEdit')}</DropdownMenuItem>
               )}

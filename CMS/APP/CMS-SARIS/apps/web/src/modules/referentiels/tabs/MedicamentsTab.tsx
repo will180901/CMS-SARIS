@@ -12,10 +12,10 @@ import { Button } from '@workspace/ui/components/button'
 import { Input }  from '@workspace/ui/components/input'
 import { Label }  from '@workspace/ui/components/label'
 import type { MedicamentReference } from '@cms-saris/types'
-import { useMedicaments, useCreateMedicament, useUpdateMedicament, useToggleMedicamentStatut, useDeleteMedicament } from '../hooks/useReferentiels'
+import { useMedicaments, useCreateMedicament, useUpdateMedicament, useToggleMedicamentStatut, useDeleteMedicament, QUERY_KEYS } from '../hooks/useReferentiels'
 import { usePagination } from '../hooks/usePagination'
 import { useRowsPerPage } from '@/hooks/useRowsPerPage'
-import { isActif }          from '../api/referentiels.api'
+import { isActif, referentielsApi } from '../api/referentiels.api'
 import { TabToolbar }       from '../components/TabToolbar'
 import { StatutBadge }      from '../components/badges/StatutBadge'
 import { SkeletonRows }     from '../components/SkeletonRows'
@@ -23,7 +23,7 @@ import { EmptyState }       from '../components/EmptyState'
 import { ConfirmDialog }    from '../components/ConfirmDialog'
 import { DrawerShell }      from '../components/DrawerShell'
 import { PaginationBar }    from '../components/PaginationBar'
-import { DataTableHead, dataRowStyle, DATA_TABLE_CARD, useColumnResize } from '@/components/saris'
+import { DataTableHead, dataRowStyle, DATA_TABLE_CARD, useColumnResize, useSelectionLot, BarreSelectionLot, CaseSelectionLigne, ActionSelectionner, proprietesLigne, type SelectionLot } from '@/components/saris'
 import { libelle as libelleSchema, texteOpt } from '@/lib/validation'
 import { ListePrintSheet, type ColonneExport } from '@/components/print/ListePrintSheet'
 
@@ -102,6 +102,12 @@ export function MedicamentsTab({ canCreate, canUpdate, canDelete }: { canCreate:
   ], [t])
   const rz = useColumnResize({ storageKey: 'ref-medicaments', ready: !isLoading && filtered.length > 0, cellsSelector: 'thead th' })
 
+  const sel = useSelectionLot<MedicamentReference>({
+    idDe: m => m.id,
+    supprimer: id => referentielsApi.medicaments.remove(id),
+    invalider: [QUERY_KEYS.medicaments],
+  })
+
   function openCreate() { setEdit(null); form.reset({ nomGenerique: '', nomCommercial: '', familleThera: '' }); setDrawer(true) }
   function openEdit(m: MedicamentReference) { setEdit(m); form.reset({ nomGenerique: m.nomGenerique, nomCommercial: m.nomCommercial ?? '', familleThera: m.familleThera ?? '' }); setDrawer(true) }
   function closeDrawer() { setDrawer(false); setEdit(null); form.reset() }
@@ -121,6 +127,7 @@ export function MedicamentsTab({ canCreate, canUpdate, canDelete }: { canCreate:
         <TabToolbar search={search} onSearchChange={setSearch} statut={statut} onStatutChange={setStatut}
           onNew={openCreate} newLabel={t('referentiels.medNew')} placeholder={t('referentiels.medSearchPlaceholder')} canCreate={canCreate} onExport={() => setOpenExport(true)} />
       </div>
+      {canDelete && <BarreSelectionLot sel={sel} lignes={filtered} />}
       <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingBottom: '8px' }}>
         <div style={DATA_TABLE_CARD}>
           <table ref={rz.containerRef} style={{ width: '100%', borderCollapse: 'collapse', tableLayout: rz.tableLayout }}>
@@ -143,7 +150,7 @@ export function MedicamentsTab({ canCreate, canUpdate, canDelete }: { canCreate:
                 pagination.pageData.map((m, i) => (
                   <MedRow key={m.id} med={m} striped={i % 2 === 1}
                     onEdit={openEdit} onToggle={() => setConfirm(m)} onDelete={() => setConfirmDel(m)}
-                    canUpdate={canUpdate} canDelete={canDelete} />
+                    canUpdate={canUpdate} canDelete={canDelete} sel={sel} />
                 ))
               )}
             </tbody>
@@ -194,17 +201,20 @@ export function MedicamentsTab({ canCreate, canUpdate, canDelete }: { canCreate:
   )
 }
 
-function MedRow({ med, striped, onEdit, onToggle, onDelete, canUpdate, canDelete }: {
+function MedRow({ med, striped, onEdit, onToggle, onDelete, canUpdate, canDelete, sel }: {
   med: MedicamentReference; striped: boolean; onEdit: (m: MedicamentReference) => void; onToggle: () => void; onDelete: () => void; canUpdate: boolean; canDelete: boolean
+  sel: SelectionLot<MedicamentReference>
 }) {
   const { t } = useTranslation()
   const [hovered, setHovered] = useState(false)
   const showMenu = canUpdate || canDelete
   return (
     <tr onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
-      style={dataRowStyle(striped, hovered)}>
+      {...proprietesLigne(sel, med, dataRowStyle(striped, hovered || sel.estSelectionne(med)))}>
       <td style={{ padding: 'var(--espace-2) var(--espace-4)' }}>
+        <CaseSelectionLigne sel={sel} ligne={med}>
         <span style={{ fontSize: '13px', fontWeight: '500', color: 'var(--texte-primaire)' }}>{med.nomGenerique}</span>
+        </CaseSelectionLigne>
       </td>
       <td style={{ padding: 'var(--espace-2) var(--espace-4)' }}>
         <span style={{ fontSize: '13px', color: med.nomCommercial ? 'var(--texte-secondaire)' : 'var(--texte-tertiaire)', fontStyle: med.nomCommercial ? 'normal' : 'italic' }}>
@@ -219,7 +229,7 @@ function MedRow({ med, striped, onEdit, onToggle, onDelete, canUpdate, canDelete
         ) : <span style={{ color: 'var(--texte-tertiaire)', fontSize: '13px' }}>—</span>}
       </td>
       <td style={{ padding: 'var(--espace-2) var(--espace-4)' }}><StatutBadge statut={med.statut} /></td>
-      <td style={{ padding: 'var(--espace-2) var(--espace-4)', textAlign: 'right', width: '48px' }}>
+      <td style={{ padding: 'var(--espace-2) var(--espace-4)', textAlign: 'right', width: '48px' }} onClick={e => e.stopPropagation()}>
         {showMenu && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -228,6 +238,8 @@ function MedRow({ med, striped, onEdit, onToggle, onDelete, canUpdate, canDelete
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" style={{ minWidth: '160px', fontSize: '13px' }}>
+              {canDelete && <ActionSelectionner onClick={() => sel.entrer(med)} />}
+              {canDelete && <DropdownMenuSeparator />}
               {canUpdate && (
                 <DropdownMenuItem onClick={() => onEdit(med)} style={{ gap: '8px', cursor: 'pointer' }}><Pencil size={13} /> {t('referentiels.actionEdit')}</DropdownMenuItem>
               )}

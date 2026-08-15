@@ -12,10 +12,10 @@ import { Button } from '@workspace/ui/components/button'
 import { Input }  from '@workspace/ui/components/input'
 import { Label }  from '@workspace/ui/components/label'
 import type { Site } from '@cms-saris/types'
-import { useSites, useCreateSite, useUpdateSite, useToggleSiteStatut, useDeleteSite } from '../hooks/useReferentiels'
+import { useSites, useCreateSite, useUpdateSite, useToggleSiteStatut, QUERY_KEYS, useDeleteSite } from '../hooks/useReferentiels'
 import { usePagination } from '../hooks/usePagination'
 import { useRowsPerPage } from '@/hooks/useRowsPerPage'
-import { isActif }         from '../api/referentiels.api'
+import { isActif, referentielsApi }         from '../api/referentiels.api'
 import { TabToolbar }      from '../components/TabToolbar'
 import { StatutBadge }     from '../components/badges/StatutBadge'
 import { SkeletonRows }    from '../components/SkeletonRows'
@@ -23,7 +23,7 @@ import { EmptyState }      from '../components/EmptyState'
 import { ConfirmDialog }   from '../components/ConfirmDialog'
 import { DrawerShell }     from '../components/DrawerShell'
 import { PaginationBar }   from '../components/PaginationBar'
-import { DataTableHead, dataRowStyle, DATA_TABLE_CARD, useColumnResize } from '@/components/saris'
+import { DataTableHead, dataRowStyle, DATA_TABLE_CARD, useColumnResize, useSelectionLot, BarreSelectionLot, CaseSelectionLigne, ActionSelectionner, proprietesLigne, type SelectionLot } from '@/components/saris'
 import { codeReferentiel, libelle as libelleSchema, texteOpt } from '@/lib/validation'
 import { ListePrintSheet, type ColonneExport } from '@/components/print/ListePrintSheet'
 
@@ -107,6 +107,12 @@ export function SitesTab({ canCreate, canUpdate, canDelete }: { canCreate: boole
   ], [t])
   const rz = useColumnResize({ storageKey: 'ref-sites', ready: !isLoading && filtered.length > 0, cellsSelector: 'thead th' })
 
+  const sel = useSelectionLot<Site>({
+    idDe: x => x.id,
+    supprimer: id => referentielsApi.sites.remove(id),
+    invalider: [QUERY_KEYS.sites],
+  })
+
   function openCreate() { setEdit(null); form.reset({ code: '', libelle: '', localisation: '' }); setDrawer(true) }
   function openEdit(s: Site) { setEdit(s); form.reset({ code: s.code, libelle: s.libelle, localisation: s.localisation ?? '' }); setDrawer(true) }
   function closeDrawer() { setDrawer(false); setEdit(null); form.reset() }
@@ -131,6 +137,7 @@ export function SitesTab({ canCreate, canUpdate, canDelete }: { canCreate: boole
         <TabToolbar search={search} onSearchChange={setSearch} statut={statut} onStatutChange={setStatut}
           onNew={openCreate} newLabel={t('referentiels.siteNew')} placeholder={t('referentiels.siteSearchPlaceholder')} canCreate={canCreate} onExport={() => setOpenExport(true)} />
       </div>
+      {canDelete && <BarreSelectionLot sel={sel} lignes={filtered} />}
       <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingBottom: '8px' }}>
         <div style={DATA_TABLE_CARD}>
           <table ref={rz.containerRef} style={{ width: '100%', borderCollapse: 'collapse', tableLayout: rz.tableLayout }}>
@@ -153,7 +160,7 @@ export function SitesTab({ canCreate, canUpdate, canDelete }: { canCreate: boole
                 pagination.pageData.map((s, i) => (
                   <SiteRow key={s.id} site={s} striped={i % 2 === 1}
                     onEdit={openEdit} onToggle={() => setConfirm(s)} onDelete={() => setConfirmDel(s)}
-                    canUpdate={canUpdate} canDelete={canDelete} />
+                    canUpdate={canUpdate} canDelete={canDelete} sel={sel} />
                 ))
               )}
             </tbody>
@@ -203,24 +210,27 @@ export function SitesTab({ canCreate, canUpdate, canDelete }: { canCreate: boole
   )
 }
 
-function SiteRow({ site, striped, onEdit, onToggle, onDelete, canUpdate, canDelete }: {
+function SiteRow({ site, striped, onEdit, onToggle, onDelete, canUpdate, canDelete, sel }: {
   site: Site; striped: boolean; onEdit: (s: Site) => void; onToggle: () => void; onDelete: () => void; canUpdate: boolean; canDelete: boolean
+  sel: SelectionLot<Site>
 }) {
   const { t } = useTranslation()
   const [hovered, setHovered] = useState(false)
   const showMenu = canUpdate || canDelete
   return (
     <tr onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
-      style={dataRowStyle(striped, hovered)}>
+      {...proprietesLigne(sel, site, dataRowStyle(striped, hovered || sel.estSelectionne(site)))}>
       <td style={{ padding: 'var(--espace-2) var(--espace-4)', width: '130px' }}>
+        <CaseSelectionLigne sel={sel} ligne={site}>
         <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', color: 'var(--texte-tertiaire)' }}>{site.code}</span>
+        </CaseSelectionLigne>
       </td>
       <td style={{ padding: 'var(--espace-2) var(--espace-4)' }}>
         <span style={{ fontSize: '13px', fontWeight: '500', color: 'var(--texte-primaire)' }}>{site.libelle}</span>
       </td>
       <td style={{ padding: 'var(--espace-2) var(--espace-4)', color: 'var(--texte-secondaire)', fontSize: '13px' }}>{site.localisation ?? '—'}</td>
       <td style={{ padding: 'var(--espace-2) var(--espace-4)' }}><StatutBadge statut={site.statut} /></td>
-      <td style={{ padding: 'var(--espace-2) var(--espace-4)', textAlign: 'right', width: '48px' }}>
+      <td style={{ padding: 'var(--espace-2) var(--espace-4)', textAlign: 'right', width: '48px' }} onClick={e => e.stopPropagation()}>
         {showMenu && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -229,6 +239,8 @@ function SiteRow({ site, striped, onEdit, onToggle, onDelete, canUpdate, canDele
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" style={{ minWidth: '160px', fontSize: '13px' }}>
+              {canDelete && <ActionSelectionner onClick={() => sel.entrer(site)} />}
+              {canDelete && <DropdownMenuSeparator />}
               {canUpdate && (
                 <DropdownMenuItem onClick={() => onEdit(site)} style={{ gap: '8px', cursor: 'pointer' }}><Pencil size={13} /> {t('referentiels.actionEdit')}</DropdownMenuItem>
               )}

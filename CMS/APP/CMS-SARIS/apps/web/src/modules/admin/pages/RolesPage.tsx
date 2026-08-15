@@ -10,18 +10,19 @@ import { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Shield, ShieldCheck, Plus, Trash2, ChevronRight, ChevronLeft,
-  Lock, Users as UsersIcon, Search, Check, AlertTriangle,
+  Lock, Users as UsersIcon, Search, Check, AlertTriangle, ListChecks,
 } from 'lucide-react'
 import {
   PageHeader, Card, Button, StatCard, StatusPill, EmptyState,
-  IconButton, Skeleton, Field, TextInput, UserAvatar, SegmentedTabs, Modal, CheckBox } from '@/components/saris'
+  IconButton, Skeleton, Field, TextInput, UserAvatar, SegmentedTabs, Modal, CheckBox,
+  useSelectionLot, BarreSelectionLot } from '@/components/saris'
 import {
   useRoles, usePermissions as useAdminPermissions, useRoleUtilisateurs,
-  useCreateRole, useUpdateRole, useDeleteRole,
+  useCreateRole, useUpdateRole, useDeleteRole, ADMIN_KEYS,
 } from '../hooks/useAdmin'
 import { usePermissions } from '@/hooks/usePermissions'
 import { useIsCompact } from '@/hooks/useMediaQuery'
-import type { RoleAdmin, PermissionDb } from '../api/admin.api'
+import { adminApi, type RoleAdmin, type PermissionDb } from '../api/admin.api'
 import type { PermissionCode } from '@cms-saris/types'
 import {
   PERMISSION_LECTURES_IMPLIQUEES, PERMISSION_DEPENDANTS, completerLectures,
@@ -54,6 +55,15 @@ export function RolesPage({ embedded = false }: { embedded?: boolean } = {}) {
   }, [roles, selectedId, isCompact])
 
   const selected = roles.find(r => r.id === selectedId) ?? null
+
+  // Sélection en lot — les rôles système restent hors de portée, comme pour la
+  // suppression unitaire (bouton masqué sur `isSystem` dans l'éditeur).
+  const sel = useSelectionLot<RoleAdmin>({
+    idDe: r => r.id,
+    supprimer: id => adminApi.roles.remove(id),
+    invalider: [ADMIN_KEYS.roles],
+    verrouillee: r => r.isSystem,
+  })
 
   // KPI
   const stats = useMemo(() => ({
@@ -115,6 +125,11 @@ export function RolesPage({ embedded = false }: { embedded?: boolean } = {}) {
         {(!isCompact || !selected) && (
         <Card style={{ width: isCompact ? '100%' : 320, height: isCompact ? '70vh' : undefined, flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
           <Card.Header compact title={`${t('admin.roles')} (${roles.length})`} />
+          {sel.actif && (
+            <div style={{ padding: 'var(--espace-2) var(--espace-2) 0' }}>
+              <BarreSelectionLot sel={sel} lignes={roles} />
+            </div>
+          )}
           <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--espace-2)' }}>
             {lr ? (
               <div style={{ padding: 'var(--espace-2)' }}>
@@ -132,7 +147,11 @@ export function RolesPage({ embedded = false }: { embedded?: boolean } = {}) {
                   key={r.id}
                   role={r}
                   selected={r.id === selectedId}
-                  onClick={() => setSelectedId(r.id)}
+                  onClick={() => (sel.actif ? sel.basculer(r) : setSelectedId(r.id))}
+                  coche={sel.actif ? sel.estSelectionne(r) : undefined}
+                  cochable={sel.selectionnable(r)}
+                  onCocher={() => sel.basculer(r)}
+                  onSelectionner={canDeleteRole && !r.isSystem ? () => sel.entrer(r) : undefined}
                 />
               ))
             )}
@@ -184,20 +203,37 @@ export function RolesPage({ embedded = false }: { embedded?: boolean } = {}) {
 
 // ── Item liste rôles ──────────────────────────────────────────────────────────
 
-function RoleListItem({ role, selected, onClick }: {
+function RoleListItem({ role, selected, onClick, coche, cochable, onCocher, onSelectionner }: {
   role: RoleAdmin
   selected: boolean
   onClick: () => void
+  /** `undefined` = mode sélection inactif : aucune case n'est affichée. */
+  coche?: boolean
+  cochable?: boolean
+  onCocher?: () => void
+  /** `undefined` = ce rôle ne peut pas ouvrir le mode (rôle système, ou droit absent). */
+  onSelectionner?: () => void
 }) {
   const { t } = useTranslation()
   return (
+    // Conteneur : la case à cocher ne peut pas vivre DANS le bouton (un bouton
+    // dans un bouton n'est pas du HTML valide et casse le clavier).
+    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--espace-1)', marginBottom: 4 }}>
+      {coche !== undefined && (
+        <CheckBox
+          size={15}
+          checked={coche}
+          disabled={!cochable}
+          onChange={() => onCocher?.()}
+          aria-label={t('selection.selectRow')}
+        />
+      )}
     <button
       onClick={onClick}
       style={{
         width:        '100%',
         textAlign:    'left',
         padding:      'var(--espace-3)',
-        marginBottom: 4,
         borderRadius: 'var(--radius-md)',
         background:   selected ? 'var(--ap-50)' : 'transparent',
         border:       `1.5px solid ${selected ? 'var(--ap-300)' : 'transparent'}`,
@@ -251,6 +287,18 @@ function RoleListItem({ role, selected, onClick }: {
         flexShrink: 0,
       }} />
     </button>
+      {/* Entrée dans le mode sélection — masquée une fois le mode ouvert, la case
+          à cocher prenant alors le relais. */}
+      {coche === undefined && onSelectionner && (
+        <IconButton
+          aria-label={t('selection.enterMode')}
+          icon={<ListChecks size={14} />}
+          tone="neutral"
+          size="sm"
+          onClick={onSelectionner}
+        />
+      )}
+    </div>
   )
 }
 

@@ -24,10 +24,11 @@ import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Users, Plus, Shield, KeyRound, UserCheck, UserX, LogIn,
-  Stethoscope, Loader2, ChevronRight, Trash2, AlertTriangle, Pencil, Download,
+  Stethoscope, Loader2, ChevronRight, Trash2, AlertTriangle, Pencil, Download, ListChecks,
 } from 'lucide-react'
 import { PageHeader, Toolbar, Card, Button, StatCard,
   StatusPill, UserAvatar, EmptyState, Skeleton, IconButton, SelectBox, PaginationBar, useColumnResize, Modal,
+  useSelectionLot, BarreSelectionLot, CheckBox,
 } from '@/components/saris'
 import { usePagination } from '@/hooks/usePagination'
 import { useRowsPerPage } from '@/hooks/useRowsPerPage'
@@ -43,7 +44,8 @@ import { UtilisateurDrawer }      from '../components/UtilisateurDrawer'
 import { ResetPasswordDialog }    from '../components/ResetPasswordDialog'
 import { FichePersonnelModal }    from '../components/FichePersonnelModal'
 import { ListePrintSheet, type ColonneExport } from '@/components/print/ListePrintSheet'
-import type { UtilisateurAdmin }  from '../api/admin.api'
+import { adminApi, type UtilisateurAdmin } from '../api/admin.api'
+import { ADMIN_KEYS } from '../hooks/useAdmin'
 import { labelStatut } from '@/config/labels'
 
 /**
@@ -537,6 +539,23 @@ function UserTableSection({
   const tableMinW = isCompact ? 720 : undefined
   const pagination = usePagination(personnes, useRowsPerPage())
   const rz = useColumnResize({ storageKey: 'admin-utilisateurs', ready: !isLoading && personnes.length > 0, cellsSelector: ':scope > *' })
+
+  // Sélection en lot : seuls les comptes SONT supprimables. Une personne sans accès
+  // n'a rien à supprimer ici (sa fiche se gère dans Personnel), et son propre compte
+  // reste hors de portée — exactement la règle déjà appliquée au bouton unitaire.
+  const sel = useSelectionLot<Personne>({
+    idDe: p => p.cle,
+    supprimer: id => {
+      const cible = personnes.find(p => p.cle === id)?.compte
+      if (!cible) return Promise.reject(new Error('compte introuvable'))
+      return adminApi.utilisateurs.remove(cible.id)
+    },
+    invalider: [ADMIN_KEYS.utilisateurs],
+    verrouillee: p => !p.compte || p.compte.id === meId,
+  })
+
+  // Le gabarit de grille ne change JAMAIS : la case à cocher du mode sélection vit
+  // dans la première cellule, pas dans une colonne à elle.
   const cols = rz.gridTemplate ?? USER_COLS
 
   return (
@@ -548,6 +567,8 @@ function UserTableSection({
       padding: 'var(--espace-3) var(--espace-6) var(--espace-6)',
       gap: 'var(--espace-3)',
     }}>
+      <BarreSelectionLot sel={sel} lignes={personnes} />
+
       {/* Card du tableau avec scroll interne (hauteur fixe utilisable en mobile) */}
       <div style={{
         flex: isCompact ? 'none' : 1,
@@ -630,14 +651,33 @@ function UserTableSection({
                 : undefined}
             />
           ) : (
-            pagination.pageData.map((p, i) => (
-              p.compte ? (
+            pagination.pageData.map((p, i) => {
+              // La case se glisse DANS la première cellule (à côté de l'avatar) : la
+              // grille garde exactement ses colonnes, en mode sélection comme au repos.
+              // Elle reste présente mais inerte sur les personnes sans accès, dont il
+              // n'y a pas de compte à supprimer ici.
+              const caseSelection = sel.actif ? (
+                <span onClick={e => e.stopPropagation()} style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>
+                  <CheckBox
+                    size={15}
+                    checked={sel.estSelectionne(p)}
+                    disabled={!sel.selectionnable(p)}
+                    onChange={() => sel.basculer(p)}
+                    aria-label={t('selection.selectRow')}
+                  />
+                </span>
+              ) : null
+              return p.compte ? (
                 <UserRow
                   key={p.cle}
                   u={p.compte}
                   metier={p.metier}
                   cols={cols}
                   striped={i % 2 === 1}
+                  selected={sel.estSelectionne(p)}
+                  caseSelection={caseSelection}
+                  enSelection={sel.actif}
+                  onBasculer={() => sel.basculer(p)}
                   canUpdate={canUpdate}
                   canResetPassword={canResetPassword}
                   canDelete={canDelete && p.compte.id !== meId}
@@ -645,6 +685,7 @@ function UserTableSection({
                   onResetPassword={onResetPassword}
                   onDelete={onDelete}
                   onOpenFiche={() => onOpenFiche(p)}
+                  onSelectionner={() => sel.entrer(p)}
                 />
               ) : (
                 <PersonneSansAccesRow
@@ -652,6 +693,7 @@ function UserTableSection({
                   personne={p}
                   cols={cols}
                   striped={i % 2 === 1}
+                  caseSelection={caseSelection}
                   canDonnerAcces={canCreate && canVoirComptes}
                   onDonnerAcces={() => onDonnerAcces(p)}
                   canUpdate={canUpdate}
@@ -659,7 +701,7 @@ function UserTableSection({
                   canVoirComptes={canVoirComptes}
                 />
               )
-            ))
+            })
           )}
         </div>
       </div>
@@ -680,11 +722,12 @@ function UserTableSection({
  * à une donnée manquante.
  */
 function PersonneSansAccesRow({
-  personne, cols, striped, canDonnerAcces, onDonnerAcces, canUpdate, onOpenFiche, canVoirComptes,
+  personne, cols, striped, caseSelection, canDonnerAcces, onDonnerAcces, canUpdate, onOpenFiche, canVoirComptes,
 }: {
   personne: Personne
   cols: string
   striped: boolean
+  caseSelection: React.ReactNode
   canDonnerAcces: boolean
   onDonnerAcces: () => void
   canUpdate: boolean
@@ -708,6 +751,7 @@ function PersonneSansAccesRow({
     >
       {/* Personne */}
       <div role="cell" style={{ display: 'flex', alignItems: 'center', gap: 'var(--espace-3)', minWidth: 0 }}>
+        {caseSelection}
         <UserAvatar userId={personne.personnelId ?? personne.cle} nom={personne.nom} prenom={personne.prenom} size={34} tone="neutral" />
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{
@@ -794,13 +838,19 @@ function PersonneSansAccesRow({
 }
 
 function UserRow({
-  u, metier, cols, striped, canUpdate, canResetPassword, canDelete, onOpenDetail, onResetPassword, onDelete, onOpenFiche,
+  u, metier, cols, striped, selected, caseSelection, enSelection, onBasculer,
+  canUpdate, canResetPassword, canDelete, onOpenDetail, onResetPassword, onDelete, onOpenFiche, onSelectionner,
 }: {
   u: UtilisateurAdmin
   /** Métier de la personne (Sage-femme, Technicien…). Distinct du rôle d'accès. */
   metier: string | null
   cols: string
   striped: boolean
+  selected: boolean
+  caseSelection: React.ReactNode
+  /** Pendant le mode sélection, le clic sur la ligne coche au lieu d'ouvrir le détail. */
+  enSelection: boolean
+  onBasculer: () => void
   canUpdate: boolean
   canResetPassword: boolean
   canDelete: boolean
@@ -808,6 +858,7 @@ function UserRow({
   onResetPassword: (u: UtilisateurAdmin) => void
   onDelete: (u: UtilisateurAdmin) => void
   onOpenFiche: () => void
+  onSelectionner: () => void
 }) {
   const { t } = useTranslation()
   const setStatut = useSetStatut(u.id)
@@ -821,17 +872,18 @@ function UserRow({
         gap: 'var(--espace-3)',
         padding: 'var(--espace-3) var(--espace-4)',
         alignItems: 'center',
-        background: striped ? 'var(--fond-surface-2)' : 'transparent',
+        background: selected ? 'var(--ap-50)' : striped ? 'var(--fond-surface-2)' : 'transparent',
         borderBottom: '1px solid var(--bordure-legere)',
         cursor: 'pointer',
         transition: 'background 0.12s',
       }}
-      onClick={() => onOpenDetail(u.id)}
+      onClick={() => (enSelection ? onBasculer() : onOpenDetail(u.id))}
       onMouseEnter={e => (e.currentTarget.style.background = 'var(--ap-50)')}
-      onMouseLeave={e => (e.currentTarget.style.background = striped ? 'var(--fond-surface-2)' : 'transparent')}
+      onMouseLeave={e => (e.currentTarget.style.background = selected ? 'var(--ap-50)' : striped ? 'var(--fond-surface-2)' : 'transparent')}
     >
       {/* Compte */}
       <div role="cell" style={{ display: 'flex', alignItems: 'center', gap: 'var(--espace-3)', minWidth: 0 }}>
+        {caseSelection}
         {u.personnelMedical ? (
           <UserAvatar userId={u.id} nom={u.personnelMedical.nom} prenom={u.personnelMedical.prenom} size={34} />
         ) : (
@@ -944,6 +996,17 @@ function UserRow({
             tone="danger"
             size="sm"
             onClick={() => onDelete(u)}
+          />
+        )}
+        {/* Entrée dans le mode sélection. Cette liste n'a pas de menu ⋮ : ses actions
+            sont des icônes, donc celle-ci en est une aussi. */}
+        {canDelete && (
+          <IconButton
+            aria-label={t('selection.enterMode')}
+            icon={<ListChecks size={14} />}
+            tone="neutral"
+            size="sm"
+            onClick={onSelectionner}
           />
         )}
         <IconButton

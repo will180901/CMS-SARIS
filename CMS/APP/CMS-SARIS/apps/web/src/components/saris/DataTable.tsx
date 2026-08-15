@@ -49,6 +49,11 @@ export interface DataColumn {
  */
 export function DataTableHead({ columns, resize }: { columns: DataColumn[]; resize?: ColumnResize }) {
   const last = columns.length - 1
+  // Garde-fou : des largeurs mesurées pour un AUTRE nombre de colonnes seraient
+  // appliquées décalées d'un cran (colonne 0 recevant la largeur de la colonne 1…),
+  // avec débordement horizontal à la clé. Tant que le compte ne correspond pas, on
+  // repasse en largeurs automatiques — le temps que `useColumnResize` re-mesure.
+  const widths = resize?.widths?.length === columns.length ? resize.widths : null
   return (
     <thead>
       <tr style={{ background: 'var(--fond-surface-2)', borderBottom: '1px solid var(--bordure-legere)' }}>
@@ -70,7 +75,7 @@ export function DataTableHead({ columns, resize }: { columns: DataColumn[]; resi
               top: 0,
               zIndex: 5,
               background: 'var(--fond-surface-2)',
-              width: resize?.widths?.[i] ?? c.width,
+              width: widths?.[i] ?? c.width,
             }}
           >
             {c.label}

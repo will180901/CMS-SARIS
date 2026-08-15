@@ -1,16 +1,18 @@
 import { useState, useMemo, useEffect, useRef }  from 'react'
 import { useNavigate }        from 'react-router-dom'
 import { useTranslation }     from 'react-i18next'
-import { Search, X, Users, AlertTriangle, ChevronRight, ChevronLeft, Camera, Trash2, Download } from 'lucide-react'
+import { Search, X, Users, AlertTriangle, ChevronRight, ChevronLeft, Camera, Trash2, Download, ListChecks } from 'lucide-react'
 import { Input }              from '@workspace/ui/components/input'
 import { Button }             from '@workspace/ui/components/button'
 import { toast }              from '@workspace/ui/components/sonner'
-import { SelectBox, PaginationBar, EmptyState, PhotoCropModal, TILE_TONE_MAP } from '@/components/saris'
+import { SelectBox, PaginationBar, EmptyState, PhotoCropModal, TILE_TONE_MAP, CheckBox, useSelectionLot, BarreSelectionLot } from '@/components/saris'
 import { usePagination }      from '@/hooks/usePagination'
 import { useRowsPerPage }     from '@/hooks/useRowsPerPage'
 import { useIsCompact }       from '@/hooks/useMediaQuery'
+import { usePermissions }     from '@/hooks/usePermissions'
 import { usePersistedState }  from '@/hooks/usePersistedState'
-import { usePatients, useUploadPatientPhoto, useRemovePatientPhoto } from '../hooks/usePatients'
+import { usePatients, useUploadPatientPhoto, useRemovePatientPhoto, PATIENTS_KEY } from '../hooks/usePatients'
+import { patientsApi }        from '../api/patients.api'
 import { useCategoriesPatient } from '@/modules/referentiels/hooks/useReferentiels'
 import { CategorieBadge, PatientAvatar }  from '../components/CategorieBadge'
 import { StatutBadge }        from '@/modules/referentiels/components/badges/StatutBadge'
@@ -275,13 +277,19 @@ function GravitePill({ gravite }: { gravite: string }) {
 // ── Ligne patient ─────────────────────────────────────────────────────────────
 
 function PatientRow({
-  patient, selected, onClick,
+  patient, selected, onClick, coche, onCocher, onSelectionner,
 }: {
   patient:  PatientListItem
   selected: boolean
   onClick:  () => void
+  /** `undefined` = mode sélection inactif : aucune case n'est affichée. */
+  coche?:   boolean
+  onCocher?: () => void
+  /** `undefined` = droit de suppression absent : pas d'entrée dans le mode. */
+  onSelectionner?: () => void
 }) {
   const { t } = useTranslation()
+  const [survol, setSurvol] = useState(false)
   const id  = patient.identite
   const hasCritical = patient.allergies.some(a => a.gravite === 'SEVERE') ||
                       patient.alertesMedicales.some(a => a.gravite === 'CRITIQUE')
@@ -289,6 +297,8 @@ function PatientRow({
   return (
     <div
       onClick={onClick}
+      onMouseEnter={() => setSurvol(true)}
+      onMouseLeave={() => setSurvol(false)}
       style={{
         display:       'flex',
         alignItems:    'center',
@@ -301,6 +311,12 @@ function PatientRow({
         transition:    'background 0.1s',
       }}
     >
+      {coche !== undefined && (
+        <span onClick={e => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+          <CheckBox size={15} checked={coche} onChange={() => onCocher?.()} aria-label={t('selection.selectRow')} />
+        </span>
+      )}
+
       {/* Avatar + indicateur critique */}
       <div style={{ position: 'relative', flexShrink: 0 }}>
         {id ? (
@@ -339,7 +355,25 @@ function PatientRow({
         </div>
       </div>
 
-      <ChevronRight size={13} style={{ color: 'var(--texte-tertiaire)', flexShrink: 0 }} />
+      {/* Entrée dans le mode sélection — cette liste n'a pas de menu ⋮, le bouton
+          apparaît donc au survol de la ligne, à la place du chevron. */}
+      {coche === undefined && onSelectionner && survol ? (
+        <button
+          type="button"
+          title={t('selection.enterMode')}
+          aria-label={t('selection.enterMode')}
+          onClick={e => { e.stopPropagation(); onSelectionner() }}
+          style={{
+            flexShrink: 0, width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            borderRadius: 'var(--radius-sm)', background: 'var(--fond-surface)',
+            border: '1px solid var(--bordure-normale)', color: 'var(--texte-secondaire)', cursor: 'pointer',
+          }}
+        >
+          <ListChecks size={14} />
+        </button>
+      ) : (
+        <ChevronRight size={13} style={{ color: 'var(--texte-tertiaire)', flexShrink: 0 }} />
+      )}
     </div>
   )
 }
@@ -377,6 +411,17 @@ export function PatientsPage() {
 
   const pagination = usePagination(filtered, useRowsPerPage())
   const selectedPatient = filtered.find(p => p.id === selected) ?? null
+
+  // Suppression en lot des dossiers — même permission et même endpoint que la
+  // suppression unitaire du dossier ; le serveur refuse (409) tout dossier qui
+  // porte un historique clinique, et ces dossiers restent cochés.
+  const { has } = usePermissions()
+  const canDelete = has('patient.delete')
+  const sel = useSelectionLot<PatientListItem>({
+    idDe: p => p.id,
+    supprimer: id => patientsApi.remove(id),
+    invalider: [PATIENTS_KEY],
+  })
 
   const [openExport, setOpenExport] = useState(false)
 
@@ -526,6 +571,12 @@ export function PatientsPage() {
           flexDirection: 'column',
           minHeight:    0,
         }}>
+          {sel.actif && (
+            <div style={{ padding: 'var(--espace-2) var(--espace-2) 0' }}>
+              <BarreSelectionLot sel={sel} lignes={filtered} />
+            </div>
+          )}
+
           {/* Zone scrollable */}
           <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
             {isLoading ? (
@@ -555,7 +606,10 @@ export function PatientsPage() {
                   key={p.id}
                   patient={p}
                   selected={p.id === selected}
-                  onClick={() => setSelected(p.id === selected ? null : p.id)}
+                  onClick={() => (sel.actif ? sel.basculer(p) : setSelected(p.id === selected ? null : p.id))}
+                  coche={sel.actif ? sel.estSelectionne(p) : undefined}
+                  onCocher={() => sel.basculer(p)}
+                  onSelectionner={canDelete ? () => sel.entrer(p) : undefined}
                 />
               ))
             )}

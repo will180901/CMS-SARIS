@@ -12,10 +12,10 @@ import { Button } from '@workspace/ui/components/button'
 import { Input }  from '@workspace/ui/components/input'
 import { Label }  from '@workspace/ui/components/label'
 import type { MotifConsultation } from '@cms-saris/types'
-import { useMotifs, useCreateMotif, useUpdateMotif, useToggleMotifStatut, useDeleteMotif } from '../hooks/useReferentiels'
+import { useMotifs, useCreateMotif, useUpdateMotif, useToggleMotifStatut, QUERY_KEYS, useDeleteMotif } from '../hooks/useReferentiels'
 import { usePagination } from '../hooks/usePagination'
 import { useRowsPerPage } from '@/hooks/useRowsPerPage'
-import { isActif }         from '../api/referentiels.api'
+import { isActif, referentielsApi }         from '../api/referentiels.api'
 import { TabToolbar }      from '../components/TabToolbar'
 import { StatutBadge }     from '../components/badges/StatutBadge'
 import { SkeletonRows }    from '../components/SkeletonRows'
@@ -23,7 +23,7 @@ import { EmptyState }      from '../components/EmptyState'
 import { ConfirmDialog }   from '../components/ConfirmDialog'
 import { DrawerShell }     from '../components/DrawerShell'
 import { PaginationBar }   from '../components/PaginationBar'
-import { DataTableHead, dataRowStyle, DATA_TABLE_CARD, useColumnResize, CheckBox } from '@/components/saris'
+import { DataTableHead, dataRowStyle, DATA_TABLE_CARD, useColumnResize, useSelectionLot, BarreSelectionLot, CaseSelectionLigne, ActionSelectionner, proprietesLigne, type SelectionLot, CheckBox } from '@/components/saris'
 import { codeReferentiel, libelle as libelleSchema } from '@/lib/validation'
 import { ListePrintSheet, type ColonneExport } from '@/components/print/ListePrintSheet'
 
@@ -101,6 +101,12 @@ export function MotifsTab({ canCreate, canUpdate, canDelete }: { canCreate: bool
   ], [t])
   const rz = useColumnResize({ storageKey: 'ref-motifs', ready: !isLoading && filtered.length > 0, cellsSelector: 'thead th' })
 
+  const sel = useSelectionLot<MotifConsultation>({
+    idDe: x => x.id,
+    supprimer: id => referentielsApi.motifs.remove(id),
+    invalider: [QUERY_KEYS.motifs],
+  })
+
   function openCreate() { setEdit(null); form.reset({ code: '', libelle: '', triageAllege: false }); setDrawer(true) }
   function openEdit(m: MotifConsultation) { setEdit(m); form.reset({ code: m.code, libelle: m.libelle, triageAllege: !!m.triageAllege }); setDrawer(true) }
   function closeDrawer() { setDrawer(false); setEdit(null); form.reset() }
@@ -122,6 +128,7 @@ export function MotifsTab({ canCreate, canUpdate, canDelete }: { canCreate: bool
       </div>
 
       {/* Zone scrollable */}
+      {canDelete && <BarreSelectionLot sel={sel} lignes={filtered} />}
       <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingBottom: '8px' }}>
         <div style={DATA_TABLE_CARD}>
           <table ref={rz.containerRef} style={{ width: '100%', borderCollapse: 'collapse', tableLayout: rz.tableLayout }}>
@@ -143,7 +150,7 @@ export function MotifsTab({ canCreate, canUpdate, canDelete }: { canCreate: bool
                 pagination.pageData.map((m, i) => (
                   <MotifRow key={m.id} motif={m} striped={i % 2 === 1}
                     onEdit={openEdit} onToggle={() => setConfirm(m)} onDelete={() => setConfirmDel(m)}
-                    canUpdate={canUpdate} canDelete={canDelete} />
+                    canUpdate={canUpdate} canDelete={canDelete} sel={sel} />
                 ))
               )}
             </tbody>
@@ -195,17 +202,20 @@ export function MotifsTab({ canCreate, canUpdate, canDelete }: { canCreate: bool
   )
 }
 
-function MotifRow({ motif, striped, onEdit, onToggle, onDelete, canUpdate, canDelete }: {
+function MotifRow({ motif, striped, onEdit, onToggle, onDelete, canUpdate, canDelete, sel }: {
   motif: MotifConsultation; striped: boolean; onEdit: (m: MotifConsultation) => void; onToggle: () => void; onDelete: () => void; canUpdate: boolean; canDelete: boolean
+  sel: SelectionLot<MotifConsultation>
 }) {
   const { t } = useTranslation()
   const showMenu = canUpdate || canDelete
   const [hovered, setHovered] = useState(false)
   return (
     <tr onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
-      style={dataRowStyle(striped, hovered)}>
+      {...proprietesLigne(sel, motif, dataRowStyle(striped, hovered || sel.estSelectionne(motif)))}>
       <td style={{ padding: 'var(--espace-2) var(--espace-4)', width: '200px' }}>
+        <CaseSelectionLigne sel={sel} ligne={motif}>
         <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', color: 'var(--texte-tertiaire)' }}>{motif.code}</span>
+        </CaseSelectionLigne>
       </td>
       <td style={{ padding: 'var(--espace-2) var(--espace-4)' }}>
         <span style={{ fontSize: '13px', fontWeight: '500', color: 'var(--texte-primaire)' }}>{motif.libelle}</span>
@@ -216,7 +226,7 @@ function MotifRow({ motif, striped, onEdit, onToggle, onDelete, canUpdate, canDe
         )}
       </td>
       <td style={{ padding: 'var(--espace-2) var(--espace-4)' }}><StatutBadge statut={motif.statut} /></td>
-      <td style={{ padding: 'var(--espace-2) var(--espace-4)', textAlign: 'right', width: '48px' }}>
+      <td style={{ padding: 'var(--espace-2) var(--espace-4)', textAlign: 'right', width: '48px' }} onClick={e => e.stopPropagation()}>
         {showMenu && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -225,6 +235,8 @@ function MotifRow({ motif, striped, onEdit, onToggle, onDelete, canUpdate, canDe
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" style={{ minWidth: '160px', fontSize: '13px' }}>
+              {canDelete && <ActionSelectionner onClick={() => sel.entrer(motif)} />}
+              {canDelete && <DropdownMenuSeparator />}
               {canUpdate && (
                 <DropdownMenuItem onClick={() => onEdit(motif)} style={{ gap: '8px', cursor: 'pointer' }}><Pencil size={13} /> {t('referentiels.actionEdit')}</DropdownMenuItem>
               )}
