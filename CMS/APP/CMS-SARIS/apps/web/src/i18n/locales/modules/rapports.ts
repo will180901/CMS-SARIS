@@ -38,6 +38,21 @@ export const rapports = {
     statReposHint: '{{count}} consultation(s) avec repos',
 
     // ── Blocs d'analyse ──────────────────────────────────────────────
+    syntheseTitle: 'Ce qu\'il faut retenir',
+    tendanceTitle: 'Tendance sur les 6 dernieres periodes',
+    syntheseActes: '{{count}} consultation(s) sur la periode.',
+    syntheseEvolution: 'Soit {{signe}}{{pct}} % par rapport a la periode precedente ({{avant}}).',
+    synthesePremiere: 'Premiere periode mesuree : aucun point de comparaison disponible.',
+    syntheseDominant: '{{libelle}} represente {{pct}} % des actes.',
+    syntheseRepos: '{{jours}} jour(s) de repos prescrits, sur {{count}} consultation(s).',
+    syntheseSansRepos: 'Aucun jour de repos prescrit.',
+    alerte: {
+      ACTIVITE_HAUSSE: 'Activite en hausse de {{pct}} % : {{apres}} consultations contre {{avant}} sur la periode precedente.',
+      ACTIVITE_BAISSE: 'Activite en baisse de {{pct}} % : {{apres}} consultations contre {{avant}} sur la periode precedente.',
+      AT_CONCENTRATION: 'Accidents du travail concentres : {{cas}} actes au departement {{departement}}, pour {{accidents}} accident(s) declares.',
+      PATHOLOGIE_HAUSSE: '{{libelle}} en forte hausse : {{apres}} cas contre {{avant}} sur la periode precedente.',
+      REPOS_HAUSSE: 'Absenteisme prescrit en hausse : {{apres}} jours contre {{avant}} sur la periode precedente.',
+    },
     byType: 'Par type de consultation',
     byCategory: 'Par catégorie de patient',
     byDepartment: 'Par département / direction',
@@ -79,6 +94,21 @@ export const rapports = {
     statReposHint: '{{count}} consultation(s) with rest',
 
     // ── Analysis blocks ──────────────────────────────────────────────
+    syntheseTitle: 'Key takeaways',
+    tendanceTitle: 'Trend over the last 6 periods',
+    syntheseActes: '{{count}} consultation(s) over the period.',
+    syntheseEvolution: 'That is {{signe}}{{pct}}% compared with the previous period ({{avant}}).',
+    synthesePremiere: 'First measured period: no comparison available yet.',
+    syntheseDominant: '{{libelle}} accounts for {{pct}}% of all visits.',
+    syntheseRepos: '{{jours}} day(s) of prescribed rest, across {{count}} consultation(s).',
+    syntheseSansRepos: 'No rest days prescribed.',
+    alerte: {
+      ACTIVITE_HAUSSE: 'Activity up {{pct}}%: {{apres}} consultations versus {{avant}} in the previous period.',
+      ACTIVITE_BAISSE: 'Activity down {{pct}}%: {{apres}} consultations versus {{avant}} in the previous period.',
+      AT_CONCENTRATION: 'Work accidents concentrated: {{cas}} visits in the {{departement}} department, for {{accidents}} reported accident(s).',
+      PATHOLOGIE_HAUSSE: '{{libelle}} rising sharply: {{apres}} cases versus {{avant}} in the previous period.',
+      REPOS_HAUSSE: 'Prescribed absence up: {{apres}} days versus {{avant}} in the previous period.',
+    },
     byType: 'By consultation type',
     byCategory: 'By patient category',
     byDepartment: 'By department / division',

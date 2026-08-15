@@ -13,13 +13,14 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { FileBarChart, Download, Calendar, Stethoscope, BedSingle, ChevronRight, ChevronLeft } from 'lucide-react'
-import { Card, Skeleton, EmptyState, StatCard, DonutChart, RankedBars, TILE_TONE_MAP, type DonutSlice } from '@/components/saris'
+import { Card, Skeleton, EmptyState, StatCard, RankedBars, TILE_TONE_MAP } from '@/components/saris'
 import { useIsCompact } from '@/hooks/useMediaQuery'
 import { usePermissions } from '@/hooks/usePermissions'
 import { usePersistedState } from '@/hooks/usePersistedState'
 import { formatDate } from '@/lib/intl'
 import { useRapports, useRapport } from '../hooks/useRapports'
-import { exportStatsXlsx } from '@/modules/dashboard/lib/statsExport'
+import { exportStatsXlsx, exportStatsPdf } from '@/modules/dashboard/lib/statsExport'
+import { SyntheseRapport } from '../components/SyntheseRapport'
 import type { TypeRapport } from '../api/rapports.api'
 
 /** Libellé traduit d'une période. Une fonction et non une table figée : la table serait
@@ -233,13 +234,21 @@ export function RapportsPage() {
                   // L'export est produit entièrement côté navigateur (aucune route à
                   // garder) : `rapport.export` s'applique ICI.
                   canExport ? (
+                    <>
+                    <button type="button" onClick={() => exportStatsPdf(detail.contenu)} style={rapportExportBtn}>
+                      <Download size={12} /> PDF
+                    </button>
                     <button type="button" onClick={() => void exportStatsXlsx(detail.contenu)} style={rapportExportBtn}>
                       <Download size={12} /> {t('rapports.export')}
                     </button>
+                    </>
                   ) : null
                 }
               />
               <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--espace-6)', display: 'flex', flexDirection: 'column', gap: 'var(--espace-6)' }}>
+                {/* CE QU'IL FAUT RETENIR, avant les chiffres : alertes, synthese, tendance. */}
+                <SyntheseRapport contenu={detail.contenu} />
+
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 'var(--espace-4)' }}>
                   <StatCard icon={<Stethoscope size={18} />} label={t('rapports.statConsultations')} value={detail.contenu.totalConsultations} tone="accent" />
                   <StatCard icon={<BedSingle size={18} />} label={t('rapports.statReposDays')} value={detail.contenu.repos.totalJours} tone="gold"
@@ -247,9 +256,9 @@ export function RapportsPage() {
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: 'var(--espace-6)' }}>
-                  <RapportDonutBlock title={t('rapports.byType')} rows={detail.contenu.parType} />
-                  <RapportDonutBlock title={t('rapports.byCategory')} rows={detail.contenu.parCategorie} />
-                  <RapportDonutBlock title={t('rapports.byDepartment')} rows={detail.contenu.parDepartement} />
+                  <RapportBarBlock title={t('rapports.byType')} rows={detail.contenu.parType} />
+                  <RapportBarBlock title={t('rapports.byCategory')} rows={detail.contenu.parCategorie} />
+                  <RapportBarBlock title={t('rapports.byDepartment')} rows={detail.contenu.parDepartement} />
                 </div>
 
                 <RapportBlock title={t('rapports.topPathologies')} empty={detail.contenu.parPathologie.length === 0}>
@@ -286,11 +295,17 @@ function RapportBlock({ title, empty, children }: { title: string; empty: boolea
   )
 }
 
-function RapportDonutBlock({ title, rows }: { title: string; rows: { libelle: string; count: number }[] }) {
-  const { t } = useTranslation()
+/**
+ * Répartition en BARRES CLASSÉES, et non en camembert.
+ *
+ * Un donut qui répartit cinq actes entre deux catégories demande de comparer des angles
+ * pour lire « 3 et 2 » — beaucoup d'encre pour peu d'information. Des barres triées se
+ * lisent d'un coup d'œil, et restent lisibles quel que soit le nombre de catégories.
+ */
+function RapportBarBlock({ title, rows }: { title: string; rows: { libelle: string; count: number }[] }) {
   return (
     <RapportBlock title={title} empty={rows.length === 0}>
-      <DonutChart height={170} centerLabel={t('rapports.donutCenter')} data={rows.slice(0, 6).map((r): DonutSlice => ({ name: r.libelle, value: r.count }))} />
+      <RankedBars data={[...rows].sort((a, b) => b.count - a.count).slice(0, 8)} />
     </RapportBlock>
   )
 }
