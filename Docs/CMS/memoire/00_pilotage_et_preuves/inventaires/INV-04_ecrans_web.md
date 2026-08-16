@@ -200,7 +200,7 @@ Français et anglais, bascule en direct, préférence persistée par compte. 16 
 | Chapitre 6 § 6.3 | Cas d'utilisation : un écran ≈ un ou plusieurs UC |
 | Chapitre 7 § 7.6 | Inventaire des interfaces principales et choix ergonomiques |
 | Chapitre 8 § 8.2 | Présentation des fonctionnalités, avec captures |
-| Fiche UML-UC-01 → Figure 6.2 | Périmètre fonctionnel vu par chaque acteur |
+| Fiche UML-UC-01 → Figures 6.2 à 6.6 | Périmètre fonctionnel vu par chaque acteur |
 | Fiche UML-CMP-01 → Figure 7.6 | Composants du frontend et magasins d'état |
 | § 12 du prompt (captures) | Liste des écrans à capturer : au moins un par module |
 | Matrice de traçabilité | Colonne « écran Web » |

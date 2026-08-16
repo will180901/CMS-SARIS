@@ -86,8 +86,8 @@ Trois besoins de **priorité haute** du recueil ne sont pas satisfaits par le sy
 
 | Exclu du mémoire | Motif | Où le trouver |
 |---|---|---|
-| 61 entités sur 88 absentes du diagramme de classes | Lisibilité — sélection sur critère de degré de connexion | Annexe D |
-| Le détail des 128 permissions | Volume | INV-03, annexe B |
+| 59 entités sur 88 absentes du diagramme de classes | Lisibilité — sélection sur critère de degré de connexion | INV-02 § 4 |
+| Le détail des 128 permissions | Volume | INV-03 |
 | Le détail des 268 routes | Volume | INV-01 |
 | Les 60 composants du système de conception d'interface | Sans valeur pour la compréhension du domaine | — |
 

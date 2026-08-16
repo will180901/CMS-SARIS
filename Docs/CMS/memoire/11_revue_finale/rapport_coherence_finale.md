@@ -1,5 +1,8 @@
 # Rapport de cohérence finale
 
+> ⚠️ **Ce rapport a été établi le 10 août 2026, avant la refonte du mémoire.** Il a été mis à jour le 19 août sur les points factuels — nombre de figures, résultats de tests, disparition des annexes — mais sa structure reste celle de la revue d'origine. L'état courant du document est décrit dans `DIAGNOSTIC_ALIGNEMENT_DOCX.md`.
+
+
 > **Objet** : rechercher les contradictions internes du dossier — terminologiques, chiffrées, fonctionnelles, techniques et académiques.
 > **Méthode** : confrontation croisée des chapitres, des inventaires et des fiches.
 > **Date** : 2026-08-10.
@@ -15,7 +18,7 @@ Tous les chiffres cités dans le mémoire ont été confrontés à leur inventai
 | Routes de l'API | **268** | Ch. 7, ch. 8, INV-01, tableau de bord, résumé | ✅ |
 | Contrôleurs | **26** | Ch. 7 § 7.1.3, INV-01 | ✅ |
 | Modules métier | **17** | Ch. 7 § 7.1.3, INV-01 § 5.4 | ✅ |
-| Entités de données | **88** | Ch. 7, ch. 8, annexe D, résumé | ✅ |
+| Entités de données | **88** | Ch. 7, ch. 8, INV-02 § 4, résumé | ✅ |
 | Associations | **97** | Ch. 7 § 7.2.1, INV-02 | ✅ |
 | Classes du diagramme | **29** | Ch. 7 § 7.2.1, fiche `UML-CLS-01` | ✅ |
 | Associations à tracer | **38** | Fiche `UML-CLS-01` bloc 5 | ✅ |
@@ -29,9 +32,9 @@ Tous les chiffres cités dans le mémoire ont été confrontés à leur inventai
 | Fichiers de test | **10** | Ch. 8 § 8.4, INV-06 | ✅ |
 | Cas de test | **145** | Ch. 8, conclusion | ✅ |
 | Cas de test rattachés à une commande | **145 sur 145** | Ch. 8 § 8.4, INV-06 § 5 | ✅ |
-| Besoins fonctionnels | **23** | Ch. 6, ch. 8, annexe B | ✅ |
-| Besoins non fonctionnels | **13** | Ch. 6 § 6.0.2, annexe B | ✅ |
-| Cas d'utilisation | **65** | Ch. 6 § 6.3, annexe C | ✅ |
+| Besoins fonctionnels | **23** | Ch. 6, ch. 8, INV-03 | ✅ |
+| Besoins non fonctionnels | **13** | Ch. 6 § 6.0.2, INV-03 | ✅ |
+| Cas d'utilisation | **65** | Ch. 6 § 6.3, INV-07 | ✅ |
 | Routes auditées | **151** | Ch. 7 § 7.1.5, INV-01 | ✅ |
 | Lignes de code | **≈ 93 500** | Ch. 8, conclusion | ✅ |
 
@@ -64,13 +67,13 @@ Tous les chiffres cités dans le mémoire ont été confrontés à leur inventai
 | 6.4 à 6.6 séquences système | Ch. 6 § 6.5 — mêmes cas, mêmes exceptions | ✅ |
 | 7.1 classes | Ch. 7 § 7.2 — 29 classes, critère énoncé | ✅ |
 | 7.2 activité | Ch. 7 § 7.3 — mêmes étapes, mêmes gardes | ✅ |
-| 7.3 séquence objets | Figure 6.5 — version boîte blanche, correspondance déclarée | ✅ |
+| ~~7.3 séquence objets~~ | **Figure abandonnée le 18 août 2026** — les séquences objets ne figurent plus dans le mémoire | — |
 | 7.4 séquence objets synchro | Ch. 7 § 7.5.2 — trois issues identiques | ✅ |
-| 7.5 communication | Figure 7.3 — mêmes objets, mêmes messages | ✅ |
+| ~~7.5 communication~~ | **Figure abandonnée le 18 août 2026** — le diagramme de communication ne figure plus dans le mémoire | — |
 | 7.6 composants | Ch. 7 § 7.6 — 11 composants | ✅ |
 | 7.7 déploiement | Ch. 7 § 7.7 — 6 nœuds | ✅ |
 | 7.8 à 7.12 maquettes | Ch. 7 § 7.8 — 5 écrans | ✅ |
-| 8.1 relationnel | Figure 7.1 — mêmes entités, clés explicitées | ✅ |
+| 8.1 relationnel | Figure 7.5 — mêmes entités, clés explicitées | ✅ |
 | 8.2 modèle physique | Ch. 8 § 8.2.2 — types réels | ✅ |
 
 **Aucune divergence.**
@@ -79,7 +82,7 @@ Tous les chiffres cités dans le mémoire ont été confrontés à leur inventai
 
 Les cinq règles transverses ont été suivies dans tout le dossier.
 
-| Règle | Ch. 3 | Ch. 6 | Ch. 7 | Fiches | Annexes | Cohérente |
+| Règle | Ch. 3 | Ch. 6 | Ch. 7 | Fiches | Inventaires | Cohérente |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|
 | Éligibilité par catégorie | ✅ § 3.1.3 | ✅ § 6.6.1 | ✅ § 7.4.1 | ✅ 6.5, 7.2, 7.3 | ✅ C, E, F | ✅ |
 | Prescription à deux étages | ✅ § 3.1.1 | ✅ § 6.5 | ✅ § 7.1.4 | ✅ 6.3, 7.2, 7.3 | ✅ C, E | ✅ |
@@ -93,12 +96,12 @@ Contrôle que rien n'est présenté comme achevé alors qu'il ne l'est pas.
 
 | Élément | Statut | Cohérent en |
 |---|---|---|
-| Mode autonome | `PARTIELLEMENT IMPLÉMENTÉ` | Ch. 8 § 8.3, conclusion § 4, INV-05, annexe B, BF23 |
+| Mode autonome | `PARTIELLEMENT IMPLÉMENTÉ` | Ch. 8 § 8.3, conclusion § 4, INV-05, INV-03, BF23 |
 | Signature de code | `NON IMPLÉMENTÉ` | Ch. 8 § 8.1, conclusion § 4, INV-05 |
 | Tests unitaires | `EXÉCUTÉS` — 103 cas, 103 réussis | Ch. 8 § 8.4.2, INV-06 § 2.2 |
 | Tests d'intégration | `NON EXÉCUTÉS` — 43 cas | Ch. 8 § 8.4.2, INV-06 § 2.4 |
 | Cœur clinique non testé | `NON IMPLÉMENTÉ` | Ch. 8 § 8.4.3, conclusion § 4, matrice § 4.1 |
-| Éligibilité des CDD | `À CONFIRMER` | Ch. 3 § 3.1.3, INV-07, QO-06, annexe B |
+| Éligibilité des CDD | `À CONFIRMER` | Ch. 3 § 3.1.3, INV-07, QO-06, INV-03 |
 | Certificat médical | `À CONFIRMER` | Glossaire, D-15 |
 | Déploiement effectif | `À CONFIRMER` | Conclusion § 4, QO-10 |
 

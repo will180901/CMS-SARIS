@@ -1,6 +1,7 @@
 # Protocole de production des captures d'écran
 
-> **Référencé par** : chapitre 8 § 8.3, figures 8.3 et suivantes.
+> **Référencé par** : chapitre 8 § 8.3 — figures **8.3, 8.4 et 8.5**.
+> **Trois captures, pas une de plus.** Le mémoire a été ramené de 24 illustrations à 15 ; trois seulement sont des captures d'écran.
 > **Règle absolue** : une capture est une **preuve**. Elle montre le système tel qu'il est, jamais tel qu'on voudrait qu'il soit.
 
 ---
@@ -63,48 +64,37 @@ L'interface **change selon le rôle**. Chaque capture doit indiquer sous quel r�
 06_interfaces/captures/Figure_8_<n>_<sujet>.png
 ```
 
-Exemples : `Figure_8_3_connexion.png` · `Figure_8_4_tableau_bord_medecin.png` · `Figure_8_5_file_triage.png`
+Les trois noms attendus : `Figure_8_3_consultation.png` · `Figure_8_4_bon_pharmacie.png` · `Figure_8_5_tableau_bord_audit.png`
 
 Format PNG. Ni recadrage partiel qui masquerait un défaut, ni retouche autre que le masquage des données sensibles.
 
-## 6. Couverture minimale
+## 6. Les trois captures à produire
 
-Au moins une capture par module majeur.
+Le mémoire en retient trois, choisies pour couvrir les trois rôles et les trois moments qui portent le sens du système : l'acte clinique, la règle métier, et la supervision.
 
-| # | Écran | Rôle conseillé | Ce que la capture doit montrer |
+| Figure | Écran | Rôle | Ce que la capture doit montrer |
 |---|---|---|---|
-| 8.3 | Connexion | — | L'écran initial, champs vides |
-| 8.4 | Tableau de bord | Médecin chef | Indicateurs cliniques, menu complet |
-| 8.5 | Tableau de bord | Infirmier | **Menu sans le groupe Administration** |
-| 8.6 | File de triage | Infirmier | Ordre d'arrivée, deux panneaux |
-| 8.7 | File de triage, rideau actif | Infirmier | Zones cliniques floutées |
-| 8.8 | Dossier patient | Médecin chef | Sections, sous-onglets, badge de catégorie |
-| 8.9 | Consultation | Médecin chef | Blocs cliniques, barre de clôture |
-| 8.10 | Ordonnance et génération de bon | Médecin chef | Bouton de génération sur une ordonnance validée |
-| 8.11 | **Refus d'éligibilité** | Médecin chef | **Le message de refus sur un patient non couvert** |
-| 8.12 | Document imprimable | — | Aperçu A4 d'une ordonnance |
-| 8.13 | Messagerie | — | Conversation, indicateur de saisie |
-| 8.14 | Accès et habilitations | Administrateur | Matrice rôle × permission |
-| 8.15 | Journal d'audit | Administrateur | Entrées, avec acteur et action |
-| 8.16 | Supervision de la synchronisation | Administrateur | État des postes |
+| **8.3** | Consultation en cours | Médecin Chef | L'examen clinique et les diagnostics saisis, la barre de clôture visible |
+| **8.4** | Émission d'un bon de pharmacie | Infirmier | Le contrôle d'éligibilité par catégorie de patient, à l'œuvre |
+| **8.5** | Tableau de bord et journal d'audit | Administrateur système | Les indicateurs, puis les entrées du journal avec acteur et action |
 
-> **La capture 8.11 est la plus précieuse du mémoire.** Elle montre le système **refusant** une opération, avec un message qui nomme la catégorie et rappelle la règle. Un système qu'on ne voit jamais refuser ressemble à une maquette. Cette capture prouve que la règle centrale s'applique réellement.
+> **La 8.4 est la plus précieuse des trois.** Si tu peux la produire sur un patient **non couvert**, elle montre le système en train de **refuser** une opération, avec un message qui nomme la catégorie et rappelle la règle. Un système qu'on ne voit jamais refuser ressemble à une maquette ; celui-là prouve que sa règle centrale s'applique vraiment.
 >
-> **Comment la produire** : ouvrir une consultation pour un patient de catégorie « riverain » ou « sous-traitant », créer une ordonnance pharmaceutique, la valider, puis demander la génération d'un bon.
+> **Comment l'obtenir** : ouvrir une consultation pour un patient de catégorie « riverain » ou « sous-traitant », créer une ordonnance pharmaceutique, la valider, puis demander la génération du bon.
 
 ## 7. Journal des captures
 
-À tenir au fur et à mesure. Il constitue la preuve du respect du protocole.
+À remplir au fur et à mesure. Il constitue la preuve du respect du protocole.
 
 | Figure | Écran | Rôle | Date | Masquages effectués | Rideau |
 |---|---|---|---|---|---|
-| 8.3 | | | | | |
-| 8.4 | | | | | |
-| … | | | | | |
+| 8.3 | Consultation en cours | Médecin Chef | | | |
+| 8.4 | Bon de pharmacie | Infirmier | | | |
+| 8.5 | Tableau de bord et audit | Administrateur système | | | |
 
 ## 8. Légende type
 
-> **Figure 8.<n> — <Nom de la fonctionnalité>**
+> **Figure 8.<n> — <Libellé exact repris du mémoire>**
 > Capture prise sous le rôle <rôle>, sur le jeu de données de démonstration. <Mention du rideau de confidentialité si désactivé.>
 > *Source : capture de l'application CMS SARIS, <date>.*
 

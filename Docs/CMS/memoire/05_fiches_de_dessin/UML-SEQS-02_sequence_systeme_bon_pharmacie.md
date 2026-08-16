@@ -4,7 +4,7 @@
 
 ```
 Identifiant       : UML-SEQS-02
-Figure du mémoire : Figure 6.5 — Diagramme de séquence système : émettre un bon de pharmacie
+Figure du mémoire : Figure 6.7 — Diagramme de séquence système : émettre un bon de pharmacie
 Chapitre / section: 6 — § 6.7
 Type UML          : Diagramme de séquence système (boîte noire)
 Sources de preuve : INV-07 § 4.4 · INV-01, contrôleur des bons de pharmacie
@@ -89,7 +89,7 @@ Mêmes conventions que `UML-SEQS-01`.
 
 **Légende à reproduire :**
 
-> **Figure 6.5 — Diagramme de séquence système : émettre un bon de pharmacie**
+> **Figure 6.7 — Diagramme de séquence système : émettre un bon de pharmacie**
 > Le contrôle d'éligibilité s'applique au bon, jamais à l'ordonnance : tout patient peut recevoir une ordonnance ; seuls les CDI et leurs ayants droit obtiennent la prise en charge.
 > *Source : conception propre.*
 

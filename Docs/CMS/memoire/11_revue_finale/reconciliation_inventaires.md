@@ -1,5 +1,8 @@
 # Réconciliation des inventaires
 
+> ⚠️ **Ce rapport a été établi le 10 août 2026, avant la refonte du mémoire.** Il a été mis à jour le 19 août sur les points factuels — nombre de figures, résultats de tests, disparition des annexes — mais sa structure reste celle de la revue d'origine. L'état courant du document est décrit dans `DIAGNOSTIC_ALIGNEMENT_DOCX.md`.
+
+
 > **Objet** : prouver mécaniquement qu'aucune capacité du système n'a été oubliée.
 > **Méthode** : reprendre chaque inventaire et attribuer à chaque élément l'un de quatre verdicts.
 > **Date** : 2026-08-10.
@@ -7,7 +10,7 @@
 | Verdict | Sens |
 |---|---|
 | `COUVERT` | Traité dans au moins une section du mémoire, référence donnée |
-| `ANNEXE` | Traité en annexe, avec renvoi depuis le corps |
+| `HORS DIAGRAMME` | Décrit dans un inventaire, sans figurer au diagramme de classes |
 | `HORS PÉRIMÈTRE` | Volontairement exclu, **avec motif écrit** |
 | `ORPHELIN` | Non traité — **défaut à corriger** |
 
@@ -30,9 +33,9 @@ Réconciliation par **module fonctionnel** : le mémoire ne peut pas énumérer 
 | Tableaux de bord | 9 | `COUVERT` | Ch. 6 § 6.3.11 · BF20 |
 | Notifications | 9 | `COUVERT` | Ch. 7 § 7.5.4 · BF19 |
 | Triage | 9 | `COUVERT` | Ch. 6 § 6.5 · Ch. 7 § 7.3 · BF10, BF11 |
-| Évacuations | 8 | `COUVERT` | Annexe C, UC50 · BF16 |
+| Évacuations | 8 | `COUVERT` | INV-07, UC50 · BF16 |
 | Suivi de traitement | 8 | `COUVERT` | Ch. 7 § 7.3 · BF17 |
-| Bon d'examen | 7 | `COUVERT` | Annexe C, UC46 · BF14 |
+| Bon d'examen | 7 | `COUVERT` | INV-07, UC46 · BF14 |
 | Bon de pharmacie | 5 | `COUVERT` | Ch. 6 § 6.6.1 · Ch. 7 § 7.4.1 · BF15 |
 | Registre des employés | 5 | `COUVERT` | Ch. 6 § 6.3.4 · BF07 |
 | Rapports | 2 | `COUVERT` | Ch. 6 § 6.3.11 · BF21 |
@@ -40,7 +43,7 @@ Réconciliation par **module fonctionnel** : le mémoire ne peut pas énumérer 
 
 **268 routes · 0 orphelin.**
 
-> **Nuance de méthode, énoncée par honnêteté.** La réconciliation est faite au niveau du **module**, non de la route individuelle. Une route particulière — par exemple la mise à jour des notes d'accueil d'une visite — n'apparaît pas nommément dans le mémoire. Elle figure dans INV-01, référencé en annexe. Le mémoire couvre **toutes les capacités**, non chaque point d'entrée.
+> **Nuance de méthode, énoncée par honnêteté.** La réconciliation est faite au niveau du **module**, non de la route individuelle. Une route particulière — par exemple la mise à jour des notes d'accueil d'une visite — n'apparaît pas nommément dans le mémoire. Elle figure dans INV-01. Le mémoire couvre **toutes les capacités**, non chaque point d'entrée.
 
 ---
 
@@ -48,19 +51,19 @@ Réconciliation par **module fonctionnel** : le mémoire ne peut pas énumérer 
 
 | Groupe | Entités | Verdict | Où |
 |---|---:|---|---|
-| Noyau du diagramme de classes | 29 | `COUVERT` | Ch. 7 § 7.2 · Figure 7.1 · Figure 8.1 |
-| Messagerie | 7 | `ANNEXE` | Annexe D. **Motif d'exclusion du diagramme** : sous-système autonome, sans lien structurel avec le parcours de soin |
+| Noyau du diagramme de classes | 29 | `COUVERT` | Ch. 7 § 7.3 · Figures 7.1 à 7.5 · Figure 8.1 |
+| Messagerie | 7 | `HORS DIAGRAMME` | INV-02 § 4. **Motif d'exclusion du diagramme** : sous-système autonome, sans lien structurel avec le parcours de soin |
 | Synchronisation | 8 | `COUVERT` | Ch. 7 § 7.5 — traitées comme architecture, non comme modèle métier |
-| Audit, notifications, sessions | 8 | `ANNEXE` | Annexe D · Ch. 7 § 7.1.5 pour l'audit |
-| Historiques et journaux | 6 | `ANNEXE` | Annexe D |
-| Satellites du dossier patient | 12 | `ANNEXE` | Annexe D · Ch. 7 § 7.2.3 pour le principe |
-| Référentiels secondaires | 6 | `ANNEXE` | Annexe D |
-| Sans aucune relation | 6 | `ANNEXE` | Annexe D · INV-02 § 6 |
-| Divers | 6 | `ANNEXE` | Annexe D |
-| **Énumérations** | **6** | `COUVERT` | **Ch. 7 § 7.2.4** · Annexe D |
-| **97 associations** | — | `COUVERT` | Fiche `UML-CLS-01` bloc 5 · Annexe D |
+| Audit, notifications, sessions | 8 | `HORS DIAGRAMME` | INV-02 § 4 · Ch. 7 § 7.1.5 pour l'audit |
+| Historiques et journaux | 6 | `HORS DIAGRAMME` | INV-02 § 4 |
+| Satellites du dossier patient | 12 | `HORS DIAGRAMME` | INV-02 § 4 · Ch. 7 § 7.2.3 pour le principe |
+| Référentiels secondaires | 6 | `HORS DIAGRAMME` | INV-02 § 4 |
+| Sans aucune relation | 6 | `HORS DIAGRAMME` | INV-02 § 4 · INV-02 § 6 |
+| Divers | 6 | `HORS DIAGRAMME` | INV-02 § 4 |
+| **Énumérations** | **6** | `COUVERT` | **Ch. 7 § 7.2.4** · INV-02 § 4 |
+| **97 associations** | — | `COUVERT` | Fiche `UML-CLS-01` bloc 5 · INV-02 § 4 |
 
-**88 entités · 0 orphelin.** Les 59 hors du diagramme de classes sont intégralement décrites en annexe D, avec leurs attributs, types et associations.
+**88 entités · 0 orphelin.** Les 59 hors du diagramme de classes sont intégralement décrites dans INV-02 § 4, avec leurs attributs, types et associations.
 
 ---
 
@@ -68,11 +71,11 @@ Réconciliation par **module fonctionnel** : le mémoire ne peut pas énumérer 
 
 | Élément | Nombre | Verdict | Où |
 |---|---:|---|---|
-| Permissions du catalogue | 128 | `ANNEXE` | INV-03 § 3, matrice complète · Annexe B |
+| Permissions du catalogue | 128 | `HORS DIAGRAMME` | INV-03 § 3, matrice complète · INV-03 |
 | Rôles | 3 | `COUVERT` | Ch. 6 § 6.1 · Ch. 7 § 7.1.4 |
-| Règle « écrire implique lire » | 1 | `COUVERT` | Annexe C, UC11 · Ch. 7 § 7.1.4 |
-| Permissions vitales protégées | 10 | `COUVERT` | Ch. 7 § 7.1.4 · Annexe C, UC11 |
-| Dérogations individuelles | — | `COUVERT` | Ch. 6 § 6.1 · Annexe C, UC12 |
+| Règle « écrire implique lire » | 1 | `COUVERT` | INV-07, UC11 · Ch. 7 § 7.1.4 |
+| Permissions vitales protégées | 10 | `COUVERT` | Ch. 7 § 7.1.4 · INV-07, UC11 |
+| Dérogations individuelles | — | `COUVERT` | Ch. 6 § 6.1 · INV-07, UC12 |
 | **Permissions sans route serveur** | **3** | `COUVERT` | **Matrice de traçabilité § 4.3** — signalées comme contrôles d'affichage, non de sécurité |
 
 **128 permissions · 0 orphelin.**
@@ -105,7 +108,7 @@ Réconciliation par **module fonctionnel** : le mémoire ne peut pas énumérer 
 | Mode autonome | `COUVERT` | Ch. 7 § 7.1.1 et 7.7 · Ch. 8 § 8.3 — statut partiel énoncé |
 | **Mécanisme hors ligne du web** | `COUVERT` | **Ch. 7 § 7.5.1** — file de mutations rejouées |
 | 52 entités synchronisées | `COUVERT` | Ch. 7 § 7.5.3 |
-| Résolution de conflit | `COUVERT` | Ch. 7 § 7.5.2 · Ch. 8 § 8.2.3 · Figure 7.4 |
+| Résolution de conflit | `COUVERT` | Ch. 7 § 7.4 · Ch. 8 § 8.2 — la figure 7.4 a été retirée, le tableau 7.7 porte les règles |
 | Canal de notification | `COUVERT` | Ch. 7 § 7.5.4 |
 | Double authentification en mode local | `COUVERT` | Ch. 8 § 8.6.1 |
 | Coffre de secrets | `COUVERT` | Ch. 7 § 7.7 · Fiche `UML-DEP-01` |
@@ -144,15 +147,15 @@ Réconciliation par **module fonctionnel** : le mémoire ne peut pas énumérer 
 
 | Élément | Verdict | Où |
 |---|---|---|
-| Triage d'une visite | `COUVERT` | Ch. 6 § 6.5, UC34 · Figure 7.2 · Figure 6.4 |
-| Consultation et décision | `COUVERT` | Ch. 6 § 6.6.2 · Figure 7.2 |
+| Triage d'une visite | `COUVERT` | Ch. 6 § 6.6, UC34 · Figure 6.5 |
+| Consultation et décision | `COUVERT` | Ch. 6 § 6.9, UC48 · Figure 6.5 |
 | Prescription | `COUVERT` | Ch. 6 § 6.5, UC42 · Ch. 7 § 7.4.1 |
 | Bon de pharmacie | `COUVERT` | Ch. 6 § 6.6.1 · Figures 6.5 et 7.3 |
-| Bon d'examen et résultat | `COUVERT` | Annexe C, UC46 |
-| Évacuation | `COUVERT` | Annexe C, UC50 |
-| Authentification avec second facteur | `COUVERT` | Ch. 6 § 6.5, UC01 · Figure 6.4 |
+| Bon d'examen et résultat | `COUVERT` | INV-07, UC46 |
+| Évacuation | `COUVERT` | INV-07, UC50 |
+| Authentification avec second facteur | `COUVERT` | Ch. 6 § 6.6, UC01 · Figure 6.2 |
 | Synchronisation | `COUVERT` | Ch. 6 § 6.5, UC63 · Figures 6.6 et 7.4 |
-| Messagerie | `COUVERT` | Ch. 8 § 8.6 · Annexe C, UC54–UC56 |
+| Messagerie | `COUVERT` | Ch. 8 § 8.6 · INV-07, UC54–UC56 |
 | **Les 9 machines à états** | `COUVERT` | **Ch. 7 § 7.2.4** — ajouté lors de cette réconciliation |
 | Les 5 règles transverses | `COUVERT` | Matrice de traçabilité § 2 · Ch. 3 § 3.1.3 · Ch. 7 |
 
@@ -187,11 +190,11 @@ Réconciliation par **module fonctionnel** : le mémoire ne peut pas énumérer 
 
 ```
 INV-01 routes API      : 268 routes    — 0 orphelin  (2 hors périmètre, motivées)
-INV-02 modèle données  :  88 entités   — 0 orphelin  (59 en annexe D)
+INV-02 modèle données  :  88 entités   — 0 orphelin  (59 dans INV-02 § 4)
 INV-03 permissions     : 128 lignes    — 0 orphelin
 INV-04 écrans web      :  15 écrans    — 0 orphelin  (60 composants hors périmètre)
 INV-05 desktop/offline :  14 éléments  — 0 orphelin
-INV-06 tests           :  10 fichiers  — 0 orphelin  (102 cas exécutés sur 145)
+INV-06 tests           :  10 fichiers  — 0 orphelin  (103 cas exécutés sur 145, 103 réussis)
 INV-07 parcours métier :   9 parcours + 9 machines — 0 orphelin
 INV-08 recueil         :  18 besoins   — 0 orphelin  (8 hors périmètre, motivés)
 ```

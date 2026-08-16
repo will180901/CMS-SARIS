@@ -162,7 +162,9 @@ Une documentation antérieure du projet — datée du 2026-06-26, écartée depu
 
 > ⚠️ **Ces chiffres ne sont pas vérifiables ici**, et la stratégie de tests du projet le dit elle-même : *« ces scripts de flux sont ad-hoc et non tous committés dans le dépôt ; les compteurs valent constat d'exécution daté, pas garantie rejouable en l'état »*.
 >
-> **Formulation exacte à retenir pour le mémoire** : 102 cas exécutés et vérifiés le 2026-08-10, dont 101 réussis ; la documentation du projet rapporte en outre des campagnes antérieures dont les scripts ne sont pas tous versionnés.
+> **Formulation exacte à retenir pour le mémoire** : **103 cas exécutés et vérifiés le 2026-08-10, dont 103 réussis**, soit 100 %. La documentation du projet rapporte en outre des campagnes antérieures dont les scripts ne sont pas tous versionnés ; elles ne doivent pas être citées comme résultat.
+>
+> 📌 **Correction du 19 août 2026.** Cette consigne disait « 102 exécutés, dont 101 réussis ». Elle datait d'**avant** la correction du test périmé, décrite au § 2.3. Le décompte de 102/101 est celui de la première passe ; celui de 103/103 est le résultat après correction, et c'est lui qui fait foi. Le mémoire retient 103 sur 103 : la contradiction est levée.
 
 ---
 

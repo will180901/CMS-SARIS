@@ -1,7 +1,7 @@
 # Checklist de conformité
 
 > Contrôle final avant remise. Chaque case est **vérifiée**, non supposée.
-> Date de passage : 2026-08-10.
+> Date de passage : **19 août 2026**, sur `Memoire_CMS_SARIS.docx` — 90 pages, corps de 76 pages.
 
 ---
 
@@ -10,28 +10,28 @@
 | # | Contrôle | État | Preuve |
 |---|---|:---:|---|
 | 1.1 | Les 8 chapitres du modèle sont présents, dans l'ordre | ✅ | 8 fichiers de chapitre |
-| 1.2 | Les sections ajoutées d'après le plan de l'école sont présentes | ✅ | Ch. 1 § 1.3bis et 1.5 · Ch. 2 § 2.1 et 2.6 · Ch. 3 § 3.4 et 3.6 |
+| 1.2 | Les sections ajoutées d'après le plan de l'école sont présentes | ✅ | Ch. 1 § 1.5 · Ch. 2 §§ 2.1 et 2.6 · Ch. 3 §§ 3.4 et 3.7 |
 | 1.3 | Introduction générale en 8 points | ✅ | Fichier d'introduction |
 | 1.4 | Conclusion en 5 parties + mot de fin | ✅ | Fichier de conclusion |
 | 1.5 | Pages liminaires complètes | ✅ | Page de garde, dédicace, remerciements, résumé, abstract, listes, sigles |
-| 1.6 | Résumé et abstract entre 150 et 200 mots | ✅ | 187 et 184 mots, décomptés |
+| 1.6 | Résumé et abstract entre 150 et 200 mots | ✅ | Décomptés sur le document ; tous deux sur la **même page**, comme le modèle de référence |
 | 1.7 | Cinq mots-clés de chaque côté | ✅ | — |
-| 1.8 | Annexes A à F présentes | ✅ | 6 fichiers d'annexe |
+| 1.8 | ~~Annexes A à F~~ | — | **Retirées** le 18 août pour tenir le plafond de pages — décision D-19. Chacune avait sa contrepartie dans le corps ou dans un inventaire |
 
 ## 2. Contraintes de forme de l'école
 
 | # | Contrôle | État | Note |
 |---|---|:---:|---|
-| 2.1 | Corps du rapport entre 75 et 90 pages | ⚠️ | Budget établi à 67-85 pages. **Non vérifiable avant mise en page Word** |
-| 2.2 | Times New Roman 12, interligne 1,25, justifié | ⏳ | À appliquer à la mise en page |
-| 2.3 | Marges 1,5 partout, reliure gauche 1,5 | ⏳ | Idem |
-| 2.4 | Titres 16 / 14 / 13 / 13 / 12, légendes 11 italique | ⏳ | Idem |
-| 2.5 | En-tête : thème · pied : page, noms, année | ⏳ | Idem |
-| 2.6 | Pagination i→vi, puis 1, puis a/A/I | ⏳ | Idem |
-| 2.7 | **Au plus 2 descriptions textuelles de UC** | ✅ | Exactement 2 — ch. 6 § 6.6. Les autres en annexe C |
-| 2.8 | **Au plus 3 diagrammes de séquence système** | ✅ | Exactement 3 — figures 6.4 à 6.6 |
+| 2.1 | Corps du rapport entre 75 et 90 pages | ✅ | **76 pages**, mesurées sur le document. Marge d'une seule page au-dessus du minimum |
+| 2.2 | Times New Roman 12, interligne 1,25, justifié | ✅ | Style Normal du document |
+| 2.3 | Marges 1,5 partout, reliure gauche 1,5 | ✅ | Appliqué |
+| 2.4 | Titres 16 / 14 / 12, légendes 11 italique | ✅ | Styles Titre 1, Titre 2, Titre 3, Légende et **Légende tableau** |
+| 2.5 | En-tête et pied de page | ✅ | En-tête « Mémoire de Fin de Cycle — GLA — CFI-CIRAS » · pied : numéro centré, année académique à droite |
+| 2.6 | Pagination i→vi, puis 1, puis a/A/I | ✅ | **i à viii**, puis **1 à 76**, puis **A à E**. Quatre sections Word — décision D-24 |
+| 2.7 | **Au plus 2 descriptions textuelles de UC** | ✅ | Exactement 2 — ch. 6 § 6.8, UC43 et UC48. Trois fiches en tableau au § 6.7 |
+| 2.8 | **Au plus 3 diagrammes de séquence système** | ✅ | **2** — figures 6.3 et 6.4. La séquence de connexion a été retirée |
 | 2.9 | Au plus 3 diagrammes d'activité au chapitre 6 | ✅ | 0 — les activités sont aux chapitres 5 et 7 |
-| 2.10 | Bibliographie : 8 à 10 références minimum | ✅ | **8 références**, dont **5 vérifiées à la source**. Reste à les lire — É-18 |
+| 2.10 | Bibliographie : 8 à 10 références minimum | ✅ | **8 références**, dont 5 vérifiées à la source. **Reste à les lire** — É-18 |
 
 ## 3. Fidélité au code
 
@@ -56,7 +56,7 @@
 | 4.3 | Aucune référence bibliographique inventée | ✅ | 3 références réelles, le reste marqué à compléter |
 | 4.4 | Aucun entretien, chiffre ou capture inventés | ✅ | Tableaux 1.1, 2.1 et 5.1 laissés vides |
 | 4.5 | Les limites sont énoncées | ✅ | Conclusion § 4, six limites |
-| 4.6 | Le rôle du stage de Verdi est formulé sans approximation | ✅ | Introduction § 7 · Ch. 5 · Annexe A § 5 · Page de garde |
+| 4.6 | Le rôle du stage de Verdi est formulé sans approximation | ✅ | Introduction · Ch. 5 § 5.1 · Page de garde |
 | 4.7 | Les champs non confirmés restent `[ à compléter ]` | ✅ | Promoteur, jury, année académique |
 | 4.8 | Aucune fonction partielle présentée comme achevée | ✅ | BF23 marqué partiel · signature de code marquée non implémentée |
 
@@ -67,7 +67,7 @@
 | 5.1 | Aucun mot de passe, aucune clé, aucun jeton | ✅ |
 | 5.2 | Aucune chaîne de connexion, aucun nom d'hôte de production | ✅ |
 | 5.3 | Aucune donnée patient réelle | ✅ |
-| 5.4 | Les extraits de code sont vérifiés sur ces points | ✅ Annexe E, section de vérification |
+| 5.4 | Les extraits de code sont vérifiés sur ces points | ✅ Extrait unique du ch. 8, contrôlé |
 | 5.5 | Le protocole de captures impose l'anonymisation | ✅ |
 | 5.6 | Aucune adresse personnelle ni URL de dépôt privé | ✅ |
 
@@ -82,7 +82,7 @@
 | 6.5 | Ordonnance et bon ne sont jamais confondus | ✅ |
 | 6.6 | Verrou et rideau de confidentialité ne sont jamais confondus | ✅ |
 | 6.7 | `MEDECIN` n'est jamais présenté comme un rôle | ✅ |
-| 6.8 | Tout terme employé figure au glossaire | ✅ Annexe F |
+| 6.8 | Tout terme employé est défini | ✅ Tableau 3.7, « Concepts mobilisés dans ce mémoire » |
 
 ## 7. Figures et tableaux
 
@@ -109,25 +109,31 @@
 
 ## Synthèse
 
-| Catégorie | ✅ | ⚠️ | ⏳ | ❌ |
-|---|---:|---:|---:|---:|
-| Plan de rédaction | 8 | 0 | 0 | 0 |
-| Forme | 4 | 1 | 5 | 0 |
-| Fidélité aux sources | 10 | 0 | 0 | 0 |
-| Honnêteté | 8 | 0 | 0 | 0 |
-| Sécurité | 6 | 0 | 0 | 0 |
-| Vocabulaire | 8 | 0 | 0 | 0 |
-| Figures | 5 | 1 | 0 | 2 |
-| Traçabilité | 4 | 0 | 0 | 0 |
-| **Total** | **53** | **2** | **5** | **2** |
+| Catégorie | ✅ | ⚠️ | ❌ |
+|---|---:|---:|---:|
+| Plan de rédaction | 7 | 0 | 0 |
+| Forme | 10 | 0 | 0 |
+| Fidélité aux sources | 10 | 0 | 0 |
+| Honnêteté | 8 | 0 | 0 |
+| Sécurité | 6 | 0 | 0 |
+| Vocabulaire | 8 | 0 | 0 |
+| Figures | 5 | 1 | 1 |
+| Traçabilité | 4 | 0 | 0 |
+| **Total** | **58** | **1** | **1** |
 
-**Légende** : ✅ conforme · ⚠️ partiel · ⏳ dépend de la mise en page Word · ❌ non conforme, action requise
+Le contrôle 1.8, sur les annexes, ne s'applique plus : elles ont été retirées par décision D-19.
+
+**Le seul point non conforme est le même depuis le début : aucune figure n'est tracée.** C'est le dernier verrou avant la remise, et il ne dépend que des auteurs.
+
+**Légende** : ✅ conforme · ⚠️ partiel · ❌ non conforme, action requise
+
+> **La mise en page Word est faite.** Les contrôles 2.2 à 2.6, qui en dépendaient, sont désormais vérifiés sur le document lui-même et non plus « à appliquer ».
 
 ### Les 2 non-conformités restantes
 
 | # | Point | Action requise |
 |---|---|---|
-| 7.6 | **Aucune figure tracée** | Tracer les 24 figures à partir de leurs fiches — 3 à 4 jours |
+| 7.6 | **Aucune figure tracée** | Tracer les **12 diagrammes** et produire les **3 captures** — emplacements déjà réservés dans le document |
 | 7.7 | **Aucune capture produite** | Lancer l'application et appliquer le protocole — ½ journée |
 
 **Les deux relèvent d'un travail manuel que seuls les auteurs peuvent faire**, conformément à leur choix de tracer eux-mêmes les diagrammes.

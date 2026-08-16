@@ -59,7 +59,7 @@ Le rapport de fin de stage de Verdi (INV-09) a débloqué : l'historique de l'en
 | **README de l'application** | « 116 permissions » |
 | **Code** | **128** entrées au catalogue, confirmées par 128 entrées de métadonnées, sans doublon de valeur |
 | **Arbitrage** | **128** partout dans le mémoire |
-| **Impact** | Chapitres 6 et 7, INV-03, annexe B |
+| **Impact** | Chapitres 6 et 7, INV-03 |
 | **Statut** | ⚠️ **actif** — README et glossaire à corriger |
 
 ### ÉC-03 — Le nombre de routes : 268, pas 273
@@ -130,7 +130,7 @@ La règle « écrire implique consulter » existe en deux copies : le paquet par
 | MA-02 | Résumé et abstract | présents | absents | **conservés** — ils valorisent le mémoire |
 | MA-03 | Titre de la partie II | « Analyse, conception et implémentation » | « Déroulement du stage » | **Modèle Word** — un seul des deux auteurs a fait le stage |
 | MA-04 | Diagramme de déploiement | chapitre 7.5 | chapitre 8.2 | **Chapitre 7** (modèle Word), écart consigné |
-| MA-05 | Descriptions textuelles d'UC | « au moins 2 » | « **au plus 2** » | **Exactement 2** dans le corps, le reste en annexe C |
+| MA-05 | Descriptions textuelles d'UC | « au moins 2 » | « **au plus 2** » | **Exactement 2** dans le corps — § 6.8. Trois fiches de spécification en tableau au § 6.7. Les autres cas ne sont pas détaillés : les annexes ont été retirées |
 | MA-06 | Numérotation des figures | irrégulière (`7.3ter.1`, `7.3quater.1`) | — | **Numérotation séquentielle** `Figure <chapitre>.<ordre>` |
 | MA-07 | Volume | non précisé | **75-90 pages** | **75-90 pages** |
 | MA-08 | Typographie, marges, pagination | non précisées | imposées | **Contraintes de l'école appliquées** |

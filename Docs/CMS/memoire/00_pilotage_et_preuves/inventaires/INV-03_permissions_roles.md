@@ -397,8 +397,8 @@ Aucune route n’exige une permission absente du catalogue. La correspondance co
 | Chapitre 6 § 6.1 | Identification des acteurs : 3 acteurs primaires, 1 secondaire |
 | Chapitre 6 § 6.4 | Classification des UC par module et par acteur |
 | Chapitre 7 § 7.1 | Architecture de sécurité : garde de permission + règle métier |
-| Fiche UML-UC-01 → Figure 6.2 | Répartition des UC par acteur |
+| Fiche UML-UC-01 → Figures 6.2 à 6.6 | Répartition des UC par acteur |
 | Fiche UML-CTX-01 → Figure 6.1 | Acteurs en périphérie du système |
 | Matrice de traçabilité | Colonne « permission requise » |
-| Annexe B | Tableau de bord des droits par acteur |
+| ~~Annexe B~~ | **Annexe retirée du mémoire**. Le tableau des acteurs et de leur périmètre est le tableau 6.4 ; le détail des droits reste dans le présent inventaire |
 

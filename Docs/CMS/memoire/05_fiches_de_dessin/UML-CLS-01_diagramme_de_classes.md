@@ -4,7 +4,7 @@
 
 ```
 Identifiant       : UML-CLS-01
-Figure du mémoire : Figure 7.1 — Diagramme de classes du système CMS SARIS
+Figures du mémoire : Figure 7.1 à Figure 7.4 — un diagramme par package · Figure 7.5 — diagramme global
 Chapitre / section: 7 — § 7.2
 Type UML          : Diagramme de classes
 Sources de preuve : packages/db/prisma/schema.prisma · INV-02 §§ 3 et 4
@@ -17,7 +17,7 @@ Densité           : 29 classes · 38 associations
 
 **Ce que la figure doit démontrer.** Que le domaine s'organise autour de trois pivots — la personne soignée, l'acte de soin, l'agent qui le réalise — et que le parcours clinique forme une chaîne continue : patient → visite → consultation → documents.
 
-**Ce qu'elle ne montre volontairement pas.** 59 entités sur 88 sont écartées : messagerie, synchronisation, audit, notifications, sessions, historiques. Motif : lisibilité. Critère de sélection énoncé au chapitre 7 § 7.2.1 — degré de connexion ≥ 2 dans les domaines clinique, acteurs et référentiels, plus deux exceptions justifiées (`ConstanteVitale`, `DroitCategoriePatient`). Les entités écartées figurent au dictionnaire de données, annexe D.
+**Ce qu'elle ne montre volontairement pas.** 59 entités sur 88 sont écartées : messagerie, synchronisation, audit, notifications, sessions, historiques. Motif : lisibilité. Critère de sélection énoncé au chapitre 7 § 7.2.1 — degré de connexion ≥ 2 dans les domaines clinique, acteurs et référentiels, plus deux exceptions justifiées (`ConstanteVitale`, `DroitCategoriePatient`). Les entités écartées figurent dans l'inventaire du modèle de données, INV-02.
 
 ---
 
@@ -229,8 +229,8 @@ De gauche à droite, **strictement alignés horizontalement** :
 
 **Légende à reproduire sous la figure, mot pour mot :**
 
-> **Figure 7.1 — Diagramme de classes du système CMS SARIS**
-> 29 classes retenues sur les 88 du modèle complet, sélectionnées selon leur degré de connexion. Les colonnes techniques communes (`createdAt`, `updatedAt`, `createdBy`, `updatedBy`, `deletedAt`, `version`) ne sont pas représentées. Le modèle complet figure au dictionnaire de données, annexe D.
+> **Figure 7.5 — Diagramme de classes du système**
+> 29 classes retenues sur les 88 du modèle complet, sélectionnées selon leur degré de connexion. Les colonnes techniques communes (`createdAt`, `updatedAt`, `createdBy`, `updatedBy`, `deletedAt`, `version`) ne sont pas représentées. le modèle complet figure dans l'inventaire du modèle de données, INV-02.
 > *Source : conception propre, dérivée du schéma de données du système.*
 
 ---
@@ -264,3 +264,236 @@ De gauche à droite, **strictement alignés horizontalement** :
 | Portage des clés étrangères | 2026-08-10 | INV-02 § 4, colonne « Porteur FK » |
 | Attributs et contraintes d'unicité | 2026-08-10 | Schéma de données |
 | Critère de sélection du noyau | 2026-08-10 | Registre des décisions, D-07 |
+
+---
+
+## ⚠️ Changement du 24 août 2026 — quatre diagrammes de package, puis le global
+
+Le mémoire ne comporte plus **un seul** diagramme de classes, mais **cinq** : quatre par package, puis le diagramme global. La raison est la même que pour les cas d'utilisation — 29 classes et 38 associations sur une planche A4 ne se lisent pas — et elle suit le mémoire de référence de NGATSE et KUBEMBULA, qui procède exactement ainsi.
+
+Le découpage est celui du tableau 7.4 du mémoire.
+
+| Figure | Package | Classes | Place |
+|---|---|---:|---|
+| Figure 7.1 | Sécurité et habilitations | 5 — `Utilisateur`, `UtilisateurRole`, `Role`, `RolePermission`, `Permission` | demi-page |
+| Figure 7.2 | Référentiels et acteurs médicaux | 8 — `Site`, `CategoriePatient`, `DroitCategoriePatient`, `PathologieReference`, `MedicamentReference`, `TypeExamen`, `PersonnelMedical`, `DelegationPrescription` | demi-page |
+| Figure 7.3 | Dossier patient | 5 — `Patient`, `IdentitePatient`, `EmployeSaris`, `RattachementAyantDroitCdi`, `RattachementSousTraitant` | demi-page |
+| Figure 7.4 | Parcours de soin | 11 — `Visite`, `ConstanteVitale`, `Consultation`, `DiagnosticConsultation`, `Ordonnance`, `LigneOrdonnance`, `BonExamen`, `LigneExamen`, `BonPharmacie`, `LigneBonPharmacie`, `Evacuation` | demi-page |
+| Figure 7.5 | Diagramme global | les 29 | **page entière** |
+
+**Les attributs et les associations ne changent pas.** Ils sont décrits aux blocs 4 et 5 de cette fiche. Chaque diagramme de package reprend, pour ses classes, exactement les mêmes attributs et les mêmes cardinalités.
+
+**Les associations qui traversent deux packages** — par exemple `Consultation` vers `PersonnelMedical` — se tracent sur le diagramme global, et se signalent sur le diagramme de package par une classe en pointillés portant seulement son nom, sans attributs.
+
+**Le diagramme global (7.5)** reste celui décrit dans cette fiche : les 29 classes, les 38 associations, le placement du bloc 3. Il vient **après** les quatre diagrammes de package, du détail vers l'ensemble.
+
+**Le package Fonctions transverses n'a pas de diagramme** : aucune de ses entités n'est retenue au modèle. Le mémoire l'explique au § 7.3.
+
+---
+
+# Bloc 9 — Découpage par package : ce qu'il faut tracer sur chaque planche
+
+> **Le modèle complet compte 88 entités. Le mémoire n'en dessine que 29.** Les 59 autres — messagerie, notifications, sessions, journaux, historiques, tables de synchronisation — ne sont sur **aucune** planche. Elles sont décrites dans l'inventaire `INV-02` § 4, et le mémoire l'explique au § 7.3. Ne cherche pas à les faire entrer.
+
+Les 38 associations se répartissent en **24 associations internes** à un package, et **14 associations qui traversent deux packages**.
+
+**Règle de tracé, valable pour les quatre planches de package :**
+
+- Tu traces les classes du package en **rectangle plein à trois compartiments**, avec leurs attributs du bloc 4.
+- Tu traces les associations **internes** au package en trait plein, avec leurs multiplicités du bloc 5.
+- Pour une association qui **sort** du package, tu dessines la classe partenaire en **rectangle à bord pointillé, avec son seul nom, sans attributs**, et tu traces le lien vers elle. Cela montre la frontière sans dupliquer l'information.
+- Les **14 associations traversantes** se tracent en entier, avec toutes leurs multiplicités, sur la **planche globale 7.5** seulement.
+
+---
+
+## Figure 7.1 — Package Sécurité et habilitations
+
+**Cinq classes à dessiner :** `Utilisateur` · `UtilisateurRole` · `Role` · `RolePermission` · `Permission`
+
+**Quatre associations internes :**
+
+| N° | De | Vers | Multiplicités |
+|---|---|---|---|
+| L03 | `Utilisateur` | `UtilisateurRole` | 1 → 0..* |
+| L04 | `Role` | `UtilisateurRole` | 1 → 0..* |
+| L05 | `Role` | `RolePermission` | 1 → 0..* |
+| L06 | `Permission` | `RolePermission` | 1 → 0..* |
+
+**Deux classes en pointillés, aux bords de la planche :** `Site` (lien L01) et `PersonnelMedical` (lien L02).
+
+**Placement.** `Utilisateur` au centre-gauche, `Role` au centre-droit. `UtilisateurRole` et `RolePermission` sont des classes d'association : les placer **entre** les deux classes qu'elles relient. `Permission` à l'extrême droite. C'est la figure la plus simple des quatre.
+
+---
+
+## Figure 7.2 — Package Référentiels et acteurs médicaux
+
+**Huit classes à dessiner :** `Site` · `CategoriePatient` · `DroitCategoriePatient` · `PathologieReference` · `MedicamentReference` · `TypeExamen` · `PersonnelMedical` · `DelegationPrescription`
+
+**Trois associations internes :**
+
+| N° | De | Vers | Multiplicités |
+|---|---|---|---|
+| L09 | `CategoriePatient` | `DroitCategoriePatient` | 1 → 0..* |
+| L16 | `PersonnelMedical` | `DelegationPrescription` | 1 → 0..* — rôle `medecinChef` |
+| L17 | `PersonnelMedical` | `DelegationPrescription` | 1 → 0..* — rôle `infirmier` |
+
+⚠️ **L16 et L17 sont deux liens distincts entre les deux mêmes classes.** Il faut tracer **deux traits séparés**, chacun portant son nom de rôle. Un seul trait serait une erreur : c'est ce qui permet de savoir qui a accordé la délégation et qui l'a reçue.
+
+**Trois classes en pointillés :** `Patient` (liens L07 et L10), `Consultation` (liens L18 et L20), `Ordonnance` (lien L19). Les liens vers les lignes d'ordonnance et d'examen — L11 à L15 — se signalent par une seule classe en pointillés nommée `Parcours de soin`, sans quoi la planche se surcharge.
+
+**Placement.** Les six référentiels en colonne à gauche, les deux classes d'acteurs à droite. `DroitCategoriePatient` collé sous `CategoriePatient` : c'est la matrice qui porte la règle d'éligibilité, la planche doit la mettre en évidence.
+
+---
+
+## Figure 7.3 — Package Dossier patient
+
+**Cinq classes à dessiner :** `Patient` · `IdentitePatient` · `EmployeSaris` · `RattachementAyantDroitCdi` · `RattachementSousTraitant`
+
+**Cinq associations internes :**
+
+| N° | De | Vers | Multiplicités | Forme |
+|---|---|---|---|---|
+| L25 | `Patient` | `IdentitePatient` | 1 → 0..1 | **composition**, losange plein côté `Patient` |
+| L21 | `EmployeSaris` | `Patient` | 0..1 → 0..* | trait plein |
+| L22 | `EmployeSaris` | `RattachementAyantDroitCdi` | 0..1 → 0..* | trait plein |
+| L23 | `RattachementAyantDroitCdi` | `Patient` | 0..* → 1 | trait plein |
+| L24 | `RattachementSousTraitant` | `Patient` | 0..* → 1 | trait plein |
+
+**Trois classes en pointillés :** `Site` (L07), `CategoriePatient` (L10), `Visite` (L26).
+
+**Placement.** `Patient` au centre, c'est le pivot. `IdentitePatient` juste en dessous, reliée par la composition. `EmployeSaris` à gauche, les deux classes de rattachement entre les deux. La planche doit faire voir qu'un patient peut être rattaché **de deux façons différentes** — ayant droit d'un CDI, ou employé d'un sous-traitant.
+
+---
+
+## Figure 7.4 — Package Parcours de soin
+
+**Onze classes à dessiner :** `Visite` · `ConstanteVitale` · `Consultation` · `DiagnosticConsultation` · `Ordonnance` · `LigneOrdonnance` · `BonExamen` · `LigneExamen` · `BonPharmacie` · `LigneBonPharmacie` · `Evacuation`
+
+**Douze associations internes :**
+
+| N° | De | Vers | Multiplicités | Forme |
+|---|---|---|---|---|
+| L27 | `Visite` | `ConstanteVitale` | 1 → 0..* | **composition** |
+| L28 | `Visite` | `Consultation` | 1 → 0..* | trait plein |
+| L29 | `Consultation` | `DiagnosticConsultation` | 1 → 0..* | trait plein |
+| L30 | `Consultation` | `Ordonnance` | 1 → 0..* | trait plein |
+| L31 | `Consultation` | `BonExamen` | 1 → 0..* | trait plein |
+| L32 | `Consultation` | `BonPharmacie` | 1 → 0..* | trait plein |
+| L33 | `Consultation` | `Evacuation` | 1 → 0..1 | trait plein, contrainte `{unique}` |
+| L34 | `Ordonnance` | `LigneOrdonnance` | 1 → 0..* | **composition** |
+| L35 | `Ordonnance` | `BonExamen` | 0..1 → 0..* | trait plein |
+| L36 | `Ordonnance` | `BonPharmacie` | 0..1 → 0..* | trait plein |
+| L37 | `BonExamen` | `LigneExamen` | 1 → 0..* | **composition** |
+| L38 | `BonPharmacie` | `LigneBonPharmacie` | 1 → 0..* | **composition** |
+
+**Trois classes en pointillés :** `Patient` (L26), `PersonnelMedical` (L18), `DelegationPrescription` (L19 et L20).
+
+**Placement.** C'est la planche la plus dense des quatre : elle mérite d'être tracée en dernier, quand la main est faite. Une lecture de gauche à droite, dans l'ordre du parcours : `Visite` à gauche avec `ConstanteVitale` en dessous, `Consultation` au centre — c'est le second pivot du modèle — puis `Ordonnance`, les deux bons et `Evacuation` à droite, chacun avec ses lignes en dessous.
+
+**Ce que cette planche doit faire voir.** Les documents cliniques sont rattachés à la **consultation**, jamais directement au patient. C'est le choix de modélisation expliqué au § 7.3 du mémoire : aucun document ne peut exister sans acte de soin qui le justifie.
+
+---
+
+## Figure 7.5 — Diagramme global
+
+Les 29 classes, les 38 associations, selon le plan de placement du **bloc 6**. C'est cette planche qui porte les **14 associations traversantes**, que les quatre planches de package n'ont fait que suggérer par des classes en pointillés :
+
+| N° | De | Vers | Ce qu'elle relie |
+|---|---|---|---|
+| L01 | `Utilisateur` | `Site` | Sécurité → Référentiels |
+| L02 | `Utilisateur` | `PersonnelMedical` | Sécurité → Acteurs |
+| L07 | `Site` | `Patient` | Référentiels → Dossier |
+| L08 | `Site` | `Visite` | Référentiels → Parcours |
+| L10 | `CategoriePatient` | `Patient` | Référentiels → Dossier |
+| L11 | `PathologieReference` | `DiagnosticConsultation` | Référentiels → Parcours |
+| L12 | `MedicamentReference` | `LigneOrdonnance` | Référentiels → Parcours |
+| L13 | `MedicamentReference` | `LigneBonPharmacie` | Référentiels → Parcours |
+| L14 | `TypeExamen` | `LigneExamen` | Référentiels → Parcours |
+| L15 | `TypeExamen` | `LigneOrdonnance` | Référentiels → Parcours |
+| L18 | `PersonnelMedical` | `Consultation` | Acteurs → Parcours |
+| L19 | `DelegationPrescription` | `Ordonnance` | Acteurs → Parcours |
+| L20 | `DelegationPrescription` | `Consultation` | Acteurs → Parcours |
+| L26 | `Patient` | `Visite` | Dossier → Parcours |
+
+**Un fait à relever en soutenance.** Dix des quatorze associations traversantes partent des **référentiels et des acteurs** vers le parcours de soin. C'est la traduction visuelle de ce que dit le mémoire : le parcours de soin ne fonctionne que parce que les référentiels et les délégations existent d'abord.
+
+---
+
+## Contrôle avant de coller les cinq planches
+
+```
+[ ] Les 29 classes sont réparties : 5 + 8 + 5 + 11 sur les quatre planches
+[ ] Aucune des 59 entités écartées n'apparaît nulle part
+[ ] Les 24 associations internes sont tracées sur leur planche de package
+[ ] Les 14 associations traversantes ne sont tracées QUE sur la planche 7.5
+[ ] Les classes partenaires hors package sont en POINTILLÉS, sans attributs
+[ ] Les 4 compositions portent un losange PLEIN : L25, L27, L34, L37, L38
+[ ] L16 et L17 sont DEUX traits distincts, avec leur nom de rôle
+[ ] Chaque planche de package tient dans 16 cm sur 11
+[ ] La planche 7.5 occupe une page entière
+```
+
+---
+
+# Bloc 10 — Aide-mémoire de tracé : la liste complète, prête à recopier
+
+> Ce bloc existe pour que tu n'aies **jamais à ouvrir un autre fichier** pendant que tu dessines. Tout ce qui suit est vérifié contre le code.
+
+## Les 29 classes, par ordre de degré de connexion
+
+Le degré est le nombre d'associations qui touchent la classe. C'est le critère de sélection énoncé au § 7.3 du mémoire. Plus il est élevé, plus la classe doit être **au centre** de la planche.
+
+| Rang | Classe | Degré | Champs | Package | Planche |
+|---:|---|---:|---:|---|---|
+| 1 | `Patient` | **18** | 36 | Dossier patient | 7.3 |
+| 2 | `Consultation` | **13** | 37 | Parcours de soin | 7.4 |
+| 3 | `Utilisateur` | **11** | 29 | Sécurité | 7.1 |
+| 4 | `PersonnelMedical` | **8** | 18 | Référentiels et acteurs | 7.2 |
+| 5 | `Visite` | 6 | 22 | Parcours de soin | 7.4 |
+| 6 | `Ordonnance` | 6 | 18 | Parcours de soin | 7.4 |
+| 7 | `DelegationPrescription` | 5 | 14 | Référentiels et acteurs | 7.2 |
+| 8 | `BonExamen` | 4 | 14 | Parcours de soin | 7.4 |
+| 9 | `Site` | 3 | 11 | Référentiels et acteurs | 7.2 |
+| 10 | `CategoriePatient` | 3 | 9 | Référentiels et acteurs | 7.2 |
+| 11 | `PathologieReference` | 3 | 11 | Référentiels et acteurs | 7.2 |
+| 12 | `MedicamentReference` | 3 | 10 | Référentiels et acteurs | 7.2 |
+| 13 | `LigneOrdonnance` | 3 | 15 | Parcours de soin | 7.4 |
+| 14 | `BonPharmacie` | 3 | 15 | Parcours de soin | 7.4 |
+| 15 | `Evacuation` | 3 | 14 | Parcours de soin | 7.4 |
+| 16 | `RattachementAyantDroitCdi` | 3 | 13 | Dossier patient | 7.3 |
+| 17 | `RattachementSousTraitant` | 3 | 11 | Dossier patient | 7.3 |
+| 18 | `Role` | 2 | 6 | Sécurité | 7.1 |
+| 19 | `Permission` | 2 | 6 | Sécurité | 7.1 |
+| 20 | `UtilisateurRole` | 2 | 3 | Sécurité | 7.1 |
+| 21 | `RolePermission` | 2 | 3 | Sécurité | 7.1 |
+| 22 | `TypeExamen` | 2 | 9 | Référentiels et acteurs | 7.2 |
+| 23 | `EmployeSaris` | 2 | 17 | Dossier patient | 7.3 |
+| 24 | `DiagnosticConsultation` | 2 | 8 | Parcours de soin | 7.4 |
+| 25 | `LigneExamen` | 2 | 6 | Parcours de soin | 7.4 |
+| 26 | `LigneBonPharmacie` | 2 | 10 | Parcours de soin | 7.4 |
+| 27 | `IdentitePatient` | 1 | 12 | Dossier patient | 7.3 |
+| 28 | `ConstanteVitale` | 1 | 23 | Parcours de soin | 7.4 |
+| 29 | `DroitCategoriePatient` | 1 | 8 | Référentiels et acteurs | 7.2 |
+
+**Les trois classes de degré 1 sont les exceptions au critère.** Le mémoire les justifie au § 7.3. `IdentitePatient` et `ConstanteVitale` portent les données saisies à chaque visite. `DroitCategoriePatient` porte la règle d'éligibilité, la règle métier centrale du système : l'écarter aurait vidé le diagramme de son sens.
+
+**Les deux classes d'association.** `UtilisateurRole` et `RolePermission` ne sont pas des entités métier : elles matérialisent un lien plusieurs-à-plusieurs. Sur la planche, elles se placent **entre** les deux classes qu'elles relient, jamais à côté.
+
+## Trois règles de placement, valables partout
+
+**Le degré commande la position.** Une classe de degré élevé va au centre, une classe de degré 1 ou 2 va en périphérie. Si tu places `Patient` dans un coin, tous les traits vont se croiser.
+
+**Les lignes se collent à leur en-tête.** `LigneOrdonnance` sous `Ordonnance`, `LigneExamen` sous `BonExamen`, `LigneBonPharmacie` sous `BonPharmacie`, `ConstanteVitale` sous `Visite`, `IdentitePatient` sous `Patient`. Ce sont les cinq compositions, et le losange plein se dessine du côté de l'en-tête.
+
+**Le compartiment des opérations reste vide.** C'est un modèle de données, pas un modèle de comportement. Trois compartiments quand même : nom, attributs, et un troisième vide.
+
+## Ce qu'il ne faut jamais faire
+
+```
+[ ] Ne pas écrire les clés étrangères comme attributs — elles sont portées par les traits
+[ ] Ne pas reporter createdAt, updatedAt, createdBy, updatedBy, deletedAt, version
+    — elles existent sur presque toutes les classes et les surchargeraient
+[ ] Ne dessiner aucune des 59 entités écartées, sur aucune planche
+[ ] Ne pas fusionner L16 et L17 en un seul trait entre PersonnelMedical
+    et DelegationPrescription : deux traits, deux rôles
+```

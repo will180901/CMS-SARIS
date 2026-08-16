@@ -396,10 +396,10 @@ La suppression d'une consultation déclenche une **cascade explicite**, dans l'o
 | Destination | Figure | Contenu apporté |
 |---|---|---|
 | Fiche UML-ACT-01 → Figure 5.1 | Activité du processus **actuel** | ⛔ **Ne peut pas être alimentée par cet inventaire** — décrit le fonctionnement Excel + papier d'avant, qui dépend du recueil de terrain absent |
-| Fiche UML-ACT-02 → Figure 7.2 | Activité du **nouveau** système | § 4.1 et § 4.2 : triage → file → consultation → décision → documents |
+| ~~Fiche UML-ACT-02~~ | **Figure abandonnée le 18 août 2026** — l'activité du nouveau système ne figure plus dans le mémoire | § 4.1 et § 4.2 : triage → file → consultation → décision → documents |
 | Fiches UML-SEQS-01 à 03 → Figures 6.4 à 6.6 | Séquences système | § 4.1 (triage), § 4.3 + 4.4 (prescription et bon), § 4.8 (authentification) |
 | Fiches UML-SEQO-01/02 → Figures 7.3 et 7.4 | Séquences objets | § 5.2 (deux étages de contrôle) et § 4.9 (synchronisation avec conflit) |
-| Fiche UML-COM-01 → Figure 7.5 | Communication | Mêmes objets que la séquence objets retenue |
+| ~~Fiche UML-COM-01~~ | Communication | **Figure abandonnée le 18 août 2026** — le diagramme de communication ne figure plus dans le mémoire |
 | Chapitre 6 § 6.6 | Fiches de spécification des UC | Préconditions, scénario nominal, alternatives, exceptions — déjà structurés ici |
 | Chapitre 6 § 6.6bis | Descriptions textuelles (2 max) | Candidats : § 4.2 (consultation et décision) et § 4.4 (bon de pharmacie, qui porte la règle centrale) |
 | Chapitre 3 § 3.1.3 | Catégories de patients et règles | § 5.1 en entier |

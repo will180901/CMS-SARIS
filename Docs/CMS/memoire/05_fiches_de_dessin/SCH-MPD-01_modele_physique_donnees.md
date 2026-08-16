@@ -19,7 +19,7 @@ Densité           : extrait représentatif de 4 tables + tableau des types
 
 **Décision de représentation.** Reproduire les 88 tables occuperait plusieurs dizaines de pages. La figure présente **quatre tables représentatives**, choisies parce qu'elles couvrent l'ensemble des cas de figure du schéma, plus un tableau récapitulatif des types employés.
 
-Le script complet est versionné dans les 41 migrations du projet et référencé en annexe D.
+Le script complet est versionné dans les 41 migrations du projet ; le mémoire n'en reproduit que des extraits représentatifs.
 
 ## Bloc 3 — Contenu à reproduire
 
@@ -137,7 +137,7 @@ Points à commenter :
 | Chaîne de connexion à la base | Secret |
 | Nom d'hôte, port, identifiants de production | Secret |
 | Données réelles de patients | Confidentialité |
-| Le script complet des 88 tables | Volume — renvoyer à l'annexe D |
+| Le script complet des 88 tables | Volume — il reste dans les migrations du projet, hors du mémoire |
 
 ## Bloc 6 — Plan de placement
 
@@ -148,7 +148,7 @@ Le code SQL est présenté en **police à chasse fixe**, taille 10 ou 11, avec l
 ## Bloc 7 — Légende
 
 > **Figure 8.2 — Modèle physique de données**
-> Extraits représentatifs des 88 tables. Le script complet est versionné dans les 41 migrations du projet et référencé en annexe D. Les identifiants sont des chaînes universelles générées côté application, choix imposé par le fonctionnement hors connexion.
+> Extraits représentatifs des 88 tables. Le script complet est versionné dans les 41 migrations du projet ; le mémoire n'en reproduit que des extraits représentatifs. Les identifiants sont des chaînes universelles générées côté application, choix imposé par le fonctionnement hors connexion.
 > *Source : migrations du projet.*
 
 ## Bloc 8 — Contrôles
@@ -161,7 +161,7 @@ Le code SQL est présenté en **police à chasse fixe**, taille 10 ou 11, avec l
 [ ] Les 4 commentaires d'analyse sont présents
 [ ] Aucune chaîne de connexion, aucun identifiant de production
 [ ] Aucune donnée réelle de patient
-[ ] La légende renvoie à l'annexe D pour le schéma complet
+[ ] La légende précise qu'il s'agit d'extraits, et où se trouve le schéma complet
 ```
 
 ## Vérification finale

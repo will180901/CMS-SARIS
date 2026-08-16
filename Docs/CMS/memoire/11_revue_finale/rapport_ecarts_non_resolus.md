@@ -1,5 +1,8 @@
 # Rapport des écarts non résolus
 
+> ⚠️ **Ce rapport a été établi le 10 août 2026, avant la refonte du mémoire.** Il a été mis à jour le 19 août sur les points factuels — nombre de figures, résultats de tests, disparition des annexes — mais sa structure reste celle de la revue d'origine. L'état courant du document est décrit dans `DIAGNOSTIC_ALIGNEMENT_DOCX.md`.
+
+
 > **Ce rapport liste honnêtement tout ce qui n'est pas fait.** Il n'existe pas pour rassurer : il existe pour qu'aucun point ne soit découvert la veille de la remise, ou en soutenance.
 > **Date** : 2026-08-10, après intégration du recueil de l'existant.
 
@@ -11,7 +14,7 @@
 |---|---|---|
 | É-03 | Bibliographie — 3 références sur 8-10 | ✅ **8 références**, dont **5 vérifiées à la source**. Reste à les **lire** avant citation |
 | É-04 | Recueil de l'existant introuvable — 24 pages bloquées | ✅ **Obtenu.** Version v6. Chapitres 1, 2, 3, 5 rédigés ; figures 1.1 et 5.1 et tableau 5.1 débloqués. **≈ 18 pages débloquées sur 24** |
-| É-05 | Aucun test exécuté | ✅ **102 cas exécutés sur 145**, 101 réussis, 1 échoué — sorties console à l'appui |
+| É-05 | Aucun test exécuté | ✅ **103 cas exécutés sur 145**, 103 réussis, 0 échec — sorties console à l'appui |
 | — | Documentation antérieure contradictoire | ✅ **Écartée puis retirée du dépôt**, après rebasage de 18 fichiers sur le recueil et le code |
 
 ---
@@ -22,11 +25,11 @@
 
 | | |
 |---|---|
-| **Constat** | 25 figures sont numérotées. **Zéro n'est dessinée** |
+| **Constat** | 15 figures sont numérotées, leur emplacement est réservé dans le document. **Zéro n'est dessinée** |
 | **Ce qui existe** | **24 fiches de dessin complètes**, en 8 blocs : liste exacte des formes, tableau des liens avec cardinalités, plan de placement, contrôles de vérification |
 | **Ce qui manque** | Le tracé lui-même |
 | **Qui peut le faire** | Les auteurs — c'est un choix assumé, décision D-05 |
-| **Effort estimé** | 3 à 4 jours. La figure 7.1 est la plus longue : compter une demi-journée |
+| **Effort estimé** | 3 à 4 jours. La figure 7.5, le diagramme de classes global, est la plus longue : compter une demi-journée |
 | **Ordre conseillé** | Voir l'index des figures § 3 |
 
 ### É-02 ⛔ Aucune capture d'écran n'est produite
@@ -35,7 +38,7 @@
 |---|---|
 | **Constat** | Le chapitre 8 § 8.3 exige des captures. Aucune n'existe |
 | **Ce qui existe** | Le protocole complet : jeu de données, rôle à indiquer, éléments à masquer, nommage, couverture minimale de 14 captures |
-| **Prérequis** | Installer les dépendances, démarrer la base et l'interface de programmation, charger le jeu de démonstration |
+| **Prérequis** | Installer les dépendances, démarrer la base et l'API, charger le jeu de démonstration |
 | **Effort estimé** | Une demi-journée, dont l'essentiel en mise en place |
 | **Point de vigilance** | Vérifier que les noms du jeu de démonstration ne correspondent pas à des personnes réelles — QO-12 |
 | **Capture la plus précieuse** | La **8.11**, montrant le refus d'un bon pour un patient non couvert. C'est la seule qui prouve que la règle centrale s'applique réellement |
@@ -108,10 +111,10 @@ Le chapitre 3 § 3.3 est structuré et ses points d'appui identifiés ; sa réda
 | # | Question | Impact si non résolu |
 |---|---|---|
 | QO-02bis | Effectifs, chiffres d'activité, statut juridique du centre | Chapitre 1 §§ 1.1, 1.4, 1.5 ; Tableau 1.1 — ≈ 3 pages |
-| **QO-03** | **Infrastructure réseau et parc informatique** | **Chapitre 2 §§ 2.1 à 2.3, Figure 2.1, Tableau 2.1 — ≈ 3 pages. Seule figure encore bloquée** |
-| QO-04 | Période, durée et guide des entretiens | Chapitre 5 § 5.1.2, Annexe A — ≈ 1 page |
+| **QO-03** | **Infrastructure réseau et parc informatique** | **Chapitre 2 § 2.2 et Tableau 2.1. La figure 2.1 a été retirée du mémoire — décision D-18. Seule figure encore bloquée** |
+| QO-04 | Période, durée et guide des entretiens | Chapitre 5 § 5.1 — ≈ 1 page |
 | QO-08 | Promoteur, jury, année académique | Page de garde incomplète |
-| QO-09 | Les 75-90 pages incluent-elles les annexes ? | Risque de dépassement |
+| QO-09 | La limite de 70-85 pages vise-t-elle le corps ou le document entier ? | Le corps fait 76 pages, le document 90. À confirmer auprès du promoteur |
 | QO-16 | Faut-il ventiler les statistiques par les 9 statuts réels ? | Question probable du jury |
 | QO-17 | Faut-il ajouter les axes manquants avant la soutenance ? | Voir É-19 |
 
@@ -137,7 +140,7 @@ Le chapitre 3 § 3.3 est structuré et ses points d'appui identifiés ; sa réda
 | # | Action | Effort |
 |---|---|---|
 | 7 | **Lire les références bibliographiques**, en commençant par Roques et Vallée | 2-3 jours |
-| 8 | **Tracer les 24 figures** | 3-4 jours |
+| 8 | **Tracer les 12 diagrammes et produire les 3 captures** | 2-3 jours |
 | 9 | **Produire les captures d'écran** | ½ journée |
 | 10 | Exécuter les 5 suites d'intégration restantes | ½ journée |
 | 11 | Ajouter les 4 axes statistiques manquants | 1 journée |
@@ -170,7 +173,7 @@ Aucun de ces manques n'est un défaut de conception du dossier. Tous sont identi
 - La **réconciliation** est à **zéro orphelin** : aucune capacité du système n'est absente du mémoire.
 - Les **18 besoins exprimés** sont confrontés un à un à la couverture réelle : **zéro besoin non couvert dans le périmètre**.
 - Les **chiffres sont cohérents** dans tout le dossier — 22 grandeurs vérifiées.
-- **102 cas de test ont été réellement exécutés**, avec un échec analysé et diagnostiqué.
+- **103 cas de test ont été réellement exécutés**, avec un échec analysé et diagnostiqué.
 - Le **vocabulaire est unifié**, et les termes hérités éliminés — avec la nuance apportée sur les villes des établissements partenaires.
 - Les **24 écarts** entre documents et code sont consignés, dont **6 résolus** par le recueil.
 - **Aucun résultat de test n'est inventé**, aucune référence fabriquée, aucun chiffre de terrain supposé.

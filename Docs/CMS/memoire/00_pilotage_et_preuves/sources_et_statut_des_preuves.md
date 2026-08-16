@@ -99,7 +99,7 @@ Ces inventaires ont **valeur de preuve** : ils sont l'extraction vérifiable de 
 | Effectifs par fonction et par site | Chapitre 1 § 1.4 · Tableau 1.1 | QO-02 |
 | Historique et statut juridique du centre | Chapitre 1 § 1.1 | QO-02 |
 | Chiffres d'activité — consultations, bénéficiaires | Chapitre 1 § 1.5 | QO-02 |
-| Infrastructure réseau et parc informatique | Chapitre 2 §§ 2.1 à 2.3 · Figure 2.1 · Tableau 2.1 | QO-03 |
+| Infrastructure réseau et parc informatique | Chapitre 2 § 2.2 · Tableau 2.1 | QO-03 |
 
 **Volume concerné** : environ 6 à 8 pages, contre 24 avant l'arrivée du recueil.
 

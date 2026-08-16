@@ -1,75 +1,89 @@
-# Budget de pages
+<!-- Fichier aligné sur Memoire_CMS_SARIS.docx le 19 août 2026. -->
+<!-- Le document Word fait foi. Toute divergence est une erreur de ce fichier. -->
 
-> **Contrainte de l'école** : 75 à 90 pages pour le corps du rapport.
-> **Conversion retenue** : ≈ 450 mots par page finale (Times New Roman 12, interligne 1,25, marges 1,5, justifié).
-> Les figures et tableaux consomment de la place : une figure pleine largeur ≈ 1/3 de page.
+# Volume du mémoire — réalisé
 
----
-
-## 1. Répartition cible
-
-| Élément | Budget | Mots visés | Dépend du terrain ? |
-|---|---:|---:|:---:|
-| Introduction générale | 4 – 5 p. | 1 800 – 2 250 | partiellement |
-| **Partie I** | | | |
-| Ch. 1 — Présentation de la structure d'accueil | 6 – 8 p. | 2 700 – 3 600 | ⛔ **oui, entièrement** |
-| Ch. 2 — Situation informatique existante | 6 – 8 p. | 2 700 – 3 600 | ⛔ **oui, entièrement** |
-| Ch. 3 — Domaine d'étude | 8 – 10 p. | 3 600 – 4 500 | ⚠️ partiellement (≈ 5 p. rédigeables) |
-| **Partie II** | | | |
-| Ch. 4 — Méthodologie 2TUP et UML | 8 – 10 p. | 3 600 – 4 500 | non |
-| Ch. 5 — Étude de l'existant | 6 – 8 p. | 2 700 – 3 600 | ⛔ **oui, entièrement** |
-| Ch. 6 — Analyse des besoins | 8 – 10 p. | 3 600 – 4 500 | non |
-| Ch. 7 — Conception | 10 – 12 p. | 4 500 – 5 400 | non |
-| Ch. 8 — Implémentation | 8 – 10 p. | 3 600 – 4 500 | non |
-| Conclusion générale | 3 – 4 p. | 1 350 – 1 800 | partiellement |
-| **Total corps** | **67 – 85 p.** | **30 150 – 38 250** | |
-
-**Marge disponible** : le maximum de 85 pages laisse 5 pages sous le plafond de 90. Cette marge est volontaire — les figures consomment toujours plus que prévu.
-
-Hors quota (à confirmer, voir QO-09) : pages liminaires (i à vi), table des matières, bibliographie, webographie, annexes.
+> Ce fichier était un **budget prévisionnel**. Le mémoire est écrit et mis en page : il devient un **relevé**.
+> Mesures prises sur `Memoire_CMS_SARIS.docx` le 19 août 2026.
 
 ---
 
-## 2. Répartition par disponibilité de la source
+## 1. Le chiffre qui compte
 
-| Catégorie | Chapitres | Pages | Part |
-|---|---|---:|---:|
-| ✅ **Rédigé depuis le code** | 4, 6, 7, 8 | 34 – 42 | ≈ 49 % |
-| ✅ **Rédigé depuis le recueil de l'existant** | 1, 2, 3, 5 | 22 – 28 | ≈ 33 % |
-| ✅ Rédigé — synthèse | introduction, conclusion | 7 – 9 | ≈ 10 % |
-| ⛔ **En attente de source** | parties de 1, 2 et 5 | ≈ 7 | **≈ 8 %** |
+| Ce qu'on mesure | Valeur |
+|---|---:|
+| Document entier | **90 pages** |
+| **Corps du rapport** — introduction à conclusion | **76 pages** |
+| Pages liminaires — dédicace à liste des sigles | 8, numérotées **i** à **viii** |
+| Pages finales — bibliographie à table des matières | 5, numérotées **A** à **E** |
+| Page de garde | 1, non numérotée |
 
----
+Le jury compte le **corps**, pas le document entier. C'est précisément à cela que sert la numérotation en trois parties : elle isole les 76 pages qui comptent.
 
-## 3. Suivi
+| Exigence | Fourchette | Position du mémoire |
+|---|---|---|
+| Plan officiel de l'école | 75 à 90 pages de corps | ✅ 76 |
+| Consigne du promoteur | 70 à 85 pages | ✅ 76 |
 
-| Chapitre | Budget | Rédigé | État |
-|---|---:|:---:|---|
-| Introduction générale | 4 – 5 p. | ✅ | livrée, périmètre et recueil intégrés |
-| Ch. 1 — Structure d'accueil | 6 – 8 p. | ⚠️ | **rédigé** · §§ 1.1, 1.4, 1.5 et Tableau 1.1 en attente — QO-02bis, ≈ 3 p. |
-| Ch. 2 — Situation informatique | 6 – 8 p. | ⚠️ | **rédigé** · §§ 2.1 à 2.3, Figure 2.1, Tableau 2.1 en attente — QO-03, ≈ 3 p. |
-| Ch. 3 — Domaine d'étude | 8 – 10 p. | ⚠️ | **rédigé**, y compris le périmètre · § 3.3 exige les lectures — É-18 |
-| Ch. 4 — Méthodologie | 8 – 10 p. | ✅ | livré |
-| Ch. 5 — Étude de l'existant | 6 – 8 p. | ⚠️ | **rédigé** · § 5.1.2 en attente — QO-04, ≈ 1 p. |
-| Ch. 6 — Analyse des besoins | 8 – 10 p. | ✅ | livré, enrichi des besoins exprimés |
-| Ch. 7 — Conception | 10 – 12 p. | ✅ | livré |
-| Ch. 8 — Implémentation | 8 – 10 p. | ✅ | livré, avec résultats de tests réels |
-| Conclusion | 3 – 4 p. | ✅ | livrée |
-
-**Neuf chapitres sur dix sont rédigés.** Les trois marqués ⚠️ le sont dans leur substance ; il leur manque au total **≈ 7 pages** de données factuelles à obtenir.
+La marge est mince du côté bas de l'exigence de l'école : **une page de moins et le mémoire passe sous le minimum.** Toute suppression ultérieure doit être compensée.
 
 ---
 
-## 4. Règles d'arbitrage si le volume déborde
+## 2. Répartition réelle, chapitre par chapitre
 
-Dans l'ordre, jusqu'à revenir sous le plafond :
+| Section | Pages | Numéros |
+|---|---:|---|
+| Introduction générale | 2 | 1 – 2 |
+| *Page de séparation — Première Partie* | 1 | 3 |
+| Ch. 1 — Présentation de la structure d'accueil | 5 | 4 – 8 |
+| Ch. 2 — Situation informatique existante | 5 | 9 – 13 |
+| Ch. 3 — Domaine d'étude | 6 | 14 – 19 |
+| *Page de séparation — Deuxième Partie* | 1 | 20 |
+| Ch. 4 — Méthodologie 2TUP et UML | 6 | 21 – 26 |
+| Ch. 5 — Étude de l'existant | 7 | 27 – 33 |
+| Ch. 6 — Analyse des besoins | **15** | 34 – 48 |
+| Ch. 7 — Conception | **12** | 49 – 60 |
+| Ch. 8 — Implémentation | **14** | 61 – 74 |
+| Conclusion générale | 2 | 75 – 76 |
+| **Corps** | **76** | **1 – 76** |
 
-1. **Déplacer en annexe** toute énumération de plus de dix lignes (listes de permissions, de routes, de champs).
-2. **Réduire les tableaux** à leurs colonnes décisives.
-3. **Supprimer les redites** entre chapitres : une notion s'explique une fois, puis se cite.
-4. **Raccourcir le chapitre 4**, le plus compressible car théorique.
-5. **Ne jamais** sacrifier les chapitres 6, 7 et 8 : ce sont eux qui portent le travail réel.
+### Ce que cette répartition dit
 
-## 5. Règle inverse — si le volume manque
+La Partie II pèse **56 pages sur 76**, soit près des trois quarts. C'est le bon équilibre pour un mémoire de génie logiciel : le contexte pose le décor, le travail personnel occupe la place.
 
-Le manque viendra du blocage terrain, pas d'un manque de matière technique. **Ne pas compenser en gonflant les chapitres techniques** : un chapitre 7 de 18 pages face à un chapitre 1 de 2 pages signale au jury exactement ce qui s'est passé. Mieux vaut récupérer le recueil.
+Les trois chapitres les plus lourds — 6, 7 et 8 — totalisent 41 pages. Ce sont ceux qui portent l'analyse, la conception et la réalisation, c'est-à-dire ce sur quoi le jury interroge.
+
+Le chapitre 6 est le plus long du mémoire, avec 15 pages. Il porte 10 tableaux et 4 figures, dont les deux diagrammes de séquence système.
+
+---
+
+## 3. Ce qui occupe ces pages
+
+| Élément | Nombre | Coût en pages |
+|---|---:|---|
+| Figures | 15 | **15 pages** — chacune occupe une page entière, seule |
+| Tableaux | 48 | intégrés au fil du texte |
+| Descriptions textuelles de cas d'utilisation | 2 | ≈ 2 pages |
+| Pages de séparation de partie | 2 | 2 pages |
+
+**Les figures représentent à elles seules 15 des 76 pages du corps**, soit une page sur cinq. C'est le poste le plus lourd, et c'est en le réduisant de 24 à 15 illustrations que le document est passé de 214 pages à son format actuel.
+
+---
+
+## 4. Si le volume doit encore bouger
+
+**Pour retirer des pages** — dans cet ordre, du moins coûteux au plus risqué :
+
+1. Alléger les tableaux les plus longs du chapitre 6 en fusionnant des colonnes.
+2. Resserrer le chapitre 5, dont la critique de l'existant recoupe partiellement le chapitre 2.
+3. Retirer une figure, en dernier recours — chacune vaut une page pleine, mais chacune est aussi une preuve visuelle.
+
+⚠️ **Attention** : le corps est à 76 pages pour un minimum de 75. Retirer sans compenser fait sortir le mémoire par le bas.
+
+**Pour ajouter des pages** — trois réserves existent, toutes légitimes :
+
+1. Le chapitre 2 attend encore l'infrastructure réseau et les effectifs chiffrés, à obtenir auprès de Verdi.
+2. Le chapitre 5 attend le détail du guide d'entretien.
+3. Le chapitre 3 § 3.5 gagnerait à être étoffé une fois les quatre références effectivement lues.
+
+Ces trois manques sont documentés dans le registre des questions ouvertes. **Les combler est la seule façon d'augmenter le volume sans le gonfler artificiellement.**

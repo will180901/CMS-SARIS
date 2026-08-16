@@ -1,7 +1,9 @@
 # CMS SARIS — Dossier source du mémoire de fin de cycle
 
 > **Tableau de bord.** Point d'entrée unique du dossier documentaire. Mis à jour à chaque livraison.
-> **Dernière mise à jour** : 2026-08-10
+> **Dernière mise à jour** : 2026-08-19 — alignement complet du dossier sur `Memoire_CMS_SARIS.docx`.
+>
+> ⚠️ **Le document Word fait désormais foi sur le contenu du mémoire.** Les inventaires font foi sur les chiffres. En cas de divergence entre les deux, c'est un écart à consigner, pas à masquer.
 
 ---
 
@@ -24,38 +26,35 @@
 
 ## 2. État d'avancement
 
-**Volumétrie du dossier** : 65 fichiers · 16635 lignes.
+**Le mémoire est rédigé et mis en page.** `Memoire_CMS_SARIS.docx` — **90 pages**, dont **76 pages de corps**.
 
-| Phase | Livrable | État |
-|---|---|---|
-| 0 | **Huit inventaires** — 7 du code, 1 du recueil | ✅ terminé |
-| 1 | Pilotage, registres, matrices | ✅ terminé |
-| 2 | Chapitres 4, 6, 7, 8 — dérivés du code | ✅ terminé |
-| 3 | **Chapitres 1, 2, 3, 5 — rédigés sur le recueil** | ✅ terminé, sauf 7 pages en attente |
-| 4 | Fiches de dessin — **24 prêtes, 1 bloquée** | ✅ terminé |
-| 5 | Préliminaires, introduction, conclusion, annexes | ✅ terminé |
-| 6 | Traçabilité, réconciliation, revue finale | ✅ terminé — **zéro orphelin** |
-| 10 | **Correction du test périmé et rattachement des 2 suites** | ✅ terminé — 145 cas lançables sur 145 |
-| 7 | **Bibliographie** — 8 références, 5 vérifiées à la source | ✅ terminé |
-| 8 | **Campagne de tests réelle** — 103 cas exécutés, **103 réussis** | ✅ terminé |
-| 9 | **Retrait de la documentation antérieure** | ✅ terminé — 51 fichiers, après rebasage |
+| Ce qui est fait | État |
+|---|---|
+| Huit inventaires extraits du code et du recueil | ✅ |
+| Pilotage, registres, matrices | ✅ |
+| Les huit chapitres, l'introduction et la conclusion, rédigés puis refondus | ✅ |
+| Mise en page Word : styles, marges, en-tête, pied de page | ✅ |
+| Sommaire, liste des figures, liste des tableaux, table des matières — champs automatiques | ✅ |
+| Pagination en trois parties : **i à viii**, puis **1 à 76**, puis **A à E** | ✅ |
+| Chaque chapitre démarre en haut d'une page neuve | ✅ |
+| Bibliographie — 8 références, 5 vérifiées à la source | ✅ |
+| Campagne de tests réelle — **103 cas exécutés, 103 réussis** | ✅ |
+| Alignement du dossier documentaire sur le document Word | ✅ 19 août 2026 |
 
 ### 2.1 Ce qui reste à faire
 
 | # | Point | Qui | Effort |
 |---|---|---|---|
-| 1 | **Tracer les 24 figures** — fiches prêtes | Les auteurs | 3-4 jours |
-| 2 | **Produire les captures d'écran** — protocole prêt | Les auteurs | ½ journée |
-| 3 | **Lire les 8 références** — vérifiées, non lues | Les auteurs | 2-3 jours |
-| 4 | **Six informations à obtenir** — infrastructure, effectifs, entretiens, encadrement | Verdi et le centre | **< 2 h de sollicitations** |
+| 1 | **Tracer les 12 diagrammes** — fiches prêtes, emplacements réservés dans le document | Les auteurs | 2-3 jours |
+| 2 | **Produire les 3 captures d'écran** — protocole prêt | Les auteurs | ½ journée |
+| 3 | **Coller les 15 images**, puis Ctrl+A et F9 pour régénérer les quatre listes | Les auteurs | 1 h |
+| 4 | **Lire les 4 références** — vérifiées, non lues | Les auteurs | 2-3 jours |
+| 5 | **Trois informations à obtenir** : infrastructure réseau, effectifs chiffrés, guide d'entretien | Verdi et le centre | **< 2 h de sollicitations** |
+| 6 | **Confirmer avec le promoteur** si la limite de 70-85 pages vise le corps ou le document entier | Les auteurs | 5 min |
 
-Détail et priorisation : `11_revue_finale/rapport_ecarts_non_resolus.md`.
+### 2.2 Le point de vigilance
 
-### 2.2 Les deux corrections les plus rentables
-
-**Sur les tests** : ✅ **fait le 2026-08-10.** Test périmé corrigé, deux suites rattachées. **103 cas exécutés, 103 réussis, 0 échec.**
-
-**Sur le produit** : ajouter les axes « direction » et « catégorie socio-professionnelle » aux statistiques. Ce sont 4 des 10 axes attendus par le Médecin Chef, et **les données existent déjà** dans le registre des employés.
+Le corps fait **76 pages** pour un minimum de **75** exigé par le plan de l'école. La marge est d'une page. Toute suppression ultérieure doit être compensée — voir `budget_pages.md` § 4.
 
 ---
 
@@ -85,15 +84,15 @@ Le projet retient le **parcours de soin** — triage, consultation, décision, d
 
 Détail : `matrice_besoins_couverture.md`.
 
-### 3.3 Ce qui reste bloqué
+### 3.3 Ce qui reste en attente de source
 
-| Élément | Pages | Question |
-|---|---:|---|
-| Chapitre 2 §§ 2.1 à 2.3 · **Figure 2.1** · Tableau 2.1 | ≈ 3 | QO-03 — infrastructure réseau et parc |
-| Chapitre 1 §§ 1.1, 1.4, 1.5 · Tableau 1.1 | ≈ 3 | QO-02bis — effectifs et chiffres |
-| Chapitre 5 § 5.1.2 · Annexe A | ≈ 1 | QO-04 — période et guide des entretiens |
+| Élément | Question |
+|---|---|
+| Chapitre 2 § 2.2 — infrastructure réseau, chiffrée | QO-03 |
+| Chapitre 1 § 1.6 — effectifs et chiffres caractéristiques | QO-02bis |
+| Chapitre 5 § 5.1 — période exacte et guide des entretiens | QO-04 |
 
-**≈ 7 pages sur 85**, contre 24 avant l'arrivée du recueil.
+Ces trois manques sont les seules **réserves de volume** du mémoire : les combler est la seule façon d'ajouter des pages sans les gonfler. La figure 2.1 qui dépendait de QO-03 a été retirée du mémoire ; la question reste ouverte pour le texte.
 
 **Un entretien de vingt minutes avec le responsable informatique lèverait le principal blocage restant.**
 
@@ -108,13 +107,13 @@ Détail : `matrice_besoins_couverture.md`.
 | `02_introduction_generale/` | Introduction en 8 points |
 | `03_partie_I_cadre_contextuel/` | Chapitres 1 à 3 |
 | `04_partie_II_analyse_conception_implementation/` | Chapitres 4 à 8 |
-| `05_fiches_de_dessin/` | Index des figures + une fiche par figure à tracer |
-| `06_interfaces/` | Protocole de production des captures d'écran |
+| `05_fiches_de_dessin/` | Index des **15 figures** + les **12 fiches** des diagrammes à tracer |
+| `06_interfaces/` | Protocole de production des **3 captures d'écran** |
 | `09_conclusion_et_references/` | Conclusion générale, bibliographie et webographie |
-| `10_annexes/` | Annexes A à F, dont le dictionnaire de données et le glossaire |
-| `11_revue_finale/` | Réconciliation, checklist, rapports de cohérence et d'écarts |
+| `99_archive/` | **Ce qui a été retiré du mémoire** : les 6 annexes, les 8 fiches des figures abandonnées, les fichiers d'avant l'alignement. Chaque retrait est motivé dans son `LISEZ-MOI.md` |
+| `11_revue_finale/` | Réconciliation, checklist, rapports de cohérence et d'écarts, **diagnostic d'alignement** |
 
-> **Deux dossiers de l'arborescence initiale n'ont pas été créés, volontairement.** `07_donnees/` aurait dupliqué le dictionnaire de données (annexe D) et les fiches du schéma relationnel et du modèle physique. `08_tests_qualite_deploiement/` aurait dupliqué INV-06 et le chapitre 8. Une information à deux endroits est une information qui diverge.
+> **Deux dossiers de l'arborescence initiale n'ont pas été créés, volontairement.** `07_donnees/` aurait dupliqué l'inventaire du modèle de données et les fiches du schéma relationnel et du modèle physique. `08_tests_qualite_deploiement/` aurait dupliqué INV-06 et le chapitre 8. Une information à deux endroits est une information qui diverge.
 
 ---
 

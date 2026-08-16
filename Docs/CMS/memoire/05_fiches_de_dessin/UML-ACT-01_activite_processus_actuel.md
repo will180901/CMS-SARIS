@@ -6,7 +6,7 @@
 
 ```
 Identifiant       : UML-ACT-01
-Figure du mémoire : Figure 5.1 — Diagramme d'activité du processus de consultation actuel
+Figure du mémoire : Figure 5.1 — Diagramme d'activité du processus de consultation antérieur
 Chapitre / section: 5 — § 5.2.3
 Type UML          : Diagramme d'activité avec couloirs
 Sources de preuve : Recueil de l'existant — section 3 « Processus de consultation médicale »,
@@ -22,7 +22,7 @@ Densité           : 3 couloirs · 18 actions · 5 décisions · 5 points de rup
 
 **Ce que la figure doit démontrer.** Le processus de consultation tel qu'il fonctionnait, **intégralement sur support papier**, avec ses quatre étapes formalisées et ses points de rupture.
 
-**Sa raison d'être.** Elle est **comparée à la figure 7.2**, qui représente le même parcours outillé. Les deux figures doivent partager conventions et orientation.
+**Sa raison d'être.** Elle est la **seule** représentation graphique du parcours de soin dans le mémoire. Le diagramme d'activité du parcours outillé, auquel elle devait être comparée, a été retiré lors de la réduction du document. Elle doit donc se suffire à elle-même : un lecteur qui ne verrait qu'elle doit comprendre où le papier fait rupture.
 
 **Un point d'honnêteté à porter en légende.** Ce processus est **structuré et formalisé** — ce n'est pas un fonctionnement improvisé. Le Médecin Chef l'avait défini par écrit. Ce qui manquait n'était pas la méthode, mais **l'outil pour l'appliquer et en garder trace**. Le mémoire doit le dire : le système n'a pas inventé le processus, il l'a outillé.
 
@@ -170,11 +170,11 @@ Trois couloirs verticaux de largeur égale, nommés en haut. Flux descendant, en
 - La branche `[cas simple]` de D03 mène directement à A12 sans passer par A11 : c'est la délégation, elle doit se voir.
 - Aucune flèche ne remonte.
 
-**Comparaison avec la figure 7.2** — trois exigences :
+**Ce que la figure doit porter seule.** Le diagramme comparatif ayant été supprimé, trois exigences se reportent sur celle-ci :
 
-1. même orientation, de haut en bas ;
-2. mêmes conventions de formes ;
-3. **le troisième couloir change de nature** — `Supports papier` devient `Système`. Ce glissement résume le projet et mérite d'être signalé en légende des deux figures.
+1. orientation de haut en bas, sans exception ;
+2. conventions de formes constantes d'un bout à l'autre ;
+3. **le troisième couloir doit être nommé `Supports papier`**, et la légende doit dire explicitement que ce couloir disparaît dans le système conçu. Ce glissement résume le projet ; il n'est plus montré par une seconde figure, il doit donc être écrit.
 
 ---
 
@@ -193,8 +193,8 @@ Trois couloirs verticaux de largeur égale, nommés en haut. Flux descendant, en
 
 **Légende à reproduire :**
 
-> **Figure 5.1 — Diagramme d'activité du processus de consultation actuel**
-> Processus formalisé par le Médecin Chef, appliqué intégralement sur support papier. Le troisième couloir représente les supports, non un acteur : l'information n'existe que là. Les cinq encadrés à bord épais signalent les points de rupture que le nouveau système supprime. À comparer à la figure 7.2.
+> **Figure 5.1 — Diagramme d'activité du processus de consultation antérieur**
+> Processus formalisé par le Médecin Chef, appliqué intégralement sur support papier. Le troisième couloir représente les supports, non un acteur : l'information n'existe que là. Les cinq encadrés à bord épais signalent les points de rupture que le nouveau système supprime.
 > *Source : recueil de l'existant, entretiens Médecin Chef et Infirmière.*
 
 ---
@@ -214,7 +214,7 @@ Trois couloirs verticaux de largeur égale, nommés en haut. Flux descendant, en
 [ ] Les 5 notes obligatoires sont présentes
 [ ] Les trois comptes — 9 variables, 4 questions, 9 paramètres — sont écrits
 [ ] Aucun élément informatique n'apparaît, hormis le fichier tableur
-[ ] L'orientation et les conventions sont identiques à celles de la figure 7.2
+[ ] L'orientation est de haut en bas et les conventions de formes sont constantes
 [ ] Un seul nœud final
 ```
 

@@ -4,7 +4,7 @@
 
 ```
 Identifiant       : UML-CTX-01
-Figure du mémoire : Figure 6.1 — Diagramme de contexte statique du système CMS SARIS
+Figure du mémoire : Figure 6.1 — Diagramme de contexte statique du système
 Chapitre / section: 6 — § 6.2
 Type UML          : Diagramme de contexte statique
 Sources de preuve : INV-03 § 2 (acteurs) · INV-01 (flux) · INV-05 (systèmes externes)
@@ -100,7 +100,7 @@ Chaque flux est une **flèche pleine à tête ouverte**, étiquetée du nom du f
 
 **Légende à reproduire :**
 
-> **Figure 6.1 — Diagramme de contexte statique du système CMS SARIS**
+> **Figure 6.1 — Diagramme de contexte statique du système**
 > Trois acteurs primaires humains, trois acteurs secondaires systèmes. Le flux en pointillés relie deux acteurs sans transiter par le système.
 > *Source : conception propre.*
 

@@ -13,7 +13,7 @@
 |---|---|
 | **Ce qui manquait** | Le recueil : entretiens de terrain, description du fonctionnement antérieur, besoins exprimés |
 | **Résolution** | Le fichier `Docs/Recueil_Existant_CME_v6.docx` a été fourni le 2026-08-10. Version **v6**, plus récente que celle initialement citée |
-| **Ce qu'il a débloqué** | Chapitres 1, 2, 3 et 5 · Figures 1.1 et 5.1 · Tableau 5.1 · Annexe A partiellement · Matrice de couverture des besoins |
+| **Ce qu'il a débloqué** | Chapitres 1, 2, 3 et 5 · Figures 1.1 et 5.1 · Tableau 5.1 · Matrice de couverture des besoins |
 | **Volume débloqué** | ≈ 18 pages sur les 24 initialement bloquées |
 | **Extrait dans** | `INV-08_recueil_existant.md` |
 
@@ -49,7 +49,7 @@ La décision D-03 est confirmée par la source primaire. Le vocabulaire du dossi
 
 ### QO-15 ✅ Une campagne de tests est-elle possible ? — **RÉSOLUE**
 
-**Réponse** : oui, et elle a été conduite le 2026-08-10. **102 cas sur 145 exécutés**, 101 réussis, 1 échoué — un test périmé, analysé au chapitre 8 § 8.4.3.
+**Réponse** : oui, et elle a été conduite le 2026-08-10. **103 cas sur 145 exécutés**, 103 réussis, 0 échec après correction du test périmé — un test périmé, analysé au chapitre 8 § 8.4.3.
 
 ---
 
@@ -71,7 +71,7 @@ La décision D-03 est confirmée par la source primaire. Le vocabulaire du dossi
 |---|---|
 | **Ce qui manque** | Topologie par site · équipements actifs · **existence et caractéristiques d'une liaison entre Moutela et Nkayi** · fournisseur et débit d'accès à Internet · **taux d'indisponibilité constaté** · alimentation électrique · inventaire du parc · organisation informatique |
 | **Qui peut répondre** | Le responsable informatique du centre, ou la Direction des Ressources Humaines |
-| **Ce qui est bloqué** | Chapitre 2 §§ 2.1 à 2.3 · **Figure 2.1 — seule figure encore bloquée** · **Tableau 2.1** |
+| **Ce qui est bloqué** | Chapitre 2 §§ 2.1 à 2.3 · ~~Figure 2.1~~ **retirée du mémoire — décision D-18** · **Tableau 2.1** |
 | **Pages concernées** | ≈ 3 |
 | **Enjeu particulier** | Le **taux d'indisponibilité réel** est le chiffre qui justifierait factuellement le choix du fonctionnement hors connexion. Sans lui, l'argument reste une affirmation raisonnable |
 | **Contournement** | Un entretien de vingt minutes suffirait. Voir la fiche `ORG-02` § 5 pour les options si la source reste indisponible |
@@ -84,7 +84,7 @@ La décision D-03 est confirmée par la source primaire. Le vocabulaire du dossi
 | **Résolu par le recueil** | Les **quatre acteurs** interrogés, leur périmètre, et le fait que les quatre entretiens sont **complétés** → Tableau 5.1 débloqué |
 | **Résolu par le rapport de stage** | **Période : du 15 janvier au 14 avril 2026** · encadrant en entreprise identifié · année académique 2025-2026 |
 | **Reste marginal** | Durée moyenne des séances · autorisation de nommer les interlocuteurs · guide d'entretien |
-| **Ce qui est bloqué** | Chapitre 5 § 5.1.2 · Annexe A |
+| **Ce qui est bloqué** | Chapitre 5 § 5.1 — la période exacte et la trame des entretiens |
 | **Pages concernées** | ≈ 1 |
 | **Statut** | ✅ **résolue pour l'essentiel** |
 
@@ -96,7 +96,7 @@ Nom et titre du promoteur, composition du jury, année académique, intitulé ex
 
 ### QO-09 🟡 Périmètre du plafond de 75-90 pages
 
-Le plan de l'école fixe un maximum sans préciser si les annexes et la bibliographie y sont incluses.
+Le plan de l'école fixe un maximum sans préciser ce qu'il compte. Les annexes ayant été retirées, la question se réduit à ceci : la limite vise-t-elle le **corps** — 76 pages, de l'introduction à la conclusion — ou le **document entier**, 90 pages ? La pagination en trois parties rend les deux lectures vérifiables d'un coup d'œil.
 
 **Hypothèse retenue** : le plafond porte sur le **corps** du rapport. **À confirmer auprès du promoteur.** **Statut** : 🟡 ouverte.
 

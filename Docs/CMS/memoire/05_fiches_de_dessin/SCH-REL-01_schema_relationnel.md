@@ -17,7 +17,7 @@ Densité           : 29 relations · 38 clés étrangères
 
 **Ce que la figure doit démontrer.** La traduction du modèle de classes en tables, avec leurs clés primaires et étrangères explicites. C'est le passage du conceptuel au logique.
 
-**Différence avec la figure 7.1.** Le diagramme de classes montre les associations par des traits ; le schéma relationnel les montre par des **clés étrangères nommées**. Les deux figures décrivent le même modèle sous deux formes.
+**Différence avec la figure 7.5.** Le diagramme de classes montre les associations par des traits ; le schéma relationnel les montre par des **clés étrangères nommées**. Les deux figures décrivent le même modèle sous deux formes.
 
 **Notation retenue** : la notation textuelle du modèle de mémoire —
 `Nom_Table (PK : clé_primaire, attribut1, attribut2, FK : clé_étrangère)`
@@ -198,7 +198,7 @@ Chaque section porte un intertitre. Une ligne vide sépare les tables.
 **Légende à reproduire :**
 
 > **Figure 8.1 — Schéma relationnel du noyau métier**
-> 29 tables sur les 88 du schéma complet. Les colonnes techniques communes — `createdAt`, `updatedAt`, `createdBy`, `updatedBy`, `deletedAt` — ne sont pas répétées. Le schéma complet figure au dictionnaire de données, annexe D.
+> 29 tables sur les 88 du schéma complet. Les colonnes techniques communes — `createdAt`, `updatedAt`, `createdBy`, `updatedBy`, `deletedAt` — ne sont pas répétées. Le schéma complet figure dans l'inventaire du modèle de données, INV-02.
 > *Source : conception propre, dérivée du schéma de données et des 41 migrations.*
 
 ## Bloc 8 — Contrôles après dessin

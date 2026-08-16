@@ -4,7 +4,7 @@
 
 ```
 Identifiant       : UML-DEP-01
-Figure du mémoire : Figure 7.7 — Diagramme de déploiement du système CMS SARIS
+Figure du mémoire : Figure 7.7 — Diagramme de déploiement
 Chapitre / section: 7 — § 7.7
 Type UML          : Diagramme de déploiement
 Sources de preuve : Fichier de déploiement · INV-05 §§ 2 et 3
@@ -94,7 +94,7 @@ Traits **pleins** entre nœuds, annotés du protocole et de son usage.
 
 **Légende à reproduire :**
 
-> **Figure 7.7 — Diagramme de déploiement du système CMS SARIS**
+> **Figure 7.7 — Diagramme de déploiement**
 > Le poste en mode autonome héberge son propre serveur et sa propre base, et n'a besoin du serveur central que pour se synchroniser. Le serveur embarqué n'écoute que sur la boucle locale. L'infrastructure réseau du centre n'est pas représentée : elle relève du chapitre 2.
 > *Source : conception propre.*
 

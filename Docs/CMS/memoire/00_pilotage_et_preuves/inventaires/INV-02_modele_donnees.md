@@ -71,12 +71,16 @@ Le degré de connexion (nombre d’associations) désigne objectivement le cœur
 
 ## 3. Noyau proposé pour le diagramme de classes (UML-CLS-01)
 
-Les 88 modèles ne peuvent pas figurer sur une seule planche lisible. Le diagramme de classes du chapitre 7 retient **27 classes**, sélectionnées sur deux critères explicites :
+Les 88 modèles ne peuvent pas figurer sur une seule planche lisible. Le diagramme de classes du chapitre 7 retient **29 classes**, soit 59 entités écartées, sélectionnées sur deux critères explicites :
 
 1. **degré de connexion ≥ 2** dans les domaines cliniques, acteurs et référentiels ;
 2. **deux exceptions justifiées par le poids métier** : `ConstanteVitale` (donnée centrale du triage) et `DroitCategoriePatient` (matrice qui porte la règle d’éligibilité aux prestations).
 
-Les modèles écartés ne disparaissent pas : ils sont intégralement décrits au § 4 et repris dans le **dictionnaire de données (Annexe D)**.
+Les modèles écartés ne disparaissent pas : ils sont intégralement décrits au § 4 du présent inventaire.
+
+> 📌 **Correction du 19 août 2026.** Ce paragraphe annonçait **27 classes**. La fiche de dessin `UML-CLS-01` les énumère une par une, de C01 à C29, et conclut elle-même à **29 classes sur 88**. L'énumération l'emporte sur le décompte : le nombre a été porté à 29, et le nombre d'entités écartées de 61 à 59. Le mémoire dit 29 : les trois sources concordent désormais.
+>
+> Le dictionnaire de données complet, autrefois annexe D, a été retiré du mémoire. Il est archivé dans `99_archive/annexes_retirees_du_memoire/`, et le § 4 ci-dessous le remplace.
 
 | Classe retenue | Degré | Champs | Domaine |
 |---|---:|---:|---|
@@ -96,6 +100,8 @@ Les modèles écartés ne disparaissent pas : ils sont intégralement décrits a
 | `Utilisateur` | 11 | 29 | SÉCURITÉ & AUDIT |
 | `Role` | 2 | 6 | SÉCURITÉ & AUDIT |
 | `Permission` | 2 | 6 | SÉCURITÉ & AUDIT |
+| `UtilisateurRole` | 2 | 3 | SÉCURITÉ & AUDIT |
+| `RolePermission` | 2 | 3 | SÉCURITÉ & AUDIT |
 | `PersonnelMedical` | 8 | 18 | ACTEURS ADMINISTRATIFS |
 | `DelegationPrescription` | 5 | 14 | ACTEURS ADMINISTRATIFS |
 | `Site` | 3 | 11 | RÉFÉRENTIELS |
@@ -1988,10 +1994,10 @@ Associations : `parametre` → `ParametreMetier`
 
 | Destination | Usage |
 |---|---|
-| Fiche UML-CLS-01 → Figure 7.1 | Classes, attributs, associations et **multiplicités** du § 4 |
+| Fiche UML-CLS-01 → Figures 7.1 à 7.5 | Classes, attributs, associations et **multiplicités** du § 4 |
 | Fiche SCH-REL-01 → Figure 8.1 | Schéma relationnel : tables, PK, FK |
 | Fiche SCH-MPD-01 → Figure 8.2 | Modèle physique : types SQL, contraintes, index (croiser avec les 41 migrations) |
-| Annexe D | Dictionnaire de données : les 88 modèles et leurs champs |
+| ~~Annexe D~~ | Dictionnaire de données — **annexe retirée du mémoire**. Les 88 modèles et leurs champs sont décrits au § 4 du présent inventaire |
 | Chapitre 7 § 7.1 | Justification du choix PostgreSQL + réplique SQLite |
 | INV-07 | Machines à états, à partir des 6 énumérations et des 46 champs de statut |
 

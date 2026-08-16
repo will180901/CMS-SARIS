@@ -4,7 +4,7 @@
 
 ```
 Identifiant       : UML-SEQS-03
-Figure du mémoire : Figure 6.6 — Diagramme de séquence système : synchroniser un poste local
+Figure du mémoire : Figure 6.8 — Diagramme de séquence système : synchroniser un poste local
 Chapitre / section: 6 — § 6.7
 Type UML          : Diagramme de séquence système (boîte noire)
 Sources de preuve : INV-05 § 5 · INV-07 § 4.9
@@ -124,7 +124,7 @@ Ordre vertical strict : phases 1 → 2 → 3 → 4 → 5, puis le fragment d'exc
 
 **Légende à reproduire :**
 
-> **Figure 6.6 — Diagramme de séquence système : synchroniser un poste local**
+> **Figure 6.8 — Diagramme de séquence système : synchroniser un poste local**
 > Les deux extrémités sont des systèmes. Un conflit est tranché par la règle de la dernière écriture, puis journalisé pour revue — il n'est jamais bloquant.
 > *Source : conception propre.*
 

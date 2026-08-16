@@ -39,7 +39,7 @@
 | **BF03** Audit | Seul l'intercepteur écrit au journal | UC14 | `/admin/audit` | `GET /admin/audit` | `JournalAudit` | `audit.read` | ⛔ aucun | 7 § 7.1.5 |
 | **BF04** Paramètres | — | UC15, UC16 | `/admin/parametres-systeme` | 3 routes | `ParametreSysteme` | `parametre.*` | ⛔ aucun | 8 § 8.5 |
 | **BF05** Référentiels | Lecture granulaire par service | UC17–UC19 | `/referentiels` (9 onglets) | 37 routes | 12 entités de référentiel | `referentiel.*.*` | `crud-integration` 19 cas ⚠️ non exécuté | 6 § 6.3.4 |
-| **BF06** Personnel et délégations | **Délégation active exigée pour prescrire** | UC21–UC24 | `/admin/acces` | 20 routes | `PersonnelMedical`, `DelegationPrescription` | `personnel.*`, `delegation.*` | ⛔ aucun | 7 § 7.1.4, annexe C |
+| **BF06** Personnel et délégations | **Délégation active exigée pour prescrire** | UC21–UC24 | `/admin/acces` | 20 routes | `PersonnelMedical`, `DelegationPrescription` | `personnel.*`, `delegation.*` | ⛔ aucun | 7 § 7.1.4 |
 | **BF07** Registre des employés | Matricule unique | UC20 | `/referentiels` onglet employés | 5 routes | `EmployeSaris` | `employe.*` | ⛔ aucun | 6 § 6.3.4 |
 | **BF08** Dossier patient | Portée globale · verrou de confidentialité | UC25–UC33 | `/patients`, `/patients/:id` | 30 routes | `Patient` + 12 satellites | `patient.*` | ⛔ aucun | 7 § 7.2.3 |
 | **BF09** Rattachements | Historisation obligatoire | UC29 | Onglet rattachements | Routes de rattachement | `RattachementAyantDroitCdi`, `RattachementSousTraitant` | `patient.rattachement.manage` | ⛔ aucun | 7 § 7.2.3 |
@@ -47,9 +47,9 @@
 | **BF11** Constantes vitales | Plages physiologiques alignées client-serveur | UC35 | Onglet constantes | `POST /triage/visites/:id/constantes` | `ConstanteVitale` | `visite.update` | `validation` 34 cas ⚠️ **orphelin** | 6 § 6.0.2 |
 | **BF12** Consultation | 1 consultation ouverte par soignant **et** par visite | UC39–UC41, UC48, UC49 | `/consultations` | 22 routes | `Consultation`, `DiagnosticConsultation` | `consultation.*` | ⛔ aucun | 6 § 6.6.2, 7 § 7.3 |
 | **BF13** Ordonnance | **Contrôle de prescription à deux étages** | UC42 | Bloc ordonnances | `POST /consultations/:id/ordonnances` + 6 routes | `Ordonnance`, `LigneOrdonnance` | `ordonnance.*` | ⛔ aucun | 6 § 6.5, 7 § 7.4.1 |
-| **BF14** Bon d'examen | **Éligibilité par catégorie** · résultat sur bon validé | UC45, UC46 | Bloc bons | 7 routes | `BonExamen`, `LigneExamen`, `ResultatExamen` | `bon_examen.*` | ⛔ aucun | annexe C |
+| **BF14** Bon d'examen | **Éligibilité par catégorie** · résultat sur bon validé | UC45, UC46 | Bloc bons | 7 routes | `BonExamen`, `LigneExamen`, `ResultatExamen` | `bon_examen.*` | ⛔ aucun | non spécifié en détail dans le mémoire |
 | **BF15** Bon de pharmacie | **Éligibilité par catégorie** · délivrance irréversible | UC43, UC44 | Bloc bons | 5 routes | `BonPharmacie`, `LigneBonPharmacie` | `bon_pharmacie.*` | ⛔ aucun | 6 § 6.6.1, 7 § 7.4.1 |
-| **BF16** Évacuation | Réservée au médecin chef | UC50, UC51 | Bloc évacuation | 8 routes | `Evacuation`, `SuiviEvacuation` | `evacuation.*` | ⛔ aucun | annexe C |
+| **BF16** Évacuation | Réservée au médecin chef | UC50, UC51 | Bloc évacuation | 8 routes | `Evacuation`, `SuiviEvacuation` | `evacuation.*` | ⛔ aucun | non spécifié en détail dans le mémoire |
 | **BF17** Suivi de traitement | Ouvert par décision de clôture | UC52, UC53 | Onglet suivi | 8 routes | `SuiviTraitement`, `FicheSuiviTraitement` | `suivi_traitement.*` | ⛔ aucun | 7 § 7.3 |
 | **BF18** Messagerie | Chiffrement au repos · conversation créée au 1er message | UC54–UC56 | `/messagerie` | 29 routes | `Conversation`, `Message` + 4 | `messagerie.*` | `message-crypto` 23 cas · `messaging-integration` 12 · `conversation-firstmessage` 9 ⚠️ non exécutés | 8 § 8.4 |
 | **BF19** Notifications | Diffusion filtrée par permission et site | UC57, UC58 | Tiroir de notifications | 9 routes | `Notification`, `NotificationLecture` | `notification.*` | ⛔ aucun | 7 § 7.5.4 |
@@ -150,7 +150,7 @@ Autrement dit : ce qui est testé, ce sont les fondations. Ce qui ne l'est pas, 
 
 ### 4.3 Trois permissions sans route
 
-`ordonnance.read`, `ordonnance.print` et `rapport.export` ne sont exigées par aucune route serveur : ce sont des contrôles d'**affichage**. Une permission purement cliente **n'est pas une protection** — un appel direct à l'interface de programmation la contourne. À signaler au chapitre 7.
+`ordonnance.read`, `ordonnance.print` et `rapport.export` ne sont exigées par aucune route serveur : ce sont des contrôles d'**affichage**. Une permission purement cliente **n'est pas une protection** — un appel direct à l'API la contourne. À signaler au chapitre 7.
 
 ---
 

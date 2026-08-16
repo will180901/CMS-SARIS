@@ -4,7 +4,7 @@
 
 ```
 Identifiant       : UML-CMP-01
-Figure du mémoire : Figure 7.6 — Diagramme de composants du système CMS SARIS
+Figure du mémoire : Figure 7.6 — Diagramme de composants
 Chapitre / section: 7 — § 7.6
 Type UML          : Diagramme de composants
 Sources de preuve : Organisation du monorepo · INV-01 § 5.4 · INV-04 · INV-05
@@ -129,7 +129,7 @@ Flèches **pointillées à tête ouverte**, du composant dépendant vers le comp
 
 **Légende à reproduire :**
 
-> **Figure 7.6 — Diagramme de composants du système CMS SARIS**
+> **Figure 7.6 — Diagramme de composants**
 > Le serveur API et le serveur API embarqué partagent le même code source, compilé pour deux moteurs de base de données différents. Le client de bureau bascule de l'un à l'autre selon la joignabilité du serveur central.
 > *Source : conception propre.*
 

@@ -37,7 +37,7 @@ ManifestDPIAware true
 ; toujours depuis package.json — ce repli ne sert qu'à un appel manuel de makensis).
 ; Penser à la bumper avec apps/desktop/package.json si elle traîne.
 !ifndef VERSION
-  !define VERSION "1.7.0"
+  !define VERSION "1.8.0"
 !endif
 !ifndef SRCDIR
   !define SRCDIR "..\release\win-unpacked"
