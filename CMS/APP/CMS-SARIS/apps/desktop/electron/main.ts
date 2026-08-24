@@ -292,7 +292,7 @@ function buildAppMenu(): void {
           type: 'info',
           title: 'À propos de CMS SARIS',
           message: 'CMS SARIS — Centre médical',
-          detail: `Version ${app.getVersion()}\nClient de bureau Windows.\nServeur : ${resolveApiUrl() || '(non configuré)'}\n\nDéveloppé par Déo Cherel BOUWAYI MIKOUYA.\n© 2026 — SARIS-CONGO`,
+          detail: `Version ${app.getVersion()}\nClient de bureau Windows.\nServeur : ${resolveApiUrl() || '(non configuré)'}\n\nDéveloppé par Déo Cherel BOUWAYI MIKOUYA et Oscarvie Verdi NZILA.\n© 2026 — SARIS-CONGO`,
         }),
     },
     { type: 'separator' },

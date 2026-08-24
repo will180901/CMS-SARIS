@@ -50,7 +50,7 @@ ManifestDPIAware true
 !endif
 
 !define APP_NAME    "CMS SARIS"
-!define PUBLISHER   "Deo Cherel BOUWAYI MIKOUYA - SARIS-CONGO"
+!define PUBLISHER   "Deo Cherel BOUWAYI MIKOUYA & Oscarvie Verdi NZILA - SARIS-CONGO"
 !define EXE_NAME    "CMS SARIS.exe"
 !define APP_ID      "cg.sariscongo.cms"
 !define UNINST_KEY  "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_ID}"

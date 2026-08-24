@@ -3,7 +3,7 @@
   "version": "1.8.0",
   "private": true,
   "description": "CMS SARIS — client de bureau Windows (centre médical SARIS-CONGO).",
-  "author": "Déo Cherel BOUWAYI MIKOUYA",
+  "author": "Déo Cherel BOUWAYI MIKOUYA, Oscarvie Verdi NZILA",
   "main": "dist-electron/main.js",
   "scripts": {
     "build:renderer": "pnpm --filter web build:desktop",
