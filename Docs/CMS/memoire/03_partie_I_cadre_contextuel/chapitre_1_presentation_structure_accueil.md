@@ -1,12 +1,11 @@
-<!-- Fichier aligné sur Memoire_CMS_SARIS.docx le 19 août 2026. -->
-<!-- Le document Word fait foi. Toute divergence est une erreur de ce fichier. -->
+<!-- Fichier régénéré depuis Memoire_CMS_SARIS.docx le 28 août 2026. -->
+<!-- Miroir exact du document Word. Ne pas modifier ici : le Word fait foi sur le texte. -->
 
 # CHAPITRE 1 — PRÉSENTATION DE LA STRUCTURE D'ACCUEIL
 
-> 1 figure(s) · 5 tableau(x) dans ce chapitre.
+> 1 figure(s) · 5 tableau(x) dans cette partie.
 
-Ce chapitre présente la structure qui accueille le projet : le Service Médico-Social de SARIS-CONGO, et en son sein le Centre Médico-Sanitaire. Il expose sa place dans l'entreprise, ses missions, son organisation et son fonctionnement sur deux sites. Les faits présentés proviennent du recueil de l'existant et du rapport de stage effectué dans l'entreprise.
-
+Dans ce chapitre, nous présentons la structure qui accueille notre projet : le Service Médico-Social de SARIS-CONGO, et en son sein le Centre Médico-Sanitaire. Nous exposons sa place dans l'entreprise, ses missions, son organisation et son fonctionnement sur deux sites. Les faits présentés proviennent du recueil de l'existant et du rapport de stage effectué dans l'entreprise.
 
 ## 1.1 Présentation de SARIS-CONGO
 
@@ -28,15 +27,13 @@ La Société Agricole de Raffinage Industriel du Sucre est l'une des principales
 
 L'entreprise est implantée à Moutela, dans le département de la Bouenza, à une quinzaine de kilomètres de Nkayi. Ses activités se déclinent en cinq axes : production agricole, transformation industrielle, commercialisation, production d'alcool et diversification agricole.
 
-
 ## 1.2 Le Service Médico-Social et ses missions
 
-Le Service Médico-Social assure les soins de premier recours pour les travailleurs de l'entreprise, pour les personnes qui leur sont rattachées et pour certaines catégories externes. Il n'est pas une structure autonome : il est rattaché à la Direction des Ressources Humaines, ce qui lui confère le statut d'un service interne d'entreprise et non d'un établissement de santé indépendant.
+Le Service Médico-Social assure les soins de premier recours. Il les assure pour les travailleurs de l'entreprise, pour les personnes qui leur sont rattachées, et pour certaines catégories externes. Ce n'est pas une structure autonome. Il est rattaché à la Direction des Ressources Humaines, ce qui lui confère le statut d'un service interne d'entreprise, et non d'un établissement de santé indépendant.
 
 Sa mission recouvre deux volets, portés par deux entités distinctes. Le Centre Médico-Sanitaire assure les soins médicaux : consultation, pharmacie, laboratoire, radiologie, kinésithérapie et maternité. La Section des Affaires Sociales traite les aspects administratifs et sociaux : évacuations sanitaires, remboursements et accidents de travail.
 
-Ce rattachement à la direction des ressources humaines crée une situation qui mérite d'être relevée : l'employeur est aussi l'exploitant du centre de soins. Le recueil documente cependant une pratique cohérente avec cette préoccupation, puisque le service des ressources humaines reçoit les informations administratives — repos, accidents, évacuations — sans accès au dossier médical.
-
+Ce rattachement à la direction des ressources humaines crée une situation qui mérite d'être relevée : l'employeur est aussi l'exploitant du centre de soins. Le recueil documente cependant une pratique cohérente avec cette préoccupation. Le service des ressources humaines reçoit les informations administratives — repos, accidents, évacuations — sans accès au dossier médical.
 
 ## 1.3 La population couverte
 
@@ -56,16 +53,15 @@ Le centre soigne neuf catégories de personnes, ce qui déborde largement le seu
 | Visiteurs et missionnaires | Personnes en visite ou en mission sur le site |
 | Stagiaires | Étudiants et stagiaires en formation |
 
-La présence des riverains est un fait de mission notable. Le centre n'est pas un dispositif fermé réservé aux salariés : il soigne les habitants de son environnement. Cela le distingue d'un service de médecine du travail classique et justifie sa dénomination de centre médico-sanitaire.
+La présence des riverains est un fait de mission notable. Le centre n'est pas un dispositif fermé réservé aux salariés : il soigne les habitants de son environnement. Cela le distingue d'un service de médecine du travail classique et justifie sa dénomination de centre médico-sanitaire. La prise en charge n'est pas uniforme pour autant. Le recueil énonce une règle nette : la prise en charge complète, médicaments et bons d'examens compris, est réservée exclusivement au personnel en contrat à durée indéterminée et à ses ayants droit directs.
 
-La prise en charge n'est pas uniforme pour autant. Le recueil énonce une règle nette : la prise en charge complète, médicaments et bons d'examens compris, est réservée exclusivement au personnel en contrat à durée indéterminée et à ses ayants droit directs. Pour tous les autres statuts, les soins sont assurés puis refacturés à la société employeuse ou à l'assurance du patient. Personne n'est donc refusé aux soins : ce qui varie, c'est qui paie. Cette distinction constitue la règle métier centrale du système réalisé.
-
+Pour tous les autres statuts, les soins sont assurés puis refacturés à la société employeuse ou à l'assurance du patient. Personne n'est donc refusé aux soins : ce qui varie, c'est qui paie. Cette distinction constitue la règle métier centrale du système réalisé.
 
 ## 1.4 Organisation structurelle
 
 La chaîne médicale et sociale s'organise sur trois niveaux, présentés par la figure 1.1 et détaillés par le tableau 1.3.
 
-> 🖼️ **Figure 1.1 — Organigramme du Service Médico-Social de SARIS-CONGO**  
+> 🖼️ **Figure 1.1 — Organigramme du Service Médico-Social de SARIS-CONGO**
 > *Emplacement d'image réservé dans le document.*
 
 **Tableau 1.3 — Les trois niveaux de la chaîne médicale et sociale**
@@ -77,16 +73,15 @@ La chaîne médicale et sociale s'organise sur trois niveaux, présentés par la
 | 3a | Section des Affaires Sociales | Responsable RH | Évacuations, remboursements, accidents de travail, congés, validation en paie |
 | 3b | Centre Médico-Sanitaire | Médecin Chef | Consultations, triage, prescriptions, examens, dispensation, radiologie, laboratoire, maternité |
 
-Un point d'organisation mérite d'être relevé : le Médecin Chef dirige le Service Médico-Social et gère directement le Centre Médico-Sanitaire, tout en assurant son activité clinique. Le recueil identifie la conséquence : la surcharge administrative constitue son principal point de tension, et c'est elle qui motive la délégation de tâches à des infirmiers formés, décrite au chapitre 3.
+Un point d'organisation mérite d'être relevé. Le Médecin Chef dirige le Service Médico-Social et gère directement le Centre Médico-Sanitaire, tout en assurant son activité clinique. Le recueil en identifie la conséquence : la surcharge administrative constitue son principal point de tension. C'est elle qui motive la délégation de tâches à des infirmiers formés, décrite au chapitre 3.
 
-Le centre est structuré en six pôles de compétences : la consultation et les soins, la radiologie, le laboratoire d'analyses médicales, la pharmacie, le Service de Maternité Infantile et la kinésithérapie. Seul le pôle consultation et soins, dans sa composante générale, entre dans le périmètre du projet ; ce cadrage est justifié au chapitre 3.
+Le centre est structuré en six pôles de compétences : la consultation et les soins, la radiologie, le laboratoire d'analyses médicales, la pharmacie, le Service de Maternité Infantile et la kinésithérapie. Seul le pôle consultation et soins, dans sa composante générale, entre dans le périmètre du projet. Ce cadrage est justifié au chapitre 3. Le centre opère enfin sur deux sites géographiquement distincts, Moutela et Nkayi. Le personnel médical n'est pas affecté à un site unique : il tourne entre les deux selon un planning de permutation défini à l'avance.
 
-Le centre opère enfin sur deux sites géographiquement distincts, Moutela et Nkayi. Le personnel médical n'est pas affecté à un site unique : il tourne entre les deux selon un planning de permutation défini à l'avance. Le recueil en énonce la conséquence sans détour : aucun système d'information centralisé n'existe entre les deux sites, chacun fonctionnant de façon autonome avec ses propres fichiers, la consolidation étant assurée manuellement par le Médecin Chef. Ce fait organisationnel est le fondement de tout le projet : un personnel qui tourne entre deux sites sans système partagé, c'est un soignant qui perd, en changeant de site, l'accès à ce qu'il a lui-même constaté la semaine précédente.
-
+Le recueil en énonce la conséquence sans détour. Aucun système d'information centralisé n'existe entre les deux sites. Chacun fonctionne de façon autonome avec ses propres fichiers, et la consolidation est assurée manuellement par le Médecin Chef. Ce fait organisationnel est le fondement de tout le projet. Un personnel qui tourne entre deux sites sans système partagé, c'est un soignant qui perd, en changeant de site, l'accès à ce qu'il a lui-même constaté la semaine précédente.
 
 ## 1.5 Correspondance avec les rôles du système
 
-Le système réalisé ne connaît que trois rôles, alors que l'organisation en compte davantage. Cette réduction découle du périmètre retenu, et la correspondance mérite d'être explicitée car le jury peut légitimement s'interroger.
+Notre système ne connaît que trois rôles, alors que l'organisation en compte davantage. Cette réduction découle du périmètre retenu, et nous devons expliciter la correspondance, car le jury peut légitimement s'interroger.
 
 **Tableau 1.4 — Correspondance entre fonctions réelles et rôles du système**
 
@@ -99,10 +94,11 @@ Le système réalisé ne connaît que trois rôles, alors que l'organisation en 
 | Pharmacienne | Aucun | Son métier relève du périmètre écarté |
 | Gestionnaire des ressources humaines | Aucun | Idem |
 
-
 ## 1.6 Ressources et chiffres caractéristiques
 
-Le recueil documente la nature des ressources du centre. Le personnel médical comprend un Médecin Chef, au moins un autre médecin et des infirmières, dont certaines formées à la délégation de prescription ; ce personnel tourne entre les deux sites. Chaque site dispose de sa pharmacienne, qui gère son stock et ses rapports. Un gestionnaire assure les ressources humaines et le service social. L'équipement couvre les six pôles, et l'approvisionnement pharmaceutique repose sur un fournisseur unique, à un rythme trimestriel. Les effectifs chiffrés par fonction et par site n'ont pas été collectés lors des entretiens, ceux-ci ayant porté sur les processus et les besoins plutôt que sur les volumes.
+Le recueil documente les ressources du centre. Le personnel médical comprend un Médecin Chef, au moins un autre médecin, et des infirmières, dont certaines formées à la délégation de prescription. Il tourne entre les deux sites. Chaque site dispose de sa pharmacienne, qui gère son stock et ses rapports. Un gestionnaire assure les ressources humaines et le service social. L'équipement couvre les six pôles, et l'approvisionnement pharmaceutique repose sur un fournisseur unique, à un rythme trimestriel.
+
+Nous n'avons pas collecté les effectifs chiffrés par fonction et par site lors des entretiens : ceux-ci ont porté sur les processus et les besoins plutôt que sur les volumes.
 
 **Tableau 1.5 — Indicateurs de la population couverte**
 
@@ -114,11 +110,12 @@ Le recueil documente la nature des ressources du centre. Le personnel médical c
 | Pôles de compétences | 6 |
 | Sites | 2 |
 
-Au-delà de la mesure d'activité, le centre occupe une place particulière dans son environnement. Le rapport de stage relève que, dans un pays où l'accès aux soins reste un défi majeur, il constitue pour de nombreuses familles d'agents le principal point d'accès aux soins médicaux. Cette précision déplace l'enjeu du projet : il ne s'agit pas d'optimiser un service de médecine du travail, mais d'outiller une structure qui constitue, pour une part de la population, le seul recours médical accessible.
+Au-delà de la mesure d'activité, le centre occupe une place particulière dans son environnement. Le rapport de stage apporte ici une précision qui compte. Dans un pays où l'accès aux soins reste un défi majeur, il constitue, pour de nombreuses familles d'agents, le principal point d'accès aux soins médicaux. Cela déplace l'enjeu du projet. Il ne s'agit pas d'optimiser un service de médecine du travail, mais d'outiller une structure qui constitue, pour une part de la population, le seul recours médical accessible.
 
-Les volumes d'activité — nombre de consultations, répartition entre les sites, proportion de chaque statut — n'ont pas pu être établis. La raison en est révélatrice et constitue elle-même l'un des problèmes que ce travail entend traiter : la production des statistiques est entièrement manuelle. Le Médecin Chef établit ses rapports en agrégeant à la main les données des deux sites, si bien que leur consolidation coûte assez cher pour ne pas être menée à la demande.
-
+Nous n'avons pas pu établir les volumes d'activité : nombre de consultations, répartition entre les sites, proportion de chaque statut. La raison est révélatrice : elle fait partie des problèmes que nous traitons, la production des statistiques étant entièrement manuelle. Le Médecin Chef établit ses rapports en agrégeant à la main les données des deux sites. Leur consolidation coûte donc trop cher pour être menée à la demande.
 
 ## Conclusion du chapitre
 
-Le Service Médico-Social de SARIS-CONGO est un service interne rattaché à la Direction des Ressources Humaines et dirigé par le Médecin Chef. Il se décompose en deux entités : la Section des Affaires Sociales et le Centre Médico-Sanitaire. Ce dernier couvre six pôles de compétences et soigne neuf catégories de personnes selon des règles de prise en charge différenciées, sur deux sites entre lesquels le personnel tourne sans aucun système d'information partagé. Ces trois caractéristiques déterminent à la fois les besoins du centre et le périmètre retenu. Le chapitre suivant décrit la situation informatique dans laquelle ce fonctionnement s'inscrivait.
+Le Service Médico-Social de SARIS-CONGO est un service interne, rattaché à la Direction des Ressources Humaines et dirigé par le Médecin Chef. Il réunit la Section des Affaires Sociales et le Centre Médico-Sanitaire. Ce dernier couvre six pôles de compétences et soigne neuf catégories de personnes, selon des règles de prise en charge différenciées, sur deux sites entre lesquels le personnel tourne sans aucun système d'information partagé.
+
+Ces trois caractéristiques déterminent les besoins du centre et le périmètre que nous avons retenu. Le chapitre suivant décrit la situation informatique dans laquelle ce fonctionnement s'inscrivait.

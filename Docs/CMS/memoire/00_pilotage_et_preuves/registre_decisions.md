@@ -104,7 +104,7 @@
 
 # Décisions de la refonte — août 2026
 
-> Le mémoire faisait **214 pages** après la première rédaction. Le plafond annoncé était de 120 pages, puis ramené à **70-85**. Les décisions D-16 à D-25 ont d'abord ramené le document à 90 pages dont 76 de corps. Les décisions D-26 à D-30, prises les 22 et 24 août 2026, l'ont porté à son état actuel : **98 pages dont 84 de corps**.
+> Le mémoire faisait **214 pages** après la première rédaction. Le plafond annoncé était de 120 pages, puis ramené à **70-85**. Les décisions D-16 à D-25 ont d'abord ramené le document à 90 pages dont 76 de corps. Les décisions D-26 à D-30, prises les 22 et 24 août 2026, l'ont porté à 98 pages dont 84 de corps. Les décisions D-33 à D-36, prises le 28 août après la relecture de NZILA Oscarvie Verdi, ont maintenu ce volume : **98 pages dont 84 de corps**.
 
 ## D-16 — Le mémoire de référence devient un modèle de rédaction
 
@@ -205,3 +205,28 @@
 **Décision** : dix sigles sont introduits dans le corps, chacun développé à sa première apparition — API, REST, HTTP, JSON, JWT, SQL, ORM, SSE, IPC, PWA — puis ajoutés à la liste des abréviations, qui passe de 15 à 25 entrées.
 **Motif** : la simplification du français (D-26) avait paraphrasé tous les sigles techniques. Le mémoire écrivait « interface de programmation » six fois au lieu d'API et « jeton signé » au lieu de JWT. Un jury de génie logiciel attend ce vocabulaire, et son absence laisse croire que les auteurs ne le maîtrisent pas.
 **Conséquence** : deux règles s'appliquent désormais. **Un sigle n'entre dans la liste que s'il est employé dans le texte** — vérification faite, les 25 le sont, BF, BNF et UC sous forme préfixée. Et **chaque sigle est justifié par le code**, avec son relevé consigné dans `01_preliminaires/sigles_et_abreviations.md`. SGBD et IHM ont été refusés à ce titre : ce sont des sigles d'école, absents du projet. Aucun coût en pages : la page des sigles est liminaire, et elle n'occupe que 28 lignes sur environ 40.
+
+## D-33 — La version relue par Verdi ne devient pas la base de travail
+
+**Décision** : `Memoire_CMS_SARIS.docx` reste le document unique. Les corrections de `Memoire_CMS_SARIS_version_modifié_par_verdi_mon binôme.docx` y sont versées une par une, jamais l'inverse.
+**Motif** : Verdi a relu une copie antérieure au 24 août. Sa version ignore la correction du tableau 4.2, le découpage par package, la répartition chiffrée des 59 entités et les dix sigles techniques. Repartir de son fichier ferait revenir deux erreurs de fond déjà corrigées.
+**Conséquence** : comparaison complète consignée dans `11_revue_finale/COMPARAISON_VERSION_VERDI.md` — 536 blocs contre 512, taux d'identité de 77,8 %. Ce qui est refusé l'est avec un motif écrit, pour que Verdi ne recommence pas.
+
+## D-34 — Les pages liminaires sont reprises mot pour mot de la version de Verdi
+
+**Décision** : dédicace, remerciements, résumé, abstract et introduction générale reprennent son texte à l'identique, sur demande explicite de l'auteur.
+**Motif** : ces pages relèvent des deux auteurs à parts égales. Le fond y compte moins que l'accord entre eux.
+**Conséquence** : trois réserves. Les **mots-clés et keywords ont été conservés** contre sa version, car le contrôle 1.7 de la checklist les exige. La **mise en page reste la nôtre** : son style « Sans interligne » aurait rompu l'interligne du document. Et son introduction annonçait « trois constats » en n'en donnant que deux — la phrase manquante sur l'échec des deux outils tableur a été rétablie à l'identique. Huit mentions « ▪ (nom) » restent à remplir dans la dédicace.
+
+## D-35 — Le mémoire est écrit à la première personne du pluriel
+
+**Décision** : le corps entier passe au « nous », de l'introduction à la conclusion générale. 178 réécritures.
+**Motif** : Verdi a relevé que le document ne disait jamais « nous ». Mesure faite : **9 emplois dans tout le corps, dont 8 dans la seule conclusion**. Les huit chapitres n'en contenaient aucun. Les deux mémoires de référence en comptent bien davantage — OYERE 2,12 pour 1000 mots, NGATSE 5,64, contre 0,38 chez nous.
+**Conséquence** : **142 emplois, soit 6,07 pour 1000**. Deux limites posées. Les **faits mesurés restent impersonnels** — « le système expose 268 routes », jamais « nous avons compté 268 routes » : un chiffre s'affirme, il ne s'attribue pas. Et les **14 sections purement descriptives** — présentation de SARIS-CONGO, Processus Unifié, processus de consultation antérieur, catégories de patients — restent sans « nous », car ce ne sont pas nos décisions.
+**Coût** : la première passe est montée à 101 pages, avec trois pages presque vides. Vingt-sept resserrements, sans perte d'information, ont ramené le document à **98 pages dont 84 de corps**.
+
+## D-36 — La substitution « rapport de stage » → « recueil de l'existant » est refusée
+
+**Décision** : le mémoire continue de citer le **rapport de stage** aux trois endroits où il le fait.
+**Motif** : ce sont deux sources distinctes, et `sources_et_statut_des_preuves.md` le dit. Le recueil de l'existant fait autorité sur le besoin et le terrain médical ; le rapport de stage est la source de l'organisation informatique, du parc matériel et des applications en production. Faire la substitution attribuerait au recueil des faits qu'il ne contient pas.
+**Conséquence** : correction proposée par Verdi, examinée, refusée avec motif. Une phrase d'attribution supprimée par erreur au chapitre 1 lors du resserrement a été rétablie : « Le rapport de stage apporte ici une précision qui compte. »

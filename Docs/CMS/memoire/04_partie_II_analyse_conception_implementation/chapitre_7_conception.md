@@ -1,11 +1,11 @@
-<!-- Fichier aligné sur Memoire_CMS_SARIS.docx le 24 août 2026. -->
-<!-- Le document Word fait foi. Toute divergence est une erreur de ce fichier. -->
+<!-- Fichier régénéré depuis Memoire_CMS_SARIS.docx le 28 août 2026. -->
+<!-- Miroir exact du document Word. Ne pas modifier ici : le Word fait foi sur le texte. -->
 
 # CHAPITRE 7 — CONCEPTION
 
-> 7 figure(s) · 9 tableau(x) dans ce chapitre.
+> 7 figure(s) · 9 tableau(x) dans cette partie.
 
-La conception est le point où les deux branches de 2TUP se rejoignent. Le chapitre précédent a établi le modèle du métier : trois acteurs, soixante-cinq cas d'utilisation, deux règles centrales. Ce modèle doit maintenant être projeté sur une architecture technique capable de le porter. Et de le porter dans les conditions les plus contraignantes : sans connexion, sur deux sites, avec des données de santé à protéger.
+La conception est le point où les deux branches de 2TUP se rejoignent. Le chapitre précédent a établi le modèle du métier : trois acteurs, soixante-cinq cas d'utilisation, deux règles centrales. Nous devons maintenant projeter ce modèle sur une architecture technique capable de le porter. Et de le porter dans les conditions les plus contraignantes : sans connexion, sur deux sites, avec des données de santé à protéger.
 
 ## 7.1 Architecture technique
 
@@ -19,9 +19,9 @@ La contrainte dominante n'est pas fonctionnelle, elle est contextuelle : la conn
 | Postes autonomes non reliés | Chaque poste dispose de sa base, sans synchronisation | Écartée : elle reproduirait le problème constaté, dossiers dupliqués et aucune continuité |
 | Fonctionnement hors connexion avec réconciliation | Chaque poste travaille localement puis se resynchronise | Retenue : seule option satisfaisant la continuité de service et la cohérence entre les sites |
 
-Ce choix commande tout le reste. Il impose la duplication du schéma de données, la suppression logique généralisée, la stratégie de résolution de conflit, et jusqu'à une authentification qui fonctionne en mode autonome.
+Notre choix commande tout le reste. Il impose la duplication du schéma de données, la suppression logique généralisée, la stratégie de résolution de conflit, et jusqu'à une authentification qui fonctionne en mode autonome.
 
-Le système suit une architecture en couches. La couche de présentation porte les interfaces, la navigation et l'état local : elle est bâtie avec React et compilée par Vite. La couche métier porte les contrôleurs, les gardes, les services, les règles et la validation : elle repose sur NestJS. La couche d'accès aux données assure la correspondance objet-relationnel (ORM) et les migrations, au moyen de Prisma. La persistance repose enfin sur deux moteurs SQL : PostgreSQL pour le serveur central, SQLite pour la base locale du poste autonome. L'ensemble est écrit en TypeScript, du serveur à l'interface.
+Notre système suit une architecture en couches. La couche de présentation porte les interfaces, la navigation et l'état local : elle est bâtie avec React et compilée par Vite. La couche métier porte les contrôleurs, les gardes, les services, les règles et la validation : elle repose sur NestJS. La couche d'accès aux données assure la correspondance objet-relationnel (ORM) et les migrations, au moyen de Prisma. La persistance repose enfin sur deux moteurs SQL : PostgreSQL pour le serveur central, SQLite pour la base locale du poste autonome. L'ensemble est écrit en TypeScript, du serveur à l'interface.
 
 Le point remarquable est que la couche métier est bi-cible. Le même code NestJS s'exécute sur le serveur central au-dessus de PostgreSQL, et à l'intérieur du client de bureau au-dessus de SQLite. Cela évite d'écrire deux fois les règles, et donc de les faire diverger.
 
@@ -44,7 +44,7 @@ Une limite doit cependant être signalée, et le code la documente lui-même. Le
 
 ## 7.2 Architecture de sécurité
 
-La sécurité est organisée en couches successives, chacune traitant une menace distincte. Un accès non autorisé doit franchir neuf niveaux avant d'atteindre une donnée.
+Nous avons organisé la sécurité en couches successives, chacune traitant une menace distincte. Un accès non autorisé doit franchir neuf niveaux avant d'atteindre une donnée.
 
 **Tableau 7.3 — Les neuf niveaux de l'architecture de sécurité**
 
@@ -60,17 +60,17 @@ La sécurité est organisée en couches successives, chacune traitant une menace
 | 8 | Journal d'audit alimenté par un intercepteur unique | Absence d'imputabilité |
 | 9 | Chiffrement au repos | Lecture directe de la base de données |
 
-Trois points méritent d'être soulignés. La limitation de débit est calée sur l'utilisateur et non sur l'adresse réseau. Derrière un routeur, plusieurs agents partagent la même adresse : un plafond par adresse les pénaliserait mutuellement. Les niveaux 5 et 6 sont ensuite distincts, et cette distinction est essentielle. La permission ouvre la porte, la règle métier autorise l'acte. Un infirmier possède la permission de créer une ordonnance, mais le service refuse tant qu'aucune délégation active ne le couvre.
+Nous devons souligner trois points. La limitation de débit est calée sur l'utilisateur et non sur l'adresse réseau. Derrière un routeur, plusieurs agents partagent la même adresse : un plafond par adresse les pénaliserait mutuellement. Les niveaux 5 et 6 sont ensuite distincts, et cette distinction est essentielle. La permission ouvre la porte, la règle métier autorise l'acte. Un infirmier possède la permission de créer une ordonnance, mais le service refuse tant qu'aucune délégation active ne le couvre.
 
-Certaines permissions sont enfin protégées contre leur propre retrait. Dix permissions de gouvernance ne peuvent être retirées ni par un administrateur à lui-même, ni au dernier administrateur actif. Sans cette protection, une fausse manœuvre rendrait la plateforme inadministrable. L'audit repose sur un intercepteur global. Il journalise chaque modification effectuée sur un contrôleur annoté, en capturant l'auteur, l'action, le module, l'entité, l'adresse réseau réelle et le statut de l'opération. Cent cinquante et une routes sur deux cent soixante-huit sont ainsi couvertes.
+Certaines permissions sont enfin protégées contre leur propre retrait. Dix permissions de gouvernance ne peuvent être retirées ni par un administrateur à lui-même, ni au dernier administrateur actif. Sans cette protection, une fausse manœuvre rendrait la plateforme inadministrable. Notre audit repose sur un intercepteur global. Il journalise chaque modification effectuée sur un contrôleur annoté, en capturant l'auteur, l'action, le module, l'entité, l'adresse réseau réelle et le statut de l'opération. Cent cinquante et une routes sur deux cent soixante-huit sont ainsi couvertes.
 
 Deux propriétés en font une preuve exploitable. L'intercepteur n'interrompt jamais la requête métier : un échec d'écriture du journal ne fait donc pas échouer l'acte de soin. Et seul cet intercepteur écrit dans le journal, aucune route n'y donnant accès : on ne peut donc pas falsifier l'audit depuis l'interface.
 
 ## 7.3 Modèle de classes
 
-Le modèle complet comporte 88 entités reliées par 97 associations. Une planche représentant l'ensemble serait illisible imprimée au format A4. Le diagramme de classes retient donc 29 classes. Deux critères ont guidé cette sélection : un degré de connexion supérieur ou égal à deux dans les domaines clinique, acteurs et référentiels, plus deux exceptions justifiées par leur poids métier, les constantes vitales et la matrice des droits par catégorie. Énoncer ce critère est indispensable, sans quoi la sélection paraîtrait arbitraire.
+Le modèle complet comporte 88 entités reliées par 97 associations. Une planche représentant l'ensemble serait illisible imprimée au format A4. Nous retenons donc 29 classes au diagramme. Deux critères ont guidé cette sélection : un degré de connexion supérieur ou égal à deux dans les domaines clinique, acteurs et référentiels, plus deux exceptions justifiées par leur poids métier, les constantes vitales et la matrice des droits par catégorie. Nous devons énoncer ce critère, sans quoi la sélection paraîtrait arbitraire.
 
-Les 59 entités écartées relèvent de domaines techniques ou transverses : messagerie, synchronisation, audit, notifications, sessions et historiques. Elles n'apparaissent donc pas sur la planche.
+Les 59 entités écartées se répartissent ainsi : 13 pour la sécurité et l'audit, 11 autour du dossier patient, 8 pour la synchronisation, 7 pour la messagerie, 7 pour le personnel, 7 pour les suivis de soin et 6 référentiels secondaires. La plupart sont des fonctions techniques ou transverses. Les autres ajoutent du détail à une entité déjà présente sur la planche, sans en changer la structure. Elles ne disparaissent pas du mémoire pour autant : le tableau 8.2, au chapitre suivant, donne la répartition complète des 88 tables par domaine fonctionnel, avec le nombre de champs de chacun.
 
 Les 29 classes retenues se répartissent selon les mêmes packages que les cas d'utilisation. Cette correspondance n'est pas décorative : elle permet de vérifier qu'à chaque groupe de fonctions correspond bien un groupe de données.
 
@@ -86,21 +86,21 @@ Les 29 classes retenues se répartissent selon les mêmes packages que les cas d
 
 Le package Fonctions transverses ne retient aucune classe, et ce fait mérite d'être expliqué plutôt que constaté. La messagerie, les notifications, le pilotage et la synchronisation reposent sur des entités bien réelles — elles font partie des 59 écartées — mais aucune ne participe au modèle du domaine médical. Les faire figurer aurait chargé la planche sans rien apprendre sur le métier du centre.
 
-Les quatre diagrammes suivants représentent chaque package, et le cinquième réunit l'ensemble. Cette progression du détail vers la vue générale permet de lire le modèle par domaine avant de le lire en entier.
+Les quatre diagrammes suivants représentent chaque package, et le cinquième réunit l'ensemble. Nous allons du détail vers la vue générale. Cette progression du détail vers la vue générale permet de lire le modèle par domaine avant de le lire en entier.
 
-> 🖼️ **Figure 7.1 — Diagramme de classes du package Sécurité et habilitations**  
+> 🖼️ **Figure 7.1 — Diagramme de classes du package Sécurité et habilitations**
 > *Emplacement d'image réservé dans le document.*
 
-> 🖼️ **Figure 7.2 — Diagramme de classes du package Référentiels et acteurs médicaux**  
+> 🖼️ **Figure 7.2 — Diagramme de classes du package Référentiels et acteurs médicaux**
 > *Emplacement d'image réservé dans le document.*
 
-> 🖼️ **Figure 7.3 — Diagramme de classes du package Dossier patient**  
+> 🖼️ **Figure 7.3 — Diagramme de classes du package Dossier patient**
 > *Emplacement d'image réservé dans le document.*
 
-> 🖼️ **Figure 7.4 — Diagramme de classes du package Parcours de soin**  
+> 🖼️ **Figure 7.4 — Diagramme de classes du package Parcours de soin**
 > *Emplacement d'image réservé dans le document.*
 
-> 🖼️ **Figure 7.5 — Diagramme de classes du système**  
+> 🖼️ **Figure 7.5 — Diagramme de classes du système**
 > *Emplacement d'image réservé dans le document.*
 
 **Tableau 7.5 — Les six entités les plus connectées du modèle**
@@ -160,7 +160,7 @@ Le système comporte deux mécanismes hors connexion de conception différente. 
 
 Le rejeu de requêtes mérite d'être expliqué, car son élégance tient à ce qu'il évite. Hors connexion, chaque écriture est enregistrée telle quelle : méthode, chemin, contenu. Au retour du réseau, ces requêtes sont rejouées vers les routes réelles. La conséquence est décisive. Toute la validation, toutes les permissions et toute la logique métier du serveur sont réutilisées. Il n'existe aucun moteur d'application parallèle côté client, donc aucun risque de voir les règles diverger entre le mode connecté et le mode hors connexion.
 
-La stratégie de résolution retenue est celle de la dernière écriture gagnante. Les versions sont comparées sur l'horodatage de modification, et la concurrence est détectée grâce à la version de départ connue du client.
+Nous avons retenu la stratégie de la dernière écriture gagnante. Les versions sont comparées sur l'horodatage de modification, et la concurrence est détectée grâce à la version de départ connue du client.
 
 **Tableau 7.8 — Règles de résolution des conflits d'écriture**
 
@@ -187,14 +187,14 @@ L'architecture en composants distingue sept blocs. Le serveur applicatif NestJS 
 
 Les trois paquets partagés fournissent enfin le schéma Prisma et les migrations, les types TypeScript et le catalogue des permissions, et les composants visuels.
 
-> 🖼️ **Figure 7.6 — Diagramme de composants**  
+> 🖼️ **Figure 7.6 — Diagramme de composants**
 > *Emplacement d'image réservé dans le document.*
 
 Le déploiement distingue quatre nœuds : un serveur d'application exposé en HTTPS, un serveur PostgreSQL hébergé séparément avec liaison chiffrée, des postes clients en mode connecté, et des postes clients en mode autonome embarquant serveur et base SQLite locale. Trois points de sécurité conditionnent ce déploiement. Le serveur embarqué du poste autonome n'écoute que sur la boucle locale. Aucune autre machine du réseau ne peut donc l'interroger. L'adresse du serveur doit être chiffrée en production. Sans cela, jetons d'authentification et données patient transiteraient en clair.
 
 L'origine du client de bureau Electron est enfin un schéma applicatif privilégié, déclaré autorisé côté serveur. C'est indispensable au fonctionnement du flux SSE.
 
-> 🖼️ **Figure 7.7 — Diagramme de déploiement**  
+> 🖼️ **Figure 7.7 — Diagramme de déploiement**
 > *Emplacement d'image réservé dans le document.*
 
 Les principes d'interface sont formalisés dans une charte graphique et appliqués par un système de composants partagé entre les canaux.
@@ -210,10 +210,10 @@ Les principes d'interface sont formalisés dans une charte graphique et appliqu�
 | Point de départ adapté au métier | L'infirmier arrive sur la file d'attente, les autres rôles sur le tableau de bord |
 | Impression normalisée | Six documents au format A4 partagent deux gabarits communs |
 
-Une faiblesse doit être signalée sur ce volet. Les permissions qui gouvernent l'affichage du menu et celles qui gardent les routes du serveur sont déclarées à deux endroits distincts. Une divergence produit donc une entrée de menu visible qui mène à un refus. Le code documente lui-même un incident de ce type, corrigé depuis. Mais la double déclaration demeure, et constitue une dette technique.
+Nous devons signaler une faiblesse sur ce volet. Les permissions qui gouvernent l'affichage du menu et celles qui gardent les routes du serveur sont déclarées à deux endroits distincts. Une divergence produit donc une entrée de menu visible qui mène à un refus. Le code documente lui-même un incident de ce type, corrigé depuis. Mais la double déclaration demeure, et constitue une dette technique.
 
 ## Conclusion du chapitre
 
-La conception a fait converger les deux branches de 2TUP. Du côté fonctionnel, le modèle du domaine s'organise autour de trois pivots — le patient, la consultation, l'agent — et de 29 classes retenues sur 88 selon un critère explicite. Du côté technique, l'architecture répond à la contrainte dominante par une couche métier bi-cible, et par deux mécanismes hors connexion adaptés chacun à son contexte.
+Notre conception a fait converger les deux branches de 2TUP. Du côté fonctionnel, le modèle du domaine s'organise autour de trois pivots — le patient, la consultation, l'agent — et de 29 classes que nous avons retenues sur 88 selon un critère explicite. Du côté technique, l'architecture répond à la contrainte dominante par une couche métier bi-cible, et par deux mécanismes hors connexion adaptés chacun à son contexte.
 
 Trois décisions structurent l'ensemble. La portée globale du dossier patient rend possible la continuité entre les deux sites. La suppression logique généralisée permet à un effacement de se propager jusqu'aux postes hors ligne. Et le contrôle à deux étages distingue le droit d'agir de l'autorisation d'agir. Le chapitre suivant rend compte de la construction effective de cette conception.

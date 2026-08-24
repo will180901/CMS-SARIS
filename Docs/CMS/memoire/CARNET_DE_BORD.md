@@ -1,8 +1,22 @@
 # Carnet de bord — mémoire CMS SARIS
 
-> **Dernière mise à jour** : 24 août 2026
+> **Dernière mise à jour** : 28 août 2026
 > **Document** : `Memoire_CMS_SARIS.docx` — **98 pages**, dont **84 pages de corps**
-> **Reste à faire** : tracer 20 diagrammes, produire 3 captures, les coller, régénérer les listes.
+> **Reste à faire** : tracer 20 diagrammes, produire 3 captures, les coller, régénérer les listes, remplir les 8 « ▪ (nom) » de la dédicace.
+
+---
+
+## 0. Ce qui a changé les 27 et 28 août
+
+**La relecture de Verdi.** Il a rendu une version annotée. Elle est bâtie sur une copie **antérieure au 24 août** : elle ignore le tableau 4.2 corrigé, le découpage par package, la répartition des 59 entités et les dix sigles. Elle n'est donc pas devenue la base — décision **D-33**. Le rapport complet est dans `11_revue_finale/COMPARAISON_VERSION_VERDI.md`.
+
+**Ce qu'on lui a pris.** Dédicace, remerciements, résumé, abstract et introduction générale, **mot pour mot** — décision **D-34**. Avec trois réserves : mots-clés et keywords conservés, mise en page inchangée, et la phrase des « trois constats » rétablie.
+
+**Ce qu'on lui a refusé.** Le remplacement de « rapport de stage » par « recueil de l'existant » — décision **D-36**. Ce sont deux sources différentes, et l'échange attribuerait au recueil des faits qu'il ne contient pas.
+
+**Le mémoire passe au « nous ».** 178 réécritures, de l'introduction à la conclusion — décision **D-35**. De 9 emplois à **142**, soit 6,07 pour 1000 mots. Volume inchangé.
+
+**Deux pages de séparation corrigées.** « Première Partie » et « Deuxième Partie » portent désormais leur propre saut de page. Elles ne peuvent plus glisser en bas d'une page.
 
 ---
 

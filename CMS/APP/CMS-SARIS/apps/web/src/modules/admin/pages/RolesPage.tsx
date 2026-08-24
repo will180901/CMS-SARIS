@@ -100,11 +100,24 @@ export function RolesPage({ embedded = false }: { embedded?: boolean } = {}) {
         </div>
       )}
 
-      {/* ── KPI ──────────────────────────────────────────────────────────── */}
+      {/* ── KPI ───────────────────────────────────────────────────────────
+          ALIGNÉ SUR LE SPLIT DU DESSOUS, et c'est délibéré.
+
+          En largeurs égales, la première tuile finissait presque exactement là où
+          finit la colonne « liste des rôles » (320 px). L'œil reliait les deux bords,
+          croyait voir un axe, et découpait la rangée en 1 + 3 — un groupement qui
+          n'existait pas.
+
+          On assume donc cet axe au lieu de le subir : la première tuile prend
+          EXACTEMENT la largeur de la colonne de gauche, les trois autres se partagent
+          celle du panneau de détail. Même gouttière que le split (`--espace-4`), sans
+          quoi la deuxième tuile ne tomberait pas au pixel sur le bord du panneau. */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: isCompact ? 'repeat(2, minmax(0, 1fr))' : 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: 'var(--espace-3)',
+        gridTemplateColumns: isCompact
+          ? 'repeat(2, minmax(0, 1fr))'
+          : '320px repeat(3, minmax(0, 1fr))',
+        gap: isCompact ? 'var(--espace-3)' : 'var(--espace-4)',
         padding: 'var(--espace-4) var(--espace-6) 0',
       }}>
         <StatCard icon={<Shield size={18} />}      label={t('admin.rolesDefined')}    value={stats.total}     tone="accent" />
