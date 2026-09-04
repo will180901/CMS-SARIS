@@ -1,8 +1,23 @@
 # INV-03 — Inventaire des permissions et des rôles
 
-> **Statut** : extrait · **Date d’extraction** : 2026-08-10
+> **Statut** : extrait · **Date d’extraction** : 2026-08-10 · **Révisé le** : 2026-08-31 (voir § 0)
 > **Sources** : `packages/types/src/permissions.ts` (catalogue, métadonnées, affectation par défaut) croisé avec **INV-01** (routes)
 > **Nature de la preuve** : `IMPLÉMENTÉ`.
+
+---
+
+## 0. Révision du 31 août 2026
+
+Relecture intégrale du catalogue le 31 août. **Aucune permission de l'extraction du 10 août n'a disparu.** Deux ont été ajoutées.
+
+| Permission | Libellé | Module | Portée par | Rôles qui la détiennent |
+|---|---|---|---|---|
+| `audit.purge` | Purger les journaux d'audit | `audit` | une route de suppression | `ADMIN_SYSTEME` seul |
+| `rapport.delete` | Supprimer un rapport généré | `rapport` | une route de suppression | `ADMIN_SYSTEME`, `MEDECIN_CHEF` |
+
+**Conséquences** : catalogue 128 → **130** · `ADMIN_SYSTEME` 128 → **130** (toujours 100 %) · `MEDECIN_CHEF` 101 → **102** · `INFIRMIER` **51**, inchangé · permissions exigées par au moins une route 125 → **127**.
+
+> `audit.purge` mérite d'être relevée : effacer une trace est un acte de gouvernance, pas de consultation. Le code lui donne son propre droit, distinct de `audit.read`, et **ne l'accorde pas au médecin chef**. C'est cohérent avec le rôle de l'audit comme preuve.
 
 ---
 
@@ -10,14 +25,14 @@
 
 | Indicateur | Valeur |
 |---|---|
-| Permissions au catalogue | **128** |
-| Permissions décrites (libellé + module) | **128** |
+| Permissions au catalogue | **130** |
+| Permissions décrites (libellé + module) | **130** |
 | Modules de permissions | **22** |
 | Rôles système | **3** |
-| Permissions exigées par au moins une route | **125** |
+| Permissions exigées par au moins une route | **127** |
 | Permissions sans aucune route | **3** (voir § 6) |
 
-> ⚠️ **Arbitrage d’un écart documentaire.** Le README de l’application annonce « 116 permissions », et une documentation antérieure du projet « ~110 ». Le comptage direct du catalogue donne **128**. C’est cette valeur qui fait foi dans tout le mémoire — le code est l’autorité sur ce qui est livré.
+> ⚠️ **Arbitrage d’un écart documentaire.** Le README de l’application annonce « 116 permissions », et une documentation antérieure du projet « ~110 ». Le comptage direct du catalogue donne **130**. C’est cette valeur qui fait foi dans tout le mémoire — le code est l’autorité sur ce qui est livré.
 
 ### 1.1 Répartition par module
 
@@ -41,18 +56,18 @@
 | `notification` | 4 | 4/4 | 0/4 | 0/4 |
 | `messagerie` | 4 | 4/4 | 0/4 | 0/4 |
 | `synchronisation` | 3 | 3/3 | 0/3 | 0/3 |
-| `rapport` | 2 | 2/2 | 2/2 | 1/2 |
+| `rapport` | 3 | 3/3 | 3/3 | 1/3 |
 | `parametre` | 2 | 2/2 | 0/2 | 0/2 |
 | `dashboard` | 1 | 1/1 | 1/1 | 1/1 |
-| `audit` | 1 | 1/1 | 1/1 | 0/1 |
-| **Total** | **128** | **128** | **101** | **51** |
+| `audit` | 2 | 2/2 | 1/2 | 0/2 |
+| **Total** | **130** | **130** | **102** | **51** |
 
 ### 1.2 Les trois rôles
 
 | Code | Libellé | Permissions | Part du catalogue | Vocation |
 |---|---|---:|---:|---|
-| `ADMIN_SYSTEME` | Administrateur Système | 128 | 100 % | Super-administrateur : gouvernance système **et** accès clinique complet. Choix assumé pour ce déploiement. |
-| `MEDECIN_CHEF` | Médecin Chef | 101 | 79 % | Administrateur médical : activité clinique complète, gouvernance des référentiels, du personnel et de l’audit. |
+| `ADMIN_SYSTEME` | Administrateur Système | 130 | 100 % | Super-administrateur : gouvernance système **et** accès clinique complet. Choix assumé pour ce déploiement. |
+| `MEDECIN_CHEF` | Médecin Chef | 102 | 78 % | Administrateur médical : activité clinique complète, gouvernance des référentiels, du personnel et de l’audit. |
 | `INFIRMIER` | Infirmier | 51 | 40 % | Triage et consultation **déléguée** : prescrit uniquement sous délégation active accordée par le médecin chef. |
 
 > **`MEDECIN` n’est pas un rôle.** C’est une *profession* du personnel médical (`TypePersonnel`) ; tout médecin reçoit le rôle `MEDECIN_CHEF`. Cette distinction doit être portée telle quelle au chapitre 6 (identification des acteurs), sous peine de créer un acteur qui n’existe pas.
@@ -65,8 +80,8 @@ Les acteurs du diagramme de cas d’utilisation se déduisent **exactement** des
 
 | Acteur (chapitre 6) | Rôle technique | Type | Nombre d’UC accessibles |
 |---|---|---|---:|
-| Administrateur Système | `ADMIN_SYSTEME` | primaire | 128 permissions |
-| Médecin Chef | `MEDECIN_CHEF` | primaire | 101 permissions |
+| Administrateur Système | `ADMIN_SYSTEME` | primaire | 130 permissions |
+| Médecin Chef | `MEDECIN_CHEF` | primaire | 102 permissions |
 | Infirmier | `INFIRMIER` | primaire | 51 permissions |
 | Poste local (application de bureau autonome) | — | **secondaire** (système externe) | routes `/sync/*` |
 
@@ -273,7 +288,7 @@ Les acteurs du diagramme de cas d’utilisation se déduisent **exactement** des
 | Permission | Libellé | ADMIN | MÉDECIN CHEF | INFIRMIER | Routes |
 |---|---|:---:|:---:|:---:|---:|
 | `rapport.read` | Consulter les rapports statistiques | ✅ | ✅ | ✅ | 2 |
-| `rapport.export` | Exporter un rapport (Excel/PDF) | ✅ | ✅ | ⬜ | 0 |
+| `rapport.export` | Exporter ou supprimer un rapport (Excel/PDF) | ✅ | ✅ | ⬜ | 0 |
 
 ### Module `audit`
 
@@ -370,7 +385,7 @@ Les droits effectifs sont donc calculés par `PermissionsResolverService` : *per
 |---|---|---|
 | `ordonnance.read` | Consulter les ordonnances | À CONFIRMER — vérifier l’usage côté client |
 | `ordonnance.print` | Imprimer une ordonnance | Action d’impression, réalisée intégralement côté client |
-| `rapport.export` | Exporter un rapport (Excel/PDF) | À CONFIRMER — vérifier l’usage côté client |
+| `rapport.export` | Exporter ou supprimer un rapport (Excel/PDF) | À CONFIRMER — vérifier l’usage côté client |
 
 ### 6.1 Cohérence inverse
 
@@ -382,7 +397,7 @@ Aucune route n’exige une permission absente du catalogue. La correspondance co
 
 | # | Constat | Conséquence documentaire |
 |---|---|---|
-| E-01 | Le catalogue compte **128** permissions. Le glossaire disait « ~110 », le README « 116 ». | Retenir 128 partout. Corriger le glossaire et le README, ou consigner l’écart. |
+| E-01 | Le catalogue compte **130** permissions. Le glossaire disait « ~110 », le README « 116 ». | Retenir 130 partout. Corriger le glossaire et le README, ou consigner l’écart. |
 | E-02 | `ADMIN_SYSTEME` détient **100 % du catalogue**, y compris les actes cliniques. | Choix de gouvernance assumé, à justifier explicitement au chapitre 6 : sans cela, le jury y verra une faille de séparation des pouvoirs. |
 | E-03 | Les permissions de prescription sont accordées à `INFIRMIER`, mais le **service** (`assertPeutPrescrire`) exige en plus une **délégation active**. | Le contrôle d’accès est à **deux étages** : garde de permission, puis règle métier. À représenter dans le diagramme de séquence objets de la prescription, sinon la logique est incompréhensible. |
 | E-04 | La règle de cohérence est **dupliquée** entre le paquet partagé et l’API. | Dette technique à mentionner honnêtement au chapitre 8 (difficultés rencontrées). |

@@ -19,7 +19,7 @@ La contrainte majeure reste le fonctionnement sur deux sites, avec continuité h
 |---|---|---|---|
 | Node.js | 20.18 | Environnement d'exécution | Fait tourner le serveur et les outils de compilation. Version à support long terme, choisie pour sa stabilité |
 | TypeScript | 5.9 | Langage, typage statique | Un seul langage du serveur à l'interface. Les types partagés empêchent une règle de diverger entre les deux |
-| NestJS | 11 | Cadre applicatif serveur | Structure les 268 routes en modules, gardes et intercepteurs. C'est lui qui porte le journal d'audit |
+| NestJS | 11 | Cadre applicatif serveur | Structure les 273 routes en modules, gardes et intercepteurs. C'est lui qui porte le journal d'audit |
 | Prisma | 6 | Correspondance objet-relationnel et migrations | Un seul schéma décrit les deux moteurs, et les 41 migrations sont versionnées avec le code |
 | PostgreSQL | 16 | Base de données centrale | Porte les contraintes d'unicité et les types énumérés, que le poste autonome ne peut pas garantir |
 | SQLite | — | Base de données du poste autonome | Une base dans un simple fichier, sans serveur à installer : c'est la condition du fonctionnement hors connexion |
@@ -225,6 +225,6 @@ Quatre difficultés moindres ont enfin été traitées. Une option de requête a
 
 ## Conclusion du chapitre
 
-L'implémentation couvre les vingt-trois besoins fonctionnels : vingt-deux pleinement, un partiellement. Elle représente environ 93 500 lignes réparties sur 547 fichiers, avec 268 routes, 88 entités, 128 permissions et 41 migrations. Cent trois cas de test ont été exécutés le 10 août 2026, avec un taux de réussite de 100 %, et les dix suites sont désormais rattachées à une commande.
+L'implémentation couvre les vingt-trois besoins fonctionnels : vingt-deux pleinement, un partiellement. Elle représente environ 93 500 lignes réparties sur 547 fichiers, avec 273 routes, 88 entités, 130 permissions et 41 migrations. Cent trois cas de test ont été exécutés le 10 août 2026, avec un taux de réussite de 100 %, et les dix suites sont désormais rattachées à une commande.
 
 Deux limites sérieuses subsistent néanmoins. Le cœur clinique n'a aucun test automatisé exécuté. Et la règle d'éligibilité par catégorie n'est couverte par aucun test. Les difficultés rencontrées sont enfin instructives à un titre particulier. Aucune n'était un problème d'algorithme. Toutes relevaient de l'écart entre un système qui fonctionne en développement et un système qui tient en exploitation. C'est probablement l'enseignement technique le plus durable de ce projet.

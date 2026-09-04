@@ -250,3 +250,17 @@ Trois couloirs verticaux de largeur égale, nommés en haut. Flux descendant, en
 | Existait-il un transfert d'information informel entre les deux sites — téléphone, courrier ? | QO-04 |
 
 > Ces trois points enrichiraient la figure sans la remettre en cause. Elle est traçable en l'état.
+
+---
+
+## ⚠️ Corrections du 30 août 2026
+
+Contrôle passé : les 21 actions imposées par cette fiche ont été confrontées à la réunion des planches 5.1 et 5.2. **Quatre écarts trouvés, quatre corrigés ; deux fusions restent, assumées.**
+
+| Écart | Correction |
+|---|---|
+| La planche 5.1 passait de « Collecter l'identité » directement à la décision « Dossier trouvé sur CE site ? » — **une décision sans action qui la précède**, ce que la fiche interdit | l'action devient **« Collecter l'identité, puis rechercher le dossier dans le classeur du site »** |
+| Quatre actions étaient écrites comme des noms, non comme des verbes — *Mode de vie (9 variables)*, *Anamnèse (4 questions)*, *Examen clinique (9 paramètres)* | rétablies en verbes : **Renseigner**, **Conduire**, **Réaliser** |
+| « Rédiger le bon d'examen » avait perdu **« à la main »**, qui est le propos même de la planche | rétabli |
+
+**Deux fusions assumées.** « Rechercher le dossier dans le classeur **ou le fichier local** au site » est condensé en « dans le classeur du site ». « Recueillir les antécédents **personnels et familiaux** » est fondu dans « et les antécédents ». Dans les deux cas le fait subsiste, seul le détail est abrégé pour tenir dans la boîte.

@@ -1,8 +1,8 @@
 # Carnet de bord — mémoire CMS SARIS
 
-> **Dernière mise à jour** : 28 août 2026
-> **Document** : `Memoire_CMS_SARIS.docx` — **98 pages**, dont **84 pages de corps**
-> **Reste à faire** : tracer 20 diagrammes, produire 3 captures, les coller, régénérer les listes, remplir les 8 « ▪ (nom) » de la dédicace.
+> **Dernière mise à jour** : 29 août 2026
+> **Document** : `Memoire_CMS_SARIS.docx` — **101 pages**, dont **87 pages de corps**
+> **Reste à faire** : tracer 8 diagrammes, produire 3 captures, les coller, régénérer les listes, remplir les 8 « ▪ (nom) » de la dédicace.
 
 ---
 
@@ -43,9 +43,9 @@
 | Les huit chapitres, l'introduction et la conclusion, rédigés puis refondus | ✅ |
 | Mise en page : styles, marges, en-tête, pied de page | ✅ |
 | Sommaire, liste des figures, liste des tableaux, table des matières | ✅ champs automatiques |
-| Pagination en trois parties : **i à viii**, **1 à 84**, **A à E** | ✅ |
+| Pagination en trois parties : **i à viii**, **1 à 87**, **A à E** | ✅ |
 | Chaque chapitre démarre en haut d'une page neuve | ✅ règle portée par le style |
-| Chaque figure a son emplacement réservé | ✅ 23 emplacements, dont 9 en demi-page |
+| Chaque figure a son emplacement réservé | ✅ 24 emplacements |
 | Bibliographie et webographie, une page chacune | ✅ |
 | Dossier documentaire aligné sur le document | ✅ |
 
@@ -53,9 +53,9 @@
 
 | # | Quoi | Qui |
 |---|---|---|
-| 1 | Tracer les **20 diagrammes** — fiches prêtes dans `05_fiches_de_dessin/` | Toi |
+| 1 | Tracer les **8 diagrammes restants** — 13 sont faits, dans `07_figures_drawio/` | Nous |
 | 2 | Produire les **3 captures** — protocole dans `06_interfaces/` | Toi |
-| 3 | Coller les 23 images au-dessus de leur légende, puis **Ctrl+A** et **F9** | Toi |
+| 3 | Coller les 24 images au-dessus de leur légende, puis **Ctrl+A** et **F9** | Toi |
 | 4 | Lire les **4 références** de la bibliographie | Toi |
 | 5 | Obtenir de Verdi : infrastructure réseau, effectifs chiffrés, guide d'entretien | Toi |
 | 6 | Demander au promoteur si la limite de 70-85 pages vise le corps ou le document entier | Toi |
@@ -65,9 +65,23 @@
 
 ## 3. Le point de vigilance
 
-Le corps fait **84 pages**. Le plan de l'école exige entre 75 et 90 ; ton promoteur a dit 70 à 85.
+Le corps fait **87 pages**. Le plan de l'école exige entre 75 et 90 ; ton promoteur a dit 70 à 85.
 
-**La marge est d'une seule page** avant le plafond du promoteur. Ne retire rien sans compenser. Si le volume doit augmenter, les trois réserves légitimes sont les sections encore en attente de source : l'infrastructure réseau au chapitre 2, les effectifs au chapitre 1, le guide d'entretien au chapitre 5.
+**Le plafond de 85 pages du promoteur est dépassé de deux pages.** L'école demande 75 à 90 : on y est encore, avec trois pages de marge. Ne retire rien sans compenser. Si le volume doit augmenter, les trois réserves légitimes sont les sections encore en attente de source : l'infrastructure réseau au chapitre 2, les effectifs au chapitre 1, le guide d'entretien au chapitre 5.
+
+### ⚠️ Ce que les images vont coûter — mesuré le 29 août
+
+Les 24 emplacements de figures ne réservent aujourd'hui que **trois lignes vides chacun**, soit 2,4 cm. Les images, elles, feront de 12 à 25 cm de haut.
+
+| | |
+|---|---:|
+| Place déjà réservée dans le Word | 2,4 cm × 24 = **58 cm** |
+| Hauteur des 5 premières figures produites | 24 cm en moyenne |
+| Hauteur de la figure 6.2 | 12,4 cm |
+| Estimation prudente des 24 images | **environ 400 cm** |
+| Croissance nette, à 25,1 cm de texte par page | **+ 13 pages** |
+
+**Le corps passerait donc de 87 à environ 100 pages.** C'est au-dessus des deux plafonds. Trois leviers existent, à décider ensemble : obtenir du promoteur que la limite vise le document entier et non le corps ; ramener les figures les plus hautes de 24 à 14 cm, ce qui les resserre mais reste lisible à 8,5 pt ; ou retirer du texte. **Aucun n'est engagé.**
 
 ---
 
@@ -94,15 +108,15 @@ En-tête : « Mémoire de Fin de Cycle — GLA — CFI-CIRAS ». Pied de page : 
 
 ---
 
-## 6. Les 23 figures à produire
+## 6. Les 24 figures à produire
 
-**Vingt diagrammes à tracer.** Le mémoire est passé de 15 à 23 illustrations le 24 août : les cas d'utilisation et les classes sont désormais découpés **par package**, comme dans le mémoire de référence de NGATSE et KUBEMBULA.
+**Treize figures produites, huit restent à tracer.** Les fichiers draw.io sont dans `07_figures_drawio/`. Le mémoire est passé de 15 à 23 illustrations le 24 août, puis à 24 le 29 août : les cas d'utilisation et les classes sont désormais découpés **par package**, comme dans le mémoire de référence de NGATSE et KUBEMBULA.
 
 | Figure | Fiche |
 |---|---|
 | 1.1 Organigramme du Service Médico-Social | `ORG-01` |
 | 4.1 Cycle de développement selon 2TUP | `ORG-03` |
-| 5.1 Activité du processus de consultation antérieur | `UML-ACT-01` |
+| 5.1 et 5.2 Activité du processus antérieur — **deux planches** | `UML-ACT-01` |
 | 6.1 Diagramme de contexte statique | `UML-CTX-01` |
 | 6.2 à 6.6 Cas d'utilisation — **cinq packages** | `UML-UC-01` |
 | 6.7 Séquence système : émettre un bon de pharmacie | `UML-SEQS-02` |
@@ -122,7 +136,7 @@ En-tête : « Mémoire de Fin de Cycle — GLA — CFI-CIRAS ». Pied de page : 
 
 ⚠️ Aucune donnée réelle de patient sur les captures.
 
-**Les neuf diagrammes de package occupent une demi-page chacun, deux par page.** Prévois des images d'environ 16 cm sur 11. Les autres gardent une page entière.
+**Gabarit imposé : canevas de 770 × 1170 points au plus, police 14 au minimum, jamais plus de trois boîtes côte à côte.** C'est la règle de lisibilité : la place utile pour une image est de 16,5 × 25,1 cm, et la police sur papier vaut 468 × police ÷ largeur du canevas. Ce gabarit donne 8,5 pt à l'impression. Le détail est dans `07_figures_drawio/00_LISEZ-MOI.md`.
 
 ## 7. Régénérer les listes dans Word
 
@@ -146,7 +160,7 @@ Le mémoire emploie **25 sigles**, tous définis à leur première apparition et
 
 | Interdit | À employer |
 |---|---|
-| SGCDM | CMS SARIS |
+| SGCDM · CMS SARIS | **le système** — ou, en toutes lettres, *système de gestion des consultations et des dossiers médicaux* |
 | interface de programmation | **API** |
 | jeton signé | **jeton JWT** |
 | flux d'événements | **flux SSE** |
@@ -156,11 +170,13 @@ Le mémoire emploie **25 sigles**, tous définis à leur première apparition et
 
 Ne jamais confondre **ordonnance** et **bon de prise en charge**, ni **verrou de dossier** et **rideau de confidentialité**. Aucune notion de priorité au triage. `MEDECIN` n'est pas un rôle du système.
 
+> ⚠️ **Correction du 30 août.** Ce tableau prescrivait « CMS SARIS » comme nom du système. Relevé fait sur le Word — corps, en-têtes et pieds de page — **ce nom n'y apparaît pas une seule fois**. Le mémoire écrit « le système » (35 fois), « du système » (45 fois) et « système de gestion des consultations et des dossiers médicaux » (4 fois). Le sigle CMS n'apparaît que trois fois, toujours entre parenthèses après « Centre Médico-Sanitaire », et il désigne le **centre**, pas le logiciel. La règle était donc fautive : elle prescrivait un nom que le document n'emploie pas. Six figures qui l'avaient suivie ont été corrigées — décision **D-43**.
+
 ---
 
 ## 9. Chiffres qui font foi
 
-268 routes · 88 entités · 97 associations · 128 permissions · 15 écrans · 41 migrations · 52 entités synchronisées · **29 classes** au diagramme, donc 59 écartées · environ 93 500 lignes de code · 145 cas de test écrits, dont **103 exécutés et 103 réussis** le 10 août 2026.
+273 routes · 88 entités · 97 associations · 130 permissions · 15 écrans · 41 migrations · 52 entités synchronisées · **29 classes** au diagramme, donc 59 écartées · environ 93 500 lignes de code · 145 cas de test écrits, dont **103 exécutés et 103 réussis** le 10 août 2026.
 
 Ces valeurs viennent d'un comptage direct dans le code et remplacent toute estimation antérieure.
 
@@ -172,7 +188,8 @@ Ces valeurs viennent d'un comptage direct dans le code et remplacent toute estim
 |---|---|
 | `00_pilotage_et_preuves/` | Tableau de bord, registres, matrices, les 8 inventaires |
 | `01_preliminaires/` à `09_conclusion_et_references/` | Le texte du mémoire, aligné sur le Word |
-| `05_fiches_de_dessin/` | Index des 23 figures et les 12 fiches de diagrammes |
+| `05_fiches_de_dessin/` | Index des 24 figures et les 12 fiches de diagrammes |
+| `07_figures_drawio/` | **Les fichiers draw.io des figures produites**, et la palette de contrôle |
 | `06_interfaces/` | Protocole des 3 captures |
 | `11_revue_finale/` | Checklist, rapports de cohérence, **diagnostic d'alignement** |
 | `99_archive/` | Ce qui a été retiré du mémoire, avec le motif de chaque retrait |

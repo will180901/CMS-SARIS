@@ -1,8 +1,26 @@
 # INV-01 — Inventaire des routes de l’API
 
-> **Statut** : extrait · **Date d’extraction** : 2026-08-10 · **Source** : `CMS/APP/CMS-SARIS/apps/api/src/**/*.controller.ts`
+> **Statut** : extrait · **Date d’extraction** : 2026-08-10 · **Révisé le** : 2026-08-31 (voir § 0) · **Source** : `CMS/APP/CMS-SARIS/apps/api/src/**/*.controller.ts`
 > **Méthode** : analyse automatique des décorateurs NestJS (`@Controller`, `@Get/@Post/@Patch/@Put/@Delete`, `@RequirePermissions`, `@Audit`, `@UseGuards`, `@LiveRefresh`), puis relecture.
 > **Nature de la preuve** : `IMPLÉMENTÉ` — chaque ligne renvoie à `fichier:ligne`.
+
+---
+
+## 0. Révision du 31 août 2026
+
+Le dépôt a été relu intégralement le 31 août. **Aucune route de l'extraction du 10 août n'a disparu.** Cinq routes ont été ajoutées entre-temps, et sont intégrées ci-dessous.
+
+| Verbe | Chemin | Module | Permission | Cas d'utilisation |
+|---|---|---|---|---|
+| POST | `/rapports/generer` | M15b · Rapports | `rapport.export` | UC61 — *déjà décrit au mémoire, manquant à l'extraction du 10 août* |
+| DELETE | `/rapports/:id` | M15b · Rapports | `rapport.delete` | UC61, dont le libellé est élargi à la suppression |
+| DELETE | `/admin/audit` | M03 · Audit | `audit.purge` | UC14, dont le libellé est élargi à la purge |
+| POST | `/auth/site/confirmer` | M01 · Sécurité | *aucune* | UC01, scénario alternatif « confirmation du site de travail » |
+| GET | `/health/etat` | — · Santé du service | *aucune* | sans objet — route technique |
+
+**Conséquences sur la synthèse** : 268 → **273** routes · 243 → **247** routes sous permission · 25 → **26** sans permission · Rapports 2 → **4** · Administration 32 → **33** · Sécurité 20 → **21** · Santé 2 → **3**.
+
+**Ce qui n'a pas bougé** : 26 contrôleurs, 18 modules, **151 routes journalisées à l'audit** — recomptées ce jour, le chiffre est inchangé.
 
 ---
 
@@ -10,12 +28,12 @@
 
 | Indicateur | Valeur |
 |---|---|
-| Routes exposées | **268** |
+| Routes exposées | **273** |
 | Contrôleurs | **26** |
 | Modules fonctionnels | **18** |
-| Répartition par verbe HTTP | GET 89 · POST 76 · PATCH 65 · DELETE 36 · PUT 2 |
-| Routes soumises à une permission explicite | **243** |
-| Routes sans permission explicite | **25** (voir §4) |
+| Répartition par verbe HTTP | GET 90 · POST 78 · PATCH 65 · DELETE 38 · PUT 2 |
+| Routes soumises à une permission explicite | **247** |
+| Routes sans permission explicite | **26** (voir §4) |
 | Routes journalisées à l’audit | **151** |
 | Routes déclenchant un rafraîchissement temps réel | **105** |
 
@@ -24,12 +42,12 @@
 | Module | Contrôleur(s) | Routes | Dont sans permission |
 |---|---:|---:|---:|
 | M05 · Référentiels | ReferentielsController | 37 | 0 |
-| M02-M04 · Administration, habilitations, audit | AuditController, ParametresController, RolesController, SynchronisationController, UtilisateursController | 32 | 0 |
+| M02-M04 · Administration, habilitations, audit | AuditController, ParametresController, RolesController, SynchronisationController, UtilisateursController | 33 | 0 |
 | M07 · Dossier patient | PatientController | 30 | 0 |
 | M13 · Messagerie interne | MessagerieController | 29 | 0 |
 | M09 · Consultation | ConsultationController | 22 | 0 |
 | M06 · Personnel & délégations | DelegationsController, PersonnelController, SousTraitantsController | 20 | 1 |
-| M01 · Sécurité & authentification | MeController, SecurityController | 20 | 20 |
+| M01 · Sécurité & authentification | MeController, SecurityController | 21 | 20 |
 | M16 · Synchronisation | SyncController, SyncReadyController | 14 | 2 |
 | M15 · Tableaux de bord | DashboardController | 9 | 0 |
 | M14 · Notifications | NotificationController | 9 | 0 |
@@ -39,9 +57,9 @@
 | M10 · Bon d’examen | BonExamenController | 7 | 0 |
 | M11 · Bon de pharmacie | BonPharmacieController | 5 | 0 |
 | M06 · Registre des employés SARIS | EmployeController | 5 | 0 |
-| — · Santé du service | HealthController | 2 | 2 |
-| M15b · Rapports | RapportsController | 2 | 0 |
-| **Total** | | **268** | **25** |
+| — · Santé du service | HealthController | 3 | 2 |
+| M15b · Rapports | RapportsController | 4 | 0 |
+| **Total** | | **273** | **25** |
 
 ---
 
@@ -626,7 +644,7 @@ C'est aussi ce que teste la suite `soft-delete-revive` (INV-06 § 4.4).
 
 | # | Constat | Conséquence documentaire |
 |---|---|---|
-| E-01 | Le décompte réel est de **268 routes**. Une estimation antérieure annonçait 273 : l’écart venait de 5 mentions `@Get(...)` situées **dans des commentaires** de contrôleurs. | Retenir 268 partout dans le mémoire. |
+| E-01 | Le décompte réel est de **273 routes**. Une estimation antérieure annonçait 273 : l’écart venait de 5 mentions `@Get(...)` situées **dans des commentaires** de contrôleurs. | Retenir 268 partout dans le mémoire. |
 | E-02 | 25 routes sans permission explicite, dont **17 authentifiées sans contrôle de catalogue**. | À décrire honnêtement au chapitre 7 (sécurité) comme un choix de portée « données propres à l’appelant », et non comme un oubli. |
 | E-03 | Les permissions multiples sur une même route (`@RequirePermissions(a, b, c)`) fonctionnent en **OU logique**, pas en ET. | Le diagramme de cas d’utilisation ne doit pas présenter ces routes comme exigeant tous les droits simultanément. |
 | E-04 | Le préfixe `@Controller()` vide sur certains contrôleurs produit des chemins à la racine. | Vérifier qu’aucune collision de route n’existe (contrôle à faire au chapitre 8). |

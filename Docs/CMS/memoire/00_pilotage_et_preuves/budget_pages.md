@@ -1,6 +1,20 @@
 <!-- Fichier aligné sur Memoire_CMS_SARIS.docx le 19 août 2026. -->
 <!-- Le document Word fait foi. Toute divergence est une erreur de ce fichier. -->
 
+> # ⚠️ CE RELEVÉ EST PÉRIMÉ — vérifié le 4 septembre 2026
+>
+> Il a été établi le 19 août, **avant la production des figures**. Trois écarts le rendent inutilisable en l'état :
+>
+> | Ce que dit ce fichier | Ce que dit le document aujourd'hui |
+> |---|---|
+> | 15 figures | **25 légendes de figure** dans le corps |
+> | 90 pages au total | **102 pages** selon le compteur de Word, 93 au rendu LibreOffice |
+> | 76 pages de corps | à remesurer |
+>
+> **Et les images ne sont pas encore collées.** Le document ne contient que dix fichiers image, dont ceux de la page de garde. Les vingt-deux figures produites occuperont chacune une place qu'elles n'occupent pas encore.
+>
+> **Le relevé ne pourra être refait qu'après le collage des images et la mise à jour des champs.** C'est à ce moment-là, et pas avant, que la question de la limite de pages se tranchera — d'où l'urgence de la poser au promoteur.
+
 # Volume du mémoire — réalisé
 
 > Ce fichier était un **budget prévisionnel**. Le mémoire est écrit et mis en page : il devient un **relevé**.

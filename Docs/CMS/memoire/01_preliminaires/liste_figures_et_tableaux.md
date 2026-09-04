@@ -1,18 +1,19 @@
-<!-- Fichier aligné sur Memoire_CMS_SARIS.docx le 24 août 2026. -->
+<!-- Fichier aligné sur Memoire_CMS_SARIS.docx le 29 août 2026. -->
 <!-- Le document Word fait foi. Toute divergence est une erreur de ce fichier. -->
 
 # Liste des figures et des tableaux
 
-> Relevé exact du document Word : **23 figures** et **54 tableaux**.
+> Relevé exact du document Word : **24 figures** et **58 tableaux**.
 > Dans le mémoire, ces deux listes sont **générées automatiquement** par Word, à partir des styles *Légende* et *Légende tableau*. Ce fichier n'est qu'un miroir de contrôle.
 
-## Figures — 23
+## Figures — 24
 
 | N° | Titre |
 |---|---|
 | 1.1 | Organigramme du Service Médico-Social de SARIS-CONGO |
 | 4.1 | Cycle de développement selon 2TUP |
-| 5.1 | Diagramme d'activité du processus de consultation antérieur |
+| 5.1 | Diagramme d'activité du processus antérieur : triage et recueil clinique |
+| 5.2 | Diagramme d'activité du processus antérieur : consultation, décision et clôture |
 | 6.1 | Diagramme de contexte statique du système |
 | 6.2 | Cas d'utilisation du package Sécurité et habilitations |
 | 6.3 | Cas d'utilisation du package Référentiels et acteurs médicaux |
@@ -34,7 +35,7 @@
 | 8.4 | Émission d'un bon de pharmacie et contrôle d'éligibilité (rôle Infirmier) |
 | 8.5 | Tableau de bord et journal d'audit (rôle Administrateur système) |
 
-## Tableaux — 54
+## Tableaux — 58
 
 | N° | Titre |
 |---|---|
@@ -79,6 +80,10 @@
 | 6.13 | Spécification de UC01 : Se connecter au système |
 | 6.14 | Spécification de UC42 : Créer et valider une ordonnance |
 | 6.15 | Spécification de UC63 : Synchroniser un poste local |
+| 6.16 | Sommaire d'identification de UC43 |
+| 6.17 | Scénario nominal de UC43 |
+| 6.18 | Sommaire d'identification de UC48 |
+| 6.19 | Scénario nominal de UC48 |
 | 7.1 | Les trois architectures envisagées |
 | 7.2 | Les six paquets du dépôt |
 | 7.3 | Les neuf niveaux de l'architecture de sécurité |
@@ -102,10 +107,10 @@
 | 3 | 7 |
 | 4 | 3 |
 | 5 | 5 |
-| 6 | 15 |
+| 6 | 19 |
 | 7 | 9 |
 | 8 | 4 |
-| **Total** | **54** |
+| **Total** | **58** |
 
 ## Comment Word regénère ces listes
 

@@ -15,14 +15,14 @@ Tous les chiffres cités dans le mémoire ont été confrontés à leur inventai
 
 | Grandeur | Valeur retenue | Cité en | Cohérent |
 |---|---:|---|:---:|
-| Routes de l'API | **268** | Ch. 7, ch. 8, INV-01, tableau de bord, résumé | ✅ |
+| Routes de l'API | **273** | Ch. 7, ch. 8, INV-01, tableau de bord, résumé | ✅ |
 | Contrôleurs | **26** | Ch. 7 § 7.1.3, INV-01 | ✅ |
 | Modules métier | **17** | Ch. 7 § 7.1.3, INV-01 § 5.4 | ✅ |
 | Entités de données | **88** | Ch. 7, ch. 8, INV-02 § 4, résumé | ✅ |
 | Associations | **97** | Ch. 7 § 7.2.1, INV-02 | ✅ |
 | Classes du diagramme | **29** | Ch. 7 § 7.2.1, fiche `UML-CLS-01` | ✅ |
 | Associations à tracer | **38** | Fiche `UML-CLS-01` bloc 5 | ✅ |
-| Permissions | **128** | Ch. 6, ch. 7, INV-03, résumé | ✅ |
+| Permissions | **130** | Ch. 6, ch. 7, INV-03, résumé | ✅ |
 | Rôles | **3** | Partout | ✅ |
 | Écrans routés | **15** | Ch. 7, INV-04 | ✅ |
 | Onglets | **25** | INV-04, fiche `IHM` | ✅ |
@@ -40,7 +40,7 @@ Tous les chiffres cités dans le mémoire ont été confrontés à leur inventai
 
 **Aucune incohérence chiffrée.**
 
-> ⚠️ **Une correction apportée en cours de rédaction.** Le chiffre de **273 routes** figurait dans une estimation initiale. Le comptage ancré a établi **268** : cinq occurrences étaient des mentions à l'intérieur de commentaires. La valeur corrigée a été propagée partout. Écart ÉC-03, marqué résolu.
+> ⚠️ **Une correction apportée en cours de rédaction.** Le chiffre de **273 routes** figurait dans une estimation initiale. Le comptage ancré a établi **273** : cinq occurrences étaient des mentions à l'intérieur de commentaires. La valeur corrigée a été propagée partout. Écart ÉC-03, marqué résolu.
 
 ## 2. Cohérence terminologique
 

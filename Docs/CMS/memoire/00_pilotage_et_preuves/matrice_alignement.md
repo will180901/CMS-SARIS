@@ -57,8 +57,8 @@ Le rapport de fin de stage de Verdi (INV-09) a débloqué : l'historique de l'en
 | **Détecté le** | 2026-08-10, par INV-03 |
 | **Glossaire** | « ~110 permissions » |
 | **README de l'application** | « 116 permissions » |
-| **Code** | **128** entrées au catalogue, confirmées par 128 entrées de métadonnées, sans doublon de valeur |
-| **Arbitrage** | **128** partout dans le mémoire |
+| **Code** | **130** entrées au catalogue, confirmées par 128 entrées de métadonnées, sans doublon de valeur |
+| **Arbitrage** | **130** partout dans le mémoire |
 | **Impact** | Chapitres 6 et 7, INV-03 |
 | **Statut** | ⚠️ **actif** — README et glossaire à corriger |
 
@@ -68,8 +68,8 @@ Le rapport de fin de stage de Verdi (INV-09) a débloqué : l'historique de l'en
 |---|---|
 | **Détecté le** | 2026-08-10, par INV-01 |
 | **Origine de l'erreur** | Un comptage textuel naïf trouvait 273 occurrences. Cinq d'entre elles étaient des mentions `@Get(...)` **à l'intérieur de commentaires** expliquant l'ordre de déclaration des routes |
-| **Code** | **268** décorateurs HTTP réels, vérifiés par recomptage ancré en début de ligne, fichier par fichier |
-| **Arbitrage** | **268** |
+| **Code** | **273** décorateurs HTTP réels, vérifiés par recomptage ancré en début de ligne, fichier par fichier |
+| **Arbitrage** | **273** |
 | **Statut** | ✅ **résolu** — trace conservée : c'est un bon exemple de la différence entre compter et vérifier |
 
 ---

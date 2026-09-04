@@ -222,3 +222,35 @@ Chaque section porte un intertitre. Une ligne vide sépare les tables.
 | Portage des clés étrangères | INV-02 § 4, colonne « Porteur FK » |
 | Contraintes d'unicité | Migrations, index uniques |
 | Unicité partielle des bons | Migration dédiée à cette contrainte |
+
+---
+
+# ⚠️ Révision du 4 septembre 2026 — sept clés étrangères annoncées à tort
+
+Cette fiche a été confrontée au schéma de données lui-même, table par table, avant de composer la figure. **Trois écarts sont apparus.**
+
+## 1. Sept colonnes ne sont pas des clés étrangères
+
+Elles existent, elles désignent bien une autre table par convention de nommage, mais **le schéma ne déclare aucune relation sur elles** : la base n'impose donc rien.
+
+| Colonne | Cible désignée |
+|---|---|
+| `PersonnelMedical.siteId` | `Site` |
+| `Visite.soignantId` | `PersonnelMedical` |
+| `ConstanteVitale.patientId` | `Patient` |
+| `Ordonnance.prescripteurId` | `PersonnelMedical` |
+| `BonPharmacie.prescripteurId` | `PersonnelMedical` |
+| `BonExamen.etablissementId` | `EtablissementReference` |
+| `Evacuation.motifId` | `MotifConsultation` |
+
+**Deux vérifications confirment que l'erreur est dans cette fiche et nulle part ailleurs** : `INV-02` ne compte aucune de ces sept colonnes parmi les 97 associations du modèle, et aucune des vingt figures produites ne les dessine.
+
+**Décision, sur arbitrage de l'auteur** : elles sont écrites sur la figure comme **colonnes de référence non contraintes**, notées `REF: x → Table`, et la note de figure explique que l'intégrité y est portée par l'application et non par la base. C'est vrai, c'est vérifiable, et c'est une caractéristique de conception que le mémoire assume plutôt qu'il ne la masque.
+
+## 2. Le décompte du cartouche est faux
+
+Le cartouche annonçait **38** clés étrangères, le corps de la fiche en énumérait **50**. Le comptage direct sur le schéma en donne **43 déclarées**, plus les **7** colonnes de référence ci-dessus.
+
+## 3. La figure ne se compose plus depuis cette fiche
+
+Le bloc de texte de la figure 8.1 est désormais **engendré depuis le schéma de données**, et déposé dans `07_figures_texte/FIG_8-1_schema_relationnel.md`. Cette fiche reste la spécification — objectif, notation, ordre des sections — mais **elle n'est plus la source des contenus**.

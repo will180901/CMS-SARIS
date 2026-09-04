@@ -44,11 +44,11 @@ Relevé effectué le 24 août 2026 sur `apps/api/src`, `apps/web/src`, `apps/des
 | Sigle | Première apparition | Preuve dans le code du projet |
 |---|---|---|
 | API | Ch. 3, le verrou de dossier | 77 emplois dans 43 fichiers |
-| REST | Ch. 3, la thèse de Fielding | Les 268 routes de `INV-01`, réparties en GET 89 · POST 76 · PATCH 65 · DELETE 36 · PUT 2 |
+| REST | Ch. 3, la thèse de Fielding | Les 273 routes de `INV-01`, réparties en GET 89 · POST 76 · PATCH 65 · DELETE 36 · PUT 2 |
 | ORM | Ch. 7, l'architecture en couches | Prisma, couche d'accès aux données. ⚠️ Le sigle lui-même n'apparaît pas dans le code : c'est le terme standard pour ce que fait Prisma, et le mémoire écrivait déjà « correspondance objet-relationnel » |
 | SQL | Ch. 7, l'architecture en couches | PostgreSQL et SQLite, les deux moteurs déclarés dans les schémas Prisma ; 21 emplois dans 9 fichiers |
 | SSE | Ch. 7, le flux d'événements | 35 emplois dans 22 fichiers ; deux points d'entrée `@Sse` côté serveur — `notification.controller.ts:103` et `sync.controller.ts:86` — et 6 `EventSource` côté client |
-| HTTP | Ch. 7, le diagramme de composants | 17 emplois dans 9 fichiers, plus les verbes des 268 routes |
+| HTTP | Ch. 7, le diagramme de composants | 17 emplois dans 9 fichiers, plus les verbes des 273 routes |
 | IPC | Ch. 7, le diagramme de composants | `ipcMain` 29, `ipcRenderer` 36, `contextBridge` 6 ; `contextIsolation: true` et `nodeIntegration: false` dans `electron/main.ts` |
 | JSON | Ch. 8, la synthèse d'architecture | 82 emplois dans 23 fichiers |
 | JWT | Ch. 8, la synthèse d'architecture | 49 emplois dans 24 fichiers ; paquets `@nestjs/jwt` et `passport-jwt` ; `JwtAuthGuard` sur toutes les routes protégées |
@@ -60,4 +60,4 @@ Relevé effectué le 24 août 2026 sur `apps/api/src`, `apps/web/src`, `apps/des
 
 ---
 
-> 📌 **Correction du 24 août 2026.** Ce tableau annonçait d'abord « 281 décorateurs de route : 96 GET, 80 POST, 65 PATCH, 38 DELETE, 2 PUT ». Ce comptage était **faux sur deux points** : il incluait la copie dupliquée du code API dans `apps/desktop/release/`, et il comptait des décorateurs situés **dans des commentaires**. `INV-01` avait déjà instruit exactement cet écart (fiche E-01, une estimation antérieure à 273 ramenée à 268). Le chiffre qui fait foi est **268**, comme partout ailleurs dans le mémoire. Les autres relevés de ce tableau ont été refaits sur le même périmètre corrigé.
+> 📌 **Correction du 24 août 2026.** Ce tableau annonçait d'abord « 281 décorateurs de route : 96 GET, 80 POST, 65 PATCH, 38 DELETE, 2 PUT ». Ce comptage était **faux sur deux points** : il incluait la copie dupliquée du code API dans `apps/desktop/release/`, et il comptait des décorateurs situés **dans des commentaires**. `INV-01` avait déjà instruit exactement cet écart (fiche E-01, une estimation antérieure à 273 ramenée à 268). Le chiffre qui fait foi est **273**, comme partout ailleurs dans le mémoire. Les autres relevés de ce tableau ont été refaits sur le même périmètre corrigé.

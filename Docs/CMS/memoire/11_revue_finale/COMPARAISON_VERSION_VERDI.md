@@ -56,7 +56,7 @@ Verdi a retiré les noms d'outils du texte. C'est l'inverse exact de ce qui a é
 | « Le même code **NestJS** s'exécute sur le serveur central » | « Le même code s'exécute » |
 | « 41 migrations **Prisma** versionnées » | « 41 migrations versionnées » |
 | « le schéma **Prisma** et les migrations, les types **TypeScript** » | « le schéma et les migrations, les types » |
-| « Le serveur applicatif **NestJS** expose les 268 routes **HTTP** » | « Le serveur applicatif expose les 268 routes » |
+| « Le serveur applicatif **NestJS** expose les 273 routes **HTTP** » | « Le serveur applicatif expose les 273 routes » |
 | « un fichier de configuration **render.yaml**, versionné » | « un fichier de configuration versionné » |
 | « **L'offre gratuite de Render** met le serveur en veille » | « Le serveur est mis en veille » |
 | Tableau 8.1 avec la colonne **« Usage dans le projet »** | Colonne absente |

@@ -87,8 +87,8 @@ Trois besoins de **priorité haute** du recueil ne sont pas satisfaits par le sy
 | Exclu du mémoire | Motif | Où le trouver |
 |---|---|---|
 | 59 entités sur 88 absentes du diagramme de classes | Lisibilité — sélection sur critère de degré de connexion | INV-02 § 4 |
-| Le détail des 128 permissions | Volume | INV-03 |
-| Le détail des 268 routes | Volume | INV-01 |
+| Le détail des 130 permissions | Volume | INV-03 |
+| Le détail des 273 routes | Volume | INV-01 |
 | Les 60 composants du système de conception d'interface | Sans valeur pour la compréhension du domaine | — |
 
 ---
@@ -133,7 +133,7 @@ Trois arguments soutiennent ce cadrage.
 
 **Il répond aux besoins de priorité haute du domaine médical.** Les trois besoins hauts du Médecin Chef — système centralisé bi-sites, dossier patient numérique, automatisation des rapports — sont dans le périmètre. Les besoins hauts non satisfaits appartiennent tous à d'**autres domaines**, pharmacie et ressources humaines.
 
-**Il est réalisable et démontrable.** Un périmètre plus large aurait produit un système partout superficiel. Celui-ci est complet sur ce qu'il couvre : 268 points d'accès, 88 entités, 15 écrans, deux modes de fonctionnement.
+**Il est réalisable et démontrable.** Un périmètre plus large aurait produit un système partout superficiel. Celui-ci est complet sur ce qu'il couvre : 273 points d'accès, 88 entités, 15 écrans, deux modes de fonctionnement.
 
 ---
 

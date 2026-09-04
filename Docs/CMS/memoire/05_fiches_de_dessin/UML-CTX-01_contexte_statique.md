@@ -124,3 +124,11 @@ Chaque flux est une **flèche pleine à tête ouverte**, étiquetée du nom du f
 | Il n'existe que 3 rôles, donc 3 acteurs primaires | INV-03 § 1.2 |
 | Le poste autonome dialogue bien avec le serveur | INV-05 § 5.1 |
 | La géolocalisation est un service externe avec repli | INV-01 § 5.5 |
+
+---
+
+## ⚠️ Corrections du 30 août 2026
+
+**La frontière ne s'appelle plus « CMS SARIS ».** Ce nom n'existe pas dans le mémoire — relevé fait sur le Word, zéro occurrence. La boîte du système porte désormais **« Système de gestion des consultations et des dossiers médicaux »**. Voir décision **D-43**.
+
+**Cinq étiquettes de flux sont des condensations assumées** du tableau 6.4, colonne « Vocation » : *Comptes et rôles*, *Référentiels et personnel*, *Documents, tableaux de bord*, *Consultations déléguées*, *Modifications hors connexion*. Le Word écrit ces notions en phrases — « gouvernance des référentiels et du personnel », « prescription sous délégation ». Une étiquette de flux condense, elle ne cite pas.

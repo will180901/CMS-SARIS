@@ -497,3 +497,109 @@ Le degré est le nombre d'associations qui touchent la classe. C'est le critère
 [ ] Ne pas fusionner L16 et L17 en un seul trait entre PersonnelMedical
     et DelegationPrescription : deux traits, deux rôles
 ```
+
+---
+
+# ⚠️ Révision du 30 août 2026 — opérations et noms d'association
+
+Cette révision **annule deux consignes** de la fiche, sur décision de l'auteur après comparaison avec les mémoires de référence. L'analyse complète est dans `11_revue_finale/ANALYSE_DIAGRAMMES_DE_CLASSES.md`.
+
+## R1 — Le compartiment des opérations n'est plus systématiquement vide
+
+**Ancienne consigne** *(annulée)* : « le compartiment des opérations reste vide — le modèle est un modèle de données ».
+
+**Nouvelle consigne** : le troisième compartiment porte les **opérations réellement établies**, et reste vide sur les classes qui n'en ont pas.
+
+**La source, et elle seule.** Une opération n'est écrite que si elle correspond à une **transition d'état documentée** — tableau 7.6 du mémoire, *Les neuf machines à états du système*, détaillé au § 3 de `INV-07`. Une transition porte un événement et une garde : c'est une règle métier, donc une opération de l'entité.
+
+**Ce qui est interdit.** Les actions de contrôleur — `ajouter()`, `modifier()`, `supprimer()`, `rechercher()`. Elles n'appartiennent pas à l'entité. Relevé fait sur `INV-01` : nos 273 routes se répartissent sur 26 contrôleurs qui ne correspondent pas aux classes — `ReferentielsController` sert cinq classes à lui seul, et **vingt et une de nos vingt-neuf classes n'ont aucun contrôleur propre**. Un jeu de CRUD uniforme serait une invention vérifiable en ouvrant le code.
+
+### Les opérations à écrire, classe par classe
+
+| Classe | Opérations | Garde ou règle portée — source `INV-07` § 3 |
+|---|---|---|
+| `Utilisateur` | `+ changerStatut()` · `+ bloquer()` | `StatutCompte` : actif, désactivé, bloqué. Le blocage est **posé automatiquement** après échecs répétés, durée × 4 à chaque récidive |
+| `Patient` | `+ changerCategorie()` · `+ verrouiller()` · `+ archiver()` | `StatutPatient` : actif, archivé, décédé, fusionné. **Une visite exige un dossier actif** |
+| `Visite` | `+ prendreEnCharge()` · `+ affecterSoignant()` · `+ cloturer()` · `+ annuler()` | La clôture est **posée par le service Consultation, jamais depuis le triage**. L'annulation exige un motif |
+| `Consultation` | `+ cloturer()` · `+ annuler()` | **Une seule consultation ouverte** par soignant et par visite. La décision médicale est facultative |
+| `Ordonnance` | `+ valider()` · `+ annuler()` | Modifiable **uniquement à l'état brouillon**. Création soumise au droit de prescription |
+| `BonPharmacie` | `+ delivrer()` · `+ annuler()` | Génération soumise à **l'éligibilité de la catégorie**. Un bon délivré ne peut plus être annulé |
+| `BonExamen` | `+ valider()` · `+ saisirResultat()` · `+ annuler()` | **La saisie du résultat exige un bon validé** |
+| `Evacuation` | `+ ajouterEtapeSuivi()` · `+ cloturer()` · `+ annuler()` | L'annulation exige le statut **strictement en cours** |
+
+**Les vingt et une autres classes gardent un compartiment vide.** C'est une affirmation, pas un oubli : elles ne portent aucune machine à états. La note de chaque planche le dit.
+
+> `SuiviTraitement` porte une machine à états au tableau 7.6 mais **ne fait pas partie des 29 classes retenues** — voir tableau 7.4. Elle n'apparaît donc sur aucune planche.
+
+## R2 — Chaque association porte son nom au milieu du trait
+
+**Ancienne consigne** *(complétée)* : le bloc 5 donnait les noms de rôle et les multiplicités.
+
+**Nouvelle consigne** : chaque association porte **un verbe au milieu du trait** et **les multiplicités aux deux extrémités**. Les noms de rôle du bloc 5 ne sont plus écrits sur la planche — ils restent la source du sens du verbe.
+
+**Les verbes sont ceux du mémoire, jamais inventés.** « Tout médecin **reçoit** le rôle de médecin chef » · « l'administrateur système **détient** la totalité du catalogue de permissions » · UC10 « **Attribuer** un rôle » · UC12 « **Accorder** ou révoquer une permission ».
+
+| Association | Verbe au milieu | Multiplicités |
+|---|---|---|
+| `Utilisateur` — `UtilisateurRole` | `reçoit` | 1 → 0..* |
+| `Role` — `UtilisateurRole` | `attribué à` | 1 → 0..* |
+| `Role` — `RolePermission` | `détient` | 1 → 0..* |
+| `Permission` — `RolePermission` | `accordée à` | 1 → 0..* |
+
+Les verbes des planches 7.2 à 7.5 seront relevés de la même façon, dans le texte du mémoire, **avant** d'être dessinés.
+
+## Ce que la comparaison a écarté
+
+Quatre pratiques des mémoires de référence sont **refusées avec motif**, et le détail est dans l'analyse :
+
+- **`+réaliser`** — le `+` est un marqueur de visibilité, qui ne s'applique qu'aux attributs et aux opérations. Un nom d'association n'a pas de visibilité.
+- **Le CRUD uniforme sur chaque classe** — actions de contrôleur, pas comportement d'entité, et faux pour notre système.
+- **`__init__()`** — constructeur de langage dans un diagramme de conception.
+- **Une association plusieurs-à-plusieurs sans classe d'association** — le diagramme cache alors une table que la base exige.
+
+## R3 — Trois règles de tracé, tirées des corrections de la figure 7.1
+
+**L'italique est réservé aux classes abstraites.** Une classe d'un autre package se marque par les **pointillés seuls**. Aucune de nos vingt-neuf classes n'est abstraite : aucun nom de classe n'est en italique.
+
+**Un lien vers une classe d'un autre package porte ses multiplicités**, même si son verbe est inconnu. Les deux liens de la figure 7.1 sont relevés dans `INV-02` : `Utilisateur` 0..* — 1 `Site` (ligne 32) et `Utilisateur` 0..1 — 0..1 `PersonnelMedical` (ligne 28). Le mémoire ne donne de verbe ni pour l'un ni pour l'autre ; **on n'en invente pas**, et la note de la planche renvoie à la figure 7.5.
+
+**La disposition se choisit pour que les liens soient droits.** La chaîne verticale — classes empilées, centres alignés, un segment vertical par lien — est la disposition à essayer **en premier**. Elle ne dépend d'aucun point de passage, que draw.io peut perdre en réenregistrant, et elle laisse la colonne de droite libre pour la note.
+
+| Planche | Chaîne verticale possible ? |
+|---|---|
+| 7.1 Sécurité | oui — Permission, RolePermission, Role, UtilisateurRole, Utilisateur |
+| 7.2 Référentiels et acteurs | à vérifier — 8 classes, dont plusieurs sans lien entre elles |
+| 7.3 Dossier patient | probable — Patient est le pivot, quatre satellites |
+| 7.4 Parcours de soin | non — 11 classes, chaîne + documents en éventail |
+
+## R4 — Une classe sans lien interne n'est pas une erreur, mais elle doit être expliquée
+
+Un package peut contenir des classes qui **ne se relient à aucune autre du même package**. Sur la figure 7.2, quatre classes sur huit sont dans ce cas — `Site`, `PathologieReference`, `MedicamentReference`, `TypeExamen` — parce qu'un référentiel est référencé par le domaine clinique et ne se référence pas lui-même. Le relevé complet est dans la décision **D-60**.
+
+**Règle** : avant de dessiner une planche, compter le **degré interne** de chaque classe sur `INV-02`. Si une classe a un degré interne nul, la note de la planche doit le dire en une phrase. Un lecteur qui voit une boîte apparemment isolée conclut à un oubli, et il a raison de le faire tant que rien ne l'en dissuade.
+
+## R5 — La figure 7.4 se dessine sur deux planches
+
+**Constat mesuré avant de dessiner** : les onze classes du package Parcours de soin totalisent **2 420 points de hauteur**, et six d'entre elles portent des opérations. Trois colonnes de 250 points plus les gouttières nécessaires aux verbes demandent **950 points de large** ; le gabarit n'en autorise que 770. Une page en paysage ne suffit pas davantage : elle offre 1 244 × 819 points, et la police tomberait à **8,00 pt tout juste**, au seuil exact.
+
+**Décision, sur arbitrage de l'auteur** : deux planches.
+
+| Planche | Titre | Classes |
+|---|---|---|
+| **7.4a** | Parcours de soin : visite et consultation | `Visite`, `ConstanteVitale`, `Consultation`, `DiagnosticConsultation`, `Evacuation` — plus `Patient`, `PersonnelMedical`, `DelegationPrescription` en pointillés |
+| **7.4b** | Parcours de soin : prescription et bons | `Ordonnance`, `LigneOrdonnance`, `BonExamen`, `LigneExamen`, `BonPharmacie`, `LigneBonPharmacie` — plus `Consultation` en pointillés |
+
+`Evacuation` est placée sur la 7.4a et non sur la 7.4b : elle ne se relie qu'à la consultation, et n'est pas un document de prescription. La coupure suit ainsi le sens — le premier temps du parcours, puis ce que la consultation produit.
+
+**Le suffixe a/b évite de renuméroter** les figures 7.5 à 8.5. La liste des figures est un champ Word : elle se régénère.
+
+### Les verbes de la figure 7.4, tous relevés dans le mémoire
+
+| Association | Verbe | Phrase source |
+|---|---|---|
+| `Visite` — `Consultation` | `parente de` | « La consultation est clôturée… **La visite parente est clôturée** » |
+| `DiagnosticConsultation`, `Ordonnance`, `BonExamen`, `BonPharmacie`, `Evacuation` — `Consultation` | `rattaché à` | « **Les documents cliniques sont rattachés à la consultation**, et non au patient » |
+| `BonExamen`, `BonPharmacie` — `Ordonnance` | `rattaché à` | « Un bon de pharmacie… il est **rattaché à l'ordonnance** et à la consultation » |
+| Les quatre compositions | `porte` | verbe employé dans ce sens dans tout le mémoire, et au § 7.3 : « Il **porte** une identité » |
+
+**Une seule phrase du mémoire nomme cinq associations à la fois.** C'est elle que la planche 7.4b démontre, et la note de la planche la cite.

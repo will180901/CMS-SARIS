@@ -59,7 +59,7 @@ Les interfaces se dessinent selon la convention **« sucette et prise »** : un 
 |---|---|---|
 | `Application web` | — | `API REST`, `Flux d'événements` |
 | `Client de bureau` | `Fenêtre applicative`, `Coffre de secrets`, `Mise à jour` | `API REST`, `Flux d'événements` |
-| `Serveur API` | `API REST` (268 routes), `Flux d'événements` | `Accès aux données`, `Géolocalisation` |
+| `Serveur API` | `API REST` (273 routes), `Flux d'événements` | `Accès aux données`, `Géolocalisation` |
 | `Serveur API embarqué` | `API REST locale` (boucle locale seulement) | `Accès aux données` |
 | `Base PostgreSQL` | `Stockage relationnel` | — |
 | `Base SQLite locale` | `Stockage relationnel` | — |

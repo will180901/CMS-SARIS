@@ -172,3 +172,26 @@ Le code SQL est présenté en **police à chasse fixe**, taille 10 ou 11, avec l
 | Définition exacte des tables reproduites | Migrations |
 | Index sur l'horodatage de modification | Contraintes de table du schéma |
 | Parité des 88 tables entre les deux moteurs | INV-02 § 1 |
+
+---
+
+# ⚠️ Révision du 4 septembre 2026 — forme et décomptes
+
+## 1. La figure se présente en tableaux, non en SQL
+
+**Décision de l'auteur.** Le modèle physique porte la même information — types exacts, nullité, valeurs par défaut, index, contraintes — mais sous forme de **tableaux**, sans instruction SQL. La présentation se lit sans connaître le langage, et elle respecte la consigne de l'auteur sur le code dans les documents.
+
+## 2. Deux décomptes corrigés
+
+| Élément | Ce que disait la fiche | Ce que dit le schéma |
+|---|---|---|
+| Types énumérés | 6, « au décompte de la migration initiale » | **4** dans la migration initiale, **6** dans le schéma d'aujourd'hui |
+| `JSONB` | absent du tableau | **6 occurrences** |
+
+Les cinq autres décomptes de la fiche sont exacts pour la migration initiale : `TEXT` 332, `TIMESTAMP(3)` 77, `INTEGER` 13, `BOOLEAN` 10, `DOUBLE PRECISION` 8.
+
+**La figure retient l'état d'aujourd'hui**, sur les quatre-vingt-huit tables : `TEXT` 492, `TIMESTAMP(3)` 214, `INTEGER` 25, `BOOLEAN` 21, `DOUBLE PRECISION` 11, `JSONB` 6, `BIGINT` 1, six types énumérés.
+
+## 3. La figure ne se compose plus depuis cette fiche
+
+Le contenu est **engendré depuis le schéma de données**, et déposé dans `07_figures_texte/FIG_8-2_modele_physique.md`. Cette fiche reste la spécification ; elle n'est plus la source des contenus.

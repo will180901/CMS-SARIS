@@ -3,7 +3,7 @@
 
 # Index des figures du mémoire
 
-> **23 figures.** Le document est passé de 15 à 23 illustrations le 24 août 2026, en découpant par **package** le diagramme de cas d'utilisation et le diagramme de classes — comme le fait le mémoire de référence de NGATSE et KUBEMBULA.
+> **24 figures.** Le document est passé de 15 à 23 illustrations le 24 août 2026, puis à 24 le 29 août, en découpant par **package** le diagramme de cas d'utilisation et le diagramme de classes — comme le fait le mémoire de référence de NGATSE et KUBEMBULA.
 > Les diagrammes de package occupent **une demi-page chacun**, deux par page. Les diagrammes denses gardent une **page entière**.
 
 | Figure | Titre exact dans le mémoire | Chap. | Fiche de préparation | Place | Faite |

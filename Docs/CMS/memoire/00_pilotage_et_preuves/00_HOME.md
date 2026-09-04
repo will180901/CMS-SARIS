@@ -14,7 +14,7 @@
 | Grandeur | Valeur constatée |
 |---|---|
 | Lignes de code source | ~93 500 |
-| Routes de l'API | 268 |
+| Routes de l'API | 273 |
 | Modèles de données | 88, reliés par 97 associations |
 | Permissions | 128, réparties sur 3 rôles |
 | Écrans web | 15, plus 25 onglets |
@@ -134,8 +134,8 @@ Ces valeurs proviennent d'un comptage direct dans le code. Elles **remplacent** 
 
 | Grandeur | Valeur | Estimations antérieures, désormais caduques |
 |---|---:|---|
-| Routes de l'API | **268** | 273 (comptage incluant des mentions en commentaire) |
-| Permissions | **128** | « ~110 » et « 116 » (estimations antérieures) |
+| Routes de l'API | **273** | 273 (comptage incluant des mentions en commentaire) |
+| Permissions | **130** | « ~110 » et « 116 » (estimations antérieures) |
 | Écrans web atteignables | **15** | 17 (comptage des composants de page) |
 | Décisions médicales | **2** | 4 (documentation antérieure) |
 | Fichiers de test | **10** | 8 |

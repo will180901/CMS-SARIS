@@ -22,7 +22,7 @@ Nous avons identifié vingt-trois besoins fonctionnels. Chacun est rattaché à 
 | Id | Besoin fonctionnel | Preuve dans le système | Statut |
 |---|---|---|---|
 | BF01 | Authentifier les agents et sécuriser l'accès | 7 routes, jeton signé, second facteur | Implémenté |
-| BF02 | Gérer les comptes, les rôles et les habilitations | 32 routes, 128 permissions, 3 rôles | Implémenté |
+| BF02 | Gérer les comptes, les rôles et les habilitations | 32 routes, 130 permissions, 3 rôles | Implémenté |
 | BF03 | Journaliser les actions sensibles | 151 routes auditées, journal persistant | Implémenté |
 | BF04 | Paramétrer le système | Module de paramètres, 3 routes | Implémenté |
 | BF05 | Gérer les référentiels métier | 37 routes, 9 référentiels | Implémenté |
@@ -114,9 +114,9 @@ Notre système ne connaît que trois rôles, et les acteurs primaires en découl
 
 | Acteur | Type | Permissions | Vocation |
 |---|---|---|---|
-| Administrateur système | Primaire | 128 sur 128 | Gouvernance de la plateforme : comptes, rôles, paramètres, supervision de la synchronisation |
-| Médecin Chef | Primaire | 101 sur 128 | Activité de soin complète, gouvernance des référentiels et du personnel, délégations, évacuations, audit |
-| Infirmier | Primaire | 51 sur 128 | Accueil, triage, constantes vitales, consultation de ses propres patients, prescription sous délégation |
+| Administrateur système | Primaire | 130 sur 130 | Gouvernance de la plateforme : comptes, rôles, paramètres, supervision de la synchronisation |
+| Médecin Chef | Primaire | 102 sur 130 | Activité de soin complète, gouvernance des référentiels et du personnel, délégations, évacuations, audit |
+| Infirmier | Primaire | 51 sur 130 | Accueil, triage, constantes vitales, consultation de ses propres patients, prescription sous délégation |
 | Poste local autonome | Secondaire | Sans objet | Instance du client de bureau fonctionnant hors ligne, qui se synchronise avec le serveur central |
 | Service de géolocalisation | Secondaire externe | Sans objet | Fournit la ville et les coordonnées pour le journal d'authentification, avec repli hors ligne |
 | Canal de mise à jour | Secondaire externe | Sans objet | Publie et distribue les versions du client de bureau |
@@ -189,7 +189,7 @@ Le package « Sécurité et habilitations » compte 16 cas d'utilisation, dont 8
 | UC11 | Éditer la matrice de permissions d'un rôle | A | Élevé | Haute | 2 |
 | UC12 | Accorder ou révoquer une permission individuelle | A | Moyen | Moyenne | 2 |
 | UC13 | Réinitialiser un mot de passe | A | Faible | Basse | 2 |
-| UC14 | Consulter le journal d'audit | A M | Moyen | Haute | 2 |
+| UC14 | Consulter et purger le journal d'audit | A M | Moyen | Haute | 2 |
 | UC15 | Consulter les paramètres système | A | Faible | Basse | 2 |
 | UC16 | Modifier les paramètres système | A | Moyen | Moyenne | 2 |
 
@@ -264,7 +264,7 @@ Le package « Fonctions transverses » compte 12 cas d'utilisation, dont 3 de pr
 | UC58 | Diffuser une annonce | A | Faible | Basse | 8 |
 | UC59 | Consulter le tableau de bord | A M I | Faible | Haute | 8 |
 | UC60 | Consulter un rapport | A M I | Faible | Moyenne | 8 |
-| UC61 | Exporter un rapport | A M | Faible | Basse | 8 |
+| UC61 | Exporter ou supprimer un rapport | A M | Faible | Basse | 8 |
 | UC62 | Enregistrer un poste local | P | Moyen | Haute | 9 |
 | UC63 | Synchroniser un poste local | P | Élevé | Haute | 9 |
 | UC64 | Superviser le parc | A | Faible | Moyenne | 9 |

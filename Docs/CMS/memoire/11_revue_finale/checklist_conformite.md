@@ -44,7 +44,7 @@
 | 3.1 | Les 8 inventaires sont extraits de leur source | ✅ | 7 du code, 1 du recueil de l'existant |
 | 3.2 | Les besoins exprimés sont confrontés à la couverture réelle | ✅ | 18 besoins · 6 couverts · 4 partiels · 8 hors périmètre · **0 non couvert dans le périmètre** |
 | 3.3 | Chaque exclusion de périmètre est motivée | ✅ | Ch. 3 § 3.6 · `perimetre_et_hors_perimetre.md` |
-| 3.4 | Les chiffres du mémoire correspondent aux inventaires | ✅ | Relevés dans le document : 268 routes · 88 entités · 97 associations · 29 classes · 59 écartées · 128 permissions · 41 migrations · 52 synchronisées · 93 500 lignes · 547 fichiers |
+| 3.4 | Les chiffres du mémoire correspondent aux inventaires | ✅ | Relevés dans le document : 273 routes · 88 entités · 97 associations · 29 classes · 59 écartées · 130 permissions · 41 migrations · 52 synchronisées · 93 500 lignes · 547 fichiers |
 | 3.5 | Les différences web / API / bureau sont explicites | ✅ | Ch. 8 § 8.3 |
 | 3.6 | Les sources ne sont jamais confondues | ✅ | Le recueil de l'existant fait autorité sur le terrain médical, le rapport de stage sur le volet informatique. Substitution refusée — D-36 |
 | 3.7 | Aucun écart avec le code n'a été effacé | ✅ | Matrice d'alignement |
@@ -98,12 +98,12 @@
 
 | # | Contrôle | État | Preuve mesurée |
 |---|---|:---:|---|
-| 8.1 | Chaque figure dispose de sa fiche de dessin | ✅ | 23 figures, fiches dans `05_fiches_de_dessin/` |
+| 8.1 | Chaque figure dispose de sa fiche de dessin | ✅ | 24 figures, fiches dans `05_fiches_de_dessin/` |
 | 8.2 | Numérotation séquentielle, sans exception | ✅ | Figures 1.1 à 8.5 · tableaux 1.1 à 8.4 |
-| 8.3 | Chaque figure a son emplacement réservé | ✅ | 23 légendes, 23 emplacements |
-| 8.4 | **Les figures sont tracées et collées** | ❌ | **0 sur 23.** Les seules images du fichier sont les logos de la page de garde |
+| 8.3 | Chaque figure a son emplacement réservé | ✅ | 24 légendes, 24 emplacements |
+| 8.4 | **Les figures sont tracées et collées** | ❌ | **0 sur 24.** Les seules images du fichier sont les logos de la page de garde |
 | 8.5 | **Les captures d'écran sont produites** | ❌ | **0 sur 3** — protocole prêt |
-| 8.6 | **Les listes automatiques sont à jour** | ❌ | Elles affichent **15 figures et 42 tableaux** au lieu de 23 et 54. Se corrige par **Ctrl+A puis F9**, après collage des images |
+| 8.6 | **Les listes automatiques sont à jour** | ❌ | Elles affichent **15 figures et 42 tableaux** au lieu de 24 et 58. Se corrige par **Ctrl+A puis F9**, après collage des images |
 
 ## 9. Traçabilité
 

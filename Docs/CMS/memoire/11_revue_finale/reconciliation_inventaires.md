@@ -16,9 +16,9 @@
 
 ---
 
-## INV-01 — 268 routes de l'API
+## INV-01 — 273 routes de l'API
 
-Réconciliation par **module fonctionnel** : le mémoire ne peut pas énumérer 268 routes individuellement, mais chaque module y est traité, et l'inventaire détaillé reste accessible.
+Réconciliation par **module fonctionnel** : le mémoire ne peut pas énumérer 273 routes individuellement, mais chaque module y est traité, et l'inventaire détaillé reste accessible.
 
 | Module | Routes | Verdict | Où |
 |---|---:|---|---|
@@ -41,7 +41,7 @@ Réconciliation par **module fonctionnel** : le mémoire ne peut pas énumérer 
 | Rapports | 2 | `COUVERT` | Ch. 6 § 6.3.11 · BF21 |
 | **Sonde de santé** | **2** | **`HORS PÉRIMÈTRE`** | **Motif** : routes techniques, sans valeur métier. Néanmoins traitées au ch. 8 § 8.6.2, où l'incident du 5 juillet 2026 les concerne directement |
 
-**268 routes · 0 orphelin.**
+**273 routes · 0 orphelin.**
 
 > **Nuance de méthode, énoncée par honnêteté.** La réconciliation est faite au niveau du **module**, non de la route individuelle. Une route particulière — par exemple la mise à jour des notes d'accueil d'une visite — n'apparaît pas nommément dans le mémoire. Elle figure dans INV-01. Le mémoire couvre **toutes les capacités**, non chaque point d'entrée.
 
@@ -67,18 +67,18 @@ Réconciliation par **module fonctionnel** : le mémoire ne peut pas énumérer 
 
 ---
 
-## INV-03 — 128 permissions, 3 rôles
+## INV-03 — 130 permissions, 3 rôles
 
 | Élément | Nombre | Verdict | Où |
 |---|---:|---|---|
-| Permissions du catalogue | 128 | `HORS DIAGRAMME` | INV-03 § 3, matrice complète · INV-03 |
+| Permissions du catalogue | 130 | `HORS DIAGRAMME` | INV-03 § 3, matrice complète · INV-03 |
 | Rôles | 3 | `COUVERT` | Ch. 6 § 6.1 · Ch. 7 § 7.1.4 |
 | Règle « écrire implique lire » | 1 | `COUVERT` | INV-07, UC11 · Ch. 7 § 7.1.4 |
 | Permissions vitales protégées | 10 | `COUVERT` | Ch. 7 § 7.1.4 · INV-07, UC11 |
 | Dérogations individuelles | — | `COUVERT` | Ch. 6 § 6.1 · INV-07, UC12 |
 | **Permissions sans route serveur** | **3** | `COUVERT` | **Matrice de traçabilité § 4.3** — signalées comme contrôles d'affichage, non de sécurité |
 
-**128 permissions · 0 orphelin.**
+**130 permissions · 0 orphelin.**
 
 ---
 
@@ -189,7 +189,7 @@ Réconciliation par **module fonctionnel** : le mémoire ne peut pas énumérer 
 ## Synthèse
 
 ```
-INV-01 routes API      : 268 routes    — 0 orphelin  (2 hors périmètre, motivées)
+INV-01 routes API      : 273 routes    — 0 orphelin  (2 hors périmètre, motivées)
 INV-02 modèle données  :  88 entités   — 0 orphelin  (59 dans INV-02 § 4)
 INV-03 permissions     : 128 lignes    — 0 orphelin
 INV-04 écrans web      :  15 écrans    — 0 orphelin  (60 composants hors périmètre)

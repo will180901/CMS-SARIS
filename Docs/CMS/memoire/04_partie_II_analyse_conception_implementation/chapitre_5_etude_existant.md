@@ -11,7 +11,7 @@ Nous nous appuyons sur une source primaire : le recueil de l'existant, produit l
 
 ## 5.1 Le processus de consultation antérieur
 
-Un point mérite d'être souligné d'emblée : ce processus était structuré et formalisé. Le Médecin Chef l'avait défini par écrit, en quatre étapes standardisées. Ce qui manquait n'était pas la méthode, mais l'outil pour l'appliquer et en conserver la trace.
+Le processus antérieur est représenté sur deux planches : la figure 5.1 couvre le triage et le recueil clinique, la figure 5.2 la consultation, la décision et la clôture. Un point mérite d'être souligné d'emblée : ce processus était structuré et formalisé. Le Médecin Chef l'avait défini par écrit, en quatre étapes standardisées. Ce qui manquait n'était pas la méthode, mais l'outil pour l'appliquer et en conserver la trace.
 
 > 🖼️ **Figure 5.1 — Diagramme d'activité du processus de consultation antérieur**
 > *Emplacement d'image réservé dans le document.*

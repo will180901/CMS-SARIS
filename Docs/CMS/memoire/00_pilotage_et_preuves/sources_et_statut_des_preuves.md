@@ -63,7 +63,7 @@ Trois divergences constatées le confirment :
 | Point | Cahier antérieur | Réalité du code |
 |---|---:|---:|
 | Entités de données | 87 | **88** |
-| Permissions | 110 | **128** |
+| Permissions | 110 | **130** |
 | Décisions médicales | 4 | **2** |
 
 **Aucun document du dossier de mémoire ne s'appuie sur lui.** Les faits qui en provenaient ont été **re-sourcés** sur le recueil de l'existant ou sur le code. Ce cahier sera supprimé du dépôt à l'issue du travail ; il reste récupérable dans l'historique du dépôt le cas échéant.
@@ -78,9 +78,9 @@ Produits par extraction directe, chaque ligne portant sa référence.
 
 | Inventaire | Source d'origine | Contenu | Volume |
 |---|---|---|---|
-| `INV-01_routes_api.md` | Code | 268 routes, 26 contrôleurs, architecture transverse | 570 lignes |
+| `INV-01_routes_api.md` | Code | 273 routes, 26 contrôleurs, architecture transverse | 570 lignes |
 | `INV-02_modele_donnees.md` | Code | 88 modèles, 97 relations avec cardinalités | 1 529 lignes |
-| `INV-03_permissions_roles.md` | Code | 128 permissions × 3 rôles | 314 lignes |
+| `INV-03_permissions_roles.md` | Code | 130 permissions × 3 rôles | 314 lignes |
 | `INV-04_ecrans_web.md` | Code | 15 écrans, 25 onglets, 6 impressions | 158 lignes |
 | `INV-05_desktop_offline.md` | Code | 2 modes, 2 mécanismes hors-ligne, 52 entités synchronisées | 260 lignes |
 | `INV-06_tests.md` | Code + exécution réelle | 10 fichiers, 145 cas, **102 exécutés** | 190 lignes |
@@ -110,7 +110,7 @@ Ces inventaires ont **valeur de preuve** : ils sont l'extraction vérifiable de 
 | Statut | Sens | Exemple |
 |---|---|---|
 | `OBSERVÉ` | Constaté sur le terrain, par le recueil | Le processus papier en quatre étapes |
-| `IMPLÉMENTÉ` | Présent dans le code, vérifié | Les 268 routes |
+| `IMPLÉMENTÉ` | Présent dans le code, vérifié | Les 273 routes |
 | `PARTIELLEMENT IMPLÉMENTÉ` | Présent mais incomplet | Le mode autonome du client de bureau |
 | `HORS PÉRIMÈTRE` | Volontairement exclu, avec motif | La gestion de stock pharmaceutique |
 | `NON IMPLÉMENTÉ / PERSPECTIVE` | Prévu, pas fait | La signature de code |

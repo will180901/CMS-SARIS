@@ -31,14 +31,14 @@ Cette bi-cible a toutefois un coût, visible dans le code. Certaines options de 
 
 | Paquet | Contenu |
 |---|---|
-| Serveur applicatif | 17 modules métier, 26 contrôleurs, 268 routes |
+| Serveur applicatif | 17 modules métier, 26 contrôleurs, 273 routes |
 | Interface web | 15 modules, 15 écrans |
 | Client de bureau | Deux modes de fonctionnement, installateur |
 | Paquet de données | Schéma, 41 migrations, jeu de données de démonstration |
 | Paquet de types | Types partagés, catalogue des permissions, logique de résolution de conflit |
 | Paquet d'interface | Système de composants visuels |
 
-Le paquet de types est le pivot de la maintenabilité. Le catalogue des 128 permissions y est déclaré une seule fois. La logique de résolution de conflit y est écrite sous forme de fonctions sans effet de bord : elles sont donc testables, et réutilisables des deux côtés de la synchronisation.
+Le paquet de types est le pivot de la maintenabilité. Le catalogue des 130 permissions y est déclaré une seule fois. La logique de résolution de conflit y est écrite sous forme de fonctions sans effet de bord : elles sont donc testables, et réutilisables des deux côtés de la synchronisation.
 
 Une limite doit cependant être signalée, et le code la documente lui-même. Le serveur ne peut pas importer de valeur depuis ce paquet partagé. La règle de cohérence des permissions existe donc en deux copies, qui doivent rester identiques. C'est une dette technique reconnue, non un oubli.
 
@@ -183,7 +183,7 @@ Un battement régulier maintient le canal ouvert, car les équipements réseau i
 
 ## 7.5 Composants, déploiement et interfaces
 
-L'architecture en composants distingue sept blocs. Le serveur applicatif NestJS expose les 268 routes HTTP et le flux SSE. Il requiert l'accès aux données et le service de géolocalisation. L'interface web React ne fournit rien : elle consomme l'interface distante. Le client de bureau Electron fournit la fenêtre applicative, le coffre de secrets et la mise à jour. Ses deux processus communiquent par un canal IPC restreint. C'est la seule voie ouverte entre l'interface et le poste. Il consomme soit l'interface distante, soit son serveur embarqué. Ce dernier fournit une interface locale restreinte à la boucle locale, et consomme la base SQLite.
+L'architecture en composants distingue sept blocs. Le serveur applicatif NestJS expose les 273 routes HTTP et le flux SSE. Il requiert l'accès aux données et le service de géolocalisation. L'interface web React ne fournit rien : elle consomme l'interface distante. Le client de bureau Electron fournit la fenêtre applicative, le coffre de secrets et la mise à jour. Ses deux processus communiquent par un canal IPC restreint. C'est la seule voie ouverte entre l'interface et le poste. Il consomme soit l'interface distante, soit son serveur embarqué. Ce dernier fournit une interface locale restreinte à la boucle locale, et consomme la base SQLite.
 
 Les trois paquets partagés fournissent enfin le schéma Prisma et les migrations, les types TypeScript et le catalogue des permissions, et les composants visuels.
 

@@ -1,0 +1,70 @@
+<mxfile host="Electron">
+  <diagram id="d" name="Figure 4.1">
+    <mxGraphModel dx="1889" dy="1089" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="770" pageHeight="730" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="e1" value="Branche fonctionnelle&lt;br&gt;le modèle du métier, indépendant de toute technologie" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=14;fontColor=#1F4E5F;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="24" width="250" height="54" as="geometry"/>
+        </mxCell>
+        <mxCell id="e2" value="Branche technique&lt;br&gt;l&amp;#x27;architecture, indépendamment des fonctions à rendre" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=14;fontColor=#1F4E5F;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="500" y="24" width="250" height="54" as="geometry"/>
+        </mxCell>
+        <mxCell id="e3" value="Capture des besoins fonctionnels" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F7FBFD;strokeColor=#2E6579;fontColor=#1F4E5F;fontSize=14;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="20" y="88" width="250" height="56" as="geometry"/>
+        </mxCell>
+        <mxCell id="e4" value="Capture des besoins techniques" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F7FBFD;strokeColor=#2E6579;fontColor=#1F4E5F;fontSize=14;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="500" y="88" width="250" height="56" as="geometry"/>
+        </mxCell>
+        <mxCell id="e5" value="Analyse" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F7FBFD;strokeColor=#2E6579;fontColor=#1F4E5F;fontSize=14;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="125" y="188" width="240" height="56" as="geometry"/>
+        </mxCell>
+        <mxCell id="e6" value="Conception générique" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F7FBFD;strokeColor=#2E6579;fontColor=#1F4E5F;fontSize=14;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="405" y="188" width="240" height="56" as="geometry"/>
+        </mxCell>
+        <mxCell id="e7" value="Conception préliminaire" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#BCDCE8;strokeColor=#2E6579;strokeWidth=3;fontColor=#1F4E5F;fontSize=14;fontStyle=1;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="265" y="296" width="240" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="e8" value="Conception détaillée" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F7FBFD;strokeColor=#2E6579;fontColor=#1F4E5F;fontSize=14;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="265" y="386" width="240" height="56" as="geometry"/>
+        </mxCell>
+        <mxCell id="e9" value="Codage et tests" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F7FBFD;strokeColor=#2E6579;fontColor=#1F4E5F;fontSize=14;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="265" y="472" width="240" height="56" as="geometry"/>
+        </mxCell>
+        <mxCell id="e10" value="Recette" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F7FBFD;strokeColor=#2E6579;fontColor=#1F4E5F;fontSize=14;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="265" y="558" width="240" height="56" as="geometry"/>
+        </mxCell>
+        <mxCell id="e11" value="" style="edgeStyle=none;html=1;endArrow=block;endFill=1;strokeColor=#2E6579;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="e3" target="e5">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e12" value="" style="edgeStyle=none;html=1;endArrow=block;endFill=1;strokeColor=#2E6579;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="e4" target="e6">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e13" value="" style="edgeStyle=none;html=1;endArrow=block;endFill=1;strokeColor=#2E6579;exitX=0.5;exitY=1;entryX=0.25;entryY=0;" edge="1" parent="1" source="e5" target="e7">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e14" value="" style="edgeStyle=none;html=1;endArrow=block;endFill=1;strokeColor=#2E6579;exitX=0.5;exitY=1;entryX=0.75;entryY=0;" edge="1" parent="1" source="e6" target="e7">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e15" value="" style="edgeStyle=none;html=1;endArrow=block;endFill=1;strokeColor=#2E6579;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="e7" target="e8">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e16" value="" style="edgeStyle=none;html=1;endArrow=block;endFill=1;strokeColor=#2E6579;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="e8" target="e9">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e17" value="" style="edgeStyle=none;html=1;endArrow=block;endFill=1;strokeColor=#2E6579;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="e9" target="e10">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e18" value="À la conception préliminaire, le modèle du métier est projeté sur l&amp;#x27;architecture technique. Les entités du domaine deviennent des modèles de données, les cas d&amp;#x27;utilisation des routes et des écrans, les règles métier des contrôles et des services." style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;size=14;fontSize=14;fillColor=#FFFDF0;strokeColor=#C9B458;fontColor=#5C4B00;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="20" y="300" width="225" height="215" as="geometry"/>
+        </mxCell>
+        <mxCell id="e19" value="Dans notre projet, chaque itération a livré un module fonctionnel complet, de la base de données à l&amp;#x27;écran, plutôt qu&amp;#x27;une couche technique horizontale." style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;size=14;fontSize=14;fillColor=#FFFDF0;strokeColor=#C9B458;fontColor=#5C4B00;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="525" y="300" width="225" height="140" as="geometry"/>
+        </mxCell>
+        <mxCell id="e20" value="Source&lt;br&gt;ROQUES Pascal, VALLÉE Franck, UML 2 en action — De l&amp;#x27;analyse des besoins à la conception, Eyrolles, Paris, 2007." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=14;fontColor=#5A5A5A;" vertex="1" parent="1">
+          <mxGeometry x="20" y="646" width="730" height="52" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

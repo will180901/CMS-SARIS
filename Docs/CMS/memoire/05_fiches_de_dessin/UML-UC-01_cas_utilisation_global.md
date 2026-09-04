@@ -45,7 +45,7 @@ Un **rectangle englobant** portant en haut à gauche le libellé `CMS SARIS`. To
 | U01 | `Se connecter` | Sécurité | UC01 à UC03, UC07 |
 | U02 | `Gérer son compte personnel` | Sécurité | UC04 à UC06, UC08 |
 | U03 | `Gérer les comptes et les rôles` | Habilitations | UC09 à UC13 |
-| U04 | `Consulter le journal d'audit` | Supervision | UC14 |
+| U04 | `Consulter et purger le journal d'audit` | Supervision | UC14 |
 | U05 | `Paramétrer le système` | Supervision | UC15, UC16 |
 | U06 | `Consulter les référentiels` | Référentiels | UC17 |
 | U07 | `Administrer les référentiels` | Référentiels | UC18, UC19 |
@@ -82,7 +82,7 @@ Chaque association est un **trait plein simple, sans tête de flèche**, reliant
 | U01 Se connecter | ✅ | ✅ | ✅ | |
 | U02 Gérer son compte personnel | ✅ | ✅ | ✅ | |
 | U03 Gérer les comptes et les rôles | ✅ | ✅ | | |
-| U04 Consulter le journal d'audit | ✅ | ✅ | | |
+| U04 Consulter et purger le journal d'audit | ✅ | ✅ | | |
 | U05 Paramétrer le système | ✅ | | | |
 | U06 Consulter les référentiels | ✅ | ✅ | ✅ | |
 | U07 Administrer les référentiels | ✅ | ✅ | | |
@@ -224,7 +224,7 @@ Chaque planche porte **un rectangle** au nom du package, les ovales de ce packag
 
 ## Figure 6.2 — Package Sécurité et habilitations *(demi-page)*
 
-**Cinq ovales :** `Se connecter` (U01) · `Gérer son compte personnel` (U02) · `Gérer les comptes et les rôles` (U03) · `Consulter le journal d'audit` (U04) · `Paramétrer le système` (U05)
+**Cinq ovales :** `Se connecter` (U01) · `Gérer son compte personnel` (U02) · `Gérer les comptes et les rôles` (U03) · `Consulter et purger le journal d'audit` (U04) · `Paramétrer le système` (U05)
 
 **Trois acteurs :** Administrateur Système · Médecin Chef · Infirmier
 
@@ -233,7 +233,7 @@ Chaque planche porte **un rectangle** au nom du package, les ovales de ce packag
 | Se connecter | ✅ | ✅ | ✅ |
 | Gérer son compte personnel | ✅ | ✅ | ✅ |
 | Gérer les comptes et les rôles | ✅ | ✅ | |
-| Consulter le journal d'audit | ✅ | ✅ | |
+| Consulter et purger le journal d'audit | ✅ | ✅ | |
 | Paramétrer le système | ✅ | | |
 
 **Onze traits.** Ce package couvre UC01 à UC16 — 16 cas d'utilisation regroupés en 5 ovales.
@@ -369,7 +369,7 @@ Comme elle occupe une page entière, dessine les acteurs plus grands et laisse r
 | `Se connecter` | UC01 Se connecter · UC02 Valider le second facteur · UC03 Résoudre une connexion concurrente · UC07 Accepter les conditions | A M I |
 | `Gérer son compte personnel` | UC04 Changer son mot de passe · UC05 Consulter et révoquer ses sessions · UC06 Activer ou désactiver son second facteur · UC08 Gérer ses préférences | A M I |
 | `Gérer les comptes et les rôles` | UC09 Créer et gérer un compte · UC10 Attribuer un rôle · UC11 Éditer la matrice d'un rôle · UC12 Accorder ou révoquer une permission individuelle · UC13 Réinitialiser un mot de passe | A M |
-| `Consulter le journal d'audit` | UC14 | A M |
+| `Consulter et purger le journal d'audit` | UC14 | A M |
 | `Paramétrer le système` | UC15 Consulter les paramètres · UC16 Modifier les paramètres | A |
 
 ## Figure 6.3 — Référentiels et acteurs médicaux · 5 ovales
@@ -413,7 +413,7 @@ Comme elle occupe une page entière, dessine les acteurs plus grands et laisse r
 | Ovale à dessiner | Regroupe | Acteurs à relier |
 |---|---|---|
 | `Communiquer` | UC54 Consulter ses conversations · UC55 Envoyer un message · UC56 Réagir, répondre, masquer · UC57 Consulter ses notifications · UC58 Diffuser une annonce | A M I |
-| `Piloter l'activité` | UC59 Tableau de bord · UC60 Consulter un rapport · UC61 Exporter un rapport | A M I |
+| `Piloter l'activité` | UC59 Tableau de bord · UC60 Consulter un rapport · UC61 Exporter ou supprimer un rapport | A M I |
 | `Synchroniser les données` | UC62 Enregistrer un poste local · UC63 Synchroniser un poste · UC64 Superviser le parc · UC65 Restaurer une sauvegarde | **P** · A en supervision |
 
 ## Les quatre relations d'extension à tracer
