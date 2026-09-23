@@ -94,11 +94,17 @@ Nom et titre du promoteur, composition du jury, année académique, intitulé ex
 
 **Bloqué** : page de garde, remerciements. Champs laissés en `[ à compléter ]`. **Statut** : 🟠 ouverte.
 
-### QO-09 🟡 Périmètre du plafond de 75-90 pages
+### QO-09 ✅ Périmètre du plafond de pages — **RÉSOLUE**
 
 Le plan de l'école fixe un maximum sans préciser ce qu'il compte. Les annexes ayant été retirées, la question se réduit à ceci : la limite vise-t-elle le **corps** — 76 pages, de l'introduction à la conclusion — ou le **document entier**, 90 pages ? La pagination en trois parties rend les deux lectures vérifiables d'un coup d'œil.
 
-**Hypothèse retenue** : le plafond porte sur le **corps** du rapport. **À confirmer auprès du promoteur.** **Statut** : 🟡 ouverte.
+**Résolu le 5 septembre 2026** — renseignement pris par l'auteur : le plafond réel autorise **jusqu'à 100 pages et au-delà, sans dépasser 150**. La contrainte de volume est levée : le corps n'est plus tenu de rester sous 90 pages, et il n'y a plus lieu de retrancher quoi que ce soit pour tenir dans un format.
+
+**Mesure au 5 septembre 2026** : **110 pages**, et ce nombre ne bougera pratiquement plus. La décision D-20 impose qu'une figure occupe une page entière, seule : chaque emplacement est précédé d'un saut de page et **réserve déjà sa page**, même vide. Coller les vingt-neuf images ne rallongera donc pas le document.
+
+*Une première projection annonçait 126 pages ; elle était fausse — elle calculait l'allongement à partir de la hauteur des paragraphes vides sans tenir compte des sauts de page.*
+
+**Statut** : ✅ résolue.
 
 ### QO-11 🟡 Canal de diffusion des mises à jour
 

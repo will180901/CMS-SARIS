@@ -2,9 +2,9 @@
 
 > ## 📘 `FIG_00_TOUTES_LES_FIGURES.drawio` — **le seul fichier de figures**
 >
-> **Vingt-deux onglets**, un par figure, dans l'ordre du mémoire. C'est la source unique : les vingt fichiers individuels ont été supprimés le 4 septembre 2026 pour qu'il n'existe **aucune seconde source susceptible de diverger**.
+> **Vingt-six onglets**, un par figure, dans l'ordre du mémoire. C'est la source unique : les fichiers individuels ont été supprimés le 4 septembre 2026, et leurs sauvegardes cachées le 5 septembre, pour qu'il n'existe **aucune seconde source susceptible de diverger**.
 >
-> Les vingt figures dessinées y ont été reprises **à l'identique** — mêmes formes, mêmes liens, mêmes dimensions de page, vérifié onglet par onglet avant la suppression. Les deux derniers onglets, 8.1 et 8.2, portent le **contenu textuel** des figures qui ne se dessinent pas : ils servent à l'archive, pas à l'export.
+> Les figures y ont été reprises **à l'identique** — mêmes formes, mêmes liens, mêmes dimensions de page, vérifié onglet par onglet avant la suppression. Depuis le 5 septembre 2026, **plus aucun onglet textuel** : le schéma relationnel et le modèle physique sont dessinés, en notation MERISE, sur six planches.
 >
 > **Toute modification se fait dans ce fichier.** draw.io exporte la page affichée : l'export des images s'y fait onglet par onglet.
 
@@ -15,36 +15,42 @@
 
 ## 1. Ce qui est prêt
 
-| Figure | Fichier | Canevas | Lisibilité |
+Les vingt-six planches sont des onglets de `FIG_00_TOUTES_LES_FIGURES.drawio`, dans cet ordre. La lisibilité est **mesurée sur l'étendue réelle des formes**, pas sur le canevas.
+
+| N° | Onglet | Canevas | Lisibilité |
 |---|---|---|---|
-| **1.1** Organigramme du Service Médico-Social | `FIG_1-1_organigramme.drawio` | 770 × 1170 | 8,5 pt |
-| **4.1** Cycle de développement selon 2TUP | `FIG_4-1_cycle_2TUP.drawio` | 770 × 730 | 8,5 pt |
-| **5.1** Activité — triage et recueil clinique | `FIG_5-1_activite_triage.drawio` | 770 × 1150 | 8,5 pt |
-| **5.2** Activité — consultation, décision, clôture | `FIG_5-2_activite_consultation.drawio` | 770 × 1150 | 8,5 pt |
-| **6.1** Diagramme de contexte statique | `FIG_6-1_contexte_statique.drawio` | 770 × 1120 | 8,5 pt |
-| **6.2** Cas d'utilisation — Sécurité et habilitations | `FIG_6-2_uc_securite.drawio` | 770 × 740 | 8,5 pt |
-| **6.3** Cas d'utilisation — Référentiels et acteurs médicaux | `FIG_6-3_uc_referentiels.drawio` | 770 × 850 | 8,5 pt |
-| **6.4** Cas d'utilisation — Dossier patient | `FIG_6-4_uc_dossier_patient.drawio` | 770 × 895 | 8,5 pt |
-| **6.5** Cas d'utilisation — Parcours de soin | `FIG_6-5_uc_parcours_de_soin.drawio` | 770 × 945 | 8,5 pt |
-| **6.6** Cas d'utilisation — Fonctions transverses | `FIG_6-6_uc_fonctions_transverses.drawio` | 770 × 760 | 8,5 pt |
-| **6.7** Séquence système — émettre un bon de pharmacie | `FIG_6-7_sequence_bon_pharmacie.drawio` | 770 × 1170 | 8,5 pt |
-| **6.8** Séquence système — synchroniser un poste local | `FIG_6-8_sequence_synchronisation.drawio` | 770 × 1170 | 8,5 pt |
-| **7.1** Classes — Sécurité et habilitations | `FIG_7-1_classes_securite.drawio` | 770 × 1120 | 8,5 pt |
-| **7.2** Classes — Référentiels et acteurs médicaux | `FIG_7-2_classes_referentiels.drawio` | 770 × 1120 | 8,5 pt |
-| **7.3** Classes — Dossier patient | `FIG_7-3_classes_dossier_patient.drawio` | 770 × 1150 | 8,5 pt |
-| **7.4a** Classes — Parcours de soin : visite et consultation | `FIG_7-4a_classes_visite_consultation.drawio` | 770 × 1170 | 8,5 pt |
-| **7.4b** Classes — Parcours de soin : prescription et bons | `FIG_7-4b_classes_prescription_bons.drawio` | 770 × 1170 | 8,5 pt |
-| **7.5** Classes — diagramme du système | `FIG_7-5_classes_systeme.drawio` | 770 × 1170 | 8,8 pt |
-| **7.6** Diagramme de composants | `FIG_7-6_composants.drawio` | 770 × 990 | **11,2 pt** |
-| **7.7** Diagramme de déploiement | `FIG_7-7_deploiement.drawio` | 770 × 1160 | 8,6 pt |
+| 1 | **1.1** Organigramme du Service Médico-Social | 770 × 1170 | 8,66 pt |
+| 2 | **4.1** Cycle de développement selon 2TUP | 770 × 730 | 8,74 pt |
+| 3 | **5.1** Activité — triage et recueil clinique | 770 × 1150 | 8,74 pt |
+| 4 | **5.2** Activité — consultation, décision, clôture | 770 × 1150 | 8,74 pt |
+| 5 | **6.1** Diagramme de contexte statique | 770 × 1120 | 8,74 pt |
+| 6 | **6.2** Cas d'utilisation — Sécurité et habilitations | 770 × 740 | 8,74 pt |
+| 7 | **6.3** Cas d'utilisation — Référentiels et acteurs médicaux | 770 × 850 | 8,74 pt |
+| 8 | **6.4** Cas d'utilisation — Dossier patient | 770 × 895 | 8,74 pt |
+| 9 | **6.5** Cas d'utilisation — Parcours de soin | 770 × 945 | 8,74 pt |
+| 10 | **6.6** Cas d'utilisation — Fonctions transverses | 770 × 760 | 8,74 pt |
+| 11 | **6.7** Séquence système — émettre un bon de pharmacie | 770 × 1170 | 8,60 pt |
+| 12 | **6.8** Séquence système — synchroniser un poste local | 770 × 1170 | 8,51 pt |
+| 13 | **7.1** Classes — Sécurité et habilitations | 770 × 1120 | 8,74 pt |
+| 14 | **7.2** Classes — Référentiels et acteurs médicaux | 770 × 1120 | 8,74 pt |
+| 15 | **7.3** Classes — Dossier patient | 770 × 1150 | 8,74 pt |
+| 16 | **7.4a** Classes — Parcours de soin : visite et consultation | 770 × 1170 | 8,58 pt |
+| 17 | **7.4b** Classes — Parcours de soin : prescription et bons | 770 × 1170 | 8,86 pt |
+| 18 | **7.5** Classes — diagramme du système | 770 × 1170 | 8,66 pt |
+| 19 | **7.6** Diagramme de composants | 770 × 990 | **11,23 pt** |
+| 20 | **7.7** Diagramme de déploiement | 770 × 1160 | 8,56 pt |
+| 21 | **8.1a** MCD — le recueil | 640 × 915 | **10,57 pt** |
+| 22 | **8.1b** MCD — la décision médicale | 640 × 1140 | 8,85 pt |
+| 23 | **8.1c** MCD — la prescription | 800 × 1195 | 8,40 pt |
+| 24 | **8.2a** MPD — le recueil | 635 × 1050 | 9,62 pt |
+| 25 | **8.2b** MPD — la décision médicale | 665 × 1155 | 8,77 pt |
+| 26 | **8.2c** MPD — la prescription | 810 × 1215 | 8,29 pt |
 
-**Les vingt-deux figures sont faites.** Les vingt figures dessinées sont dans ce dossier. Les deux figures textuelles — schéma relationnel 8.1 et modèle physique 8.2 — sont dans `07_figures_texte/`, prêtes à composer dans Word.
+**Les vingt-six planches sont faites et vérifiées** — aucun texte qui déborde de sa boîte, aucune forme hors page, aucun chevauchement, aucune étiquette posée sur une entité.
 
-Restent les trois captures d'écran 8.3, 8.4 et 8.5, qui se prennent sur l'application.
+Restent les **trois captures d'écran 8.3, 8.4 et 8.5**, qui ne se dessinent pas : elles se prennent sur l'application, sans aucune donnée patient réelle.
 
-Les trois captures d'écran — 8.3, 8.4, 8.5 — ne se dessinent pas : elles se prennent sur l'application.
-
-Les trois captures d'écran — 8.3, 8.4, 8.5 — ne se dessinent pas : elles se prennent sur l'application.
+> **Trois planches sont plus hautes qu'une page** si on les colle sur toute la largeur du texte : 8.1b, 8.2a et 8.2b. Word les réduit de lui-même à 86 à 93 % de la largeur. Elles restent au-dessus de 8 pt — c'est déjà ce que mesure la colonne ci-dessus, qui tient compte des deux contraintes, largeur et hauteur. Rien à ajuster à la main.
 
 ---
 
@@ -67,17 +73,23 @@ Le seuil de lisibilité à l'impression est de **8 points**. En dessous de 7, un
 | **18** | **10,9 pt** |
 | 20 | 12,2 pt |
 
-D'où le gabarit imposé :
+La formule ci-dessus ne vaut que si c'est la **largeur** qui contraint. Dès qu'une planche est plus haute que large dans la proportion de la page, c'est la hauteur qui commande :
+
+> **police sur papier = 711 × police à l'écran ÷ hauteur du canevas**
+
+La vraie règle est donc **le plus petit des deux résultats**. C'est ce que mesure la colonne « Lisibilité » du tableau plus haut, et c'est pourquoi les planches 8.1 et 8.2, plus étroites mais plus hautes, ne suivent pas le gabarit 770 × 1170.
+
+D'où le gabarit de référence, valable pour une planche en largeur :
 
 | Contrainte | Valeur |
 |---|---|
-| Largeur du canevas | **770 points au maximum** |
-| Hauteur du canevas | **1 170 points au maximum** |
+| Largeur du canevas | **819 points au maximum** |
+| Hauteur du canevas | **1 244 points au maximum** |
 | Police | **14 au minimum** |
 | Marge intérieure des formes | 6 points |
 | Boîtes côte à côte | **jamais plus de trois** |
 
-Résultat : **8,5 pt sur papier**, quelle que soit la figure.
+Ces deux plafonds sont ceux qui donnent exactement 8 pt sur papier. Le gabarit historique — 770 × 1170 — reste celui des vingt premières planches ; il garde une marge de sécurité.
 
 > ⚠️ **Agrandir la police ne donne aucune place.** Quelle que soit la taille choisie, il tient toujours **106 caractères sur la largeur de la page**. La seule marge de manœuvre est verticale, et le nombre de boîtes par rangée.
 
