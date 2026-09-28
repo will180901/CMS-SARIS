@@ -1,0 +1,8 @@
+﻿trouves=1
+precedent=Conclusion du chapitre
+suivant=Deux décisions techniques engagent la su
+avant: titre p.66 (abs 75) / debut par1 p.66 (abs 75) / fin par2 p.67 (abs 76)
+avant: keepNext=0 keepLines=0
+apres: titre p.67 (abs 76) / debut par1 p.67 (abs 76) / fin par2 p.67 (abs 76)
+apres: keepNext=-1 keepLines=-1
+pages avant=116 pages apres=116

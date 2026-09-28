@@ -1,0 +1,14 @@
+﻿pages avant=117 paragraphes avant=3347
+PREMI : vides=13 page=11 apres0=6
+PREMI : y0=371,25 y1=68,85 y2=371,25 y3=371,25 apres=308,4 page=11
+DEUXI : vides=13 page=25 apres0=6
+DEUXI : y0=371,25 y1=68,85 y2=371,25 y3=371,25 apres=308,4 page=25
+BRANCHE FONCTIONNELLE : page avant=34
+BRANCHE TECHNIQUE : page avant=72
+CONVERGENCE DES DEUX BRANCHES : page avant=78
+PREMI | saut=-1 apres=308,4 | ornH=1 y=371,25 p=11 | titre p=11 aff=2 y=420,1 avant=12 apres=12 ind=42,5 haut=1 bas=1 coul=10783566 | ornB=1 p=11 | suivant p=12 saut=-1
+DEUXI | saut=-1 apres=308,4 | ornH=1 y=371,25 p=25 | titre p=25 aff=16 y=420,1 avant=12 apres=12 ind=42,5 haut=1 bas=1 coul=10783566 | ornB=1 p=25 | suivant p=26 saut=-1
+BRANCHE FONCTIONNELLE | saut=-1 apres=308,4 | ornH=1 y=371,25 p=34 | titre p=34 aff=25 y=420,1 avant=12 apres=12 ind=42,5 haut=1 bas=1 coul=10783566 | ornB=1 p=34 | suivant p=35 saut=-1
+BRANCHE TECHNIQUE | saut=-1 apres=308,4 | ornH=1 y=371,25 p=72 | titre p=72 aff=63 y=420,1 avant=12 apres=12 ind=42,5 haut=1 bas=1 coul=10783566 | ornB=1 p=72 | suivant p=73 saut=-1
+CONVERGENCE DES DEUX BRANCHES | saut=-1 apres=308,4 | ornH=1 y=371,25 p=78 | titre p=78 aff=69 y=420,1 avant=12 apres=12 ind=42,5 haut=1 bas=1 coul=10783566 | ornB=1 p=78 | suivant p=79 saut=-1
+pages apres=117 paragraphes apres=3330

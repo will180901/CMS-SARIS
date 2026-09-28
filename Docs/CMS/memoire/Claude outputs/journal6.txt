@@ -1,0 +1,119 @@
+﻿legendes rendues solidaires=58
+solidaire: Tableau 1.1 — Grandes étapes de l’histoi
+solidaire: Tableau 1.2 — Les neuf statuts de patien
+solidaire: Tableau 1.3 — Les trois niveaux de la ch
+solidaire: Tableau 1.4 — Des fonctions réelles aux 
+solidaire: Tableau 1.5 — Indicateurs de la populati
+solidaire: Tableau 2.1 — Les acteurs du système et 
+solidaire: Tableau 2.2 — Portée des données selon l
+solidaire: Tableau 2.3 — Les cinq catégories de pat
+solidaire: Tableau 2.4 — Prestations ouvertes selon
+solidaire: Tableau 2.5 — Contenu du parcours de soi
+solidaire: Tableau 2.6 — Domaines écartés du périmè
+solidaire: Tableau 2.7 — Concepts mobilisés dans ce
+solidaire: Tableau 3.1 — Les quatre phases du Proce
+solidaire: Tableau 3.2 — Les sept diagrammes UML re
+solidaire: Tableau 3.3 — Comparaison de 2TUP avec M
+solidaire: Tableau 4.1 — Interlocuteurs rencontrés 
+solidaire: Tableau 4.2 — Les trois domaines fonctio
+solidaire: Tableau 4.3 — Règle de confidentialité a
+solidaire: Tableau 4.4 — La structure informatique 
+solidaire: Tableau 4.5 — Effectif du personnel du S
+solidaire: Tableau 4.6 — Parc matériel informatique
+solidaire: Tableau 4.7 — Applications en production
+solidaire: Tableau 4.8 — Outils en usage au centre 
+solidaire: Tableau 4.9 — Les dix-huit besoins recue
+solidaire: Tableau 4.10 — Synthèse critique de la s
+solidaire: Tableau 4.11 — Comparaison des quatre so
+solidaire: Tableau 5.1 — Les vingt-trois besoins fo
+solidaire: Tableau 5.2 — Les treize besoins non fon
+solidaire: Tableau 5.3 — Confrontation des dix-huit
+solidaire: Tableau 5.4 — Les acteurs du système
+solidaire: Tableau 5.5 — Répartition des cas d’util
+solidaire: Tableau 5.6 — Package Sécurité et habili
+solidaire: Tableau 5.7 — Package Référentiels et ac
+solidaire: Tableau 5.8 — Package Dossier patient : 
+solidaire: Tableau 5.9 — Package Parcours de soin :
+solidaire: Tableau 5.10 — Package Fonctions transve
+solidaire: Tableau 5.11 — Relations d’inclusion
+solidaire: Tableau 5.12 — Relations d’extension
+solidaire: Tableau 5.13 — Spécification de UC01 : S
+solidaire: Tableau 5.14 — Spécification de UC42 : C
+solidaire: Tableau 5.15 — Spécification de UC63 : S
+solidaire: Tableau 5.16 — Sommaire d’identification
+solidaire: Tableau 5.17 — Scénario nominal de UC43
+solidaire: Tableau 5.18 — Sommaire d’identification
+solidaire: Tableau 5.19 — Scénario nominal de UC48
+solidaire: Tableau 6.1 — Les trois architectures en
+solidaire: Tableau 6.2 — Les six paquets du dépôt
+solidaire: Tableau 6.3 — Les neuf niveaux de l’arch
+solidaire: Tableau 6.4 — Comparaison des deux mécan
+solidaire: Tableau 6.5 — Règles de résolution des c
+solidaire: Tableau 7.1 — Répartition des 29 classes
+solidaire: Tableau 7.2 — Les six entités les plus c
+solidaire: Tableau 7.3 — Les neuf machines à états 
+solidaire: Tableau 7.4 — Principes d’interface et l
+solidaire: Tableau 7.5 — Principaux outils logiciel
+solidaire: Tableau 7.6 — Répartition des tables par
+solidaire: Tableau 7.7 — Résultats de la campagne d
+solidaire: Tableau 7.8 — Couverture des tests par d
+pages=116
+1	9	9	0
+2	12	12	0
+3	13	13	0
+4	15	15	0
+5	15	16	-1
+6	16	16	0
+7	18	18	0
+8	18	19	-1
+9	19	19	0
+10	20	20	0
+11	21	21	0
+12	22	22	0
+13	23	23	-1
+14	25	25	0
+15	29	30	-1
+16	30	31	-1
+17	34	34	0
+18	35	35	0
+19	38	38	0
+20	39	39	0
+21	39	39	0
+22	40	40	0
+23	40	41	-1
+24	41	41	0
+25	42	43	-1
+26	43	44	-1
+27	44	44	0
+28	48	49	-1
+29	49	50	-1
+30	50	51	-1
+31	51	51	0
+32	53	53	0
+33	54	55	-1
+34	55	55	-1
+35	55	56	-1
+36	56	56	-1
+37	56	57	-1
+38	63	63	0
+39	63	63	0
+40	64	64	0
+41	64	64	0
+42	65	65	0
+43	65	65	0
+44	65	65	0
+45	66	66	0
+46	66	66	0
+47	72	72	0
+48	73	73	0
+49	73	74	-1
+50	74	74	0
+51	75	75	0
+52	78	78	-1
+53	86	86	0
+54	86	87	-1
+55	91	91	0
+56	91	92	-1
+57	93	93	0
+58	106	106	0
+59	106	107	-1

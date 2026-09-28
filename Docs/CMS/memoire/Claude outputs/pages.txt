@@ -1,0 +1,3347 @@
+﻿1	0	Normal	0	0	3	0	
+1	0	Normal	0	0	0	0	
+1	0	Normal	0	0	0	0	
+1	0	Normal	0	0	7	12	[SAUT][SAUT]
+2	1	Normal	0	0	0	0	
+2	1	Titre 1	0	0	0	8	DÉDICACE
+2	1	Normal	0	0	0	438	Nous avons l’honneur de dédier ce projet de fin d’études à nos famille
+2	1	Normal	0	0	0	20	Plus précisément à :
+2	1	Normal	0	0	0	7	▪ (nom)
+2	1	Normal	0	0	0	7	▪ (nom)
+2	1	Normal	0	0	0	7	▪ (nom)
+2	1	Normal	0	0	0	7	▪ (nom)
+2	1	Normal	0	0	0	7	▪ (nom)
+2	1	Normal	0	0	0	20	NZILA OSCARVIE VERDI
+2	1	Normal	0	0	0	9	Aussi à :
+2	1	Normal	0	0	0	7	▪ (nom)
+2	1	Normal	0	0	0	7	▪ (nom)
+2	1	Normal	0	0	0	7	▪ (nom)
+2	1	Normal	0	0	0	26	BOUWAYI MIKOUYA DEO CHEREL
+2	1	Normal	0	0	0	335	Nous dédions également ce travail à nos professeurs et mentors qui ont
+2	1	Normal	0	0	0	123	Enfin, nous dédions ce projet de fin d’étude à tous ceux qui ont contr
+2	1	Normal	0	0	0	183	Nous espérons que ce travail reflète notre reconnaissance pour toutes 
+3	2	Titre 1	0	0	0	13	REMERCIEMENTS
+3	2	Normal	0	0	0	193	Nous tenons à exprimer notre profonde gratitude à toutes les personnes
+3	2	Normal	0	0	0	217	Avant tout, nous adressons nos plus sincères remerciements à Dieu Tout
+3	2	Normal	0	0	0	254	Nous exprimons ensuite notre reconnaissance au Colonel EKONDZI Alain, 
+3	2	Normal	0	0	0	252	A monsieur Roch Corneille NGOUBOU, nous tenons à vous exprimer notre p
+3	2	Normal	0	0	0	406	A La Direction du Centre Médico-Sanitaire de SARIS-CONGO, pour avoir a
+3	2	Normal	0	0	0	397	A L’ensemble du corps enseignant du CFI-CIRAS, pour la qualité de la f
+4	3	Titre 1	0	0	0	6	RÉSUMÉ
+4	3	Normal	0	0	0	1386	Dans un contexte où la connectivité peut être intermittente, la gestio
+4	3	Normal	0	0	0	133	Mots-clés : dossier médical informatisé, gestion des consultations, fo
+4	3	Titre 1	0	0	0	8	ABSTRACT
+4	3	Normal	0	0	0	1304	In a context where connectivity may be intermittent, the computerized 
+4	3	Normal	0	0	0	105	Keywords: electronic medical records, consultation management, offline
+5	4	Titre 1	0	0	0	8	SOMMAIRE
+5	4	Normal	0	0	0	0	
+5	4	TM 1	0	0	0	10	DÉDICACE i
+5	4	TM 1	0	0	0	16	REMERCIEMENTS ii
+5	4	TM 1	0	0	0	10	RÉSUMÉ iii
+5	4	TM 1	0	0	0	12	ABSTRACT iii
+5	4	TM 1	0	0	0	11	SOMMAIRE iv
+5	4	TM 1	0	0	0	19	LISTE DES FIGURES v
+5	4	TM 1	0	0	0	21	LISTE DES TABLEAUX vi
+5	4	TM 1	0	0	0	37	LISTE DES ABRÉVIATIONS ET SIGLES viii
+5	4	TM 1	0	0	0	23	INTRODUCTION GÉNÉRALE 1
+5	4	TM 1	0	0	0	55	PREMIÈRE PARTIE — CADRE CONTEXTUEL ET DOMAINE D’ÉTUDE 2
+5	4	TM 1	0	0	0	53	CHAPITRE 1 — PRÉSENTATION DE LA STRUCTURE D’ACCUEIL 3
+5	4	TM 1	0	0	0	65	CHAPITRE 2 — DOMAINE D’ÉTUDE : LE SYSTÈME D’INFORMATION MÉDICAL 9
+5	4	TM 1	0	0	0	79	DEUXIÈME PARTIE — ANALYSE, CONCEPTION ET RÉALISATION SELON 2TUP COUPLÉ
+5	4	TM 1	0	0	0	59	CHAPITRE 3 — DÉMARCHE MÉTHODOLOGIQUE : 2TUP COUPLÉ À UML 17
+5	4	TM 1	0	0	0	58	BRANCHE FONCTIONNELLE — DU MÉTIER AUX CAS D’UTILISATION 25
+5	4	TM 1	0	0	0	35	CHAPITRE 4 — ÉTUDE DE L’EXISTANT 26
+5	4	TM 1	0	0	0	52	CHAPITRE 5 — ANALYSE ET SPÉCIFICATION DES BESOINS 39
+5	4	TM 1	0	0	0	55	BRANCHE TECHNIQUE — DES CONTRAINTES À L’ARCHITECTURE 63
+5	4	TM 1	0	0	0	49	CHAPITRE 6 — ARCHITECTURE TECHNIQUE DU SYSTÈME 64
+5	4	TM 1	0	0	0	60	CONVERGENCE DES DEUX BRANCHES — CONCEPTION ET RÉALISATION 69
+5	4	TM 1	0	0	0	54	CHAPITRE 7 — CONCEPTION DÉTAILLÉE ET IMPLÉMENTATION 70
+5	4	TM 1	0	0	0	23	CONCLUSION GÉNÉRALE 102
+5	4	TM 1	0	0	0	15	BIBLIOGRAPHIE A
+5	4	TM 1	0	0	0	13	WEBOGRAPHIE B
+5	4	TM 1	0	0	0	20	TABLE DES MATIÈRES C
+5	4	Normal	0	0	0	0	
+5	4	Normal	0	0	0	0	
+6	5	Titre 1	0	0	0	17	LISTE DES FIGURES
+6	5	Normal	0	0	0	0	
+6	5	Table des illustrations	0	0	0	67	Figure 1.1 — Organigramme du Service Médico-Social de SARIS-CONGO 5
+6	5	Table des illustrations	0	0	0	49	Figure 3.1 — Cycle de développement selon 2TUP 19
+6	5	Table des illustrations	0	0	0	88	Figure 4.1 — Diagramme d’activité du processus antérieur : triage et r
+6	5	Table des illustrations	0	0	0	95	Figure 4.2 — Diagramme d’activité du processus antérieur : consultatio
+6	5	Table des illustrations	0	0	0	57	Figure 5.1 — Diagramme de contexte statique du système 44
+6	5	Table des illustrations	0	0	0	70	Figure 5.2 — Cas d’utilisation du package Sécurité et habilitations 50
+6	5	Table des illustrations	0	0	0	77	Figure 5.3 — Cas d’utilisation du package Référentiels et acteurs médi
+6	5	Table des illustrations	0	0	0	60	Figure 5.4 — Cas d’utilisation du package Dossier patient 52
+6	5	Table des illustrations	0	0	0	61	Figure 5.5 — Cas d’utilisation du package Parcours de soin 53
+6	5	Table des illustrations	0	0	0	66	Figure 5.6 — Cas d’utilisation du package Fonctions transverses 54
+6	5	Table des illustrations	0	0	0	75	Figure 5.7 — Diagramme de séquence système : émettre un bon de pharmac
+6	5	Table des illustrations	0	0	0	75	Figure 5.8 — Diagramme de séquence système : synchroniser un poste loc
+6	5	Table des illustrations	0	0	0	73	Figure 7.1 — Diagramme de classes du package Sécurité et habilitations
+6	5	Table des illustrations	0	0	0	80	Figure 7.2 — Diagramme de classes du package Référentiels et acteurs m
+6	5	Table des illustrations	0	0	0	63	Figure 7.3 — Diagramme de classes du package Dossier patient 74
+6	5	Table des illustrations	0	0	0	90	Figure 7.4a — Diagramme de classes du package Parcours de soin : visit
+6	5	Table des illustrations	0	0	0	88	Figure 7.4b — Diagramme de classes du package Parcours de soin : presc
+6	5	Table des illustrations	0	0	0	47	Figure 7.5 — Diagramme de classes du système 77
+6	5	Table des illustrations	0	0	0	39	Figure 7.6 — Diagramme de composants 80
+6	5	Table des illustrations	0	0	0	40	Figure 7.7 — Diagramme de déploiement 82
+6	5	Table des illustrations	0	0	0	58	Figure 7.8a — Modèle conceptuel de données : le recueil 86
+6	5	Table des illustrations	0	0	0	68	Figure 7.8b — Modèle conceptuel de données : la décision médicale 87
+6	5	Table des illustrations	0	0	0	63	Figure 7.8c — Modèle conceptuel de données : la prescription 88
+6	5	Table des illustrations	0	0	0	56	Figure 7.9a — Modèle physique de données : le recueil 90
+6	5	Table des illustrations	0	0	0	66	Figure 7.9b — Modèle physique de données : la décision médicale 91
+6	5	Table des illustrations	0	0	0	61	Figure 7.9c — Modèle physique de données : la prescription 92
+6	5	Table des illustrations	0	0	0	95	Figure 7.10 — Consultation en cours, avec examen clinique et diagnosti
+6	5	Table des illustrations	0	0	0	90	Figure 7.11 — Émission d’un bon de pharmacie et contrôle d’éligibilité
+6	5	Table des illustrations	0	0	0	81	Figure 7.12 — Tableau de bord et journal d’audit (rôle Administrateur 
+6	5	Normal	0	0	0	0	
+6	5	Normal	0	0	0	0	
+6	5	Normal	0	0	0	0	
+7	6	Titre 1	0	0	0	18	LISTE DES TABLEAUX
+7	6	Table des illustrations	0	0	0	59	Tableau 1.1 — Grandes étapes de l’histoire de SARIS-CONGO 3
+7	6	Table des illustrations	0	0	0	65	Tableau 1.2 — Les neuf catégories de personnes prises en charge 4
+7	6	Table des illustrations	0	0	0	66	Tableau 1.3 — Les trois niveaux de la chaîne médicale et sociale 6
+7	6	Table des illustrations	0	0	0	59	Tableau 1.4 — Des fonctions réelles aux usages du système 6
+7	6	Table des illustrations	0	0	0	53	Tableau 1.5 — Indicateurs de la population couverte 7
+7	6	Table des illustrations	0	0	0	57	Tableau 2.1 — Les acteurs du système et leur périmètre 10
+7	6	Table des illustrations	0	0	0	53	Tableau 2.2 — Portée des données selon leur nature 10
+7	6	Table des illustrations	0	0	0	73	Tableau 2.3 — Les cinq catégories de patients reconnues par le système
+7	6	Table des illustrations	0	0	0	67	Tableau 2.4 — Prestations ouvertes selon la catégorie de patient 12
+7	6	Table des illustrations	0	0	0	51	Tableau 2.5 — Contenu du parcours de soin retenu 13
+7	6	Table des illustrations	0	0	0	56	Tableau 2.6 — Domaines écartés du périmètre et motifs 14
+7	6	Table des illustrations	0	0	0	51	Tableau 2.7 — Concepts mobilisés dans ce mémoire 14
+7	6	Table des illustrations	0	0	0	54	Tableau 3.1 — Les quatre phases du Processus Unifié 17
+7	6	Table des illustrations	0	0	0	48	Tableau 3.2 — Les sept diagrammes UML retenus 21
+7	6	Table des illustrations	0	0	0	57	Tableau 3.3 — Comparaison de 2TUP avec Merise et Scrum 22
+7	6	Table des illustrations	0	0	0	72	Tableau 4.1 — Interlocuteurs rencontrés lors du recueil de l’existant 
+7	6	Table des illustrations	0	0	0	73	Tableau 4.2 — Les trois domaines fonctionnels du Service Médico-Social
+7	6	Table des illustrations	0	0	0	67	Tableau 4.3 — Règle de confidentialité appliquée avant le projet 30
+7	6	Table des illustrations	0	0	0	58	Tableau 4.4 — La structure informatique à trois niveaux 31
+7	6	Table des illustrations	0	0	0	62	Tableau 4.5 — Effectif du personnel du Service Informatique 31
+7	6	Table des illustrations	0	0	0	53	Tableau 4.6 — Parc matériel informatique, par type 32
+7	6	Table des illustrations	0	0	0	70	Tableau 4.7 — Applications en production, par fonction d’entreprise 32
+7	6	Table des illustrations	0	0	0	66	Tableau 4.8 — Outils en usage au centre médical avant le projet 33
+7	6	Table des illustrations	0	0	0	68	Tableau 4.9 — Les dix-huit besoins recueillis lors des entretiens 34
+7	6	Table des illustrations	0	0	0	62	Tableau 4.10 — Synthèse critique de la situation antérieure 35
+7	6	Table des illustrations	0	0	0	61	Tableau 4.11 — Comparaison des quatre solutions envisagées 36
+7	6	Table des illustrations	0	0	0	68	Tableau 5.1 — Les vingt-trois besoins fonctionnels et leur preuve 40
+7	6	Table des illustrations	0	0	0	72	Tableau 5.2 — Les treize besoins non fonctionnels et leur réalisation 
+7	6	Table des illustrations	0	0	0	73	Tableau 5.3 — Confrontation des dix-huit besoins exprimés au périmètre
+7	6	Table des illustrations	0	0	0	39	Tableau 5.4 — Les acteurs du système 43
+7	6	Table des illustrations	0	0	0	61	Tableau 5.5 — Répartition des cas d’utilisation par module 45
+7	6	Table des illustrations	0	0	0	101	Tableau 5.6 — Package Sécurité et habilitations : cas d’utilisation, r
+7	6	Table des illustrations	0	0	0	108	Tableau 5.7 — Package Référentiels et acteurs médicaux : cas d’utilisa
+7	6	Table des illustrations	0	0	0	91	Tableau 5.8 — Package Dossier patient : cas d’utilisation, risque, pri
+7	6	Table des illustrations	0	0	0	92	Tableau 5.9 — Package Parcours de soin : cas d’utilisation, risque, pr
+7	6	Table des illustrations	0	0	0	98	Tableau 5.10 — Package Fonctions transverses : cas d’utilisation, risq
+7	6	Table des illustrations	0	0	0	39	Tableau 5.11 — Relations d’inclusion 55
+7	6	Table des illustrations	0	0	0	39	Tableau 5.12 — Relations d’extension 55
+7	6	Table des illustrations	0	0	0	65	Tableau 5.13 — Spécification de UC01 : Se connecter au système 56
+7	6	Table des illustrations	0	0	0	73	Tableau 5.14 — Spécification de UC42 : Créer et valider une ordonnance
+7	6	Table des illustrations	0	0	0	69	Tableau 5.15 — Spécification de UC63 : Synchroniser un poste local 57
+8	7	Table des illustrations	0	0	0	51	Tableau 5.16 — Sommaire d’identification de UC43 57
+8	7	Table des illustrations	0	0	0	42	Tableau 5.17 — Scénario nominal de UC43 57
+8	7	Table des illustrations	0	0	0	51	Tableau 5.18 — Sommaire d’identification de UC48 58
+8	7	Table des illustrations	0	0	0	42	Tableau 5.19 — Scénario nominal de UC48 58
+8	7	Table des illustrations	0	0	0	51	Tableau 6.1 — Les trois architectures envisagées 64
+8	7	Table des illustrations	0	0	0	41	Tableau 6.2 — Les six paquets du dépôt 65
+8	7	Table des illustrations	0	0	0	63	Tableau 6.3 — Les neuf niveaux de l’architecture de sécurité 65
+8	7	Table des illustrations	0	0	0	63	Tableau 6.4 — Comparaison des deux mécanismes hors connexion 66
+8	7	Table des illustrations	0	0	0	61	Tableau 6.5 — Règles de résolution des conflits d’écriture 67
+8	7	Table des illustrations	0	0	0	64	Tableau 7.1 — Répartition des 29 classes retenues par package 70
+8	7	Table des illustrations	0	0	0	62	Tableau 7.2 — Les six entités les plus connectées du modèle 78
+8	7	Table des illustrations	0	0	0	53	Tableau 7.3 — Les neuf machines à états du système 78
+8	7	Table des illustrations	0	0	0	58	Tableau 7.4 — Principes d’interface et leur application 83
+8	7	Table des illustrations	0	0	0	53	Tableau 7.5 — Principaux outils logiciels employés 83
+8	7	Table des illustrations	0	0	0	63	Tableau 7.6 — Répartition des tables par domaine fonctionnel 85
+8	7	Table des illustrations	0	0	0	70	Tableau 7.7 — Résultats de la campagne d’exécution après correction 98
+8	7	Table des illustrations	0	0	0	49	Tableau 7.8 — Couverture des tests par domaine 98
+8	7	Normal	0	0	0	0	
+8	7	Normal	0	0	0	0	
+8	7	Normal	0	0	0	0	
+9	8	Titre 1	0	0	0	32	LISTE DES ABRÉVIATIONS ET SIGLES
+9	8	Normal	0	0	0	0	
+9	8	Normal	1	0	0	3	2FA
+9	8	Normal	1	0	0	32	Authentification à deux facteurs
+9	8	Normal	1	0	0	0	
+9	8	Normal	1	0	0	4	2TUP
+9	8	Normal	1	0	0	25	Two-Track Unified Process
+9	8	Normal	1	0	0	0	
+9	8	Normal	1	0	0	3	API
+9	8	Normal	1	0	0	74	Interface de programmation applicative (Application Programming Interf
+9	8	Normal	1	0	0	0	
+9	8	Normal	1	0	0	2	BF
+9	8	Normal	1	0	0	18	Besoin fonctionnel
+9	8	Normal	1	0	0	0	
+9	8	Normal	1	0	0	3	BNF
+9	8	Normal	1	0	0	22	Besoin non fonctionnel
+9	8	Normal	1	0	0	0	
+9	8	Normal	1	0	0	3	CDD
+9	8	Normal	1	0	0	26	Contrat à durée déterminée
+9	8	Normal	1	0	0	0	
+9	8	Normal	1	0	0	3	CDI
+9	8	Normal	1	0	0	28	Contrat à durée indéterminée
+9	8	Normal	1	0	0	0	
+9	8	Normal	1	0	0	3	CFI
+9	8	Normal	1	0	0	35	Centre de Formation en Informatique
+9	8	Normal	1	0	0	0	
+9	8	Normal	1	0	0	5	CIRAS
+9	8	Normal	1	0	0	66	Centre d’Informatique et de Recherche de l’Armée et de la Sécurité
+9	8	Normal	1	0	0	0	
+9	8	Normal	1	0	0	3	CMS
+9	8	Normal	1	0	0	23	Centre Médico-Sanitaire
+9	8	Normal	1	0	0	0	
+9	8	Normal	1	0	0	3	GLA
+9	8	Normal	1	0	0	25	Génie Logiciel Applicatif
+9	8	Normal	1	0	0	0	
+9	8	Normal	1	0	0	4	HTTP
+9	8	Normal	1	0	0	33	Protocole de transfert hypertexte
+9	8	Normal	1	0	0	0	
+9	8	Normal	1	0	0	5	HTTPS
+9	8	Normal	1	0	0	42	Protocole de transfert hypertexte sécurisé
+9	8	Normal	1	0	0	0	
+9	8	Normal	1	0	0	3	IPC
+9	8	Normal	1	0	0	59	Communication entre processus (Inter-Process Communication)
+9	8	Normal	1	0	0	0	
+9	8	Normal	1	0	0	4	JSON
+9	8	Normal	1	0	0	64	Format textuel d’échange de données (JavaScript Object Notation)
+9	8	Normal	1	0	0	0	
+9	8	Normal	1	0	0	3	JWT
+9	8	Normal	1	0	0	32	Jeton web signé (JSON Web Token)
+9	8	Normal	1	0	0	0	
+9	8	Normal	1	0	0	3	ORM
+9	8	Normal	1	0	0	60	Correspondance objet-relationnel (Object-Relational Mapping)
+9	8	Normal	1	0	0	0	
+9	8	Normal	1	0	0	3	PWA
+9	8	Normal	1	0	0	49	Application web installable (Progressive Web App)
+9	8	Normal	1	0	0	0	
+9	8	Normal	1	0	0	4	REST
+9	8	Normal	1	0	0	72	Style architectural des interfaces web (Representational State Transfe
+9	8	Normal	1	0	0	0	
+9	8	Normal	1	0	0	5	SARIS
+9	8	Normal	1	0	0	49	Société Agricole de Raffinage Industriel du Sucre
+9	8	Normal	1	0	0	0	
+9	8	Normal	1	0	0	3	SQL
+9	8	Normal	1	0	0	56	Langage de requête structuré (Structured Query Language)
+9	8	Normal	1	0	0	0	
+9	8	Normal	1	0	0	3	SSE
+9	8	Normal	1	0	0	64	Flux d’événements du serveur vers le client (Server-Sent Events)
+9	8	Normal	1	0	0	0	
+9	8	Normal	1	0	0	4	TOTP
+9	8	Normal	1	0	0	46	Mot de passe à usage unique fondé sur le temps
+9	8	Normal	1	0	0	0	
+9	8	Normal	1	0	0	2	UC
+9	8	Normal	1	0	0	28	Cas d’utilisation (Use Case)
+9	8	Normal	1	0	0	0	
+9	8	Normal	1	0	0	3	UML
+9	8	Normal	1	0	0	25	Unified Modeling Language
+9	8	Normal	1	0	0	0	
+9	8	Normal	0	0	0	6	[SAUT]
+10	1	Titre 1	0	0	0	21	INTRODUCTION GÉNÉRALE
+10	1	Normal	0	0	0	398	Dans un centre de santé, l’information circule aussi vite que le soin 
+10	1	Normal	0	0	0	478	SARIS-CONGO est une entreprise sucrière implantée dans le département 
+10	1	Normal	0	0	0	432	Avant ce projet, la gestion reposait sur le papier et le tableur. Les 
+10	1	Normal	0	0	0	400	Le centre disposait pourtant d’un processus formalisé en quatre étapes
+10	1	Normal	0	0	0	468	Notre objectif général est de concevoir et de réaliser ce système, pou
+10	1	Normal	0	0	0	517	Nous avons retenu le Processus Unifié, dans sa déclinaison 2TUP, outil
+10	1	Normal	0	0	0	536	Ce mémoire compte deux parties. La Partie I, « Cadre contextuel et dom
+11	2	Normal	0	0	0	0	
+11	2	Normal	0	0	0	0	
+11	2	Normal	0	0	0	0	
+11	2	Normal	0	0	0	0	
+11	2	Normal	0	0	0	0	
+11	2	Normal	0	0	0	0	
+11	2	Normal	0	0	0	0	
+11	2	Normal	0	0	0	0	
+11	2	Normal	0	0	0	0	
+11	2	Normal	0	0	0	0	
+11	2	Normal	0	0	0	0	
+11	2	Normal	0	0	0	0	
+11	2	Normal	0	0	0	0	
+11	2	Normal	0	0	0	0	
+11	2	Normal	0	1	0	1	/
+11	2	Titre 1	0	0	0	53	PREMIÈRE PARTIE — CADRE CONTEXTUEL ET DOMAINE D’ÉTUDE
+11	2	Normal	0	1	0	1	/
+12	3	Titre 1	0	0	0	51	CHAPITRE 1 — PRÉSENTATION DE LA STRUCTURE D’ACCUEIL
+12	3	Normal	0	0	0	284	Ce chapitre présente le Service Médico-Social de SARIS-CONGO et, en so
+12	3	Titre 2	0	0	0	35	1.1 SARIS-CONGO et son implantation
+12	3	Normal	0	0	0	262	La Société Agricole de Raffinage Industriel du Sucre est l’une des pri
+12	3	Légende tableau	0	0	0	57	Tableau 1.1 — Grandes étapes de l’histoire de SARIS-CONGO
+12	3	Normal	1	0	0	5	Année
+12	3	Normal	1	0	0	9	Événement
+12	3	Normal	1	0	0	0	
+12	3	Normal	1	0	0	4	1947
+12	3	Normal	1	0	0	101	Installation de la famille Vilgrain dans la vallée du Niari, avec une 
+12	3	Normal	1	0	0	0	
+12	3	Normal	1	0	0	4	1956
+12	3	Normal	1	0	0	85	Création de la Société Industrielle et Agricole du Niari et première s
+12	3	Normal	1	0	0	0	
+12	3	Normal	1	0	0	4	1965
+12	3	Normal	1	0	0	90	Création de la Société Sucrière du Niari, d’une capacité de 5 000 tonn
+12	3	Normal	1	0	0	0	
+12	3	Normal	1	0	0	4	1970
+12	3	Normal	1	0	0	69	Fusion des deux sociétés en Société Industrielle et Agricole du Congo
+12	3	Normal	1	0	0	0	
+12	3	Normal	1	0	0	4	1991
+12	3	Normal	1	0	0	48	Privatisation : la structure devient SARIS-CONGO
+12	3	Normal	1	0	0	0	
+12	3	Normal	1	0	0	4	1995
+12	3	Normal	1	0	0	55	Programme de modernisation engagé par le groupe SOMDIAA
+12	3	Normal	1	0	0	0	
+12	3	Normal	1	0	0	4	2010
+12	3	Normal	1	0	0	77	Lancement de la marque Princesse Tatie, première marque panafricaine d
+12	3	Normal	1	0	0	0	
+12	3	Normal	1	0	0	4	2011
+12	3	Normal	1	0	0	78	Entrée du groupe Castel au capital, production portée à 70 310 tonnes 
+12	3	Normal	1	0	0	0	
+12	3	Normal	1	0	0	4	2025
+12	3	Normal	1	0	0	89	Mise en service de la Distillerie du Congo, d’une capacité de 6 millio
+12	3	Normal	1	0	0	0	
+12	3	Normal	0	0	0	0	
+12	3	Normal	0	0	0	272	L’entreprise est implantée à Moutela, dans le département de la Bouenz
+12	3	Titre 2	0	0	0	44	1.2 Le Service Médico-Social et ses missions
+12	3	Normal	0	0	0	305	Le Service Médico-Social assure les soins de premier recours des trava
+12	3	Normal	0	0	0	346	Sa mission recouvre deux volets, portés par deux entités distinctes. L
+12	3	Normal	0	0	0	264	Ce rattachement fait de l’employeur l’exploitant du centre de soins. L
+13	4	Titre 2	0	0	0	40	1.3 La population couverte par le centre
+13	4	Normal	0	0	0	106	Le centre soigne neuf catégories de personnes, ce qui déborde largemen
+13	4	Légende tableau	0	0	0	63	Tableau 1.2 — Les neuf catégories de personnes prises en charge
+13	4	Normal	1	0	0	6	Statut
+13	4	Normal	1	0	0	11	Description
+13	4	Normal	1	0	0	0	
+13	4	Normal	1	0	0	41	Personnel en contrat à durée indéterminée
+13	4	Normal	1	0	0	25	Collaborateurs permanents
+13	4	Normal	1	0	0	0	
+13	4	Normal	1	0	0	12	Ayants droit
+13	4	Normal	1	0	0	60	Épouse et enfants des agents en contrat à durée indéterminée
+13	4	Normal	1	0	0	0	
+13	4	Normal	1	0	0	39	Personnel en contrat à durée déterminée
+13	4	Normal	1	0	0	21	Tâcherons et coupeurs
+13	4	Normal	1	0	0	0	
+13	4	Normal	1	0	0	9	Expatriés
+13	4	Normal	1	0	0	29	Personnel expatrié en mission
+13	4	Normal	1	0	0	0	
+13	4	Normal	1	0	0	14	Sous-traitants
+13	4	Normal	1	0	0	41	Personnel des entreprises sous-traitantes
+13	4	Normal	1	0	0	0	
+13	4	Normal	1	0	0	24	Agents de la distillerie
+13	4	Normal	1	0	0	43	Personnel affecté au site de la distillerie
+13	4	Normal	1	0	0	0	
+13	4	Normal	1	0	0	20	Population riveraine
+13	4	Normal	1	0	0	33	Habitants de la zone environnante
+13	4	Normal	1	0	0	0	
+13	4	Normal	1	0	0	26	Visiteurs et missionnaires
+13	4	Normal	1	0	0	45	Personnes en visite ou en mission sur le site
+13	4	Normal	1	0	0	0	
+13	4	Normal	1	0	0	10	Stagiaires
+13	4	Normal	1	0	0	36	Étudiants et stagiaires en formation
+13	4	Normal	1	0	0	0	
+13	4	Normal	0	0	0	0	
+13	4	Normal	0	0	0	469	La présence des riverains est un fait notable : le centre n’est pas ré
+13	4	Normal	0	0	0	179	Pour les autres statuts, les soins sont assurés puis refacturés à la s
+13	4	Titre 2	0	0	0	40	1.4 Organisation structurelle du service 
+13	4	Normal	0	0	0	120	La chaîne médicale et sociale s’organise sur trois niveaux, présentés 
+14	5	Normal	0	1	0	1	/
+14	5	Normal	0	0	0	0	
+14	5	Légende	0	0	0	65	Figure 1.1 — Organigramme du Service Médico-Social de SARIS-CONGO
+14	5	Normal	0	0	0	6	[SAUT]
+15	6	Légende tableau	0	0	0	0	
+15	6	Légende tableau	0	0	0	64	Tableau 1.3 — Les trois niveaux de la chaîne médicale et sociale
+15	6	Normal	1	0	0	6	Niveau
+15	6	Normal	1	0	0	6	Entité
+15	6	Normal	1	0	0	11	Responsable 
+15	6	Normal	1	0	0	4	Rôle
+15	6	Normal	1	0	0	0	
+15	6	Normal	1	0	0	1	1
+15	6	Normal	1	0	0	33	Direction des Ressources Humaines
+15	6	Normal	1	0	0	1	—
+15	6	Normal	1	0	0	40	Tutelle de la chaîne médicale et sociale
+15	6	Normal	1	0	0	0	
+15	6	Normal	1	0	0	1	2
+15	6	Normal	1	0	0	21	Service Médico-Social
+15	6	Normal	1	0	0	12	Médecin Chef
+15	6	Normal	1	0	0	76	Rattaché à la direction, il donne naissance aux deux entités opération
+15	6	Normal	1	0	0	0	
+15	6	Normal	1	0	0	2	3a
+15	6	Normal	1	0	0	29	Section des Affaires Sociales
+15	6	Normal	1	0	0	14	Responsable RH
+15	6	Normal	1	0	0	77	Évacuations, remboursements, accidents de travail, congés, validation 
+15	6	Normal	1	0	0	0	
+15	6	Normal	1	0	0	2	3b
+15	6	Normal	1	0	0	23	Centre Médico-Sanitaire
+15	6	Normal	1	0	0	12	Médecin Chef
+15	6	Normal	1	0	0	95	Consultations, triage, prescriptions, examens, dispensation, radiologi
+15	6	Normal	1	0	0	0	
+15	6	Normal	0	0	0	0	
+15	6	Normal	0	0	0	314	Le Médecin Chef dirige le Service Médico-Social et gère directement le
+15	6	Normal	0	0	0	523	Le centre est structuré en six pôles de compétences : la consultation 
+15	6	Normal	0	0	0	295	Aucun système d’information ne relie les deux sites. Chacun fonctionne
+15	6	Titre 2	0	0	0	47	1.5 Des fonctions réelles aux usages du système
+15	6	Normal	0	0	0	328	Le centre compte davantage de fonctions que le système ne reconnaît de
+15	6	Légende tableau	0	0	0	57	Tableau 1.4 — Des fonctions réelles aux usages du système
+15	6	Normal	1	0	0	18	Fonction au centre
+15	6	Normal	1	0	0	16	Usage du système
+15	6	Normal	1	0	0	20	Ce que cela recouvre
+15	6	Normal	1	0	0	0	
+15	6	Normal	1	0	0	12	Médecin Chef
+15	6	Normal	1	0	0	36	Gouvernance médicale et référentiels 
+15	6	Normal	1	0	0	146	Prescrit, décide des évacuations, accorde les délégations de prescript
+15	6	Normal	1	0	0	0	
+15	6	Normal	1	0	0	7	Médecin
+15	6	Normal	1	0	0	26	Conduite des consultations 
+15	6	Normal	1	0	0	111	Mêmes droits que le Médecin Chef dans le système ; l’organisation dist
+15	6	Normal	1	0	0	0	
+16	7	Normal	1	0	0	10	Infirmière
+16	7	Normal	1	0	0	44	Accueil et prise en charge de premier niveau 
+16	7	Normal	1	0	0	108	Accueille, trie, relève les constantes vitales, conduit une consultati
+16	7	Normal	1	0	0	0	
+16	7	Normal	1	0	0	23	Ingénieur informaticien
+16	7	Normal	1	0	0	31	Administration de la plateforme 
+16	7	Normal	1	0	0	102	Comptes, rôles, paramètres, supervision technique. Rôle sans équivalen
+16	7	Normal	1	0	0	0	
+16	7	Normal	1	0	0	12	Pharmacienne
+16	7	Normal	1	0	0	5	Aucun
+16	7	Normal	1	0	0	119	Le système émet les bons de pharmacie, mais le stock et la facturation
+16	7	Normal	1	0	0	0	
+16	7	Normal	1	0	0	57	Gestionnaire des ressources humaines et du service social
+16	7	Normal	1	0	0	5	Aucun
+16	7	Normal	1	0	0	141	Reçoit sous forme imprimée les documents que le système produit ; évac
+16	7	Normal	1	0	0	0	
+16	7	Titre 2	0	0	0	43	1.6 Ressources et chiffres caractéristiques
+16	7	Normal	0	0	0	463	Le personnel médical comprend un Médecin Chef, au moins un autre médec
+16	7	Légende tableau	0	0	0	0	
+16	7	Légende tableau	0	0	0	51	Tableau 1.5 — Indicateurs de la population couverte
+16	7	Normal	1	0	0	10	Indicateur
+16	7	Normal	1	0	0	6	Valeur
+16	7	Normal	1	0	0	0	
+16	7	Normal	1	0	0	32	Personnel de SARIS-CONGO couvert
+16	7	Normal	1	0	0	20	Plus de 2 000 agents
+16	7	Normal	1	0	0	0	
+16	7	Normal	1	0	0	20	Communauté desservie
+16	7	Normal	1	0	0	31	Plusieurs milliers de personnes
+16	7	Normal	1	0	0	0	
+16	7	Normal	1	0	0	29	Distance entre les deux sites
+16	7	Normal	1	0	0	27	Une quinzaine de kilomètres
+16	7	Normal	1	0	0	0	
+16	7	Normal	1	0	0	20	Pôles de compétences
+16	7	Normal	1	0	0	1	6
+16	7	Normal	1	0	0	0	
+16	7	Normal	1	0	0	5	Sites
+16	7	Normal	1	0	0	1	2
+16	7	Normal	1	0	0	0	
+16	7	Normal	0	0	0	0	
+16	7	Normal	0	0	0	396	Le rapport de stage apporte une précision qui compte. Dans un pays où 
+16	7	Normal	0	0	0	385	Nous ne disposons ni des effectifs par fonction et par site, ni des vo
+16	7	Titre 2	0	0	0	22	Conclusion du chapitre
+16	7	Normal	0	0	0	436	Le Service Médico-Social de SARIS-CONGO est un service interne, rattac
+17	8	Normal	0	0	0	111	Ces caractéristiques déterminent les besoins du centre et le périmètre
+18	9	Titre 1	0	0	0	63	CHAPITRE 2 — DOMAINE D’ÉTUDE : LE SYSTÈME D’INFORMATION MÉDICAL
+18	9	Normal	0	0	0	483	Un système d’information médical n’est pas un logiciel de gestion auqu
+18	9	Normal	0	0	0	219	Ce chapitre pose le contexte et la problématique, puis décrit les acte
+18	9	Titre 2	0	0	0	22	2.1 Contexte du projet
+18	9	Normal	0	0	0	204	Le Centre Médico-Sanitaire soigne neuf catégories de personnes, du tra
+18	9	Normal	0	0	0	327	L’étude de l’existant, au chapitre 4, établira l’état de cette organis
+18	9	Titre 2	0	0	0	17	2.2 Problématique
+18	9	Normal	0	0	0	382	Ce contexte pose une question centrale. Comment concevoir et réaliser 
+18	9	Normal	0	0	0	388	Cette question contient une contradiction, qui fait la difficulté du t
+18	9	Titre 2	0	0	0	32	2.3 Les acteurs du suivi médical
+18	9	Normal	0	0	0	111	Le système reconnaît trois acteurs, dont les périmètres de responsabil
+18	9	Légende tableau	0	0	0	0	
+18	9	Normal	0	0	0	6	[SAUT]
+19	10	Légende tableau	0	0	0	0	
+19	10	Légende tableau	0	0	0	54	Tableau 2.1 — Les acteurs du système et leur périmètre
+19	10	Normal	1	0	0	6	Acteur
+19	10	Normal	1	0	0	27	Périmètre de responsabilité
+19	10	Normal	1	0	0	20	Portée de visibilité
+19	10	Normal	1	0	0	0	
+19	10	Normal	1	0	0	12	Médecin Chef
+19	10	Normal	1	0	0	141	Référence clinique du centre : prescrit librement, décide des évacuati
+19	10	Normal	1	0	0	25	Toute l’activité clinique
+19	10	Normal	1	0	0	0	
+19	10	Normal	1	0	0	9	Infirmier
+19	10	Normal	1	0	0	86	Accueil, triage, constantes vitales, consultation. Prescrit uniquement
+19	10	Normal	1	0	0	35	Ses propres consultations seulement
+19	10	Normal	1	0	0	0	
+19	10	Normal	1	0	0	22	Administrateur système
+19	10	Normal	1	0	0	70	Gouvernance de la plateforme : comptes, rôles, paramètres, supervision
+19	10	Normal	1	0	0	6	Totale
+19	10	Normal	1	0	0	0	
+19	10	Normal	0	0	0	0	
+19	10	Normal	0	0	0	295	Deux principes d’organisation se lisent dans ce tableau. Le premier es
+19	10	Normal	0	0	0	315	Le second est la délégation de prescription. L’infirmier possède les d
+19	10	Normal	0	0	0	484	Cette organisation traduit une hiérarchie médicale réelle : l’infirmie
+19	10	Normal	0	0	0	341	Deux caractéristiques des utilisateurs comptent enfin. Le poste d’accu
+19	10	Titre 2	0	0	0	36	2.4 Le fonctionnement sur deux sites
+19	10	Normal	0	0	0	570	Le centre fonctionne sur deux sites distants d’une quinzaine de kilomè
+19	10	Normal	0	0	0	189	Notre réponse est une décision d’architecture forte : le dossier patie
+19	10	Légende tableau	0	0	0	0	
+19	10	Légende tableau	0	0	0	0	
+19	10	Légende tableau	0	0	0	50	Tableau 2.2 — Portée des données selon leur nature
+20	11	Normal	1	0	0	6	Donnée
+20	11	Normal	1	0	0	6	Portée
+20	11	Normal	1	0	0	5	Motif
+20	11	Normal	1	0	0	0	
+20	11	Normal	1	0	0	35	Dossier patient et parcours de soin
+20	11	Normal	1	0	0	7	Globale
+20	11	Normal	1	0	0	66	Continuité entre les sites, y compris hors connexion, sans doublon
+20	11	Normal	1	0	0	0	
+20	11	Normal	1	0	0	21	Référentiels partagés
+20	11	Normal	1	0	0	7	Globale
+20	11	Normal	1	0	0	64	Un motif, une pathologie, un médicament ont le même sens partout
+20	11	Normal	1	0	0	0	
+20	11	Normal	1	0	0	24	Comptes et habilitations
+20	11	Normal	1	0	0	7	Globale
+20	11	Normal	1	0	0	81	Un agent qui tourne doit pouvoir se connecter hors ligne sur n’importe
+20	11	Normal	1	0	0	0	
+20	11	Normal	1	0	0	17	Personnel médical
+20	11	Normal	1	0	0	7	Globale
+20	11	Normal	1	0	0	65	Permet de désigner le soignant d’un acte réalisé sur l’autre site
+20	11	Normal	1	0	0	0	
+20	11	Normal	1	0	0	10	Messagerie
+20	11	Normal	1	0	0	7	Globale
+20	11	Normal	1	0	0	54	Une conversation peut réunir des agents des deux sites
+20	11	Normal	1	0	0	0	
+20	11	Normal	1	0	0	21	Planning et présences
+20	11	Normal	1	0	0	8	Par site
+20	11	Normal	1	0	0	58	Données strictement opérationnelles, propres à chaque site
+20	11	Normal	1	0	0	0	
+20	11	Normal	0	0	0	0	
+20	11	Normal	0	0	0	509	Cette généralisation soulève une objection : si chaque poste détient t
+20	11	Normal	0	0	0	235	Nous avons donc tranché en faveur de la disponibilité de l’information
+20	11	Titre 2	0	0	0	55	2.5 Catégories de patients et règles de prise en charge
+20	11	Normal	0	0	0	258	C’est la règle métier centrale du système : elle explique la majorité 
+20	11	Légende tableau	0	0	0	0	
+20	11	Légende tableau	0	0	0	70	Tableau 2.3 — Les cinq catégories de patients reconnues par le système
+20	11	Normal	1	0	0	9	Catégorie
+20	11	Normal	1	0	0	3	Qui
+20	11	Normal	1	0	0	14	Identification
+20	11	Normal	1	0	0	0	
+20	11	Normal	1	0	0	10	Assuré CDI
+20	11	Normal	1	0	0	43	Travailleur en contrat à durée indéterminée
+20	11	Normal	1	0	0	9	Matricule
+20	11	Normal	1	0	0	0	
+20	11	Normal	1	0	0	15	Ayant droit CDI
+20	11	Normal	1	0	0	45	Membre de la famille rattaché à un assuré CDI
+20	11	Normal	1	0	0	32	Matricule du CDI et type de lien
+20	11	Normal	1	0	0	0	
+20	11	Normal	1	0	0	10	Assuré CDD
+20	11	Normal	1	0	0	41	Travailleur en contrat à durée déterminée
+20	11	Normal	1	0	0	9	Matricule
+20	11	Normal	1	0	0	0	
+20	11	Normal	1	0	0	13	Sous-traitant
+20	11	Normal	1	0	0	40	Travailleur d’une société sous-traitante
+20	11	Normal	1	0	0	25	Rattachement à la société
+20	11	Normal	1	0	0	0	
+20	11	Normal	1	0	0	8	Riverain
+20	11	Normal	1	0	0	44	Personne du voisinage, sans lien contractuel
+20	11	Normal	1	0	0	6	Aucune
+20	11	Normal	1	0	0	0	
+20	11	Normal	0	0	0	0	
+20	11	Normal	0	0	0	573	Le chapitre 1 recensait neuf statuts administratifs ; le système n’en 
+21	12	Normal	0	0	0	104	Les prestations se répartissent en quatre types, et toutes ne sont pas
+21	12	Légende tableau	0	0	0	0	
+21	12	Légende tableau	0	0	0	0	
+21	12	Légende tableau	0	0	0	64	Tableau 2.4 — Prestations ouvertes selon la catégorie de patient
+21	12	Normal	1	0	0	10	Prestation
+21	12	Normal	1	0	0	10	Assuré CDI
+21	12	Normal	1	0	0	15	Ayant droit CDI
+21	12	Normal	1	0	0	10	Assuré CDD
+21	12	Normal	1	0	0	13	Sous-traitant
+21	12	Normal	1	0	0	8	Riverain
+21	12	Normal	1	0	0	0	
+21	12	Normal	1	0	0	12	Consultation
+21	12	Normal	1	0	0	3	Oui
+21	12	Normal	1	0	0	3	Oui
+21	12	Normal	1	0	0	3	Oui
+21	12	Normal	1	0	0	3	Oui
+21	12	Normal	1	0	0	3	Oui
+21	12	Normal	1	0	0	0	
+21	12	Normal	1	0	0	14	Premiers soins
+21	12	Normal	1	0	0	3	Oui
+21	12	Normal	1	0	0	3	Oui
+21	12	Normal	1	0	0	3	Oui
+21	12	Normal	1	0	0	3	Oui
+21	12	Normal	1	0	0	3	Oui
+21	12	Normal	1	0	0	0	
+21	12	Normal	1	0	0	16	Bon de pharmacie
+21	12	Normal	1	0	0	3	Oui
+21	12	Normal	1	0	0	3	Oui
+21	12	Normal	1	0	0	3	Non
+21	12	Normal	1	0	0	3	Non
+21	12	Normal	1	0	0	3	Non
+21	12	Normal	1	0	0	0	
+21	12	Normal	1	0	0	12	Bon d’examen
+21	12	Normal	1	0	0	3	Oui
+21	12	Normal	1	0	0	3	Oui
+21	12	Normal	1	0	0	3	Non
+21	12	Normal	1	0	0	3	Non
+21	12	Normal	1	0	0	3	Non
+21	12	Normal	1	0	0	0	
+21	12	Normal	0	0	0	0	
+21	12	Normal	0	0	0	398	Ce tableau se prête à un contresens. Personne n’est refusé aux soins :
+21	12	Normal	0	0	0	310	Il faut donc distinguer deux documents que l’on confond aisément. L’or
+21	12	Normal	0	0	0	387	Un riverain reçoit donc une ordonnance s’il en a besoin, mais l’honore
+21	12	Titre 2	0	0	0	21	2.6 Intérêts du sujet
+21	12	Normal	0	0	0	416	Le sujet présente d’abord un intérêt pratique pour le Centre Médico-Sa
+21	12	Normal	0	0	0	448	Il présente ensuite un intérêt académique : le projet a exigé une déma
+21	12	Normal	0	0	0	494	Il présente enfin un intérêt méthodologique, plus modeste : il documen
+22	13	Titre 2	0	0	0	44	2.7 Situation du travail dans la littérature
+22	13	Normal	0	0	0	771	Cinq références encadrent ce travail. En 2025, l’Organisation mondiale
+22	13	Normal	0	0	0	411	En 2024, Traore et alii ont analysé, dans le Pan African Medical Journ
+22	13	Normal	0	0	0	476	Sur le plan technique, les travaux de Shapiro, Preguiça, Baquero et Za
+22	13	Normal	0	0	0	265	Ces références convergent vers la question que nous traitons. En quoi 
+22	13	Titre 2	0	0	0	41	2.8 Périmètre retenu et solution proposée
+22	13	Normal	0	0	0	461	Le recueil de l’existant a produit dix-huit besoins, répartis sur troi
+22	13	Normal	0	0	0	117	Nous avons donc sélectionné un périmètre : le parcours de soin, de l’a
+22	13	Légende tableau	0	0	0	48	Tableau 2.5 — Contenu du parcours de soin retenu
+22	13	Normal	1	0	0	5	Étape
+22	13	Normal	1	0	0	7	Contenu
+22	13	Normal	1	0	0	0	
+22	13	Normal	1	0	0	17	Triage et accueil
+22	13	Normal	1	0	0	84	Identification, statut, mode de vie, antécédents, constantes vitales, 
+22	13	Normal	1	0	0	0	
+22	13	Normal	1	0	0	12	Consultation
+22	13	Normal	1	0	0	50	Anamnèse, examen clinique, diagnostics, conclusion
+22	13	Normal	1	0	0	0	
+22	13	Normal	1	0	0	15	Décision finale
+22	13	Normal	1	0	0	39	Clôture guidée par la décision médicale
+22	13	Normal	1	0	0	0	
+22	13	Normal	1	0	0	24	Génération des documents
+22	13	Normal	1	0	0	83	Ordonnance, bon de pharmacie, bon d’examen, certificat de repos, fiche
+22	13	Normal	1	0	0	0	
+23	14	Normal	0	0	0	0	
+23	14	Normal	0	0	0	299	Ce choix correspond exactement au processus formalisé par le Médecin C
+23	14	Normal	0	0	0	622	S’y ajoutent dix fonctions transverses : le dossier patient centralisé
+23	14	Légende tableau	0	0	0	53	Tableau 2.6 — Domaines écartés du périmètre et motifs
+23	14	Normal	1	0	0	6	Écarté
+23	14	Normal	1	0	0	5	Motif
+23	14	Normal	1	0	0	0	
+23	14	Normal	1	0	0	31	Gestion de stock pharmaceutique
+23	14	Normal	1	0	0	162	Métier distinct : prix fournisseur, coffrets génériques, seuils de réa
+23	14	Normal	1	0	0	0	
+23	14	Normal	1	0	0	28	Facturation et refacturation
+23	14	Normal	1	0	0	126	Le système modélise des droits d’accès aux prestations, non des droits
+23	14	Normal	1	0	0	0	
+23	14	Normal	1	0	0	37	Processus administratifs du personnel
+23	14	Normal	1	0	0	87	Relèvent de la Section des Affaires Sociales et de la Direction des Re
+23	14	Normal	1	0	0	0	
+23	14	Normal	1	0	0	31	Volet financier des évacuations
+23	14	Normal	1	0	0	104	Le système gère la décision médicale et le suivi clinique, le bon de c
+23	14	Normal	1	0	0	0	
+23	14	Normal	1	0	0	26	Consultations spécialisées
+23	14	Normal	1	0	0	48	Pôle distinct, avec un parcours de triage allégé
+23	14	Normal	1	0	0	0	
+23	14	Normal	1	0	0	50	Radiologie, laboratoire, maternité, kinésithérapie
+23	14	Normal	1	0	0	32	Quatre pôles distincts du centre
+23	14	Normal	1	0	0	0	
+23	14	Normal	0	0	0	0	
+23	14	Normal	0	0	0	414	Trois besoins de priorité haute restent donc sans réponse : le suivi d
+23	14	Normal	0	0	0	431	Notre solution est donc une plateforme interne de gestion médico-sanit
+23	14	Titre 2	0	0	0	26	2.9 Concepts liés au sujet
+23	14	Normal	0	0	0	78	Les termes suivants sont employés dans un sens précis tout au long du 
+23	14	Légende tableau	0	0	0	0	
+23	14	Légende tableau	0	0	0	48	Tableau 2.7 — Concepts mobilisés dans ce mémoire
+24	15	Normal	1	0	0	7	Concept
+24	15	Normal	1	0	0	18	Définition retenue
+24	15	Normal	1	0	0	0	
+24	15	Normal	1	0	0	15	Dossier patient
+24	15	Normal	1	0	0	133	Ensemble consolidé des informations concernant une personne : identité
+24	15	Normal	1	0	0	0	
+24	15	Normal	1	0	0	6	Visite
+24	15	Normal	1	0	0	94	Passage d’un patient au centre. Unité de travail créée à l’accueil, cl
+24	15	Normal	1	0	0	0	
+24	15	Normal	1	0	0	6	Triage
+24	15	Normal	1	0	0	94	Étape d’accueil et d’enregistrement, ici par ordre d’arrivée, sans not
+24	15	Normal	1	0	0	0	
+24	15	Normal	1	0	0	12	Consultation
+24	15	Normal	1	0	0	105	Acte clinique conduit pendant une visite, aboutissant à une conclusion
+24	15	Normal	1	0	0	0	
+24	15	Normal	1	0	0	10	Ordonnance
+24	15	Normal	1	0	0	64	Document de prescription. Non restreint par catégorie de patient
+24	15	Normal	1	0	0	0	
+24	15	Normal	1	0	0	22	Bon de prise en charge
+24	15	Normal	1	0	0	88	Document ouvrant droit au retrait de médicaments ou à un examen. Restr
+24	15	Normal	1	0	0	0	
+24	15	Normal	1	0	0	10	Évacuation
+24	15	Normal	1	0	0	63	Orientation d’un patient vers une structure de soins supérieure
+24	15	Normal	1	0	0	0	
+24	15	Normal	1	0	0	20	Catégorie de patient
+24	15	Normal	1	0	0	69	Classement administratif déterminant les prestations prises en charge
+24	15	Normal	1	0	0	0	
+24	15	Normal	1	0	0	26	Délégation de prescription
+24	15	Normal	1	0	0	103	Autorisation temporaire, accordée par le médecin chef à un infirmier, 
+24	15	Normal	1	0	0	0	
+24	15	Normal	1	0	0	29	Fonctionnement hors connexion
+24	15	Normal	1	0	0	104	Approche où le fonctionnement sans réseau constitue le cas nominal, la
+24	15	Normal	1	0	0	0	
+24	15	Normal	1	0	0	15	Synchronisation
+24	15	Normal	1	0	0	102	Rapprochement des données d’un poste local et du serveur central, par 
+24	15	Normal	1	0	0	0	
+24	15	Normal	1	0	0	21	Résolution de conflit
+24	15	Normal	1	0	0	70	Arbitrage entre deux modifications concurrentes du même enregistrement
+24	15	Normal	1	0	0	0	
+24	15	Normal	1	0	0	19	Suppression logique
+24	15	Normal	1	0	0	103	Marquage d’un enregistrement comme supprimé sans effacement, afin que 
+24	15	Normal	1	0	0	0	
+24	15	Normal	1	0	0	11	Traçabilité
+24	15	Normal	1	0	0	65	Capacité à établir après coup qui a fait quoi, quand et depuis où
+24	15	Normal	1	0	0	0	
+24	15	Normal	1	0	0	12	Habilitation
+24	15	Normal	1	0	0	89	Ensemble des droits d’un agent, résultant de son rôle et de ses déroga
+24	15	Normal	1	0	0	0	
+24	15	Normal	1	0	0	17	Verrou de dossier
+24	15	Normal	1	0	0	105	Restriction d’accès posée par le médecin chef sur un dossier sensible,
+24	15	Normal	1	0	0	0	
+24	15	Titre 2	0	0	0	22	Conclusion du chapitre
+24	15	Normal	0	0	0	402	Le suivi médical repose sur une hiérarchie où l’infirmier agit sous dé
+24	15	Normal	0	0	0	286	Une règle d’éligibilité distingue enfin le soin, ouvert à tous, de la 
+25	16	Normal	0	0	0	0	
+25	16	Normal	0	0	0	0	
+25	16	Normal	0	0	0	0	
+25	16	Normal	0	0	0	0	
+25	16	Normal	0	0	0	0	
+25	16	Normal	0	0	0	0	
+25	16	Normal	0	0	0	0	
+25	16	Normal	0	0	0	0	
+25	16	Normal	0	0	0	0	
+25	16	Normal	0	0	0	0	
+25	16	Normal	0	0	0	0	
+25	16	Normal	0	0	0	0	
+25	16	Normal	0	0	0	0	
+25	16	Normal	0	0	0	0	
+25	16	Normal	0	1	0	1	/
+25	16	Titre 1	0	0	0	76	DEUXIÈME PARTIE — ANALYSE, CONCEPTION ET RÉALISATION SELON 2TUP COUPLÉ
+25	16	Normal	0	1	0	1	/
+26	17	Titre 1	0	0	0	56	CHAPITRE 3 — DÉMARCHE MÉTHODOLOGIQUE : 2TUP COUPLÉ À UML
+26	17	Normal	0	0	0	461	Concevoir un système d’information médical ne se résume pas à écrire d
+26	17	Normal	0	0	0	136	Ce chapitre présente la démarche retenue — le Processus Unifié dans sa
+26	17	Titre 2	0	0	0	23	3.1 Le Processus Unifié
+26	17	Normal	0	0	0	300	Le Processus Unifié est un cadre de développement logiciel formalisé à
+26	17	Normal	0	0	0	380	Il est piloté par les cas d’utilisation : le besoin est décrit comme u
+26	17	Normal	0	0	0	291	Il est itératif et incrémental : il procède par cycles courts, qui tra
+26	17	Légende tableau	0	0	0	0	
+26	17	Légende tableau	0	0	0	51	Tableau 3.1 — Les quatre phases du Processus Unifié
+26	17	Normal	1	0	0	5	Phase
+26	17	Normal	1	0	0	5	Objet
+26	17	Normal	1	0	0	17	Critère de sortie
+26	17	Normal	1	0	0	0	
+26	17	Normal	1	0	0	9	Inception
+26	17	Normal	1	0	0	103	Cerner le périmètre, identifier les acteurs et les cas d’utilisation p
+26	17	Normal	1	0	0	46	Accord sur le périmètre et les risques majeurs
+26	17	Normal	1	0	0	0	
+26	17	Normal	1	0	0	11	Élaboration
+26	17	Normal	1	0	0	98	Stabiliser l’architecture, détailler les cas d’utilisation critiques, 
+26	17	Normal	1	0	0	31	Architecture exécutable validée
+26	17	Normal	1	0	0	0	
+26	17	Normal	1	0	0	12	Construction
+26	17	Normal	1	0	0	56	Réaliser l’essentiel des fonctionnalités, par itérations
+26	17	Normal	1	0	0	24	Système complet et testé
+26	17	Normal	1	0	0	0	
+26	17	Normal	1	0	0	10	Transition
+26	17	Normal	1	0	0	26	Déployer, former, corriger
+26	17	Normal	1	0	0	37	Système utilisé par ses destinataires
+26	17	Normal	1	0	0	0	
+26	17	Normal	0	0	0	0	
+26	17	Normal	0	0	0	210	La répartition de l’effort est déséquilibrée à dessein. L’inception et
+27	18	Titre 2	0	0	0	27	3.2 2TUP, un processus en Y
+27	18	Normal	0	0	0	504	2TUP est une déclinaison pratique du Processus Unifié, popularisée en 
+27	18	Normal	0	0	0	834	Mêler ces deux natures de contraintes dès le départ produit un défaut 
+28	19	Normal	0	1	0	1	/
+28	19	Normal	0	0	0	0	
+28	19	Légende	0	0	0	46	Figure 3.1 — Cycle de développement selon 2TUP
+28	19	Normal	0	0	0	6	[SAUT]
+29	20	Normal	0	0	0	225	La branche fonctionnelle part du métier et l’épure de toute considérat
+29	20	Normal	0	0	0	237	Dans notre projet, elle a permis d’identifier trois acteurs, de décrir
+29	20	Normal	0	0	0	438	Cette règle est purement métier : aucune considération technique n’int
+29	20	Normal	0	0	0	321	C’est de cette branche que proviennent nos décisions structurantes : u
+29	20	Normal	0	0	0	381	La branche technique contraint la branche fonctionnelle, mais tardivem
+29	20	Normal	0	0	0	496	Les deux branches se rejoignent à la conception préliminaire, où le mo
+30	21	Titre 2	0	0	0	42	3.3 UML, le langage de modélisation retenu
+30	21	Normal	0	1	0	1	/
+30	21	Normal	0	0	0	682	Un langage de modélisation est une notation qui décrit un système selo
+30	21	Normal	0	0	0	663	Sa limite est qu’un diagramme UML ne prouve rien : il communique une i
+30	21	Légende tableau	0	0	0	0	
+30	21	Légende tableau	0	0	0	45	Tableau 3.2 — Les sept diagrammes UML retenus
+30	21	Normal	1	0	0	9	Diagramme
+30	21	Normal	1	0	0	29	Question à laquelle il répond
+30	21	Normal	1	0	0	8	Chapitre
+30	21	Normal	1	0	0	0	
+30	21	Normal	1	0	0	17	Contexte statique
+30	21	Normal	1	0	0	50	Où s’arrête le système, et avec qui échange-t-il ?
+30	21	Normal	1	0	0	1	5
+30	21	Normal	1	0	0	0	
+30	21	Normal	1	0	0	17	Cas d’utilisation
+30	21	Normal	1	0	0	31	Qui fait quoi avec le système ?
+30	21	Normal	1	0	0	1	5
+30	21	Normal	1	0	0	0	
+31	22	Normal	1	0	0	16	Séquence système
+31	22	Normal	1	0	0	73	Dans quel ordre l’acteur et le système échangent-ils, vu de l’extérieu
+31	22	Normal	1	0	0	1	5
+31	22	Normal	1	0	0	0	
+31	22	Normal	1	0	0	8	Activité
+31	22	Normal	1	0	0	78	Comment s’enchaînaient les étapes du processus antérieur, avec ses déc
+31	22	Normal	1	0	0	1	4
+31	22	Normal	1	0	0	0	
+31	22	Normal	1	0	0	7	Classes
+31	22	Normal	1	0	0	65	Quelles sont les entités du domaine et comment se relient-elles ?
+31	22	Normal	1	0	0	1	7
+31	22	Normal	1	0	0	0	
+31	22	Normal	1	0	0	10	Composants
+31	22	Normal	1	0	0	51	De quels blocs déployables le système est-il fait ?
+31	22	Normal	1	0	0	1	7
+31	22	Normal	1	0	0	0	
+31	22	Normal	1	0	0	11	Déploiement
+31	22	Normal	1	0	0	48	Sur quelles machines ces blocs s’exécutent-ils ?
+31	22	Normal	1	0	0	1	7
+31	22	Normal	1	0	0	0	
+31	22	Normal	0	0	0	0	
+31	22	Normal	0	0	0	621	Nous avons écarté quatre diagrammes fréquents. Le diagramme d’états-tr
+31	22	Titre 2	0	0	0	47	3.4 Justification du choix de 2TUP couplé à UML
+31	22	Normal	0	0	0	438	Trois caractéristiques du projet ont commandé notre choix. La première
+31	22	Normal	0	0	0	497	La deuxième est la taille du projet et de l’équipe : deux étudiants et
+31	22	Légende tableau	0	0	0	0	
+31	22	Légende tableau	0	0	0	54	Tableau 3.3 — Comparaison de 2TUP avec Merise et Scrum
+31	22	Normal	1	0	0	7	Critère
+31	22	Normal	1	0	0	6	Merise
+31	22	Normal	1	0	0	5	Scrum
+31	22	Normal	1	0	0	4	2TUP
+31	22	Normal	1	0	0	0	
+31	22	Normal	1	0	0	6	Nature
+31	22	Normal	1	0	0	52	Méthode d’analyse et de conception, orientée données
+31	22	Normal	1	0	0	32	Cadre de gestion de projet agile
+31	22	Normal	1	0	0	40	Processus de développement orienté objet
+31	22	Normal	1	0	0	0	
+31	22	Normal	1	0	0	18	Approche dominante
+31	22	Normal	1	0	0	24	Données puis traitements
+31	22	Normal	1	0	0	44	Livraison incrémentale pilotée par la valeur
+31	22	Normal	1	0	0	33	Cas d’utilisation et architecture
+31	22	Normal	1	0	0	0	
+31	22	Normal	1	0	0	18	Modélisation objet
+31	22	Normal	1	0	0	30	Non, modèle entité-association
+31	22	Normal	1	0	0	13	Non prescrite
+31	22	Normal	1	0	0	20	Oui, native, via UML
+31	22	Normal	1	0	0	0	
+31	22	Normal	1	0	0	31	Traite l’architecture technique
+31	22	Normal	1	0	0	3	Peu
+31	22	Normal	1	0	0	13	Non prescrite
+31	22	Normal	1	0	0	19	Oui, branche dédiée
+31	22	Normal	1	0	0	0	
+31	22	Normal	1	0	0	27	Adapté à une équipe de deux
+31	22	Normal	1	0	0	3	Oui
+31	22	Normal	1	0	0	47	Difficilement, les rituels supposent une équipe
+31	22	Normal	1	0	0	3	Oui
+31	22	Normal	1	0	0	0	
+32	23	Normal	1	0	0	24	Documentation soutenable
+32	23	Normal	1	0	0	3	Oui
+32	23	Normal	1	0	0	14	Non par nature
+32	23	Normal	1	0	0	3	Oui
+32	23	Normal	1	0	0	0	
+32	23	Normal	1	0	0	20	Adéquation au projet
+32	23	Normal	1	0	0	7	Moyenne
+32	23	Normal	1	0	0	6	Faible
+32	23	Normal	1	0	0	5	Forte
+32	23	Normal	1	0	0	0	
+32	23	Normal	0	0	0	0	
+32	23	Normal	0	0	0	302	Merise reste solide pour concevoir une base de données, et son modèle 
+32	23	Normal	0	0	0	434	Scrum est un cadre de gestion, non une méthode de conception : il orga
+32	23	Normal	0	0	0	538	2TUP offre donc le meilleur compromis : la rigueur de modélisation du 
+32	23	Normal	0	0	0	266	De même, le caractère itératif du Processus Unifié suppose des retours
+32	23	Titre 2	0	0	0	46	3.5 Déroulement de la démarche dans ce mémoire
+32	23	Normal	0	0	0	213	Cette démarche gouverne l’organisation de la suite du document : chaqu
+32	23	Normal	0	0	0	202	L’étude préliminaire occupe le chapitre 4 : elle recueille l’existant,
+32	23	Normal	0	0	0	237	La branche fonctionnelle occupe le chapitre 5 : elle tire des processu
+32	23	Normal	0	0	0	211	La branche technique occupe le chapitre 6 : elle part des contraintes 
+32	23	Normal	0	0	0	176	La convergence occupe le chapitre 7 : le modèle du métier y est projet
+32	23	Normal	0	0	0	297	Deux points du Processus Unifié ne reçoivent pas de chapitre propre. L
+33	24	Titre 2	0	0	0	22	Conclusion du chapitre
+33	24	Normal	0	0	0	444	Le Processus Unifié fournit les principes : pilotage par les cas d’uti
+34	25	Titre 1	0	0	0	55	BRANCHE FONCTIONNELLE — DU MÉTIER AUX CAS D’UTILISATION
+35	26	Titre 1	0	0	0	32	CHAPITRE 4 — ÉTUDE DE L’EXISTANT
+35	26	Normal	0	0	0	263	Ce chapitre constitue l’étude préliminaire de 2TUP. Il décrit les proc
+35	26	Normal	0	0	0	456	Nous nous appuyons sur deux sources. Le recueil de l’existant, produit
+35	26	Titre 2	0	0	0	45	4.1 Démarche du recueil et sources mobilisées
+35	26	Normal	0	0	0	478	Nous avons collecté ces données par entretien semi-directif, auprès de
+35	26	Normal	0	0	0	439	L’entretien semi-directif laisse en outre place à ce qui n’était pas p
+35	26	Légende tableau	0	0	0	69	Tableau 4.1 — Interlocuteurs rencontrés lors du recueil de l’existant
+35	26	Normal	1	0	0	6	Acteur
+35	26	Normal	1	0	0	20	Périmètre de gestion
+35	26	Normal	1	0	0	36	Lien avec le Centre Médico-Sanitaire
+35	26	Normal	1	0	0	0	
+35	26	Normal	1	0	0	57	Gestionnaire des ressources humaines et du service social
+35	26	Normal	1	0	0	105	Évacuations sanitaires, remboursements pharmaceutiques, accidents de t
+35	26	Normal	1	0	0	82	Reçoit les documents médicaux, les traite administrativement et les va
+35	26	Normal	1	0	0	0	
+35	26	Normal	1	0	0	12	Pharmacienne
+35	26	Normal	1	0	0	104	Stock de médicaments, dispensation, facturation par catégorie, rapport
+35	26	Normal	1	0	0	87	Produit ses rapports et les transmet au médecin, qui les centralise po
+35	26	Normal	1	0	0	0	
+35	26	Normal	1	0	0	12	Médecin Chef
+35	26	Normal	1	0	0	125	Consultations, supervision médicale de tous les services, gestion admi
+35	26	Normal	1	0	0	62	Dirige le Service Médico-Social et tourne entre les deux sites
+35	26	Normal	1	0	0	0	
+35	26	Normal	1	0	0	10	Infirmière
+35	26	Normal	1	0	0	36	Triage et prise en charge infirmière
+35	26	Normal	1	0	0	59	Premier point de contact de tout patient arrivant au centre
+35	26	Normal	1	0	0	0	
+35	26	Normal	0	0	0	225	Notre choix d’interlocuteurs n’est pas exhaustif de l’effectif du cent
+36	27	Normal	0	0	0	629	Le recueil a aussi ses limites, que nous énonçons ici une fois pour to
+36	27	Titre 2	0	0	0	41	4.2 Les processus métier soumis à l’étude
+36	27	Normal	0	0	0	227	Le domaine couvert par ce travail est le domaine médical du Service Mé
+36	27	Légende tableau	0	0	0	70	Tableau 4.2 — Les trois domaines fonctionnels du Service Médico-Social
+36	27	Normal	1	0	0	7	Domaine
+36	27	Normal	1	0	0	9	Porté par
+36	27	Normal	1	0	0	17	Dans le périmètre
+36	27	Normal	1	0	0	0	
+36	27	Normal	1	0	0	49	Soins : consultation, triage, décision, documents
+36	27	Normal	1	0	0	23	Centre Médico-Sanitaire
+36	27	Normal	1	0	0	3	Oui
+36	27	Normal	1	0	0	0	
+36	27	Normal	1	0	0	60	Logistique pharmaceutique : stock, dispensation, facturation
+36	27	Normal	1	0	0	19	Pharmacie du centre
+36	27	Normal	1	0	0	3	Non
+36	27	Normal	1	0	0	0	
+36	27	Normal	1	0	0	68	Administration du personnel : évacuations, remboursements, accidents
+36	27	Normal	1	0	0	29	Section des Affaires Sociales
+36	27	Normal	1	0	0	3	Non
+36	27	Normal	1	0	0	0	
+36	27	Normal	0	0	0	0	
+36	27	Normal	0	0	0	334	Cette délimitation est justifiée au chapitre 2. L’existence d’un schém
+36	27	Titre 2	0	0	0	48	4.3 Le processus de consultation avant le projet
+36	27	Normal	0	0	0	371	Le processus antérieur est représenté sur deux planches : la Figure 4.
+37	28	Normal	0	1	0	1	/
+37	28	Normal	0	0	0	0	
+37	28	Légende	0	0	0	85	Figure 4.1 — Diagramme d’activité du processus antérieur : triage et r
+37	28	Normal	0	0	0	6	[SAUT]
+38	29	Normal	0	1	0	1	/
+38	29	Normal	0	0	0	0	
+38	29	Légende	0	0	0	92	Figure 4.2 — Diagramme d’activité du processus antérieur : consultatio
+38	29	Normal	0	0	0	6	[SAUT]
+39	30	Normal	0	0	0	364	La première étape est le triage et l’accueil par l’infirmière : elle r
+39	30	Normal	0	0	0	442	La deuxième étape est l’anamnèse, en quatre questions : date de début 
+39	30	Normal	0	0	0	434	À l’issue de cet examen, l’infirmière évalue la complexité du cas. Si 
+39	30	Normal	0	0	0	397	Pour les consultations spécialisées, le triage est allégé : l’infirmiè
+39	30	Normal	0	0	0	331	Cette délégation autorise la conduite d’une consultation complète pour
+39	30	Normal	0	0	0	447	Une règle absolue l’encadre : « dès qu’un doute ou une complexité appa
+39	30	Légende tableau	0	0	0	64	Tableau 4.3 — Règle de confidentialité appliquée avant le projet
+39	30	Normal	1	0	0	6	Acteur
+39	30	Normal	1	0	0	14	Niveau d’accès
+39	30	Normal	1	0	0	20	Justification donnée
+39	30	Normal	1	0	0	0	
+39	30	Normal	1	0	0	12	Médecin Chef
+39	30	Normal	1	0	0	36	Accès complet à l’historique médical
+39	30	Normal	1	0	0	48	Responsabilité médicale totale et secret médical
+39	30	Normal	1	0	0	0	
+39	30	Normal	1	0	0	9	Infirmier
+39	30	Normal	1	0	0	48	Uniquement le résumé de la consultation en cours
+39	30	Normal	1	0	0	54	Ne voit que ce qui est nécessaire à sa tâche immédiate
+39	30	Normal	1	0	0	0	
+39	30	Normal	1	0	0	31	Service des ressources humaines
+39	30	Normal	1	0	0	69	Informations administratives seulement, sans accès au dossier médical
+39	30	Normal	1	0	0	56	Séparation entre données médicales et données de gestion
+39	30	Normal	1	0	0	0	
+39	30	Normal	0	0	0	0	
+39	30	Normal	0	0	0	207	Cette règle existait donc avant le projet, mais aucun dispositif techn
+40	31	Titre 2	0	0	0	60	4.4 L’organisation informatique et le personnel qui la porte
+40	31	Normal	0	0	0	294	Le Service Informatique de SARIS-CONGO est rattaché à la Direction Adm
+40	31	Légende tableau	0	0	0	55	Tableau 4.4 — La structure informatique à trois niveaux
+40	31	Normal	1	0	0	6	Niveau
+40	31	Normal	1	0	0	6	Entité
+40	31	Normal	1	0	0	4	Rôle
+40	31	Normal	1	0	0	0	
+40	31	Normal	1	0	0	10	Entreprise
+40	31	Normal	1	0	0	35	Service Informatique de SARIS-CONGO
+40	31	Normal	1	0	0	59	Infrastructure, maintenance, support, développement interne
+40	31	Normal	1	0	0	0	
+40	31	Normal	1	0	0	6	Groupe
+40	31	Normal	1	0	0	23	SOMINFOR, basée à Paris
+40	31	Normal	1	0	0	62	Architecture, applications de gestion du groupe, cybersécurité
+40	31	Normal	1	0	0	0	
+40	31	Normal	1	0	0	6	Groupe
+40	31	Normal	1	0	0	28	AFRIK IT, membre de SOMINFOR
+40	31	Normal	1	0	0	53	Interventions préventives et curatives sur le terrain
+40	31	Normal	1	0	0	0	
+40	31	Normal	0	0	0	0	
+40	31	Normal	0	0	0	340	Ce service compte sept personnes, réparties en deux sections. La secti
+40	31	Légende tableau	0	0	0	59	Tableau 4.5 — Effectif du personnel du Service Informatique
+40	31	Normal	1	0	0	5	Poste
+40	31	Normal	1	0	0	7	Section
+40	31	Normal	1	0	0	6	Nombre
+40	31	Normal	1	0	0	0	
+40	31	Normal	1	0	0	28	Chef du Service Informatique
+40	31	Normal	1	0	0	9	Direction
+40	31	Normal	1	0	0	1	1
+40	31	Normal	1	0	0	0	
+40	31	Normal	1	0	0	41	Technicien réseau, système et maintenance
+40	31	Normal	1	0	0	17	Réseau et système
+40	31	Normal	1	0	0	1	2
+40	31	Normal	1	0	0	0	
+40	31	Normal	1	0	0	19	Opérateur de saisie
+40	31	Normal	1	0	0	6	Saisie
+40	31	Normal	1	0	0	1	3
+40	31	Normal	1	0	0	0	
+40	31	Normal	1	0	0	40	Administrateur système détaché du groupe
+40	31	Normal	1	0	0	17	Réseau et système
+40	31	Normal	1	0	0	1	1
+40	31	Normal	1	0	0	0	
+40	31	Normal	1	0	0	24	Développeur informatique 
+40	31	Normal	1	0	0	26	Développement informatique
+40	31	Normal	1	0	0	1	0
+40	31	Normal	1	0	0	0	
+40	31	Normal	1	0	0	12	Data Analyst
+40	31	Normal	1	0	0	40	Analyse des données et prise de décision 
+40	31	Normal	1	0	0	1	0
+40	31	Normal	1	0	0	0	
+40	31	Normal	1	0	0	5	Total
+40	31	Normal	1	0	0	0	
+40	31	Normal	1	0	0	1	7
+40	31	Normal	1	0	0	0	
+40	31	Normal	0	0	0	0	
+40	31	Normal	0	0	0	197	Deux postes figurent à l’effectif sans être pourvus : celui de dévelop
+40	31	Normal	0	0	0	456	Le service informatique dépend de la Direction Administrative et Finan
+40	31	Normal	0	0	0	136	Le centre disposait donc d’un service informatique compétent à l’échel
+40	31	Titre 2	0	0	0	47	4.5 L’infrastructure réseau et le parc matériel
+40	31	Normal	0	0	0	247	Comme l’établit le chapitre 1, aucun système d’information ne reliait 
+41	32	Normal	0	0	0	421	Nous versons cependant au dossier une observation indirecte. L’archite
+41	32	Normal	0	0	0	0	
+41	32	Normal	0	0	0	283	Le parc recensé couvre l’ensemble des implantations de SARIS-CONGO, et
+41	32	Légende tableau	0	0	0	50	Tableau 4.6 — Parc matériel informatique, par type
+41	32	Normal	1	0	0	16	Type de matériel
+41	32	Normal	1	0	0	16	Caractéristiques
+41	32	Normal	1	0	0	15	Usage principal
+41	32	Normal	1	0	0	0	
+41	32	Normal	1	0	0	18	Serveurs physiques
+41	32	Normal	1	0	0	52	Windows Server, progiciel de gestion sur système IBM
+41	32	Normal	1	0	0	49	Applications de gestion, base de données centrale
+41	32	Normal	1	0	0	0	
+41	32	Normal	1	0	0	17	Postes de travail
+41	32	Normal	1	0	0	24	Windows 10 et Windows 11
+41	32	Normal	1	0	0	40	Bureautique, saisie, applications métier
+41	32	Normal	1	0	0	0	
+41	32	Normal	1	0	0	24	Commutateurs et routeurs
+41	32	Normal	1	0	0	17	Équipements Cisco
+41	32	Normal	1	0	0	29	Infrastructure réseau filaire
+41	32	Normal	1	0	0	0	
+41	32	Normal	1	0	0	23	Points d’accès sans fil
+41	32	Normal	1	0	0	18	Wi-Fi 5 et Wi-Fi 6
+41	32	Normal	1	0	0	43	Couverture des bureaux et du centre médical
+41	32	Normal	1	0	0	0	
+41	32	Normal	1	0	0	9	Onduleurs
+41	32	Normal	1	0	0	32	Modèles de marque et équivalents
+41	32	Normal	1	0	0	41	Protection contre les coupures de courant
+41	32	Normal	1	0	0	0	
+41	32	Normal	1	0	0	18	Imprimantes réseau
+41	32	Normal	1	0	0	27	Laser monochrome et couleur
+41	32	Normal	1	0	0	36	Documents administratifs et médicaux
+41	32	Normal	1	0	0	0	
+41	32	Normal	0	0	0	0	
+41	32	Normal	0	0	0	450	Trois observations conditionnent le déploiement. Les postes fonctionne
+41	32	Normal	0	0	0	237	Nous n’avons inventorié ni les quantités, ni la répartition, ni l’état
+41	32	Titre 2	0	0	0	39	4.6 Les applications et outils en usage
+41	32	Normal	0	0	0	99	SARIS-CONGO exploite un parc applicatif structuré, administré au nivea
+41	32	Légende tableau	0	0	0	67	Tableau 4.7 — Applications en production, par fonction d’entreprise
+41	32	Normal	1	0	0	11	Application
+41	32	Normal	1	0	0	17	Fonction couverte
+41	32	Normal	1	0	0	0	
+41	32	Normal	1	0	0	44	Progiciel de gestion intégré sur système IBM
+41	32	Normal	1	0	0	46	Gestion financière, comptabilité, paie, stocks
+41	32	Normal	1	0	0	0	
+41	32	Normal	1	0	0	20	Messagerie du groupe
+41	32	Normal	1	0	0	21	Communication interne
+41	32	Normal	1	0	0	0	
+41	32	Normal	1	0	0	34	Protection des postes (Anti-virus) 
+41	32	Normal	1	0	0	29	Postes de travail et serveurs
+41	32	Normal	1	0	0	0	
+41	32	Normal	1	0	0	44	Suite bureautique : package Microsoft office
+41	32	Normal	1	0	0	37	Rédaction, tableaux de bord, rapports
+41	32	Normal	1	0	0	0	
+42	33	Normal	1	0	0	25	Gestion du centre médical
+42	33	Normal	1	0	0	34	Aucune application, support papier
+42	33	Normal	1	0	0	0	
+42	33	Normal	0	0	0	0	
+42	33	Normal	0	0	0	560	Le rapport de stage est sans ambiguïté : la gestion du Centre Médico-S
+42	33	Légende tableau	0	0	0	63	Tableau 4.8 — Outils en usage au centre médical avant le projet
+42	33	Normal	1	0	0	8	Fonction
+42	33	Normal	1	0	0	14	Outil en usage
+42	33	Normal	1	0	0	6	Détail
+42	33	Normal	1	0	0	0	
+42	33	Normal	1	0	0	13	Suivi médical
+42	33	Normal	1	0	0	14	Aucun logiciel
+42	33	Normal	1	0	0	42	Carnet de santé papier, classeur, registre
+42	33	Normal	1	0	0	0	
+42	33	Normal	1	0	0	22	Statistiques médicales
+42	33	Normal	1	0	0	28	Tableur, local à chaque site
+42	33	Normal	1	0	0	43	Comptages effectués a posteriori, à la main
+42	33	Normal	1	0	0	0	
+42	33	Normal	1	0	0	31	Gestion de stock pharmaceutique
+42	33	Normal	1	0	0	38	Fichier tableur « Mouvement de stock »
+42	33	Normal	1	0	0	76	En usage depuis des années, codification par couleurs développée en pr
+42	33	Normal	1	0	0	0	
+42	33	Normal	1	0	0	26	Facturation pharmaceutique
+42	33	Normal	1	0	0	42	Tableur, après abandon d’un logiciel dédié
+42	33	Normal	1	0	0	40	Logiciel abandonné pour perte de données
+42	33	Normal	1	0	0	0	
+42	33	Normal	1	0	0	37	Ressources humaines et service social
+42	33	Normal	1	0	0	30	Papier et transmission verbale
+42	33	Normal	1	0	0	50	Feuilles de repos, ordonnances, reçus, certificats
+42	33	Normal	1	0	0	0	
+42	33	Normal	1	0	0	17	Gestion des accès
+42	33	Normal	1	0	0	6	Aucune
+42	33	Normal	1	0	0	51	Un poste, un fichier partagé, sans authentification
+42	33	Normal	1	0	0	0	
+42	33	Normal	0	0	0	0	
+42	33	Normal	0	0	0	410	Le cas du fichier « Mouvement de stock » documente un défaut d’une gra
+42	33	Normal	0	0	0	250	Ce n’est donc pas un outil imparfait, mais un outil qui ne remplit pas
+42	33	Normal	0	0	0	416	Une question technique reste ouverte. Le service des ressources humain
+42	33	Titre 2	0	0	0	36	4.7 La gestion des données médicales
+42	33	Normal	0	0	0	536	Quatre supports se partageaient l’information médicale : le carnet de 
+43	34	Normal	0	0	0	335	Trois conséquences en découlent. Entre les étapes d’une même visite, l
+43	34	Normal	0	0	0	477	Les échanges entre le centre et le service des ressources humaines pas
+43	34	Normal	0	0	0	355	Il apporte une nuance essentielle : la fiabilité « repose essentiellem
+43	34	Titre 2	0	0	0	35	4.8 Les dix-huit besoins recueillis
+43	34	Normal	0	0	0	311	Les entretiens ont produit dix-huit besoins, dont huit de priorité hau
+43	34	Normal	0	0	0	87	Un besoin induit engage donc l’analyste, tandis qu’un besoin exprimé e
+43	34	Légende tableau	0	0	0	65	Tableau 4.9 — Les dix-huit besoins recueillis lors des entretiens
+43	34	Normal	1	0	0	7	Domaine
+43	34	Normal	1	0	0	4	Réf.
+43	34	Normal	1	0	0	6	Besoin
+43	34	Normal	1	0	0	8	Priorité
+43	34	Normal	1	0	0	6	Source
+43	34	Normal	1	0	0	0	
+43	34	Normal	1	0	0	7	Médical
+43	34	Normal	1	0	0	2	M1
+43	34	Normal	1	0	0	53	Système d’information centralisé entre les deux sites
+43	34	Normal	1	0	0	5	Haute
+43	34	Normal	1	0	0	6	Induit
+43	34	Normal	1	0	0	0	
+43	34	Normal	1	0	0	7	Médical
+43	34	Normal	1	0	0	2	M2
+43	34	Normal	1	0	0	52	Dossier patient numérique avec historique accessible
+43	34	Normal	1	0	0	5	Haute
+43	34	Normal	1	0	0	6	Induit
+43	34	Normal	1	0	0	0	
+43	34	Normal	1	0	0	7	Médical
+43	34	Normal	1	0	0	2	M3
+43	34	Normal	1	0	0	59	Automatisation des rapports hebdomadaire, mensuel et annuel
+43	34	Normal	1	0	0	5	Haute
+43	34	Normal	1	0	0	7	Exprimé
+43	34	Normal	1	0	0	0	
+43	34	Normal	1	0	0	7	Médical
+43	34	Normal	1	0	0	2	M4
+43	34	Normal	1	0	0	30	Formulaire de triage numérique
+43	34	Normal	1	0	0	7	Moyenne
+43	34	Normal	1	0	0	6	Induit
+43	34	Normal	1	0	0	0	
+43	34	Normal	1	0	0	7	Médical
+43	34	Normal	1	0	0	2	M5
+43	34	Normal	1	0	0	45	Gestion des repos médicaux liés aux accidents
+43	34	Normal	1	0	0	7	Moyenne
+43	34	Normal	1	0	0	6	Induit
+43	34	Normal	1	0	0	0	
+43	34	Normal	1	0	0	7	Médical
+43	34	Normal	1	0	0	2	M6
+43	34	Normal	1	0	0	64	Suivi statistique des pathologies par catégorie et par direction
+43	34	Normal	1	0	0	7	Moyenne
+43	34	Normal	1	0	0	7	Exprimé
+43	34	Normal	1	0	0	0	
+43	34	Normal	1	0	0	7	Médical
+43	34	Normal	1	0	0	2	M7
+43	34	Normal	1	0	0	63	Délégation formalisée, avec interface distincte selon le profil
+43	34	Normal	1	0	0	5	Basse
+43	34	Normal	1	0	0	6	Induit
+43	34	Normal	1	0	0	0	
+43	34	Normal	1	0	0	13	Administratif
+43	34	Normal	1	0	0	2	R1
+43	34	Normal	1	0	0	39	Tableau de suivi des coûts d’évacuation
+43	34	Normal	1	0	0	5	Haute
+43	34	Normal	1	0	0	7	Exprimé
+43	34	Normal	1	0	0	0	
+43	34	Normal	1	0	0	13	Administratif
+43	34	Normal	1	0	0	2	R2
+43	34	Normal	1	0	0	32	Tableau de bord de l’absentéisme
+43	34	Normal	1	0	0	5	Haute
+43	34	Normal	1	0	0	7	Exprimé
+43	34	Normal	1	0	0	0	
+43	34	Normal	1	0	0	13	Administratif
+43	34	Normal	1	0	0	2	R3
+43	34	Normal	1	0	0	43	Espace de consultation autonome des données
+43	34	Normal	1	0	0	7	Moyenne
+43	34	Normal	1	0	0	7	Exprimé
+43	34	Normal	1	0	0	0	
+43	34	Normal	1	0	0	13	Administratif
+43	34	Normal	1	0	0	2	R4
+43	34	Normal	1	0	0	54	Suivi des pathologies fréquentes et de leur prévalence
+43	34	Normal	1	0	0	7	Moyenne
+43	34	Normal	1	0	0	8	Spontané
+43	34	Normal	1	0	0	0	
+43	34	Normal	1	0	0	13	Administratif
+43	34	Normal	1	0	0	2	R5
+43	34	Normal	1	0	0	43	Dématérialisation des flux papier et verbal
+43	34	Normal	1	0	0	5	Basse
+43	34	Normal	1	0	0	6	Induit
+43	34	Normal	1	0	0	0	
+44	35	Normal	1	0	0	14	Pharmaceutique
+44	35	Normal	1	0	0	2	P1
+44	35	Normal	1	0	0	57	Logiciel de gestion du stock avec persistance des données
+44	35	Normal	1	0	0	5	Haute
+44	35	Normal	1	0	0	7	Exprimé
+44	35	Normal	1	0	0	0	
+44	35	Normal	1	0	0	14	Pharmaceutique
+44	35	Normal	1	0	0	2	P2
+44	35	Normal	1	0	0	48	Impression automatique des reçus de dispensation
+44	35	Normal	1	0	0	5	Haute
+44	35	Normal	1	0	0	7	Exprimé
+44	35	Normal	1	0	0	0	
+44	35	Normal	1	0	0	14	Pharmaceutique
+44	35	Normal	1	0	0	2	P3
+44	35	Normal	1	0	0	61	Automatisation de la facturation et ventilation par catégorie
+44	35	Normal	1	0	0	5	Haute
+44	35	Normal	1	0	0	7	Exprimé
+44	35	Normal	1	0	0	0	
+44	35	Normal	1	0	0	14	Pharmaceutique
+44	35	Normal	1	0	0	2	P4
+44	35	Normal	1	0	0	44	Alertes sur stock bas et dates de péremption
+44	35	Normal	1	0	0	7	Moyenne
+44	35	Normal	1	0	0	6	Induit
+44	35	Normal	1	0	0	0	
+44	35	Normal	1	0	0	14	Pharmaceutique
+44	35	Normal	1	0	0	2	P5
+44	35	Normal	1	0	0	41	Révision du rythme de réapprovisionnement
+44	35	Normal	1	0	0	7	Moyenne
+44	35	Normal	1	0	0	6	Induit
+44	35	Normal	1	0	0	0	
+44	35	Normal	1	0	0	14	Pharmaceutique
+44	35	Normal	1	0	0	2	P6
+44	35	Normal	1	0	0	43	Reprise des inventaires physiques réguliers
+44	35	Normal	1	0	0	5	Basse
+44	35	Normal	1	0	0	6	Induit
+44	35	Normal	1	0	0	0	
+44	35	Normal	0	0	0	0	
+44	35	Normal	0	0	0	241	Ce tableau porte le constat déterminant du travail : ces dix-huit beso
+44	35	Normal	0	0	0	245	Sur les huit besoins de priorité haute, trois relèvent du domaine médi
+44	35	Titre 2	0	0	0	49	4.9 Forces et faiblesses de la situation actuelle
+44	35	Normal	0	0	0	80	Les problèmes relevés lors des entretiens se répartissent sur quatre d
+44	35	Légende tableau	0	0	0	59	Tableau 4.10 — Synthèse critique de la situation antérieure
+44	35	Normal	1	0	0	9	Dimension
+44	35	Normal	1	0	0	17	Problème constaté
+44	35	Normal	1	0	0	6	Impact
+44	35	Normal	1	0	0	0	
+44	35	Normal	1	0	0	16	Informationnelle
+44	35	Normal	1	0	0	28	Aucun dossier patient unique
+44	35	Normal	1	0	0	49	Un patient vu sur l’autre site n’est pas retrouvé
+44	35	Normal	1	0	0	0	
+44	35	Normal	1	0	0	16	Informationnelle
+44	35	Normal	1	0	0	48	Aucune consolidation automatique entre les sites
+44	35	Normal	1	0	0	56	Consolidation manuelle par le Médecin Chef, a posteriori
+44	35	Normal	1	0	0	0	
+44	35	Normal	1	0	0	16	Informationnelle
+44	35	Normal	1	0	0	58	Le fichier de gestion de stock ne conserve pas ses données
+44	35	Normal	1	0	0	57	Aucun historique, deux tentatives d’outillage abandonnées
+44	35	Normal	1	0	0	0	
+44	35	Normal	1	0	0	16	Informationnelle
+44	35	Normal	1	0	0	34	Aucune autorité sur les matricules
+44	35	Normal	1	0	0	38	Reconnaissance déclarative et visuelle
+44	35	Normal	1	0	0	0	
+44	35	Normal	1	0	0	17	Organisationnelle
+44	35	Normal	1	0	0	46	Production manuelle de toutes les statistiques
+44	35	Normal	1	0	0	52	Dix axes d’analyse attendus, tous produits à la main
+44	35	Normal	1	0	0	0	
+44	35	Normal	1	0	0	17	Organisationnelle
+44	35	Normal	1	0	0	40	Surcharge administrative du Médecin Chef
+44	35	Normal	1	0	0	34	Principal point de tension déclaré
+44	35	Normal	1	0	0	0	
+44	35	Normal	1	0	0	17	Organisationnelle
+44	35	Normal	1	0	0	35	Facturation pharmaceutique manuelle
+44	35	Normal	1	0	0	50	Tâche la plus chronophage du poste de pharmacienne
+44	35	Normal	1	0	0	0	
+44	35	Normal	1	0	0	17	Organisationnelle
+44	35	Normal	1	0	0	45	Droits de prise en charge vérifiés de mémoire
+44	35	Normal	1	0	0	46	Risque d’inégalité de traitement selon l’agent
+44	35	Normal	1	0	0	0	
+44	35	Normal	1	0	0	9	Technique
+44	35	Normal	1	0	0	34	Aucun système entre les deux sites
+44	35	Normal	1	0	0	33	Autonomie complète de chaque site
+44	35	Normal	1	0	0	0	
+44	35	Normal	1	0	0	9	Technique
+44	35	Normal	1	0	0	35	Flux papier et verbal exclusivement
+44	35	Normal	1	0	0	62	Perte de documents, aucune trace des échanges oraux, ressaisie
+44	35	Normal	1	0	0	0	
+44	35	Normal	1	0	0	9	Technique
+44	35	Normal	1	0	0	29	Ruptures de stock récurrentes
+44	35	Normal	1	0	0	51	Pharmacie vide entre deux livraisons trimestrielles
+44	35	Normal	1	0	0	0	
+44	35	Normal	1	0	0	11	Sécuritaire
+44	35	Normal	1	0	0	22	Aucun contrôle d’accès
+44	35	Normal	1	0	0	50	Toute personne ayant accès au poste a accès à tout
+44	35	Normal	1	0	0	0	
+45	36	Normal	1	0	0	11	Sécuritaire
+45	36	Normal	1	0	0	45	Aucune traçabilité des actes et des décisions
+45	36	Normal	1	0	0	56	Aucune preuve d’autorisation des prescriptions déléguées
+45	36	Normal	1	0	0	0	
+45	36	Normal	1	0	0	11	Sécuritaire
+45	36	Normal	1	0	0	51	Règle de confidentialité non garantie techniquement
+45	36	Normal	1	0	0	50	Repose entièrement sur la discipline des personnes
+45	36	Normal	1	0	0	0	
+45	36	Normal	0	0	0	0	
+45	36	Normal	0	0	0	543	Le dispositif fonctionnait donc, et il était même méthodique. Ce qui l
+45	36	Normal	0	0	0	84	Cette critique reste qualitative, le recueil ne chiffrant pas les prob
+45	36	Normal	0	0	0	340	Trois constats s’en dégagent : aucun système d’information médical, al
+45	36	Titre 2	0	0	0	50	4.10 Propositions de solutions et solution retenue
+45	36	Normal	0	0	0	77	Quatre catégories de solutions ont été examinées avant d’arrêter notre
+45	36	Légende tableau	0	0	0	0	
+45	36	Légende tableau	0	0	0	58	Tableau 4.11 — Comparaison des quatre solutions envisagées
+45	36	Normal	1	0	0	7	Critère
+45	36	Normal	1	0	0	25	A — Progiciel hospitalier
+45	36	Normal	1	0	0	18	B — Solution libre
+45	36	Normal	1	0	0	23	C — Maintien du tableur
+45	36	Normal	1	0	0	28	D — Développement sur mesure
+45	36	Normal	1	0	0	0	
+45	36	Normal	1	0	0	20	Adéquation au besoin
+45	36	Normal	1	0	0	56	Faible, surdimensionné pour des soins de premier recours
+45	36	Normal	1	0	0	52	Moyenne, non taillé pour la règle de prise en charge
+45	36	Normal	1	0	0	23	Nulle, c’est l’existant
+45	36	Normal	1	0	0	5	Forte
+45	36	Normal	1	0	0	0	
+45	36	Normal	1	0	0	24	Règle de prise en charge
+45	36	Normal	1	0	0	10	Non native
+45	36	Normal	1	0	0	10	Non native
+45	36	Normal	1	0	0	22	Appliquée par l’humain
+45	36	Normal	1	0	0	26	Native, portée par la base
+45	36	Normal	1	0	0	0	
+45	36	Normal	1	0	0	29	Fonctionnement sans connexion
+45	36	Normal	1	0	0	8	Rarement
+45	36	Normal	1	0	0	8	Variable
+45	36	Normal	1	0	0	32	Oui, au prix de la fragmentation
+45	36	Normal	1	0	0	24	Oui, avec réconciliation
+45	36	Normal	1	0	0	0	
+45	36	Normal	1	0	0	25	Cohérence entre les sites
+45	36	Normal	1	0	0	18	Si le réseau tient
+45	36	Normal	1	0	0	18	Si le réseau tient
+45	36	Normal	1	0	0	5	Nulle
+45	36	Normal	1	0	0	20	Oui, même hors ligne
+45	36	Normal	1	0	0	0	
+45	36	Normal	1	0	0	15	Coût de licence
+45	36	Normal	1	0	0	5	Élevé
+45	36	Normal	1	0	0	3	Nul
+45	36	Normal	1	0	0	3	Nul
+45	36	Normal	1	0	0	3	Nul
+45	36	Normal	1	0	0	0	
+45	36	Normal	1	0	0	21	Coût de développement
+45	36	Normal	1	0	0	6	Faible
+45	36	Normal	1	0	0	5	Moyen
+45	36	Normal	1	0	0	3	Nul
+45	36	Normal	1	0	0	5	Élevé
+45	36	Normal	1	0	0	0	
+45	36	Normal	1	0	0	29	Maîtrise des données de santé
+45	36	Normal	1	0	0	19	Dépend de l’éditeur
+45	36	Normal	1	0	0	6	Totale
+45	36	Normal	1	0	0	6	Totale
+45	36	Normal	1	0	0	6	Totale
+45	36	Normal	1	0	0	0	
+45	36	Normal	1	0	0	18	Adéquation globale
+45	36	Normal	1	0	0	6	Faible
+45	36	Normal	1	0	0	7	Moyenne
+45	36	Normal	1	0	0	5	Nulle
+45	36	Normal	1	0	0	5	Forte
+45	36	Normal	1	0	0	0	
+45	36	Normal	0	0	0	0	
+45	36	Normal	0	0	0	236	Une réserve s’impose : nous n’avons conduit aucune étude de marché for
+46	37	Normal	0	0	0	193	Nous retenons la solution D : un développement sur mesure, conçu pour 
+46	37	Normal	0	0	0	579	La règle de prise en charge est d’abord propre à l’entreprise : aucun 
+46	37	Normal	0	0	0	465	La confidentialité doit enfin être garantie techniquement, ce qu’aucun
+46	37	Titre 2	0	0	0	49	4.11 Nouvelles orientations pour le futur système
+46	37	Normal	0	0	0	269	Le choix de la solution fixe la nature du système, pas encore ce qu’il
+46	37	Normal	0	0	0	443	Sur le plan informationnel, le dossier patient devient l’unité de réfé
+46	37	Normal	0	0	0	352	Sur le plan organisationnel, ce qui était produit manuellement doit êt
+46	37	Normal	0	0	0	295	Sur le plan technique, le système doit rester utilisable lorsque la li
+46	37	Normal	0	0	0	342	Sur le plan de la sécurité, la confidentialité doit être portée par le
+46	37	Normal	0	0	0	137	Ces quatre orientations ferment l’étude de l’existant : elles disent c
+47	38	Titre 2	0	0	0	22	Conclusion du chapitre
+47	38	Normal	0	0	0	138	Le centre fonctionnait selon un processus formalisé en quatre étapes, 
+47	38	Normal	0	0	0	533	Ces constats ont une portée commune. L’information existait, mais elle
+47	38	Normal	0	0	0	370	Les dix-huit besoins recueillis couvrent trois métiers. Nous avons ret
+48	39	Titre 1	0	0	0	49	CHAPITRE 5 — ANALYSE ET SPÉCIFICATION DES BESOINS
+48	39	Normal	0	0	0	566	L’analyse des besoins est la première étape formelle de la branche fon
+48	39	Titre 2	0	0	0	36	5.1 Des processus métier aux besoins
+48	39	Normal	0	0	0	78	Cette section définit l’ensemble des exigences que le système doit sat
+48	39	Titre 3	0	0	0	84	5.1.1 Méthode : un processus, ses besoins fonctionnels, ses besoins no
+48	39	Normal	0	0	0	103	Quelle que soit leur origine, les besoins sont organisés selon une règ
+48	39	Normal	0	0	0	586	Nous suivons le parcours du patient décrit au chapitre 4 — l’accueil e
+48	39	Normal	0	0	0	249	Les besoins non fonctionnels, de BNF01 à BNF13, ne se rattachent à auc
+48	39	Normal	0	0	0	268	Les besoins demandés et les besoins du système ne se confondent pas : 
+48	39	Titre 3	0	0	0	55	5.1.2 Les besoins fonctionnels, processus par processus
+48	39	Normal	0	0	0	633	Neuf besoins ne se rattachent à aucune étape du parcours : ils le préc
+48	39	Normal	0	0	0	225	Le parcours commence à l’accueil. L’infirmière enregistre la visite et
+48	39	Normal	0	0	0	389	Vient la consultation — anamnèse, examen clinique, diagnostic, conclus
+49	40	Normal	0	0	0	379	Deux issues prolongent le parcours au-delà de la consultation : l’orie
+49	40	Normal	0	0	0	233	Quatre besoins servent le fonctionnement du centre plutôt qu’un acte d
+49	40	Normal	0	0	0	207	Un dernier besoin traverse tout le parcours : le centre travaillant su
+49	40	Normal	0	0	0	166	Le tableau ci-dessous reprend ces vingt-trois besoins par identifiant,
+49	40	Légende tableau	0	0	0	0	
+49	40	Légende tableau	0	0	0	65	Tableau 5.1 — Les vingt-trois besoins fonctionnels et leur preuve
+49	40	Normal	1	0	0	2	Id
+49	40	Normal	1	0	0	18	Besoin fonctionnel
+49	40	Normal	1	0	0	22	Preuve dans le système
+49	40	Normal	1	0	0	6	Statut
+49	40	Normal	1	0	0	0	
+49	40	Normal	1	0	0	4	BF01
+49	40	Normal	1	0	0	44	Authentifier les agents et sécuriser l’accès
+49	40	Normal	1	0	0	37	8 routes, jeton signé, second facteur
+49	40	Normal	1	0	0	10	Implémenté
+49	40	Normal	1	0	0	0	
+49	40	Normal	1	0	0	4	BF02
+49	40	Normal	1	0	0	49	Gérer les comptes, les rôles et les habilitations
+49	40	Normal	1	0	0	35	33 routes, 130 permissions, 3 rôles
+49	40	Normal	1	0	0	10	Implémenté
+49	40	Normal	1	0	0	0	
+49	40	Normal	1	0	0	4	BF03
+49	40	Normal	1	0	0	33	Journaliser les actions sensibles
+49	40	Normal	1	0	0	39	151 routes auditées, journal persistant
+49	40	Normal	1	0	0	10	Implémenté
+49	40	Normal	1	0	0	0	
+49	40	Normal	1	0	0	4	BF04
+49	40	Normal	1	0	0	21	Paramétrer le système
+49	40	Normal	1	0	0	30	Module de paramètres, 3 routes
+49	40	Normal	1	0	0	10	Implémenté
+49	40	Normal	1	0	0	0	
+49	40	Normal	1	0	0	4	BF05
+49	40	Normal	1	0	0	29	Gérer les référentiels métier
+49	40	Normal	1	0	0	25	37 routes, 9 référentiels
+49	40	Normal	1	0	0	10	Implémenté
+49	40	Normal	1	0	0	0	
+49	40	Normal	1	0	0	4	BF06
+49	40	Normal	1	0	0	45	Gérer le personnel médical et les délégations
+49	40	Normal	1	0	0	25	20 routes, modèles dédiés
+49	40	Normal	1	0	0	10	Implémenté
+49	40	Normal	1	0	0	0	
+49	40	Normal	1	0	0	4	BF07
+49	40	Normal	1	0	0	30	Tenir le registre des employés
+49	40	Normal	1	0	0	42	5 routes, registre partagé entre les sites
+49	40	Normal	1	0	0	10	Implémenté
+49	40	Normal	1	0	0	0	
+49	40	Normal	1	0	0	4	BF08
+49	40	Normal	1	0	0	35	Gérer le dossier patient centralisé
+49	40	Normal	1	0	0	32	30 routes, 13 modèles de données
+49	40	Normal	1	0	0	10	Implémenté
+49	40	Normal	1	0	0	0	
+49	40	Normal	1	0	0	4	BF09
+49	40	Normal	1	0	0	48	Rattacher les ayants droit et les sous-traitants
+49	40	Normal	1	0	0	34	Modèles de rattachement historisés
+49	40	Normal	1	0	0	10	Implémenté
+49	40	Normal	1	0	0	0	
+49	40	Normal	1	0	0	4	BF10
+49	40	Normal	1	0	0	32	Enregistrer et trier les visites
+49	40	Normal	1	0	0	34	9 routes, file par ordre d’arrivée
+49	40	Normal	1	0	0	10	Implémenté
+49	40	Normal	1	0	0	0	
+49	40	Normal	1	0	0	4	BF11
+49	40	Normal	1	0	0	30	Relever les constantes vitales
+49	40	Normal	1	0	0	35	Modèle à 23 champs, plages validées
+49	40	Normal	1	0	0	10	Implémenté
+49	40	Normal	1	0	0	0	
+49	40	Normal	1	0	0	4	BF12
+49	40	Normal	1	0	0	34	Conduire une consultation clinique
+49	40	Normal	1	0	0	42	22 routes, examen, diagnostics, conclusion
+49	40	Normal	1	0	0	10	Implémenté
+49	40	Normal	1	0	0	0	
+49	40	Normal	1	0	0	4	BF13
+49	40	Normal	1	0	0	40	Prescrire des médicaments ou des examens
+49	40	Normal	1	0	0	44	Ordonnance à deux types, cycle de validation
+49	40	Normal	1	0	0	10	Implémenté
+49	40	Normal	1	0	0	0	
+49	40	Normal	1	0	0	4	BF14
+49	40	Normal	1	0	0	48	Émettre un bon d’examen et en saisir le résultat
+49	40	Normal	1	0	0	22	7 routes, quatre états
+49	40	Normal	1	0	0	10	Implémenté
+49	40	Normal	1	0	0	0	
+49	40	Normal	1	0	0	4	BF15
+49	40	Normal	1	0	0	39	Émettre et délivrer un bon de pharmacie
+49	40	Normal	1	0	0	21	5 routes, trois états
+49	40	Normal	1	0	0	10	Implémenté
+49	40	Normal	1	0	0	0	
+49	40	Normal	1	0	0	4	BF16
+49	40	Normal	1	0	0	47	Orienter par évacuation et en suivre les étapes
+49	40	Normal	1	0	0	32	8 routes, cinq états, historique
+49	40	Normal	1	0	0	10	Implémenté
+49	40	Normal	1	0	0	0	
+50	41	Normal	1	0	0	4	BF17
+50	41	Normal	1	0	0	42	Ouvrir et alimenter un suivi de traitement
+50	41	Normal	1	0	0	23	8 routes, fiches datées
+50	41	Normal	1	0	0	10	Implémenté
+50	41	Normal	1	0	0	0	
+50	41	Normal	1	0	0	4	BF18
+50	41	Normal	1	0	0	34	Communiquer par messagerie interne
+50	41	Normal	1	0	0	38	29 routes, chiffrement, pièces jointes
+50	41	Normal	1	0	0	10	Implémenté
+50	41	Normal	1	0	0	0	
+50	41	Normal	1	0	0	4	BF19
+50	41	Normal	1	0	0	33	Notifier les agents en temps réel
+50	41	Normal	1	0	0	27	9 routes, flux d’événements
+50	41	Normal	1	0	0	10	Implémenté
+50	41	Normal	1	0	0	0	
+50	41	Normal	1	0	0	4	BF20
+50	41	Normal	1	0	0	38	Piloter l’activité par tableau de bord
+50	41	Normal	1	0	0	31	9 routes, vues adaptées au rôle
+50	41	Normal	1	0	0	10	Implémenté
+50	41	Normal	1	0	0	0	
+50	41	Normal	1	0	0	4	BF21
+50	41	Normal	1	0	0	34	Produire des rapports statistiques
+50	41	Normal	1	0	0	30	4 routes, génération et export
+50	41	Normal	1	0	0	10	Implémenté
+50	41	Normal	1	0	0	0	
+50	41	Normal	1	0	0	4	BF22
+50	41	Normal	1	0	0	32	Imprimer les documents cliniques
+50	41	Normal	1	0	0	35	6 modèles d’impression au format A4
+50	41	Normal	1	0	0	10	Implémenté
+50	41	Normal	1	0	0	0	
+50	41	Normal	1	0	0	4	BF23
+50	41	Normal	1	0	0	46	Travailler sans connexion et se resynchroniser
+50	41	Normal	1	0	0	35	14 routes, 46 modèles, 2 mécanismes
+50	41	Normal	1	0	0	7	Partiel
+50	41	Normal	1	0	0	0	
+50	41	Titre 3	0	0	0	34	5.1.3 Les besoins non fonctionnels
+50	41	Normal	0	0	0	232	Treize besoins non fonctionnels encadrent la réalisation. Ils portent 
+50	41	Légende tableau	0	0	0	69	Tableau 5.2 — Les treize besoins non fonctionnels et leur réalisation
+50	41	Normal	1	0	0	2	Id
+50	41	Normal	1	0	0	22	Besoin non fonctionnel
+50	41	Normal	1	0	0	27	Réalisation dans le système
+50	41	Normal	1	0	0	6	Statut
+50	41	Normal	1	0	0	0	
+50	41	Normal	1	0	0	5	BNF01
+50	41	Normal	1	0	0	19	Sécurité de l’accès
+50	41	Normal	1	0	0	178	Mot de passe haché, authentification à deux facteurs (2FA) par code te
+50	41	Normal	1	0	0	10	Implémenté
+50	41	Normal	1	0	0	0	
+50	41	Normal	1	0	0	5	BNF02
+50	41	Normal	1	0	0	36	Confidentialité des données au repos
+50	41	Normal	1	0	0	125	Messagerie et secrets TOTP du second facteur chiffrés, file hors conne
+50	41	Normal	1	0	0	10	Implémenté
+50	41	Normal	1	0	0	0	
+50	41	Normal	1	0	0	5	BNF03
+50	41	Normal	1	0	0	23	Confidentialité d’usage
+50	41	Normal	1	0	0	77	Verrou de dossier, cloisonnement par initiateur, floutage des zones cl
+50	41	Normal	1	0	0	10	Implémenté
+50	41	Normal	1	0	0	0	
+50	41	Normal	1	0	0	5	BNF04
+50	41	Normal	1	0	0	11	Traçabilité
+50	41	Normal	1	0	0	82	Journal d’audit alimenté par un intercepteur unique, sans route d’écri
+50	41	Normal	1	0	0	10	Implémenté
+50	41	Normal	1	0	0	0	
+50	41	Normal	1	0	0	5	BNF05
+50	41	Normal	1	0	0	25	Continuité hors connexion
+50	41	Normal	1	0	0	100	Deux mécanismes distincts : file de mutations côté web, base locale sy
+50	41	Normal	1	0	0	7	Partiel
+50	41	Normal	1	0	0	0	
+50	41	Normal	1	0	0	5	BNF06
+50	41	Normal	1	0	0	30	Cohérence entre les deux sites
+50	41	Normal	1	0	0	53	Dossier patient et parcours de soin en portée globale
+50	41	Normal	1	0	0	10	Implémenté
+50	41	Normal	1	0	0	0	
+50	41	Normal	1	0	0	5	BNF07
+50	41	Normal	1	0	0	21	Intégrité des saisies
+50	41	Normal	1	0	0	85	Validation stricte à l’entrée, plages physiologiques alignées entre cl
+50	41	Normal	1	0	0	10	Implémenté
+50	41	Normal	1	0	0	0	
+50	41	Normal	1	0	0	5	BNF08
+50	41	Normal	1	0	0	30	Réversibilité des suppressions
+50	41	Normal	1	0	0	34	Suppression logique sur 47 modèles
+50	41	Normal	1	0	0	10	Implémenté
+50	41	Normal	1	0	0	0	
+50	41	Normal	1	0	0	5	BNF09
+50	41	Normal	1	0	0	26	Accessibilité linguistique
+50	41	Normal	1	0	0	61	Bilinguisme complet, bascule en direct, préférence par compte
+50	41	Normal	1	0	0	10	Implémenté
+50	41	Normal	1	0	0	0	
+50	41	Normal	1	0	0	5	BNF10
+50	41	Normal	1	0	0	21	Ergonomie et mobilité
+50	41	Normal	1	0	0	72	Interface adaptative, menu en tiroir sur mobile, application installab
+50	41	Normal	1	0	0	10	Implémenté
+50	41	Normal	1	0	0	0	
+50	41	Normal	1	0	0	5	BNF11
+50	41	Normal	1	0	0	13	Déployabilité
+50	41	Normal	1	0	0	53	Installateur par utilisateur, mise à jour automatique
+50	41	Normal	1	0	0	7	Partiel
+50	41	Normal	1	0	0	0	
+51	42	Normal	1	0	0	5	BNF12
+51	42	Normal	1	0	0	14	Maintenabilité
+51	42	Normal	1	0	0	73	Dépôt de code unique à types partagés, utilitaires désignés source uni
+51	42	Normal	1	0	0	10	Implémenté
+51	42	Normal	1	0	0	0	
+51	42	Normal	1	0	0	5	BNF13
+51	42	Normal	1	0	0	22	Robustesse des erreurs
+51	42	Normal	1	0	0	65	Filtre global, traduction des erreurs de base en codes explicites
+51	42	Normal	1	0	0	10	Implémenté
+51	42	Normal	1	0	0	0	
+51	42	Normal	0	0	0	0	
+51	42	Normal	0	0	0	266	Une exigence attendue manque : aucun temps de réponse chiffré. Il ne f
+51	42	Normal	0	0	0	347	Six de ces besoins non fonctionnels ne correspondent par ailleurs à au
+51	42	Normal	0	0	0	296	Les acteurs ont demandé des tableaux de bord et un logiciel de stock, 
+51	42	Titre 3	0	0	0	60	5.1.4 Confrontation des besoins exprimés au périmètre retenu
+51	42	Normal	0	0	0	86	Confrontés au périmètre retenu, les dix-huit besoins recueillis se rép
+51	42	Légende tableau	0	0	0	70	Tableau 5.3 — Confrontation des dix-huit besoins exprimés au périmètre
+51	42	Normal	1	0	0	14	Besoin exprimé
+51	42	Normal	1	0	0	7	Devient
+51	42	Normal	1	0	0	7	Verdict
+51	42	Normal	1	0	0	0	
+51	42	Normal	1	0	0	39	Système centralisé entre les deux sites
+51	42	Normal	1	0	0	18	BF23, BNF05, BNF06
+51	42	Normal	1	0	0	7	Couvert
+51	42	Normal	1	0	0	0	
+51	42	Normal	1	0	0	25	Dossier patient numérique
+51	42	Normal	1	0	0	10	BF08, BF09
+51	42	Normal	1	0	0	7	Couvert
+51	42	Normal	1	0	0	0	
+51	42	Normal	1	0	0	27	Automatisation des rapports
+51	42	Normal	1	0	0	10	BF20, BF21
+51	42	Normal	1	0	0	45	Partiel : quatre axes sur dix hors d’atteinte
+51	42	Normal	1	0	0	0	
+51	42	Normal	1	0	0	30	Formulaire de triage numérique
+51	42	Normal	1	0	0	10	BF10, BF11
+51	42	Normal	1	0	0	7	Couvert
+51	42	Normal	1	0	0	0	
+51	42	Normal	1	0	0	43	Repos médicaux avec lien vers le service RH
+51	42	Normal	1	0	0	4	BF22
+51	42	Normal	1	0	0	47	Partiel : le document est produit, non transmis
+51	42	Normal	1	0	0	0	
+51	42	Normal	1	0	0	43	Statistiques par catégorie et par direction
+51	42	Normal	1	0	0	4	BF21
+51	42	Normal	1	0	0	55	Partiel : la notion de direction n’existe pas au modèle
+51	42	Normal	1	0	0	0	
+51	42	Normal	1	0	0	21	Délégation formalisée
+51	42	Normal	1	0	0	10	BF06, BF13
+51	42	Normal	1	0	0	7	Couvert
+51	42	Normal	1	0	0	0	
+51	42	Normal	1	0	0	31	Espace de consultation autonome
+51	42	Normal	1	0	0	4	BF20
+51	42	Normal	1	0	0	31	Couvert pour le domaine médical
+51	42	Normal	1	0	0	0	
+51	42	Normal	1	0	0	32	Suivi des pathologies fréquentes
+51	42	Normal	1	0	0	4	BF21
+51	42	Normal	1	0	0	7	Couvert
+51	42	Normal	1	0	0	0	
+51	42	Normal	1	0	0	26	Dématérialisation des flux
+51	42	Normal	1	0	0	10	BF18, BF22
+51	42	Normal	1	0	0	25	Partiel dans le périmètre
+51	42	Normal	1	0	0	0	
+51	42	Normal	1	0	0	18	Coûts d’évacuation
+51	42	Normal	1	0	0	15	Aucune exigence
+51	42	Normal	1	0	0	14	Hors périmètre
+51	42	Normal	1	0	0	0	
+51	42	Normal	1	0	0	32	Tableau de bord de l’absentéisme
+51	42	Normal	1	0	0	15	Aucune exigence
+51	42	Normal	1	0	0	14	Hors périmètre
+51	42	Normal	1	0	0	0	
+51	42	Normal	1	0	0	31	Gestion du stock pharmaceutique
+51	42	Normal	1	0	0	15	Aucune exigence
+51	42	Normal	1	0	0	14	Hors périmètre
+51	42	Normal	1	0	0	0	
+51	42	Normal	1	0	0	36	Impression des reçus de dispensation
+51	42	Normal	1	0	0	15	Aucune exigence
+51	42	Normal	1	0	0	14	Hors périmètre
+51	42	Normal	1	0	0	0	
+51	42	Normal	1	0	0	26	Facturation pharmaceutique
+51	42	Normal	1	0	0	15	Aucune exigence
+51	42	Normal	1	0	0	14	Hors périmètre
+51	42	Normal	1	0	0	0	
+51	42	Normal	1	0	0	33	Alertes de stock et de péremption
+51	42	Normal	1	0	0	15	Aucune exigence
+51	42	Normal	1	0	0	14	Hors périmètre
+51	42	Normal	1	0	0	0	
+51	42	Normal	1	0	0	29	Rythme de réapprovisionnement
+51	42	Normal	1	0	0	15	Aucune exigence
+51	42	Normal	1	0	0	40	Hors périmètre, problème organisationnel
+51	42	Normal	1	0	0	0	
+51	42	Normal	1	0	0	31	Inventaires physiques réguliers
+51	42	Normal	1	0	0	15	Aucune exigence
+51	42	Normal	1	0	0	40	Hors périmètre, problème organisationnel
+51	42	Normal	1	0	0	0	
+51	42	Normal	0	0	0	0	
+52	43	Normal	0	0	0	310	La synthèse tient en quatre nombres : six besoins couverts, quatre par
+52	43	Titre 2	0	0	0	37	5.2 Des besoins aux cas d’utilisation
+52	43	Normal	0	0	0	104	Cette section identifie qui utilise le système, où s’arrête son périmè
+52	43	Titre 3	0	0	0	28	5.2.1 Les acteurs du système
+52	43	Normal	0	0	0	92	Notre système ne connaît que trois rôles, et les acteurs primaires en 
+52	43	Légende tableau	0	0	0	36	Tableau 5.4 — Les acteurs du système
+52	43	Normal	1	0	0	6	Acteur
+52	43	Normal	1	0	0	4	Type
+52	43	Normal	1	0	0	11	Permissions
+52	43	Normal	1	0	0	8	Vocation
+52	43	Normal	1	0	0	0	
+52	43	Normal	1	0	0	22	Administrateur système
+52	43	Normal	1	0	0	8	Primaire
+52	43	Normal	1	0	0	11	130 sur 130
+52	43	Normal	1	0	0	92	Gouvernance de la plateforme : comptes, rôles, paramètres, supervision
+52	43	Normal	1	0	0	0	
+52	43	Normal	1	0	0	12	Médecin Chef
+52	43	Normal	1	0	0	8	Primaire
+52	43	Normal	1	0	0	11	102 sur 130
+52	43	Normal	1	0	0	104	Activité de soin complète, gouvernance des référentiels et du personne
+52	43	Normal	1	0	0	0	
+52	43	Normal	1	0	0	9	Infirmier
+52	43	Normal	1	0	0	8	Primaire
+52	43	Normal	1	0	0	10	51 sur 130
+52	43	Normal	1	0	0	103	Accueil, triage, constantes vitales, consultation de ses propres patie
+52	43	Normal	1	0	0	0	
+52	43	Normal	1	0	0	20	Poste local autonome
+52	43	Normal	1	0	0	10	Secondaire
+52	43	Normal	1	0	0	10	Sans objet
+52	43	Normal	1	0	0	96	Instance du client de bureau fonctionnant hors ligne, qui se synchroni
+52	43	Normal	1	0	0	0	
+52	43	Normal	1	0	0	26	Service de géolocalisation
+52	43	Normal	1	0	0	18	Secondaire externe
+52	43	Normal	1	0	0	10	Sans objet
+52	43	Normal	1	0	0	93	Fournit la ville et les coordonnées pour le journal d’authentification
+52	43	Normal	1	0	0	0	
+52	43	Normal	1	0	0	20	Canal de mise à jour
+52	43	Normal	1	0	0	18	Secondaire externe
+52	43	Normal	1	0	0	10	Sans objet
+52	43	Normal	1	0	0	52	Publie et distribue les versions du client de bureau
+52	43	Normal	1	0	0	0	
+52	43	Normal	0	0	0	0	
+52	43	Normal	0	0	0	434	Deux précisions s’imposent. Il n’existe pas de rôle « médecin » : tout
+52	43	Titre 3	0	0	0	36	5.2.2 Diagramme de contexte statique
+52	43	Normal	0	0	0	164	Le diagramme de contexte statique fixe la frontière du système et les 
+53	44	Normal	0	1	0	1	/
+53	44	Normal	0	0	0	0	
+53	44	Légende	0	0	0	54	Figure 5.1 — Diagramme de contexte statique du système
+53	44	Normal	0	0	0	6	[SAUT]
+54	45	Titre 3	0	0	0	26	5.2.3 Frontière du système
+54	45	Normal	0	0	0	411	La frontière du système commence à l’authentification d’un agent et s’
+54	45	Normal	0	0	0	371	Quatre domaines voisins n’en relèvent pas. La facturation et la compta
+54	45	Normal	0	0	0	174	Cette frontière explique pourquoi certains acteurs interrogés lors du 
+54	45	Titre 3	0	0	0	66	5.2.4 Les cas d’utilisation métier, issus des besoins fonctionnels
+54	45	Normal	0	0	0	362	Nous avons identifié soixante-cinq cas d’utilisation, répartis en douz
+54	45	Légende tableau	0	0	0	58	Tableau 5.5 — Répartition des cas d’utilisation par module
+54	45	Normal	1	0	0	6	Module
+54	45	Normal	1	0	0	17	Cas d’utilisation
+54	45	Normal	1	0	0	19	Dont priorité haute
+54	45	Normal	1	0	0	0	
+54	45	Normal	1	0	0	27	Sécurité et accès personnel
+54	45	Normal	1	0	0	1	8
+54	45	Normal	1	0	0	1	4
+54	45	Normal	1	0	0	0	
+54	45	Normal	1	0	0	13	Habilitations
+54	45	Normal	1	0	0	1	5
+54	45	Normal	1	0	0	1	3
+54	45	Normal	1	0	0	0	
+54	45	Normal	1	0	0	25	Supervision et paramètres
+54	45	Normal	1	0	0	1	3
+54	45	Normal	1	0	0	1	1
+54	45	Normal	1	0	0	0	
+54	45	Normal	1	0	0	12	Référentiels
+54	45	Normal	1	0	0	1	4
+54	45	Normal	1	0	0	1	3
+54	45	Normal	1	0	0	0	
+54	45	Normal	1	0	0	16	Acteurs médicaux
+54	45	Normal	1	0	0	1	4
+54	45	Normal	1	0	0	1	3
+54	45	Normal	1	0	0	0	
+54	45	Normal	1	0	0	15	Dossier patient
+54	45	Normal	1	0	0	1	9
+54	45	Normal	1	0	0	1	6
+54	45	Normal	1	0	0	0	
+54	45	Normal	1	0	0	6	Triage
+54	45	Normal	1	0	0	1	5
+54	45	Normal	1	0	0	1	4
+54	45	Normal	1	0	0	0	
+54	45	Normal	1	0	0	31	Consultation et actes prescrits
+54	45	Normal	1	0	0	2	11
+54	45	Normal	1	0	0	1	8
+54	45	Normal	1	0	0	0	
+54	45	Normal	1	0	0	26	Sorties critiques et suivi
+54	45	Normal	1	0	0	1	4
+54	45	Normal	1	0	0	1	2
+54	45	Normal	1	0	0	0	
+54	45	Normal	1	0	0	13	Communication
+54	45	Normal	1	0	0	1	5
+54	45	Normal	1	0	0	1	0
+54	45	Normal	1	0	0	0	
+54	45	Normal	1	0	0	8	Pilotage
+54	45	Normal	1	0	0	1	3
+54	45	Normal	1	0	0	1	1
+54	45	Normal	1	0	0	0	
+54	45	Normal	1	0	0	15	Synchronisation
+54	45	Normal	1	0	0	1	4
+54	45	Normal	1	0	0	1	2
+54	45	Normal	1	0	0	0	
+54	45	Normal	1	0	0	5	Total
+54	45	Normal	1	0	0	2	65
+54	45	Normal	1	0	0	2	37
+54	45	Normal	1	0	0	0	
+54	45	Normal	0	0	0	0	
+54	45	Normal	0	0	0	330	Le module Consultation et actes prescrits concentre à lui seul onze ca
+54	45	Normal	0	0	0	770	Les huit modules métier se rattachent directement aux besoins fonction
+55	46	Titre 3	0	0	0	74	5.2.5 Les cas d’utilisation techniques, issus des besoins non fonction
+55	46	Normal	0	0	0	230	Les vingt cas restants ne correspondent à aucun acte de soin. Ils exis
+55	46	Normal	0	0	0	578	Ils se répartissent en quatre modules. Sécurité et accès personnel com
+55	46	Normal	0	0	0	430	Cinq besoins fonctionnels — l’authentification, les habilitations, la 
+55	46	Titre 3	0	0	0	32	5.2.6 Classification par package
+55	46	Normal	0	0	0	284	Un package regroupe des éléments de modèle en un ensemble cohérent. Le
+55	46	Normal	0	0	0	290	Les tableaux suivants nomment les soixante-cinq cas d’utilisation, un 
+55	46	Normal	0	0	0	443	La colonne du risque n’est pas une estimation faite avant le développe
+55	46	Normal	0	0	0	245	Le package « Sécurité et habilitations » compte 16 cas d’utilisation, 
+55	46	Légende tableau	0	0	0	0	
+55	46	Légende tableau	0	0	0	98	Tableau 5.6 — Package Sécurité et habilitations : cas d’utilisation, r
+55	46	Normal	1	0	0	2	Id
+55	46	Normal	1	0	0	17	Cas d’utilisation
+55	46	Normal	1	0	0	7	Acteurs
+55	46	Normal	1	0	0	6	Risque
+55	46	Normal	1	0	0	8	Priorité
+55	46	Normal	1	0	0	9	Itération
+55	46	Normal	1	0	0	0	
+55	46	Normal	1	0	0	4	UC01
+55	46	Normal	1	0	0	12	Se connecter
+55	46	Normal	1	0	0	5	A M I
+55	46	Normal	1	0	0	5	Élevé
+55	46	Normal	1	0	0	5	Haute
+55	46	Normal	1	0	0	1	1
+55	46	Normal	1	0	0	0	
+55	46	Normal	1	0	0	4	UC02
+55	46	Normal	1	0	0	25	Valider le second facteur
+55	46	Normal	1	0	0	5	A M I
+55	46	Normal	1	0	0	5	Élevé
+55	46	Normal	1	0	0	5	Haute
+55	46	Normal	1	0	0	1	1
+55	46	Normal	1	0	0	0	
+55	46	Normal	1	0	0	4	UC03
+55	46	Normal	1	0	0	34	Résoudre une connexion concurrente
+55	46	Normal	1	0	0	5	A M I
+55	46	Normal	1	0	0	5	Moyen
+55	46	Normal	1	0	0	5	Haute
+55	46	Normal	1	0	0	1	1
+55	46	Normal	1	0	0	0	
+56	47	Normal	1	0	0	4	UC04
+56	47	Normal	1	0	0	24	Changer son mot de passe
+56	47	Normal	1	0	0	5	A M I
+56	47	Normal	1	0	0	6	Faible
+56	47	Normal	1	0	0	5	Haute
+56	47	Normal	1	0	0	1	1
+56	47	Normal	1	0	0	0	
+56	47	Normal	1	0	0	4	UC05
+56	47	Normal	1	0	0	34	Consulter et révoquer ses sessions
+56	47	Normal	1	0	0	5	A M I
+56	47	Normal	1	0	0	6	Faible
+56	47	Normal	1	0	0	7	Moyenne
+56	47	Normal	1	0	0	1	1
+56	47	Normal	1	0	0	0	
+56	47	Normal	1	0	0	4	UC06
+56	47	Normal	1	0	0	40	Activer ou désactiver son second facteur
+56	47	Normal	1	0	0	5	A M I
+56	47	Normal	1	0	0	5	Moyen
+56	47	Normal	1	0	0	7	Moyenne
+56	47	Normal	1	0	0	1	1
+56	47	Normal	1	0	0	0	
+56	47	Normal	1	0	0	4	UC07
+56	47	Normal	1	0	0	37	Accepter les conditions d’utilisation
+56	47	Normal	1	0	0	5	A M I
+56	47	Normal	1	0	0	6	Faible
+56	47	Normal	1	0	0	5	Basse
+56	47	Normal	1	0	0	1	1
+56	47	Normal	1	0	0	0	
+56	47	Normal	1	0	0	4	UC08
+56	47	Normal	1	0	0	21	Gérer ses préférences
+56	47	Normal	1	0	0	5	A M I
+56	47	Normal	1	0	0	6	Faible
+56	47	Normal	1	0	0	5	Basse
+56	47	Normal	1	0	0	1	1
+56	47	Normal	1	0	0	0	
+56	47	Normal	1	0	0	4	UC09
+56	47	Normal	1	0	0	24	Créer et gérer un compte
+56	47	Normal	1	0	0	3	A M
+56	47	Normal	1	0	0	5	Moyen
+56	47	Normal	1	0	0	5	Haute
+56	47	Normal	1	0	0	1	2
+56	47	Normal	1	0	0	0	
+56	47	Normal	1	0	0	4	UC10
+56	47	Normal	1	0	0	17	Attribuer un rôle
+56	47	Normal	1	0	0	1	A
+56	47	Normal	1	0	0	5	Élevé
+56	47	Normal	1	0	0	5	Haute
+56	47	Normal	1	0	0	1	2
+56	47	Normal	1	0	0	0	
+56	47	Normal	1	0	0	4	UC11
+56	47	Normal	1	0	0	42	Éditer la matrice de permissions d’un rôle
+56	47	Normal	1	0	0	1	A
+56	47	Normal	1	0	0	5	Élevé
+56	47	Normal	1	0	0	5	Haute
+56	47	Normal	1	0	0	1	2
+56	47	Normal	1	0	0	0	
+56	47	Normal	1	0	0	4	UC12
+56	47	Normal	1	0	0	48	Accorder ou révoquer une permission individuelle
+56	47	Normal	1	0	0	1	A
+56	47	Normal	1	0	0	5	Moyen
+56	47	Normal	1	0	0	7	Moyenne
+56	47	Normal	1	0	0	1	2
+56	47	Normal	1	0	0	0	
+56	47	Normal	1	0	0	4	UC13
+56	47	Normal	1	0	0	29	Réinitialiser un mot de passe
+56	47	Normal	1	0	0	1	A
+56	47	Normal	1	0	0	6	Faible
+56	47	Normal	1	0	0	5	Basse
+56	47	Normal	1	0	0	1	2
+56	47	Normal	1	0	0	0	
+56	47	Normal	1	0	0	4	UC14
+56	47	Normal	1	0	0	38	Consulter et purger le journal d’audit
+56	47	Normal	1	0	0	3	A M
+56	47	Normal	1	0	0	5	Moyen
+56	47	Normal	1	0	0	5	Haute
+56	47	Normal	1	0	0	1	2
+56	47	Normal	1	0	0	0	
+56	47	Normal	1	0	0	4	UC15
+56	47	Normal	1	0	0	32	Consulter les paramètres système
+56	47	Normal	1	0	0	1	A
+56	47	Normal	1	0	0	6	Faible
+56	47	Normal	1	0	0	5	Basse
+56	47	Normal	1	0	0	1	2
+56	47	Normal	1	0	0	0	
+56	47	Normal	1	0	0	4	UC16
+56	47	Normal	1	0	0	31	Modifier les paramètres système
+56	47	Normal	1	0	0	1	A
+56	47	Normal	1	0	0	5	Moyen
+56	47	Normal	1	0	0	7	Moyenne
+56	47	Normal	1	0	0	1	2
+56	47	Normal	1	0	0	0	
+56	47	Normal	0	0	0	0	
+56	47	Normal	0	0	0	240	Le package « Référentiels et acteurs médicaux » compte 8 cas d’utilisa
+56	47	Légende tableau	0	0	0	105	Tableau 5.7 — Package Référentiels et acteurs médicaux : cas d’utilisa
+56	47	Normal	1	0	0	2	Id
+56	47	Normal	1	0	0	17	Cas d’utilisation
+56	47	Normal	1	0	0	7	Acteurs
+56	47	Normal	1	0	0	6	Risque
+56	47	Normal	1	0	0	8	Priorité
+56	47	Normal	1	0	0	9	Itération
+56	47	Normal	1	0	0	0	
+56	47	Normal	1	0	0	4	UC17
+56	47	Normal	1	0	0	24	Consulter un référentiel
+56	47	Normal	1	0	0	5	A M I
+56	47	Normal	1	0	0	6	Faible
+56	47	Normal	1	0	0	5	Haute
+56	47	Normal	1	0	0	1	3
+56	47	Normal	1	0	0	0	
+56	47	Normal	1	0	0	4	UC18
+56	47	Normal	1	0	0	40	Créer, modifier ou désactiver une entrée
+56	47	Normal	1	0	0	3	A M
+56	47	Normal	1	0	0	5	Moyen
+56	47	Normal	1	0	0	5	Haute
+56	47	Normal	1	0	0	1	3
+56	47	Normal	1	0	0	0	
+56	47	Normal	1	0	0	4	UC19
+56	47	Normal	1	0	0	34	Gérer les sociétés sous-traitantes
+56	47	Normal	1	0	0	3	A M
+56	47	Normal	1	0	0	6	Faible
+56	47	Normal	1	0	0	5	Basse
+56	47	Normal	1	0	0	1	3
+56	47	Normal	1	0	0	0	
+56	47	Normal	1	0	0	4	UC20
+56	47	Normal	1	0	0	30	Tenir le registre des employés
+56	47	Normal	1	0	0	5	A M I
+56	47	Normal	1	0	0	5	Élevé
+56	47	Normal	1	0	0	5	Haute
+56	47	Normal	1	0	0	1	3
+56	47	Normal	1	0	0	0	
+56	47	Normal	1	0	0	4	UC21
+56	47	Normal	1	0	0	28	Gérer une fiche de personnel
+56	47	Normal	1	0	0	3	A M
+56	47	Normal	1	0	0	6	Faible
+56	47	Normal	1	0	0	5	Haute
+56	47	Normal	1	0	0	1	3
+56	47	Normal	1	0	0	0	
+56	47	Normal	1	0	0	4	UC22
+56	47	Normal	1	0	0	39	Accorder une délégation de prescription
+56	47	Normal	1	0	0	1	M
+56	47	Normal	1	0	0	5	Élevé
+56	47	Normal	1	0	0	5	Haute
+56	47	Normal	1	0	0	1	3
+56	47	Normal	1	0	0	0	
+56	47	Normal	1	0	0	4	UC23
+56	47	Normal	1	0	0	23	Révoquer une délégation
+56	47	Normal	1	0	0	1	M
+56	47	Normal	1	0	0	5	Moyen
+56	47	Normal	1	0	0	5	Haute
+56	47	Normal	1	0	0	1	3
+56	47	Normal	1	0	0	0	
+56	47	Normal	1	0	0	4	UC24
+56	47	Normal	1	0	0	33	Consulter ses délégations actives
+56	47	Normal	1	0	0	1	I
+56	47	Normal	1	0	0	6	Faible
+56	47	Normal	1	0	0	7	Moyenne
+56	47	Normal	1	0	0	1	3
+56	47	Normal	1	0	0	0	
+56	47	Normal	0	0	0	0	
+56	47	Normal	0	0	0	209	Le package « Dossier patient » compte 9 cas d’utilisation, dont 6 de p
+56	47	Légende tableau	0	0	0	88	Tableau 5.8 — Package Dossier patient : cas d’utilisation, risque, pri
+56	47	Normal	1	0	0	2	Id
+56	47	Normal	1	0	0	17	Cas d’utilisation
+56	47	Normal	1	0	0	7	Acteurs
+56	47	Normal	1	0	0	6	Risque
+56	47	Normal	1	0	0	8	Priorité
+56	47	Normal	1	0	0	9	Itération
+56	47	Normal	1	0	0	0	
+56	47	Normal	1	0	0	4	UC25
+56	47	Normal	1	0	0	21	Rechercher un patient
+56	47	Normal	1	0	0	5	A M I
+56	47	Normal	1	0	0	6	Faible
+56	47	Normal	1	0	0	5	Haute
+56	47	Normal	1	0	0	1	4
+56	47	Normal	1	0	0	0	
+56	47	Normal	1	0	0	4	UC26
+56	47	Normal	1	0	0	16	Créer un dossier
+56	47	Normal	1	0	0	5	A M I
+56	47	Normal	1	0	0	5	Élevé
+56	47	Normal	1	0	0	5	Haute
+56	47	Normal	1	0	0	1	4
+56	47	Normal	1	0	0	0	
+56	47	Normal	1	0	0	4	UC27
+56	47	Normal	1	0	0	20	Consulter un dossier
+56	47	Normal	1	0	0	5	A M I
+56	47	Normal	1	0	0	5	Moyen
+56	47	Normal	1	0	0	5	Haute
+56	47	Normal	1	0	0	1	4
+56	47	Normal	1	0	0	0	
+56	47	Normal	1	0	0	4	UC28
+56	47	Normal	1	0	0	43	Mettre à jour identité et données médicales
+56	47	Normal	1	0	0	5	A M I
+56	47	Normal	1	0	0	5	Moyen
+56	47	Normal	1	0	0	5	Haute
+56	47	Normal	1	0	0	1	4
+56	47	Normal	1	0	0	0	
+57	48	Normal	1	0	0	4	UC29
+57	48	Normal	1	0	0	23	Gérer les rattachements
+57	48	Normal	1	0	0	5	A M I
+57	48	Normal	1	0	0	5	Élevé
+57	48	Normal	1	0	0	5	Haute
+57	48	Normal	1	0	0	1	4
+57	48	Normal	1	0	0	0	
+57	48	Normal	1	0	0	4	UC30
+57	48	Normal	1	0	0	20	Changer la catégorie
+57	48	Normal	1	0	0	3	A M
+57	48	Normal	1	0	0	5	Élevé
+57	48	Normal	1	0	0	7	Moyenne
+57	48	Normal	1	0	0	1	4
+57	48	Normal	1	0	0	0	
+57	48	Normal	1	0	0	4	UC31
+57	48	Normal	1	0	0	39	Verrouiller ou déverrouiller un dossier
+57	48	Normal	1	0	0	3	A M
+57	48	Normal	1	0	0	5	Élevé
+57	48	Normal	1	0	0	5	Haute
+57	48	Normal	1	0	0	1	4
+57	48	Normal	1	0	0	0	
+57	48	Normal	1	0	0	4	UC32
+57	48	Normal	1	0	0	19	Archiver un dossier
+57	48	Normal	1	0	0	3	A M
+57	48	Normal	1	0	0	6	Faible
+57	48	Normal	1	0	0	5	Basse
+57	48	Normal	1	0	0	1	4
+57	48	Normal	1	0	0	0	
+57	48	Normal	1	0	0	4	UC33
+57	48	Normal	1	0	0	19	Imprimer un dossier
+57	48	Normal	1	0	0	5	A M I
+57	48	Normal	1	0	0	6	Faible
+57	48	Normal	1	0	0	7	Moyenne
+57	48	Normal	1	0	0	1	4
+57	48	Normal	1	0	0	0	
+57	48	Normal	0	0	0	0	
+57	48	Normal	0	0	0	230	Le package « Parcours de soin » compte 20 cas d’utilisation, dont 14 d
+57	48	Légende tableau	0	0	0	89	Tableau 5.9 — Package Parcours de soin : cas d’utilisation, risque, pr
+57	48	Normal	1	0	0	2	Id
+57	48	Normal	1	0	0	17	Cas d’utilisation
+57	48	Normal	1	0	0	7	Acteurs
+57	48	Normal	1	0	0	6	Risque
+57	48	Normal	1	0	0	8	Priorité
+57	48	Normal	1	0	0	9	Itération
+57	48	Normal	1	0	0	0	
+57	48	Normal	1	0	0	4	UC34
+57	48	Normal	1	0	0	17	Ouvrir une visite
+57	48	Normal	1	0	0	3	M I
+57	48	Normal	1	0	0	5	Moyen
+57	48	Normal	1	0	0	5	Haute
+57	48	Normal	1	0	0	1	5
+57	48	Normal	1	0	0	0	
+57	48	Normal	1	0	0	4	UC35
+57	48	Normal	1	0	0	30	Relever les constantes vitales
+57	48	Normal	1	0	0	3	M I
+57	48	Normal	1	0	0	5	Moyen
+57	48	Normal	1	0	0	5	Haute
+57	48	Normal	1	0	0	1	5
+57	48	Normal	1	0	0	0	
+57	48	Normal	1	0	0	4	UC36
+57	48	Normal	1	0	0	20	Affecter un soignant
+57	48	Normal	1	0	0	3	M I
+57	48	Normal	1	0	0	6	Faible
+57	48	Normal	1	0	0	5	Haute
+57	48	Normal	1	0	0	1	5
+57	48	Normal	1	0	0	0	
+57	48	Normal	1	0	0	4	UC37
+57	48	Normal	1	0	0	27	Consulter la file d’attente
+57	48	Normal	1	0	0	5	A M I
+57	48	Normal	1	0	0	6	Faible
+57	48	Normal	1	0	0	5	Haute
+57	48	Normal	1	0	0	1	5
+57	48	Normal	1	0	0	0	
+57	48	Normal	1	0	0	4	UC38
+57	48	Normal	1	0	0	18	Annuler une visite
+57	48	Normal	1	0	0	3	M I
+57	48	Normal	1	0	0	6	Faible
+57	48	Normal	1	0	0	5	Basse
+57	48	Normal	1	0	0	1	5
+57	48	Normal	1	0	0	0	
+57	48	Normal	1	0	0	4	UC39
+57	48	Normal	1	0	0	23	Ouvrir une consultation
+57	48	Normal	1	0	0	3	M I
+57	48	Normal	1	0	0	5	Moyen
+57	48	Normal	1	0	0	5	Haute
+57	48	Normal	1	0	0	1	6
+57	48	Normal	1	0	0	0	
+57	48	Normal	1	0	0	4	UC40
+57	48	Normal	1	0	0	24	Saisir l’examen clinique
+57	48	Normal	1	0	0	3	M I
+57	48	Normal	1	0	0	6	Faible
+57	48	Normal	1	0	0	5	Haute
+57	48	Normal	1	0	0	1	6
+57	48	Normal	1	0	0	0	
+57	48	Normal	1	0	0	4	UC41
+57	48	Normal	1	0	0	19	Poser un diagnostic
+57	48	Normal	1	0	0	3	M I
+57	48	Normal	1	0	0	6	Faible
+57	48	Normal	1	0	0	5	Haute
+57	48	Normal	1	0	0	1	6
+57	48	Normal	1	0	0	0	
+57	48	Normal	1	0	0	4	UC42
+57	48	Normal	1	0	0	31	Créer et valider une ordonnance
+57	48	Normal	1	0	0	3	M I
+57	48	Normal	1	0	0	5	Élevé
+57	48	Normal	1	0	0	5	Haute
+57	48	Normal	1	0	0	1	6
+57	48	Normal	1	0	0	0	
+57	48	Normal	1	0	0	4	UC43
+57	48	Normal	1	0	0	27	Émettre un bon de pharmacie
+57	48	Normal	1	0	0	3	M I
+57	48	Normal	1	0	0	5	Élevé
+57	48	Normal	1	0	0	5	Haute
+57	48	Normal	1	0	0	1	6
+57	48	Normal	1	0	0	0	
+57	48	Normal	1	0	0	4	UC44
+57	48	Normal	1	0	0	28	Délivrer un bon de pharmacie
+57	48	Normal	1	0	0	1	M
+57	48	Normal	1	0	0	5	Moyen
+57	48	Normal	1	0	0	5	Haute
+57	48	Normal	1	0	0	1	6
+57	48	Normal	1	0	0	0	
+57	48	Normal	1	0	0	4	UC45
+57	48	Normal	1	0	0	23	Émettre un bon d’examen
+57	48	Normal	1	0	0	3	M I
+57	48	Normal	1	0	0	5	Élevé
+57	48	Normal	1	0	0	5	Haute
+57	48	Normal	1	0	0	1	6
+57	48	Normal	1	0	0	0	
+57	48	Normal	1	0	0	4	UC46
+57	48	Normal	1	0	0	27	Saisir un résultat d’examen
+57	48	Normal	1	0	0	3	M I
+57	48	Normal	1	0	0	5	Moyen
+57	48	Normal	1	0	0	7	Moyenne
+57	48	Normal	1	0	0	1	6
+57	48	Normal	1	0	0	0	
+57	48	Normal	1	0	0	4	UC47
+57	48	Normal	1	0	0	31	Délivrer un certificat de repos
+57	48	Normal	1	0	0	3	M I
+57	48	Normal	1	0	0	6	Faible
+57	48	Normal	1	0	0	7	Moyenne
+57	48	Normal	1	0	0	1	6
+57	48	Normal	1	0	0	0	
+57	48	Normal	1	0	0	4	UC48
+57	48	Normal	1	0	0	25	Clôturer une consultation
+57	48	Normal	1	0	0	3	M I
+57	48	Normal	1	0	0	5	Élevé
+57	48	Normal	1	0	0	5	Haute
+57	48	Normal	1	0	0	1	6
+57	48	Normal	1	0	0	0	
+57	48	Normal	1	0	0	4	UC49
+57	48	Normal	1	0	0	24	Annuler une consultation
+57	48	Normal	1	0	0	3	M I
+57	48	Normal	1	0	0	6	Faible
+57	48	Normal	1	0	0	5	Basse
+57	48	Normal	1	0	0	1	6
+57	48	Normal	1	0	0	0	
+57	48	Normal	1	0	0	4	UC50
+57	48	Normal	1	0	0	22	Initier une évacuation
+57	48	Normal	1	0	0	1	M
+57	48	Normal	1	0	0	5	Moyen
+57	48	Normal	1	0	0	5	Haute
+57	48	Normal	1	0	0	1	7
+57	48	Normal	1	0	0	0	
+57	48	Normal	1	0	0	4	UC51
+57	48	Normal	1	0	0	33	Suivre et clôturer une évacuation
+57	48	Normal	1	0	0	1	M
+57	48	Normal	1	0	0	5	Moyen
+57	48	Normal	1	0	0	7	Moyenne
+57	48	Normal	1	0	0	1	7
+57	48	Normal	1	0	0	0	
+57	48	Normal	1	0	0	4	UC52
+57	48	Normal	1	0	0	29	Ouvrir un suivi de traitement
+57	48	Normal	1	0	0	3	M I
+57	48	Normal	1	0	0	6	Faible
+57	48	Normal	1	0	0	5	Haute
+57	48	Normal	1	0	0	1	7
+57	48	Normal	1	0	0	0	
+57	48	Normal	1	0	0	4	UC53
+57	48	Normal	1	0	0	26	Ajouter une fiche de suivi
+57	48	Normal	1	0	0	3	M I
+57	48	Normal	1	0	0	6	Faible
+57	48	Normal	1	0	0	5	Basse
+57	48	Normal	1	0	0	1	7
+57	48	Normal	1	0	0	0	
+57	48	Normal	0	0	0	0	
+57	48	Normal	0	0	0	191	Le package « Fonctions transverses » compte 12 cas d’utilisation, dont
+57	48	Légende tableau	0	0	0	95	Tableau 5.10 — Package Fonctions transverses : cas d’utilisation, risq
+57	48	Normal	1	0	0	2	Id
+57	48	Normal	1	0	0	17	Cas d’utilisation
+57	48	Normal	1	0	0	7	Acteurs
+57	48	Normal	1	0	0	6	Risque
+57	48	Normal	1	0	0	8	Priorité
+57	48	Normal	1	0	0	9	Itération
+57	48	Normal	1	0	0	0	
+57	48	Normal	1	0	0	4	UC54
+57	48	Normal	1	0	0	27	Consulter ses conversations
+57	48	Normal	1	0	0	5	A M I
+57	48	Normal	1	0	0	6	Faible
+57	48	Normal	1	0	0	5	Basse
+57	48	Normal	1	0	0	1	8
+57	48	Normal	1	0	0	0	
+57	48	Normal	1	0	0	4	UC55
+57	48	Normal	1	0	0	18	Envoyer un message
+57	48	Normal	1	0	0	5	A M I
+57	48	Normal	1	0	0	5	Moyen
+57	48	Normal	1	0	0	7	Moyenne
+57	48	Normal	1	0	0	1	8
+57	48	Normal	1	0	0	0	
+57	48	Normal	1	0	0	4	UC56
+57	48	Normal	1	0	0	25	Réagir, répondre, masquer
+57	48	Normal	1	0	0	5	A M I
+57	48	Normal	1	0	0	6	Faible
+57	48	Normal	1	0	0	5	Basse
+57	48	Normal	1	0	0	1	8
+57	48	Normal	1	0	0	0	
+58	49	Normal	1	0	0	4	UC57
+58	49	Normal	1	0	0	27	Consulter ses notifications
+58	49	Normal	1	0	0	5	A M I
+58	49	Normal	1	0	0	5	Élevé
+58	49	Normal	1	0	0	7	Moyenne
+58	49	Normal	1	0	0	1	8
+58	49	Normal	1	0	0	0	
+58	49	Normal	1	0	0	4	UC58
+58	49	Normal	1	0	0	20	Diffuser une annonce
+58	49	Normal	1	0	0	1	A
+58	49	Normal	1	0	0	6	Faible
+58	49	Normal	1	0	0	5	Basse
+58	49	Normal	1	0	0	1	8
+58	49	Normal	1	0	0	0	
+58	49	Normal	1	0	0	4	UC59
+58	49	Normal	1	0	0	28	Consulter le tableau de bord
+58	49	Normal	1	0	0	5	A M I
+58	49	Normal	1	0	0	6	Faible
+58	49	Normal	1	0	0	5	Haute
+58	49	Normal	1	0	0	1	8
+58	49	Normal	1	0	0	0	
+58	49	Normal	1	0	0	4	UC60
+58	49	Normal	1	0	0	20	Consulter un rapport
+58	49	Normal	1	0	0	5	A M I
+58	49	Normal	1	0	0	6	Faible
+58	49	Normal	1	0	0	7	Moyenne
+58	49	Normal	1	0	0	1	8
+58	49	Normal	1	0	0	0	
+58	49	Normal	1	0	0	4	UC61
+58	49	Normal	1	0	0	32	Exporter ou supprimer un rapport
+58	49	Normal	1	0	0	3	A M
+58	49	Normal	1	0	0	6	Faible
+58	49	Normal	1	0	0	5	Basse
+58	49	Normal	1	0	0	1	8
+58	49	Normal	1	0	0	0	
+58	49	Normal	1	0	0	4	UC62
+58	49	Normal	1	0	0	26	Enregistrer un poste local
+58	49	Normal	1	0	0	1	P
+58	49	Normal	1	0	0	5	Moyen
+58	49	Normal	1	0	0	5	Haute
+58	49	Normal	1	0	0	1	9
+58	49	Normal	1	0	0	0	
+58	49	Normal	1	0	0	4	UC63
+58	49	Normal	1	0	0	27	Synchroniser un poste local
+58	49	Normal	1	0	0	1	P
+58	49	Normal	1	0	0	5	Élevé
+58	49	Normal	1	0	0	5	Haute
+58	49	Normal	1	0	0	1	9
+58	49	Normal	1	0	0	0	
+58	49	Normal	1	0	0	4	UC64
+58	49	Normal	1	0	0	18	Superviser le parc
+58	49	Normal	1	0	0	1	A
+58	49	Normal	1	0	0	6	Faible
+58	49	Normal	1	0	0	7	Moyenne
+58	49	Normal	1	0	0	1	9
+58	49	Normal	1	0	0	0	
+58	49	Normal	1	0	0	4	UC65
+58	49	Normal	1	0	0	24	Restaurer une sauvegarde
+58	49	Normal	1	0	0	1	A
+58	49	Normal	1	0	0	5	Moyen
+58	49	Normal	1	0	0	5	Basse
+58	49	Normal	1	0	0	1	9
+58	49	Normal	1	0	0	0	
+58	49	Normal	0	0	0	0	
+58	49	Normal	0	0	0	314	Ces tableaux montrent que le risque n’est pas là où est le volume : le
+58	49	Normal	0	0	0	146	Les cinq diagrammes suivants représentent chaque package : soixante-ci
+59	50	Normal	0	1	0	1	/
+59	50	Normal	0	0	0	0	
+59	50	Légende	0	0	0	67	Figure 5.2 — Cas d’utilisation du package Sécurité et habilitations
+60	51	Normal	0	1	0	1	/
+60	51	Normal	0	0	0	0	
+60	51	Légende	0	0	0	74	Figure 5.3 — Cas d’utilisation du package Référentiels et acteurs médi
+61	52	Normal	0	1	0	1	/
+61	52	Normal	0	0	0	0	
+61	52	Légende	0	0	0	57	Figure 5.4 — Cas d’utilisation du package Dossier patient
+62	53	Normal	0	1	0	1	/
+62	53	Normal	0	0	0	0	
+62	53	Légende	0	0	0	58	Figure 5.5 — Cas d’utilisation du package Parcours de soin
+63	54	Normal	0	1	0	1	/
+63	54	Normal	0	0	0	0	
+63	54	Légende	0	0	0	63	Figure 5.6 — Cas d’utilisation du package Fonctions transverses
+64	55	Titre 3	0	0	0	39	5.2.7 Relations entre cas d’utilisation
+64	55	Normal	0	0	0	290	Nous ne présentons ici que les relations imposées par le code : une re
+64	55	Légende tableau	0	0	0	36	Tableau 5.11 — Relations d’inclusion
+64	55	Normal	1	0	0	11	Cas de base
+64	55	Normal	1	0	0	6	Inclut
+64	55	Normal	1	0	0	26	Justification dans le code
+64	55	Normal	1	0	0	0	
+64	55	Normal	1	0	0	22	UC34 Ouvrir une visite
+64	55	Normal	1	0	0	26	UC25 Rechercher un patient
+64	55	Normal	1	0	0	39	Une visite ne peut exister sans patient
+64	55	Normal	1	0	0	0	
+64	55	Normal	1	0	0	28	UC39 Ouvrir une consultation
+64	55	Normal	1	0	0	32	UC37 Consulter la file d’attente
+64	55	Normal	1	0	0	43	La consultation part d’une visite existante
+64	55	Normal	1	0	0	0	
+64	55	Normal	1	0	0	25	UC42 Créer une ordonnance
+64	55	Normal	1	0	0	30	Vérifier le droit de prescrire
+64	55	Normal	1	0	0	45	Appel systématique du contrôle avant création
+64	55	Normal	1	0	0	0	
+64	55	Normal	1	0	0	32	UC43 Émettre un bon de pharmacie
+64	55	Normal	1	0	0	38	Vérifier l’éligibilité de la catégorie
+64	55	Normal	1	0	0	44	Appel systématique du contrôle d’éligibilité
+64	55	Normal	1	0	0	0	
+64	55	Normal	1	0	0	28	UC45 Émettre un bon d’examen
+64	55	Normal	1	0	0	38	Vérifier l’éligibilité de la catégorie
+64	55	Normal	1	0	0	32	Même contrôle, prestation examen
+64	55	Normal	1	0	0	0	
+64	55	Normal	1	0	0	30	UC48 Clôturer une consultation
+64	55	Normal	1	0	0	26	Clôturer la visite parente
+64	55	Normal	1	0	0	45	La clôture pose l’état terminal sur la visite
+64	55	Normal	1	0	0	0	
+64	55	Normal	1	0	0	17	UC01 Se connecter
+64	55	Normal	1	0	0	28	UC07 Accepter les conditions
+64	55	Normal	1	0	0	42	Un portail bloque l’accès sans acceptation
+64	55	Normal	1	0	0	0	
+64	55	Normal	0	0	0	0	
+64	55	Normal	0	0	0	124	Une relation d’extension exprime au contraire une possibilité : le cas
+64	55	Légende tableau	0	0	0	36	Tableau 5.12 — Relations d’extension
+64	55	Normal	1	0	0	11	Cas de base
+64	55	Normal	1	0	0	10	Étendu par
+64	55	Normal	1	0	0	9	Condition
+64	55	Normal	1	0	0	0	
+64	55	Normal	1	0	0	17	UC01 Se connecter
+64	55	Normal	1	0	0	30	UC02 Valider le second facteur
+64	55	Normal	1	0	0	31	Si le second facteur est activé
+64	55	Normal	1	0	0	0	
+64	55	Normal	1	0	0	17	UC01 Se connecter
+64	55	Normal	1	0	0	39	UC03 Résoudre une connexion concurrente
+64	55	Normal	1	0	0	32	Si une autre session est ouverte
+64	55	Normal	1	0	0	0	
+64	55	Normal	1	0	0	17	UC01 Se connecter
+64	55	Normal	1	0	0	29	UC04 Changer son mot de passe
+64	55	Normal	1	0	0	33	Si le mot de passe est temporaire
+64	55	Normal	1	0	0	0	
+64	55	Normal	1	0	0	30	UC48 Clôturer une consultation
+64	55	Normal	1	0	0	27	UC50 Initier une évacuation
+64	55	Normal	1	0	0	39	Si la décision retenue est l’évacuation
+64	55	Normal	1	0	0	0	
+64	55	Normal	1	0	0	30	UC48 Clôturer une consultation
+64	55	Normal	1	0	0	34	UC52 Ouvrir un suivi de traitement
+64	55	Normal	1	0	0	35	Si la décision retenue est le suivi
+64	55	Normal	1	0	0	0	
+64	55	Normal	1	0	0	25	UC42 Créer une ordonnance
+64	55	Normal	1	0	0	32	UC43 Émettre un bon de pharmacie
+64	55	Normal	1	0	0	45	Si l’ordonnance est pharmaceutique et validée
+64	55	Normal	1	0	0	0	
+64	55	Normal	1	0	0	25	UC42 Créer une ordonnance
+64	55	Normal	1	0	0	28	UC45 Émettre un bon d’examen
+64	55	Normal	1	0	0	40	Si l’ordonnance est un examen et validée
+64	55	Normal	1	0	0	0	
+64	55	Normal	0	0	0	0	
+64	55	Normal	0	0	0	367	Nous ne retenons qu’une seule généralisation. Les cas de consultation 
+65	56	Titre 2	0	0	0	62	5.3 Spécification détaillée des cas d’utilisation prioritaires
+65	56	Normal	0	0	0	157	Conformément au plan de rédaction de l’école, deux descriptions textue
+65	56	Titre 3	0	0	0	40	5.3.1 Critères de choix et cas spécifiés
+65	56	Normal	0	0	0	603	Nous avons retenu cinq cas pour une spécification détaillée. Nous ne l
+65	56	Légende tableau	0	0	0	62	Tableau 5.13 — Spécification de UC01 : Se connecter au système
+65	56	Normal	1	0	0	8	Rubrique
+65	56	Normal	1	0	0	7	Contenu
+65	56	Normal	1	0	0	0	
+65	56	Normal	1	0	0	16	Acteur principal
+65	56	Normal	1	0	0	20	Tout agent du centre
+65	56	Normal	1	0	0	0	
+65	56	Normal	1	0	0	13	Préconditions
+65	56	Normal	1	0	0	39	Le compte existe et n’est pas désactivé
+65	56	Normal	1	0	0	0	
+65	56	Normal	1	0	0	14	Postconditions
+65	56	Normal	1	0	0	58	Une session est ouverte, les droits effectifs sont chargés
+65	56	Normal	1	0	0	0	
+65	56	Normal	1	0	0	16	Scénario nominal
+65	56	Normal	1	0	0	232	L’agent saisit ses identifiants. Le système vérifie qu’aucun blocage n
+65	56	Normal	1	0	0	0	
+65	56	Normal	1	0	0	21	Scénarios alternatifs
+65	56	Normal	1	0	0	150	Second facteur activé, confirmation du site de travail, session déjà o
+65	56	Normal	1	0	0	0	
+65	56	Normal	1	0	0	21	Scénarios d’exception
+65	56	Normal	1	0	0	183	Compte bloqué : refus avec durée restante. Mot de passe erroné : incré
+65	56	Normal	1	0	0	0	
+65	56	Normal	1	0	0	16	Règles associées
+65	56	Normal	1	0	0	76	Blocage progressif, unicité de session, acceptation des conditions blo
+65	56	Normal	1	0	0	0	
+65	56	Légende tableau	0	0	0	70	Tableau 5.14 — Spécification de UC42 : Créer et valider une ordonnance
+65	56	Normal	1	0	0	8	Rubrique
+65	56	Normal	1	0	0	7	Contenu
+65	56	Normal	1	0	0	0	
+65	56	Normal	1	0	0	16	Acteur principal
+65	56	Normal	1	0	0	60	Médecin Chef, ou Infirmier disposant d’une délégation active
+65	56	Normal	1	0	0	0	
+65	56	Normal	1	0	0	13	Préconditions
+65	56	Normal	1	0	0	28	Une consultation est ouverte
+65	56	Normal	1	0	0	0	
+65	56	Normal	1	0	0	14	Postconditions
+65	56	Normal	1	0	0	88	Une ordonnance validée existe, portant le cas échéant la trace de la d
+65	56	Normal	1	0	0	0	
+65	56	Normal	1	0	0	16	Scénario nominal
+65	56	Normal	1	0	0	224	Le soignant choisit le type d’ordonnance. Le système vérifie le droit 
+65	56	Normal	1	0	0	0	
+65	56	Normal	1	0	0	21	Scénarios alternatifs
+65	56	Normal	1	0	0	76	Suppression au brouillon, annulation après validation avec motif, impr
+65	56	Normal	1	0	0	0	
+65	56	Normal	1	0	0	21	Scénarios d’exception
+65	56	Normal	1	0	0	89	Infirmier sans délégation active : refus explicite. Modification après
+65	56	Normal	1	0	0	0	
+65	56	Normal	1	0	0	16	Règles associées
+65	56	Normal	1	0	0	155	Le contrôle est à deux étages : la permission ouvre la porte, la délég
+65	56	Normal	1	0	0	0	
+65	56	Légende tableau	0	0	0	0	
+66	57	Légende tableau	0	0	0	66	Tableau 5.15 — Spécification de UC63 : Synchroniser un poste local
+66	57	Normal	1	0	0	8	Rubrique
+66	57	Normal	1	0	0	7	Contenu
+66	57	Normal	1	0	0	0	
+66	57	Normal	1	0	0	16	Acteur principal
+66	57	Normal	1	0	0	39	Poste local autonome, acteur secondaire
+66	57	Normal	1	0	0	0	
+66	57	Normal	1	0	0	13	Préconditions
+66	57	Normal	1	0	0	45	Poste enregistré et serveur central joignable
+66	57	Normal	1	0	0	0	
+66	57	Normal	1	0	0	14	Postconditions
+66	57	Normal	1	0	0	100	Le poste détient les données à jour, ses modifications sont remontées,
+66	57	Normal	1	0	0	0	
+66	57	Normal	1	0	0	16	Scénario nominal
+66	57	Normal	1	0	0	265	Le poste s’abonne au canal de notification. Le serveur signale qu’il y
+66	57	Normal	1	0	0	0	
+66	57	Normal	1	0	0	21	Scénarios alternatifs
+66	57	Normal	1	0	0	101	Déclenchement manuel. Poste à l’origine de l’écriture : il n’est pas r
+66	57	Normal	1	0	0	0	
+66	57	Normal	1	0	0	21	Scénarios d’exception
+66	57	Normal	1	0	0	148	Écriture concurrente : la version la plus récente l’emporte et le conf
+66	57	Normal	1	0	0	0	
+66	57	Normal	1	0	0	16	Règles associées
+66	57	Normal	1	0	0	125	Jamais de blocage : aucun verrou distribué n’étant possible entre mach
+66	57	Normal	1	0	0	0	
+66	57	Titre 3	0	0	0	40	5.3.2 UC43 — Émettre un bon de pharmacie
+66	57	Normal	0	0	0	138	Ce cas porte la règle métier la plus structurante du système : tous le
+66	57	Légende tableau	0	0	0	0	
+66	57	Légende tableau	0	0	0	48	Tableau 5.16 — Sommaire d’identification de UC43
+66	57	Normal	1	0	0	8	Rubrique
+66	57	Normal	1	0	0	7	Contenu
+66	57	Normal	1	0	0	0	
+66	57	Normal	1	0	0	8	Objectif
+66	57	Normal	1	0	0	140	Permettre à un soignant de générer, à partir d’une ordonnance pharmace
+66	57	Normal	1	0	0	0	
+66	57	Normal	1	0	0	16	Acteur principal
+66	57	Normal	1	0	0	39	Le soignant — Médecin Chef ou infirmier
+66	57	Normal	1	0	0	0	
+66	57	Normal	1	0	0	13	Préconditions
+66	57	Normal	1	0	0	180	Le soignant est connecté et dispose du droit de création de bon. Une c
+66	57	Normal	1	0	0	0	
+66	57	Normal	1	0	0	14	Postconditions
+66	57	Normal	1	0	0	150	Un bon de pharmacie existe à l’état en attente. Il est rattaché à l’or
+66	57	Normal	1	0	0	0	
+66	57	Légende tableau	0	0	0	39	Tableau 5.17 — Scénario nominal de UC43
+66	57	Normal	1	0	0	5	Étape
+66	57	Normal	1	0	0	6	Acteur
+66	57	Normal	1	0	0	7	Système
+66	57	Normal	1	0	0	0	
+66	57	Normal	1	0	0	1	1
+66	57	Normal	1	0	0	72	Le soignant ouvre l’ordonnance validée et demande la génération d’un b
+66	57	Normal	1	0	0	0	
+66	57	Normal	1	0	0	0	
+66	57	Normal	1	0	0	1	2
+66	57	Normal	1	0	0	0	
+66	57	Normal	1	0	0	103	Le système lit la catégorie du patient et interroge la matrice des dro
+66	57	Normal	1	0	0	0	
+66	57	Normal	1	0	0	1	3
+66	57	Normal	1	0	0	0	
+66	57	Normal	1	0	0	117	Il constate que la catégorie est couverte et crée le bon à l’état en a
+66	57	Normal	1	0	0	0	
+66	57	Normal	1	0	0	1	4
+66	57	Normal	1	0	0	0	
+66	57	Normal	1	0	0	25	Il journalise la création
+66	57	Normal	1	0	0	0	
+66	57	Normal	1	0	0	1	5
+66	57	Normal	1	0	0	49	Le soignant imprime le bon et le remet au patient
+66	57	Normal	1	0	0	0	
+66	57	Normal	1	0	0	0	
+67	58	Normal	0	0	0	245	Deux scénarios alternatifs existent. L’annulation avant délivrance fai
+67	58	Normal	0	0	0	433	Trois exceptions sont prévues. Si la catégorie n’est pas couverte, le 
+67	58	Normal	0	0	0	154	Comme établi au § 2.5, le refus porte sur le bon, jamais sur l’ordonna
+67	58	Titre 3	0	0	0	52	5.3.3 UC48 — Clôturer une consultation avec décision
+67	58	Légende tableau	0	0	0	48	Tableau 5.18 — Sommaire d’identification de UC48
+67	58	Normal	1	0	0	8	Rubrique
+67	58	Normal	1	0	0	7	Contenu
+67	58	Normal	1	0	0	0	
+67	58	Normal	1	0	0	8	Objectif
+67	58	Normal	1	0	0	173	Permettre à un soignant de mettre fin à une consultation en enregistra
+67	58	Normal	1	0	0	0	
+67	58	Normal	1	0	0	16	Acteur principal
+67	58	Normal	1	0	0	39	Le soignant qui conduit la consultation
+67	58	Normal	1	0	0	0	
+67	58	Normal	1	0	0	13	Préconditions
+67	58	Normal	1	0	0	126	Une consultation est ouverte et conduite par l’acteur. Un examen clini
+67	58	Normal	1	0	0	0	
+67	58	Normal	1	0	0	14	Postconditions
+67	58	Normal	1	0	0	188	La consultation est clôturée et n’est plus modifiable. La visite paren
+67	58	Normal	1	0	0	0	
+67	58	Légende tableau	0	0	0	39	Tableau 5.19 — Scénario nominal de UC48
+67	58	Normal	1	0	0	5	Étape
+67	58	Normal	1	0	0	6	Acteur
+67	58	Normal	1	0	0	7	Système
+67	58	Normal	1	0	0	0	
+67	58	Normal	1	0	0	1	1
+67	58	Normal	1	0	0	87	Le soignant rédige sa conclusion et indique, s’il y a lieu, la durée d
+67	58	Normal	1	0	0	0	
+67	58	Normal	1	0	0	0	
+67	58	Normal	1	0	0	1	2
+67	58	Normal	1	0	0	56	Il choisit une décision médicale, ou n’en choisit aucune
+67	58	Normal	1	0	0	0	
+67	58	Normal	1	0	0	0	
+67	58	Normal	1	0	0	1	3
+67	58	Normal	1	0	0	0	
+67	58	Normal	1	0	0	75	Le système vérifie que la consultation n’est pas déjà dans un état ter
+67	58	Normal	1	0	0	0	
+67	58	Normal	1	0	0	1	4
+67	58	Normal	1	0	0	0	
+67	58	Normal	1	0	0	93	Il enregistre la conclusion et la décision, puis fait passer la consul
+67	58	Normal	1	0	0	0	
+67	58	Normal	1	0	0	1	5
+67	58	Normal	1	0	0	0	
+67	58	Normal	1	0	0	87	Il clôture la visite parente et émet une notification portant l’intitu
+67	58	Normal	1	0	0	0	
+67	58	Normal	0	0	0	0	
+67	58	Normal	0	0	0	490	Quatre scénarios alternatifs sont prévus. La décision d’évacuation cré
+67	58	Normal	0	0	0	521	Deux exceptions existent. Le système refuse toute modification d’un ét
+68	59	Titre 2	0	0	0	34	5.4 Diagrammes de séquence système
+68	59	Normal	0	0	0	341	Nous produisons deux diagrammes de séquence système, le plan de rédact
+68	59	Normal	0	0	0	372	Le second retient la synchronisation d’un poste local. C’est le seul c
+69	60	Normal	0	1	0	1	/
+69	60	Légende	0	0	0	72	Figure 5.7 — Diagramme de séquence système : émettre un bon de pharmac
+70	61	Normal	0	1	0	1	/
+70	61	Normal	0	0	0	0	
+70	61	Légende	0	0	0	72	Figure 5.8 — Diagramme de séquence système : synchroniser un poste loc
+70	61	Normal	0	0	0	6	[SAUT]
+71	62	Titre 2	0	0	0	22	Conclusion du chapitre
+71	62	Normal	0	0	0	490	Notre analyse a établi vingt-trois besoins fonctionnels et treize beso
+71	62	Normal	0	0	0	349	Deux règles gouvernent l’ensemble, et devront être portées telles quel
+72	63	Titre 1	0	0	0	52	BRANCHE TECHNIQUE — DES CONTRAINTES À L’ARCHITECTURE
+73	64	Titre 1	0	0	0	46	CHAPITRE 6 — ARCHITECTURE TECHNIQUE DU SYSTÈME
+73	64	Normal	0	0	0	433	Ce chapitre part des contraintes d’exploitation du centre pour définir
+73	64	Titre 2	0	0	0	43	6.1 Les contraintes techniques à satisfaire
+73	64	Normal	0	0	0	202	La branche technique commence par la capture des besoins techniques : 
+73	64	Normal	0	0	0	617	Le système doit d’abord fonctionner sans connexion : la liaison entre 
+73	64	Normal	0	0	0	155	Les sections suivantes montrent comment l’architecture applicative, l’
+73	64	Titre 2	0	0	0	30	6.2 L’architecture applicative
+73	64	Normal	0	0	0	324	La contrainte dominante n’est pas fonctionnelle, elle est contextuelle
+73	64	Légende tableau	0	0	0	48	Tableau 6.1 — Les trois architectures envisagées
+73	64	Normal	1	0	0	6	Option
+73	64	Normal	1	0	0	8	Principe
+73	64	Normal	1	0	0	8	Décision
+73	64	Normal	1	0	0	0	
+73	64	Normal	1	0	0	24	Client-serveur classique
+73	64	Normal	1	0	0	33	Tout passe par un serveur central
+73	64	Normal	1	0	0	49	Écartée : une coupure réseau arrêterait le centre
+73	64	Normal	1	0	0	0	
+73	64	Normal	1	0	0	27	Postes autonomes non reliés
+73	64	Normal	1	0	0	53	Chaque poste dispose de sa base, sans synchronisation
+73	64	Normal	1	0	0	89	Écartée : elle reproduirait le problème constaté, dossiers dupliqués e
+73	64	Normal	1	0	0	0	
+73	64	Normal	1	0	0	49	Fonctionnement hors connexion avec réconciliation
+73	64	Normal	1	0	0	55	Chaque poste travaille localement puis se resynchronise
+73	64	Normal	1	0	0	92	Retenue : seule option satisfaisant la continuité de service et la coh
+73	64	Normal	1	0	0	0	
+73	64	Normal	0	0	0	0	
+73	64	Normal	0	0	0	222	Notre choix commande tout le reste. Il impose la duplication du schéma
+73	64	Normal	0	0	0	608	Notre système suit une architecture en couches. La couche de présentat
+74	65	Normal	0	0	0	268	Le point remarquable est que la couche métier est bi-cible. Le même co
+74	65	Normal	0	0	0	480	Cette bi-cible a toutefois un coût, visible dans le code. Certaines op
+74	65	Légende tableau	0	0	0	38	Tableau 6.2 — Les six paquets du dépôt
+74	65	Normal	1	0	0	6	Paquet
+74	65	Normal	1	0	0	7	Contenu
+74	65	Normal	1	0	0	0	
+74	65	Normal	1	0	0	18	Serveur applicatif
+74	65	Normal	1	0	0	45	17 modules NestJS, 26 contrôleurs, 273 routes
+74	65	Normal	1	0	0	0	
+74	65	Normal	1	0	0	13	Interface web
+74	65	Normal	1	0	0	33	15 modules d’interface, 15 écrans
+74	65	Normal	1	0	0	0	
+74	65	Normal	1	0	0	16	Client de bureau
+74	65	Normal	1	0	0	42	Deux modes de fonctionnement, installateur
+74	65	Normal	1	0	0	0	
+74	65	Normal	1	0	0	17	Paquet de données
+74	65	Normal	1	0	0	54	Schéma, 40 migrations, jeu de données de démonstration
+74	65	Normal	1	0	0	0	
+74	65	Normal	1	0	0	15	Paquet de types
+74	65	Normal	1	0	0	75	Types partagés, catalogue des permissions, logique de résolution de co
+74	65	Normal	1	0	0	0	
+74	65	Normal	1	0	0	18	Paquet d’interface
+74	65	Normal	1	0	0	29	Système de composants visuels
+74	65	Normal	1	0	0	0	
+74	65	Normal	0	0	0	0	
+74	65	Normal	0	0	0	292	Le paquet de types est le pivot de la maintenabilité. Le catalogue des
+74	65	Normal	0	0	0	289	Une limite doit cependant être signalée, et le code la documente lui-m
+74	65	Titre 2	0	0	0	30	6.3 L’architecture de sécurité
+74	65	Normal	0	0	0	173	Nous avons organisé la sécurité en couches successives, chacune traita
+74	65	Légende tableau	0	0	0	60	Tableau 6.3 — Les neuf niveaux de l’architecture de sécurité
+74	65	Normal	1	0	0	6	Niveau
+74	65	Normal	1	0	0	9	Mécanisme
+74	65	Normal	1	0	0	15	Menace couverte
+74	65	Normal	1	0	0	0	
+74	65	Normal	1	0	0	1	1
+74	65	Normal	1	0	0	36	En-têtes de protection du navigateur
+74	65	Normal	1	0	0	26	Attaques par le navigateur
+74	65	Normal	1	0	0	0	
+74	65	Normal	1	0	0	1	2
+74	65	Normal	1	0	0	39	Politique d’origine croisée restrictive
+74	65	Normal	1	0	0	27	Appels depuis un site tiers
+74	65	Normal	1	0	0	0	
+74	65	Normal	1	0	0	1	3
+74	65	Normal	1	0	0	61	Limitation à 100 requêtes par minute, calée sur l’utilisateur
+74	65	Normal	1	0	0	30	Force brute et déni de service
+74	65	Normal	1	0	0	0	
+74	65	Normal	1	0	0	1	4
+74	65	Normal	1	0	0	27	Vérification du jeton signé
+74	65	Normal	1	0	0	21	Accès non authentifié
+74	65	Normal	1	0	0	0	
+74	65	Normal	1	0	0	1	5
+74	65	Normal	1	0	0	19	Garde de permission
+74	65	Normal	1	0	0	18	Accès non autorisé
+74	65	Normal	1	0	0	0	
+74	65	Normal	1	0	0	1	6
+74	65	Normal	1	0	0	38	Règle métier appliquée dans le service
+74	65	Normal	1	0	0	38	Acte non autorisé malgré la permission
+74	65	Normal	1	0	0	0	
+75	66	Normal	1	0	0	1	7
+75	66	Normal	1	0	0	30	Validation stricte des entrées
+75	66	Normal	1	0	0	20	Injection de données
+75	66	Normal	1	0	0	0	
+75	66	Normal	1	0	0	1	8
+75	66	Normal	1	0	0	51	Journal d’audit alimenté par un intercepteur unique
+75	66	Normal	1	0	0	22	Absence d’imputabilité
+75	66	Normal	1	0	0	0	
+75	66	Normal	1	0	0	1	9
+75	66	Normal	1	0	0	20	Chiffrement au repos
+75	66	Normal	1	0	0	37	Lecture directe de la base de données
+75	66	Normal	1	0	0	0	
+75	66	Normal	0	0	0	509	Nous devons souligner trois points. La limitation de débit est calée s
+75	66	Normal	0	0	0	587	Certaines permissions sont enfin protégées contre leur propre retrait.
+75	66	Normal	0	0	0	313	Deux propriétés en font une preuve exploitable. L’intercepteur n’inter
+75	66	Titre 2	0	0	0	32	6.4 Le moteur de synchronisation
+75	66	Normal	0	0	0	119	Le système comporte deux mécanismes hors connexion de conception diffé
+75	66	Légende tableau	0	0	0	60	Tableau 6.4 — Comparaison des deux mécanismes hors connexion
+75	66	Normal	1	0	0	7	Critère
+75	66	Normal	1	0	0	15	Application web
+75	66	Normal	1	0	0	14	Poste autonome
+75	66	Normal	1	0	0	0	
+75	66	Normal	1	0	0	14	Stockage local
+75	66	Normal	1	0	0	18	Base du navigateur
+75	66	Normal	1	0	0	45	Base locale, atteinte via le serveur embarqué
+75	66	Normal	1	0	0	0	
+75	66	Normal	1	0	0	23	Lectures hors connexion
+75	66	Normal	1	0	0	40	Cache local, réseau interrogé en premier
+75	66	Normal	1	0	0	38	Véritables requêtes sur la base locale
+75	66	Normal	1	0	0	0	
+75	66	Normal	1	0	0	24	Écritures hors connexion
+75	66	Normal	1	0	0	34	File de mutations mises en attente
+75	66	Normal	1	0	0	24	Écriture directe en base
+75	66	Normal	1	0	0	0	
+75	66	Normal	1	0	0	14	Réconciliation
+75	66	Normal	1	0	0	31	Rejeu des requêtes dans l’ordre
+75	66	Normal	1	0	0	47	Échange de deltas et dernière écriture gagnante
+75	66	Normal	1	0	0	0	
+75	66	Normal	1	0	0	9	Autonomie
+75	66	Normal	1	0	0	30	Partielle, dépendante du cache
+75	66	Normal	1	0	0	44	Complète, le poste étant lui-même un serveur
+75	66	Normal	1	0	0	0	
+75	66	Normal	0	0	0	0	
+75	66	Normal	0	0	0	534	Le rejeu de requêtes mérite d’être expliqué, car son élégance tient à 
+76	67	Normal	0	0	0	204	Nous avons retenu la stratégie de la dernière écriture gagnante. Les v
+76	67	Légende tableau	0	0	0	58	Tableau 6.5 — Règles de résolution des conflits d’écriture
+76	67	Normal	1	0	0	9	Situation
+76	67	Normal	1	0	0	8	Décision
+76	67	Normal	1	0	0	0	
+76	67	Normal	1	0	0	29	Aucun enregistrement existant
+76	67	Normal	1	0	0	35	Appliquer, il s’agit d’une création
+76	67	Normal	1	0	0	0	
+76	67	Normal	1	0	0	65	Entrant plus récent, serveur inchangé depuis la version de départ
+76	67	Normal	1	0	0	9	Appliquer
+76	67	Normal	1	0	0	0	
+76	67	Normal	1	0	0	43	Entrant plus récent, serveur modifié depuis
+76	67	Normal	1	0	0	56	Conflit : l’entrant l’emporte, l’incident est journalisé
+76	67	Normal	1	0	0	0	
+76	67	Normal	1	0	0	37	Entrant plus ancien, serveur inchangé
+76	67	Normal	1	0	0	7	Ignorer
+76	67	Normal	1	0	0	0	
+76	67	Normal	1	0	0	43	Entrant plus ancien, serveur modifié depuis
+76	67	Normal	1	0	0	57	Conflit : l’existant l’emporte, l’incident est journalisé
+76	67	Normal	1	0	0	0	
+76	67	Normal	1	0	0	17	Horodatages égaux
+76	67	Normal	1	0	0	43	Ignorer, la réponse est renvoyée sans effet
+76	67	Normal	1	0	0	0	
+76	67	Normal	0	0	0	0	
+76	67	Normal	0	0	0	595	Trois propriétés en découlent. Aucun blocage n’est possible. Il n’exis
+76	67	Normal	0	0	0	438	Le point décisif est que le dossier patient et tout le parcours de soi
+76	67	Normal	0	0	0	407	Le serveur central expose enfin un flux d’événements serveur (SSE) qui
+76	67	Normal	0	0	0	285	Un battement régulier maintient le canal ouvert, car les équipements r
+76	67	Titre 2	0	0	0	22	Conclusion du chapitre
+76	67	Normal	0	0	0	471	Ce chapitre a traité la branche technique de 2TUP, indépendamment des 
+77	68	Normal	0	0	0	425	Deux décisions techniques engagent la suite. La suppression logique gé
+78	69	Titre 1	0	0	0	57	CONVERGENCE DES DEUX BRANCHES — CONCEPTION ET RÉALISATION
+79	70	Titre 1	0	0	0	51	CHAPITRE 7 — CONCEPTION DÉTAILLÉE ET IMPLÉMENTATION
+79	70	Normal	0	0	0	320	Ce chapitre est le point de convergence des deux branches de 2TUP : le
+79	70	Titre 2	0	0	0	24	7.1 Le modèle de classes
+79	70	Normal	0	0	0	425	Le modèle complet comporte 88 entités reliées par 97 associations ; un
+79	70	Normal	0	0	0	532	Les 59 entités écartées se répartissent ainsi : 13 pour la sécurité et
+79	70	Normal	0	0	0	229	Les 29 classes retenues se répartissent selon les mêmes packages que l
+79	70	Légende tableau	0	0	0	61	Tableau 7.1 — Répartition des 29 classes retenues par package
+79	70	Normal	1	0	0	7	Package
+79	70	Normal	1	0	0	16	Classes retenues
+79	70	Normal	1	0	0	6	Nombre
+79	70	Normal	1	0	0	0	
+79	70	Normal	1	0	0	25	Sécurité et habilitations
+79	70	Normal	1	0	0	62	Utilisateur, UtilisateurRole, Role, RolePermission, Permission
+79	70	Normal	1	0	0	1	5
+79	70	Normal	1	0	0	0	
+79	70	Normal	1	0	0	32	Référentiels et acteurs médicaux
+79	70	Normal	1	0	0	141	Site, CategoriePatient, DroitCategoriePatient, PathologieReference, Me
+79	70	Normal	1	0	0	1	8
+79	70	Normal	1	0	0	0	
+79	70	Normal	1	0	0	15	Dossier patient
+79	70	Normal	1	0	0	91	Patient, IdentitePatient, EmployeSaris, RattachementAyantDroitCdi, Rat
+79	70	Normal	1	0	0	1	5
+79	70	Normal	1	0	0	0	
+79	70	Normal	1	0	0	16	Parcours de soin
+79	70	Normal	1	0	0	159	Visite, ConstanteVitale, Consultation, DiagnosticConsultation, Ordonna
+79	70	Normal	1	0	0	2	11
+79	70	Normal	1	0	0	0	
+79	70	Normal	1	0	0	21	Fonctions transverses
+79	70	Normal	1	0	0	21	aucune classe retenue
+79	70	Normal	1	0	0	1	0
+79	70	Normal	1	0	0	0	
+79	70	Normal	0	0	0	0	
+79	70	Normal	0	0	0	347	Le package Fonctions transverses ne retient aucune classe. La messager
+80	71	Normal	0	0	0	815	Les packages ne sont pas étanches. Le package Sécurité n’atteint le do
+80	71	Normal	0	0	0	209	Les cinq planches suivantes représentent chaque package — le Parcours 
+81	72	Normal	0	1	0	1	/
+81	72	Normal	0	0	0	0	
+81	72	Légende	0	0	0	70	Figure 7.1 — Diagramme de classes du package Sécurité et habilitations
+82	73	Normal	0	1	0	1	/
+82	73	Normal	0	0	0	0	
+82	73	Légende	0	0	0	77	Figure 7.2 — Diagramme de classes du package Référentiels et acteurs m
+83	74	Normal	0	1	0	1	/
+83	74	Normal	0	0	0	0	
+83	74	Légende	0	0	0	60	Figure 7.3 — Diagramme de classes du package Dossier patient
+84	75	Normal	0	1	0	1	/
+84	75	Normal	0	0	0	0	
+84	75	Légende	0	0	0	87	Figure 7.4a — Diagramme de classes du package Parcours de soin : visit
+85	76	Normal	0	1	0	1	/
+85	76	Légende	0	0	0	85	Figure 7.4b — Diagramme de classes du package Parcours de soin : presc
+86	77	Normal	0	1	0	1	/
+86	77	Normal	0	0	0	0	
+86	77	Légende	0	0	0	44	Figure 7.5 — Diagramme de classes du système
+86	77	Normal	0	0	0	6	[SAUT]
+87	78	Légende tableau	0	0	0	59	Tableau 7.2 — Les six entités les plus connectées du modèle
+87	78	Normal	1	0	0	4	Rang
+87	78	Normal	1	0	0	6	Entité
+87	78	Normal	1	0	0	5	Degré
+87	78	Normal	1	0	0	7	Lecture
+87	78	Normal	1	0	0	0	
+87	78	Normal	1	0	0	1	1
+87	78	Normal	1	0	0	7	Patient
+87	78	Normal	1	0	0	2	18
+87	78	Normal	1	0	0	101	Pivot du modèle : identité, contacts, allergies, antécédents, alertes,
+87	78	Normal	1	0	0	0	
+87	78	Normal	1	0	0	1	2
+87	78	Normal	1	0	0	12	Consultation
+87	78	Normal	1	0	0	2	13
+87	78	Normal	1	0	0	90	Pivot du parcours de soin : diagnostics, ordonnances, bons, certificat
+87	78	Normal	1	0	0	0	
+87	78	Normal	1	0	0	1	3
+87	78	Normal	1	0	0	11	Utilisateur
+87	78	Normal	1	0	0	2	11
+87	78	Normal	1	0	0	90	Pivot de la sécurité : rôles, dérogations, sessions, second facteur, p
+87	78	Normal	1	0	0	0	
+87	78	Normal	1	0	0	1	4
+87	78	Normal	1	0	0	17	Personnel médical
+87	78	Normal	1	0	0	1	8
+87	78	Normal	1	0	0	56	Lien entre le compte applicatif et la personne soignante
+87	78	Normal	1	0	0	0	
+87	78	Normal	1	0	0	1	5
+87	78	Normal	1	0	0	6	Visite
+87	78	Normal	1	0	0	1	6
+87	78	Normal	1	0	0	26	Unité de travail du triage
+87	78	Normal	1	0	0	0	
+87	78	Normal	1	0	0	1	6
+87	78	Normal	1	0	0	10	Ordonnance
+87	78	Normal	1	0	0	1	6
+87	78	Normal	1	0	0	62	Charnière entre la prescription et les bons de prise en charge
+87	78	Normal	1	0	0	0	
+87	78	Normal	0	0	0	0	
+87	78	Normal	0	0	0	799	Cette hiérarchie se mesure au nombre d’associations : le modèle s’orga
+87	78	Normal	0	0	0	368	Les documents cliniques sont rattachés à la consultation, et non au pa
+87	78	Normal	0	0	0	133	Neuf entités possèdent un cycle de vie contraint : ce sont ces contrai
+87	78	Légende tableau	0	0	0	50	Tableau 7.3 — Les neuf machines à états du système
+87	78	Normal	1	0	0	6	Entité
+87	78	Normal	1	0	0	5	États
+87	78	Normal	1	0	0	18	Transition notable
+87	78	Normal	1	0	0	0	
+87	78	Normal	1	0	0	6	Visite
+87	78	Normal	1	0	0	39	En attente, en cours, clôturée, annulée
+87	78	Normal	1	0	0	65	La clôture est posée par la consultation, jamais depuis le triage
+87	78	Normal	1	0	0	0	
+87	78	Normal	1	0	0	12	Consultation
+87	78	Normal	1	0	0	26	Ouverte, clôturée, annulée
+87	78	Normal	1	0	0	57	Une seule consultation ouverte par soignant et par visite
+87	78	Normal	1	0	0	0	
+87	78	Normal	1	0	0	10	Ordonnance
+87	78	Normal	1	0	0	27	Brouillon, validée, annulée
+87	78	Normal	1	0	0	40	Modifiable uniquement à l’état brouillon
+87	78	Normal	1	0	0	0	
+87	78	Normal	1	0	0	16	Bon de pharmacie
+87	78	Normal	1	0	0	27	En attente, délivré, annulé
+87	78	Normal	1	0	0	39	Un bon délivré ne peut plus être annulé
+87	78	Normal	1	0	0	0	
+87	78	Normal	1	0	0	12	Bon d’examen
+87	78	Normal	1	0	0	32	En attente, validé, reçu, annulé
+87	78	Normal	1	0	0	41	La saisie du résultat exige un bon validé
+87	78	Normal	1	0	0	0	
+87	78	Normal	1	0	0	10	Évacuation
+87	78	Normal	1	0	0	46	En cours, en transport, admis, clôturé, annulé
+87	78	Normal	1	0	0	34	L’annulation exige l’état en cours
+87	78	Normal	1	0	0	0	
+87	78	Normal	1	0	0	19	Suivi de traitement
+87	78	Normal	1	0	0	25	En cours, clôturé, annulé
+87	78	Normal	1	0	0	46	Les fiches datées bouclent sur l’état en cours
+87	78	Normal	1	0	0	0	
+87	78	Normal	1	0	0	15	Dossier patient
+87	78	Normal	1	0	0	32	Actif, archivé, décédé, fusionné
+87	78	Normal	1	0	0	33	Une visite exige un dossier actif
+87	78	Normal	1	0	0	0	
+88	79	Normal	1	0	0	18	Compte utilisateur
+88	79	Normal	1	0	0	24	Actif, désactivé, bloqué
+88	79	Normal	1	0	0	56	Le blocage est posé automatiquement après échecs répétés
+88	79	Normal	1	0	0	0	
+88	79	Normal	0	0	0	0	
+88	79	Normal	0	0	0	333	Trois observations en découlent. Les états terminaux sont irréversible
+88	79	Normal	0	0	0	303	Quatre machines sur neuf seulement sont garanties par la base de donné
+88	79	Normal	0	0	0	319	Ce choix découle du fonctionnement hors connexion : si un dossier supp
+88	79	Normal	0	0	0	320	Le système reprend à l’identique le parcours de soin décrit au chapitr
+88	79	Normal	0	0	0	239	L’émission d’un bon de pharmacie fait apparaître les deux étages de co
+88	79	Titre 2	0	0	0	41	7.2 Composants, déploiement et interfaces
+88	79	Normal	0	0	0	682	L’architecture en composants distingue sept blocs. Le serveur applicat
+88	79	Normal	0	0	0	161	Les trois paquets partagés fournissent enfin le schéma Prisma et les m
+89	80	Normal	0	1	0	1	/
+89	80	Normal	0	0	0	0	
+89	80	Légende	0	0	0	36	Figure 7.6 — Diagramme de composants
+89	80	Normal	0	0	0	6	[SAUT]
+90	81	Normal	0	0	0	568	Le déploiement distingue quatre nœuds : un serveur d’application expos
+90	81	Normal	0	0	0	163	L’origine du client de bureau Electron est enfin un schéma applicatif 
+91	82	Normal	0	1	0	1	/
+91	82	Normal	0	0	0	0	
+91	82	Légende	0	0	0	37	Figure 7.7 — Diagramme de déploiement
+91	82	Normal	0	0	0	6	[SAUT]
+92	83	Normal	0	0	0	135	Les principes d’interface sont formalisés dans une charte graphique et
+92	83	Légende tableau	0	0	0	55	Tableau 7.4 — Principes d’interface et leur application
+92	83	Normal	1	0	0	8	Principe
+92	83	Normal	1	0	0	11	Application
+92	83	Normal	1	0	0	0	
+92	83	Normal	1	0	0	18	Adaptation au rôle
+92	83	Normal	1	0	0	140	Le menu est filtré par permission, item par item. Un groupe dont tous 
+92	83	Normal	1	0	0	0	
+92	83	Normal	1	0	0	26	Confidentialité par défaut
+92	83	Normal	1	0	0	120	Les zones cliniques sensibles sont floutées en permanence et révélées 
+92	83	Normal	1	0	0	0	
+92	83	Normal	1	0	0	11	Bilinguisme
+92	83	Normal	1	0	0	71	Français et anglais, bascule en direct, préférence mémorisée par compt
+92	83	Normal	1	0	0	0	
+92	83	Normal	1	0	0	20	Adaptation à l’écran
+92	83	Normal	1	0	0	63	Menu en tiroir sur mobile, panneaux empilés, tableaux défilants
+92	83	Normal	1	0	0	0	
+92	83	Normal	1	0	0	32	Point de départ adapté au métier
+92	83	Normal	1	0	0	81	L’infirmier arrive sur la file d’attente, les autres rôles sur le tabl
+92	83	Normal	1	0	0	0	
+92	83	Normal	1	0	0	21	Impression normalisée
+92	83	Normal	1	0	0	58	Six documents au format A4 partagent deux gabarits communs
+92	83	Normal	1	0	0	0	
+92	83	Normal	0	0	0	0	
+92	83	Normal	0	0	0	362	Ce volet a une faiblesse : les permissions qui gouvernent l’affichage 
+92	83	Titre 2	0	0	0	52	7.3 Environnement de développement et de déploiement
+92	83	Normal	0	0	0	389	L’architecture elle-même est décrite au chapitre 6. Les échanges se fo
+92	83	Légende tableau	0	0	0	50	Tableau 7.5 — Principaux outils logiciels employés
+92	83	Normal	1	0	0	5	Outil
+92	83	Normal	1	0	0	7	Version
+92	83	Normal	1	0	0	4	Rôle
+92	83	Normal	1	0	0	20	Usage dans le projet
+92	83	Normal	1	0	0	0	
+92	83	Normal	1	0	0	7	Node.js
+92	83	Normal	1	0	0	5	20.18
+92	83	Normal	1	0	0	25	Environnement d’exécution
+92	83	Normal	1	0	0	109	Fait tourner le serveur et les outils de compilation. Version à suppor
+92	83	Normal	1	0	0	0	
+92	83	Normal	1	0	0	10	TypeScript
+92	83	Normal	1	0	0	3	5.9
+92	83	Normal	1	0	0	24	Langage, typage statique
+92	83	Normal	1	0	0	107	Un seul langage du serveur à l’interface. Les types partagés empêchent
+92	83	Normal	1	0	0	0	
+92	83	Normal	1	0	0	6	NestJS
+92	83	Normal	1	0	0	2	11
+92	83	Normal	1	0	0	24	Cadre applicatif serveur
+92	83	Normal	1	0	0	100	Structure les 273 routes en modules, gardes et intercepteurs. C’est lu
+92	83	Normal	1	0	0	0	
+92	83	Normal	1	0	0	6	Prisma
+92	83	Normal	1	0	0	1	6
+92	83	Normal	1	0	0	46	Correspondance objet-relationnel et migrations
+92	83	Normal	1	0	0	90	Un seul schéma décrit les deux moteurs, et les 40 migrations sont vers
+92	83	Normal	1	0	0	0	
+92	83	Normal	1	0	0	10	PostgreSQL
+92	83	Normal	1	0	0	2	16
+92	83	Normal	1	0	0	24	Base de données centrale
+92	83	Normal	1	0	0	97	Porte les contraintes d’unicité et les types énumérés, que le poste au
+92	83	Normal	1	0	0	0	
+93	84	Normal	1	0	0	6	SQLite
+93	84	Normal	1	0	0	1	—
+93	84	Normal	1	0	0	33	Base de données du poste autonome
+93	84	Normal	1	0	0	111	Une base dans un simple fichier, sans serveur à installer : c’est la c
+93	84	Normal	1	0	0	0	
+93	84	Normal	1	0	0	5	React
+93	84	Normal	1	0	0	2	19
+93	84	Normal	1	0	0	21	Interface utilisateur
+93	84	Normal	1	0	0	90	Les 15 écrans et leurs 25 onglets, partagés entre l’application web et
+93	84	Normal	1	0	0	0	
+93	84	Normal	1	0	0	4	Vite
+93	84	Normal	1	0	0	1	7
+93	84	Normal	1	0	0	26	Compilation de l’interface
+93	84	Normal	1	0	0	67	Compile l’interface web et celle embarquée dans le client de bureau
+93	84	Normal	1	0	0	0	
+93	84	Normal	1	0	0	8	Electron
+93	84	Normal	1	0	0	4	33.2
+93	84	Normal	1	0	0	16	Client de bureau
+93	84	Normal	1	0	0	85	Permet d’embarquer le serveur et la base locale dans une application W
+93	84	Normal	1	0	0	0	
+93	84	Normal	1	0	0	16	electron-builder
+93	84	Normal	1	0	0	4	25.1
+93	84	Normal	1	0	0	38	Empaquetage de l’application de bureau
+93	84	Normal	1	0	0	74	Produit l’installateur sans exiger de droits d’administrateur sur le p
+93	84	Normal	1	0	0	0	
+93	84	Normal	1	0	0	4	NSIS
+93	84	Normal	1	0	0	1	—
+93	84	Normal	1	0	0	31	Installateur Windows sur mesure
+93	84	Normal	1	0	0	80	Installation par utilisateur, condition posée par le parc informatique
+93	84	Normal	1	0	0	0	
+93	84	Normal	1	0	0	6	bcrypt
+93	84	Normal	1	0	0	3	6.0
+93	84	Normal	1	0	0	25	Hachage des mots de passe
+93	84	Normal	1	0	0	89	Aucun mot de passe n’est stocké en clair, y compris dans la base local
+93	84	Normal	1	0	0	0	
+93	84	Normal	1	0	0	6	otplib
+93	84	Normal	1	0	0	4	13.4
+93	84	Normal	1	0	0	33	Codes temporels du second facteur
+93	84	Normal	1	0	0	73	Met en œuvre l’authentification à deux facteurs (2FA) fondée sur le te
+93	84	Normal	1	0	0	0	
+93	84	Normal	1	0	0	17	pnpm et Turborepo
+93	84	Normal	1	0	0	11	9.15 et 2.8
+93	84	Normal	1	0	0	40	Gestion et orchestration du dépôt unique
+93	84	Normal	1	0	0	85	Six paquets dans un seul dépôt, avec un code partagé qui n’existe qu’e
+93	84	Normal	1	0	0	0	
+93	84	Normal	1	0	0	3	Git
+93	84	Normal	1	0	0	1	2
+93	84	Normal	1	0	0	19	Gestion de versions
+93	84	Normal	1	0	0	62	139 révisions : c’est la trace datée de l’évolution du travail
+93	84	Normal	1	0	0	0	
+93	84	Normal	1	0	0	4	Trae
+93	84	Normal	1	0	0	1	—
+93	84	Normal	1	0	0	30	Environnement de développement
+93	84	Normal	1	0	0	85	Éditeur dérivé de Visual Studio Code, utilisé pour écrire, relire et d
+93	84	Normal	1	0	0	0	
+93	84	Normal	1	0	0	7	draw.io
+93	84	Normal	1	0	0	1	—
+93	84	Normal	1	0	0	20	Tracé des diagrammes
+93	84	Normal	1	0	0	94	Format ouvert : les 12 diagrammes restent modifiables sans dépendre d’
+93	84	Normal	1	0	0	0	
+93	84	Normal	1	0	0	6	Render
+93	84	Normal	1	0	0	1	—
+93	84	Normal	1	0	0	37	Hébergement du serveur et du site web
+93	84	Normal	1	0	0	86	Déploiement décrit par un fichier versionné, rejoué à l’identique à ch
+93	84	Normal	1	0	0	0	
+93	84	Normal	1	0	0	4	Neon
+93	84	Normal	1	0	0	1	—
+93	84	Normal	1	0	0	33	Hébergement de la base PostgreSQL
+93	84	Normal	1	0	0	57	Base séparée du serveur applicatif, avec liaison chiffrée
+93	84	Normal	1	0	0	0	
+93	84	Normal	0	0	0	0	
+93	84	Normal	0	0	0	307	Nous avons conduit le développement sur un poste Windows 10 Profession
+93	84	Normal	0	0	0	220	L’offre gratuite de Render met enfin le serveur en veille après quinze
+94	85	Titre 2	0	0	0	56	7.4 Modélisation et implémentation de la base de données
+94	85	Normal	0	0	0	98	Le schéma comporte 88 tables reliées par 97 associations, organisées e
+94	85	Légende tableau	0	0	0	60	Tableau 7.6 — Répartition des tables par domaine fonctionnel
+94	85	Normal	1	0	0	7	Domaine
+94	85	Normal	1	0	0	6	Tables
+94	85	Normal	1	0	0	0	
+94	85	Normal	1	0	0	17	Sécurité et audit
+94	85	Normal	1	0	0	2	18
+94	85	Normal	1	0	0	0	
+94	85	Normal	1	0	0	15	Dossier patient
+94	85	Normal	1	0	0	2	13
+94	85	Normal	1	0	0	0	
+94	85	Normal	1	0	0	22	Acteurs administratifs
+94	85	Normal	1	0	0	2	12
+94	85	Normal	1	0	0	0	
+94	85	Normal	1	0	0	12	Référentiels
+94	85	Normal	1	0	0	2	12
+94	85	Normal	1	0	0	0	
+94	85	Normal	1	0	0	31	Consultation et actes prescrits
+94	85	Normal	1	0	0	2	11
+94	85	Normal	1	0	0	0	
+94	85	Normal	1	0	0	30	Synchronisation hors connexion
+94	85	Normal	1	0	0	1	8
+94	85	Normal	1	0	0	0	
+94	85	Normal	1	0	0	18	Messagerie interne
+94	85	Normal	1	0	0	1	7
+94	85	Normal	1	0	0	0	
+94	85	Normal	1	0	0	17	Accueil et triage
+94	85	Normal	1	0	0	1	3
+94	85	Normal	1	0	0	0	
+94	85	Normal	1	0	0	17	Sorties critiques
+94	85	Normal	1	0	0	1	2
+94	85	Normal	1	0	0	0	
+94	85	Normal	1	0	0	19	Suivi de traitement
+94	85	Normal	1	0	0	1	2
+94	85	Normal	1	0	0	0	
+94	85	Normal	1	0	0	5	Total
+94	85	Normal	1	0	0	2	88
+94	85	Normal	1	0	0	0	
+94	85	Normal	0	0	0	0	
+94	85	Normal	0	0	0	1115	Le modèle conceptuel ne reprend pas les vingt-neuf classes, mais les d
+95	86	Normal	0	1	0	1	/
+95	86	Normal	0	0	0	0	
+95	86	Légende	0	0	0	55	Figure 7.8a — Modèle conceptuel de données : le recueil
+95	86	Normal	0	0	0	6	[SAUT]
+96	87	Normal	0	1	0	1	/
+96	87	Légende	0	0	0	65	Figure 7.8b — Modèle conceptuel de données : la décision médicale
+96	87	Normal	0	0	0	6	[SAUT]
+97	88	Normal	0	1	0	1	/
+97	88	Légende	0	0	0	60	Figure 7.8c — Modèle conceptuel de données : la prescription
+97	88	Normal	0	0	0	6	[SAUT]
+98	89	Normal	0	0	0	473	Le modèle physique est produit et maintenu par 40 migrations Prisma ve
+98	89	Normal	0	0	0	722	Les clés primaires sont des identifiants universels générés, et les co
+98	89	Normal	0	0	0	0	
+99	90	Normal	0	1	0	1	/
+99	90	Normal	0	0	0	0	
+99	90	Légende	0	0	0	53	Figure 7.9a — Modèle physique de données : le recueil
+99	90	Normal	0	0	0	6	[SAUT]
+100	91	Normal	0	1	0	1	/
+100	91	Légende	0	0	0	63	Figure 7.9b — Modèle physique de données : la décision médicale
+100	91	Normal	0	0	0	6	[SAUT]
+101	92	Normal	0	1	0	1	/
+101	92	Légende	0	0	0	58	Figure 7.9c — Modèle physique de données : la prescription
+101	92	Normal	0	0	0	6	[SAUT]
+102	93	Normal	0	0	0	0	
+102	93	Normal	0	0	0	453	L’extrait de code ci-dessous est le cœur du fonctionnement hors connex
+102	93	Normal	0	0	1	0	
+102	93	Normal	0	0	0	0	
+102	93	Normal	0	0	0	0	
+102	93	Normal	0	0	0	0	
+102	93	Normal	0	0	0	0	
+102	93	Normal	0	0	0	0	
+102	93	Normal	0	0	0	0	
+102	93	Normal	0	0	0	0	
+102	93	Normal	0	0	0	0	
+102	93	Normal	0	0	0	0	
+102	93	Normal	0	0	0	0	
+102	93	Normal	0	0	0	0	
+102	93	Normal	0	0	0	0	
+102	93	Normal	0	0	0	0	
+102	93	Normal	0	0	0	0	
+102	93	Normal	0	0	0	0	
+102	93	Normal	0	0	0	0	
+102	93	Normal	0	0	0	0	
+102	93	Normal	0	0	0	0	
+102	93	Normal	0	0	0	0	
+102	93	Normal	0	0	0	0	
+102	93	Normal	0	0	0	0	
+102	93	Normal	0	0	0	0	
+102	93	Normal	0	0	0	550	Trois enseignements se lisent dans ces vingt lignes. Le conflit est dé
+103	94	Titre 2	0	0	0	35	7.5 Les fonctionnalités développées
+103	94	Normal	0	0	0	363	Les vingt-trois besoins fonctionnels du chapitre 5 sont réalisés ; leu
+103	94	Normal	0	0	0	338	Ce besoin partiel appelle une précision : le fonctionnement hors conne
+103	94	Normal	0	0	0	221	Les captures d’écran ci-après présentent les principales fonctionnalit
+104	95	Normal	0	1	0	1	/
+104	95	Normal	0	0	0	0	
+104	95	Légende	0	0	0	92	Figure 7.10 — Consultation en cours, avec examen clinique et diagnosti
+105	96	Normal	0	1	0	1	/
+105	96	Normal	0	0	0	0	
+105	96	Légende	0	0	0	87	Figure 7.11 — Émission d’un bon de pharmacie et contrôle d’éligibilité
+106	97	Normal	0	1	0	1	/
+106	97	Normal	0	0	0	0	
+106	97	Légende	0	0	0	78	Figure 7.12 — Tableau de bord et journal d’audit (rôle Administrateur 
+106	97	Normal	0	0	0	6	[SAUT]
+107	98	Titre 2	0	0	0	23	7.6 Tests et validation
+107	98	Normal	0	0	0	452	Dix fichiers de test regroupent l’ensemble des cas écrits : cinq suite
+107	98	Normal	0	0	0	161	Deux campagnes ont été conduites le même jour. La première a révélé un
+107	98	Légende tableau	0	0	0	67	Tableau 7.7 — Résultats de la campagne d’exécution après correction
+107	98	Normal	1	0	0	5	Suite
+107	98	Normal	1	0	0	3	Cas
+107	98	Normal	1	0	0	7	Réussis
+107	98	Normal	1	0	0	7	Échoués
+107	98	Normal	1	0	0	0	
+107	98	Normal	1	0	0	21	Résolution de conflit
+107	98	Normal	1	0	0	2	17
+107	98	Normal	1	0	0	2	17
+107	98	Normal	1	0	0	1	0
+107	98	Normal	1	0	0	0	
+107	98	Normal	1	0	0	19	Suppression logique
+107	98	Normal	1	0	0	2	10
+107	98	Normal	1	0	0	2	10
+107	98	Normal	1	0	0	1	0
+107	98	Normal	1	0	0	0	
+107	98	Normal	1	0	0	41	Chiffrement des secrets du second facteur
+107	98	Normal	1	0	0	2	11
+107	98	Normal	1	0	0	2	11
+107	98	Normal	1	0	0	1	0
+107	98	Normal	1	0	0	0	
+107	98	Normal	1	0	0	28	Chiffrement de la messagerie
+107	98	Normal	1	0	0	2	23
+107	98	Normal	1	0	0	2	23
+107	98	Normal	1	0	0	1	0
+107	98	Normal	1	0	0	0	
+107	98	Normal	1	0	0	22	Validation des saisies
+107	98	Normal	1	0	0	2	42
+107	98	Normal	1	0	0	2	42
+107	98	Normal	1	0	0	1	0
+107	98	Normal	1	0	0	0	
+107	98	Normal	1	0	0	5	Total
+107	98	Normal	1	0	0	3	103
+107	98	Normal	1	0	0	3	103
+107	98	Normal	1	0	0	1	0
+107	98	Normal	1	0	0	0	
+107	98	Normal	0	0	0	571	Cent trois cas ont donc été exécutés avec succès, soit un taux de réus
+107	98	Normal	0	0	0	363	Lors de la première campagne, il a effectivement cassé. Mais le diagno
+107	98	Normal	0	0	0	594	Le client et le serveur étaient donc alignés : c’est le garde-fou qui 
+107	98	Légende tableau	0	0	0	46	Tableau 7.8 — Couverture des tests par domaine
+107	98	Normal	1	0	0	7	Domaine
+107	98	Normal	1	0	0	10	Couverture
+107	98	Normal	1	0	0	11	Commentaire
+107	98	Normal	1	0	0	0	
+107	98	Normal	1	0	0	11	Chiffrement
+107	98	Normal	1	0	0	13	Forte, 34 cas
+107	98	Normal	1	0	0	33	Le point le mieux testé du projet
+107	98	Normal	1	0	0	0	
+107	98	Normal	1	0	0	19	Suppression logique
+107	98	Normal	1	0	0	13	Forte, 18 cas
+107	98	Normal	1	0	0	38	Couverte en unitaire et en intégration
+107	98	Normal	1	0	0	0	
+107	98	Normal	1	0	0	21	Résolution de conflit
+107	98	Normal	1	0	0	13	Forte, 17 cas
+107	98	Normal	1	0	0	51	Exécutés et réussis, suite rattachée à une commande
+107	98	Normal	1	0	0	0	
+107	98	Normal	1	0	0	22	Validation des saisies
+107	98	Normal	1	0	0	13	Forte, 42 cas
+107	98	Normal	1	0	0	39	Exécutés et réussis, garde-fou complété
+107	98	Normal	1	0	0	0	
+107	98	Normal	1	0	0	31	Opérations sur les référentiels
+107	98	Normal	1	0	0	9	Partielle
+107	98	Normal	1	0	0	51	Un référentiel sur neuf, choisi comme représentatif
+107	98	Normal	1	0	0	0	
+108	99	Normal	1	0	0	13	Cœur clinique
+108	99	Normal	1	0	0	6	Aucune
+108	99	Normal	1	0	0	52	Triage, consultation, prescription, bons, évacuation
+108	99	Normal	1	0	0	0	
+108	99	Normal	1	0	0	25	Éligibilité par catégorie
+108	99	Normal	1	0	0	6	Aucune
+108	99	Normal	1	0	0	59	La règle la plus structurante n’est couverte par aucun test
+108	99	Normal	1	0	0	0	
+108	99	Normal	1	0	0	9	Interface
+108	99	Normal	1	0	0	6	Aucune
+108	99	Normal	1	0	0	19	Aucun test de rendu
+108	99	Normal	1	0	0	0	
+108	99	Normal	1	0	0	14	Poste autonome
+108	99	Normal	1	0	0	6	Aucune
+108	99	Normal	1	0	0	38	Validation d’exécution restant à faire
+108	99	Normal	1	0	0	0	
+108	99	Normal	0	0	0	413	Deux constats s’imposent. Le cœur clinique n’a aucun test automatisé e
+108	99	Normal	0	0	0	278	Aucune mesure de couverture de code n’est enfin disponible : aucun out
+108	99	Titre 2	0	0	0	22	7.7 Mise en production
+108	99	Normal	0	0	0	429	Nous décrivons le déploiement dans un fichier de configuration render.
+108	99	Normal	0	0	0	425	Nous avons inscrit dans ce fichier trois enseignements d’exploitation,
+108	99	Normal	0	0	0	449	Un garde-fou permanent protège ensuite l’accès administrateur : une ba
+108	99	Titre 2	0	0	0	50	7.8 Difficultés rencontrées et solutions apportées
+108	99	Normal	0	0	0	565	Nous avons rencontré six difficultés significatives, toutes documentée
+108	99	Normal	0	0	0	354	Nous avons écarté une solution apparente : partager le secret du serve
+109	100	Normal	0	0	0	477	La deuxième : un indicateur de connectivité qui mentait. Il interrogea
+109	100	Normal	0	0	0	295	La troisième : des permissions déployées sans exister en base. Le 2 ao
+109	100	Normal	0	0	0	297	La quatrième : un compte sans rôle qui effondrait l’application. Un te
+109	100	Normal	0	0	0	528	La cinquième : une collision d’unicité après suppression logique. Recr
+109	100	Normal	0	0	0	588	La sixième : un canal temps réel coupé par les intermédiaires réseau. 
+109	100	Normal	0	0	0	546	Quatre difficultés moindres ont enfin été traitées. Une option de requ
+109	100	Titre 2	0	0	0	22	Conclusion du chapitre
+109	100	Normal	0	0	0	298	La conception a fait converger les deux branches de 2TUP. Le modèle du
+109	100	Normal	0	0	0	256	L’implémentation couvre les vingt-trois besoins fonctionnels, vingt-de
+110	101	Normal	0	0	0	152	Deux limites sérieuses subsistent : le cœur clinique n’a aucun test au
+111	102	Titre 1	0	0	0	19	CONCLUSION GÉNÉRALE
+111	102	Normal	0	0	0	261	Notre travail est parti d’une question : comment concevoir un système 
+111	102	Normal	0	0	0	355	Elle portait une contradiction — faire circuler l’information entre de
+111	102	Normal	0	0	0	620	Nous avons produit une plateforme dont l’ampleur se mesure plutôt qu’e
+111	102	Normal	0	0	0	289	La première porte sur l’unicité du dossier. Le dossier patient et tout
+111	102	Normal	0	0	0	642	La deuxième porte sur la règle d’éligibilité. Elle ne repose plus sur 
+111	102	Normal	0	0	0	356	Nous avons mesuré la couverture du besoin, nous ne l’avons pas seuleme
+111	102	Normal	0	0	0	394	Les apports se situent à trois niveaux. Pour le Centre Médico-Sanitair
+111	102	Normal	0	0	0	379	Pour le domaine enfin, plus modestement, ce travail documente une répo
+112	103	Normal	0	0	0	386	Le cœur clinique n’est pas testé automatiquement, et la règle d’éligib
+112	103	Normal	0	0	0	320	Quatre besoins du périmètre ne sont par ailleurs que partiellement sat
+112	103	Normal	0	0	0	325	Une précision de statut s’impose enfin. Le système est déployé en lign
+112	103	Normal	0	0	0	431	Les perspectives se classent selon le rapport entre ce qu’elles apport
+112	103	Normal	0	0	0	479	À court terme, il faudrait exécuter les cinq suites de test restantes,
+112	103	Normal	0	0	0	335	Trois besoins de priorité haute restent enfin hors du système, et chac
+112	103	Normal	0	0	0	271	Ce travail nous laisse un enseignement que nous n’attendions pas. Les 
+112	103	Normal	0	0	0	499	Quatre des six difficultés rapportées au § 7.8 l’illustrent : deux aut
+112	103	Normal	0	0	0	275	Nous en retenons deux choses. La conception ne s’arrête pas au diagram
+113	1	Titre 1	0	0	0	13	BIBLIOGRAPHIE
+113	1	Titre 2	0	0	0	49	Ouvrages de méthodologie et de modélisation objet
+113	1	Normal	0	0	0	97	BOOCH Grady, RUMBAUGH James, JACOBSON Ivar, Le Guide de l’utilisateur 
+113	1	Normal	0	0	0	117	JACOBSON Ivar, BOOCH Grady, RUMBAUGH James, The Unified Software Devel
+113	1	Normal	0	0	0	112	ROQUES Pascal, VALLÉE Franck, UML 2 en action — De l’analyse des besoi
+113	1	Titre 2	0	0	0	46	Architecture logicielle et systèmes distribués
+113	1	Normal	0	0	0	172	FIELDING Roy Thomas, Architectural Styles and the Design of Network-ba
+113	1	Normal	0	0	0	180	SHAPIRO Marc, PREGUIÇA Nuno, BAQUERO Carlos, ZAWIRSKI Marek, « Conflic
+113	1	Titre 2	0	0	0	32	Systèmes d’information sanitaire
+113	1	Normal	0	0	0	225	ORGANISATION MONDIALE DE LA SANTÉ, Classification statistique internat
+113	1	Normal	0	0	0	309	ORGANISATION MONDIALE DE LA SANTÉ, Stratégie d’optimisation des systèm
+113	1	Normal	0	0	0	311	TRAORE Bocar Mahamane, TRAORE Aminata, KEBE Amadou Tila, DABOU Kizito,
+114	2	Titre 1	0	0	0	11	WEBOGRAPHIE
+114	2	Normal	0	0	0	252	FIELDING Roy Thomas. Architectural Styles and the Design of Network-ba
+114	2	Normal	0	0	0	244	ORGANISATION MONDIALE DE LA SANTÉ. Classification internationale des m
+114	2	Normal	0	0	0	271	ORGANISATION MONDIALE DE LA SANTÉ. Stratégie d’optimisation des systèm
+114	2	Normal	0	0	0	261	SHAPIRO Marc, PREGUIÇA Nuno, BAQUERO Carlos, ZAWIRSKI Marek. Conflict-
+114	2	Normal	0	0	0	357	TRAORE Bocar Mahamane et alii. La gestion des données du système d’inf
+115	3	Titre 1	0	0	0	18	TABLE DES MATIÈRES
+115	3	TM 1	0	0	0	10	DÉDICACE i
+115	3	TM 1	0	0	0	16	REMERCIEMENTS ii
+115	3	TM 1	0	0	0	10	RÉSUMÉ iii
+115	3	TM 1	0	0	0	12	ABSTRACT iii
+115	3	TM 1	0	0	0	11	SOMMAIRE iv
+115	3	TM 1	0	0	0	19	LISTE DES FIGURES v
+115	3	TM 1	0	0	0	21	LISTE DES TABLEAUX vi
+115	3	TM 1	0	0	0	37	LISTE DES ABRÉVIATIONS ET SIGLES viii
+115	3	TM 1	0	0	0	23	INTRODUCTION GÉNÉRALE 1
+115	3	TM 1	0	0	0	55	PREMIÈRE PARTIE — CADRE CONTEXTUEL ET DOMAINE D’ÉTUDE 2
+115	3	TM 1	0	0	0	53	CHAPITRE 1 — PRÉSENTATION DE LA STRUCTURE D’ACCUEIL 3
+115	3	TM 2	0	0	0	37	1.1 SARIS-CONGO et son implantation 3
+115	3	TM 2	0	0	0	46	1.2 Le Service Médico-Social et ses missions 3
+115	3	TM 2	0	0	0	42	1.3 La population couverte par le centre 4
+115	3	TM 2	0	0	0	42	1.4 Organisation structurelle du service 4
+115	3	TM 2	0	0	0	49	1.5 Des fonctions réelles aux usages du système 6
+115	3	TM 2	0	0	0	45	1.6 Ressources et chiffres caractéristiques 7
+115	3	TM 2	0	0	0	24	Conclusion du chapitre 7
+115	3	TM 1	0	0	0	65	CHAPITRE 2 — DOMAINE D’ÉTUDE : LE SYSTÈME D’INFORMATION MÉDICAL 9
+115	3	TM 2	0	0	0	24	2.1 Contexte du projet 9
+115	3	TM 2	0	0	0	19	2.2 Problématique 9
+115	3	TM 2	0	0	0	34	2.3 Les acteurs du suivi médical 9
+115	3	TM 2	0	0	0	39	2.4 Le fonctionnement sur deux sites 10
+115	3	TM 2	0	0	0	58	2.5 Catégories de patients et règles de prise en charge 11
+115	3	TM 2	0	0	0	24	2.6 Intérêts du sujet 12
+115	3	TM 2	0	0	0	47	2.7 Situation du travail dans la littérature 13
+115	3	TM 2	0	0	0	44	2.8 Périmètre retenu et solution proposée 13
+115	3	TM 2	0	0	0	29	2.9 Concepts liés au sujet 14
+115	3	TM 2	0	0	0	25	Conclusion du chapitre 15
+115	3	TM 1	0	0	0	79	DEUXIÈME PARTIE — ANALYSE, CONCEPTION ET RÉALISATION SELON 2TUP COUPLÉ
+115	3	TM 1	0	0	0	59	CHAPITRE 3 — DÉMARCHE MÉTHODOLOGIQUE : 2TUP COUPLÉ À UML 17
+115	3	TM 2	0	0	0	26	3.1 Le Processus Unifié 17
+116	4	TM 2	0	0	0	30	3.2 2TUP, un processus en Y 18
+116	4	TM 2	0	0	0	45	3.3 UML, le langage de modélisation retenu 21
+116	4	TM 2	0	0	0	50	3.4 Justification du choix de 2TUP couplé à UML 22
+116	4	TM 2	0	0	0	49	3.5 Déroulement de la démarche dans ce mémoire 23
+116	4	TM 2	0	0	0	25	Conclusion du chapitre 24
+116	4	TM 1	0	0	0	58	BRANCHE FONCTIONNELLE — DU MÉTIER AUX CAS D’UTILISATION 25
+116	4	TM 1	0	0	0	35	CHAPITRE 4 — ÉTUDE DE L’EXISTANT 26
+116	4	TM 2	0	0	0	48	4.1 Démarche du recueil et sources mobilisées 26
+116	4	TM 2	0	0	0	44	4.2 Les processus métier soumis à l’étude 27
+116	4	TM 2	0	0	0	51	4.3 Le processus de consultation avant le projet 27
+116	4	TM 2	0	0	0	63	4.4 L’organisation informatique et le personnel qui la porte 31
+116	4	TM 2	0	0	0	50	4.5 L’infrastructure réseau et le parc matériel 31
+116	4	TM 2	0	0	0	42	4.6 Les applications et outils en usage 32
+116	4	TM 2	0	0	0	39	4.7 La gestion des données médicales 33
+116	4	TM 2	0	0	0	38	4.8 Les dix-huit besoins recueillis 34
+116	4	TM 2	0	0	0	52	4.9 Forces et faiblesses de la situation actuelle 35
+116	4	TM 2	0	0	0	53	4.10 Propositions de solutions et solution retenue 36
+116	4	TM 2	0	0	0	52	4.11 Nouvelles orientations pour le futur système 37
+116	4	TM 2	0	0	0	25	Conclusion du chapitre 38
+116	4	TM 1	0	0	0	52	CHAPITRE 5 — ANALYSE ET SPÉCIFICATION DES BESOINS 39
+116	4	TM 2	0	0	0	39	5.1 Des processus métier aux besoins 39
+116	4	TM 3	0	0	0	87	5.1.1 Méthode : un processus, ses besoins fonctionnels, ses besoins no
+116	4	TM 3	0	0	0	58	5.1.2 Les besoins fonctionnels, processus par processus 39
+116	4	TM 3	0	0	0	37	5.1.3 Les besoins non fonctionnels 41
+116	4	TM 3	0	0	0	63	5.1.4 Confrontation des besoins exprimés au périmètre retenu 42
+116	4	TM 2	0	0	0	40	5.2 Des besoins aux cas d’utilisation 43
+116	4	TM 3	0	0	0	31	5.2.1 Les acteurs du système 43
+116	4	TM 3	0	0	0	39	5.2.2 Diagramme de contexte statique 43
+116	4	TM 3	0	0	0	29	5.2.3 Frontière du système 45
+116	4	TM 3	0	0	0	69	5.2.4 Les cas d’utilisation métier, issus des besoins fonctionnels 45
+116	4	TM 3	0	0	0	77	5.2.5 Les cas d’utilisation techniques, issus des besoins non fonction
+116	4	TM 3	0	0	0	35	5.2.6 Classification par package 46
+116	4	TM 3	0	0	0	42	5.2.7 Relations entre cas d’utilisation 55
+116	4	TM 2	0	0	0	65	5.3 Spécification détaillée des cas d’utilisation prioritaires 56
+117	5	TM 3	0	0	0	43	5.3.1 Critères de choix et cas spécifiés 56
+117	5	TM 3	0	0	0	43	5.3.2 UC43 — Émettre un bon de pharmacie 57
+117	5	TM 3	0	0	0	55	5.3.3 UC48 — Clôturer une consultation avec décision 58
+117	5	TM 2	0	0	0	37	5.4 Diagrammes de séquence système 59
+117	5	TM 2	0	0	0	25	Conclusion du chapitre 62
+117	5	TM 1	0	0	0	55	BRANCHE TECHNIQUE — DES CONTRAINTES À L’ARCHITECTURE 63
+117	5	TM 1	0	0	0	49	CHAPITRE 6 — ARCHITECTURE TECHNIQUE DU SYSTÈME 64
+117	5	TM 2	0	0	0	46	6.1 Les contraintes techniques à satisfaire 64
+117	5	TM 2	0	0	0	33	6.2 L’architecture applicative 64
+117	5	TM 2	0	0	0	33	6.3 L’architecture de sécurité 65
+117	5	TM 2	0	0	0	35	6.4 Le moteur de synchronisation 66
+117	5	TM 2	0	0	0	25	Conclusion du chapitre 67
+117	5	TM 1	0	0	0	60	CONVERGENCE DES DEUX BRANCHES — CONCEPTION ET RÉALISATION 69
+117	5	TM 1	0	0	0	54	CHAPITRE 7 — CONCEPTION DÉTAILLÉE ET IMPLÉMENTATION 70
+117	5	TM 2	0	0	0	27	7.1 Le modèle de classes 70
+117	5	TM 2	0	0	0	44	7.2 Composants, déploiement et interfaces 79
+117	5	TM 2	0	0	0	55	7.3 Environnement de développement et de déploiement 83
+117	5	TM 2	0	0	0	59	7.4 Modélisation et implémentation de la base de données 85
+117	5	TM 2	0	0	0	38	7.5 Les fonctionnalités développées 94
+117	5	TM 2	0	0	0	26	7.6 Tests et validation 98
+117	5	TM 2	0	0	0	25	7.7 Mise en production 99
+117	5	TM 2	0	0	0	53	7.8 Difficultés rencontrées et solutions apportées 99
+117	5	TM 2	0	0	0	26	Conclusion du chapitre 100
+117	5	TM 1	0	0	0	23	CONCLUSION GÉNÉRALE 102
+117	5	TM 1	0	0	0	15	BIBLIOGRAPHIE A
+117	5	TM 2	0	0	0	51	Ouvrages de méthodologie et de modélisation objet A
+117	5	TM 2	0	0	0	48	Architecture logicielle et systèmes distribués A
+117	5	TM 2	0	0	0	34	Systèmes d’information sanitaire A
+117	5	TM 1	0	0	0	13	WEBOGRAPHIE B
+117	5	TM 1	0	0	0	20	TABLE DES MATIÈRES C
+117	5	TM 1	0	0	0	0	
+117	5	Normal	0	0	0	0	
+117	5	Normal	0	0	0	0	

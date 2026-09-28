@@ -1,0 +1,3 @@
+S	Ce mémoire compte deux parties.	puis la branche fonctionnelle (étude de l’existant et analyse des besoins),	puis l’étude de l’existant, point de départ commun aux deux branches, la branche fonctionnelle (analyse des besoins),
+S	Le cycle compte huit étapes.	Le cycle compte huit étapes.	Le cycle compte huit étapes, précédées d’une étude préliminaire commune aux deux branches.
+S	L’étude préliminaire occupe le chapitre 4	C’est le tronc commun, avant	C’est le point de départ commun, avant

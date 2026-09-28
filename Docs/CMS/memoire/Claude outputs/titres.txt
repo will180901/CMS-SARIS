@@ -1,0 +1,97 @@
+﻿n=3347
+2	1	1	-1	2	DÉDICACE
+3	2	1	2	3	REMERCIEMENTS
+4	3	1	3	4	RÉSUMÉ
+4	3	1	4	4	ABSTRACT
+5	4	1	4	5	SOMMAIRE
+6	5	1	5	6	LISTE DES FIGURES
+7	6	1	6	7	LISTE DES TABLEAUX
+9	8	1	8	9	LISTE DES ABRÉVIATIONS ET SIGLES
+10	1	1	9	10	INTRODUCTION GÉNÉRALE
+11	2	1	11	11	PREMIÈRE PARTIE — CADRE CONTEXTUEL ET DOMAINE D’ÉTUDE
+12	3	1	11	12	CHAPITRE 1 — PRÉSENTATION DE LA STRUCTURE D’ACCUEIL
+12	3	2	12	12	1.1 SARIS-CONGO et son implantation
+12	3	2	12	12	1.2 Le Service Médico-Social et ses missions
+13	4	2	12	13	1.3 La population couverte par le centre
+13	4	2	13	13	1.4 Organisation structurelle du service
+15	6	2	15	15	1.5 Des fonctions réelles aux usages du système
+16	7	2	16	16	1.6 Ressources et chiffres caractéristiques
+16	7	2	16	16	Conclusion du chapitre
+18	9	1	17	18	CHAPITRE 2 — DOMAINE D’ÉTUDE : LE SYSTÈME D’INFORMATION MÉDICAL
+18	9	2	18	18	2.1 Contexte du projet
+18	9	2	18	18	2.2 Problématique
+18	9	2	18	18	2.3 Les acteurs du suivi médical
+19	10	2	19	19	2.4 Le fonctionnement sur deux sites
+20	11	2	20	20	2.5 Catégories de patients et règles de prise en charge
+21	12	2	21	21	2.6 Intérêts du sujet
+22	13	2	22	22	2.7 Situation du travail dans la littérature
+22	13	2	22	22	2.8 Périmètre retenu et solution proposée
+23	14	2	23	23	2.9 Concepts liés au sujet
+24	15	2	24	24	Conclusion du chapitre
+25	16	1	25	25	DEUXIÈME PARTIE — ANALYSE, CONCEPTION ET RÉALISATION SELON 2TUP COUPLÉ À UML
+26	17	1	25	26	CHAPITRE 3 — DÉMARCHE MÉTHODOLOGIQUE : 2TUP COUPLÉ À UML
+26	17	2	26	26	3.1 Le Processus Unifié
+27	18	2	26	27	3.2 2TUP, un processus en Y
+30	21	2	29	30	3.3 UML, le langage de modélisation retenu
+31	22	2	31	31	3.4 Justification du choix de 2TUP couplé à UML
+32	23	2	32	32	3.5 Déroulement de la démarche dans ce mémoire
+33	24	2	33	33	Conclusion du chapitre
+34	25	1	33	35	BRANCHE FONCTIONNELLE — DU MÉTIER AUX CAS D’UTILISATION
+35	26	1	34	35	CHAPITRE 4 — ÉTUDE DE L’EXISTANT
+35	26	2	35	35	4.1 Démarche du recueil et sources mobilisées
+36	27	2	36	36	4.2 Les processus métier soumis à l’étude
+36	27	2	36	36	4.3 Le processus de consultation avant le projet
+40	31	2	39	40	4.4 L’organisation informatique et le personnel qui la porte
+40	31	2	40	40	4.5 L’infrastructure réseau et le parc matériel
+41	32	2	41	41	4.6 Les applications et outils en usage
+42	33	2	42	42	4.7 La gestion des données médicales
+43	34	2	43	43	4.8 Les dix-huit besoins recueillis
+44	35	2	44	44	4.9 Forces et faiblesses de la situation actuelle
+45	36	2	45	45	4.10 Propositions de solutions et solution retenue
+46	37	2	46	46	4.11 Nouvelles orientations pour le futur système
+47	38	2	46	47	Conclusion du chapitre
+48	39	1	47	48	CHAPITRE 5 — ANALYSE ET SPÉCIFICATION DES BESOINS
+48	39	2	48	48	5.1 Des processus métier aux besoins
+48	39	3	48	48	5.1.1 Méthode : un processus, ses besoins fonctionnels, ses besoins non fonctionnels
+48	39	3	48	48	5.1.2 Les besoins fonctionnels, processus par processus
+50	41	3	50	50	5.1.3 Les besoins non fonctionnels
+51	42	3	51	51	5.1.4 Confrontation des besoins exprimés au périmètre retenu
+52	43	2	52	52	5.2 Des besoins aux cas d’utilisation
+52	43	3	52	52	5.2.1 Les acteurs du système
+52	43	3	52	52	5.2.2 Diagramme de contexte statique
+54	45	3	53	54	5.2.3 Frontière du système
+54	45	3	54	54	5.2.4 Les cas d’utilisation métier, issus des besoins fonctionnels
+55	46	3	55	55	5.2.5 Les cas d’utilisation techniques, issus des besoins non fonctionnels
+55	46	3	55	55	5.2.6 Classification par package
+64	55	3	63	64	5.2.7 Relations entre cas d’utilisation
+65	56	2	64	65	5.3 Spécification détaillée des cas d’utilisation prioritaires
+65	56	3	65	65	5.3.1 Critères de choix et cas spécifiés
+66	57	3	66	66	5.3.2 UC43 — Émettre un bon de pharmacie
+67	58	3	67	67	5.3.3 UC48 — Clôturer une consultation avec décision
+68	59	2	68	68	5.4 Diagrammes de séquence système
+71	62	2	70	71	Conclusion du chapitre
+72	63	1	71	73	BRANCHE TECHNIQUE — DES CONTRAINTES À L’ARCHITECTURE
+73	64	1	72	73	CHAPITRE 6 — ARCHITECTURE TECHNIQUE DU SYSTÈME
+73	64	2	73	73	6.1 Les contraintes techniques à satisfaire
+73	64	2	73	73	6.2 L’architecture applicative
+74	65	2	74	74	6.3 L’architecture de sécurité
+75	66	2	75	75	6.4 Le moteur de synchronisation
+76	67	2	76	76	Conclusion du chapitre
+78	69	1	77	79	CONVERGENCE DES DEUX BRANCHES — CONCEPTION ET RÉALISATION
+79	70	1	78	79	CHAPITRE 7 — CONCEPTION DÉTAILLÉE ET IMPLÉMENTATION
+79	70	2	79	79	7.1 Le modèle de classes
+88	79	2	88	88	7.2 Composants, déploiement et interfaces
+92	83	2	92	92	7.3 Environnement de développement et de déploiement
+94	85	2	93	94	7.4 Modélisation et implémentation de la base de données
+103	94	2	102	103	7.5 Les fonctionnalités développées
+107	98	2	106	107	7.6 Tests et validation
+108	99	2	108	108	7.7 Mise en production
+108	99	2	108	108	7.8 Difficultés rencontrées et solutions apportées
+109	100	2	109	109	Conclusion du chapitre
+111	102	1	110	111	CONCLUSION GÉNÉRALE
+113	1	1	112	113	BIBLIOGRAPHIE
+113	1	2	113	113	Ouvrages de méthodologie et de modélisation objet
+113	1	2	113	113	Architecture logicielle et systèmes distribués
+113	1	2	113	113	Systèmes d’information sanitaire
+114	2	1	113	114	WEBOGRAPHIE
+115	3	1	114	115	TABLE DES MATIÈRES

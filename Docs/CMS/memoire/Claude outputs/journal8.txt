@@ -1,0 +1,237 @@
+﻿AVANT pages=116 titre29 p22 intro p22 legende p23 fin ch2 p23
+APRES pages=116 titre29 p23 intro p23 legende p23 fin ch2 p23
+APPLIQUE
+PAGES AVANT
+1	0	112	0		
+2	1	576	1106	DÉDICACE Nous avons l’honneur de dé	reconnaissance envers chacun d’eux.
+3	2	432	1665	REMERCIEMENTS Nous tenons à exprime	ncères et chaleureux remerciements.
+4	3	685	2910	RÉSUMÉ Dans un contexte où la conne	-first, data synchronization, 2TUP.
+5	4	694	938	SOMMAIRE  DÉDICACE i REMERCIEMENTS 	 WEBOGRAPHIE B TABLE DES MATIÈRES C
+6	5	661	2045	LISTE DES FIGURES  Figure 1.1 — Org	it (rôle Administrateur système) 96
+7	7	781	2722	LISTE DES TABLEAUX Tableau 1.1 — Gr	63 : Synchroniser un poste local 56
+8	7	386	953	Tableau 5.16 — Sommaire d’identific	Couverture des tests par domaine 97
+9	8	455	1317	LISTE DES ABRÉVIATIONS ET SIGLES  2	)    UML  Unified Modeling Language
+10	1	761	3253	INTRODUCTION GÉNÉRALE Dans un centr	ption détaillée et implémentation).
+11	2	483	57	/ PREMIÈRE PARTIE — CADRE CONTEXTUE	DRE CONTEXTUEL ET DOMAINE D’ÉTUDE /
+12	3	763	2655	CHAPITRE 1 — PRÉSENTATION DE LA STR	ns — sans accès au dossier médical.
+13	4	500	1516	1.3 La population couverte par le c	.1 et détaillés par le tableau 1.3.
+14	5	738	68	/  Figure 1.1 — Organigramme du Ser	ervice Médico-Social de SARIS-CONGO
+15	6	741	2788	Tableau 1.3 — Les trois niveaux de 	lorsqu’une délégation l’y autorise.
+16	7	767	2613	Ingénieur informaticien  Administra	u, que précise le chapitre suivant.
+17	8	660	2155	CHAPITRE 2 — DOMAINE D’ÉTUDE : LE S	 de visibilité diffèrent nettement.
+18	9	747	2566	Tableau 2.1 — Les acteurs du systèm	ompris hors connexion, sans doublon
+19	10	778	2777	Référentiels partagés  Globale  Un 	s ouvertes à toutes les catégories.
+20	11	772	2982	Tableau 2.4 — Prestations ouvertes 	leur justification plus qu’au code.
+21	12	754	3080	2.7 Situation du travail dans la li	ificat de repos, fiche d’évacuation
+22	13	726	2783	Ce choix correspond exactement au p	ens précis tout au long du mémoire.
+23	14	682	2607	Tableau 2.7 — Concepts mobilisés da	on et la réalisation de ce système.
+24	15	483	80	/ DEUXIÈME PARTIE — ANALYSE, CONCEP	ALISATION SELON 2TUP COUPLÉ À UML /
+25	16	714	2448	CHAPITRE 3 — DÉMARCHE MÉTHODOLOGIQU	 concentre le volume de production.
+26	17	339	1367	3.2 2TUP, un processus en Y 2TUP es	adaptée de Roques et Vallée (2007).
+27	18	769	49	/  Figure 3.1 — Cycle de développem	— Cycle de développement selon 2TUP
+28	19	478	2103	La branche fonctionnelle part du mé	u’une couche technique horizontale.
+29	20	780	1640	3.3 UML, le langage de modélisation	 Qui fait quoi avec le système ?  5
+30	21	721	2538	Séquence système  Dans quel ordre l	 Non prescrite  Oui, branche dédiée
+31	22	779	2860	Adapté à une équipe de deux  Oui  D	et le déploiement y sont rapportés.
+32	23	221	765	Deux points du Processus Unifié ne 	ouverne l’ensemble de la Partie II.
+33	24	483	59	/ BRANCHE FONCTIONNELLE — DU MÉTIER	— DU MÉTIER AUX CAS D’UTILISATION /
+34	25	744	2875	CHAPITRE 4 — ÉTUDE DE L’EXISTANT Ce	on administrative de ses documents.
+35	26	508	1776	Le recueil a aussi ses limites, que	appliquer et en conserver la trace.
+36	27	769	88	/  Figure 4.1 — Diagramme d’activit	érieur : triage et recueil clinique
+37	28	769	95	/  Figure 4.2 — Diagramme d’activit	: consultation, décision et clôture
+38	29	766	3141	La première étape est le triage et 	 la fait respecter automatiquement.
+39	30	756	2614	4.4 L’organisation informatique et 	absence d’appui informatique dédié.
+40	31	781	2406	4.5 L’infrastructure réseau et le p	ie du groupe  Communication interne
+41	32	766	2869	Protection des postes (antivirus)  	 le classeur papier, pour retrouver
+42	33	760	3028	un patient déjà connu ; le registre	 leur prévalence  Moyenne  Spontané
+43	34	765	2550	Administratif  R5  Dématérialisatio	ntre deux livraisons trimestrielles
+44	35	726	2100	Sécuritaire  Aucun contrôle d’accès	tégories, non d’essais comparatifs.
+45	36	729	3121	Nous retenons la solution D : un dé	vant que l’analyse ne dise comment.
+46	37	288	1171	Conclusion du chapitre Le centre fo	lise les besoins de cette solution.
+47	38	751	3214	CHAPITRE 5 — ANALYSE ET SPÉCIFICATI	médicaments ou d’examens (BF13), un
+48	39	749	2695	bon d’examen dont le résultat revie	 cinq états, historique  Implémenté
+49	40	744	2400	BF17  Ouvrir et alimenter un suivi 	application installable  Implémenté
+50	41	753	2712	BNF11  Déployabilité  Installateur 	périmètre, problème organisationnel
+51	42	734	2212	Inventaires physiques réguliers  Au	: le système y est une boîte noire.
+52	43	778	57	/  Figure 5.1 — Diagramme de contex	mme de contexte statique du système
+53	44	778	2781	5.2.3 Frontière du système La front	ersonnel et ses délégations (BF05 à
+54	45	771	3174	BF07). Communication et Pilotage po	t de passe  A M I  Faible  Haute  1
+55	46	771	2361	UC05  Consulter et révoquer ses ses	ttachements  A M I  Élevé  Haute  4
+56	47	755	2360	UC30  Changer la catégorie  A M  Él	fications  A M I  Élevé  Moyenne  8
+57	48	318	916	UC58  Diffuser une annonce  A  Faib	e seraient illisibles au format A4.
+58	49	759	70	/  Figure 5.2 — Cas d’utilisation d	u package Sécurité et habilitations
+59	50	768	77	/  Figure 5.3 — Cas d’utilisation d	ge Référentiels et acteurs médicaux
+60	51	777	60	/  Figure 5.4 — Cas d’utilisation d	lisation du package Dossier patient
+61	52	777	61	/  Figure 5.5 — Cas d’utilisation d	isation du package Parcours de soin
+62	53	768	66	/  Figure 5.6 — Cas d’utilisation d	on du package Fonctions transverses
+63	54	722	2431	5.2.7 Relations entre cas d’utilisa	t identique, seule l’entité change.
+64	55	770	2834	5.3 Spécification détaillée des cas	ion est enregistré sur l’ordonnance
+65	56	719	2376	Tableau 5.15 — Spécification de UC6	prime le bon et le remet au patient
+66	57	748	2754	Deux scénarios alternatifs existent	 que la première n’est pas annulée.
+67	58	279	1103	Le couplage entre les deux machines	erreur s’y lisent plus précisément.
+68	59	765	74	/ Figure 5.7 — Diagramme de séquenc	stème : émettre un bon de pharmacie
+69	60	781	75	/  Figure 5.8 — Diagramme de séquen	stème : synchroniser un poste local
+70	61	230	953	Conclusion du chapitre Notre analys	echnique qui doit porter ce modèle.
+71	62	483	56	/ BRANCHE TECHNIQUE — DES CONTRAINT	 DES CONTRAINTES À L’ARCHITECTURE /
+72	63	773	2827	CHAPITRE 6 — ARCHITECTURE TECHNIQUE	ée par Vite. La couche métier porte
+73	64	776	2843	les contrôleurs, les gardes, les se	 jeton signé  Accès non authentifié
+74	65	778	2503	5  Garde de permission  Accès non a	 le poste étant lui-même un serveur
+75	66	709	2894	Le rejeu de requêtes mérite d’être 	s ; le § 7.8 en explique la raison.
+76	67	247	923	Conclusion du chapitre Ce chapitre 	puis rend compte de sa réalisation.
+77	68	483	61	/ CONVERGENCE DES DEUX BRANCHES — C	NCHES — CONCEPTION ET RÉALISATION /
+78	69	763	2663	CHAPITRE 7 — CONCEPTION DÉTAILLÉE E	 apprendre sur le métier du centre.
+79	70	242	1050	Les packages ne sont pas étanches. 	domaine avant de se lire en entier.
+80	71	770	73	/  Figure 7.1 — Diagramme de classe	u package Sécurité et habilitations
+81	72	768	80	/  Figure 7.2 — Diagramme de classe	ge Référentiels et acteurs médicaux
+82	73	766	63	/  Figure 7.3 — Diagramme de classe	 classes du package Dossier patient
+83	74	768	90	/  Figure 7.4a — Diagramme de class	rs de soin : visite et consultation
+84	75	770	87	/ Figure 7.4b — Diagramme de classe	ours de soin : prescription et bons
+85	76	778	47	/  Figure 7.5 — Diagramme de classe	5 — Diagramme de classes du système
+86	77	761	2826	Tableau 7.2 — Les six entités les p	  Une visite exige un dossier actif
+87	78	642	2465	Compte utilisateur  Actif, désactiv	issions, et les composants visuels.
+88	79	769	39	/  Figure 7.6 — Diagramme de compos	igure 7.6 — Diagramme de composants
+89	80	167	766	Le déploiement distingue quatre nœu	able au fonctionnement du flux SSE.
+90	81	769	40	/  Figure 7.7 — Diagramme de déploi	gure 7.7 — Diagramme de déploiement
+91	82	749	2693	Les principes d’interface sont form	on du fonctionnement hors connexion
+92	83	746	2325	React  19  Interface utilisateur  L	isées en dix domaines fonctionnels.
+93	84	473	1565	Tableau 7.6 — Répartition des table	décision médicale, la prescription.
+94	85	760	58	/  Figure 7.8a — Modèle conceptuel 	 conceptuel de données : le recueil
+95	86	773	67	/ Figure 7.8b — Modèle conceptuel d	l de données : la décision médicale
+96	87	766	62	/ Figure 7.8c — Modèle conceptuel d	eptuel de données : la prescription
+97	88	282	1196	Le modèle physique est produit et m	critures passent par l’application.
+98	89	769	56	/  Figure 7.9a — Modèle physique de	le physique de données : le recueil
+99	90	781	65	/ Figure 7.9b — Modèle physique de 	e de données : la décision médicale
+100	91	771	60	/ Figure 7.9c — Modèle physique de 	ysique de données : la prescription
+101	92	753	1036	L’extrait de code ci-dessous est le	 réseau coupe au milieu d’un envoi.
+102	93	288	1109	7.5 Les fonctionnalités développées	onnée réelle de patient n’y figure.
+103	94	463	95	/  Figure 7.10 — Consultation en co	 et diagnostics (rôle Médecin Chef)
+104	95	463	90	/  Figure 7.11 — Émission d’un bon 	rôle d’éligibilité (rôle Infirmier)
+105	96	481	81	/  Figure 7.12 — Tableau de bord et	audit (rôle Administrateur système)
+106	97	761	2793	7.6 Tests et validation Dix fichier	utés et réussis, garde-fou complété
+107	98	764	3041	Opérations sur les référentiels  Pa	ec son propre secret. La bascule ne
+108	99	781	3429	changeait que l’adresse du serveur 	de 29 classes retenues sur 88 selon
+109	100	162	530	un critère explicite. Enfin, le con	st couverte par aucun test (§ 7.6).
+110	101	749	3004	CONCLUSION GÉNÉRALE Notre travail e	 la connectivité n’est pas acquise.
+111	102	743	3550	Ce travail a aussi ses limites. La 	 dit aussi ce qui n’a pas été fait.
+112	1	581	1674	BIBLIOGRAPHIE Ouvrages de méthodolo	rnal, volume 47, article 180, 2024.
+113	2	392	1401	WEBOGRAPHIE FIELDING Roy Thomas. Ar	al.com/content/article/47/180/full/
+114	5	781	1173	TABLE DES MATIÈRES DÉDICACE i REMER	À UML 16 3.1 Le Processus Unifié 16
+115	4	780	1647	3.2 2TUP, un processus en Y 17 3.3 	s cas d’utilisation prioritaires 55
+116	5	736	1180	5.3.1 Critères de choix et cas spéc	 WEBOGRAPHIE B TABLE DES MATIÈRES C
+PAGES APRES
+1	0	112	0		
+2	1	576	1106	DÉDICACE Nous avons l’honneur de dé	reconnaissance envers chacun d’eux.
+3	2	432	1665	REMERCIEMENTS Nous tenons à exprime	ncères et chaleureux remerciements.
+4	3	685	2910	RÉSUMÉ Dans un contexte où la conne	-first, data synchronization, 2TUP.
+5	4	694	938	SOMMAIRE  DÉDICACE i REMERCIEMENTS 	 WEBOGRAPHIE B TABLE DES MATIÈRES C
+6	5	661	2045	LISTE DES FIGURES  Figure 1.1 — Org	it (rôle Administrateur système) 96
+7	7	781	2722	LISTE DES TABLEAUX Tableau 1.1 — Gr	63 : Synchroniser un poste local 56
+8	7	386	953	Tableau 5.16 — Sommaire d’identific	Couverture des tests par domaine 97
+9	8	455	1317	LISTE DES ABRÉVIATIONS ET SIGLES  2	)    UML  Unified Modeling Language
+10	1	761	3253	INTRODUCTION GÉNÉRALE Dans un centr	ption détaillée et implémentation).
+11	2	483	57	/ PREMIÈRE PARTIE — CADRE CONTEXTUE	DRE CONTEXTUEL ET DOMAINE D’ÉTUDE /
+12	3	763	2655	CHAPITRE 1 — PRÉSENTATION DE LA STR	ns — sans accès au dossier médical.
+13	4	500	1516	1.3 La population couverte par le c	.1 et détaillés par le tableau 1.3.
+14	5	738	68	/  Figure 1.1 — Organigramme du Ser	ervice Médico-Social de SARIS-CONGO
+15	6	741	2788	Tableau 1.3 — Les trois niveaux de 	lorsqu’une délégation l’y autorise.
+16	7	767	2613	Ingénieur informaticien  Administra	u, que précise le chapitre suivant.
+17	8	660	2155	CHAPITRE 2 — DOMAINE D’ÉTUDE : LE S	 de visibilité diffèrent nettement.
+18	9	747	2566	Tableau 2.1 — Les acteurs du systèm	ompris hors connexion, sans doublon
+19	10	778	2777	Référentiels partagés  Globale  Un 	s ouvertes à toutes les catégories.
+20	11	772	2982	Tableau 2.4 — Prestations ouvertes 	leur justification plus qu’au code.
+21	12	754	3080	2.7 Situation du travail dans la li	ificat de repos, fiche d’évacuation
+22	13	648	2677	Ce choix correspond exactement au p	c base locale et resynchronisation.
+23	14	748	2714	2.9 Concepts liés au sujet Les term	on et la réalisation de ce système.
+24	15	483	80	/ DEUXIÈME PARTIE — ANALYSE, CONCEP	ALISATION SELON 2TUP COUPLÉ À UML /
+25	16	714	2448	CHAPITRE 3 — DÉMARCHE MÉTHODOLOGIQU	 concentre le volume de production.
+26	17	339	1367	3.2 2TUP, un processus en Y 2TUP es	adaptée de Roques et Vallée (2007).
+27	18	769	49	/  Figure 3.1 — Cycle de développem	— Cycle de développement selon 2TUP
+28	19	478	2103	La branche fonctionnelle part du mé	u’une couche technique horizontale.
+29	20	780	1640	3.3 UML, le langage de modélisation	 Qui fait quoi avec le système ?  5
+30	21	721	2538	Séquence système  Dans quel ordre l	 Non prescrite  Oui, branche dédiée
+31	22	779	2860	Adapté à une équipe de deux  Oui  D	et le déploiement y sont rapportés.
+32	23	221	765	Deux points du Processus Unifié ne 	ouverne l’ensemble de la Partie II.
+33	24	483	59	/ BRANCHE FONCTIONNELLE — DU MÉTIER	— DU MÉTIER AUX CAS D’UTILISATION /
+34	25	744	2875	CHAPITRE 4 — ÉTUDE DE L’EXISTANT Ce	on administrative de ses documents.
+35	26	508	1776	Le recueil a aussi ses limites, que	appliquer et en conserver la trace.
+36	27	769	88	/  Figure 4.1 — Diagramme d’activit	érieur : triage et recueil clinique
+37	28	769	95	/  Figure 4.2 — Diagramme d’activit	: consultation, décision et clôture
+38	29	766	3141	La première étape est le triage et 	 la fait respecter automatiquement.
+39	30	756	2614	4.4 L’organisation informatique et 	absence d’appui informatique dédié.
+40	31	781	2406	4.5 L’infrastructure réseau et le p	ie du groupe  Communication interne
+41	32	766	2869	Protection des postes (antivirus)  	 le classeur papier, pour retrouver
+42	33	760	3028	un patient déjà connu ; le registre	 leur prévalence  Moyenne  Spontané
+43	34	765	2550	Administratif  R5  Dématérialisatio	ntre deux livraisons trimestrielles
+44	35	726	2100	Sécuritaire  Aucun contrôle d’accès	tégories, non d’essais comparatifs.
+45	36	729	3121	Nous retenons la solution D : un dé	vant que l’analyse ne dise comment.
+46	37	288	1171	Conclusion du chapitre Le centre fo	lise les besoins de cette solution.
+47	38	751	3214	CHAPITRE 5 — ANALYSE ET SPÉCIFICATI	médicaments ou d’examens (BF13), un
+48	39	749	2695	bon d’examen dont le résultat revie	 cinq états, historique  Implémenté
+49	40	744	2400	BF17  Ouvrir et alimenter un suivi 	application installable  Implémenté
+50	41	753	2712	BNF11  Déployabilité  Installateur 	périmètre, problème organisationnel
+51	42	734	2212	Inventaires physiques réguliers  Au	: le système y est une boîte noire.
+52	43	778	57	/  Figure 5.1 — Diagramme de contex	mme de contexte statique du système
+53	44	778	2781	5.2.3 Frontière du système La front	ersonnel et ses délégations (BF05 à
+54	45	771	3174	BF07). Communication et Pilotage po	t de passe  A M I  Faible  Haute  1
+55	46	771	2361	UC05  Consulter et révoquer ses ses	ttachements  A M I  Élevé  Haute  4
+56	47	755	2360	UC30  Changer la catégorie  A M  Él	fications  A M I  Élevé  Moyenne  8
+57	48	318	916	UC58  Diffuser une annonce  A  Faib	e seraient illisibles au format A4.
+58	49	759	70	/  Figure 5.2 — Cas d’utilisation d	u package Sécurité et habilitations
+59	50	768	77	/  Figure 5.3 — Cas d’utilisation d	ge Référentiels et acteurs médicaux
+60	51	777	60	/  Figure 5.4 — Cas d’utilisation d	lisation du package Dossier patient
+61	52	777	61	/  Figure 5.5 — Cas d’utilisation d	isation du package Parcours de soin
+62	53	768	66	/  Figure 5.6 — Cas d’utilisation d	on du package Fonctions transverses
+63	54	722	2431	5.2.7 Relations entre cas d’utilisa	t identique, seule l’entité change.
+64	55	770	2834	5.3 Spécification détaillée des cas	ion est enregistré sur l’ordonnance
+65	56	719	2376	Tableau 5.15 — Spécification de UC6	prime le bon et le remet au patient
+66	57	748	2754	Deux scénarios alternatifs existent	 que la première n’est pas annulée.
+67	58	279	1103	Le couplage entre les deux machines	erreur s’y lisent plus précisément.
+68	59	765	74	/ Figure 5.7 — Diagramme de séquenc	stème : émettre un bon de pharmacie
+69	60	781	75	/  Figure 5.8 — Diagramme de séquen	stème : synchroniser un poste local
+70	61	230	953	Conclusion du chapitre Notre analys	echnique qui doit porter ce modèle.
+71	62	483	56	/ BRANCHE TECHNIQUE — DES CONTRAINT	 DES CONTRAINTES À L’ARCHITECTURE /
+72	63	773	2827	CHAPITRE 6 — ARCHITECTURE TECHNIQUE	ée par Vite. La couche métier porte
+73	64	776	2843	les contrôleurs, les gardes, les se	 jeton signé  Accès non authentifié
+74	65	778	2503	5  Garde de permission  Accès non a	 le poste étant lui-même un serveur
+75	66	709	2894	Le rejeu de requêtes mérite d’être 	s ; le § 7.8 en explique la raison.
+76	67	247	923	Conclusion du chapitre Ce chapitre 	puis rend compte de sa réalisation.
+77	68	483	61	/ CONVERGENCE DES DEUX BRANCHES — C	NCHES — CONCEPTION ET RÉALISATION /
+78	69	763	2663	CHAPITRE 7 — CONCEPTION DÉTAILLÉE E	 apprendre sur le métier du centre.
+79	70	242	1050	Les packages ne sont pas étanches. 	domaine avant de se lire en entier.
+80	71	770	73	/  Figure 7.1 — Diagramme de classe	u package Sécurité et habilitations
+81	72	768	80	/  Figure 7.2 — Diagramme de classe	ge Référentiels et acteurs médicaux
+82	73	766	63	/  Figure 7.3 — Diagramme de classe	 classes du package Dossier patient
+83	74	768	90	/  Figure 7.4a — Diagramme de class	rs de soin : visite et consultation
+84	75	770	87	/ Figure 7.4b — Diagramme de classe	ours de soin : prescription et bons
+85	76	778	47	/  Figure 7.5 — Diagramme de classe	5 — Diagramme de classes du système
+86	77	761	2826	Tableau 7.2 — Les six entités les p	  Une visite exige un dossier actif
+87	78	642	2465	Compte utilisateur  Actif, désactiv	issions, et les composants visuels.
+88	79	769	39	/  Figure 7.6 — Diagramme de compos	igure 7.6 — Diagramme de composants
+89	80	167	766	Le déploiement distingue quatre nœu	able au fonctionnement du flux SSE.
+90	81	769	40	/  Figure 7.7 — Diagramme de déploi	gure 7.7 — Diagramme de déploiement
+91	82	749	2693	Les principes d’interface sont form	on du fonctionnement hors connexion
+92	83	746	2325	React  19  Interface utilisateur  L	isées en dix domaines fonctionnels.
+93	84	473	1565	Tableau 7.6 — Répartition des table	décision médicale, la prescription.
+94	85	760	58	/  Figure 7.8a — Modèle conceptuel 	 conceptuel de données : le recueil
+95	86	773	67	/ Figure 7.8b — Modèle conceptuel d	l de données : la décision médicale
+96	87	766	62	/ Figure 7.8c — Modèle conceptuel d	eptuel de données : la prescription
+97	88	282	1196	Le modèle physique est produit et m	critures passent par l’application.
+98	89	769	56	/  Figure 7.9a — Modèle physique de	le physique de données : le recueil
+99	90	781	65	/ Figure 7.9b — Modèle physique de 	e de données : la décision médicale
+100	91	771	60	/ Figure 7.9c — Modèle physique de 	ysique de données : la prescription
+101	92	753	1036	L’extrait de code ci-dessous est le	 réseau coupe au milieu d’un envoi.
+102	93	288	1109	7.5 Les fonctionnalités développées	onnée réelle de patient n’y figure.
+103	94	463	95	/  Figure 7.10 — Consultation en co	 et diagnostics (rôle Médecin Chef)
+104	95	463	90	/  Figure 7.11 — Émission d’un bon 	rôle d’éligibilité (rôle Infirmier)
+105	96	481	81	/  Figure 7.12 — Tableau de bord et	audit (rôle Administrateur système)
+106	97	761	2793	7.6 Tests et validation Dix fichier	utés et réussis, garde-fou complété
+107	98	764	3041	Opérations sur les référentiels  Pa	ec son propre secret. La bascule ne
+108	99	781	3429	changeait que l’adresse du serveur 	de 29 classes retenues sur 88 selon
+109	100	162	530	un critère explicite. Enfin, le con	st couverte par aucun test (§ 7.6).
+110	101	749	3004	CONCLUSION GÉNÉRALE Notre travail e	 la connectivité n’est pas acquise.
+111	102	743	3550	Ce travail a aussi ses limites. La 	 dit aussi ce qui n’a pas été fait.
+112	1	581	1674	BIBLIOGRAPHIE Ouvrages de méthodolo	rnal, volume 47, article 180, 2024.
+113	2	392	1401	WEBOGRAPHIE FIELDING Roy Thomas. Ar	al.com/content/article/47/180/full/
+114	5	781	1173	TABLE DES MATIÈRES DÉDICACE i REMER	À UML 16 3.1 Le Processus Unifié 16
+115	4	780	1647	3.2 2TUP, un processus en Y 17 3.3 	s cas d’utilisation prioritaires 55
+116	5	736	1180	5.3.1 Critères de choix et cas spéc	 WEBOGRAPHIE B TABLE DES MATIÈRES C
