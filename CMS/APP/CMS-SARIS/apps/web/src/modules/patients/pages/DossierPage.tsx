@@ -24,7 +24,9 @@ import { RattementsTab }       from '../components/dossier/RattementsTab'
 import { DocumentsTab }        from '../components/dossier/DocumentsTab'
 import { VisitesTab }          from '../components/dossier/VisitesTab'
 import { ConsultationsTab }    from '../components/dossier/ConsultationsTab'
-import { SuiviTraitementTab }  from '../components/dossier/SuiviTraitementTab'
+import {
+  SuiviTraitementTab, ConstantesTab, PathologiesChroniquesTab, TraitementsTab, ResultatsExamensTab,
+} from '../components/dossier/SuiviTraitementTab'
 import { HistoriqueCategorieTab } from '../components/dossier/HistoriqueCategorieTab'
 import { ChangerCategorieModal } from '../components/ChangerCategorieModal'
 import { DossierPrintModal }     from '../components/dossier/DossierPrintModal'
@@ -36,12 +38,14 @@ import { formatDate } from '@/lib/intl'
 // Les droits d'écriture sont désormais portés par les permissions granulaires.
 
 // ── Sections ──────────────────────────────────────────────────────────────────
-// 4 groupes cliniques/administratifs — Dossier médical porte les données stables
-// (antécédents, documents générés) ; Parcours de soins porte le fil temporel en
-// 3 onglets séparés (Visites / Consultations / Suivi de traitement, chacun un
-// onglet simple sans filtre puisqu'il n'affiche qu'un seul type d'événement) ;
-// Administratif porte les rattachements ET l'historique de catégorie (nature
-// administrative, pas clinique).
+// 4 groupes, DEUX niveaux d'onglets au plus (étape 5.2) — rangés par nature :
+//   Dossier médical   — ce que le patient A : antécédents, pathologies chroniques,
+//                       constantes, documents générés ;
+//   Parcours de soins — ce qui a été FAIT : visites, consultations, épisodes de suivi,
+//                       traitements, résultats d'examens ;
+//   Administratif     — rattachements ET historique de catégorie.
+// Pathologies chroniques, Constantes, Traitements et Résultats formaient avant un 3e
+// niveau d'onglets dans « Suivi de traitement » ; le contenu est inchangé.
 // Libellés via clés i18n (résolues dans le composant, jamais au niveau module).
 const SECTIONS = [
   {
@@ -55,6 +59,8 @@ const SECTIONS = [
     key: 'medical', labelKey: 'patients.sectionMedicalDossier', icon: Stethoscope,
     subTabs: [
       { key: 'antecedents', labelKey: 'patients.tabHistory' },
+      { key: 'chroniques',  labelKey: 'suiviTraitement.subTabChroniques', clinicalOnly: true },
+      { key: 'constantes',  labelKey: 'suiviTraitement.subTabConstantes', clinicalOnly: true },
       { key: 'documents',   labelKey: 'patients.tabDocuments', clinicalOnly: true },
     ],
   },
@@ -64,6 +70,8 @@ const SECTIONS = [
       { key: 'visites',         labelKey: 'patients.tabVisites',        clinicalOnly: true },
       { key: 'consultations',   labelKey: 'patients.tabConsultations',  clinicalOnly: true },
       { key: 'suiviTraitement', labelKey: 'patients.tabSuiviTraitement', clinicalOnly: true },
+      { key: 'traitements',     labelKey: 'patients.tabTraitements',     clinicalOnly: true },
+      { key: 'resultats',       labelKey: 'suiviTraitement.subTabResultats', clinicalOnly: true },
     ],
   },
   {
@@ -681,7 +689,7 @@ export function DossierPage() {
               {/* Dit UNE fois, en tete du Parcours, ce que Documents disait seul : la vue de
                   l'infirmier est limitee au parcours en cours. Sans ce bandeau, Visites,
                   Consultations et Suivi presentaient une vue tronquee comme le dossier entier. */}
-              {activeSection === 'parcours' && historiqueRestreint && canViewClinique && (
+              {(activeSection === 'parcours' || activeSubTab === 'chroniques' || activeSubTab === 'constantes') && historiqueRestreint && canViewClinique && (
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14,
                   padding: '8px 12px', borderRadius: 8,
@@ -696,7 +704,11 @@ export function DossierPage() {
               {activeSubTab === 'documents'           && canViewClinique && <DocumentsTab patientId={dossier.id} />}
               {activeSubTab === 'visites'             && canViewClinique && <VisitesTab patientId={dossier.id} historiqueRestreint={historiqueRestreint} />}
               {activeSubTab === 'consultations'       && canViewClinique && <ConsultationsTab patientId={dossier.id} historiqueRestreint={historiqueRestreint} />}
+              {activeSubTab === 'chroniques'          && canViewClinique && <PathologiesChroniquesTab patientId={dossier.id} historiqueRestreint={historiqueRestreint} />}
+              {activeSubTab === 'constantes'          && canViewClinique && <ConstantesTab patientId={dossier.id} historiqueRestreint={historiqueRestreint} />}
               {activeSubTab === 'suiviTraitement'     && canViewClinique && <SuiviTraitementTab patientId={dossier.id} historiqueRestreint={historiqueRestreint} />}
+              {activeSubTab === 'traitements'         && canViewClinique && <TraitementsTab patientId={dossier.id} historiqueRestreint={historiqueRestreint} />}
+              {activeSubTab === 'resultats'           && canViewClinique && <ResultatsExamensTab patientId={dossier.id} historiqueRestreint={historiqueRestreint} />}
               {activeSubTab === 'rattachements'       && <RattementsTab    dossier={dossier} canWrite={canManageRattachements} />}
               {activeSubTab === 'historiqueCategorie' && <HistoriqueCategorieTab dossier={dossier} />}
             </div>

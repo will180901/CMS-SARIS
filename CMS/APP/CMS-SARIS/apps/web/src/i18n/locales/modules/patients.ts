@@ -128,6 +128,7 @@ export const patients = {
     tabVisites: 'Visites',
     tabConsultations: 'Consultations',
     tabSuiviTraitement: 'Suivi de traitement',
+    tabTraitements: 'Traitements',
     // Sections de niveau 1 (regroupement des onglets ci-dessus)
     sectionOverview: 'Vue d\'ensemble',
     sectionMedicalDossier: 'Dossier médical',
@@ -455,7 +456,7 @@ export const patients = {
 
     // ── Onglet Suivi de traitement (traitement, évolution, examens) ──
     suiviSectionChroniques: 'Évolution des pathologies chroniques',
-    suiviSectionTraitements: 'Traitement',
+    suiviSectionTraitements: 'Traitements prescrits',
     suiviSectionEnAttente: 'Résultats en attente de saisie',
     suiviEnAttenteBadge: 'En attente',
     suiviSectionExamens: 'Résultats d\'examens',
@@ -690,6 +691,7 @@ export const patients = {
     tabVisites: 'Visits',
     tabConsultations: 'Consultations',
     tabSuiviTraitement: 'Treatment follow-up',
+    tabTraitements: 'Treatments',
     // Sections de niveau 1 (regroupement des onglets ci-dessus)
     sectionOverview: 'Overview',
     sectionMedicalDossier: 'Medical record',
@@ -1017,7 +1019,7 @@ export const patients = {
 
     // ── Onglet Suivi de traitement (traitement, évolution, examens) ──
     suiviSectionChroniques: 'Chronic disease evolution',
-    suiviSectionTraitements: 'Treatment',
+    suiviSectionTraitements: 'Prescribed treatments',
     suiviSectionEnAttente: 'Results pending entry',
     suiviEnAttenteBadge: 'Pending',
     suiviSectionExamens: 'Exam results',
