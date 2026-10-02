@@ -165,6 +165,9 @@ export interface AyantDroitLien {
     numeroPatient:    string
     categoriePatient: { code: string; libelle: string }
     identite:         { nom: string; prenom: string; dateNaissance: string | null; sexe: string | null } | null
+    /** Activite retiree par le serveur (dossier verrouille, infirmier, ou profil sans
+     *  lecture clinique). `visites` est alors vide SANS que cela veuille dire « aucune ». */
+    activiteMasquee?: boolean
     visites: Array<{
       id:             string
       dateOuverture:  string

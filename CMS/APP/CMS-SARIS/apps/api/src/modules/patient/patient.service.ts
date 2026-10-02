@@ -337,7 +337,18 @@ export class PatientService {
    * dans le dossier du travailleur (l'assuré responsable). Les relations imbriquées
    * portent `deletedAt:null` (l'extension soft-delete ne filtre que le top-level).
    */
-  async findAyantsDroits(cdiPatientId: string) {
+  async findAyantsDroits(
+    cdiPatientId: string,
+    scope?: {
+      /** Supervision (medecin-chef, admin) : voit l'activite d'un dossier verrouille. */
+      canViewLocked?: boolean
+      /** Infirmier : l'historique d'un AUTRE patient ne le concerne pas. */
+      restreindreHistorique?: boolean
+      /** Lecture clinique (consultation.read) : un motif de visite est une donnee
+       *  medicale, pas une donnee administrative. */
+      canViewClinique?: boolean
+    },
+  ) {
     // Les ayants droit pendent désormais de l'EMPLOYÉ CDI du registre (employeId) ; on garde
     // la compat avec l'ancien lien direct au patient CDI (cdiId).
     const cdi = await this.prisma.patient.findUnique({
@@ -346,7 +357,7 @@ export class PatientService {
     })
     const orConds: any[] = [{ cdiId: cdiPatientId }]
     if (cdi?.employeId) orConds.push({ employeId: cdi.employeId })
-    return this.prisma.rattachementAyantDroitCdi.findMany({
+    const liens = await this.prisma.rattachementAyantDroitCdi.findMany({
       where: { statut: 'ACTIF', OR: orConds },
       orderBy: { dateDebut: 'desc' },
       select: {
@@ -357,6 +368,7 @@ export class PatientService {
           select: {
             id: true,
             numeroPatient: true,
+            verrouille: true,
             categoriePatient: { select: { code: true, libelle: true } },
             identite: {
               select: {
@@ -384,6 +396,33 @@ export class PatientService {
           },
         },
       },
+    })
+
+    // VERROU ET CONFIDENTIALITE. Les motifs des dernieres visites d'un ayant droit
+    // s'affichaient dans le dossier de son CDI sans jamais regarder si SON dossier etait
+    // verrouille : le dossier d'un adolescent ferme par le medecin-chef laissait lire ses
+    // motifs de visite dans celui de son parent. Ils s'affichaient aussi a tout porteur
+    // de `patient.read`, droit administratif, alors qu'un motif de visite est clinique.
+    //
+    // On retire l'activite AVANT qu'elle ne quitte le serveur, et on le DIT
+    // (`activiteMasquee`) : renvoyer une liste vide ferait afficher « aucune activite
+    // recente », ce qui serait faux — la meme faute que les compteurs a zero d'un
+    // dossier verrouille.
+    return liens.map((l) => {
+      const masquee =
+        !scope?.canViewClinique ||
+        !!scope?.restreindreHistorique ||
+        (l.patient.verrouille && !scope?.canViewLocked)
+      const { verrouille, ...patient } = l.patient
+      return {
+        ...l,
+        patient: {
+          ...patient,
+          verrouille,
+          activiteMasquee: masquee,
+          visites: masquee ? [] : patient.visites,
+        },
+      }
     })
   }
 
@@ -625,6 +664,10 @@ export class PatientService {
       restrictToOwn: boolean
       personnelMedicalId: string | null
       canViewLocked?: boolean
+      /** Infirmier (hors supervision) : les alertes RESTENT visibles — c'est de la
+       *  securite clinique —, sauf ce qui touche une pathologie a confidentialite
+       *  renforcee, exactement comme pour les antecedents. */
+      restreindreHistorique?: boolean
     },
   ): Promise<AlerteClinique[]> {
     await this.assertOwnPatient(patientId, scope)
@@ -660,7 +703,17 @@ export class PatientService {
         this.prisma.diagnosticConsultation.findMany({
           where: {
             consultation: consultScope,
-            pathologie: { chronique: true },
+            pathologie: {
+              chronique: true,
+              // CONFIDENTIALITE RENFORCEE. Les antecedents masquent deja ces pathologies a
+              // l'infirmier (cf. findById). Sans ce filtre, l'alerte « X diagnostiquee sans
+              // suivi » affichait le LIBELLE en clair — un diagnostic VIH, par exemple —
+              // dans le bandeau de tete du dossier : la porte fermee d'un cote restait
+              // grande ouverte de l'autre.
+              ...(scope?.restreindreHistorique
+                ? { confidentialiteRenforcee: false }
+                : {}),
+            },
           },
           include: { pathologie: { select: { id: true, libelle: true } } },
         }),
@@ -807,7 +860,10 @@ export class PatientService {
       this.prisma.diagnosticConsultation.findMany({
         where: scope?.restreindreHistorique
           ? {
-              pathologie: { chronique: true },
+              // Meme exception que les antecedents et les alertes : une pathologie a
+              // confidentialite renforcee n'apparait jamais a l'infirmier, meme
+              // diagnostiquee pendant la visite en cours.
+              pathologie: { chronique: true, confidentialiteRenforcee: false },
               consultation: {
                 visite: {
                   patientId,

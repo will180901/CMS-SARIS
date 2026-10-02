@@ -207,9 +207,14 @@ function AyantsDroitsDependants({ patientId }: { patientId: string }) {
                     <span style={{ fontSize: '11px', color: 'var(--texte-tertiaire)', fontFamily: 'monospace' }}>{l.patient.numeroPatient}</span>
                   </div>
                   <p style={{ fontSize: '12px', color: 'var(--texte-tertiaire)', margin: '3px 0 0' }}>
-                    {lastV
-                      ? t('patients.lastVisitOn', { date: formatDate(lastV.dateOuverture), motif: lastV.motifPrincipal.libelle })
-                      : t('patients.noRecentActivity')}
+                    {/* Trois cas, et non deux : une activite MASQUEE n'est pas une activite
+                        ABSENTE. Les confondre ferait ecrire « aucune activite recente » sur le
+                        dossier d'un ayant droit verrouille — une affirmation fausse. */}
+                    {l.patient.activiteMasquee
+                      ? t('patients.activityHidden')
+                      : lastV
+                        ? t('patients.lastVisitOn', { date: formatDate(lastV.dateOuverture), motif: lastV.motifPrincipal.libelle })
+                        : t('patients.noRecentActivity')}
                   </p>
                 </div>
               </div>

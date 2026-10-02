@@ -53,6 +53,8 @@ import { UpdateRattachementADDto } from './dto/rattachement.dto'
 interface AuthedRequest {
   user?: {
     roles?: string[]
+    /** Resolues en direct depuis la base par la strategie JWT (pas figees dans le jeton). */
+    permissions?: string[]
     personnelMedicalId?: string | null
     siteId?: string
   }
@@ -138,8 +140,12 @@ export class PatientController {
   // Ayants droit du travailleur CDI + leur activité récente (traçabilité dossier).
   @Get(':id/ayants-droits')
   @RequirePermissions('patient.read')
-  ayantsDroits(@Param('id') id: string) {
-    return this.patientService.findAyantsDroits(id)
+  ayantsDroits(@Param('id') id: string, @Req() req: AuthedRequest) {
+    return this.patientService.findAyantsDroits(id, {
+      canViewLocked: isSupervision(req),
+      restreindreHistorique: isHistoriqueRestreint(req),
+      canViewClinique: (req.user?.permissions ?? []).includes('consultation.read'),
+    })
   }
 
   /**
@@ -170,6 +176,9 @@ export class PatientController {
       restrictToOwn: isRestrictedDoctor(req),
       personnelMedicalId: req.user?.personnelMedicalId ?? null,
       canViewLocked: isSupervision(req),
+      // Seule lecture clinique du dossier qui ne recevait pas cette restriction : c'est
+      // par elle que les pathologies confidentielles fuyaient vers l'infirmier.
+      restreindreHistorique: isHistoriqueRestreint(req),
     })
   }
 
