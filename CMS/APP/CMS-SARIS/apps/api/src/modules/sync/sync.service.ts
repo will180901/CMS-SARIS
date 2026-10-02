@@ -24,16 +24,24 @@ import {
   type SyncModelDef,
 } from './sync-models'
 import { SOFT_DELETE_MODELS } from '../../prisma/soft-delete.extension'
-import { resolveConflict, diffFields, type ConflictDecision } from './conflict'
+import {
+  resolveConflict,
+  diffFields,
+  raisonRejet,
+  estRejetDefinitif,
+  type ConflictDecision,
+} from './conflict'
 import {
   SyncSupervisionService,
   type SyncConflictDetail,
+  type SyncRecordInput,
 } from './sync-supervision.service'
 import type {
   SyncEntityEnvelope,
   SyncPullResponseV2,
   SyncPushResponseV2,
   SyncConflictReport,
+  SyncRejet,
   SyncStatusV2,
 } from '@cms-saris/types/sync'
 
@@ -237,15 +245,36 @@ export class SyncService {
     const skipped: string[] = []
     const conflicts: SyncConflictReport[] = []
     const conflictDetails: SyncConflictDetail[] = []
+    const rejected: SyncRejet[] = []
+    const rejets: NonNullable<SyncRecordInput['rejets']> = []
 
     for (const env of changes) {
-      const def = SYNC_MODEL_BY_NAME.get(env.model)
-      const existingRow = def
-        ? await this.delegate(def.delegate)?.findUnique({
-            where: this.keyWhere(def, env.data),
-          })
-        : null
-      const { decision, applied: ok } = await this.ingest(env)
+      // UN changement en échec ne doit jamais bloquer le lot. Avant, une seule erreur (un
+      // matricule déjà pris par une fiche créée hors ligne sur un autre poste, un parent
+      // absent…) faisait échouer la requête entière : le poste ne faisait pas avancer son
+      // curseur et renvoyait le même lot à chaque cycle — plus rien ne remontait, jamais.
+      // Le changement refusé part en QUARANTAINE (supervision), le reste passe.
+      let existingRow: Record<string, unknown> | null = null
+      let decision: ConflictDecision
+      let ok: boolean
+      try {
+        const def = SYNC_MODEL_BY_NAME.get(env.model)
+        existingRow = def
+          ? ((await this.delegate(def.delegate)?.findUnique({
+              where: this.keyWhere(def, env.data),
+            })) ?? null)
+          : null
+        ;({ decision, applied: ok } = await this.ingest(env))
+      } catch (e) {
+        // Erreur passagère (base occupée, connexion) : on laisse échouer le lot, le poste
+        // réessaiera tel quel — mettre en quarantaine une donnée saine serait une perte.
+        if (!estRejetDefinitif(e)) throw e
+        const raison = raisonRejet(e)
+        this.logger.warn(`push: ${env.model} ${env.id} mis en quarantaine — ${raison}`)
+        rejected.push({ id: env.id, model: env.model, raison })
+        rejets.push({ id: env.id, model: env.model, raison, valeurLocale: env.data })
+        continue
+      }
       if (decision.kind === 'conflict') {
         conflicts.push({
           model: env.model,
@@ -273,6 +302,7 @@ export class SyncService {
         startedAt,
         applied: applied.length,
         conflicts: conflictDetails,
+        rejets,
       })
     }
 
@@ -282,7 +312,13 @@ export class SyncService {
     // le plus fréquent) ne doit réveiller personne.
     if (applied.length > 0) this.sonner(posteLocalId ?? null)
 
-    return { applied, skipped, conflicts, serverTime: new Date().toISOString() }
+    return {
+      applied,
+      skipped,
+      conflicts,
+      rejected,
+      serverTime: new Date().toISOString(),
+    }
   }
 
   // ── Écriture préservant l'updatedAt SOURCE (LWW correct) ────────────────────

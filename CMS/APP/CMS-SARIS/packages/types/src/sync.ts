@@ -101,6 +101,14 @@ export interface SyncConflictReport {
   fields:  string[]
 }
 
+/** Changement que le serveur n'a PAS pu appliquer (clé unique déjà prise, parent absent…).
+ *  Mis en quarantaine dans la supervision au lieu de bloquer tout le lot. */
+export interface SyncRejet {
+  id:     string
+  model:  string
+  raison: string
+}
+
 export interface SyncPushResponseV2 {
   /** IDs effectivement appliqués côté serveur. */
   applied:    string[]
@@ -108,6 +116,8 @@ export interface SyncPushResponseV2 {
   skipped:    string[]
   /** Conflits réels tranchés par LWW (journalisés pour revue). */
   conflicts:  SyncConflictReport[]
+  /** Changements refusés, mis en quarantaine (absent chez un serveur plus ancien). */
+  rejected?:  SyncRejet[]
   serverTime: string
 }
 

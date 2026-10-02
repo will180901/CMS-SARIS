@@ -37,6 +37,14 @@ export interface SyncRecordInput {
   startedAt: Date
   applied: number
   conflicts: SyncConflictDetail[]
+  /** Changements refusés par le serveur : mis en QUARANTAINE (type REJET_SERVEUR, à revoir
+   *  dans la supervision) avec la donnée du poste — rien n'est perdu en silence. */
+  rejets?: {
+    id: string
+    model: string
+    raison: string
+    valeurLocale: Record<string, unknown>
+  }[]
 }
 
 /** Un poste est considéré « en ligne » s'il a donné signe de vie (battement ou synchro) dans
@@ -66,6 +74,7 @@ export class SyncSupervisionService {
     if (this.isSqlite) return
     const { posteLocalId, siteId, userId, startedAt, applied, conflicts } =
       input
+    const rejets = input.rejets ?? []
     const now = new Date()
 
     try {
@@ -98,9 +107,9 @@ export class SyncSupervisionService {
           posteLocalId,
           startedAt,
           finishedAt: now,
-          statut: conflicts.length ? 'CONFLITS' : 'REUSSIE',
+          statut: conflicts.length + rejets.length ? 'CONFLITS' : 'REUSSIE',
           nbMutations: applied,
-          nbConflits: conflicts.length,
+          nbConflits: conflicts.length + rejets.length,
         },
       })
 
@@ -116,6 +125,23 @@ export class SyncSupervisionService {
               c.winner === 'incoming' ? 'LOCAL_GAGNE' : 'SERVEUR_GAGNE',
             valeurLocale: (c.valeurLocale ?? {}) as object,
             valeurServeur: (c.valeurServeur ?? {}) as object,
+          },
+        })
+      }
+
+      // 3 bis. Quarantaine : chaque changement refusé, avec la donnée du poste et la
+      //        raison du refus. Avant, un seul refus faisait échouer TOUT le lot, et le poste
+      //        renvoyait indéfiniment le même lot sans plus jamais rien remonter.
+      for (const r of rejets) {
+        await this.prisma.conflitSynchronisation.create({
+          data: {
+            journalId: journal.id,
+            mutationUuid: r.id,
+            entiteType: r.model,
+            entiteId: r.id,
+            typeConflit: 'REJET_SERVEUR',
+            valeurLocale: r.valeurLocale as object,
+            valeurServeur: { erreur: r.raison } as object,
           },
         })
       }

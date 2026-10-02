@@ -58,3 +58,31 @@ export function diffFields(
   }
   return out.sort()
 }
+
+/**
+ * Raison lisible d'un changement de synchronisation refusé — pour la quarantaine de la
+ * supervision et le journal. Lecture « par forme » (code/meta) : le client Prisma n'est
+ * pas le même côté poste (SQLite) et côté central (PostgreSQL).
+ */
+export function raisonRejet(e: unknown): string {
+  const err = e as { code?: string; meta?: { target?: unknown; field_name?: unknown }; message?: string }
+  const cible = (v: unknown) => (Array.isArray(v) ? v.join(', ') : String(v ?? ''))
+  if (err?.code === 'P2002')
+    return `Valeur déjà utilisée par un autre enregistrement (${cible(err.meta?.target)})`
+  if (err?.code === 'P2003')
+    return `Enregistrement lié absent (${cible(err.meta?.field_name)})`
+  if (err?.code === 'P2025') return 'Enregistrement introuvable'
+  return (err?.message ?? String(e)).split('\n').filter(Boolean).slice(-1)[0]?.slice(0, 300) ?? 'Erreur inconnue'
+}
+
+/**
+ * Erreur DÉFINITIVE sur la donnée elle-même (codes Prisma P2xxx : clé unique prise,
+ * enregistrement lié absent, valeur invalide…) : la rejouer donnerait la même erreur, on
+ * peut donc la mettre de côté sans bloquer le reste. Une erreur PASSAGÈRE (base occupée,
+ * connexion perdue, délai dépassé) n'en est pas une : elle doit continuer d'interrompre le
+ * cycle, pour que le suivant réessaie — sinon on sauterait pour toujours une donnée saine.
+ */
+export function estRejetDefinitif(e: unknown): boolean {
+  const code = (e as { code?: unknown })?.code
+  return typeof code === 'string' && /^P2\d{3}$/.test(code) && code !== 'P2024' && code !== 'P2034'
+}
