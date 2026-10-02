@@ -20,6 +20,22 @@ const STATUT_VISITE: Record<string, { labelKey: string; tint: string; bg: string
   ANNULEE:    { labelKey: 'patients.visiteAnnulee',   tint: 'var(--erreur-texte)', bg: 'var(--erreur-fond)' },
 }
 
+/**
+ * État RÉEL du passage, pas seulement celui de la visite. Une visite passe à CLÔTURÉE dès
+ * son envoi en consultation (ConsultationService.create) : la pastille « Clôturée » en
+ * vert faisait croire la prise en charge terminée alors que le patient attendait encore
+ * le médecin. On lit donc la consultation qui en découle (déjà renvoyée par le serveur).
+ */
+function etatPassage(v: { statut: string; consultations?: { statut: string }[] }) {
+  if (v.statut !== 'CLOTUREE') return STATUT_VISITE[v.statut] ?? STATUT_VISITE.CLOTUREE
+  const consult = (v.consultations ?? []).find(c => c.statut !== 'ANNULEE')
+  if (consult?.statut === 'OUVERTE')
+    return { labelKey: 'patients.visiteEnConsultation', tint: 'var(--info-texte)', bg: 'var(--info-fond)' }
+  if (consult?.statut === 'CLOTUREE')
+    return { labelKey: 'patients.visiteConsultationCloturee', tint: 'var(--succes-texte)', bg: 'var(--succes-fond)' }
+  return { labelKey: 'patients.visiteClotureeSansConsultation', tint: 'var(--texte-secondaire)', bg: 'var(--fond-surface-2)' }
+}
+
 export function VisitesTab({ patientId, historiqueRestreint = false }: { patientId: string; historiqueRestreint?: boolean }) {
   const { t } = useTranslation()
   const { data: visites = [], isLoading, isError } = usePatientVisites(patientId)
@@ -56,7 +72,7 @@ export function VisitesTab({ patientId, historiqueRestreint = false }: { patient
       {!isError && !isLoading && visites.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 720 }}>
           {visites.map(v => {
-            const cfg = STATUT_VISITE[v.statut] ?? STATUT_VISITE.CLOTUREE
+            const cfg = etatPassage(v)
             return (
               <button
                 key={v.id}

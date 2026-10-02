@@ -241,7 +241,11 @@ export function RattementsTab({ dossier, canWrite }: { dossier: PatientDossier; 
       {/* Ayants droit (dépendants) du travailleur + activité récente — traçabilité */}
       <AyantsDroitsDependants patientId={dossier.id} />
 
-      {/* Rattachement à l'assuré CDI (côté ayant droit) — créé automatiquement à la visite */}
+      {/* Rattachement à l'assuré CDI (côté ayant droit) — créé automatiquement à la visite.
+          Sans objet pour un travailleur CDI (un employé n'est jamais l'ayant droit d'un
+          autre) : la section n'affichait que « 0 — rattaché à aucun assuré CDI ». Elle reste
+          visible s'il garde des rattachements passés (ancien ayant droit devenu CDI). */}
+      {(dossier.categoriePatient.code === 'AYANT_DROIT_CDI' || dossier.rattachementsAD.length > 0) && (
       <div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
           <Users size={15} style={{ color: 'var(--ap-600)' }} />
@@ -258,6 +262,7 @@ export function RattementsTab({ dossier, canWrite }: { dossier: PatientDossier; 
           </div>
         )}
       </div>
+      )}
     </div>
   )
 }
