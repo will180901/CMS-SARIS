@@ -4,7 +4,7 @@ import { patientsApi } from '../api/patients.api'
 import type {
   CreatePatientPayload, PatientQueryParams,
   AllergiePayload, AntecedentPayload, AlertePayload,
-  UpdateRattachementADPayload,
+  UpdateRattachementADPayload, RattacherAyantDroitPayload,
   UpdateIdentitePayload, ChangerCategoriePayload, ModeViePayload,
   SimilarPatientQuery,
   CreateSuiviChroniquePayload, UpdateSuiviChroniquePayload,
@@ -312,6 +312,18 @@ export function useUpdateAlerte(patientId: string) {
 // Création retirée : le rattachement (ayant droit CDI ou sous-traitant) se crée
 // automatiquement à la visite. Seule l'édition d'un rattachement AD existant
 // reste possible depuis le dossier (type de lien, dates, clôture).
+
+/** La catégorie du patient peut changer (il devient ayant droit) : on invalide toute
+ *  la clé patients — liste, dossier, couverture. */
+export function useRattacherAyantDroit() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ patientId, data }: { patientId: string; data: RattacherAyantDroitPayload }) =>
+      patientsApi.rattacherAyantDroit(patientId, data),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: PATIENTS_KEY }); toast.success(i18n.t('triage.rattacherCdiFait')) },
+    onError: toastError,
+  })
+}
 
 export function useUpdateRattachementAD(patientId: string) {
   const qc = useQueryClient()

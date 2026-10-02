@@ -30,6 +30,7 @@ import {
   PatientQueryDto,
 } from './dto/patient.dto'
 import { CreateAllergieDto, UpdateAllergieDto } from './dto/medical.dto'
+import { RattacherAyantDroitDto } from './dto/rattachement.dto'
 import { CreateAntecedentDto, UpdateAntecedentDto } from './dto/medical.dto'
 import {
   CreateAlerteMedicaleDto,
@@ -1371,32 +1372,11 @@ export class PatientService {
         )
       if (!typeLien)
         throw new BadRequestException('Le lien de parenté est obligatoire')
-      const existing = await this.employes.findByMatricule(cdiMatricule.trim())
-      if (existing) {
-        rattEmployeId = existing.id // CDI reconnu au registre
-        rattEmploye = existing
-      } else {
-        // CDI inconnu → on l'enregistre à la volée avec l'identité fournie.
-        if (!nouvelEmploye?.nom?.trim() || !nouvelEmploye?.prenom?.trim()) {
-          throw new BadRequestException(
-            `Matricule CDI « ${cdiMatricule.trim()} » inconnu — renseignez l'identité du travailleur CDI rattaché`,
-          )
-        }
-        const emp = await this.employes.create({
-          matricule: cdiMatricule.trim(),
-          nom: nouvelEmploye.nom,
-          prenom: nouvelEmploye.prenom,
-          dateNaissance: nouvelEmploye.dateNaissance,
-          sexe: nouvelEmploye.sexe,
-          fonction: nouvelEmploye.fonction,
-          sectionPaie: nouvelEmploye.sectionPaie,
-          service: nouvelEmploye.service,
-          departement: nouvelEmploye.departement,
-          categorie: 'ASSURE_CDI',
-        })
-        rattEmployeId = emp.id
-        rattEmploye = emp
-      }
+      rattEmploye = await this.resoudreCdiRattachement(
+        cdiMatricule,
+        nouvelEmploye,
+      )
+      rattEmployeId = rattEmploye.id
     }
 
     const numeroPatient = await this.generateNumeroPatient(siteCreationId)
@@ -1894,7 +1874,7 @@ export class PatientService {
 
     if (nouveauCode === 'AYANT_DROIT_CDI' || nouveauCode === 'SOUS_TRAITANT') {
       throw new ConflictException(
-        'Pour rattacher ce patient à un CDI ou une société, passez par une nouvelle visite — ce statut ne peut pas être attribué depuis le changement de catégorie.',
+        'Pour rattacher ce patient à un travailleur CDI ou à une société, passez par une nouvelle visite (« Rattacher à un travailleur CDI » sous le patient sélectionné) — ce statut ne peut pas être attribué depuis le changement de catégorie.',
       )
     }
 
@@ -1970,10 +1950,13 @@ export class PatientService {
       })
 
       if (ancienCode === 'AYANT_DROIT_CDI') {
-        const ratt = await tx.rattachementAyantDroitCdi.findFirst({
+        // TOUS les rattachements actifs : un ayant droit peut en avoir deux (ses deux
+        // parents CDI). N'en clôturer qu'un laissait l'autre ouvrir encore des droits.
+        const actifs = await tx.rattachementAyantDroitCdi.findMany({
           where: { patientId: id, statut: 'ACTIF' },
+          select: { id: true },
         })
-        if (ratt) {
+        for (const ratt of actifs) {
           await tx.rattachementAyantDroitCdi.update({
             where: { id: ratt.id },
             data: { statut: 'INACTIF' },
@@ -2128,9 +2111,183 @@ export class PatientService {
   }
 
   // ── Rattachements Ayant Droit CDI ─────────────────────────────────────────
-  // Création retirée : le rattachement se crée automatiquement à la visite
-  // (create(), catégorie AYANT_DROIT_CDI) — un seul point d'entrée, plus de
-  // création manuelle possible depuis le dossier (cf. plan validé avec l'utilisateur).
+  // Création réservée à la VISITE (un seul point d'entrée, cf. plan validé avec
+  // l'utilisateur) : à la création du dossier (create()), ou pour un patient déjà
+  // enregistré (rattacherAyantDroit ci-dessous). Rien depuis le dossier lui-même.
+
+  /**
+   * Travailleur CDI auquel rattacher un ayant droit : reconnu au registre par son
+   * matricule, ou enregistré à la volée si le matricule est inconnu.
+   *
+   * Un matricule CONNU doit désigner un CDI ACTIF. Avant, « Employé reconnu » suffisait :
+   * le matricule d'un CDD, ou d'un CDI parti de l'entreprise, créait un ayant droit avec
+   * la gratuité complète. Une faute de frappe sur un matricule existant reste possible —
+   * c'est pourquoi l'écran affiche le NOM du travailleur reconnu avant validation.
+   */
+  private async resoudreCdiRattachement(
+    cdiMatricule: string,
+    nouvelEmploye?: {
+      nom: string
+      prenom: string
+      dateNaissance?: string
+      sexe?: string
+      fonction?: string
+      sectionPaie?: string
+      service?: string
+      departement?: string
+    },
+  ): Promise<EmployeSaris> {
+    const mat = cdiMatricule.trim()
+    const existing = await this.employes.findByMatricule(mat)
+    if (existing) {
+      const nom = `${existing.prenom} ${existing.nom}`
+      if (existing.categorie !== 'ASSURE_CDI') {
+        throw new ConflictException(
+          `Le matricule ${mat} est celui de ${nom}, enregistré comme ${existing.categorie === 'ASSURE_CDD' ? 'CDD' : existing.categorie} : seul un travailleur CDI peut avoir des ayants droit.`,
+        )
+      }
+      if (existing.statut !== 'ACTIF') {
+        throw new ConflictException(
+          `${nom} (matricule ${mat}) est inactif au registre des employés : aucun ayant droit ne peut lui être rattaché.`,
+        )
+      }
+      return existing
+    }
+    // CDI inconnu → on l'enregistre à la volée avec l'identité fournie.
+    if (!nouvelEmploye?.nom?.trim() || !nouvelEmploye?.prenom?.trim()) {
+      throw new BadRequestException(
+        `Matricule CDI « ${mat} » inconnu — renseignez l'identité du travailleur CDI rattaché`,
+      )
+    }
+    return this.employes.create({
+      matricule: mat,
+      nom: nouvelEmploye.nom,
+      prenom: nouvelEmploye.prenom,
+      dateNaissance: nouvelEmploye.dateNaissance,
+      sexe: nouvelEmploye.sexe,
+      fonction: nouvelEmploye.fonction,
+      sectionPaie: nouvelEmploye.sectionPaie,
+      service: nouvelEmploye.service,
+      departement: nouvelEmploye.departement,
+      categorie: 'ASSURE_CDI',
+    })
+  }
+
+  /**
+   * Rattache un patient DÉJÀ ENREGISTRÉ à un travailleur CDI (accueil, nouvelle visite).
+   *
+   *  - Patient d'une autre catégorie (population, sous-traitant…) : il DEVIENT ayant droit,
+   *    avec trace dans l'historique de catégorie ; un rattachement sous-traitant actif est
+   *    clôturé (on ne cumule pas deux statuts).
+   *  - Patient déjà ayant droit : un rattachement de plus — le cas du 2e parent CDI. Ses
+   *    droits survivent alors au départ de l'un des deux (cf. couverturePatient).
+   *  - Jamais deux rattachements actifs vers le même travailleur (pas de doublon).
+   *  - Un employé (CDI/CDD) n'est jamais l'ayant droit d'un autre : sa prise en charge
+   *    suit son propre contrat.
+   */
+  async rattacherAyantDroit(
+    patientId: string,
+    dto: RattacherAyantDroitDto,
+    userId?: string,
+    siteId?: string,
+  ) {
+    const patient = await this.prisma.patient.findUnique({
+      where: { id: patientId },
+      select: {
+        id: true,
+        employeId: true,
+        siteCreationId: true,
+        categoriePatientId: true,
+        categoriePatient: { select: { code: true } },
+      },
+    })
+    if (!patient) throw new NotFoundException(`Patient ${patientId} introuvable`)
+    const code = patient.categoriePatient.code
+    if (code === 'ASSURE_CDI' || code === 'ASSURE_CDD' || patient.employeId) {
+      throw new ConflictException(
+        "Ce patient est lui-même employé : sa prise en charge suit son propre contrat, pas un rattachement d'ayant droit.",
+      )
+    }
+
+    const cdi = await this.resoudreCdiRattachement(
+      dto.cdiMatricule,
+      dto.nouvelEmploye,
+    )
+
+    const dejaRattache = await this.prisma.rattachementAyantDroitCdi.findFirst({
+      where: { patientId, employeId: cdi.id, statut: 'ACTIF' },
+      select: { id: true },
+    })
+    if (dejaRattache) {
+      throw new ConflictException(
+        `Ce patient est déjà rattaché à ${cdi.prenom} ${cdi.nom} (matricule ${cdi.matricule}).`,
+      )
+    }
+
+    const categAD = await this.prisma.categoriePatient.findUnique({
+      where: { code: 'AYANT_DROIT_CDI' },
+      select: { id: true },
+    })
+    if (!categAD)
+      throw new BadRequestException(
+        'Catégorie « Ayant droit CDI » absente du référentiel',
+      )
+
+    const site = siteId ?? patient.siteCreationId
+    return this.prisma.$transaction(async (tx) => {
+      if (code !== 'AYANT_DROIT_CDI') {
+        await tx.historiqueCategoriePatient.create({
+          data: {
+            patientId,
+            ancienneCategId: patient.categoriePatientId,
+            nouvelleCategId: categAD.id,
+            dateEffet: new Date(),
+            motif: `Rattachement comme ayant droit de ${cdi.prenom} ${cdi.nom} (matricule ${cdi.matricule})`,
+            createdBy: userId ?? null,
+          },
+        })
+        if (code === 'SOUS_TRAITANT') {
+          const actifs = await tx.rattachementSousTraitant.findMany({
+            where: { patientId, statut: 'ACTIF' },
+            select: { id: true },
+          })
+          for (const r of actifs) {
+            await tx.rattachementSousTraitant.update({
+              where: { id: r.id },
+              data: { statut: 'INACTIF', dateFin: new Date() },
+            })
+            await tx.historiqueRattachementSousTraitant.create({
+              data: { rattachementId: r.id, evenement: 'CLOTURE' },
+            })
+          }
+        }
+        await tx.patient.update({
+          where: { id: patientId },
+          data: { categoriePatientId: categAD.id },
+        })
+      }
+
+      const ratt = await tx.rattachementAyantDroitCdi.create({
+        data: {
+          patientId,
+          employeId: cdi.id,
+          typeLien: dto.typeLien,
+          dateDebut: new Date(),
+        },
+      })
+      await tx.historiqueRattachementAyantDroit.create({
+        data: {
+          rattachementId: ratt.id,
+          evenement: 'CREATION',
+          createdBy: userId ?? null,
+        },
+      })
+      // Même règle qu'à la création : le CDI doit être trouvable comme patient dès
+      // qu'un ayant droit lui est rattaché (dossier vide créé s'il n'en a pas).
+      await this.createFromEmploye(cdi, site, userId, tx)
+      return ratt
+    })
+  }
 
   async updateRattachementAD(
     patientId: string,

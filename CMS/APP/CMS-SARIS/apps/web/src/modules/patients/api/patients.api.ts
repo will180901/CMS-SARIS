@@ -161,8 +161,15 @@ export interface AlertePayload {
   statut?: string
 }
 
-// Création retirée (le rattachement se crée automatiquement à la visite) — seule
-// l'édition d'un rattachement AD déjà existant reste possible.
+/** Rattacher un patient DÉJÀ enregistré à un travailleur CDI — depuis la visite. */
+export interface RattacherAyantDroitPayload {
+  cdiMatricule:   string
+  typeLien:       string
+  nouvelEmploye?: CreatePatientPayload['nouvelEmploye']
+}
+
+// Le rattachement se crée à la visite (création du dossier, ou patient existant via
+// RattacherAyantDroitPayload) — depuis le dossier, seule l'édition reste possible.
 export interface UpdateRattachementADPayload {
   typeLien?:  string
   dateDebut?: string
@@ -324,6 +331,7 @@ export const patientsApi = {
 
   // Rattachements ayant droit CDI — création automatique à la visite, seule
   // l'édition/clôture d'un rattachement existant reste possible depuis le dossier.
+  rattacherAyantDroit: (id: string, data: RattacherAyantDroitPayload) => api.post<RattachementAyantDroitCdi>(`/patients/${id}/rattachements-ad`, data),
   updateRattachementAD: (id: string, rId: string, data: UpdateRattachementADPayload) => api.patch<RattachementAyantDroitCdi>(`/patients/${id}/rattachements-ad/${rId}`, data),
   deleteRattachementAD: (id: string, rId: string)                                    => api.delete<{ id: string; deleted: true }>(`/patients/${id}/rattachements-ad/${rId}`),
 }

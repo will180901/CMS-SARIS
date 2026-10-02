@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Search, X, UserSearch, FileText, AlertCircle, Stethoscope, PenLine, HeartPulse,
-  ChevronLeft, UserPlus, AlertTriangle,
+  ChevronLeft, UserPlus, AlertTriangle, Link2,
 } from 'lucide-react'
 import { Button as SButton, SelectBox, DatePicker } from '@/components/saris'
 import { Input }  from '@workspace/ui/components/input'
@@ -13,7 +13,7 @@ import { useMotifs, useCreateMotif, useCategoriesPatient } from '@/modules/refer
 import { useSousTraitants } from '@/modules/referentiels/hooks/useSousTraitants'
 import { useEmployeLookup } from '@/modules/referentiels/hooks/useEmployes'
 import { useIsCompact } from '@/hooks/useMediaQuery'
-import { usePatients, useCreatePatient, useFindSimilarPatients, usePatientDossier } from '@/modules/patients/hooks/usePatients'
+import { usePatients, useCreatePatient, useFindSimilarPatients, usePatientDossier, useRattacherAyantDroit } from '@/modules/patients/hooks/usePatients'
 import { usePermissions }              from '@/hooks/usePermissions'
 import { useSessionStore }             from '@/stores/session.store'
 import { PatientAvatar, CategorieBadge } from '@/modules/patients/components/CategorieBadge'
@@ -63,6 +63,7 @@ export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Pr
   const create        = useCreateVisite()
   const createMotif   = useCreateMotif()
   const createPatient = useCreatePatient()
+  const rattacher     = useRattacherAyantDroit()
   const { has }       = usePermissions()
   // Enrichissement à la volée du référentiel motifs = perm dédiée.
   const canCreateMotif   = has('referentiel.motif.create')
@@ -79,6 +80,10 @@ export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Pr
   // Patient — sous-mode : sélectionner un patient existant OU créer le dossier.
   const [mode, setMode] = useState<'search' | 'create'>('search')
   const [np, setNp]     = useState<NewPatient>(EMPTY_NP)
+  // Patient EXISTANT à rattacher à un travailleur CDI (conjoint déjà venu, 2e parent CDI
+  // d'un enfant…). Les champs du CDI réutilisent ceux de `np` : en mode recherche, ils
+  // ne servent à rien d'autre.
+  const [rattOpen, setRattOpen] = useState(false)
   const { data: categories = [] } = useCategoriesPatient()
   const { data: societes   = [] } = useSousTraitants()
   const categoriesActives = useMemo(() => categories.filter(c => c.statut === 'ACTIVE'), [categories])
@@ -91,7 +96,8 @@ export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Pr
 
   // Reconnaissance dynamique de l'employé par matricule (recueil) : CDI/CDD = son propre
   // matricule ; ayant droit = le matricule du CDI rattaché. Debounce 400 ms.
-  const matRecherche = npAyant ? np.cdiMatricule : npIsCdiCdd ? np.matricule : ''
+  const rattExistant = mode === 'search' && rattOpen
+  const matRecherche = (npAyant || rattExistant) ? np.cdiMatricule : npIsCdiCdd ? np.matricule : ''
   const [lookupMat, setLookupMat] = useState('')
   useEffect(() => {
     const id = setTimeout(() => setLookupMat(matRecherche.trim()), 400)
@@ -99,6 +105,15 @@ export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Pr
   }, [matRecherche])
   const { data: employeTrouve, isFetching: lookupLoading } = useEmployeLookup(lookupMat)
   const employeReconnu = !!employeTrouve && employeTrouve.matricule === matRecherche.trim() && matRecherche.trim().length >= 3
+  // Même refus que le serveur (resoudreCdiRattachement) : un matricule reconnu ne suffit
+  // pas, il doit être celui d'un CDI ACTIF. Dit AVANT la validation, pas en erreur après.
+  const employeRefus: string | null = (npAyant || rattExistant) && employeReconnu && employeTrouve
+    ? employeTrouve.categorie !== 'ASSURE_CDI'
+      ? t('triage.cdiRefusCategorie', { nom: `${employeTrouve.prenom} ${employeTrouve.nom}` })
+      : employeTrouve.statut !== 'ACTIF'
+        ? t('triage.cdiRefusInactif', { nom: `${employeTrouve.prenom} ${employeTrouve.nom}` })
+        : null
+    : null
 
   // CDI/CDD reconnu → auto-remplissage des données pro depuis le registre.
   useEffect(() => {
@@ -116,7 +131,7 @@ export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Pr
 
   const categorieDonneesOk =
       npIsCdiCdd  ? !!(np.matricule.trim() && np.fonction.trim() && np.sectionPaie.trim() && np.service.trim() && np.departement.trim())
-    : npAyant     ? !!(np.fonction.trim() && np.cdiMatricule.trim() && np.typeLien && (employeReconnu || (np.cdiNom.trim() && np.cdiPrenom.trim())))
+    : npAyant     ? !!(np.fonction.trim() && np.cdiMatricule.trim() && np.typeLien && !employeRefus && (employeReconnu || (np.cdiNom.trim() && np.cdiPrenom.trim())))
     : npSousTrait ? !!np.societeId
     : true
   const newPatientValid =
@@ -148,16 +163,28 @@ export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Pr
 
   const selectedPatient = allPatients.find(p => p.id === patientId)
     ?? (patientId === initialPatientId && prefillDossier ? prefillDossier : undefined)
-  const patientValid = mode === 'create' ? newPatientValid : !!patientId
+  // Rattachement d'un patient existant : un employé (CDI/CDD) n'est jamais l'ayant droit
+  // d'un autre — le serveur le refuse, l'écran ne le propose pas.
+  const peutEtreRattache = !!selectedPatient && has('patient.rattachement.manage')
+    && !['ASSURE_CDI', 'ASSURE_CDD'].includes(selectedPatient.categoriePatient.code)
+  const rattValid = !rattExistant || !!(
+    np.cdiMatricule.trim() && np.typeLien && !employeRefus && !lookupLoading &&
+    (employeReconnu || (np.cdiNom.trim() && np.cdiPrenom.trim()))
+  )
+  const patientValid = mode === 'create' ? newPatientValid : (!!patientId && rattValid)
   const valid        = patientValid && !!motifId
 
   function reset() {
     setSearch(''); setPatient(''); setSelectedMotif(null)
     setShowManualMotif(false); setManualMotifLib('')
     setError(null)
-    setMode('search'); setNp(EMPTY_NP)
+    setMode('search'); setNp(EMPTY_NP); setRattOpen(false)
   }
   function handleClose() { reset(); onClose() }
+  function fermerRattachement() {
+    setRattOpen(false)
+    setNp(prev => ({ ...prev, cdiMatricule: '', typeLien: '', cdiNom: '', cdiPrenom: '', cdiFonction: '', cdiSectionPaie: '', cdiService: '', cdiDepartement: '' }))
+  }
 
   /** Sélectionne un patient existant proposé par la détection de doublons. */
   function utiliserPatientExistant(id: string, label: string) {
@@ -228,6 +255,29 @@ export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Pr
         })
         pid = created.id
       }
+      // Patient existant à rattacher : AVANT la visite, pour qu'elle s'ouvre déjà sur sa
+      // nouvelle catégorie. Une fois fait, le bloc se referme : si la visite échoue
+      // ensuite, un nouvel essai ne retente pas un rattachement déjà enregistré.
+      if (rattExistant) {
+        await rattacher.mutateAsync({
+          patientId: pid,
+          data: {
+            cdiMatricule: np.cdiMatricule.trim(),
+            typeLien:     np.typeLien,
+            ...(!employeReconnu ? {
+              nouvelEmploye: {
+                nom:         np.cdiNom.trim(),
+                prenom:      np.cdiPrenom.trim(),
+                fonction:    np.cdiFonction.trim()    || undefined,
+                sectionPaie: np.cdiSectionPaie.trim() || undefined,
+                service:     np.cdiService.trim()     || undefined,
+                departement: np.cdiDepartement.trim() || undefined,
+              },
+            } : {}),
+          },
+        })
+        fermerRattachement()
+      }
       // Création minimale : patient + motif. Constantes / notes / décisions se font
       // ensuite dans VisiteDetail (vers où l'on bascule via onCreated).
       const visite = await create.mutateAsync({
@@ -244,7 +294,7 @@ export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Pr
     }
   }
 
-  const submitting = create.isPending || createPatient.isPending
+  const submitting = create.isPending || createPatient.isPending || rattacher.isPending
 
   return (
     <div style={{
@@ -333,6 +383,7 @@ export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Pr
                   societes={societes.filter((s: { statut: string }) => s.statut === 'ACTIVE')}
                   employeReconnu={employeReconnu}
                   employeNom={employeTrouve ? `${employeTrouve.prenom} ${employeTrouve.nom}` : null}
+                  employeRefus={employeRefus}
                   lookupLoading={lookupLoading}
                   onBack={() => { setMode('search'); setNp(EMPTY_NP) }}
                 />
@@ -376,6 +427,7 @@ export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Pr
                 )}
               </>
             ) : selectedPatient ? (
+              <>
               <div style={{
                 display: 'flex', alignItems: 'center', gap: 12,
                 padding: '10px 12px', borderRadius: 8,
@@ -418,7 +470,7 @@ export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Pr
                 </div>
                 <button
                   type="button"
-                  onClick={() => { setPatient(''); setSearch('') }}
+                  onClick={() => { setPatient(''); setSearch(''); fermerRattachement() }}
                   style={{
                     width: 26, height: 26, borderRadius: 6, display: 'flex',
                     alignItems: 'center', justifyContent: 'center',
@@ -430,6 +482,49 @@ export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Pr
                   <X size={14} />
                 </button>
               </div>
+              {peutEtreRattache && (rattOpen ? (
+                <div style={{
+                  marginTop: 10, display: 'flex', flexDirection: 'column', gap: 10,
+                  padding: 12, borderRadius: 8,
+                  border: '1px solid var(--ap-200)', background: 'var(--ap-50)',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Link2 size={13} style={{ color: 'var(--ap-600)' }} />
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--ap-700)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      {t('triage.rattacherCdi')}
+                    </span>
+                    <button type="button" onClick={fermerRattachement} style={{ marginLeft: 'auto', fontSize: '11px', color: 'var(--ap-600)', background: 'none', border: 'none', cursor: 'pointer' }}>
+                      {t('common.cancel', { defaultValue: 'Annuler' })}
+                    </button>
+                  </div>
+                  <CdiRattacheFields
+                    np={np}
+                    setNp={setNp}
+                    employeReconnu={employeReconnu}
+                    employeNom={employeTrouve ? `${employeTrouve.prenom} ${employeTrouve.nom}` : null}
+                    employeRefus={employeRefus}
+                    lookupLoading={lookupLoading}
+                  />
+                  <p style={{ fontSize: '10px', color: 'var(--texte-tertiaire)', margin: 0, fontStyle: 'italic' }}>
+                    {selectedPatient.categoriePatient.code === 'AYANT_DROIT_CDI'
+                      ? t('triage.rattacherCdiSupplementaire')
+                      : t('triage.rattacherCdiDevient', { categorie: selectedPatient.categoriePatient.libelle })}
+                  </p>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setRattOpen(true)}
+                  style={{
+                    marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 5,
+                    fontSize: '12px', fontWeight: 600, color: 'var(--ap-600)',
+                    background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                  }}
+                >
+                  <Link2 size={12} /> {t('triage.rattacherCdi')}
+                </button>
+              ))}
+              </>
             ) : (
               <>
                 {/* Recherche */}
@@ -707,13 +802,14 @@ export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Pr
 
 // ── Mini-formulaire « nouveau dossier » intégré au triage ──────────────────────
 
-function NewPatientForm({ np, setNp, categories, societes, employeReconnu, employeNom, lookupLoading, onBack }: {
+function NewPatientForm({ np, setNp, categories, societes, employeReconnu, employeNom, employeRefus, lookupLoading, onBack }: {
   np:         NewPatient
   setNp:      React.Dispatch<React.SetStateAction<NewPatient>>
   categories: { id: string; code: string; libelle: string }[]
   societes:   { id: string; nom: string }[]
   employeReconnu: boolean
   employeNom:     string | null
+  employeRefus:   string | null
   lookupLoading:  boolean
   onBack:     () => void
 }) {
@@ -725,12 +821,6 @@ function NewPatientForm({ np, setNp, categories, societes, employeReconnu, emplo
   const isCdiCdd    = code === 'ASSURE_CDI' || code === 'ASSURE_CDD'
   const isAyantDroit = code === 'AYANT_DROIT_CDI'
   const isSousTrait  = code === 'SOUS_TRAITANT'
-  const LIENS = [
-    { value: 'CONJOINT', label: t('patients.lienConjoint', { defaultValue: 'Conjoint(e)' }) },
-    { value: 'ENFANT',   label: t('patients.lienEnfant',   { defaultValue: 'Enfant' }) },
-    { value: 'PARENT',   label: t('patients.lienParent',   { defaultValue: 'Parent' }) },
-    { value: 'AUTRE',    label: t('patients.lienAutre',    { defaultValue: 'Autre' }) },
-  ]
   const baseInput = {
     height: 36, padding: '0 10px', fontSize: '13px', width: '100%', boxSizing: 'border-box' as const,
     borderRadius: 6, background: 'var(--fond-surface)', color: 'var(--texte-primaire)', outline: 'none',
@@ -846,75 +936,27 @@ function NewPatientForm({ np, setNp, categories, societes, employeReconnu, emplo
         </>
       )}
 
-      {/* Ayant droit CDI : reconnaissance du CDI par matricule (recueil §5) */}
-      {isAyantDroit && (() => {
-        const mat = np.cdiMatricule.trim()
-        const cdiInconnu = mat.length >= 3 && !lookupLoading && !employeReconnu
-        return (
+      {/* Ayant droit CDI : reconnaissance du CDI par matricule (recueil §5) — même bloc
+          que pour rattacher un patient existant (CdiRattacheFields). */}
+      {isAyantDroit && (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: cols2, gap: 10 }}>
-            <div>
-              <Label style={{ ...lbl, fontSize: '12px' }}>{t('patients.fieldCdiMatricule', { defaultValue: 'Matricule du CDI rattaché' })} <span style={{ color: 'var(--erreur-texte)' }}>*</span></Label>
-              <input value={np.cdiMatricule} maxLength={50} onChange={e => patch({ cdiMatricule: e.target.value })} placeholder={t('patients.cdiMatriculePlaceholder', { defaultValue: 'Matricule du travailleur CDI' })} style={errInput(false)} />
-              {mat.length >= 3 && (
-                lookupLoading
-                  ? <p style={{ fontSize: '10px', color: 'var(--texte-tertiaire)', margin: '3px 0 0' }}>{t('employes.checking', { defaultValue: 'Vérification…' })}</p>
-                  : employeReconnu
-                    ? <p style={{ fontSize: '10px', color: 'var(--succes-texte)', fontWeight: 600, margin: '3px 0 0' }}>✓ {t('employes.recognized', { defaultValue: 'CDI reconnu' })}{employeNom ? ` : ${employeNom}` : ''}</p>
-                    : <p style={{ fontSize: '10px', color: 'var(--avert-texte)', fontWeight: 600, margin: '3px 0 0' }}>{t('employes.unknown', { defaultValue: 'Matricule inconnu — enregistrez le travailleur ci-dessous' })}</p>
-              )}
-            </div>
-            <div>
-              <Label style={{ ...lbl, fontSize: '12px' }}>{t('patients.fieldLien', { defaultValue: 'Lien de parenté' })} <span style={{ color: 'var(--erreur-texte)' }}>*</span></Label>
-              <SelectBox size="md" fullWidth value={np.typeLien} onChange={v => patch({ typeLien: v })} placeholder={t('triage.selectionnerCategorie')} aria-label={t('patients.fieldLien', { defaultValue: 'Lien de parenté' })} options={LIENS} />
-            </div>
-          </div>
+          <CdiRattacheFields
+            np={np}
+            setNp={setNp}
+            employeReconnu={employeReconnu}
+            employeNom={employeNom}
+            employeRefus={employeRefus}
+            lookupLoading={lookupLoading}
+          />
           <div>
             <Label style={{ ...lbl, fontSize: '12px' }}>{t('patients.fieldFonction', { defaultValue: 'Fonction' })} <span style={{ color: 'var(--erreur-texte)' }}>*</span></Label>
             <input value={np.fonction} maxLength={100} onChange={e => patch({ fonction: e.target.value })} style={errInput(false)} />
           </div>
-
-          {/* CDI inconnu → enregistrement du travailleur au registre (recueil §5) */}
-          {cdiInconnu && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, borderTop: '1px dashed var(--bordure-normale)', paddingTop: 10 }}>
-              <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--ap-700)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                {t('employes.registerWorker', { defaultValue: 'Enregistrer le travailleur CDI' })}
-              </span>
-              <div style={{ display: 'grid', gridTemplateColumns: cols2, gap: 10 }}>
-                <div>
-                  <Label style={{ ...lbl, fontSize: '12px' }}>{t('triage.nom', { defaultValue: 'Nom' })} <span style={{ color: 'var(--erreur-texte)' }}>*</span></Label>
-                  <input value={np.cdiNom} maxLength={100} onChange={e => patch({ cdiNom: e.target.value })} style={errInput(false)} />
-                </div>
-                <div>
-                  <Label style={{ ...lbl, fontSize: '12px' }}>{t('triage.prenom', { defaultValue: 'Prénom' })} <span style={{ color: 'var(--erreur-texte)' }}>*</span></Label>
-                  <input value={np.cdiPrenom} maxLength={100} onChange={e => patch({ cdiPrenom: e.target.value })} style={errInput(false)} />
-                </div>
-                <div>
-                  <Label style={{ ...lbl, fontSize: '12px' }}>{t('patients.fieldFonction', { defaultValue: 'Fonction' })}</Label>
-                  <input value={np.cdiFonction} maxLength={100} onChange={e => patch({ cdiFonction: e.target.value })} style={errInput(false)} />
-                </div>
-                <div>
-                  <Label style={{ ...lbl, fontSize: '12px' }}>{t('patients.fieldSectionPaie', { defaultValue: 'Section de paie' })}</Label>
-                  <input value={np.cdiSectionPaie} maxLength={100} onChange={e => patch({ cdiSectionPaie: e.target.value })} style={errInput(false)} />
-                </div>
-                <div>
-                  <Label style={{ ...lbl, fontSize: '12px' }}>{t('patients.fieldService', { defaultValue: 'Service' })}</Label>
-                  <input value={np.cdiService} maxLength={100} onChange={e => patch({ cdiService: e.target.value })} style={errInput(false)} />
-                </div>
-                <div>
-                  <Label style={{ ...lbl, fontSize: '12px' }}>{t('patients.fieldDepartement', { defaultValue: 'Département' })}</Label>
-                  <input value={np.cdiDepartement} maxLength={100} onChange={e => patch({ cdiDepartement: e.target.value })} style={errInput(false)} />
-                </div>
-              </div>
-            </div>
-          )}
-
           <p style={{ fontSize: '10px', color: 'var(--texte-tertiaire)', margin: 0, fontStyle: 'italic' }}>
             {t('patients.ayantDroitHint', { defaultValue: 'Section de paie, service et département sont hérités du CDI rattaché.' })}
           </p>
         </>
-        )
-      })()}
+      )}
 
       {/* Sous-traitant : société (recueil §5) */}
       {isSousTrait && (
@@ -928,5 +970,95 @@ function NewPatientForm({ np, setNp, categories, societes, employeReconnu, emplo
         {t('triage.dossierComplete')}
       </p>
     </div>
+  )
+}
+
+// ── Champs « travailleur CDI rattaché » ─────────────────────────────────────────
+// Partagés par la création d'un dossier ayant droit ET le rattachement d'un patient
+// existant : une seule façon de désigner un CDI, donc un seul comportement à vérifier.
+
+function CdiRattacheFields({ np, setNp, employeReconnu, employeNom, employeRefus, lookupLoading }: {
+  np:             NewPatient
+  setNp:          React.Dispatch<React.SetStateAction<NewPatient>>
+  employeReconnu: boolean
+  employeNom:     string | null
+  employeRefus:   string | null
+  lookupLoading:  boolean
+}) {
+  const { t } = useTranslation()
+  const isCompact = useIsCompact()
+  const cols2 = isCompact ? '1fr' : '1fr 1fr'
+  const patch = (p: Partial<NewPatient>) => setNp(prev => ({ ...prev, ...p }))
+  const LIENS = [
+    { value: 'CONJOINT', label: t('patients.lienConjoint', { defaultValue: 'Conjoint(e)' }) },
+    { value: 'ENFANT',   label: t('patients.lienEnfant',   { defaultValue: 'Enfant' }) },
+    { value: 'PARENT',   label: t('patients.lienParent',   { defaultValue: 'Parent' }) },
+    { value: 'AUTRE',    label: t('patients.lienAutre',    { defaultValue: 'Autre' }) },
+  ]
+  const input = {
+    height: 36, padding: '0 10px', fontSize: '13px', width: '100%', boxSizing: 'border-box' as const,
+    borderRadius: 6, background: 'var(--fond-surface)', color: 'var(--texte-primaire)', outline: 'none',
+    border: '1px solid var(--bordure-normale)',
+  }
+  const mat = np.cdiMatricule.trim()
+  const cdiInconnu = mat.length >= 3 && !lookupLoading && !employeReconnu
+
+  return (
+    <>
+      <div style={{ display: 'grid', gridTemplateColumns: cols2, gap: 10 }}>
+        <div>
+          <Label style={{ ...lbl, fontSize: '12px' }}>{t('patients.fieldCdiMatricule', { defaultValue: 'Matricule du CDI rattaché' })} <span style={{ color: 'var(--erreur-texte)' }}>*</span></Label>
+          <input value={np.cdiMatricule} maxLength={50} onChange={e => patch({ cdiMatricule: e.target.value })} placeholder={t('patients.cdiMatriculePlaceholder', { defaultValue: 'Matricule du travailleur CDI' })} style={{ ...input, border: `1px solid ${employeRefus ? 'var(--erreur-accent)' : 'var(--bordure-normale)'}` }} />
+          {mat.length >= 3 && (
+            lookupLoading
+              ? <p style={{ fontSize: '10px', color: 'var(--texte-tertiaire)', margin: '3px 0 0' }}>{t('employes.checking', { defaultValue: 'Vérification…' })}</p>
+              : employeRefus
+                ? <p style={{ fontSize: '10px', color: 'var(--erreur-texte)', fontWeight: 600, margin: '3px 0 0' }}>{employeRefus}</p>
+                : employeReconnu
+                  ? <p style={{ fontSize: '10px', color: 'var(--succes-texte)', fontWeight: 600, margin: '3px 0 0' }}>✓ {t('employes.recognized', { defaultValue: 'CDI reconnu' })}{employeNom ? ` : ${employeNom}` : ''}</p>
+                  : <p style={{ fontSize: '10px', color: 'var(--avert-texte)', fontWeight: 600, margin: '3px 0 0' }}>{t('employes.unknown', { defaultValue: 'Matricule inconnu — enregistrez le travailleur ci-dessous' })}</p>
+          )}
+        </div>
+        <div>
+          <Label style={{ ...lbl, fontSize: '12px' }}>{t('patients.fieldLien', { defaultValue: 'Lien de parenté' })} <span style={{ color: 'var(--erreur-texte)' }}>*</span></Label>
+          <SelectBox size="md" fullWidth value={np.typeLien} onChange={v => patch({ typeLien: v })} placeholder={t('triage.selectionnerCategorie')} aria-label={t('patients.fieldLien', { defaultValue: 'Lien de parenté' })} options={LIENS} />
+        </div>
+      </div>
+
+      {/* CDI inconnu → enregistrement du travailleur au registre (recueil §5) */}
+      {cdiInconnu && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, borderTop: '1px dashed var(--bordure-normale)', paddingTop: 10 }}>
+          <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--ap-700)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            {t('employes.registerWorker', { defaultValue: 'Enregistrer le travailleur CDI' })}
+          </span>
+          <div style={{ display: 'grid', gridTemplateColumns: cols2, gap: 10 }}>
+            <div>
+              <Label style={{ ...lbl, fontSize: '12px' }}>{t('triage.nom', { defaultValue: 'Nom' })} <span style={{ color: 'var(--erreur-texte)' }}>*</span></Label>
+              <input value={np.cdiNom} maxLength={100} onChange={e => patch({ cdiNom: e.target.value })} style={input} />
+            </div>
+            <div>
+              <Label style={{ ...lbl, fontSize: '12px' }}>{t('triage.prenom', { defaultValue: 'Prénom' })} <span style={{ color: 'var(--erreur-texte)' }}>*</span></Label>
+              <input value={np.cdiPrenom} maxLength={100} onChange={e => patch({ cdiPrenom: e.target.value })} style={input} />
+            </div>
+            <div>
+              <Label style={{ ...lbl, fontSize: '12px' }}>{t('patients.fieldFonction', { defaultValue: 'Fonction' })}</Label>
+              <input value={np.cdiFonction} maxLength={100} onChange={e => patch({ cdiFonction: e.target.value })} style={input} />
+            </div>
+            <div>
+              <Label style={{ ...lbl, fontSize: '12px' }}>{t('patients.fieldSectionPaie', { defaultValue: 'Section de paie' })}</Label>
+              <input value={np.cdiSectionPaie} maxLength={100} onChange={e => patch({ cdiSectionPaie: e.target.value })} style={input} />
+            </div>
+            <div>
+              <Label style={{ ...lbl, fontSize: '12px' }}>{t('patients.fieldService', { defaultValue: 'Service' })}</Label>
+              <input value={np.cdiService} maxLength={100} onChange={e => patch({ cdiService: e.target.value })} style={input} />
+            </div>
+            <div>
+              <Label style={{ ...lbl, fontSize: '12px' }}>{t('patients.fieldDepartement', { defaultValue: 'Département' })}</Label>
+              <input value={np.cdiDepartement} maxLength={100} onChange={e => patch({ cdiDepartement: e.target.value })} style={input} />
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   )
 }

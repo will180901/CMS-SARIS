@@ -48,7 +48,10 @@ import {
   CreateSuiviChroniqueDto,
   UpdateSuiviChroniqueDto,
 } from './dto/medical.dto'
-import { UpdateRattachementADDto } from './dto/rattachement.dto'
+import {
+  UpdateRattachementADDto,
+  RattacherAyantDroitDto,
+} from './dto/rattachement.dto'
 
 interface AuthedRequest {
   user?: {
@@ -383,6 +386,23 @@ export class PatientController {
   // Création retirée : le rattachement se crée automatiquement à la visite
   // (PatientService.create(), catégorie AYANT_DROIT_CDI) — seuls l'édition
   // (type de lien, dates) et la clôture restent des actions manuelles légitimes.
+
+  /** Rattacher un patient déjà enregistré à un travailleur CDI (accueil, nouvelle visite). */
+  @Post(':id/rattachements-ad')
+  @RequirePermissions('patient.rattachement.manage')
+  @HttpCode(HttpStatus.CREATED)
+  rattacherAyantDroit(
+    @Param('id') id: string,
+    @Body() dto: RattacherAyantDroitDto,
+    @Req() req: any,
+  ) {
+    return this.patientService.rattacherAyantDroit(
+      id,
+      dto,
+      req.user?.id,
+      req.user?.siteId,
+    )
+  }
 
   @Patch(':id/rattachements-ad/:rId')
   @RequirePermissions('patient.rattachement.manage')
