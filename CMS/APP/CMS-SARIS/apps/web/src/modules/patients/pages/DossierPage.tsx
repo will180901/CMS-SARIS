@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation }       from 'react-i18next'
 import {
   ArrowLeft, Users, Phone, AlertTriangle, MoreVertical, Archive, RotateCcw, Printer, Activity, Trash2, Lock, Unlock,
-  LayoutGrid, Stethoscope, GitCommitVertical, Building2, History,
+  LayoutGrid, Stethoscope, GitCommitVertical, Building2, History, ShieldAlert, ChevronDown, ChevronUp,
 } from 'lucide-react'
 import { Button }              from '@workspace/ui/components/button'
 import {
@@ -250,77 +250,67 @@ function SidebarCounter({ label, count, danger }: { label: string; count: number
   )
 }
 
-// ── Bannière alertes critiques ────────────────────────────────────────────────
+// ── Sécurité clinique : UN bloc pour tout ce qui doit être vu avant d'agir ─────────
+//
+// Remplace deux bandeaux empilés (« Informations critiques » + « Alertes cliniques
+// détectées ») qui occupaient ~230 px en tête de CHAQUE onglet : le contenu commençait
+// à mi-écran. Ici, rien n'est retiré — tout reste visible d'un coup d'œil sous forme de
+// pastilles (allergies sévères et alertes critiques en rouge, alertes calculées dans leur
+// couleur de gravité, historique en ton neutre) — et le détail complet (phrase, date,
+// ancienneté) s'ouvre d'un clic. L'état ouvert/fermé est retenu.
 
-function AlerteBanner({ dossier }: { dossier: PatientDossier }) {
-  const { t } = useTranslation()
-  const severe    = dossier.allergies.filter(a => a.statut === 'ACTIVE' && a.gravite === 'SEVERE')
-  const critiques = dossier.alertesMedicales.filter(a => a.statut === 'ACTIVE' && a.gravite === 'CRITIQUE')
-  if (severe.length === 0 && critiques.length === 0) return null
+type Ton = { bg: string; border: string; text: string; dot: string }
+const TON_GRAVITE: Record<'CRITIQUE' | 'ELEVE' | 'MODERE', Ton> = {
+  CRITIQUE: { bg: 'var(--erreur-fond)', border: 'var(--erreur-bordure)', text: 'var(--erreur-texte)', dot: 'var(--erreur-accent)' },
+  ELEVE:    { bg: 'var(--avert-fond)',  border: 'var(--avert-bordure)',  text: 'var(--avert-texte)',  dot: 'var(--avert-texte)' },
+  MODERE:   { bg: 'var(--info-fond)',   border: 'var(--info-bordure)',   text: 'var(--info-texte)',   dot: 'var(--info-texte)' },
+}
+// Ton NEUTRE de l'historique : la donnée est toujours vraie, mais elle n'est plus
+// d'actualité. La peindre en rouge la ferait lire comme un danger présent.
+const TON_NEUTRE: Ton = { bg: 'var(--fond-surface-2)', border: 'var(--bordure-legere)', text: 'var(--texte-secondaire)', dot: 'var(--texte-tertiaire)' }
 
+function Pastille({ ton, icone, children, fort }: { ton: Ton; icone?: React.ReactNode; children: React.ReactNode; fort?: boolean }) {
   return (
-    <div style={{
-      margin: '16px 24px 0',
-      padding: '12px 14px',
-      borderRadius: 'var(--radius-md)',
-      background: 'var(--erreur-fond)',
-      border: '1px solid var(--erreur-bordure)',
-      display: 'flex',
-      gap: '10px',
-      alignItems: 'flex-start',
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 5, maxWidth: '100%',
+      fontSize: 12, fontWeight: fort ? 600 : 500, lineHeight: 1.3,
+      padding: '3px 9px', borderRadius: 99,
+      background: fort ? 'var(--fond-surface)' : ton.bg, color: ton.text, border: `1px solid ${ton.border}`,
     }}>
-      <AlertTriangle size={15} style={{ color: 'var(--erreur-accent)', flexShrink: 0, marginTop: 1 }} />
-      <div>
-        <p style={{ fontSize: '12px', fontWeight: '700', color: 'var(--erreur-texte)', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-          {t('patients.bannerCriticalTitle')}
-        </p>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-          {severe.map(a => (
-            <span key={a.id} style={{ fontSize: '12px', background: 'var(--fond-surface)', color: 'var(--erreur-texte)', border: '1px solid var(--erreur-bordure)', padding: '2px 8px', borderRadius: 99, fontWeight: '500' }}>
-              {t('patients.bannerAllergyPrefix', { substance: a.substance })}
-            </span>
-          ))}
-          {critiques.map(a => (
-            <span key={a.id} style={{ fontSize: '12px', background: 'var(--fond-surface)', color: 'var(--erreur-texte)', border: '1px solid var(--erreur-bordure)', padding: '2px 8px', borderRadius: 99, fontWeight: '500' }}>
-              {a.message}
-            </span>
-          ))}
-        </div>
-      </div>
-    </div>
+      {icone}
+      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{children}</span>
+    </span>
   )
 }
 
-// ── Bandeau alertes cliniques CALCULÉES (allergie↔médicament, constantes, chronique) ──
-
-function AlertesCliniquesBanner({ patientId, enabled }: { patientId: string; enabled: boolean }) {
+function SecuriteClinique({ dossier, alertesActives }: { dossier: PatientDossier; alertesActives: boolean }) {
   const { t } = useTranslation()
-  const { data: alertes = [] } = usePatientAlertesCliniques(patientId, enabled)
-  // Instant fige au montage : appeler Date.now() a chaque rendu rendrait le composant
-  // impur (React peut re-rendre a tout moment) et l'anciennete bougerait toute seule.
+  const { data: alertes = [] } = usePatientAlertesCliniques(dossier.id, alertesActives)
+  const [ouvert, setOuvert] = usePersistedState<boolean>('dossier', 'securiteDetails', false)
+  // Instant figé au montage : appeler Date.now() à chaque rendu rendrait le composant
+  // impur (React peut re-rendre à tout moment) et l'ancienneté bougerait toute seule.
   const [maintenant] = useState(() => Date.now())
-  if (!enabled || alertes.length === 0) return null
 
-  const COLOR = {
-    CRITIQUE: { bg: '#fff1f2',            border: '#fecdd3',              text: '#be123c',          dot: '#e11d48' },
-    ELEVE:    { bg: 'var(--avert-fond)',  border: 'var(--avert-bordure)', text: 'var(--avert-texte)', dot: 'var(--avert-texte)' },
-    MODERE:   { bg: 'var(--info-fond)',   border: 'var(--info-bordure)',  text: 'var(--info-texte)',  dot: 'var(--info-texte)' },
-  } as const
-  // Ton NEUTRE de l'historique : la donnee est toujours vraie, mais elle n'est plus
-  // d'actualite. La peindre en rouge la ferait lire comme un danger present.
-  const NEUTRE = { bg: 'var(--fond-surface-2)', border: 'var(--bordure-legere)', text: 'var(--texte-secondaire)', dot: 'var(--texte-tertiaire)' }
+  const severes     = dossier.allergies.filter(a => a.statut === 'ACTIVE' && a.gravite === 'SEVERE')
+  const critiques   = dossier.alertesMedicales.filter(a => a.statut === 'ACTIVE' && a.gravite === 'CRITIQUE')
+  const calculees   = alertesActives ? alertes : []
+  const actuelles   = calculees.filter(a => a.portee !== 'HISTORIQUE')
+  const historiques = calculees.filter(a => a.portee === 'HISTORIQUE')
+  if (severes.length + critiques.length + calculees.length === 0) return null
 
-  const actuelles   = alertes.filter(a => a.portee !== 'HISTORIQUE')
-  const historiques = alertes.filter(a => a.portee === 'HISTORIQUE')
+  // Le bloc entier passe au rouge dès qu'un danger PRÉSENT existe : c'est le signal fort
+  // que portait l'ancien bandeau « Informations critiques », conservé tel quel.
+  const danger = severes.length + critiques.length + actuelles.filter(a => a.gravite === 'CRITIQUE').length > 0
+  const aDuDetail = calculees.length > 0
 
   const anciennete = (iso: string) => {
     const jours = Math.floor((maintenant - new Date(iso).getTime()) / 86_400_000)
     return jours <= 0 ? t('patients.alertToday') : t('patients.alertDaysAgo', { count: jours })
   }
 
-  const ligne = (a: (typeof alertes)[number], i: number, c: { bg: string; border: string; text: string; dot: string }) => (
-    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '8px 10px', borderRadius: 6, background: c.bg, border: `1px solid ${c.border}` }}>
-      <AlertTriangle size={14} style={{ color: c.dot, flexShrink: 0, marginTop: 1 }} />
+  const ligne = (a: (typeof alertes)[number], i: number, c: Ton) => (
+    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '7px 10px', borderRadius: 6, background: c.bg, border: `1px solid ${c.border}` }}>
+      <AlertTriangle size={13} style={{ color: c.dot, flexShrink: 0, marginTop: 2 }} />
       <div style={{ minWidth: 0, fontSize: 12, lineHeight: 1.45 }}>
         <span style={{ fontWeight: 700, color: c.text }}>{a.titre}</span>
         <span style={{ color: 'var(--texte-secondaire)' }}> — {a.detail}</span>
@@ -334,31 +324,89 @@ function AlertesCliniquesBanner({ patientId, enabled }: { patientId: string; ena
     </div>
   )
 
-  const titre = { fontSize: '12px', fontWeight: 700, margin: '0 0 8px', textTransform: 'uppercase' as const, letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 6 }
+  const sousTitre = { fontSize: 11, fontWeight: 700, margin: 0, textTransform: 'uppercase' as const, letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: 6 }
 
   return (
-    <div style={{ margin: '12px 24px 0', padding: '12px 14px', borderRadius: 8, background: 'var(--fond-surface)', border: '1px solid var(--bordure-legere)' }}>
-      {actuelles.length > 0 && (
-        <>
-          <p style={{ ...titre, color: 'var(--texte-secondaire)' }}>
-            <Activity size={13} style={{ color: 'var(--ap-600)' }} /> {t('patients.clinicalAlertsDetected', { count: actuelles.length })}
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {actuelles.map((a, i) => ligne(a, i, COLOR[a.gravite]))}
-          </div>
-        </>
+    <section
+      aria-label={t('patients.securiteClinique')}
+      style={{
+        margin: '16px 24px 0', borderRadius: 'var(--radius-md)',
+        background: danger ? 'var(--erreur-fond)' : 'var(--fond-surface)',
+        border: `1px solid ${danger ? 'var(--erreur-bordure)' : 'var(--bordure-legere)'}`,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', flexWrap: 'wrap' }}>
+        <span style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0,
+          fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em',
+          color: danger ? 'var(--erreur-texte)' : 'var(--texte-secondaire)',
+        }}>
+          <ShieldAlert size={14} style={{ color: danger ? 'var(--erreur-accent)' : 'var(--ap-600)' }} />
+          {t('patients.securiteClinique')}
+        </span>
+
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, flex: 1, minWidth: 0 }}>
+          {severes.map(a => (
+            <Pastille key={a.id} ton={TON_GRAVITE.CRITIQUE} fort>{t('patients.bannerAllergyPrefix', { substance: a.substance })}</Pastille>
+          ))}
+          {critiques.map(a => (
+            <Pastille key={a.id} ton={TON_GRAVITE.CRITIQUE} fort>{a.message}</Pastille>
+          ))}
+          {actuelles.map((a, i) => (
+            <Pastille key={`c${i}`} ton={TON_GRAVITE[a.gravite]} fort={danger}>
+              {a.titre}{a.sujet ? ` · ${a.sujet}` : ''}
+            </Pastille>
+          ))}
+          {historiques.length > 0 && (
+            <Pastille ton={TON_NEUTRE} icone={<History size={11} />}>
+              {t('patients.securiteHistorique', { count: historiques.length })}
+            </Pastille>
+          )}
+        </div>
+
+        {aDuDetail && (
+          <button
+            type="button"
+            onClick={() => setOuvert(!ouvert)}
+            aria-expanded={ouvert}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0, marginLeft: 'auto',
+              fontSize: 12, fontWeight: 600, padding: '3px 8px', borderRadius: 6, cursor: 'pointer',
+              background: 'transparent', border: 'none',
+              color: danger ? 'var(--erreur-texte)' : 'var(--ap-600)',
+            }}
+          >
+            {ouvert ? t('patients.securiteMasquer') : t('patients.securiteDetails')}
+            {ouvert ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+          </button>
+        )}
+      </div>
+
+      {ouvert && aDuDetail && (
+        <div style={{
+          display: 'flex', flexDirection: 'column', gap: 6, padding: '10px 14px 12px',
+          borderTop: `1px solid ${danger ? 'var(--erreur-bordure)' : 'var(--bordure-legere)'}`,
+          background: 'var(--fond-surface)', borderRadius: '0 0 var(--radius-md) var(--radius-md)',
+        }}>
+          {actuelles.length > 0 && (
+            <>
+              <p style={{ ...sousTitre, color: 'var(--texte-secondaire)' }}>
+                <Activity size={12} style={{ color: 'var(--ap-600)' }} /> {t('patients.clinicalAlertsDetected', { count: actuelles.length })}
+              </p>
+              {actuelles.map((a, i) => ligne(a, i, TON_GRAVITE[a.gravite]))}
+            </>
+          )}
+          {historiques.length > 0 && (
+            <>
+              <p style={{ ...sousTitre, color: 'var(--texte-tertiaire)', marginTop: actuelles.length ? 6 : 0 }}>
+                <History size={12} /> {t('patients.clinicalAlertsHistory', { count: historiques.length })}
+              </p>
+              {historiques.map((a, i) => ligne(a, i, TON_NEUTRE))}
+            </>
+          )}
+        </div>
       )}
-      {historiques.length > 0 && (
-        <>
-          <p style={{ ...titre, color: 'var(--texte-tertiaire)', marginTop: actuelles.length ? 12 : 0 }}>
-            <History size={13} /> {t('patients.clinicalAlertsHistory', { count: historiques.length })}
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {historiques.map((a, i) => ligne(a, i, NEUTRE))}
-          </div>
-        </>
-      )}
-    </div>
+    </section>
   )
 }
 
@@ -595,9 +643,8 @@ export function DossierPage() {
               <LockedDossier motif={dossier.motifVerrou} />
             ) : (
             <>
-            {/* Bannière alertes */}
-            <AlerteBanner dossier={dossier} />
-            <AlertesCliniquesBanner patientId={dossier.id} enabled={canViewClinique} />
+            {/* Sécurité clinique : allergies sévères, alertes critiques et alertes calculées */}
+            <SecuriteClinique dossier={dossier} alertesActives={canViewClinique} />
 
             {/* Sections (niveau 1) */}
             <div style={{ borderBottom: '1px solid var(--bordure-legere)', padding: 'var(--espace-3) 24px', marginTop: '12px', flexShrink: 0, overflowX: 'auto' }}>

@@ -133,6 +133,8 @@ export interface AlerteClinique {
   type:    'ALLERGIE_MEDICAMENT' | 'CONSTANTE_CRITIQUE' | 'CHRONIQUE_SANS_SUIVI'
   gravite: 'CRITIQUE' | 'ELEVE' | 'MODERE'
   titre:   string
+  /** Objet en quelques mots (médicament, valeur mesurée, pathologie) — vue condensée. */
+  sujet:   string
   detail:  string
   /** Date de la donnee source (mesure, prescription, diagnostic). */
   date:    string | null

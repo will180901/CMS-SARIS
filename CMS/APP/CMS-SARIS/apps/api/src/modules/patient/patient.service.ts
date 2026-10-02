@@ -48,6 +48,9 @@ export interface AlerteClinique {
   type: 'ALLERGIE_MEDICAMENT' | 'CONSTANTE_CRITIQUE' | 'CHRONIQUE_SANS_SUIVI'
   gravite: 'CRITIQUE' | 'ELEVE' | 'MODERE'
   titre: string
+  /** Objet de l'alerte en quelques mots (médicament, valeur mesurée, pathologie) : ce
+   *  que la vue condensée du bloc « Sécurité clinique » affiche à côté du titre. */
+  sujet: string
   detail: string
   /** Date de la donnee qui declenche l'alerte : mesure, prescription ou diagnostic. */
   date: string | null
@@ -819,6 +822,7 @@ export class PatientService {
           type: 'ALLERGIE_MEDICAMENT',
           gravite: 'CRITIQUE',
           titre: 'Allergie vs médicament prescrit',
+          sujet: medName,
           detail: `« ${medName} » prescrit alors que le patient est allergique à « ${a.substance} ».`,
           date: l.ordonnance.createdAt.toISOString(),
           portee: enCours(l) ? 'ACTUELLE' : 'HISTORIQUE',
@@ -842,6 +846,7 @@ export class PatientService {
           ...quand,
           gravite: 'CRITIQUE',
           titre: 'Hypoxie',
+          sujet: `SpO₂ ${c.saturationO2} %`,
           detail: `SpO₂ à ${c.saturationO2}% (< 90%).`,
         })
       if (c.temperature != null && c.temperature >= 38.5)
@@ -850,6 +855,7 @@ export class PatientService {
           ...quand,
           gravite: c.temperature >= 39.5 ? 'CRITIQUE' : 'ELEVE',
           titre: 'Fièvre élevée',
+          sujet: `${c.temperature} °C`,
           detail: `Température à ${c.temperature}°C.`,
         })
       if (c.tensionSystolique != null && c.tensionSystolique >= 160)
@@ -858,6 +864,7 @@ export class PatientService {
           ...quand,
           gravite: c.tensionSystolique >= 180 ? 'CRITIQUE' : 'ELEVE',
           titre: 'Tension élevée',
+          sujet: `${c.tensionSystolique} mmHg`,
           detail: `Tension systolique à ${c.tensionSystolique} mmHg.`,
         })
       if (c.frequenceCardiaque != null && c.frequenceCardiaque >= 120)
@@ -866,6 +873,7 @@ export class PatientService {
           ...quand,
           gravite: 'ELEVE',
           titre: 'Tachycardie',
+          sujet: `${c.frequenceCardiaque} bpm`,
           detail: `Fréquence cardiaque à ${c.frequenceCardiaque} bpm.`,
         })
       if (c.frequenceCardiaque != null && c.frequenceCardiaque < 50)
@@ -874,6 +882,7 @@ export class PatientService {
           ...quand,
           gravite: 'ELEVE',
           titre: 'Bradycardie',
+          sujet: `${c.frequenceCardiaque} bpm`,
           detail: `Fréquence cardiaque à ${c.frequenceCardiaque} bpm.`,
         })
     }
@@ -888,6 +897,7 @@ export class PatientService {
         type: 'CHRONIQUE_SANS_SUIVI',
         gravite: 'MODERE',
         titre: 'Chronique sans suivi',
+        sujet: d.pathologie.libelle,
         detail: `« ${d.pathologie.libelle} » diagnostiquée sans suivi chronique actif.`,
         date: d.consultation.createdAt.toISOString(),
         // L'absence de suivi est un etat ACTUEL, meme si le diagnostic est ancien : c'est
