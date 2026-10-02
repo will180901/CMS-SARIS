@@ -13,7 +13,7 @@ import {
 import { usePermissions }      from '@/hooks/usePermissions'
 import { useIsCompact }        from '@/hooks/useMediaQuery'
 import { usePersistedState }   from '@/hooks/usePersistedState'
-import { usePatientDossier, useUpdateStatutPatient, usePatientAlertesCliniques, useDeletePatient, useSetVerrouPatient } from '../hooks/usePatients'
+import { usePatientDossier, useUpdateStatutPatient, usePatientAlertesCliniques, useDeletePatient, useSetVerrouPatient, usePatientCouverture } from '../hooks/usePatients'
 import { useSessionStore } from '@/stores/session.store'
 import { ConfirmDeleteModal }  from '../components/dossier/ConfirmDeleteModal'
 import { CategorieBadge, PatientAvatar } from '../components/CategorieBadge'
@@ -79,6 +79,29 @@ type SubTabKey  = typeof SECTIONS[number]['subTabs'][number]['key']
 
 // ── Sidebar patient ───────────────────────────────────────────────────────────
 
+/** « Catégorie gardée, droits suspendus » (décision utilisateur) : la catégorie seule
+ *  ne dit plus la vérité sur la prise en charge, on l'écrit juste en dessous. */
+function DroitsSuspendus({ patientId }: { patientId: string }) {
+  const { t } = useTranslation()
+  const { data } = usePatientCouverture(patientId)
+  if (!data?.suspension) return null
+  return (
+    <div role="status" style={{
+      display: 'flex', alignItems: 'flex-start', gap: 6, width: '100%', boxSizing: 'border-box',
+      padding: '7px 10px', borderRadius: 8,
+      background: 'var(--avert-fond)', border: '1px solid var(--avert-bordure)',
+    }}>
+      <AlertTriangle size={13} style={{ color: 'var(--avert-texte)', flexShrink: 0, marginTop: 2 }} />
+      <div style={{ minWidth: 0 }}>
+        <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: 'var(--avert-texte)' }}>{t('patients.droitsSuspendus')}</p>
+        <p style={{ margin: '2px 0 0', fontSize: 11.5, color: 'var(--avert-texte)', lineHeight: 1.4 }}>
+          {t(`patients.suspension_${data.suspension.motif}`)}
+        </p>
+      </div>
+    </div>
+  )
+}
+
 function DossierSidebar({ dossier, onChangerCategorie, compact, locked }: { dossier: PatientDossier; onChangerCategorie: () => void; compact?: boolean; locked?: boolean }) {
   const { t } = useTranslation()
   const id  = dossier.identite
@@ -126,6 +149,7 @@ function DossierSidebar({ dossier, onChangerCategorie, compact, locked }: { doss
           )}
         </div>
         <CategorieBadge code={dossier.categoriePatient.code} libelle={dossier.categoriePatient.libelle} />
+        <DroitsSuspendus patientId={dossier.id} />
       </div>
 
       {/* Site + Statut */}

@@ -488,12 +488,12 @@ export function ConsultationDetail({ consultationId, initialDocView }: Props) {
                   readonly={!isActive || heldByOther}
                   soignant={consultation.soignant}
                   categorieLibelle={patient.categoriePatient.libelle}
-                  categoriePatientId={patient.categoriePatient.id}
+                  patientId={patient.id}
                 />
                 <BonPharmacieCard
                   consultationId={consultationId}
                   readonly={!isActive || heldByOther}
-                  categoriePatientId={patient.categoriePatient.id}
+                  patientId={patient.id}
                   soignant={consultation.soignant}
                   categorieLibelle={patient.categoriePatient.libelle}
                 />

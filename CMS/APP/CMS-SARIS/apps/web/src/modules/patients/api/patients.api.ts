@@ -118,6 +118,17 @@ export interface SimilarPatient {
   correspondanceExacte: boolean
 }
 
+/** Droits RÉELS du patient aujourd'hui, calculés par le serveur (couverturePatient) —
+ *  la même fonction que celle qui garde la génération des bons. Un bouton affiché d'après
+ *  ces données est donc un bon que le serveur acceptera. */
+export type MotifSuspension = 'AUCUN_RATTACHEMENT' | 'RATTACHEMENT_CLOTURE' | 'CDI_INACTIF'
+export interface CouverturePatient {
+  categorieId: string
+  couvert: { CONSULTATION: boolean; PREMIERS_SOINS: boolean; MEDICAMENT: boolean; EXAMEN: boolean }
+  /** Présent quand la catégorie ouvrirait des droits que la situation du patient suspend. */
+  suspension: { motif: MotifSuspension; message: string } | null
+}
+
 export interface AlerteClinique {
   type:    'ALLERGIE_MEDICAMENT' | 'CONSTANTE_CRITIQUE' | 'CHRONIQUE_SANS_SUIVI'
   gravite: 'CRITIQUE' | 'ELEVE' | 'MODERE'
@@ -272,6 +283,7 @@ export const patientsApi = {
   constantes: (id: string)               => api.get<ConstanteVitale[]>(`/patients/${id}/constantes`),
   alertesCliniques: (id: string)         => api.get<AlerteClinique[]>(`/patients/${id}/alertes-cliniques`),
   ayantsDroits: (id: string)             => api.get<AyantDroitLien[]>(`/patients/${id}/ayants-droits`),
+  couverture:   (id: string)             => api.get<CouverturePatient>(`/patients/${id}/couverture`),
   suivi: (id: string)                    => api.get<PatientSuivi>(`/patients/${id}/suivi`),
   byMatricule:  (matricule: string)      => api.get<MatriculeLookup>(`/patients/by-matricule/${encodeURIComponent(matricule)}`),
 

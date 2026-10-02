@@ -19,7 +19,7 @@ import {
   assertPeutPrescrire,
   type PrescriptionScope,
 } from '../../common/prescription'
-import { assertPrestationCouverte } from '../../common/droits-categorie'
+import { assertPatientCouvert } from '../../common/droits-categorie'
 import { calculerDateReprise } from '../../common/repos'
 import { consultationCascadeDeleteOps } from './consultation-cascade.util'
 import {
@@ -1423,14 +1423,12 @@ export class ConsultationService {
 
     const consultation = await this.prisma.consultation.findUnique({
       where: { id: consultationId },
-      select: {
-        visite: {
-          select: { patient: { select: { categoriePatientId: true } } },
-        },
-      },
+      select: { visite: { select: { patientId: true } } },
     })
     if (!consultation) throw new NotFoundException('Consultation introuvable')
-    const categoriePatientId = consultation.visite.patient.categoriePatientId
+    // Droits RÉELS du patient (catégorie + rattachement + registre), pas la seule
+    // catégorie : cf. couverturePatient.
+    const patientId = consultation.visite.patientId
 
     if (type === 'PRESCRIPTION_EXAMEN') {
       const existant = await this.prisma.bonExamen.findFirst({
@@ -1442,7 +1440,7 @@ export class ConsultationService {
           existingBonId: existant.id,
         })
 
-      await assertPrestationCouverte(this.prisma, categoriePatientId, 'EXAMEN')
+      await assertPatientCouvert(this.prisma, patientId, 'EXAMEN')
 
       const typeExamenIds = ordonnance.lignes
         .map((l) => l.typeExamenId)
@@ -1500,11 +1498,7 @@ export class ConsultationService {
         existingBonId: existant.id,
       })
 
-    await assertPrestationCouverte(
-      this.prisma,
-      categoriePatientId,
-      'MEDICAMENT',
-    )
+    await assertPatientCouvert(this.prisma, patientId, 'MEDICAMENT')
 
     const lignesMed = ordonnance.lignes.filter(
       (l) => l.medicamentId && l.medicament,

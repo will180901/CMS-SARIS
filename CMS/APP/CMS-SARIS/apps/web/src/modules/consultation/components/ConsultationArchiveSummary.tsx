@@ -110,12 +110,12 @@ export function ConsultationArchiveSummary({ consultationId, consultation, onDel
         readonly
         soignant={consultation.soignant}
         categorieLibelle={patient.categoriePatient.libelle}
-        categoriePatientId={patient.categoriePatient.id}
+        patientId={patient.id}
       />
       <BonPharmacieCard
         consultationId={consultationId}
         readonly
-        categoriePatientId={patient.categoriePatient.id}
+        patientId={patient.id}
         soignant={consultation.soignant}
         categorieLibelle={patient.categoriePatient.libelle}
       />

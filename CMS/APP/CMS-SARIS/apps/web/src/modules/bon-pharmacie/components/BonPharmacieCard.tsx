@@ -12,7 +12,7 @@ import {
   Card, Button, StatusPill, EmptyState, MotifDialog,
 } from '@/components/saris'
 import type { PrintSoignant } from '@/components/print/MedicalPrintSheet'
-import { useCategoriesDroits } from '@/modules/referentiels/hooks/useReferentiels'
+import { usePatientCouverture } from '@/modules/patients/hooks/usePatients'
 import { usePermissions } from '@/hooks/usePermissions'
 import { formatDate } from '@/lib/intl'
 import {
@@ -25,13 +25,13 @@ import type { BonPharmacie } from '../api/bon-pharmacie.api'
 interface Props {
   consultationId:    string
   readonly?:         boolean
-  /** Id (stable, jamais le code/libellé) de la catégorie du patient — pour vérifier le droit au bon. */
-  categoriePatientId?: string
+  /** Patient de la consultation — ses droits RÉELS (catégorie + rattachement) décident du bon. */
+  patientId?: string
   soignant?:         PrintSoignant | null
   categorieLibelle?: string
 }
 
-export function BonPharmacieCard({ consultationId, readonly, categoriePatientId, soignant, categorieLibelle }: Props) {
+export function BonPharmacieCard({ consultationId, readonly, patientId, soignant, categorieLibelle }: Props) {
   const { t } = useTranslation()
   // RÈGLE CENTRALE (recueil) : médicaments réservés au personnel CDI + ayants droit.
   // Dérivé de la même matrice de droits (DroitCategoriePatient, clé sur categorieId)
@@ -41,9 +41,11 @@ export function BonPharmacieCard({ consultationId, readonly, categoriePatientId,
   // qui rejette si aucune ligne couvert=true n'existe) : une catégorie SANS aucun
   // droit configuré (ex. tout juste créée, jamais couverte par le seed) doit être
   // NON éligible, pas éligible par défaut — sinon un message d'éligibilité trompeur.
-  const { data: droits = [], isLoading: droitsLoading } = useCategoriesDroits()
-  const droitCategorie = categoriePatientId ? droits.find(d => d.categorieId === categoriePatientId) : undefined
-  const eligible = !categoriePatientId || (!droitsLoading && droitCategorie?.bonPharmacie === true)
+  const { data: couverture, isLoading: droitsLoading } = usePatientCouverture(patientId ?? '', !!patientId)
+  // Droits suspendus (rattachement clôturé, CDI sorti des effectifs) : on dit POURQUOI,
+  // au lieu du message générique « cette catégorie n'ouvre pas droit », faux ici.
+  const suspension = couverture?.suspension ?? null
+  const eligible = !patientId || (!droitsLoading && couverture?.couvert.MEDICAMENT === true)
 
   const { data: bons = [], isLoading } = useBonsPharmacie({ consultationId })
 
@@ -61,10 +63,10 @@ export function BonPharmacieCard({ consultationId, readonly, categoriePatientId,
           <EmptyState
             icon={<Pill size={18} />}
             title={!eligible
-              ? t('bonPharmacie.notEligibleTitle', { defaultValue: 'Médicaments non pris en charge' })
+              ? (suspension ? t('patients.droitsSuspendus') : t('bonPharmacie.notEligibleTitle', { defaultValue: 'Médicaments non pris en charge' }))
               : t('bonPharmacie.emptyTitle', { defaultValue: 'Aucun bon de pharmacie' })}
             description={!eligible
-              ? t('bonPharmacie.notEligibleDesc', { defaultValue: 'Cette catégorie de patient n\'ouvre pas droit à la prise en charge des médicaments (réservé au personnel CDI et à leurs ayants droit).' })
+              ? (suspension ? t(`patients.suspension_${suspension.motif}`) : t('bonPharmacie.notEligibleDesc', { defaultValue: 'Cette catégorie de patient n\'ouvre pas droit à la prise en charge des médicaments (réservé au personnel CDI et à leurs ayants droit).' }))
               : t('bonPharmacie.emptyDescriptionGenerated', { defaultValue: 'Aucun bon pour l\'instant — générez-en un depuis une ordonnance pharmaceutique validée (onglet Ordonnance).' })}
             variant="subtle"
           />

@@ -20,6 +20,7 @@ import { CI } from '../../common/prisma/search'
 import { NotificationService } from '../notification/notification.service'
 import { EmployeService } from '../employe/employe.service'
 import { PARCOURS_EN_COURS } from '../../common/clinical'
+import { couverturePatient } from '../../common/droits-categorie'
 import {
   CreatePatientDto,
   UpdateIdentiteDto,
@@ -2119,6 +2120,11 @@ export class PatientService {
         ...(dto.statut === 'ACTIVE' && { resolvedAt: null }),
       },
     })
+  }
+
+  /** Droits réels du patient — même calcul que la garde de génération des bons. */
+  findCouverture(patientId: string) {
+    return couverturePatient(this.prisma, patientId)
   }
 
   // ── Rattachements Ayant Droit CDI ─────────────────────────────────────────

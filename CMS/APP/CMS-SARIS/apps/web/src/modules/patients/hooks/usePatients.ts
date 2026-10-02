@@ -110,6 +110,19 @@ export function useUpdateSuiviChronique(patientId: string) {
 }
 
 // Ayants droit (dépendants) d'un travailleur CDI + leur activité récente (traçabilité dossier).
+/** Droits réels (catégorie + rattachement + registre des employés). Clé sous
+ *  ['patients', id] : toute mutation du dossier (dont la clôture d'un rattachement)
+ *  qui invalide le dossier invalide aussi la couverture. */
+export function usePatientCouverture(id: string, enabled = true) {
+  const { has } = usePermissions()
+  return useQuery({
+    queryKey: ['patients', id, 'couverture'],
+    queryFn:  () => patientsApi.couverture(id),
+    staleTime: 20_000,
+    enabled:  !!id && enabled && has('patient.read'),
+  })
+}
+
 export function usePatientAyantsDroits(id: string, enabled = true) {
   const { has } = usePermissions()
   return useQuery({

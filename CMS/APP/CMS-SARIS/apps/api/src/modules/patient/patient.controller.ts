@@ -137,6 +137,14 @@ export class PatientController {
     })
   }
 
+  // Droits RÉELS du patient aujourd'hui (catégorie + rattachement + registre) : ce que
+  // l'écran doit montrer pour ne jamais proposer un bon que le serveur refusera.
+  @Get(':id/couverture')
+  @RequirePermissions('patient.read')
+  couverture(@Param('id') id: string) {
+    return this.patientService.findCouverture(id)
+  }
+
   // Ayants droit du travailleur CDI + leur activité récente (traçabilité dossier).
   @Get(':id/ayants-droits')
   @RequirePermissions('patient.read')

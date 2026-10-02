@@ -24,7 +24,8 @@ import {
   useAnnulerOrdonnance, useDeleteOrdonnance, useCreateOrdonnanceAvecLigne, useGenererBon,
   useUpdateOrdonnance,
 } from '../hooks/useConsultation'
-import { useMedicaments, useCreateMedicament, useTypesExamen, useCategoriesDroits } from '@/modules/referentiels/hooks/useReferentiels'
+import { useMedicaments, useCreateMedicament, useTypesExamen } from '@/modules/referentiels/hooks/useReferentiels'
+import { usePatientCouverture } from '@/modules/patients/hooks/usePatients'
 import { usePermissions } from '@/hooks/usePermissions'
 import { SelectBox, Card, Modal, Button } from '@/components/saris'
 import { Popover, PopoverAnchor, PopoverContent } from '@workspace/ui/components/popover'
@@ -61,7 +62,7 @@ export function OrdonnanceCard({ consultationId, consultation, ordonnances, read
   const createAvecLigne = useCreateOrdonnanceAvecLigne(consultationId)
   const [pendingType, setPendingType] = useState<TypeOrdonnance | null>(null)
 
-  const categoriePatientId = consultation.visite.patient.categoriePatient.id
+  const patientId = consultation.visite.patient.id
   const showCreationUI = !restrictToValidatedReadOnly && !readonly
 
   const brouillon = restrictToValidatedReadOnly ? null : (ordonnances.find(o => o.statut === 'BROUILLON') ?? null)
@@ -97,7 +98,7 @@ export function OrdonnanceCard({ consultationId, consultation, ordonnances, read
         {/* Ordonnances validées */}
         {validees.map(ord => (
           <OrdonnanceBlock
-            key={ord.id} ord={ord} consultationId={consultationId} categoriePatientId={categoriePatientId}
+            key={ord.id} ord={ord} consultationId={consultationId} patientId={patientId}
             canCancel={!readonly && !restrictToValidatedReadOnly} onPreview={onPreview} readonly
           />
         ))}
@@ -105,7 +106,7 @@ export function OrdonnanceCard({ consultationId, consultation, ordonnances, read
         {/* Brouillon courant (s'il existe déjà) */}
         {brouillon && (
           <OrdonnanceBlock
-            key={brouillon.id} ord={brouillon} consultationId={consultationId} categoriePatientId={categoriePatientId}
+            key={brouillon.id} ord={brouillon} consultationId={consultationId} patientId={patientId}
             medicaments={medicaments} typesExamen={typesExamen} readonly={readonly} onPreview={onPreview}
           />
         )}
@@ -178,7 +179,7 @@ function TypePicker({ onPick }: { onPick: (t: TypeOrdonnance) => void }) {
 interface BlockProps {
   ord:            OrdonnanceDetail
   consultationId: string
-  categoriePatientId: string
+  patientId: string
   medicaments?:   MedRef[]
   typesExamen?:   TypeExamenRef[]
   readonly?:      boolean
@@ -186,7 +187,7 @@ interface BlockProps {
   onPreview?:     (ordId: string) => void
 }
 
-function OrdonnanceBlock({ ord, consultationId, categoriePatientId, medicaments = [], typesExamen = [], readonly, canCancel, onPreview }: BlockProps) {
+function OrdonnanceBlock({ ord, consultationId, patientId, medicaments = [], typesExamen = [], readonly, canCancel, onPreview }: BlockProps) {
   const { t } = useTranslation()
   const [confirmCancel, setConfirmCancel] = useState(false)
 
@@ -208,9 +209,10 @@ function OrdonnanceBlock({ ord, consultationId, categoriePatientId, medicaments 
   const type: TypeOrdonnance = ord.typeOrdonnance ?? 'PHARMACEUTIQUE'
 
   // ── Génération de bon ────────────────────────────────────────────────────
-  const { data: droits = [], isLoading: droitsLoading } = useCategoriesDroits()
-  const droitCategorie = droits.find(d => d.categorieId === categoriePatientId)
-  const eligibleBon = type === 'PRESCRIPTION_EXAMEN' ? droitCategorie?.bonExamen === true : droitCategorie?.bonPharmacie === true
+  // Droits RÉELS du patient, pas la seule catégorie : un ayant droit dont le rattachement
+  // est clôturé garde sa catégorie mais plus la gratuité (cf. couverturePatient).
+  const { data: couverture, isLoading: droitsLoading } = usePatientCouverture(patientId)
+  const eligibleBon = type === 'PRESCRIPTION_EXAMEN' ? couverture?.couvert.EXAMEN === true : couverture?.couvert.MEDICAMENT === true
   const permGenerer = has(type === 'PRESCRIPTION_EXAMEN' ? 'bon_examen.create' : 'bon_pharmacie.create')
   const dejaGenere = type === 'PRESCRIPTION_EXAMEN' ? (ord.bonsExamen?.length ?? 0) > 0 : (ord.bonsPharmacie?.length ?? 0) > 0
   const canGenerer = isValid && permGenerer && !droitsLoading && eligibleBon && !dejaGenere
