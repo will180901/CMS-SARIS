@@ -260,7 +260,7 @@ function Th({ children }: { children: React.ReactNode }) {
   )
 }
 
-function ConstantesSection({ patientId }: { patientId: string }) {
+function ConstantesSection({ patientId, historiqueRestreint }: { patientId: string; historiqueRestreint: boolean }) {
   const { t } = useTranslation()
   const { data: constantes = [], isLoading } = usePatientConstantes(patientId)
 
@@ -288,7 +288,7 @@ function ConstantesSection({ patientId }: { patientId: string }) {
           <Loader2 size={14} className="animate-spin" /> <span style={{ fontSize: 13 }}>{t('patients.loading')}</span>
         </div>
       ) : constantes.length === 0 ? (
-        <EmptySection text={t('patients.vitalsEmptyTitle')} />
+        <EmptySection text={t(historiqueRestreint ? 'patients.vitalsEmptyEnCours' : 'patients.vitalsEmptyTitle')} />
       ) : (
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 10, marginBottom: 16 }}>
@@ -503,7 +503,7 @@ const SUB_TABS: { key: SubView; labelKey: string }[] = [
   { key: 'resultats',  labelKey: 'suiviTraitement.subTabResultats' },
 ]
 
-export function SuiviTraitementTab({ patientId }: { patientId: string }) {
+export function SuiviTraitementTab({ patientId, historiqueRestreint = false }: { patientId: string; historiqueRestreint?: boolean }) {
   const { t } = useTranslation()
   const { has } = usePermissions()
   const canManage = has('consultation.diagnose')
@@ -529,7 +529,7 @@ export function SuiviTraitementTab({ patientId }: { patientId: string }) {
       </div>
 
       {subView === 'episodes'   && <EpisodesSection patientId={patientId} onOpen={setDetail} />}
-      {subView === 'constantes' && <ConstantesSection patientId={patientId} />}
+      {subView === 'constantes' && <ConstantesSection patientId={patientId} historiqueRestreint={historiqueRestreint} />}
 
       {(subView === 'chroniques' || subView === 'traitement' || subView === 'resultats') && (
         isLoading ? (
@@ -542,7 +542,7 @@ export function SuiviTraitementTab({ patientId }: { patientId: string }) {
               <div>
                 <SectionHeader icon={<TrendingUp size={14} />} title={t('patients.suiviSectionChroniques')} />
                 {chroniques.length === 0 ? (
-                  <EmptySection text={t('patients.suiviEmptyChroniques')} />
+                  <EmptySection text={t(historiqueRestreint ? 'patients.suiviEmptyChroniquesEnCours' : 'patients.suiviEmptyChroniques')} />
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {chroniques.map(c => <ChroniqueCard key={c.pathologieId} item={c} patientId={patientId} canManage={canManage} />)}
@@ -555,7 +555,7 @@ export function SuiviTraitementTab({ patientId }: { patientId: string }) {
               <div>
                 <SectionHeader icon={<Pill size={14} />} title={t('patients.suiviSectionTraitements')} />
                 {traitements.length === 0 ? (
-                  <EmptySection text={t('patients.suiviEmptyTraitements')} />
+                  <EmptySection text={t(historiqueRestreint ? 'patients.suiviEmptyTraitementsEnCours' : 'patients.suiviEmptyTraitements')} />
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 680 }}>
                     {traitements.map((tr: SuiviTraitementItem) => (
@@ -601,7 +601,7 @@ export function SuiviTraitementTab({ patientId }: { patientId: string }) {
                 <div>
                   <SectionHeader icon={<FlaskConical size={14} />} title={t('patients.suiviSectionExamens')} />
                   {resultatsExamens.length === 0 ? (
-                    <EmptySection text={t('patients.suiviEmptyExamens')} />
+                    <EmptySection text={t(historiqueRestreint ? 'patients.suiviEmptyExamensEnCours' : 'patients.suiviEmptyExamens')} />
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 680 }}>
                       {resultatsExamens.map((r: SuiviResultatExamenItem) => (

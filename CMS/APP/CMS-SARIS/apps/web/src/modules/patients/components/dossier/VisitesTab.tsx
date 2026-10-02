@@ -20,7 +20,7 @@ const STATUT_VISITE: Record<string, { labelKey: string; tint: string; bg: string
   ANNULEE:    { labelKey: 'patients.visiteAnnulee',   tint: 'var(--erreur-texte)', bg: 'var(--erreur-fond)' },
 }
 
-export function VisitesTab({ patientId }: { patientId: string }) {
+export function VisitesTab({ patientId, historiqueRestreint = false }: { patientId: string; historiqueRestreint?: boolean }) {
   const { t } = useTranslation()
   const { data: visites = [], isLoading, isError } = usePatientVisites(patientId)
   const [detail, setDetail] = useState<DossierDetailTarget | null>(null)
@@ -50,7 +50,7 @@ export function VisitesTab({ patientId }: { patientId: string }) {
       )}
 
       {!isError && !isLoading && visites.length === 0 && (
-        <EmptyState icon={<HeartPulse size={20} />} title={t('patients.visitesEmpty')} variant="subtle" />
+        <EmptyState icon={<HeartPulse size={20} />} title={t(historiqueRestreint ? 'patients.visitesEmptyEnCours' : 'patients.visitesEmpty')} variant="subtle" />
       )}
 
       {!isError && !isLoading && visites.length > 0 && (

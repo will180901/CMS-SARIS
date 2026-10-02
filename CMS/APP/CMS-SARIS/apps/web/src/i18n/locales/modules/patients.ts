@@ -287,6 +287,7 @@ export const patients = {
 
     // ── Onglet Constantes (section du Suivi de traitement) ──────────
     vitalsEmptyTitle: 'Aucune constante enregistrée',
+    vitalsEmptyEnCours: "Aucune constante relevée pendant le parcours en cours.",
     vitalsTitle: 'Constantes vitales',
     vitalTemperature: 'Température',
     vitalTensionSys: 'Tension sys.',
@@ -314,6 +315,7 @@ export const patients = {
     // ── Onglet Visites ───────────────────────────────────────────────
     visitesTitle: 'Visites au triage',
     visitesEmpty: 'Aucune visite enregistrée pour ce patient.',
+    visitesEmptyEnCours: "Aucune visite en cours.",
 
     // ── Onglet Consultations ────────────────────────────────────────
     consultStatusOpen: 'En cours',
@@ -328,6 +330,7 @@ export const patients = {
     noActRecorded: 'Aucun acte enregistré',
     consultationsTitle: 'Consultations médicales',
     consultEmptyTitle: 'Aucune consultation enregistrée',
+    consultEmptyEnCours: "Aucune consultation en cours.",
     consultEmptyDesc: 'Les consultations médicales du patient apparaîtront ici.',
     openCountSingular: '{{count}} ouverte',
     openCountPlural: '{{count}} ouvertes',
@@ -457,8 +460,11 @@ export const patients = {
     suiviPremierDiagnostic: 'Premier diagnostic',
     suiviDernierDiagnostic: 'Dernier diagnostic',
     suiviEmptyChroniques: 'Aucune pathologie chronique diagnostiquée pour ce patient.',
+    suiviEmptyChroniquesEnCours: "Aucune pathologie chronique diagnostiquée pendant la consultation en cours.",
     suiviEmptyTraitements: 'Aucun traitement prescrit pour ce patient.',
+    suiviEmptyTraitementsEnCours: "Aucun traitement prescrit pendant la consultation en cours.",
     suiviEmptyExamens: 'Aucun résultat d\'examen enregistré pour ce patient.',
+    suiviEmptyExamensEnCours: "Aucun résultat d'examen pour la consultation en cours.",
     suiviLaboratoire: 'Laboratoire',
     suiviInterpretation: 'Interprétation',
     suiviExamensRealises: 'Examens réalisés',
@@ -835,6 +841,7 @@ export const patients = {
 
     // ── Onglet Constantes (section du Suivi de traitement) ──────────
     vitalsEmptyTitle: 'No vitals recorded',
+    vitalsEmptyEnCours: "No vital signs recorded during the current visit.",
     vitalsTitle: 'Vital signs',
     vitalTemperature: 'Temperature',
     vitalTensionSys: 'Systolic BP',
@@ -862,6 +869,7 @@ export const patients = {
     // ── Onglet Visites ───────────────────────────────────────────────
     visitesTitle: 'Triage visits',
     visitesEmpty: 'No visit recorded for this patient.',
+    visitesEmptyEnCours: "No visit in progress.",
 
     // ── Onglet Consultations ────────────────────────────────────────
     consultStatusOpen: 'In progress',
@@ -876,6 +884,7 @@ export const patients = {
     noActRecorded: 'No act recorded',
     consultationsTitle: 'Medical consultations',
     consultEmptyTitle: 'No consultation recorded',
+    consultEmptyEnCours: "No consultation in progress.",
     consultEmptyDesc: 'The patient\'s medical consultations will appear here.',
     openCountSingular: '{{count}} open',
     openCountPlural: '{{count}} open',
@@ -1005,8 +1014,11 @@ export const patients = {
     suiviPremierDiagnostic: 'First diagnosis',
     suiviDernierDiagnostic: 'Last diagnosis',
     suiviEmptyChroniques: 'No chronic condition diagnosed for this patient.',
+    suiviEmptyChroniquesEnCours: "No chronic condition diagnosed during the current consultation.",
     suiviEmptyTraitements: 'No treatment prescribed for this patient.',
+    suiviEmptyTraitementsEnCours: "No treatment prescribed during the current consultation.",
     suiviEmptyExamens: 'No exam result recorded for this patient.',
+    suiviEmptyExamensEnCours: "No exam result for the current consultation.",
     suiviLaboratoire: 'Laboratory',
     suiviInterpretation: 'Interpretation',
     suiviExamensRealises: 'Exams performed',

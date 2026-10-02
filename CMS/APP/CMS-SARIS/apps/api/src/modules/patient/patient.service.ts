@@ -19,6 +19,7 @@ import { PrismaService } from '../../prisma/prisma.service'
 import { CI } from '../../common/prisma/search'
 import { NotificationService } from '../notification/notification.service'
 import { EmployeService } from '../employe/employe.service'
+import { PARCOURS_EN_COURS } from '../../common/clinical'
 import {
   CreatePatientDto,
   UpdateIdentiteDto,
@@ -55,18 +56,26 @@ export interface AlerteClinique {
 }
 
 /**
- * PARCOURS EN COURS — une donnee en fait partie si sa visite est encore ouverte, OU si
- * la consultation qui en est issue est encore OUVERTE.
+ * Consultations qui ALIMENTENT le dossier (pathologies, traitements, resultats, alertes).
  *
- * Le second cas n'est pas un detail : une visite passe en CLOTUREE des qu'on ouvre sa
- * consultation (cf. ConsultationService.create). Ne regarder que le statut de la visite
- * ferait sortir du parcours en cours un patient qui est precisement en consultation.
+ * Une consultation ANNULEE n'en fait jamais partie. L'annulation (ConsultationService.
+ * annuler) ne touche ni ses diagnostics, ni ses ordonnances, ni ses bons : sans ce filtre,
+ * une consultation ouverte par erreur sur un homonyme laissait dans SON dossier une
+ * « HTA » chronique, un traitement « Validee » et un examen « en attente de saisie »
+ * pour toujours.
+ *
+ * Pour l'infirmier (recueil §5), seule la consultation EN COURS compte. Une consultation
+ * n'existe que sur une visite deja CLOTUREE (ou remise en file apres annulation) : le
+ * parcours en cours, cote consultation, c'est donc exactement « statut OUVERTE » — la
+ * meme regle que la liste des consultations et les documents du dossier.
  */
-const PARCOURS_EN_COURS: Prisma.VisiteWhereInput = {
-  OR: [
-    { statut: { in: ['EN_ATTENTE', 'EN_COURS'] } },
-    { consultations: { some: { statut: 'OUVERTE', deletedAt: null } } },
-  ],
+function consultationsDuDossier(
+  patientId: string,
+  restreindreHistorique?: boolean,
+): Prisma.ConsultationWhereInput {
+  return restreindreHistorique
+    ? { visite: { patientId }, statut: 'OUVERTE' }
+    : { visite: { patientId }, statut: { not: 'ANNULEE' } }
 }
 
 // ── Helpers de rapprochement (détection de doublons) ───────────────────────────
@@ -636,10 +645,12 @@ export class PatientService {
     await this.assertOwnPatient(patientId, scope)
     if (await this.isCliniqueMasque(patientId, scope?.canViewLocked)) return []
     const constantes = await this.prisma.constanteVitale.findMany({
-      // Confidentialité (recueil §5) : l'infirmier n'a accès qu'aux constantes de la
-      // visite EN COURS, pas à l'historique complet (réservé au médecin chef).
+      // Confidentialité (recueil §5) : l'infirmier n'a accès qu'aux constantes du
+      // parcours EN COURS, pas à l'historique complet (réservé au médecin chef).
+      // PARCOURS_EN_COURS et non « visite EN_ATTENTE/EN_COURS » : sans quoi les
+      // constantes disparaissaient a l'instant meme ou le patient entrait en consultation.
       where: scope?.restreindreHistorique
-        ? { patientId, visite: { statut: { in: ['EN_ATTENTE', 'EN_COURS'] } } }
+        ? { patientId, visite: PARCOURS_EN_COURS }
         : { patientId }, // suit le patient (tous sites)
       orderBy: { createdAt: 'desc' },
     })
@@ -693,7 +704,9 @@ export class PatientService {
   ): Promise<AlerteClinique[]> {
     await this.assertOwnPatient(patientId, scope)
     if (await this.isCliniqueMasque(patientId, scope?.canViewLocked)) return []
-    const consultScope = { visite: { patientId } } // dossier centralisé : suit le patient (tous sites)
+    // Dossier centralisé (tous sites), sans les consultations ANNULEES. L'infirmier garde
+    // TOUTES les alertes (securite clinique) : pas de restriction d'historique ici.
+    const consultScope = consultationsDuDossier(patientId)
 
     const [
       allergies,
@@ -940,16 +953,11 @@ export class PatientService {
               // confidentialite renforcee n'apparait jamais a l'infirmier, meme
               // diagnostiquee pendant la visite en cours.
               pathologie: { chronique: true, confidentialiteRenforcee: false },
-              consultation: {
-                visite: {
-                  patientId,
-                  statut: { in: ['EN_ATTENTE', 'EN_COURS'] },
-                },
-              },
+              consultation: consultationsDuDossier(patientId, true),
             }
           : {
               pathologie: { chronique: true },
-              consultation: { visite: { patientId } },
+              consultation: consultationsDuDossier(patientId),
             },
         select: {
           pathologieId: true,
@@ -975,26 +983,21 @@ export class PatientService {
       }),
       this.prisma.ligneOrdonnance.findMany({
         // Traitements : ne concerne que les lignes PHARMACEUTIQUE (medicamentId non nul).
-        where: scope?.restreindreHistorique
-          ? {
-              medicamentId: { not: null },
-              ordonnance: {
-                statut: 'VALIDEE',
-                consultation: {
-                  visite: {
-                    patientId,
-                    statut: { in: ['EN_ATTENTE', 'EN_COURS'] },
-                  },
-                },
-              },
-            }
-          : {
-              medicamentId: { not: null },
-              ordonnance: {
-                statut: 'VALIDEE',
-                consultation: { visite: { patientId } },
-              },
-            },
+        // Pour l'infirmier : le traitement prescrit pendant la consultation EN COURS.
+        // L'ancien filtre (visite EN_ATTENTE/EN_COURS) ne pouvait RIEN trouver : une
+        // ordonnance n'existe que dans une consultation, donc sur une visite deja CLOTUREE.
+        // L'infirmier lisait « Aucun traitement prescrit » au moment meme ou il devait
+        // l'administrer.
+        where: {
+          medicamentId: { not: null },
+          ordonnance: {
+            statut: 'VALIDEE',
+            consultation: consultationsDuDossier(
+              patientId,
+              scope?.restreindreHistorique,
+            ),
+          },
+        },
         select: {
           id: true,
           posologie: true,
@@ -1013,18 +1016,14 @@ export class PatientService {
         orderBy: { ordonnance: { createdAt: 'desc' } },
       }),
       this.prisma.resultatExamen.findMany({
-        where: scope?.restreindreHistorique
-          ? {
-              bon: {
-                consultation: {
-                  visite: {
-                    patientId,
-                    statut: { in: ['EN_ATTENTE', 'EN_COURS'] },
-                  },
-                },
-              },
-            }
-          : { bon: { consultation: { visite: { patientId } } } },
+        where: {
+          bon: {
+            consultation: consultationsDuDossier(
+              patientId,
+              scope?.restreindreHistorique,
+            ),
+          },
+        },
         select: {
           id: true,
           bonId: true,
@@ -1045,22 +1044,14 @@ export class PatientService {
       // Bons d'examen validés mais SANS résultat saisi — le point d'entrée « saisie
       // en attente » que le Suivi n'exposait pas avant (audit découvrabilité).
       this.prisma.bonExamen.findMany({
-        where: scope?.restreindreHistorique
-          ? {
-              statut: 'VALIDE',
-              resultats: { none: {} },
-              consultation: {
-                visite: {
-                  patientId,
-                  statut: { in: ['EN_ATTENTE', 'EN_COURS'] },
-                },
-              },
-            }
-          : {
-              statut: 'VALIDE',
-              resultats: { none: {} },
-              consultation: { visite: { patientId } },
-            },
+        where: {
+          statut: 'VALIDE',
+          resultats: { none: {} },
+          consultation: consultationsDuDossier(
+            patientId,
+            scope?.restreindreHistorique,
+          ),
+        },
         select: {
           id: true,
           consultationId: true,

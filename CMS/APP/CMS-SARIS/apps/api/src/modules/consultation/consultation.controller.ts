@@ -152,6 +152,7 @@ export class ConsultationController {
       canReadOrdonnances: (req.user?.permissions ?? []).includes(
         'ordonnance.read',
       ),
+      lireConsultationEnCours: isHistoriqueRestreint(req),
     })
   }
 

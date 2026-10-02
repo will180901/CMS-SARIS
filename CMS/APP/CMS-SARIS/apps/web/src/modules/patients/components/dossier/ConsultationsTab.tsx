@@ -19,7 +19,7 @@ const STATUT_CONSULT: Record<string, { labelKey: string; tint: string; bg: strin
   ANNULEE:  { labelKey: 'patients.consultStatusCancelled', tint: 'var(--erreur-texte)', bg: 'var(--erreur-fond)' },
 }
 
-export function ConsultationsTab({ patientId }: { patientId: string }) {
+export function ConsultationsTab({ patientId, historiqueRestreint = false }: { patientId: string; historiqueRestreint?: boolean }) {
   const { t } = useTranslation()
   const { data: consultations = [], isLoading, isError } = usePatientConsultations(patientId)
   const [detail, setDetail] = useState<DossierDetailTarget | null>(null)
@@ -49,7 +49,7 @@ export function ConsultationsTab({ patientId }: { patientId: string }) {
       )}
 
       {!isError && !isLoading && consultations.length === 0 && (
-        <EmptyState icon={<Stethoscope size={20} />} title={t('patients.consultEmptyTitle')} variant="subtle" />
+        <EmptyState icon={<Stethoscope size={20} />} title={t(historiqueRestreint ? 'patients.consultEmptyEnCours' : 'patients.consultEmptyTitle')} variant="subtle" />
       )}
 
       {!isError && !isLoading && consultations.length > 0 && (

@@ -295,13 +295,27 @@ export class ConsultationService {
       canReadAll: boolean
       personnelMedicalId: string | null
       canReadOrdonnances?: boolean
+      /** Infirmier (recueil §5) : peut AUSSI ouvrir la consultation EN COURS d'un patient,
+       *  quel qu'en soit le soignant — celle que la liste de son dossier lui montre. */
+      lireConsultationEnCours?: boolean
     },
   ) {
     const where: any = { id }
     // Confidentialité : un soignant non-superviseur ne peut ouvrir QUE ses propres
     // consultations (cohérent avec findAll qui filtre déjà la liste — un id deviné ne suffit pas).
     if (scope && !scope.canReadAll) {
-      where.soignantId = scope.personnelMedicalId ?? '__aucun_soignant__'
+      const soignantId = scope.personnelMedicalId ?? '__aucun_soignant__'
+      if (scope.lireConsultationEnCours) {
+        // Exactement ce que findAll lui liste dans le dossier : la consultation OUVERTE,
+        // hors dossier verrouillé. Avant, la liste la montrait mais l'ouvrir répondait
+        // « Consultation introuvable » — l'infirmier pouvait la croire supprimée.
+        where.OR = [
+          { soignantId },
+          { statut: 'OUVERTE', visite: { patient: { verrouille: false } } },
+        ]
+      } else {
+        where.soignantId = soignantId
+      }
     }
     const consultation = await this.prisma.consultation.findFirst({
       where,
@@ -401,9 +415,12 @@ export class ConsultationService {
     const consultations = await this.prisma.consultation.findMany({
       // dossier centralisé : tous les documents du patient (tous sites) — sauf pour
       // l'infirmier restreint (recueil §5), limité aux documents de la consultation en cours.
+      // Jamais ceux d'une consultation ANNULEE : l'annulation laisse ordonnances et bons
+      // intacts (statut VALIDEE), ils s'affichaient donc comme des documents valides — et
+      // imprimables. Même règle que l'évacuation annulée, déjà écartée plus bas.
       where: scope?.restreindreHistorique
         ? { visite: { patientId }, statut: 'OUVERTE' }
-        : { visite: { patientId } },
+        : { visite: { patientId }, statut: { not: 'ANNULEE' } },
       orderBy: { createdAt: 'desc' },
       include: {
         visite: {

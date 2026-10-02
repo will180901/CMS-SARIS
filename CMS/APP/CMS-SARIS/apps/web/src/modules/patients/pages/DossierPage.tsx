@@ -387,6 +387,10 @@ export function DossierPage() {
   const canLock     = has('patient.lock')
   const roles       = useSessionStore(s => s.user?.roles ?? [])
   const isSupervision = roles.some(r => r === 'ADMIN_SYSTEME' || r === 'MEDECIN_CHEF')
+  // Meme regle que le serveur (isHistoriqueRestreint) : l'infirmier ne recoit que le
+  // parcours EN COURS. Les onglets doivent le savoir pour ne pas ecrire « aucun … pour ce
+  // patient » sur ce qui n'est qu'une vue limitee.
+  const historiqueRestreint = roles.includes('INFIRMIER') && !isSupervision
 
   const [activeSection, setActiveSection]   = usePersistedState<SectionKey>('dossier', 'activeSection', 'apercu')
   const [activeSubTabRaw, setActiveSubTab]  = usePersistedState<SubTabKey>('dossier', 'activeSubTab', 'identite')
@@ -603,13 +607,25 @@ export function DossierPage() {
 
             {/* Contenu — compact: hauteur naturelle + flux (scroll délégué au corps) */}
             <div style={{ flex: isCompact ? 'none' : 1, padding: '20px 24px', overflowY: isCompact ? 'visible' : 'auto' }}>
+              {/* Dit UNE fois, en tete du Parcours, ce que Documents disait seul : la vue de
+                  l'infirmier est limitee au parcours en cours. Sans ce bandeau, Visites,
+                  Consultations et Suivi presentaient une vue tronquee comme le dossier entier. */}
+              {activeSection === 'parcours' && historiqueRestreint && canViewClinique && (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14,
+                  padding: '8px 12px', borderRadius: 8,
+                  background: 'var(--info-fond)', border: '1px solid var(--info-bordure)',
+                }}>
+                  <span style={{ fontSize: 12, color: 'var(--info-texte)' }}>{t('patients.tlHistoriqueRestreint')}</span>
+                </div>
+              )}
               {activeSubTab === 'identite'            && <IdentiteTab      dossier={dossier} canWrite={canWrite} />}
               {activeSubTab === 'alertes'             && <AlertesTab       dossier={dossier} canWrite={canWrite} />}
               {activeSubTab === 'antecedents'         && <AntecedentsTab   dossier={dossier} canWrite={canWrite} />}
               {activeSubTab === 'documents'           && canViewClinique && <DocumentsTab patientId={dossier.id} />}
-              {activeSubTab === 'visites'             && canViewClinique && <VisitesTab patientId={dossier.id} />}
-              {activeSubTab === 'consultations'       && canViewClinique && <ConsultationsTab patientId={dossier.id} />}
-              {activeSubTab === 'suiviTraitement'     && canViewClinique && <SuiviTraitementTab patientId={dossier.id} />}
+              {activeSubTab === 'visites'             && canViewClinique && <VisitesTab patientId={dossier.id} historiqueRestreint={historiqueRestreint} />}
+              {activeSubTab === 'consultations'       && canViewClinique && <ConsultationsTab patientId={dossier.id} historiqueRestreint={historiqueRestreint} />}
+              {activeSubTab === 'suiviTraitement'     && canViewClinique && <SuiviTraitementTab patientId={dossier.id} historiqueRestreint={historiqueRestreint} />}
               {activeSubTab === 'rattachements'       && <RattementsTab    dossier={dossier} canWrite={canManageRattachements} />}
               {activeSubTab === 'historiqueCategorie' && <HistoriqueCategorieTab dossier={dossier} />}
             </div>

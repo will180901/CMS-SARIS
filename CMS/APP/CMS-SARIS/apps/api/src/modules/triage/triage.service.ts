@@ -13,7 +13,7 @@ import {
 } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
 import { NotificationService } from '../notification/notification.service'
-import { computeImc } from '../../common/clinical'
+import { computeImc, PARCOURS_EN_COURS } from '../../common/clinical'
 import {
   CreateVisiteDto,
   UpdateStatutVisiteDto,
@@ -268,8 +268,10 @@ export class TriageService {
     return this.prisma.visite.findMany({
       // Confidentialité (recueil §5) : l'infirmier n'a accès qu'à la visite EN COURS,
       // pas à l'historique des visites passées (réservé au médecin chef/supervision).
+      // « En cours » inclut la visite dont la consultation est encore OUVERTE : elle
+      // est CLOTUREE des l'envoi en consultation, et disparaissait donc de la liste.
       where: restreindreHistorique
-        ? { patientId, statut: { in: ['EN_ATTENTE', 'EN_COURS'] } }
+        ? { patientId, ...PARCOURS_EN_COURS }
         : { patientId },
       orderBy: { dateOuverture: 'desc' },
       select: {
