@@ -626,7 +626,17 @@ export function DossierPage() {
   // La section Administratif reste visible pour tous (l'historique de catégorie
   // s'applique à toute catégorie de patient), seul le sous-onglet est filtré.
   const hasRattachements = dossier.categoriePatient.code === 'ASSURE_CDI' || dossier.categoriePatient.code === 'AYANT_DROIT_CDI'
-  const visibleSections   = SECTIONS
+
+  // Onglet visible pour CE profil et CE patient : réservé aux soignants (consultation.read)
+  // ou au CDI / ayant droit (rattachements).
+  const sousOngletVisible = (t: (typeof SECTIONS)[number]['subTabs'][number]) =>
+    (!('clinicalOnly' in t && t.clinicalOnly) || canViewClinique) &&
+    (!('requiresRattachement' in t && t.requiresRattachement) || hasRattachements)
+  // Une section sans AUCUN onglet visible disparaît. Avant, elle restait affichée :
+  // pour un profil sans lecture clinique, « Parcours de soins » (tous ses onglets sont
+  // cliniques) faisait planter la page — et comme la section active est mémorisée pour
+  // tous les dossiers, chaque dossier ouvert ensuite plantait aussi.
+  const visibleSections = SECTIONS.filter(s => s.subTabs.some(sousOngletVisible))
 
   // Comptes pour les badges d'onglets/sections
   const tabCounts: Partial<Record<SubTabKey, number>> = {
@@ -644,12 +654,12 @@ export function DossierPage() {
   // Section active + ses sous-onglets, filtrés par permission (onglets cliniques
   // masqués aux profils sans lecture clinique — ex. délégation sans consultation.read)
   // et par catégorie (Rattachements absent des catégories sans rattachement possible).
+  // Une section mémorisée devenue invisible (droit retiré, autre profil sur le même poste)
+  // retombe sur la première section visible au lieu de casser la page.
   const currentSection = visibleSections.find(s => s.key === activeSection) ?? visibleSections[0]
-  const visibleSubTabs = currentSection.subTabs.filter(t =>
-    (!('clinicalOnly' in t && t.clinicalOnly) || canViewClinique) &&
-    (!('requiresRattachement' in t && t.requiresRattachement) || hasRattachements),
-  )
-  const activeSubTab: SubTabKey = visibleSubTabs.some(t => t.key === activeSubTabRaw) ? activeSubTabRaw : visibleSubTabs[0].key
+  const activeSectionKey: SectionKey = currentSection.key
+  const visibleSubTabs = currentSection.subTabs.filter(sousOngletVisible)
+  const activeSubTab: SubTabKey = visibleSubTabs.some(t => t.key === activeSubTabRaw) ? activeSubTabRaw : (visibleSubTabs[0]?.key ?? 'identite')
 
   return (
     <>
@@ -776,7 +786,7 @@ export function DossierPage() {
             {/* Sections (niveau 1) */}
             <div style={{ borderBottom: '1px solid var(--bordure-legere)', padding: 'var(--espace-3) 24px', marginTop: '12px', flexShrink: 0, overflowX: 'auto' }}>
               <SegmentedTabs
-                value={activeSection}
+                value={activeSectionKey}
                 onChange={k => setActiveSection(k as SectionKey)}
                 tabs={visibleSections.map(s => ({
                   key: s.key,
@@ -808,7 +818,7 @@ export function DossierPage() {
               {/* Dit UNE fois, en tete du Parcours, ce que Documents disait seul : la vue de
                   l'infirmier est limitee au parcours en cours. Sans ce bandeau, Visites,
                   Consultations et Suivi presentaient une vue tronquee comme le dossier entier. */}
-              {(activeSection === 'parcours' || activeSubTab === 'chroniques' || activeSubTab === 'constantes') && historiqueRestreint && canViewClinique && (
+              {(activeSectionKey === 'parcours' || activeSubTab === 'chroniques' || activeSubTab === 'constantes') && historiqueRestreint && canViewClinique && (
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14,
                   padding: '8px 12px', borderRadius: 8,
