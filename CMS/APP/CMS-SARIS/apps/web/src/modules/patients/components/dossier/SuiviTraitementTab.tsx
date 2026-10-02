@@ -183,11 +183,21 @@ function Sparkline({ values, color }: { values: number[]; color: string }) {
   )
 }
 
-function VitalCard({ icon, label, unit, series, sev = 'normal' }: {
-  icon: React.ReactNode; label: string; unit: string; series: number[]; sev?: Sev
+/** Une mesure : sa valeur ET sa date, inseparables. Les separer est precisement ce qui
+ *  faisait afficher une ancienne valeur comme la derniere, sans pouvoir dire de quand. */
+type Point = { v: number; date: string }
+
+function VitalCard({ icon, label, unit, points, sevOf }: {
+  icon: React.ReactNode; label: string; unit: string; points: Point[]
+  /** Gravite calculee sur LA MEME mesure que la valeur affichee — pas sur une autre. */
+  sevOf?: (v: number) => Sev
 }) {
-  const latest = series.length ? series[series.length - 1] : null
-  const prev   = series.length > 1 ? series[series.length - 2] : null
+  const { t } = useTranslation()
+  const series  = points.map(p => p.v)
+  const dernier = points.length ? points[points.length - 1] : null
+  const latest  = dernier ? dernier.v : null
+  const sev: Sev = dernier && sevOf ? sevOf(dernier.v) : 'normal'
+  const prev    = series.length > 1 ? series[series.length - 2] : null
   const delta  = latest != null && prev != null ? latest - prev : null
   const Trend  = delta == null || Math.abs(delta) < 1e-9 ? Minus : delta > 0 ? TrendingUp : TrendingDown
 
@@ -214,6 +224,11 @@ function VitalCard({ icon, label, unit, series, sev = 'normal' }: {
           </span>
         )}
       </div>
+      {dernier && (
+        <span style={{ fontSize: 11, color: 'var(--texte-tertiaire)', marginTop: -4 }}>
+          {t('patients.vitalMeasuredOn', { date: formatDate(dernier.date) })}
+        </span>
+      )}
       <Sparkline values={series} color="var(--ap-400)" />
     </div>
   )
@@ -251,7 +266,10 @@ function ConstantesSection({ patientId }: { patientId: string }) {
 
   const series = useMemo(() => {
     const asc = [...constantes].reverse()
-    const pick = (k: keyof ConstanteVitale) => asc.map(c => c[k]).filter((v): v is number => typeof v === 'number')
+    // Chaque valeur garde la date de SA mesure.
+    const pick = (k: keyof ConstanteVitale): Point[] => asc
+      .filter(c => typeof c[k] === 'number')
+      .map(c => ({ v: c[k] as number, date: c.createdAt }))
     return {
       temperature:        pick('temperature'),
       tensionSystolique:  pick('tensionSystolique'),
@@ -274,12 +292,12 @@ function ConstantesSection({ patientId }: { patientId: string }) {
       ) : (
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 10, marginBottom: 16 }}>
-            <VitalCard icon={<Thermometer size={13} />} label={t('patients.vitalTemperature')} unit="°C"    series={series.temperature}        sev={tempSev(constantes[0].temperature)} />
-            <VitalCard icon={<Gauge size={13} />}       label={t('patients.vitalTensionSys')}  unit="mmHg"  series={series.tensionSystolique}  sev={taSev(constantes[0].tensionSystolique)} />
-            <VitalCard icon={<HeartPulse size={13} />}  label={t('patients.vitalHeartRate')}   unit="bpm"   series={series.frequenceCardiaque} sev={fcSev(constantes[0].frequenceCardiaque)} />
-            <VitalCard icon={<Wind size={13} />}        label={t('patients.vitalSpo2')}        unit="%"     series={series.saturationO2}       sev={spo2Sev(constantes[0].saturationO2)} />
-            <VitalCard icon={<Weight size={13} />}      label={t('patients.vitalWeight')}      unit="kg"    series={series.poids} />
-            <VitalCard icon={<Ruler size={13} />}       label={t('patients.vitalImc')}         unit="kg/m²" series={series.imc} />
+            <VitalCard icon={<Thermometer size={13} />} label={t('patients.vitalTemperature')} unit="°C"    points={series.temperature}        sevOf={tempSev} />
+            <VitalCard icon={<Gauge size={13} />}       label={t('patients.vitalTensionSys')}  unit="mmHg"  points={series.tensionSystolique}  sevOf={taSev} />
+            <VitalCard icon={<HeartPulse size={13} />}  label={t('patients.vitalHeartRate')}   unit="bpm"   points={series.frequenceCardiaque} sevOf={fcSev} />
+            <VitalCard icon={<Wind size={13} />}        label={t('patients.vitalSpo2')}        unit="%"     points={series.saturationO2}       sevOf={spo2Sev} />
+            <VitalCard icon={<Weight size={13} />}      label={t('patients.vitalWeight')}      unit="kg"    points={series.poids} />
+            <VitalCard icon={<Ruler size={13} />}       label={t('patients.vitalImc')}         unit="kg/m²" points={series.imc} />
           </div>
           <div style={{ border: '1px solid var(--bordure-legere)', borderRadius: 10, overflow: 'auto', maxHeight: 360 }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>

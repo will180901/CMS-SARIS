@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation }       from 'react-i18next'
 import {
   ArrowLeft, Users, Phone, AlertTriangle, MoreVertical, Archive, RotateCcw, Printer, Activity, Trash2, Lock, Unlock,
-  LayoutGrid, Stethoscope, GitCommitVertical, Building2,
+  LayoutGrid, Stethoscope, GitCommitVertical, Building2, History,
 } from 'lucide-react'
 import { Button }              from '@workspace/ui/components/button'
 import {
@@ -31,6 +31,7 @@ import { DossierPrintModal }     from '../components/dossier/DossierPrintModal'
 import { SegmentedTabs, Modal, Textarea } from '@/components/saris'
 import type { PatientDossier } from '@cms-saris/types'
 import { calcAge } from '@/lib/age'
+import { formatDate } from '@/lib/intl'
 
 // Les droits d'écriture sont désormais portés par les permissions granulaires.
 
@@ -78,7 +79,7 @@ type SubTabKey  = typeof SECTIONS[number]['subTabs'][number]['key']
 
 // ── Sidebar patient ───────────────────────────────────────────────────────────
 
-function DossierSidebar({ dossier, onChangerCategorie, compact }: { dossier: PatientDossier; onChangerCategorie: () => void; compact?: boolean }) {
+function DossierSidebar({ dossier, onChangerCategorie, compact, locked }: { dossier: PatientDossier; onChangerCategorie: () => void; compact?: boolean; locked?: boolean }) {
   const { t } = useTranslation()
   const id  = dossier.identite
   const cu  = dossier.contactUrgence
@@ -148,9 +149,20 @@ function DossierSidebar({ dossier, onChangerCategorie, compact }: { dossier: Pat
 
       {/* Compteurs rapides */}
       <SidebarSection title={t('patients.sectionMedicalRecord')}>
-        <SidebarCounter label={t('patients.counterActiveAllergies')}    count={allergiesActives.length}    danger={allergiesActives.some(a => a.gravite === 'SEVERE')} />
-        <SidebarCounter label={t('patients.counterMedicalAlerts')}    count={alertesMedActives.length}   danger={alertesMedActives.some(a => a.gravite === 'CRITIQUE')} />
-        <SidebarCounter label={t('patients.counterAntecedents')}          count={antecedentsActifs.length}   />
+        {/* Sous verrou, le serveur renvoie des listes VIDES (rien ne fuit) : les compter
+            afficherait « Allergies actives 0 », qu'un soignant lit comme « aucune allergie ».
+            On dit ce qui est vrai : le contenu existe peut-etre, il est masque. */}
+        {locked ? (
+          <p style={{ fontSize: '12px', color: 'var(--texte-tertiaire)', margin: 0, display: 'flex', alignItems: 'center', gap: 6, lineHeight: 1.4 }}>
+            <Lock size={12} style={{ flexShrink: 0 }} /> {t('patients.sidebarLockedContent')}
+          </p>
+        ) : (
+          <>
+            <SidebarCounter label={t('patients.counterActiveAllergies')}    count={allergiesActives.length}    danger={allergiesActives.some(a => a.gravite === 'SEVERE')} />
+            <SidebarCounter label={t('patients.counterMedicalAlerts')}    count={alertesMedActives.length}   danger={alertesMedActives.some(a => a.gravite === 'CRITIQUE')} />
+            <SidebarCounter label={t('patients.counterAntecedents')}          count={antecedentsActifs.length}   />
+          </>
+        )}
       </SidebarSection>
 
       {/* Rattachements */}
@@ -260,6 +272,9 @@ function AlerteBanner({ dossier }: { dossier: PatientDossier }) {
 function AlertesCliniquesBanner({ patientId, enabled }: { patientId: string; enabled: boolean }) {
   const { t } = useTranslation()
   const { data: alertes = [] } = usePatientAlertesCliniques(patientId, enabled)
+  // Instant fige au montage : appeler Date.now() a chaque rendu rendrait le composant
+  // impur (React peut re-rendre a tout moment) et l'anciennete bougerait toute seule.
+  const [maintenant] = useState(() => Date.now())
   if (!enabled || alertes.length === 0) return null
 
   const COLOR = {
@@ -267,26 +282,58 @@ function AlertesCliniquesBanner({ patientId, enabled }: { patientId: string; ena
     ELEVE:    { bg: 'var(--avert-fond)',  border: 'var(--avert-bordure)', text: 'var(--avert-texte)', dot: 'var(--avert-texte)' },
     MODERE:   { bg: 'var(--info-fond)',   border: 'var(--info-bordure)',  text: 'var(--info-texte)',  dot: 'var(--info-texte)' },
   } as const
+  // Ton NEUTRE de l'historique : la donnee est toujours vraie, mais elle n'est plus
+  // d'actualite. La peindre en rouge la ferait lire comme un danger present.
+  const NEUTRE = { bg: 'var(--fond-surface-2)', border: 'var(--bordure-legere)', text: 'var(--texte-secondaire)', dot: 'var(--texte-tertiaire)' }
+
+  const actuelles   = alertes.filter(a => a.portee !== 'HISTORIQUE')
+  const historiques = alertes.filter(a => a.portee === 'HISTORIQUE')
+
+  const anciennete = (iso: string) => {
+    const jours = Math.floor((maintenant - new Date(iso).getTime()) / 86_400_000)
+    return jours <= 0 ? t('patients.alertToday') : t('patients.alertDaysAgo', { count: jours })
+  }
+
+  const ligne = (a: (typeof alertes)[number], i: number, c: { bg: string; border: string; text: string; dot: string }) => (
+    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '8px 10px', borderRadius: 6, background: c.bg, border: `1px solid ${c.border}` }}>
+      <AlertTriangle size={14} style={{ color: c.dot, flexShrink: 0, marginTop: 1 }} />
+      <div style={{ minWidth: 0, fontSize: 12, lineHeight: 1.45 }}>
+        <span style={{ fontWeight: 700, color: c.text }}>{a.titre}</span>
+        <span style={{ color: 'var(--texte-secondaire)' }}> — {a.detail}</span>
+        {/* La date fait partie de l'alerte : sans elle, on ne sait pas si elle est vraie aujourd'hui. */}
+        {a.date && (
+          <span style={{ color: 'var(--texte-tertiaire)' }}>
+            {' · '}{t(`patients.alertDate_${a.type}`, { date: formatDate(a.date) })}, {anciennete(a.date)}
+          </span>
+        )}
+      </div>
+    </div>
+  )
+
+  const titre = { fontSize: '12px', fontWeight: 700, margin: '0 0 8px', textTransform: 'uppercase' as const, letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 6 }
 
   return (
     <div style={{ margin: '12px 24px 0', padding: '12px 14px', borderRadius: 8, background: 'var(--fond-surface)', border: '1px solid var(--bordure-legere)' }}>
-      <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--texte-secondaire)', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 6 }}>
-        <Activity size={13} style={{ color: 'var(--ap-600)' }} /> {t('patients.clinicalAlertsDetected', { count: alertes.length })}
-      </p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        {alertes.map((a, i) => {
-          const c = COLOR[a.gravite]
-          return (
-            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '8px 10px', borderRadius: 6, background: c.bg, border: `1px solid ${c.border}` }}>
-              <AlertTriangle size={14} style={{ color: c.dot, flexShrink: 0, marginTop: 1 }} />
-              <div style={{ minWidth: 0, fontSize: 12, lineHeight: 1.45 }}>
-                <span style={{ fontWeight: 700, color: c.text }}>{a.titre}</span>
-                <span style={{ color: 'var(--texte-secondaire)' }}> — {a.detail}</span>
-              </div>
-            </div>
-          )
-        })}
-      </div>
+      {actuelles.length > 0 && (
+        <>
+          <p style={{ ...titre, color: 'var(--texte-secondaire)' }}>
+            <Activity size={13} style={{ color: 'var(--ap-600)' }} /> {t('patients.clinicalAlertsDetected', { count: actuelles.length })}
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {actuelles.map((a, i) => ligne(a, i, COLOR[a.gravite]))}
+          </div>
+        </>
+      )}
+      {historiques.length > 0 && (
+        <>
+          <p style={{ ...titre, color: 'var(--texte-tertiaire)', marginTop: actuelles.length ? 12 : 0 }}>
+            <History size={13} /> {t('patients.clinicalAlertsHistory', { count: historiques.length })}
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {historiques.map((a, i) => ligne(a, i, NEUTRE))}
+          </div>
+        </>
+      )}
     </div>
   )
 }
@@ -451,10 +498,16 @@ export function DossierPage() {
               <DropdownMenuItem onClick={() => { setActiveSection('apercu'); setActiveSubTab('identite') }} style={{ cursor: 'pointer' }}>
                 {t('patients.menuEditIdentity')}
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setShowPrint(true)} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Printer size={14} /> {t('patients.menuPrintSynthesis')}
-              </DropdownMenuItem>
+              {/* Sous verrou, la synthese imprimerait « Aucune alerte ni allergie active » :
+                  une affirmation fausse, et sur papier, la ou rien ne la corrigera. */}
+              {!lockedForMe && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setShowPrint(true)} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Printer size={14} /> {t('patients.menuPrintSynthesis')}
+                  </DropdownMenuItem>
+                </>
+              )}
               {has('patient.change_category') && (
                 <>
                   <DropdownMenuSeparator />
@@ -505,7 +558,7 @@ export function DossierPage() {
         <div style={{ flex: 1, display: 'flex', flexDirection: isCompact ? 'column' : 'row', minHeight: 0, overflow: isCompact ? 'auto' : 'hidden' }}>
 
           {/* Sidebar — colonne fixe (bureau) / bandeau empilé pleine largeur (compact) */}
-          <DossierSidebar dossier={dossier} onChangerCategorie={() => setChangerCateg(true)} compact={isCompact} />
+          <DossierSidebar dossier={dossier} onChangerCategorie={() => setChangerCateg(true)} compact={isCompact} locked={lockedForMe} />
 
           {/* Contenu principal — sur compact: hauteur naturelle, c'est le corps qui scrolle (un seul scroll) */}
           <div style={{ flex: isCompact ? 'none' : 1, display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0, overflowY: isCompact ? 'visible' : 'auto' }}>

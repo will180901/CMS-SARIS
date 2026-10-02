@@ -46,6 +46,27 @@ export interface AlerteClinique {
   gravite: 'CRITIQUE' | 'ELEVE' | 'MODERE'
   titre: string
   detail: string
+  /** Date de la donnee qui declenche l'alerte : mesure, prescription ou diagnostic. */
+  date: string | null
+  /** ACTUELLE : la donnee appartient au parcours en cours — alerte en couleur.
+   *  HISTORIQUE : donnee d'un parcours termine — rappel date, ton neutre. Sans cette
+   *  distinction, une SpO2 de juillet se lisait en octobre comme un etat actuel. */
+  portee: 'ACTUELLE' | 'HISTORIQUE'
+}
+
+/**
+ * PARCOURS EN COURS — une donnee en fait partie si sa visite est encore ouverte, OU si
+ * la consultation qui en est issue est encore OUVERTE.
+ *
+ * Le second cas n'est pas un detail : une visite passe en CLOTUREE des qu'on ouvre sa
+ * consultation (cf. ConsultationService.create). Ne regarder que le statut de la visite
+ * ferait sortir du parcours en cours un patient qui est precisement en consultation.
+ */
+const PARCOURS_EN_COURS: Prisma.VisiteWhereInput = {
+  OR: [
+    { statut: { in: ['EN_ATTENTE', 'EN_COURS'] } },
+    { consultations: { some: { statut: 'OUVERTE', deletedAt: null } } },
+  ],
 }
 
 // ── Helpers de rapprochement (détection de doublons) ───────────────────────────
@@ -674,7 +695,14 @@ export class PatientService {
     if (await this.isCliniqueMasque(patientId, scope?.canViewLocked)) return []
     const consultScope = { visite: { patientId } } // dossier centralisé : suit le patient (tous sites)
 
-    const [allergies, lignes, lastConst, chronicDiags, suivisActifs] =
+    const [
+      allergies,
+      lignes,
+      lastConst,
+      chronicDiags,
+      suivisActifs,
+      lastConstEnCours,
+    ] =
       await Promise.all([
         this.prisma.allergiePatient.findMany({
           where: { patientId, statut: 'ACTIVE' },
@@ -692,6 +720,12 @@ export class PatientService {
                 nomGenerique: true,
                 nomCommercial: true,
                 familleThera: true,
+              },
+            },
+            ordonnance: {
+              select: {
+                createdAt: true,
+                consultation: { select: { statut: true } },
               },
             },
           },
@@ -715,11 +749,20 @@ export class PatientService {
                 : {}),
             },
           },
-          include: { pathologie: { select: { id: true, libelle: true } } },
+          include: {
+            pathologie: { select: { id: true, libelle: true } },
+            consultation: { select: { createdAt: true } },
+          },
+          // Le plus recent d'abord : c'est sa date qui sera montree.
+          orderBy: { consultation: { createdAt: 'desc' } },
         }),
         this.prisma.suiviChronique.findMany({
           where: { patientId, statut: 'ACTIF' },
           select: { pathologieId: true },
+        }),
+        this.prisma.constanteVitale.findFirst({
+          where: { patientId, visite: PARCOURS_EN_COURS },
+          orderBy: { createdAt: 'desc' },
         }),
       ])
 
@@ -727,10 +770,20 @@ export class PatientService {
 
     // ── Règle 1 : allergie ↔ médicament prescrit ──────────────────────────────
     const seenAM = new Set<string>()
+    // Une prescription de la consultation EN COURS prime sur la meme faite il y a deux
+    // ans : c'est elle qui doit sortir, en couleur. On la presente donc en premier, et le
+    // dedoublonnage ci-dessous garde la premiere rencontree.
+    const enCours = (l: (typeof lignes)[number]) =>
+      l.ordonnance.consultation?.statut === 'OUVERTE'
+    const lignesTriees = [...lignes].sort(
+      (x, y) =>
+        Number(enCours(y)) - Number(enCours(x)) ||
+        y.ordonnance.createdAt.getTime() - x.ordonnance.createdAt.getTime(),
+    )
     for (const a of allergies) {
       const sub = normaliser(a.substance)
       if (sub.length < 4) continue
-      for (const l of lignes) {
+      for (const l of lignesTriees) {
         if (!l.medicament) continue // ligne PRESCRIPTION_EXAMEN (filtrée en amont par le where, garde défensive)
         const fields = [
           l.medicament.nomGenerique,
@@ -752,16 +805,26 @@ export class PatientService {
           gravite: 'CRITIQUE',
           titre: 'Allergie vs médicament prescrit',
           detail: `« ${medName} » prescrit alors que le patient est allergique à « ${a.substance} ».`,
+          date: l.ordonnance.createdAt.toISOString(),
+          portee: enCours(l) ? 'ACTUELLE' : 'HISTORIQUE',
         })
       }
     }
 
-    // ── Règle 2 : constantes critiques (dernière mesure) ──────────────────────
-    if (lastConst) {
-      const c = lastConst
+    // ── Règle 2 : constantes critiques ────────────────────────────────────────
+    // En couleur UNIQUEMENT pour une mesure du parcours en cours (decision metier). Faute
+    // de mesure en cours, la derniere connue est rappelee en HISTORIQUE, datee.
+    const constRef = lastConstEnCours ?? lastConst
+    if (constRef) {
+      const c = constRef
+      const quand = {
+        date: c.createdAt.toISOString(),
+        portee: (lastConstEnCours ? 'ACTUELLE' : 'HISTORIQUE') as AlerteClinique['portee'],
+      }
       if (c.saturationO2 != null && c.saturationO2 < 90)
         alertes.push({
           type: 'CONSTANTE_CRITIQUE',
+          ...quand,
           gravite: 'CRITIQUE',
           titre: 'Hypoxie',
           detail: `SpO₂ à ${c.saturationO2}% (< 90%).`,
@@ -769,6 +832,7 @@ export class PatientService {
       if (c.temperature != null && c.temperature >= 38.5)
         alertes.push({
           type: 'CONSTANTE_CRITIQUE',
+          ...quand,
           gravite: c.temperature >= 39.5 ? 'CRITIQUE' : 'ELEVE',
           titre: 'Fièvre élevée',
           detail: `Température à ${c.temperature}°C.`,
@@ -776,6 +840,7 @@ export class PatientService {
       if (c.tensionSystolique != null && c.tensionSystolique >= 160)
         alertes.push({
           type: 'CONSTANTE_CRITIQUE',
+          ...quand,
           gravite: c.tensionSystolique >= 180 ? 'CRITIQUE' : 'ELEVE',
           titre: 'Tension élevée',
           detail: `Tension systolique à ${c.tensionSystolique} mmHg.`,
@@ -783,6 +848,7 @@ export class PatientService {
       if (c.frequenceCardiaque != null && c.frequenceCardiaque >= 120)
         alertes.push({
           type: 'CONSTANTE_CRITIQUE',
+          ...quand,
           gravite: 'ELEVE',
           titre: 'Tachycardie',
           detail: `Fréquence cardiaque à ${c.frequenceCardiaque} bpm.`,
@@ -790,6 +856,7 @@ export class PatientService {
       if (c.frequenceCardiaque != null && c.frequenceCardiaque < 50)
         alertes.push({
           type: 'CONSTANTE_CRITIQUE',
+          ...quand,
           gravite: 'ELEVE',
           titre: 'Bradycardie',
           detail: `Fréquence cardiaque à ${c.frequenceCardiaque} bpm.`,
@@ -807,6 +874,10 @@ export class PatientService {
         gravite: 'MODERE',
         titre: 'Chronique sans suivi',
         detail: `« ${d.pathologie.libelle} » diagnostiquée sans suivi chronique actif.`,
+        date: d.consultation.createdAt.toISOString(),
+        // L'absence de suivi est un etat ACTUEL, meme si le diagnostic est ancien : c'est
+        // aujourd'hui qu'il n'y a personne pour suivre cette pathologie.
+        portee: 'ACTUELLE',
       })
     }
 
@@ -815,7 +886,12 @@ export class PatientService {
       ELEVE: 1,
       MODERE: 2,
     }
-    alertes.sort((a, b) => order[a.gravite] - order[b.gravite])
+    // L'actuel avant l'historique, puis par gravite.
+    alertes.sort(
+      (a, b) =>
+        Number(b.portee === 'ACTUELLE') - Number(a.portee === 'ACTUELLE') ||
+        order[a.gravite] - order[b.gravite],
+    )
     return alertes
   }
 

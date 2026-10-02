@@ -123,6 +123,10 @@ export interface AlerteClinique {
   gravite: 'CRITIQUE' | 'ELEVE' | 'MODERE'
   titre:   string
   detail:  string
+  /** Date de la donnee source (mesure, prescription, diagnostic). */
+  date:    string | null
+  /** ACTUELLE = parcours en cours (couleur) ; HISTORIQUE = rappel date, ton neutre. */
+  portee:  'ACTUELLE' | 'HISTORIQUE'
 }
 
 export interface AllergiePayload {
