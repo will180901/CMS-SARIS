@@ -2,8 +2,8 @@ import { useState }           from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation }       from 'react-i18next'
 import {
-  ArrowLeft, Users, Phone, AlertTriangle, MoreVertical, Archive, RotateCcw, Printer, Activity, Trash2, Lock, Unlock,
-  LayoutGrid, Stethoscope, GitCommitVertical, Building2, History, ShieldAlert, ChevronDown, ChevronUp,
+  ArrowLeft, Users, AlertTriangle, MoreVertical, Archive, RotateCcw, Printer, Activity, Trash2, Lock, Unlock,
+  LayoutGrid, Stethoscope, GitCommitVertical, Building2, History, ShieldAlert, ChevronDown, ChevronUp, ChevronRight,
 } from 'lucide-react'
 import { Button }              from '@workspace/ui/components/button'
 import {
@@ -110,10 +110,91 @@ function DroitsSuspendus({ patientId }: { patientId: string }) {
   )
 }
 
-function DossierSidebar({ dossier, onChangerCategorie, compact, locked }: { dossier: PatientDossier; onChangerCategorie: () => void; compact?: boolean; locked?: boolean }) {
+// Gravités : mêmes jetons et mêmes libellés que l'onglet Alertes (AlertesTab).
+const TON_ALLERGIE: Record<string, { bg: string; text: string; border: string; labelKey: string }> = {
+  SEVERE: { bg: 'var(--erreur-fond)', text: 'var(--erreur-texte)', border: 'var(--erreur-bordure)', labelKey: 'patients.graviteLabelSevere' },
+  MODERE: { bg: 'var(--avert-fond)',  text: 'var(--avert-texte)',  border: 'var(--avert-bordure)',  labelKey: 'patients.graviteLabelModere' },
+  FAIBLE: { bg: 'var(--succes-fond)', text: 'var(--succes-texte)', border: 'var(--succes-bordure)', labelKey: 'patients.graviteLabelFaible' },
+}
+const TON_ALERTE: Record<string, { bg: string; text: string; border: string; labelKey: string }> = {
+  CRITIQUE:  { bg: 'var(--erreur-fond)', text: 'var(--erreur-texte)', border: 'var(--erreur-bordure)', labelKey: 'patients.graviteLabelCritique' },
+  IMPORTANT: { bg: 'var(--avert-fond)',  text: 'var(--avert-texte)',  border: 'var(--avert-bordure)',  labelKey: 'patients.graviteLabelImportant' },
+  INFO:      { bg: 'var(--info-fond)',   text: 'var(--info-texte)',   border: 'var(--info-bordure)',   labelKey: 'patients.graviteLabelInfo' },
+}
+// Types d'antécédent : mêmes libellés que l'onglet Antécédents (AntecedentsTab).
+const TYPE_ANTECEDENT_LABEL: Record<string, string> = {
+  MEDICAL: 'patients.antecedentMedical', CHIRURGICAL: 'patients.antecedentSurgical',
+  FAMILIAL: 'patients.antecedentFamilial', GYNECO_OBSTETRICAL: 'patients.antecedentGyneco',
+  AUTRE: 'patients.antecedentOther',
+}
+const RESUME_MAX = 3
+
+/**
+ * Résumé médical de la colonne : les NOMS, pas des compteurs. « Allergies actives 1 »
+ * obligeait à ouvrir un onglet pour savoir à QUOI le patient est allergique ; ici on le
+ * lit depuis n'importe quel onglet. Chaque groupe ouvre son onglet ; au-delà de trois
+ * éléments, « +N de plus » y mène aussi.
+ */
+function ResumeGroupe({ titre, total, vide, onOuvrir, children }: {
+  titre: string; total: number; vide: string; onOuvrir: () => void; children: React.ReactNode
+}) {
+  const { t } = useTranslation()
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+      <button
+        type="button"
+        onClick={onOuvrir}
+        aria-label={t('patients.sidebarOpenTab', { onglet: titre })}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 6, width: '100%', padding: 0,
+          background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
+          fontSize: 12, fontWeight: 600, color: 'var(--texte-secondaire)',
+        }}
+      >
+        <span style={{ flex: 1, minWidth: 0 }}>{titre}</span>
+        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--texte-tertiaire)' }}>{total}</span>
+        <ChevronRight size={12} style={{ color: 'var(--texte-tertiaire)', flexShrink: 0 }} />
+      </button>
+      {total === 0
+        ? <p style={{ margin: 0, fontSize: 11.5, color: 'var(--texte-tertiaire)', fontStyle: 'italic' }}>{vide}</p>
+        : children}
+      {total > RESUME_MAX && (
+        <button type="button" onClick={onOuvrir} style={{ alignSelf: 'flex-start', padding: 0, background: 'none', border: 'none', cursor: 'pointer', fontSize: 11.5, fontWeight: 600, color: 'var(--ap-600)' }}>
+          {t('patients.sidebarMore', { count: total - RESUME_MAX })}
+        </button>
+      )}
+    </div>
+  )
+}
+
+function ResumeLigne({ texte, etiquette }: { texte: string; etiquette?: { libelle: string; bg: string; text: string; border: string } | string }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, fontSize: 12 }}>
+      <span title={texte} style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--texte-primaire)' }}>
+        {texte}
+      </span>
+      {typeof etiquette === 'string' ? (
+        <span style={{ flexShrink: 0, fontSize: 10.5, color: 'var(--texte-tertiaire)' }}>{etiquette}</span>
+      ) : etiquette ? (
+        <span style={{ flexShrink: 0, fontSize: 10.5, fontWeight: 600, padding: '1px 7px', borderRadius: 99, background: etiquette.bg, color: etiquette.text, border: `1px solid ${etiquette.border}` }}>
+          {etiquette.libelle}
+        </span>
+      ) : null}
+    </div>
+  )
+}
+
+function DossierSidebar({ dossier, onChangerCategorie, canChangerCategorie, onOuvrir, compact, locked }: {
+  dossier: PatientDossier
+  onChangerCategorie: () => void
+  /** `patient.change_category` — le bouton était affiché à tous, même à qui le serveur refuse. */
+  canChangerCategorie: boolean
+  onOuvrir: (section: SectionKey, sousOnglet: SubTabKey) => void
+  compact?: boolean
+  locked?: boolean
+}) {
   const { t } = useTranslation()
   const id  = dossier.identite
-  const cu  = dossier.contactUrgence
   const allergiesActives    = dossier.allergies.filter(a => a.statut === 'ACTIVE')
   const alertesMedActives   = dossier.alertesMedicales.filter(a => a.statut === 'ACTIVE')
   const antecedentsActifs   = dossier.antecedents.filter(a => a.statut === 'ACTIF')
@@ -170,14 +251,8 @@ function DossierSidebar({ dossier, onChangerCategorie, compact, locked }: { doss
         } />
       </SidebarSection>
 
-      {/* Contact urgence */}
-      {cu && (
-        <SidebarSection title={t('patients.sidebarEmergencyContact')} icon={<Phone size={12} />}>
-          <p style={{ fontSize: '13px', fontWeight: '600', color: 'var(--texte-primaire)', margin: 0 }}>{cu.prenom} {cu.nom}</p>
-          <p style={{ fontSize: '12px', color: 'var(--texte-secondaire)', margin: '2px 0 0' }}>{cu.lien}</p>
-          <p style={{ fontSize: '12px', color: 'var(--texte-secondaire)', margin: '2px 0 0' }}>{cu.telephone}</p>
-        </SidebarSection>
-      )}
+      {/* Le contact d'urgence n'est plus répété ici : l'onglet Identité (ouvert par
+          défaut) l'affiche déjà, juste à côté — il apparaissait deux fois sur le même écran. */}
 
       {/* Compteurs rapides */}
       <SidebarSection title={t('patients.sectionMedicalRecord')}>
@@ -189,11 +264,44 @@ function DossierSidebar({ dossier, onChangerCategorie, compact, locked }: { doss
             <Lock size={12} style={{ flexShrink: 0 }} /> {t('patients.sidebarLockedContent')}
           </p>
         ) : (
-          <>
-            <SidebarCounter label={t('patients.counterActiveAllergies')}    count={allergiesActives.length}    danger={allergiesActives.some(a => a.gravite === 'SEVERE')} />
-            <SidebarCounter label={t('patients.counterMedicalAlerts')}    count={alertesMedActives.length}   danger={alertesMedActives.some(a => a.gravite === 'CRITIQUE')} />
-            <SidebarCounter label={t('patients.counterAntecedents')}          count={antecedentsActifs.length}   />
-          </>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <ResumeGroupe
+              titre={t('patients.counterActiveAllergies')} total={allergiesActives.length}
+              vide={t('patients.sidebarNothingRecorded')} onOuvrir={() => onOuvrir('apercu', 'alertes')}
+            >
+              {[...allergiesActives]
+                .sort((a, b) => ['SEVERE', 'MODERE', 'FAIBLE'].indexOf(a.gravite) - ['SEVERE', 'MODERE', 'FAIBLE'].indexOf(b.gravite))
+                .slice(0, RESUME_MAX)
+                .map(a => {
+                  const ton = TON_ALLERGIE[a.gravite]
+                  return <ResumeLigne key={a.id} texte={a.substance} etiquette={ton ? { ...ton, libelle: t(ton.labelKey) } : undefined} />
+                })}
+            </ResumeGroupe>
+            <ResumeGroupe
+              titre={t('patients.counterMedicalAlerts')} total={alertesMedActives.length}
+              vide={t('patients.sidebarNothingRecorded')} onOuvrir={() => onOuvrir('apercu', 'alertes')}
+            >
+              {[...alertesMedActives]
+                .sort((a, b) => ['CRITIQUE', 'IMPORTANT', 'INFO'].indexOf(a.gravite) - ['CRITIQUE', 'IMPORTANT', 'INFO'].indexOf(b.gravite))
+                .slice(0, RESUME_MAX)
+                .map(a => {
+                  const ton = TON_ALERTE[a.gravite]
+                  return <ResumeLigne key={a.id} texte={a.message} etiquette={ton ? { ...ton, libelle: t(ton.labelKey) } : undefined} />
+                })}
+            </ResumeGroupe>
+            <ResumeGroupe
+              titre={t('patients.counterAntecedents')} total={antecedentsActifs.length}
+              vide={t('patients.sidebarNothingRecorded')} onOuvrir={() => onOuvrir('medical', 'antecedents')}
+            >
+              {antecedentsActifs.slice(0, RESUME_MAX).map(a => (
+                <ResumeLigne
+                  key={a.id}
+                  texte={a.pathologie?.libelle ?? a.description}
+                  etiquette={t(TYPE_ANTECEDENT_LABEL[a.type] ?? 'patients.antecedentOther')}
+                />
+              ))}
+            </ResumeGroupe>
+          </div>
         )}
       </SidebarSection>
 
@@ -205,15 +313,18 @@ function DossierSidebar({ dossier, onChangerCategorie, compact, locked }: { doss
         </SidebarSection>
       )}
 
-      {/* Actions */}
-      <div style={{ marginTop: 'auto' }}>
-        <button
-          onClick={onChangerCategorie}
-          style={{ width: '100%', padding: '8px 12px', borderRadius: 6, fontSize: '12px', fontWeight: '500', color: 'var(--texte-secondaire)', border: '1px solid var(--bordure-normale)', background: 'var(--fond-surface)', cursor: 'pointer', textAlign: 'left' }}
-        >
-          {t('patients.changeCategory')}
-        </button>
-      </div>
+      {/* Actions — même garde que l'entrée du menu « ⋮ » : sans `patient.change_category`,
+          le bouton ouvrait un formulaire que le serveur refusait ensuite. */}
+      {canChangerCategorie && (
+        <div style={{ marginTop: 'auto' }}>
+          <button
+            onClick={onChangerCategorie}
+            style={{ width: '100%', padding: '8px 12px', borderRadius: 6, fontSize: '12px', fontWeight: '500', color: 'var(--texte-secondaire)', border: '1px solid var(--bordure-normale)', background: 'var(--fond-surface)', cursor: 'pointer', textAlign: 'left' }}
+          >
+            {t('patients.changeCategory')}
+          </button>
+        </div>
+      )}
     </aside>
   )
 }
@@ -554,7 +665,8 @@ export function DossierPage() {
             <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--texte-primaire)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 220 }}>
               {id_ ? `${id_.prenom} ${id_.nom}` : dossier.numeroPatient}
             </span>
-            <CategorieBadge code={dossier.categoriePatient.code} libelle={dossier.categoriePatient.libelle} />
+            {/* Catégorie : affichée une seule fois, sous l'avatar de la colonne — là où
+                l'encart « Droits suspendus » la complète quand il le faut. */}
             {dossier.verrouille && (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600, padding: '2px 9px', borderRadius: 99, whiteSpace: 'nowrap', background: 'var(--avert-fond)', color: 'var(--avert-texte)', border: '1px solid var(--avert-bordure)' }}>
                 <Lock size={11} /> {t('patients.lockedBadge', { defaultValue: 'Verrouillé' })}
@@ -642,7 +754,14 @@ export function DossierPage() {
         <div style={{ flex: 1, display: 'flex', flexDirection: isCompact ? 'column' : 'row', minHeight: 0, overflow: isCompact ? 'auto' : 'hidden' }}>
 
           {/* Sidebar — colonne fixe (bureau) / bandeau empilé pleine largeur (compact) */}
-          <DossierSidebar dossier={dossier} onChangerCategorie={() => setChangerCateg(true)} compact={isCompact} locked={lockedForMe} />
+          <DossierSidebar
+            dossier={dossier}
+            onChangerCategorie={() => setChangerCateg(true)}
+            canChangerCategorie={has('patient.change_category')}
+            onOuvrir={(section, sousOnglet) => { setActiveSection(section); setActiveSubTab(sousOnglet) }}
+            compact={isCompact}
+            locked={lockedForMe}
+          />
 
           {/* Contenu principal — sur compact: hauteur naturelle, c'est le corps qui scrolle (un seul scroll) */}
           <div style={{ flex: isCompact ? 'none' : 1, display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0, overflowY: isCompact ? 'visible' : 'auto' }}>
