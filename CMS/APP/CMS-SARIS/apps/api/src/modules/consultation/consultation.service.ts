@@ -583,6 +583,8 @@ export class ConsultationService {
         'Seule une visite EN_COURS peut avoir une consultation ouverte',
       )
     }
+    if (dto.typeConsultationId)
+      await this.assertTypeConsultationAutorise(dto.typeConsultationId, visite.patientId)
 
     // Le soignant de la consultation = soignant assigné à la visite (ou override via DTO)
     // Note : req.user.id est un Utilisateur.id, pas un PersonnelMedical.id — ne pas l'utiliser ici
@@ -785,13 +787,39 @@ export class ConsultationService {
 
   // ── Type de consultation ──────────────────────────────────────────────────
 
+  /** Types qui n'ont de sens que pour un EMPLOYÉ SARIS (CDI/CDD). Codes @unique et
+   *  immuables. L'écran les filtrait déjà, mais le serveur acceptait tout (constat 120). */
+  private static readonly TYPES_RESERVES_EMPLOYE = ['BILAN_OBLIGATOIRE', 'VISITE_PRE_EMBAUCHE']
+
+  private async assertTypeConsultationAutorise(typeConsultationId: string, patientId: string) {
+    const type = await this.prisma.typeConsultation.findUnique({
+      where: { id: typeConsultationId },
+      select: { code: true, libelle: true },
+    })
+    if (!type) throw new NotFoundException('Type de consultation introuvable')
+    if (!ConsultationService.TYPES_RESERVES_EMPLOYE.includes(type.code)) return
+    const patient = await this.prisma.patient.findUnique({
+      where: { id: patientId },
+      select: { categoriePatient: { select: { code: true, libelle: true } } },
+    })
+    const code = patient?.categoriePatient.code
+    if (code !== 'ASSURE_CDI' && code !== 'ASSURE_CDD')
+      throw new BadRequestException(
+        `« ${type.libelle} » est réservé au personnel CDI/CDD — ce patient est « ${patient?.categoriePatient.libelle ?? '?'} ».`,
+      )
+  }
+
   async setType(id: string, typeConsultationId: string | null, userId: string) {
     await this.assertEditable(id, userId)
     if (typeConsultationId) {
-      const t = await this.prisma.typeConsultation.findUnique({
-        where: { id: typeConsultationId },
+      const actuelle = await this.prisma.consultation.findUnique({
+        where: { id },
+        select: { typeConsultationId: true, visite: { select: { patientId: true } } },
       })
-      if (!t) throw new NotFoundException('Type de consultation introuvable')
+      if (!actuelle) throw new NotFoundException('Consultation introuvable')
+      // Garder le type DÉJÀ enregistré reste permis (donnée existante, même règle qu'à l'écran).
+      if (actuelle.typeConsultationId !== typeConsultationId)
+        await this.assertTypeConsultationAutorise(typeConsultationId, actuelle.visite.patientId)
     }
     return this.prisma.consultation.update({
       where: { id },

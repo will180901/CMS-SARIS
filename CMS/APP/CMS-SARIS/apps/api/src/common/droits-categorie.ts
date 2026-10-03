@@ -6,8 +6,13 @@
  *  - MEDICAMENT (bon de pharmacie) + EXAMEN (bon d'examens) : UNIQUEMENT le personnel
  *    CDI et ses ayants droit (prise en charge complète).
  *
- * La matrice est portée par la table `DroitCategoriePatient` (peuplée par le seed).
- * Convention : autorisé s'il existe une ligne (catégorie, prestation) avec couvert=true.
+ * La matrice est portée par la table `DroitCategoriePatient` (seed, puis Référentiels ›
+ * Catégories). Convention : autorisé s'il existe une ligne (catégorie, prestation) avec
+ * couvert=true.
+ *
+ * CONSULTATION et PREMIERS_SOINS sont TOUJOURS dus (décision utilisateur) : leurs lignes
+ * existent pour que la matrice soit complète, mais elles ne peuvent pas être retirées
+ * (ecrireDroitsCategorie) et ne sont pas vérifiées — un patient est toujours reçu.
  */
 import { ForbiddenException, NotFoundException } from '@nestjs/common'
 import type { PrismaService } from '../prisma/prisma.service'
@@ -23,6 +28,7 @@ export async function assertPrestationCouverte(
   categorieId: string,
   typePrestation: TypePrestation,
 ): Promise<void> {
+  if (typePrestation === 'CONSULTATION' || typePrestation === 'PREMIERS_SOINS') return
   const droit = await prisma.droitCategoriePatient.findFirst({
     where: { categorieId, typePrestation, couvert: true },
     select: { id: true },
@@ -40,8 +46,10 @@ export async function assertPrestationCouverte(
       : typePrestation === 'MEDICAMENT'
         ? 'à la prise en charge des médicaments (bon de pharmacie)'
         : 'à cette prestation'
+  // Plus de « réservé au personnel CDI » : faux depuis que les droits se configurent par
+  // catégorie (et faux pour un CDI refusé). La catégorie dit tout ce qu'il y a à dire.
   throw new ForbiddenException(
-    `La catégorie « ${libelle} » n'ouvre pas droit ${quoi} — réservé au personnel CDI et à leurs ayants droit.`,
+    `La catégorie « ${libelle} » n'ouvre pas droit ${quoi}.`,
   )
 }
 

@@ -1549,7 +1549,7 @@ export class PatientService {
 
   // ── Création patient ──────────────────────────────────────────────────────
 
-  async create(dto: CreatePatientDto, createdBy?: string) {
+  async create(dto: CreatePatientDto, createdBy?: string, peutCreerEmploye = true) {
     const {
       nom,
       prenom,
@@ -1619,6 +1619,10 @@ export class PatientService {
     let planCdi: PlanCdi | null = null
     if (isCdiCdd) {
       // Le patient est un employé : reconnu par matricule, ou enregistré au registre à la volée.
+      if (!peutCreerEmploye && !(await this.employes.findByMatricule(matricule!.trim())))
+        throw new ForbiddenException(
+          `Le matricule ${matricule!.trim()} n'est pas au registre des employés : l'y enregistrer demande la permission « Enregistrer un employé SARIS ».`,
+        )
       const emp = await this.employes.ensureByMatricule({
         matricule: matricule!.trim(),
         nom,
@@ -1644,7 +1648,7 @@ export class PatientService {
         )
       if (!typeLien)
         throw new BadRequestException('Le lien de parenté est obligatoire')
-      planCdi = await this.planifierCdiRattachement(cdiMatricule, nouvelEmploye)
+      planCdi = await this.planifierCdiRattachement(cdiMatricule, nouvelEmploye, peutCreerEmploye)
     }
 
     const numeroPatient = await this.generateNumeroPatient(siteCreationId)
@@ -2487,6 +2491,7 @@ export class PatientService {
   private async planifierCdiRattachement(
     cdiMatricule: string,
     nouvelEmploye?: NouvelEmployeSaisie,
+    peutCreerEmploye = true,
   ): Promise<PlanCdi> {
     const mat = cdiMatricule.trim()
     const existing = await this.employes.findByMatricule(mat)
@@ -2505,6 +2510,10 @@ export class PatientService {
       return { existant: existing }
     }
     // CDI inconnu → à enregistrer avec l'identité fournie.
+    if (!peutCreerEmploye)
+      throw new ForbiddenException(
+        `Matricule CDI « ${mat} » inconnu : l'enregistrer au registre des employés demande la permission « Enregistrer un employé SARIS ».`,
+      )
     if (!nouvelEmploye?.nom?.trim() || !nouvelEmploye?.prenom?.trim()) {
       throw new BadRequestException(
         `Matricule CDI « ${mat} » inconnu — renseignez l'identité du travailleur CDI rattaché`,
@@ -2570,6 +2579,7 @@ export class PatientService {
     dto: RattacherAyantDroitDto,
     userId?: string,
     siteId?: string,
+    peutCreerEmploye = true,
   ) {
     const patient = await this.prisma.patient.findUnique({
       where: { id: patientId },
@@ -2592,6 +2602,7 @@ export class PatientService {
     const plan = await this.planifierCdiRattachement(
       dto.cdiMatricule,
       dto.nouvelEmploye,
+      peutCreerEmploye,
     )
 
     if ('existant' in plan) {
