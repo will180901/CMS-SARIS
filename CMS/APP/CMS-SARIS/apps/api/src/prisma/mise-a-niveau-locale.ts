@@ -147,7 +147,8 @@ export async function mettreANiveauBaseLocale(
   const sqlDe = new Map<string, string>()
   for (const nom of migrations) {
     const fichier = path.join(dossier, nom, 'migration.sql')
-    if (fs.existsSync(fichier)) sqlDe.set(nom, fs.readFileSync(fichier, 'utf8'))
+    // Fins de ligne normalisées : une extraction git sous Windows peut les passer en CRLF.
+    if (fs.existsSync(fichier)) sqlDe.set(nom, fs.readFileSync(fichier, 'utf8').replace(/\r\n/g, '\n'))
   }
   const final = etatFinal([...sqlDe.values()])
 
