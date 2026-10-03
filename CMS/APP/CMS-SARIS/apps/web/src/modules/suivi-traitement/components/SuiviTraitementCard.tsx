@@ -31,9 +31,11 @@ import type { SuiviTraitement, FicheSuiviTraitement } from '../api/suivi-traitem
 interface Props {
   consultationId: string
   readonly?:      boolean
+  /** Épisode PRÉCIS à afficher (depuis la liste du dossier), quel que soit son statut. */
+  suiviId?:       string
 }
 
-export function SuiviTraitementCard({ consultationId, readonly }: Props) {
+export function SuiviTraitementCard({ consultationId, readonly, suiviId }: Props) {
   const { t } = useTranslation()
   const { has } = usePermissions()
   const canUpdate = has('suivi_traitement.update') && !readonly
@@ -43,9 +45,13 @@ export function SuiviTraitementCard({ consultationId, readonly }: Props) {
 
   const { data: suivis = [], isLoading } = useSuivisTraitement({ consultationId })
 
-  // Un suivi ANNULÉ est considéré comme inexistant : la carte reste vide (un nouvel épisode
-  // peut être régénéré depuis l'étape Décision).
-  const current = suivis.find(s => s.statut !== 'ANNULE') ?? null
+  // Dans la consultation, un suivi ANNULÉ est considéré comme inexistant : la carte reste
+  // vide (un nouvel épisode peut être régénéré depuis l'étape Décision). Mais depuis le
+  // DOSSIER, on ouvre un épisode précis : l'afficher tel qu'il est — annulé, avec son
+  // motif, en lecture seule (SuiviDetail) — et non « aucun suivi, générez-le », faux et
+  // impossible depuis là (constat 74).
+  const current = (suiviId ? suivis.find(s => s.id === suiviId) : undefined)
+    ?? suivis.find(s => s.statut !== 'ANNULE') ?? null
 
   return (
     <Card>

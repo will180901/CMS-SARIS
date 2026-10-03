@@ -117,12 +117,14 @@ const STATUT_SUIVI: Record<string, { labelKey: string; tint: string; bg: string 
 
 function EpisodesSection({ patientId, onOpen, historiqueRestreint = false }: { patientId: string; onOpen: (t: DossierDetailTarget) => void; historiqueRestreint?: boolean }) {
   const { t } = useTranslation()
-  const { data: episodes = [], isLoading } = useSuivisTraitement({ patientId })
+  const { data: episodes = [], isLoading, isError, refetch } = useSuivisTraitement({ patientId })
 
   return (
     <div>
       <SectionHeader icon={<Activity size={14} />} title={t('suiviTraitement.cardTitle')} />
-      {isLoading ? (
+      {isError ? (
+        <ErreurChargement onRetry={() => { void refetch() }} />
+      ) : isLoading ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--texte-tertiaire)' }}>
           <Loader2 size={14} className="animate-spin" /> <span style={{ fontSize: 13 }}>{t('patients.loading')}</span>
         </div>
@@ -141,7 +143,7 @@ function EpisodesSection({ patientId, onOpen, historiqueRestreint = false }: { p
                 badge={t(cfg.labelKey)}
                 badgeTone={ep.statut === 'EN_COURS' ? 'info' : ep.statut === 'CLOTURE' ? 'success' : 'neutral'}
                 date={ep.createdAt}
-                onClick={() => onOpen({ kind: 'SUIVI_TRAITEMENT', consultationId: ep.consultationId })}
+                onClick={() => onOpen({ kind: 'SUIVI_TRAITEMENT', consultationId: ep.consultationId, suiviId: ep.id })}
               />
             )
           })}
@@ -262,7 +264,7 @@ function Th({ children }: { children: React.ReactNode }) {
 
 function ConstantesSection({ patientId, historiqueRestreint }: { patientId: string; historiqueRestreint: boolean }) {
   const { t } = useTranslation()
-  const { data: constantes = [], isLoading } = usePatientConstantes(patientId)
+  const { data: constantes = [], isLoading, isError, refetch } = usePatientConstantes(patientId)
 
   const series = useMemo(() => {
     const asc = [...constantes].reverse()
@@ -283,7 +285,9 @@ function ConstantesSection({ patientId, historiqueRestreint }: { patientId: stri
   return (
     <div>
       <SectionHeader icon={<HeartPulse size={14} />} title={t('patients.vitalsTitle')} />
-      {isLoading ? (
+      {isError ? (
+        <ErreurChargement onRetry={() => { void refetch() }} />
+      ) : isLoading ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--texte-tertiaire)' }}>
           <Loader2 size={14} className="animate-spin" /> <span style={{ fontSize: 13 }}>{t('patients.loading')}</span>
         </div>
@@ -506,6 +510,20 @@ interface OngletProps {
   historiqueRestreint?: boolean
 }
 
+/** Erreur de chargement : DITE comme telle. Avant, elle s'affichait « aucune donnée »
+ *  (constat 73) — un soignant pouvait conclure « aucun traitement » sur une panne réseau. */
+function ErreurChargement({ onRetry }: { onRetry: () => void }) {
+  const { t } = useTranslation()
+  return (
+    <div role="alert" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 8, background: 'var(--erreur-fond)', border: '1px solid var(--erreur-bordure)', color: 'var(--erreur-texte)', fontSize: 13 }}>
+      <span style={{ flex: 1 }}>{t('patients.erreurChargement')}</span>
+      <button type="button" onClick={onRetry} style={{ fontSize: 12, fontWeight: 600, color: 'var(--erreur-texte)', background: 'none', border: '1px solid var(--erreur-bordure)', borderRadius: 6, padding: '3px 10px', cursor: 'pointer' }}>
+        {t('patients.reessayer')}
+      </button>
+    </div>
+  )
+}
+
 function Chargement() {
   const { t } = useTranslation()
   return (
@@ -537,7 +555,8 @@ export function PathologiesChroniquesTab({ patientId, historiqueRestreint = fals
   const { t } = useTranslation()
   const { has } = usePermissions()
   const canManage = has('consultation.diagnose')
-  const { data, isLoading } = usePatientSuivi(patientId)
+  const { data, isLoading, isError, refetch } = usePatientSuivi(patientId)
+  if (isError) return <ErreurChargement onRetry={() => { void refetch() }} />
   if (isLoading) return <Chargement />
   const chroniques = data?.chroniques ?? []
   return (
@@ -557,8 +576,9 @@ export function PathologiesChroniquesTab({ patientId, historiqueRestreint = fals
 /** Parcours de soins › Traitements. */
 export function TraitementsTab({ patientId, historiqueRestreint = false }: OngletProps) {
   const { t } = useTranslation()
-  const { data, isLoading } = usePatientSuivi(patientId)
+  const { data, isLoading, isError, refetch } = usePatientSuivi(patientId)
   const [detail, setDetail] = useState<DossierDetailTarget | null>(null)
+  if (isError) return <ErreurChargement onRetry={() => { void refetch() }} />
   if (isLoading) return <Chargement />
   const traitements = data?.traitements ?? []
   return (
@@ -590,8 +610,9 @@ export function TraitementsTab({ patientId, historiqueRestreint = false }: Ongle
 /** Parcours de soins › Résultats d'examens (en attente de saisie, puis reçus). */
 export function ResultatsExamensTab({ patientId, historiqueRestreint = false }: OngletProps) {
   const { t } = useTranslation()
-  const { data, isLoading } = usePatientSuivi(patientId)
+  const { data, isLoading, isError, refetch } = usePatientSuivi(patientId)
   const [detail, setDetail] = useState<DossierDetailTarget | null>(null)
+  if (isError) return <ErreurChargement onRetry={() => { void refetch() }} />
   if (isLoading) return <Chargement />
   const resultatsExamens   = data?.resultatsExamens ?? []
   const resultatsEnAttente = data?.resultatsEnAttente ?? []

@@ -44,7 +44,7 @@ export type DossierDetailTarget =
   | { kind: 'BON_EXAMEN';         consultationId: string; bonId: string }
   | { kind: 'BON_PHARMACIE';      consultationId: string; bonId: string }
   | { kind: 'EVACUATION';         consultationId: string; evacuationId: string }
-  | { kind: 'SUIVI_TRAITEMENT';   consultationId: string }
+  | { kind: 'SUIVI_TRAITEMENT';   consultationId: string; suiviId?: string }
   | { kind: 'RESULTAT';           consultationId: string; bonId: string; resultat: SuiviResultatExamenItem }
   /** Saisie d'un résultat en attente — carte interactive du bon SANS passer par
    *  useConsultation() (qui applique la restriction confidentialité infirmier sur
@@ -338,10 +338,10 @@ function EvacuationBody({ consultationId }: { consultationId: string; evacuation
  * pour rester gérable depuis le dossier même après clôture de la consultation
  * d'origine (c'est là que vivent les fiches suivantes, jamais depuis triage/consultation).
  */
-function SuiviTraitementBody({ consultationId }: { consultationId: string }) {
+function SuiviTraitementBody({ consultationId, suiviId }: { consultationId: string; suiviId?: string }) {
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
-      <SuiviTraitementCard consultationId={consultationId} />
+      <SuiviTraitementCard consultationId={consultationId} suiviId={suiviId} />
     </div>
   )
 }
@@ -457,7 +457,7 @@ export function DossierDetailDrawer({ target, onClose }: { target: DossierDetail
             {target.kind === 'BON_EXAMEN'    && <BonExamenBody consultationId={target.consultationId} bonId={target.bonId} onBack={requestClose} />}
             {target.kind === 'BON_PHARMACIE' && <BonPharmacieBody consultationId={target.consultationId} bonId={target.bonId} onBack={requestClose} />}
             {target.kind === 'EVACUATION'    && <EvacuationBody consultationId={target.consultationId} evacuationId={target.evacuationId} onBack={requestClose} />}
-            {target.kind === 'SUIVI_TRAITEMENT' && <SuiviTraitementBody consultationId={target.consultationId} />}
+            {target.kind === 'SUIVI_TRAITEMENT' && <SuiviTraitementBody consultationId={target.consultationId} suiviId={target.suiviId} />}
             {target.kind === 'RESULTAT'      && <ResultatBody consultationId={target.consultationId} resultat={target.resultat} />}
             {target.kind === 'BON_EXAMEN_ACTION' && <BonExamenActionBody consultationId={target.consultationId} />}
           </PreviewHostContext.Provider>
