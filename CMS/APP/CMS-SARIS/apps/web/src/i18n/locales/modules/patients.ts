@@ -547,6 +547,8 @@ export const patients = {
 
     // ── Messages de validation ──────────────────────────────────────
     validationRequired: 'Requis',
+    validationSexRequired: 'Sexe requis',
+    emergencyContactOptionalHint: "Facultatif — dès qu'un champ est renseigné, tous deviennent obligatoires.",
     validationCategoryRequired: 'Catégorie requise',
     validationSiteRequired: 'Site requis',
     validationSelectCategory: 'Sélectionnez une catégorie',
@@ -1126,6 +1128,8 @@ export const patients = {
 
     // ── Messages de validation ──────────────────────────────────────
     validationRequired: 'Required',
+    validationSexRequired: 'Sex required',
+    emergencyContactOptionalHint: 'Optional — once one field is filled in, all are required.',
     validationCategoryRequired: 'Category required',
     validationSiteRequired: 'Site required',
     validationSelectCategory: 'Select a category',

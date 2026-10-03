@@ -19,12 +19,26 @@ import { nomPersonne, dateNaissance as dateNaissanceSchema, telephone, telephone
 import { formatDate } from '@/lib/intl'
 
 // Fabrique de schéma : reçoit `t` pour traduire les messages visibles.
-function makeSchema(t: (k: string) => string) {
+//
+// Contact d'urgence FACULTATIF EN BLOC : entièrement vide = pas de contact ; dès qu'un
+// champ est rempli, tous sont exigés. Avant, il était obligatoire : un dossier créé sans
+// contact (dossier CDI ouvert à l'enregistrement d'un ayant droit) ne pouvait plus être
+// corrigé — on devait inventer un contact pour simplement rectifier une date. Un contact
+// DÉJÀ enregistré reste complet (pas de suppression silencieuse par champs vidés).
+function makeSchema(t: (k: string) => string, contactExiste: boolean) {
+  const contact: [keyof Form, z.ZodTypeAny][] = [
+    ['contactNom', nomPersonne('Nom')],
+    ['contactPrenom', nomPersonne('Prénom')],
+    ['contactTel', telephone],
+    ['contactLien', z.string().min(1, t('patients.validationRequired')).max(50)],
+  ]
   return z.object({
     nom:           nomPersonne('Nom'),
     prenom:        nomPersonne('Prénom'),
     dateNaissance: dateNaissanceSchema,
-    sexe:          z.enum(['M', 'F']),
+    // Aucun sexe présélectionné : un sexe inconnu restait affiché « M » et s'enregistrait
+    // tel quel au premier « Modifier » (dossier CDI auto-créé, sexe vide).
+    sexe:          z.string().refine(v => v === 'M' || v === 'F', t('patients.validationSexRequired')),
     telephone:     telephoneOpt,
     adresse:       texteOpt(200),
     matricule:     texteOpt(50),
@@ -32,13 +46,25 @@ function makeSchema(t: (k: string) => string) {
     sectionPaie:   texteOpt(100),
     service:       texteOpt(100),
     departement:   texteOpt(100),
-    contactNom:    nomPersonne('Nom'),
-    contactPrenom: nomPersonne('Prénom'),
-    contactTel:    telephone,
-    contactLien:   z.string().min(1, t('patients.validationRequired')).max(50),
+    contactNom:    z.string(),
+    contactPrenom: z.string(),
+    contactTel:    z.string(),
+    contactLien:   z.string(),
+  }).superRefine((v, ctx) => {
+    const rempli = [v.contactNom, v.contactPrenom, v.contactTel, v.contactLien].some(x => x.trim() !== '')
+    if (!rempli && !contactExiste) return
+    for (const [champ, regle] of contact) {
+      const r = regle.safeParse(v[champ] ?? '')
+      if (!r.success) ctx.addIssue({ code: z.ZodIssueCode.custom, path: [champ], message: r.error.issues[0]?.message ?? '' })
+    }
   })
 }
-type Form = z.infer<ReturnType<typeof makeSchema>>
+type Form = {
+  nom: string; prenom: string; dateNaissance: string; sexe: string
+  telephone?: string; adresse?: string
+  matricule?: string; fonction?: string; sectionPaie?: string; service?: string; departement?: string
+  contactNom: string; contactPrenom: string; contactTel: string; contactLien: string
+}
 
 function toInputDate(iso: string) {
   return iso ? iso.substring(0, 10) : ''
@@ -98,29 +124,34 @@ export function IdentiteTab({ dossier, canWrite }: { dossier: PatientDossier; ca
   const code = dossier.categoriePatient?.code
   const isCdiCdd = code === 'ASSURE_CDI' || code === 'ASSURE_CDD'
 
+  // Valeurs du dossier TEL QU'IL EST MAINTENANT. Avant, le formulaire gardait celles du
+  // premier affichage : après une modification puis « Annuler », il réaffichait l'ancien
+  // téléphone — et l'enregistrement suivant le rétablissait sans prévenir.
+  const valeursDossier = (): Form => ({
+    nom:           id?.nom           ?? '',
+    prenom:        id?.prenom        ?? '',
+    dateNaissance: toInputDate(id?.dateNaissance ?? ''),
+    sexe:          id?.sexe === 'M' || id?.sexe === 'F' ? id.sexe : '',
+    telephone:     id?.telephone     ?? '',
+    adresse:       id?.adresse       ?? '',
+    matricule:     dossier.matricule ?? '',
+    fonction:      emp?.fonction     ?? '',
+    sectionPaie:   emp?.sectionPaie  ?? '',
+    service:       emp?.service      ?? '',
+    departement:   emp?.departement  ?? '',
+    contactNom:    cu?.nom    ?? '',
+    contactPrenom: cu?.prenom ?? '',
+    contactTel:    cu?.telephone ?? '',
+    contactLien:   cu?.lien ?? '',
+  })
   const form = useForm<Form>({
-    resolver: zodResolver(makeSchema(t)),
-    defaultValues: {
-      nom:           id?.nom           ?? '',
-      prenom:        id?.prenom        ?? '',
-      dateNaissance: toInputDate(id?.dateNaissance ?? ''),
-      sexe:          (id?.sexe as 'M' | 'F') ?? 'M',
-      telephone:     id?.telephone     ?? '',
-      adresse:       id?.adresse       ?? '',
-      matricule:     dossier.matricule ?? '',
-      fonction:      emp?.fonction     ?? '',
-      sectionPaie:   emp?.sectionPaie  ?? '',
-      service:       emp?.service      ?? '',
-      departement:   emp?.departement  ?? '',
-      contactNom:    cu?.nom    ?? '',
-      contactPrenom: cu?.prenom ?? '',
-      contactTel:    cu?.telephone ?? '',
-      contactLien:   cu?.lien ?? '',
-    },
+    resolver: zodResolver(makeSchema(t, !!cu)),
+    defaultValues: valeursDossier(),
   })
   const { register, control, formState: { errors }, watch, setValue, reset } = form
 
-  function handleCancel() { reset(); setEditing(false) }
+  function handleEdit() { reset(valeursDossier()); setEditing(true) }
+  function handleCancel() { reset(valeursDossier()); setEditing(false) }
 
   async function handleSave() {
     const ok = await form.trigger()
@@ -129,9 +160,11 @@ export function IdentiteTab({ dossier, canWrite }: { dossier: PatientDossier; ca
     await update.mutateAsync({
       nom: v.nom.trim(), prenom: v.prenom.trim(),
       dateNaissance: v.dateNaissance,
-      sexe: v.sexe,
-      telephone: v.telephone?.trim() || undefined,
-      adresse:   v.adresse?.trim()   || undefined,
+      sexe: v.sexe as 'M' | 'F',
+      // Chaîne vide ENVOYÉE (et non omise) : c'est elle qui efface. Omise, l'ancienne
+      // valeur restait en base — l'ancien numéro revenait, et serait appelé en urgence.
+      telephone: v.telephone?.trim() ?? '',
+      adresse:   v.adresse?.trim()   ?? '',
       ...(isCdiCdd ? {
         matricule:   v.matricule?.trim()   ?? '',
         fonction:    v.fonction?.trim()    ?? '',
@@ -139,7 +172,9 @@ export function IdentiteTab({ dossier, canWrite }: { dossier: PatientDossier; ca
         service:     v.service?.trim()     ?? '',
         departement: v.departement?.trim() ?? '',
       } : {}),
-      contactUrgence: { nom: v.contactNom.trim(), prenom: v.contactPrenom.trim(), telephone: v.contactTel.trim(), lien: v.contactLien },
+      ...([v.contactNom, v.contactPrenom, v.contactTel, v.contactLien].some(x => x.trim() !== '')
+        ? { contactUrgence: { nom: v.contactNom.trim(), prenom: v.contactPrenom.trim(), telephone: v.contactTel.trim(), lien: v.contactLien } }
+        : {}),
     })
     setEditing(false)
   }
@@ -159,7 +194,7 @@ export function IdentiteTab({ dossier, canWrite }: { dossier: PatientDossier; ca
         title={t('patients.civilIdentity')}
         icon={<User size={13} style={{ color: 'var(--ap-600)' }} />}
         action={canWrite && !editing ? (
-          <button onClick={() => setEditing(true)} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: 'var(--ap-600)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '500' }}>
+          <button onClick={handleEdit} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: 'var(--ap-600)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '500' }}>
             <Pencil size={11} /> {t('patients.edit')}
           </button>
         ) : editing ? (
@@ -212,15 +247,16 @@ export function IdentiteTab({ dossier, canWrite }: { dossier: PatientDossier; ca
                 <Label style={lbl}>{t('patients.fieldSexReq')}</Label>
                 <div style={{ display: 'flex', gap: '6px' }}>
                   {(['M', 'F'] as const).map(s => (
-                    <button key={s} type="button" onClick={() => setValue('sexe', s)} style={{ flex: 1, height: 34, borderRadius: 6, fontSize: '12px', cursor: 'pointer', background: sexeVal === s ? 'var(--ap-500)' : 'var(--fond-surface-2)', color: sexeVal === s ? '#fff' : 'var(--texte-secondaire)', border: sexeVal === s ? 'none' : '1px solid var(--bordure-normale)' }}>
+                    <button key={s} type="button" onClick={() => setValue('sexe', s, { shouldValidate: true })} style={{ flex: 1, height: 34, borderRadius: 6, fontSize: '12px', cursor: 'pointer', background: sexeVal === s ? 'var(--ap-500)' : 'var(--fond-surface-2)', color: sexeVal === s ? '#fff' : 'var(--texte-secondaire)', border: sexeVal === s ? 'none' : `1px solid ${errors.sexe ? 'var(--erreur-accent)' : 'var(--bordure-normale)'}` }}>
                       {s === 'M' ? 'M' : 'F'}
                     </button>
                   ))}
                 </div>
+                {errors.sexe && <p style={err}>{errors.sexe.message}</p>}
               </div>
             </div>
-            <div style={fld}><Label style={lbl}>{t('patients.labelPhone')}</Label><Input {...register('telephone')} style={{ fontSize: '13px', height: 34 }} /></div>
-            <div style={fld}><Label style={lbl}>{t('patients.labelAddress')}</Label><Input {...register('adresse')} style={{ fontSize: '13px', height: 34 }} /></div>
+            <div style={fld}><Label style={lbl}>{t('patients.labelPhone')}</Label><Input {...register('telephone')} style={{ fontSize: '13px', height: 34 }} />{errors.telephone && <p style={err}>{errors.telephone.message}</p>}</div>
+            <div style={fld}><Label style={lbl}>{t('patients.labelAddress')}</Label><Input {...register('adresse')} style={{ fontSize: '13px', height: 34 }} />{errors.adresse && <p style={err}>{errors.adresse.message}</p>}</div>
           </div>
         )}
       </InfoCard>
@@ -236,14 +272,19 @@ export function IdentiteTab({ dossier, canWrite }: { dossier: PatientDossier; ca
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {!cu && (
+              <p style={{ fontSize: '11px', color: 'var(--texte-tertiaire)', margin: 0, lineHeight: 1.45 }}>
+                {t('patients.emergencyContactOptionalHint')}
+              </p>
+            )}
             <div style={{ display: 'grid', gridTemplateColumns: cols2, gap: '10px' }}>
-              <div style={fld}><Label style={lbl}>{t('patients.fieldFirstNameReq')}</Label><Input {...register('contactPrenom')} style={{ fontSize: '13px', height: 34 }} /></div>
-              <div style={fld}><Label style={lbl}>{t('patients.fieldLastNameReq')}</Label><Input {...register('contactNom')} style={{ fontSize: '13px', height: 34 }} /></div>
+              <div style={fld}><Label style={lbl}>{t('patients.fieldFirstNameReq')}</Label><Input {...register('contactPrenom')} style={{ fontSize: '13px', height: 34 }} />{errors.contactPrenom && <p style={err}>{errors.contactPrenom.message}</p>}</div>
+              <div style={fld}><Label style={lbl}>{t('patients.fieldLastNameReq')}</Label><Input {...register('contactNom')} style={{ fontSize: '13px', height: 34 }} />{errors.contactNom && <p style={err}>{errors.contactNom.message}</p>}</div>
             </div>
             <div style={fld}><Label style={lbl}>{t('patients.fieldPhoneReq')}</Label><Input {...register('contactTel')} style={{ fontSize: '13px', height: 34 }} />{errors.contactTel && <p style={err}>{errors.contactTel.message}</p>}</div>
             <div style={fld}>
               <Label style={lbl}>{t('patients.fieldRelationshipReq')}</Label>
-              <Select value={lienVal} onValueChange={v => setValue('contactLien', v)}>
+              <Select value={lienVal} onValueChange={v => setValue('contactLien', v, { shouldValidate: true })}>
                 <SelectTrigger style={{ height: 34, fontSize: '13px', border: '1px solid var(--bordure-normale)' }}><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {[
@@ -258,6 +299,7 @@ export function IdentiteTab({ dossier, canWrite }: { dossier: PatientDossier; ca
                   ))}
                 </SelectContent>
               </Select>
+              {errors.contactLien && <p style={err}>{errors.contactLien.message}</p>}
             </div>
           </div>
         )}

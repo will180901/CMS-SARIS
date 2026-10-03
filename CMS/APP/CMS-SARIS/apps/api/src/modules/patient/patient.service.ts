@@ -1802,20 +1802,29 @@ export class PatientService {
 
     // Mise à jour identité civile
     if (Object.keys(identiteFields).length > 0 || dateNaissance) {
+      // Téléphone / adresse : une chaîne VIDE efface (null). Avant, elle était écrite
+      // telle quelle et le formulaire, qui omettait le champ vidé, laissait l'ancienne
+      // valeur en base.
+      const identite = {
+        ...identiteFields,
+        ...(identiteFields.telephone !== undefined && { telephone: identiteFields.telephone || null }),
+        ...(identiteFields.adresse !== undefined && { adresse: identiteFields.adresse || null }),
+      }
       await this.prisma.identitePatient.upsert({
         where: { patientId: id },
         update: {
-          ...identiteFields,
+          ...identite,
           ...(dateNaissance && { dateNaissance: new Date(dateNaissance) }),
         },
         create: {
           patientId: id,
-          nom: identiteFields.nom ?? '',
-          prenom: identiteFields.prenom ?? '',
-          dateNaissance: dateNaissance ? new Date(dateNaissance) : new Date(),
-          sexe: identiteFields.sexe ?? 'M',
-          telephone: identiteFields.telephone ?? null,
-          adresse: identiteFields.adresse ?? null,
+          nom: identite.nom ?? '',
+          prenom: identite.prenom ?? '',
+          // Inconnu = NULL (colonnes nullables), jamais « aujourd'hui » ni « M » inventés.
+          dateNaissance: dateNaissance ? new Date(dateNaissance) : null,
+          sexe: identite.sexe ?? null,
+          telephone: identite.telephone ?? null,
+          adresse: identite.adresse ?? null,
         },
       })
       await this.propagerVersRegistre(id, identiteFields, dateNaissance)
