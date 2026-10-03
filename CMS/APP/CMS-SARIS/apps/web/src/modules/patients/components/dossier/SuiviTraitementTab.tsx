@@ -14,11 +14,12 @@
  * la liste reste visible derrière (jamais de redirection hors du dossier).
  */
 import { useMemo, useState } from 'react'
+import { humanizeCode } from '@/config/labels'
 import { useTranslation } from 'react-i18next'
 import {
   Activity, TrendingUp, Pill, FlaskConical, Loader2, ChevronRight, Plus, Pencil,
   CircleCheck, HeartPulse, PenLine, Thermometer, Wind, Weight, Ruler, Gauge,
-  TrendingDown, Minus,
+  TrendingDown, Minus, Droplet,
 } from 'lucide-react'
 import { StatusPill, Modal, Button, SelectBox, Textarea } from '@/components/saris'
 import { DrawerShell } from '@/modules/referentiels/components/DrawerShell'
@@ -279,8 +280,13 @@ function ConstantesSection({ patientId, historiqueRestreint }: { patientId: stri
       saturationO2:       pick('saturationO2'),
       poids:              pick('poids'),
       imc:                pick('imc'),
+      glycemie: pick('glycemie'),
     }
   }, [constantes])
+  const aGlycemie   = constantes.some(c => c.glycemie != null)
+  const aTaille     = constantes.some(c => c.taille != null)
+  const aGlasgow    = constantes.some(c => c.scoreGlasgow != null)
+  const aConscience = constantes.some(c => !!c.etatConscience)
 
   return (
     <div>
@@ -302,7 +308,11 @@ function ConstantesSection({ patientId, historiqueRestreint }: { patientId: stri
             <VitalCard icon={<Wind size={13} />}        label={t('patients.vitalSpo2')}        unit="%"     points={series.saturationO2}       sevOf={spo2Sev} />
             <VitalCard icon={<Weight size={13} />}      label={t('patients.vitalWeight')}      unit="kg"    points={series.poids} />
             <VitalCard icon={<Ruler size={13} />}       label={t('patients.vitalImc')}         unit="kg/m²" points={series.imc} />
+            {aGlycemie && <VitalCard icon={<Droplet size={13} />} label={t('patients.colGlycemie')} unit="g/L" points={series.glycemie} />}
           </div>
+          {/* Glycémie, taille, score de Glasgow, état de conscience : saisis au triage mais
+              jamais montrés (constat 76) — la glycémie d'un diabétique suivi était introuvable.
+              Colonnes affichées dès qu'au moins une mesure existe, masquées sinon. */}
           <div style={{ border: '1px solid var(--bordure-legere)', borderRadius: 10, overflow: 'auto', maxHeight: 360 }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
@@ -315,6 +325,10 @@ function ConstantesSection({ patientId, historiqueRestreint }: { patientId: stri
                   <Th>{t('patients.colSpo2')}</Th>
                   <Th>{t('patients.colWeight')}</Th>
                   <Th>{t('patients.colImc')}</Th>
+                  {aGlycemie && <Th>{t('patients.colGlycemie')}</Th>}
+                  {aTaille && <Th>{t('patients.colTaille')}</Th>}
+                  {aGlasgow && <Th>{t('patients.colGlasgow')}</Th>}
+                  {aConscience && <Th>{t('patients.colConscience')}</Th>}
                   <Th>{t('patients.colSaisiePar')}</Th>
                 </tr>
               </thead>
@@ -332,6 +346,10 @@ function ConstantesSection({ patientId, historiqueRestreint }: { patientId: stri
                     <Cell sev={spo2Sev(c.saturationO2)}>{c.saturationO2 != null ? `${c.saturationO2}%` : null}</Cell>
                     <Cell>{c.poids != null ? `${c.poids} kg` : null}</Cell>
                     <Cell>{c.imc != null ? c.imc : null}</Cell>
+                    {aGlycemie && <Cell>{c.glycemie != null ? `${c.glycemie} g/L` : null}</Cell>}
+                    {aTaille && <Cell>{c.taille != null ? `${c.taille} cm` : null}</Cell>}
+                    {aGlasgow && <Cell sev={c.scoreGlasgow != null && c.scoreGlasgow <= 8 ? 'danger' : c.scoreGlasgow != null && c.scoreGlasgow < 15 ? 'warning' : 'normal'}>{c.scoreGlasgow ?? null}</Cell>}
+                    {aConscience && <Cell>{c.etatConscience ? humanizeCode(c.etatConscience) : null}</Cell>}
                     <Cell>{c.saisieParNom}</Cell>
                   </tr>
                 ))}

@@ -13,6 +13,8 @@
  */
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { humanizeCode } from '@/config/labels'
+import type { ConstanteVitale } from '@cms-saris/types'
 import { useTranslation } from 'react-i18next'
 import { X, Loader2, FlaskConical, FileText, Stethoscope, Pill, Receipt, Ambulance, ArrowUpRight, PenLine, Activity, HeartPulse } from 'lucide-react'
 import {
@@ -187,6 +189,23 @@ const CONSULT_STATUT_LABEL_KEY: Record<string, string> = {
  * montre donc les deux statuts côte à côte plutôt que de faire croire que la
  * visite clôturée = prise en charge terminée.
  */
+/** Une ligne de constantes, lisible d'un coup d'œil (unités incluses). */
+function resumeConstante(c: ConstanteVitale): string[] {
+  const out: string[] = []
+  if (c.temperature != null) out.push(`T° ${c.temperature} °C`)
+  if (c.tensionSystolique != null) out.push(`TA ${c.tensionSystolique}/${c.tensionDiastolique ?? '—'}`)
+  if (c.frequenceCardiaque != null) out.push(`FC ${c.frequenceCardiaque}`)
+  if (c.frequenceRespiratoire != null) out.push(`FR ${c.frequenceRespiratoire}`)
+  if (c.saturationO2 != null) out.push(`SpO₂ ${c.saturationO2} %`)
+  if (c.poids != null) out.push(`${c.poids} kg`)
+  if (c.taille != null) out.push(`${c.taille} cm`)
+  if (c.imc != null) out.push(`IMC ${c.imc}`)
+  if (c.glycemie != null) out.push(`Gly ${c.glycemie} g/L`)
+  if (c.scoreGlasgow != null) out.push(`Glasgow ${c.scoreGlasgow}`)
+  if (c.etatConscience) out.push(humanizeCode(c.etatConscience))
+  return out
+}
+
 function VisiteBody({ visiteId }: { visiteId: string }) {
   const { t } = useTranslation()
   const { data: visite, isLoading } = useVisite(visiteId)
@@ -218,6 +237,9 @@ function VisiteBody({ visiteId }: { visiteId: string }) {
         {visite.soignant && (
           <InfoRow label={t('patients.caregiverLabel')} value={`${visite.soignant.prenom} ${visite.soignant.nom}`} />
         )}
+        {visite.site?.libelle && (
+          <InfoRow label={t('patients.visiteSite')} value={visite.site.libelle} />
+        )}
         {visite.notesAccueil && (
           <InfoRow
             label={t('triage.notesAccueilLabel')}
@@ -226,6 +248,23 @@ function VisiteBody({ visiteId }: { visiteId: string }) {
           />
         )}
       </InfoSection>
+
+      {/* Constantes du triage (constat 79) : renvoyées par le serveur mais jamais montrées
+          dans le résumé de la visite — on ouvrait la visite pour ne pas y trouver l'essentiel. */}
+      {visite.constantes.length > 0 && (
+        <div style={{ marginTop: 16 }}>
+          <InfoSection title={t('patients.visiteConstantes')} icon={<Activity size={14} />}>
+            {visite.constantes.map(c => (
+              <InfoRow
+                key={c.id}
+                label={formatTime(c.createdAt, { hour: '2-digit', minute: '2-digit' })}
+                value={resumeConstante(c).join(' · ') || '—'}
+                full
+              />
+            ))}
+          </InfoSection>
+        </div>
+      )}
 
       {consult ? (
         <>

@@ -331,6 +331,9 @@ export const patients = {
     colHydratation: 'Hydratation',
     colColoration: 'Coloration',
     colSaisiePar: 'Saisi par',
+    colTaille: "Taille",
+    visiteSite: "Site",
+    visiteConstantes: "Constantes du triage",
 
     // ── Onglet Visites ───────────────────────────────────────────────
     visitesTitle: 'Visites au triage',
@@ -924,6 +927,9 @@ export const patients = {
     colHydratation: 'Hydration',
     colColoration: 'Skin color',
     colSaisiePar: 'Recorded by',
+    colTaille: "Height",
+    visiteSite: "Site",
+    visiteConstantes: "Triage vital signs",
 
     // ── Onglet Visites ───────────────────────────────────────────────
     visitesTitle: 'Triage visits',
