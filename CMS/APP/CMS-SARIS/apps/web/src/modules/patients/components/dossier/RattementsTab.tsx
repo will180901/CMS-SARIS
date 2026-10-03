@@ -222,22 +222,30 @@ function AyantsDroitsDependants({ patientId }: { patientId: string }) {
   const { t } = useTranslation()
   const { data: liens = [] } = usePatientAyantsDroits(patientId)
   const navigate = useNavigate()
+  const [maintenant] = useState(() => Date.now())
   if (liens.length === 0) return null
+  const enVigueur = (l: (typeof liens)[number]) =>
+    l.statut === 'ACTIF' && (!l.dateFin || new Date(l.dateFin).getTime() > maintenant)
+  const nbActifs = liens.filter(enVigueur).length
   const LIEN_LABELS: Record<string, string> = { CONJOINT: t('patients.relLabelConjoint'), ENFANT: t('patients.relLabelEnfant'), PARENT: t('patients.relLabelParent'), AUTRE: t('patients.relLabelAutre') }
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
         <Users size={15} style={{ color: 'var(--ap-600)' }} />
         <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--texte-primaire)' }}>{t('patients.dependentsTitle')}</span>
-        <span style={{ fontSize: '11px', color: 'var(--texte-tertiaire)', background: 'var(--fond-surface-2)', padding: '1px 7px', borderRadius: 99 }}>{liens.length}</span>
+        <span style={{ fontSize: '11px', color: 'var(--texte-tertiaire)', background: 'var(--fond-surface-2)', padding: '1px 7px', borderRadius: 99 }}>{nbActifs}</span>
+        {liens.length > nbActifs && (
+          <span style={{ fontSize: '11px', color: 'var(--texte-tertiaire)' }}>{t('patients.dependentsClosedCount', { count: liens.length - nbActifs })}</span>
+        )}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         {liens.map(l => {
           const ident = l.patient.identite
           const nom   = ident ? `${ident.prenom} ${ident.nom}` : l.patient.numeroPatient
           const lastV = l.patient.visites[0]
+          const actif = enVigueur(l)
           return (
-            <div key={l.id} style={{ background: 'var(--fond-surface)', border: '1px solid var(--bordure-legere)', borderRadius: 8, padding: '12px 14px' }}>
+            <div key={l.id} style={{ background: 'var(--fond-surface)', border: '1px solid var(--bordure-legere)', borderRadius: 8, padding: '12px 14px', opacity: actif ? 1 : 0.7 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--ap-50)', border: '1px solid var(--ap-100)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <Users size={14} style={{ color: 'var(--ap-600)' }} />
@@ -254,7 +262,20 @@ function AyantsDroitsDependants({ patientId }: { patientId: string }) {
                     </button>
                     <span style={{ fontSize: '11px', padding: '1px 7px', borderRadius: 99, background: 'var(--ap-50)', color: 'var(--ap-700)', fontWeight: '600' }}>{LIEN_LABELS[l.typeLien] ?? humanizeCode(l.typeLien)}</span>
                     <span style={{ fontSize: '11px', color: 'var(--texte-tertiaire)', fontFamily: 'monospace' }}>{l.patient.numeroPatient}</span>
-                    <span style={{ fontSize: '11px', color: 'var(--texte-tertiaire)' }}>{t('patients.attachSince', { date: formatDate(l.dateDebut) })}</span>
+                    {actif ? (
+                      <span style={{ fontSize: '11px', color: 'var(--texte-tertiaire)' }}>{t('patients.attachSince', { date: formatDate(l.dateDebut) })}</span>
+                    ) : (
+                      <>
+                        <span style={{ fontSize: '10px', color: 'var(--texte-tertiaire)', border: '1px solid var(--bordure-normale)', padding: '1px 6px', borderRadius: 99 }}>
+                          {l.statut === 'ACTIF' ? t('patients.attachExpired') : t('patients.attachClosed')}
+                        </span>
+                        <span style={{ fontSize: '11px', color: 'var(--texte-tertiaire)' }}>
+                          {l.dateFin
+                            ? t('patients.attachPeriod', { start: formatDate(l.dateDebut), end: formatDate(l.dateFin) })
+                            : t('patients.attachPeriodClosedNoDate', { start: formatDate(l.dateDebut) })}
+                        </span>
+                      </>
+                    )}
                   </div>
                   <p style={{ fontSize: '12px', color: 'var(--texte-tertiaire)', margin: '3px 0 0' }}>
                     {/* Trois cas, et non deux : une activite MASQUEE n'est pas une activite

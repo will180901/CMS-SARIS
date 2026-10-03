@@ -185,6 +185,9 @@ export interface AyantDroitLien {
   id:        string
   typeLien:  string
   dateDebut: string
+  dateFin:   string | null
+  /** ACTIF ou INACTIF (clos) — les liens clos sont renvoyés pour l'historique. */
+  statut:    string
   patient: {
     id:               string
     numeroPatient:    string

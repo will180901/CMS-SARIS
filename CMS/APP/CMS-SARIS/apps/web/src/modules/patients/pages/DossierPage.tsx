@@ -341,7 +341,9 @@ function RattachementsResume({ dossier }: { dossier: PatientDossier }) {
   const [maintenant] = useState(() => Date.now())
   const code = dossier.categoriePatient.code
   const estCdi = code === 'ASSURE_CDI'
-  const { data: dependants = [] } = usePatientAyantsDroits(dossier.id, estCdi)
+  const { data: tousDependants = [] } = usePatientAyantsDroits(dossier.id, estCdi)
+  // La colonne ne montre que les liens EN VIGUEUR ; l'historique est dans l'onglet.
+  const dependants = tousDependants.filter(l => enVigueur(l, maintenant))
   const rattAD = dossier.rattachementsAD.filter(r => enVigueur(r, maintenant))
   const rattST = dossier.rattachementsST.filter(r => enVigueur(r, maintenant))
   const LIEN: Record<string, string> = { CONJOINT: t('patients.relLabelConjoint'), ENFANT: t('patients.relLabelEnfant'), PARENT: t('patients.relLabelParent'), AUTRE: t('patients.relLabelAutre') }

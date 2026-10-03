@@ -461,13 +461,18 @@ export class PatientService {
     })
     const orConds: any[] = [{ cdiId: cdiPatientId }]
     if (cdi?.employeId) orConds.push({ employeId: cdi.employeId })
+    // Rattachements CLOS compris (constat 51) : ils disparaissaient de la fiche du CDI,
+    // qui ne gardait aucune trace de ses anciens ayants droit. Actifs d'abord
+    // ('ACTIF' < 'INACTIF'), puis du plus récent au plus ancien.
     const liens = await this.prisma.rattachementAyantDroitCdi.findMany({
-      where: { statut: 'ACTIF', OR: orConds },
-      orderBy: { dateDebut: 'desc' },
+      where: { OR: orConds },
+      orderBy: [{ statut: 'asc' }, { dateDebut: 'desc' }],
       select: {
         id: true,
         typeLien: true,
         dateDebut: true,
+        dateFin: true,
+        statut: true,
         patient: {
           select: {
             id: true,
