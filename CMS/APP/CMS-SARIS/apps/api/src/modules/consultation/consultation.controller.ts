@@ -97,6 +97,9 @@ export class ConsultationController {
       personnelMedicalId: req.user?.personnelMedicalId ?? null,
       canViewLocked: canReadAll,
       restreindreHistorique: isHistoriqueRestreint(req),
+      masquerConfidentiel: !(req.user?.permissions ?? []).includes(
+        'patient.confidentiel.read',
+      ),
     })
   }
 

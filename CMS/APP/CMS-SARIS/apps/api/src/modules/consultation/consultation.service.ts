@@ -96,6 +96,15 @@ const LIGNE_INCLUDE = {
 const CONSULTATION_LIST_INCLUDE = {
   visite: { select: VISITE_RESUME },
   typeConsultation: { select: { id: true, code: true, libelle: true } },
+  // Pour le DIAGNOSTIC PRINCIPAL affiché dans la liste (constat 86) — jamais renvoyé
+  // tel quel : findAll en extrait un seul libellé, filtré par confidentialité.
+  diagnostics: {
+    select: {
+      type: true,
+      pathologie: { select: { libelle: true, confidentialiteRenforcee: true } },
+    },
+    orderBy: { id: 'asc' as const },
+  },
   _count: {
     select: { diagnostics: true, ordonnances: { where: { deletedAt: null } } },
   },
@@ -224,6 +233,8 @@ export class ConsultationService {
       personnelMedicalId: string | null
       canViewLocked?: boolean
       restreindreHistorique?: boolean
+      /** Sans `patient.confidentiel.read` : un diagnostic confidentiel n'est pas nommé. */
+      masquerConfidentiel?: boolean
     },
   ) {
     // Multi-site sans restriction : la file de consultation est partagée entre les deux
@@ -264,10 +275,23 @@ export class ConsultationService {
       where.statut = query.statut
     }
 
-    const consultations = await this.prisma.consultation.findMany({
+    const lignes = await this.prisma.consultation.findMany({
       where,
       include: CONSULTATION_LIST_INCLUDE,
       orderBy: { createdAt: 'desc' },
+    })
+    // Un seul libellé, et jamais celui d'une pathologie à confidentialité renforcée pour
+    // qui n'a pas le droit de la voir — même règle que les antécédents et les alertes.
+    const consultations = lignes.map(({ diagnostics, ...c }) => {
+      const visibles = diagnostics.filter(
+        (d) => !(scope?.masquerConfidentiel && d.pathologie.confidentialiteRenforcee),
+      )
+      const principal =
+        visibles.find((d) => d.type === 'PRINCIPAL') ?? visibles[0] ?? null
+      return {
+        ...c,
+        diagnosticPrincipal: principal ? { libelle: principal.pathologie.libelle } : null,
+      }
     })
 
     return this.attachSoignants(consultations)

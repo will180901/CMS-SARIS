@@ -158,6 +158,8 @@ export interface ConsultationListItem extends Consultation {
   visite:   VisiteResume
   typeConsultation: TypeConsultationResume | null
   _count: { diagnostics: number; ordonnances: number }
+  /** Liste uniquement : libellé du diagnostic principal, déjà filtré par confidentialité. */
+  diagnosticPrincipal?: { libelle: string } | null
 }
 
 export interface ConsultationDetail extends ConsultationListItem {

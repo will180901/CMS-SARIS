@@ -98,6 +98,11 @@ export function ConsultationsTab({ patientId, historiqueRestreint = false }: { p
                     {c.visite?.motifPrincipal?.libelle ? ` · ${c.visite.motifPrincipal.libelle}` : ''}
                     {decision ? ` · ${decision}` : ''}
                   </p>
+                  {/* Diagnostic principal (constat 86) : la liste n'en montrait aucun — il
+                      fallait ouvrir chaque consultation pour savoir de quoi elle traitait. */}
+                  <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--texte-primaire)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {c.diagnosticPrincipal?.libelle ?? <span style={{ color: 'var(--texte-tertiaire)', fontStyle: 'italic' }}>{t('patients.consultSansDiagnostic')}</span>}
+                  </p>
                 </div>
                 <ChevronRight size={15} style={{ color: 'var(--texte-tertiaire)', flexShrink: 0 }} />
               </button>
