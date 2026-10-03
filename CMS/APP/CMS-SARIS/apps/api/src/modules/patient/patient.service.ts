@@ -1318,11 +1318,12 @@ export class PatientService {
         },
         orderBy: { createdAt: 'desc' },
       }),
-      // Bons d'examen validés mais SANS résultat saisi — le point d'entrée « saisie
-      // en attente » que le Suivi n'exposait pas avant (audit découvrabilité).
+      // Bons d'examen SANS résultat saisi — validés (résultat attendu) ou encore à
+      // valider : un bon non validé à la clôture de la consultation n'apparaissait nulle
+      // part, et son résultat ne pouvait plus jamais être saisi.
       this.prisma.bonExamen.findMany({
         where: {
-          statut: 'VALIDE',
+          statut: { in: ['EN_ATTENTE', 'VALIDE'] },
           resultats: { none: {} },
           consultation: consultationsDuDossier(
             patientId,
@@ -1333,6 +1334,7 @@ export class PatientService {
           id: true,
           consultationId: true,
           createdAt: true,
+          statut: true,
           lignes: { select: { typeExamen: { select: { libelle: true } } } },
         },
         orderBy: { createdAt: 'desc' },
@@ -1430,6 +1432,7 @@ export class PatientService {
       consultationId: b.consultationId,
       date: b.createdAt,
       examens: b.lignes.map((l) => l.typeExamen.libelle),
+      aValider: b.statut === 'EN_ATTENTE',
     }))
 
     return { chroniques, traitements, resultatsExamens, resultatsEnAttente }

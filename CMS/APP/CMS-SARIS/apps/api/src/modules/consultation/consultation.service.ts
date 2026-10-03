@@ -1553,7 +1553,12 @@ export class ConsultationService {
               ordonnanceId,
               indicationClinik: ordonnance.indicationClinik ?? '',
               etablissementId: ordonnance.etablissementId,
-              statut: 'EN_ATTENTE',
+              // L'ordonnance est déjà signée : celui qui a le droit de valider un bon le
+              // reçoit VALIDÉ (prêt à imprimer, prêt à recevoir ses résultats). Sinon
+              // (infirmier), il reste À VALIDER — et il est visible dans le dossier, avec
+              // son bouton Valider : avant, un bon non validé à la clôture ne pouvait plus
+              // jamais recevoir de résultat.
+              statut: userPermissions.includes('bon_examen.validate') ? 'VALIDE' : 'EN_ATTENTE',
             },
           })
           await tx.ligneExamen.createMany({

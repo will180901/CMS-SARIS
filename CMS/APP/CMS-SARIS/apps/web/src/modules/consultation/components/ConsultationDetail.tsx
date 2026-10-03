@@ -22,6 +22,7 @@ import { useSessionStore } from '@/stores/session.store'
 import { useMyActiveDelegation } from '@/modules/acteurs/hooks/useDelegations'
 import { useCreateEvacuation } from '@/modules/sorties-critiques/hooks/useSorties'
 import { useCreateSuiviTraitement } from '@/modules/suivi-traitement/hooks/useSuiviTraitement'
+import { useBonsExamen } from '@/modules/bon-examen/hooks/useBonExamen'
 import { DiagnosticsCard } from './DiagnosticsCard'
 import { OrdonnanceCard }  from './OrdonnanceCard'
 import { OrdonnancePrintModal } from './OrdonnancePrintModal'
@@ -865,6 +866,10 @@ function DecisionSection({ consultationId, consultation, isActive, canClose: can
   if (decision === 'EVACUATION' && !evacActive) blockers.push(t('consultation.blockerDocument'))
   if (decision === 'SUIVI_TRAITEMENT' && !suiviActif) blockers.push(t('consultation.blockerDocument'))
   const canClose = isActive && blockers.length === 0
+  // Bons d'examen encore À VALIDER : la clôture reste possible (ils se valideront depuis
+  // le dossier du patient), mais on le dit avant le clic.
+  const { data: bonsConsultation = [] } = useBonsExamen({ consultationId })
+  const bonsAValider = bonsConsultation.filter(b => b.statut === 'EN_ATTENTE').length
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -977,6 +982,15 @@ function DecisionSection({ consultationId, consultation, isActive, canClose: can
           <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 3 }}>
             {blockers.map((b, i) => <li key={i} style={{ fontSize: 12, color: 'var(--texte-secondaire)' }}>{b}</li>)}
           </ul>
+        </div>
+      )}
+
+      {isActive && bonsAValider > 0 && (
+        <div style={{ padding: '10px 12px', borderRadius: 8, background: 'var(--info-fond)', border: '1px solid var(--info-bordure)', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+          <AlertTriangle size={13} style={{ color: 'var(--info-texte)', flexShrink: 0, marginTop: 2 }} />
+          <p style={{ margin: 0, fontSize: 12, color: 'var(--info-texte)', lineHeight: 1.45 }}>
+            {t('consultation.bonsAValiderAvertissement', { count: bonsAValider })}
+          </p>
         </div>
       )}
 

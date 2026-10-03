@@ -275,6 +275,8 @@ export interface SuiviResultatEnAttenteItem {
   consultationId: string
   date:           string
   examens:        string[]
+  /** Bon encore à valider (généré par un infirmier) : à valider avant d'y saisir un résultat. */
+  aValider?:      boolean
 }
 
 export interface PatientSuivi {

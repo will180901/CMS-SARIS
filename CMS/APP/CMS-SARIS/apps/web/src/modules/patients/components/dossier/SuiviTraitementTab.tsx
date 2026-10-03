@@ -711,7 +711,7 @@ export function ResultatsExamensTab({ patientId, historiqueRestreint = false }: 
                 key={r.bonId}
                 icon={<PenLine size={14} />} tint="var(--avert-texte)" bg="var(--avert-fond)"
                 title={r.examens.length > 0 ? r.examens.join(', ') : t('patients.suiviExamensRealises')}
-                badge={t('patients.suiviEnAttenteBadge')}
+                badge={r.aValider ? t('patients.suiviAValiderBadge') : t('patients.suiviEnAttenteBadge')}
                 badgeTone="warning"
                 date={r.date}
                 onClick={() => setDetail({ kind: 'BON_EXAMEN_ACTION', consultationId: r.consultationId, bonId: r.bonId, patientId })}
