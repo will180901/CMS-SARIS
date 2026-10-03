@@ -9,6 +9,7 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
 import { NotificationService } from '../notification/notification.service'
@@ -71,11 +72,15 @@ export class SortiesCritiquesService {
     return e
   }
 
-  async findAllEvacuations(query: EvacuationQueryDto) {
+  async findAllEvacuations(query: EvacuationQueryDto, canViewLocked = true) {
     // Volontairement SANS filtre de site (accès gouverné par permission).
     const where: any = {}
-    if (query.patientId)
-      where.consultation = { visite: { patientId: query.patientId } }
+    const visite: any = {}
+    if (query.patientId) visite.patientId = query.patientId
+    // Verrou : le contenu d'un dossier verrouillé reste à la supervision (même règle que
+    // le dossier et le suivi de traitement).
+    if (!canViewLocked) visite.patient = { verrouille: false }
+    if (Object.keys(visite).length) where.consultation = { visite }
     if (query.consultationId) where.consultationId = query.consultationId
     if (query.statut && query.statut !== 'TOUS') where.statut = query.statut
 
@@ -86,8 +91,17 @@ export class SortiesCritiquesService {
     })
   }
 
-  async findEvacuationById(id: string) {
-    return this.getEvacOrThrow(id)
+  async findEvacuationById(id: string, canViewLocked = true) {
+    const e = await this.getEvacOrThrow(id)
+    if (!canViewLocked) {
+      const p = await this.prisma.patient.findUnique({
+        where: { id: e.consultation.visite.patient.id },
+        select: { verrouille: true },
+      })
+      if (p?.verrouille)
+        throw new ForbiddenException('Dossier verrouillé : accès réservé au médecin chef')
+    }
+    return e
   }
 
   async createEvacuation(dto: CreateEvacuationDto, acteurId?: string) {

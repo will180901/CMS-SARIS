@@ -30,8 +30,13 @@ import {
 } from './dto/evacuation.dto'
 
 interface AuthedRequest {
-  user?: { id?: string }
+  user?: { id?: string; roles?: string[] }
 }
+
+// Verrou du dossier : seule la supervision lit le contenu d'un dossier verrouillé.
+const SUPERVISION_ROLES = ['ADMIN_SYSTEME', 'MEDECIN_CHEF']
+const isSupervision = (req: AuthedRequest) =>
+  (req.user?.roles ?? []).some((r) => SUPERVISION_ROLES.includes(r))
 
 // ── Évacuations ───────────────────────────────────────────────────────────────
 
@@ -43,14 +48,14 @@ export class EvacuationsController {
 
   @Get()
   @RequirePermissions('evacuation.read')
-  findAll(@Query() query: EvacuationQueryDto) {
-    return this.svc.findAllEvacuations(query)
+  findAll(@Query() query: EvacuationQueryDto, @Req() req: AuthedRequest) {
+    return this.svc.findAllEvacuations(query, isSupervision(req))
   }
 
   @Get(':id')
   @RequirePermissions('evacuation.read')
-  findById(@Param('id') id: string) {
-    return this.svc.findEvacuationById(id)
+  findById(@Param('id') id: string, @Req() req: AuthedRequest) {
+    return this.svc.findEvacuationById(id, isSupervision(req))
   }
 
   @Post()
