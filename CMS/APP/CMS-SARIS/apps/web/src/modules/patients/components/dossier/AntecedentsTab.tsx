@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@workspace/ui/components/dropdown-menu'
 import { DrawerShell }        from '@/modules/referentiels/components/DrawerShell'
-import { SelectBox }          from '@/components/saris'
+import { SelectBox, Textarea } from '@/components/saris'
 import { ConfirmDeleteModal } from './ConfirmDeleteModal'
 import { useCreateAntecedent, useUpdateAntecedent, useDeleteAntecedent } from '../../hooks/usePatients'
 import { usePathologies }     from '@/modules/referentiels/hooks/useReferentiels'
@@ -22,11 +22,13 @@ import type { PatientDossier, AntecedentPatient, TypeAntecedent } from '@cms-sar
 // ── Config types ──────────────────────────────────────────────────────────────
 
 // `labelKey` = clé i18n (résolue dans le composant, jamais au niveau module).
+// Couleurs = tons décoratifs du thème (ils ont leur variante sombre) : les codes
+// hexadécimaux d'avant restaient clairs en thème sombre.
 const TYPE_CFG: Record<TypeAntecedent, { labelKey: string; bg: string; text: string; border: string }> = {
-  MEDICAL:             { labelKey: 'patients.antecedentMedical',  bg: '#dbeafe', text: '#1e40af', border: '#bfdbfe' },
-  CHIRURGICAL:         { labelKey: 'patients.antecedentSurgical', bg: '#ede9fe', text: '#6d28d9', border: '#ddd6fe' },
-  FAMILIAL:            { labelKey: 'patients.antecedentFamilial', bg: '#d1fae5', text: '#065f46', border: '#6ee7b7' },
-  GYNECO_OBSTETRICAL:  { labelKey: 'patients.antecedentGyneco',   bg: '#fce7f3', text: '#9d174d', border: '#f9a8d4' },
+  MEDICAL:             { labelKey: 'patients.antecedentMedical',  bg: 'var(--ton-bleu-fond)',     text: 'var(--ton-bleu-icone)',     border: 'var(--ton-bleu-bordure)' },
+  CHIRURGICAL:         { labelKey: 'patients.antecedentSurgical', bg: 'var(--ton-violet-fond)',   text: 'var(--ton-violet-icone)',   border: 'var(--ton-violet-bordure)' },
+  FAMILIAL:            { labelKey: 'patients.antecedentFamilial', bg: 'var(--ton-emeraude-fond)', text: 'var(--ton-emeraude-icone)', border: 'var(--ton-emeraude-bordure)' },
+  GYNECO_OBSTETRICAL:  { labelKey: 'patients.antecedentGyneco',   bg: 'var(--ton-rose-fond)',     text: 'var(--ton-rose-icone)',     border: 'var(--ton-rose-bordure)' },
   AUTRE:               { labelKey: 'patients.antecedentOther',    bg: 'var(--fond-surface-2)', text: 'var(--texte-secondaire)', border: 'var(--bordure-normale)' },
 }
 
@@ -145,6 +147,7 @@ function AntecedentCard({ ant, canWrite, patientId }: { ant: AntecedentPatient; 
       {confirmDelete && (
         <ConfirmDeleteModal
           title={t('patients.deleteAntecedentTitle')}
+          subtitle={ant.pathologie?.libelle ?? ant.description}
           message={t('patients.deleteAntecedentBody')}
           onClose={() => setConfirmDelete(false)}
           onConfirm={async () => { await remove.mutateAsync(ant.id) }}
@@ -187,7 +190,7 @@ function AntecedentCard({ ant, canWrite, patientId }: { ant: AntecedentPatient; 
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
             <Label style={{ fontSize: '12px', fontWeight: '500', color: 'var(--texte-secondaire)' }}>{t('patients.fieldDescription')}</Label>
-            <textarea {...editForm.register('description')} placeholder={t('patients.antecedentDescriptionPlaceholder')} style={{ fontSize: '13px', padding: '8px 10px', borderRadius: 6, border: '1px solid var(--bordure-normale)', background: 'var(--fond-surface)', color: 'var(--texte-primaire)', minHeight: 100, resize: 'vertical', fontFamily: 'inherit' }} />
+            <Textarea {...editForm.register('description')} placeholder={t('patients.antecedentDescriptionPlaceholder')} invalid={!!editForm.formState.errors.description} style={{ minHeight: 100 }} />
             {editForm.formState.errors.description && (
               <p style={{ fontSize: '11px', color: 'var(--erreur-texte)' }}>{editForm.formState.errors.description.message}</p>
             )}
@@ -300,7 +303,7 @@ export function AntecedentsTab({ dossier, canWrite }: { dossier: PatientDossier;
           </div>
           <div style={fld}>
             <Label style={lbl}>{t('patients.fieldDescription')}</Label>
-            <textarea {...form.register('description')} placeholder={t('patients.antecedentDescriptionPlaceholder')} style={{ fontSize: '13px', padding: '8px 10px', borderRadius: 6, border: '1px solid var(--bordure-normale)', background: 'var(--fond-surface)', color: 'var(--texte-primaire)', minHeight: 100, resize: 'vertical', fontFamily: 'inherit' }} />
+            <Textarea {...form.register('description')} placeholder={t('patients.antecedentDescriptionPlaceholder')} invalid={!!form.formState.errors.description} style={{ minHeight: 100 }} />
             {form.formState.errors.description && (
               <p style={{ fontSize: '11px', color: 'var(--erreur-texte)' }}>{form.formState.errors.description.message}</p>
             )}

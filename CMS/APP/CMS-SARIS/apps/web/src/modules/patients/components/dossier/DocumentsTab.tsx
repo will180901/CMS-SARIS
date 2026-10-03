@@ -144,7 +144,9 @@ export function DocumentsTab({ patientId }: { patientId: string }) {
 
       {/* Filtres par type */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
-        {FILTERS.map(f => {
+        {/* Le serveur ne renvoie les évacuations qu'avec evacuation.read : sans elle, le
+            filtre « Évacuations » restait affiché et vide (constat 44). */}
+        {FILTERS.filter(f => f.key !== 'EVACUATION' || has('evacuation.read')).map(f => {
           const active = filtre === f.key
           const n = f.key === 'TOUS' ? documents.length : (counts[f.key] ?? 0)
           return (
@@ -286,8 +288,11 @@ export function DocumentsTab({ patientId }: { patientId: string }) {
           width={460}
           onClose={() => { if (!del.isPending) setConfirmDoc(null) }}
           footer={<>
+            {/* « Annuler » à côté d'« Annuler l'ordonnance » : deux sens opposés, même mot. */}
             <Button variant="secondary" onClick={() => setConfirmDoc(null)} disabled={del.isPending}>
-              {t('common.cancel', { defaultValue: 'Annuler' })}
+              {confirmDoc.type === 'ORDONNANCE'
+                ? t('patients.docKeepOrdonnance')
+                : t('common.cancel', { defaultValue: 'Annuler' })}
             </Button>
             <Button variant="danger" leftIcon={<Trash2 size={14} />} loading={del.isPending} onClick={() => del.mutate(confirmDoc)}>
               {confirmDoc.type === 'ORDONNANCE'

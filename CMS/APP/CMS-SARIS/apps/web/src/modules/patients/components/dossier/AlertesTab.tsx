@@ -21,7 +21,7 @@ import { useCreateAllergie, useUpdateAllergie, useDeleteAllergie, useCreateAlert
 import { formatDate } from '@/lib/intl'
 import type { PatientDossier, AllergiePatient, AlerteMedicale } from '@cms-saris/types'
 import { humanizeCode } from '@/config/labels'
-import { CheckBox } from '@/components/saris'
+import { CheckBox, Textarea } from '@/components/saris'
 
 // ── Config sévérités ──────────────────────────────────────────────────────────
 
@@ -98,6 +98,9 @@ function AllergieCard({ allergie, canWrite, patientId, onEdit }: { allergie: All
             <span style={{ fontSize: '10px', color: 'var(--texte-tertiaire)', border: '1px solid var(--bordure-normale)', padding: '1px 6px', borderRadius: 99 }}>{t('patients.deactivatedBadge')}</span>
           )}
         </div>
+        <p style={{ fontSize: '11px', color: 'var(--texte-tertiaire)', margin: '4px 0 0' }}>
+          {t('patients.securiteSignaleeLe', { date: formatDate(allergie.createdAt) })}
+        </p>
       </div>
       {canWrite && (
         <DropdownMenu>
@@ -213,6 +216,7 @@ function AlerteCard({ alerte, canWrite, patientId, onEdit }: { alerte: AlerteMed
       {confirmDelete && (
         <ConfirmDeleteModal
           title={t('patients.deleteAlertTitle')}
+          subtitle={alerte.message}
           message={t('patients.deleteAlertBody')}
           onClose={() => setConfirmDelete(false)}
           onConfirm={async () => { await remove.mutateAsync(alerte.id) }}
@@ -468,7 +472,7 @@ export function AlertesTab({ dossier, canWrite }: { dossier: PatientDossier; can
           </div>
           <div style={fld}>
             <Label style={lbl}>{t('patients.fieldMessage')}</Label>
-            <textarea {...alerteForm.register('message')} placeholder={t('patients.alertMessagePlaceholder')} style={{ fontSize: '13px', padding: '8px 10px', borderRadius: 6, border: `1px solid ${alerteForm.formState.errors.message ? 'var(--erreur-accent)' : 'var(--bordure-normale)'}`, background: 'var(--fond-surface)', color: 'var(--texte-primaire)', minHeight: 80, resize: 'vertical', fontFamily: 'inherit' }} />
+            <Textarea {...alerteForm.register('message')} placeholder={t('patients.alertMessagePlaceholder')} invalid={!!alerteForm.formState.errors.message} />
             {alerteForm.formState.errors.message && <p style={{ fontSize: '11px', color: 'var(--erreur-texte)', margin: 0 }}>{alerteForm.formState.errors.message.message}</p>}
           </div>
           <div style={fld}>

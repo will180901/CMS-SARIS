@@ -1,7 +1,7 @@
 import { useState }         from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { useTranslation }    from 'react-i18next'
-import { DatePicker }        from '@/components/saris'
+import { DatePicker, Button } from '@/components/saris'
 import { zodResolver }       from '@hookform/resolvers/zod'
 import { z }                 from 'zod'
 import { Pencil, Check, X, User, Phone, Briefcase } from 'lucide-react'
@@ -197,15 +197,6 @@ export function IdentiteTab({ dossier, canWrite }: { dossier: PatientDossier; ca
           <button onClick={handleEdit} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: 'var(--ap-600)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '500' }}>
             <Pencil size={11} /> {t('patients.edit')}
           </button>
-        ) : editing ? (
-          <div style={{ display: 'flex', gap: '6px' }}>
-            <button onClick={handleCancel} style={{ padding: '3px 8px', borderRadius: 5, fontSize: '11px', color: 'var(--texte-secondaire)', background: 'none', border: '1px solid var(--bordure-normale)', cursor: 'pointer' }}>
-              <X size={11} />
-            </button>
-            <button onClick={handleSave} disabled={update.isPending} style={{ padding: '3px 8px', borderRadius: 5, fontSize: '11px', color: '#fff', background: 'var(--ap-500)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px' }}>
-              <Check size={11} /> {update.isPending ? '…' : t('patients.save')}
-            </button>
-          </div>
         ) : undefined}
       >
         {!editing ? (
@@ -327,6 +318,29 @@ export function IdentiteTab({ dossier, canWrite }: { dossier: PatientDossier; ca
               </div>
             )}
           </InfoCard>
+        </div>
+      )}
+
+      {/* Une seule barre d'actions, SOUS les cartes qu'elle enregistre (constat 46) :
+          avant, un petit bouton en haut de la première carte enregistrait aussi le
+          contact d'urgence et les données professionnelles, sans le dire. */}
+      {editing && (
+        <div style={{
+          gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
+          padding: '10px 14px', borderRadius: 10,
+          background: 'var(--fond-surface)', border: '1px solid var(--bordure-normale)',
+          // Collée en bas de la zone qui défile : visible sans avoir à la chercher.
+          position: 'sticky', bottom: 8, zIndex: 2, boxShadow: 'var(--ombre-2)',
+        }}>
+          <span style={{ marginRight: 'auto', fontSize: 12, color: 'var(--texte-secondaire)', lineHeight: 1.4 }}>
+            {isCdiCdd ? t('patients.identiteSaveHintCdi') : t('patients.identiteSaveHint')}
+          </span>
+          <Button variant="secondary" leftIcon={<X size={14} />} onClick={handleCancel} disabled={update.isPending}>
+            {t('common.cancel')}
+          </Button>
+          <Button variant="primary" leftIcon={<Check size={14} />} loading={update.isPending} onClick={handleSave}>
+            {t('patients.identiteSaveAll')}
+          </Button>
         </div>
       )}
 

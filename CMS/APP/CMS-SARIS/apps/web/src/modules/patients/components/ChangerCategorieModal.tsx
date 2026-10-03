@@ -6,7 +6,7 @@ import { ArrowRight, ArrowRightLeft, AlertCircle, Check } from 'lucide-react'
 import { Label }             from '@workspace/ui/components/label'
 import { Input }             from '@workspace/ui/components/input'
 import { Button }            from '@workspace/ui/components/button'
-import { Modal }             from '@/components/saris'
+import { Modal, Textarea }   from '@/components/saris'
 import { useCategoriesPatient } from '@/modules/referentiels/hooks/useReferentiels'
 import { CategorieBadge, getCategConfig } from './CategorieBadge'
 import { useChangerCategorie } from '../hooks/usePatients'
@@ -305,21 +305,11 @@ export function ChangerCategorieModal({
           {/* Motif */}
           <div style={{ ...fld, marginTop: '16px' }}>
             <Label style={lbl}>{t('patients.changeReasonLabel')}</Label>
-            <textarea
+            <Textarea
               {...register('motif')}
               placeholder={t('patients.changeReasonPlaceholder')}
               rows={3}
-              style={{
-                fontSize:   '13px',
-                padding:    '8px 10px',
-                borderRadius: 6,
-                border:     `1px solid ${errors.motif ? 'var(--erreur-texte)' : 'var(--bordure-normale)'}`,
-                background: 'var(--fond-surface)',
-                color:      'var(--texte-primaire)',
-                resize:     'vertical',
-                fontFamily: 'inherit',
-                lineHeight: '1.5',
-              }}
+              invalid={!!errors.motif}
             />
             {errors.motif && (
               <p style={{ fontSize: '11px', color: 'var(--erreur-texte)' }}>{errors.motif.message}</p>
