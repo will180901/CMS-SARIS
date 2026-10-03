@@ -113,9 +113,14 @@ export const SYNC_MODELS: readonly SyncModelDef[] = [
   def('SuiviChronique', 'suiviChronique', GLOBAL),
   def('RattachementAyantDroitCdi', 'rattachementAyantDroitCdi', GLOBAL),
   def('RattachementSousTraitant', 'rattachementSousTraitant', GLOBAL),
+  // Historiques (journaux en ajout seul) — après leurs parents (FK).
+  def('HistoriqueCategoriePatient', 'historiqueCategoriePatient', GLOBAL),
+  def('HistoriqueRattachementAyantDroit', 'historiqueRattachementAyantDroit', GLOBAL),
+  def('HistoriqueRattachementSousTraitant', 'historiqueRattachementSousTraitant', GLOBAL),
 
   // ── Parcours de soin — GLOBAL (suit le patient, tous sites) ────────────────
   def('Visite', 'visite', GLOBAL),
+  def('VisiteEvenement', 'visiteEvenement', GLOBAL), // journal de la visite — après Visite (FK)
   def('ConstanteVitale', 'constanteVitale', GLOBAL),
   def('Consultation', 'consultation', GLOBAL),
   def('DiagnosticConsultation', 'diagnosticConsultation', GLOBAL),
@@ -128,11 +133,13 @@ export const SYNC_MODELS: readonly SyncModelDef[] = [
   def('LigneBonPharmacie', 'ligneBonPharmacie', GLOBAL),
   def('ConsultationPrenatale', 'consultationPrenatale', GLOBAL),
   def('Evacuation', 'evacuation', GLOBAL),
+  def('SuiviEvacuation', 'suiviEvacuation', GLOBAL), // après Evacuation (FK)
   // Suivi de traitement (épisode) et certificats médicaux : actes cliniques à part
   // entière, absents du registre — un épisode ouvert ou un certificat établi sur un poste
-  // n'existait nulle part ailleurs, et inversement. (Les fiches de suivi et le suivi
-  // d'évacuation n'ont pas encore les colonnes updatedAt/deletedAt : migration à part.)
+  // n'existait nulle part ailleurs, et inversement.
   def('SuiviTraitement', 'suiviTraitement', GLOBAL),
+  // Fiches de suivi (migration 20261003090000) — après SuiviTraitement (FK).
+  def('FicheSuiviTraitement', 'ficheSuiviTraitement', GLOBAL),
   def('CertificatMedical', 'certificatMedical', GLOBAL),
 
   // ── Messagerie (scope site via conversation) ──────────────────────────────

@@ -115,6 +115,7 @@ model NotificationLecture {
 }
 
 
+
 model Role {
   updatedAt    DateTime          @default(now()) @updatedAt
   id           String            @id @default(uuid())
@@ -158,6 +159,7 @@ model UtilisateurPermission {
   @@unique([utilisateurId, permissionId])
   @@index([utilisateurId])
 }
+
 
 
 model UtilisateurRole {
@@ -634,12 +636,15 @@ model RattachementAyantDroitCdi {
 }
 
 model HistoriqueRattachementAyantDroit {
+  updatedAt      DateTime                  @default(now()) @updatedAt
   id             String                    @id @default(uuid())
   rattachementId String
   evenement      String
   createdAt      DateTime                  @default(now())
   createdBy      String?
   rattachement   RattachementAyantDroitCdi @relation(fields: [rattachementId], references: [id])
+  // updatedAt : curseur de synchronisation multi-postes (journal en ajout seul).
+  @@index([updatedAt])
 }
 
 model RattachementSousTraitant {
@@ -659,12 +664,15 @@ model RattachementSousTraitant {
 }
 
 model HistoriqueRattachementSousTraitant {
+  updatedAt      DateTime                 @default(now()) @updatedAt
   id             String                   @id @default(uuid())
   rattachementId String
   evenement      String
   createdAt      DateTime                 @default(now())
   createdBy      String?
   rattachement   RattachementSousTraitant @relation(fields: [rattachementId], references: [id])
+  // updatedAt : curseur de synchronisation multi-postes (journal en ajout seul).
+  @@index([updatedAt])
 }
 
 // ─────────────────────────────────────────────
@@ -715,6 +723,7 @@ model Patient {
   @@index([siteId, updatedAt])
   @@index([updatedAt])
 }
+
 
 
 model IdentitePatient {
@@ -838,6 +847,7 @@ model AlerteMedicale {
 }
 
 model HistoriqueCategoriePatient {
+  updatedAt         DateTime         @default(now()) @updatedAt
   id                String           @id @default(uuid())
   patientId         String
   ancienneCategId   String?
@@ -848,6 +858,8 @@ model HistoriqueCategoriePatient {
   createdAt         DateTime         @default(now())
   patient           Patient          @relation(fields: [patientId], references: [id])
   nouvelleCategorie CategoriePatient @relation(fields: [nouvelleCategId], references: [id])
+  // updatedAt : curseur de synchronisation multi-postes (journal en ajout seul).
+  @@index([updatedAt])
 }
 
 model FusionDossierPatient {
@@ -941,10 +953,12 @@ model Visite {
 }
 
 
+
 // ── Audit trail des modifications de visite ──────────────────────────────────
 // Une ligne par changement de statut / priorité / soignant.
 
 model VisiteEvenement {
+  updatedAt   DateTime            @default(now()) @updatedAt
   id          String              @id @default(uuid())
   visiteId    String
   type        String
@@ -957,7 +971,10 @@ model VisiteEvenement {
   visite Visite @relation(fields: [visiteId], references: [id], onDelete: Cascade)
 
   @@index([visiteId, createdAt])
+  // updatedAt : curseur de synchronisation multi-postes (journal en ajout seul).
+  @@index([updatedAt])
 }
+
 
 
 model ConstanteVitale {
@@ -1036,6 +1053,7 @@ model Consultation {
 
   @@index([updatedAt])
 }
+
 
 
 model DiagnosticConsultation {
@@ -1258,6 +1276,8 @@ model Evacuation {
 }
 
 model SuiviEvacuation {
+  updatedAt    DateTime   @default(now()) @updatedAt
+  deletedAt    DateTime?
   id           String     @id @default(uuid())
   evacuationId String
   notes        String
@@ -1265,6 +1285,9 @@ model SuiviEvacuation {
   createdAt    DateTime   @default(now())
   createdBy    String?
   evacuation   Evacuation @relation(fields: [evacuationId], references: [id])
+  // updatedAt/deletedAt : synchronisation multi-postes (modifiable ET supprimable —
+  // purge à la ré-saisie, cascade d'une consultation → tombstone propagé).
+  @@index([updatedAt])
 }
 
 // ─────────────────────────────────────────────
@@ -1292,6 +1315,8 @@ model SuiviTraitement {
 }
 
 model FicheSuiviTraitement {
+  updatedAt              DateTime        @default(now()) @updatedAt
+  deletedAt              DateTime?
   id                     String          @id @default(uuid())
   suiviTraitementId      String
   temperature            Float?
@@ -1307,6 +1332,9 @@ model FicheSuiviTraitement {
   createdAt              DateTime        @default(now())
   createdBy              String?
   suiviTraitement        SuiviTraitement @relation(fields: [suiviTraitementId], references: [id])
+  // updatedAt/deletedAt : synchronisation multi-postes (modifiable ET supprimable —
+  // purge à la ré-saisie, cascade d'une consultation → tombstone propagé).
+  @@index([updatedAt])
 }
 
 // ─────────────────────────────────────────────

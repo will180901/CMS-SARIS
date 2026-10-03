@@ -60,7 +60,8 @@ const SUIVI_TRAITEMENT_INCLUDE = {
       },
     },
   },
-  fiches: { orderBy: { createdAt: 'desc' as const } },
+  // deletedAt:null OBLIGATOIRE : l'extension soft-delete ne filtre pas les relations.
+  fiches: { where: { deletedAt: null }, orderBy: { createdAt: 'desc' as const } },
 } as const
 
 // Une fiche entièrement vide n'a aucune valeur clinique.

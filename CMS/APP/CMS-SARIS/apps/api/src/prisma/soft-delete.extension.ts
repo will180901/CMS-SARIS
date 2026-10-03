@@ -178,7 +178,11 @@ export const SOFT_DELETE_MODELS: ReadonlySet<string> = new Set<string>([
   'LigneBonPharmacie',
   'SuiviChronique',
   'CertificatMedical',
+  // Enfants AVANT leur parent : la purge des tombstones les parcourt dans cet ordre
+  // (clé étrangère). Supprimés logiquement pour que la suppression se synchronise.
+  'SuiviEvacuation',
   'Evacuation',
+  'FicheSuiviTraitement',
   'SuiviTraitement',
   'MessageReaction',
   'MessagePieceJointe',

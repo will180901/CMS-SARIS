@@ -47,7 +47,8 @@ const EVACUATION_INCLUDE = {
     },
   },
   etablissement: { select: { id: true, nom: true, type: true } },
-  suivi: { orderBy: { createdAt: 'desc' as const } },
+  // deletedAt:null OBLIGATOIRE : l'extension soft-delete ne filtre pas les relations.
+  suivi: { where: { deletedAt: null }, orderBy: { createdAt: 'desc' as const } },
 } as const
 
 @Injectable()
