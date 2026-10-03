@@ -442,6 +442,11 @@ const TON_GRAVITE: Record<'CRITIQUE' | 'ELEVE' | 'MODERE', Ton> = {
 }
 // Ton NEUTRE de l'historique : la donnée est toujours vraie, mais elle n'est plus
 // d'actualité. La peindre en rouge la ferait lire comme un danger présent.
+// Libellé du type d'une alerte saisie (mêmes clés que l'onglet Alertes).
+const TYPE_ALERTE_CLE: Record<string, string> = {
+  ALLERGIE: 'patients.alertTypeAllergie', PATHOLOGIE_CHRONIQUE: 'patients.alertTypePathologie',
+  CONTRE_INDICATION: 'patients.alertTypeContreIndication', SURVEILLANCE: 'patients.alertTypeSurveillance', AUTRE: 'patients.alertTypeAutre',
+}
 const TON_NEUTRE: Ton = { bg: 'var(--fond-surface-2)', border: 'var(--bordure-legere)', text: 'var(--texte-secondaire)', dot: 'var(--texte-tertiaire)' }
 
 function Pastille({ ton, icone, children, fort }: { ton: Ton; icone?: React.ReactNode; children: React.ReactNode; fort?: boolean }) {
@@ -476,7 +481,10 @@ function SecuriteClinique({ dossier, alertesActives }: { dossier: PatientDossier
   // Le bloc entier passe au rouge dès qu'un danger PRÉSENT existe : c'est le signal fort
   // que portait l'ancien bandeau « Informations critiques », conservé tel quel.
   const danger = severes.length + critiques.length + actuelles.filter(a => a.gravite === 'CRITIQUE').length > 0
-  const aDuDetail = calculees.length > 0
+  // Constat 5 : une alerte saisie au dossier était réduite à son message — sans type,
+  // sans gravité écrite, sans date. Le détail couvre désormais aussi ces saisies : il y
+  // a donc toujours quelque chose à déplier.
+  const typeAlerte = (type: string) => t(TYPE_ALERTE_CLE[type] ?? 'patients.alertTypeAutre')
 
   const anciennete = (iso: string) => {
     const jours = Math.floor((maintenant - new Date(iso).getTime()) / 86_400_000)
@@ -525,7 +533,7 @@ function SecuriteClinique({ dossier, alertesActives }: { dossier: PatientDossier
             <Pastille key={a.id} ton={TON_GRAVITE.CRITIQUE} fort>{t('patients.bannerAllergyPrefix', { substance: a.substance })}</Pastille>
           ))}
           {critiques.map(a => (
-            <Pastille key={a.id} ton={TON_GRAVITE.CRITIQUE} fort>{a.message}</Pastille>
+            <Pastille key={a.id} ton={TON_GRAVITE.CRITIQUE} fort>{typeAlerte(a.type)} : {a.message}</Pastille>
           ))}
           {actuelles.map((a, i) => (
             <Pastille key={`c${i}`} ton={TON_GRAVITE[a.gravite]} fort={danger}>
@@ -539,33 +547,58 @@ function SecuriteClinique({ dossier, alertesActives }: { dossier: PatientDossier
           )}
         </div>
 
-        {aDuDetail && (
-          <button
-            type="button"
-            onClick={() => setOuvert(!ouvert)}
-            aria-expanded={ouvert}
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0, marginLeft: 'auto',
-              fontSize: 12, fontWeight: 600, padding: '3px 8px', borderRadius: 6, cursor: 'pointer',
-              background: 'transparent', border: 'none',
-              color: danger ? 'var(--erreur-texte)' : 'var(--ap-600)',
-            }}
-          >
-            {ouvert ? t('patients.securiteMasquer') : t('patients.securiteDetails')}
-            {ouvert ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => setOuvert(!ouvert)}
+          aria-expanded={ouvert}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0, marginLeft: 'auto',
+            fontSize: 12, fontWeight: 600, padding: '3px 8px', borderRadius: 6, cursor: 'pointer',
+            background: 'transparent', border: 'none',
+            color: danger ? 'var(--erreur-texte)' : 'var(--ap-600)',
+          }}
+        >
+          {ouvert ? t('patients.securiteMasquer') : t('patients.securiteDetails')}
+          {ouvert ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+        </button>
       </div>
 
-      {ouvert && aDuDetail && (
+      {ouvert && (
         <div style={{
           display: 'flex', flexDirection: 'column', gap: 6, padding: '10px 14px 12px',
           borderTop: `1px solid ${danger ? 'var(--erreur-bordure)' : 'var(--bordure-legere)'}`,
           background: 'var(--fond-surface)', borderRadius: '0 0 var(--radius-md) var(--radius-md)',
         }}>
-          {actuelles.length > 0 && (
+          {severes.length + critiques.length > 0 && (
             <>
               <p style={{ ...sousTitre, color: 'var(--texte-secondaire)' }}>
+                <ShieldAlert size={12} style={{ color: 'var(--erreur-accent)' }} /> {t('patients.securiteSaisies', { count: severes.length + critiques.length })}
+              </p>
+              {severes.map(a => (
+                <div key={a.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '7px 10px', borderRadius: 6, background: TON_GRAVITE.CRITIQUE.bg, border: `1px solid ${TON_GRAVITE.CRITIQUE.border}` }}>
+                  <AlertTriangle size={13} style={{ color: TON_GRAVITE.CRITIQUE.dot, flexShrink: 0, marginTop: 2 }} />
+                  <div style={{ minWidth: 0, fontSize: 12, lineHeight: 1.45 }}>
+                    <span style={{ fontWeight: 700, color: TON_GRAVITE.CRITIQUE.text }}>{t('patients.alertTypeAllergie')} · {t('patients.graviteLabelSevere')}</span>
+                    <span style={{ color: 'var(--texte-secondaire)' }}> — {a.substance}</span>
+                    <span style={{ color: 'var(--texte-tertiaire)' }}>{' · '}{t('patients.securiteSignaleeLe', { date: formatDate(a.createdAt) })}, {anciennete(a.createdAt)}</span>
+                  </div>
+                </div>
+              ))}
+              {critiques.map(a => (
+                <div key={a.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '7px 10px', borderRadius: 6, background: TON_GRAVITE.CRITIQUE.bg, border: `1px solid ${TON_GRAVITE.CRITIQUE.border}` }}>
+                  <AlertTriangle size={13} style={{ color: TON_GRAVITE.CRITIQUE.dot, flexShrink: 0, marginTop: 2 }} />
+                  <div style={{ minWidth: 0, fontSize: 12, lineHeight: 1.45 }}>
+                    <span style={{ fontWeight: 700, color: TON_GRAVITE.CRITIQUE.text }}>{typeAlerte(a.type)} · {t('patients.graviteLabelCritique')}</span>
+                    <span style={{ color: 'var(--texte-secondaire)' }}> — {a.message}</span>
+                    <span style={{ color: 'var(--texte-tertiaire)' }}>{' · '}{t('patients.securiteSignaleeLe', { date: formatDate(a.createdAt) })}, {anciennete(a.createdAt)}</span>
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
+          {actuelles.length > 0 && (
+            <>
+              <p style={{ ...sousTitre, color: 'var(--texte-secondaire)', marginTop: severes.length + critiques.length ? 6 : 0 }}>
                 <Activity size={12} style={{ color: 'var(--ap-600)' }} /> {t('patients.clinicalAlertsDetected', { count: actuelles.length })}
               </p>
               {actuelles.map((a, i) => ligne(a, i, TON_GRAVITE[a.gravite]))}
@@ -573,7 +606,7 @@ function SecuriteClinique({ dossier, alertesActives }: { dossier: PatientDossier
           )}
           {historiques.length > 0 && (
             <>
-              <p style={{ ...sousTitre, color: 'var(--texte-tertiaire)', marginTop: actuelles.length ? 6 : 0 }}>
+              <p style={{ ...sousTitre, color: 'var(--texte-tertiaire)', marginTop: actuelles.length + severes.length + critiques.length ? 6 : 0 }}>
                 <History size={12} /> {t('patients.clinicalAlertsHistory', { count: historiques.length })}
               </p>
               {historiques.map((a, i) => ligne(a, i, TON_NEUTRE))}
