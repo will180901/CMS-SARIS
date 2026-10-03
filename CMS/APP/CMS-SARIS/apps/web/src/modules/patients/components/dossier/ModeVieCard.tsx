@@ -9,6 +9,7 @@ import { Label }     from '@workspace/ui/components/label'
 import { Textarea, SelectBox } from '@/components/saris'
 import { useUpdateModeVie } from '../../hooks/usePatients'
 import { useIsCompact } from '@/hooks/useMediaQuery'
+import { formatDate } from '@/lib/intl'
 import type { PatientDossier } from '@cms-saris/types'
 
 /**
@@ -99,6 +100,13 @@ export function ModeVieCard({ dossier, canWrite }: { dossier: PatientDossier; ca
           <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--texte-primaire)' }}>
             {t('patients.modeVie.title', { defaultValue: 'Mode de vie' })}
           </span>
+          {/* Date du relevé (constat 38) : un tabagisme noté il y a cinq ans se lisait
+              comme un état actuel. */}
+          {mv?.updatedAt && (
+            <span style={{ fontSize: '11px', color: 'var(--texte-tertiaire)' }}>
+              · {t('patients.modeVieReleveLe', { date: formatDate(mv.updatedAt) })}
+            </span>
+          )}
         </div>
         {canWrite && !editing && (
           <button onClick={startEdit} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: 'var(--ap-600)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500 }}>

@@ -96,6 +96,8 @@ export interface ModeViePatient {
   portCharges?:      string | null
   automedication?:   string | null
   observations?:     string | null
+  /** Date du dernier relevé (mise à jour) — sans elle, impossible de savoir s'il est actuel. */
+  updatedAt?:        string
 }
 
 export interface AllergiePatient {
