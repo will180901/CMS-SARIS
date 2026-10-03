@@ -14,7 +14,12 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
 } from '@nestjs/common'
+import { FileInterceptor } from '@nestjs/platform-express'
+import { memoryStorage } from 'multer'
 import { CurrentUser } from '../../common/decorators/current-user.decorator'
 import type { UserSession } from '@cms-saris/types'
 import { BonExamenService } from './bon-examen.service'
@@ -28,8 +33,12 @@ import {
   ValiderBonExamenDto,
   AnnulerBonExamenDto,
   SaisirResultatDto,
+  CorrigerResultatDto,
   BonExamenQueryDto,
 } from './dto/bon-examen.dto'
+
+/** Compte rendu du laboratoire : photo ou PDF, 8 Mo au plus. */
+const COMPTE_RENDU_TYPES = /^(application\/pdf|image\/(jpeg|png|webp))$/
 
 @Controller('bons-examen')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -87,5 +96,51 @@ export class BonExamenController {
     @CurrentUser() user: UserSession,
   ) {
     return this.svc.saisirResultat(id, dto, user.id)
+  }
+
+  @Patch(':id/resultats/:resultatId')
+  @RequirePermissions('bon_examen.result')
+  corrigerResultat(
+    @Param('id') id: string,
+    @Param('resultatId') resultatId: string,
+    @Body() dto: CorrigerResultatDto,
+    @CurrentUser() user: UserSession,
+  ) {
+    return this.svc.corrigerResultat(id, resultatId, dto, user.id)
+  }
+
+  @Post(':id/pieces-jointes')
+  @RequirePermissions('bon_examen.result')
+  @HttpCode(HttpStatus.CREATED)
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: { fileSize: 8 * 1024 * 1024 },
+      fileFilter: (_req, file, cb) => {
+        if (COMPTE_RENDU_TYPES.test(file.mimetype)) cb(null, true)
+        else cb(new BadRequestException('Joignez une photo (JPEG, PNG, WebP) ou un PDF'), false)
+      },
+    }),
+  )
+  ajouterPieceJointe(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @CurrentUser() user: UserSession,
+  ) {
+    if (!file) throw new BadRequestException('Aucun fichier reçu')
+    return this.svc.ajouterPieceJointe(id, file, user.id)
+  }
+
+  @Get(':id/pieces-jointes/:pieceId')
+  @RequirePermissions('bon_examen.read')
+  lirePieceJointe(@Param('id') id: string, @Param('pieceId') pieceId: string) {
+    return this.svc.lirePieceJointe(id, pieceId)
+  }
+
+  @Delete(':id/pieces-jointes/:pieceId')
+  @RequirePermissions('bon_examen.result')
+  @HttpCode(HttpStatus.OK)
+  supprimerPieceJointe(@Param('id') id: string, @Param('pieceId') pieceId: string) {
+    return this.svc.supprimerPieceJointe(id, pieceId)
   }
 }

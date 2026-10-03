@@ -1294,6 +1294,9 @@ export class PatientService {
       }),
       this.prisma.resultatExamen.findMany({
         where: {
+          // La version EN VIGUEUR seulement : un résultat corrigé (REMPLACE) reste
+          // consultable sur son bon, mais ne compte plus comme résultat du patient.
+          statut: 'RECU',
           bon: {
             consultation: consultationsDuDossier(
               patientId,
@@ -1309,6 +1312,11 @@ export class PatientService {
           interpretation: true,
           statut: true,
           createdAt: true,
+          dateRealisation: true,
+          anormal: true,
+          corrigeId: true,
+          ligneExamenId: true,
+          ligneExamen: { select: { typeExamen: { select: { libelle: true } } } },
           bon: {
             select: {
               consultationId: true,
@@ -1324,7 +1332,6 @@ export class PatientService {
       this.prisma.bonExamen.findMany({
         where: {
           statut: { in: ['EN_ATTENTE', 'VALIDE'] },
-          resultats: { none: {} },
           consultation: consultationsDuDossier(
             patientId,
             scope?.restreindreHistorique,
@@ -1335,7 +1342,8 @@ export class PatientService {
           consultationId: true,
           createdAt: true,
           statut: true,
-          lignes: { select: { typeExamen: { select: { libelle: true } } } },
+          lignes: { select: { id: true, typeExamen: { select: { libelle: true } } } },
+          resultats: { where: { statut: 'RECU' }, select: { ligneExamenId: true } },
         },
         orderBy: { createdAt: 'desc' },
       }),
@@ -1420,20 +1428,39 @@ export class PatientService {
       bonId: r.bonId,
       consultationId: r.bon.consultationId,
       date: r.createdAt,
+      dateRealisation: r.dateRealisation,
       laboratoire: r.laboratoire,
       contenu: r.contenu,
       interpretation: r.interpretation,
       statut: r.statut,
-      examens: r.bon.lignes.map((l) => l.typeExamen.libelle),
+      anormal: r.anormal,
+      corrige: !!r.corrigeId,
+      // Résultat d'UN examen ; un ancien résultat global vaut pour tous les examens du bon.
+      examens: r.ligneExamen
+        ? [r.ligneExamen.typeExamen.libelle]
+        : r.bon.lignes.map((l) => l.typeExamen.libelle),
     }))
 
-    const resultatsEnAttente = bonsEnAttente.map((b) => ({
-      bonId: b.id,
-      consultationId: b.consultationId,
-      date: b.createdAt,
-      examens: b.lignes.map((l) => l.typeExamen.libelle),
-      aValider: b.statut === 'EN_ATTENTE',
-    }))
+    // Un bon reste « en attente » tant qu'un de ses examens n'a pas son résultat (un ancien
+    // résultat global, sans examen précis, le couvre en entier).
+    const resultatsEnAttente = bonsEnAttente
+      .map((b) => {
+        const global = b.resultats.some((r) => r.ligneExamenId === null)
+        const recues = new Set(b.resultats.map((r) => r.ligneExamenId).filter(Boolean))
+        const manquants = global ? [] : b.lignes.filter((l) => !recues.has(l.id))
+        return {
+          bonId: b.id,
+          consultationId: b.consultationId,
+          date: b.createdAt,
+          examens: (manquants.length ? manquants : b.lignes).map((l) => l.typeExamen.libelle),
+          recus: b.lignes.length - manquants.length,
+          total: b.lignes.length,
+          aValider: b.statut === 'EN_ATTENTE',
+          complet: manquants.length === 0,
+        }
+      })
+      .filter((b) => !b.complet)
+      .map(({ complet: _c, ...b }) => b)
 
     return { chroniques, traitements, resultatsExamens, resultatsEnAttente }
   }

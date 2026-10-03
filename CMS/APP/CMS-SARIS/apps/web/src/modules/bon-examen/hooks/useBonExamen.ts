@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from '@workspace/ui/components/sonner'
 import { bonExamenApi } from '../api/bon-examen.api'
 import type {
-  UpdateBonExamenPayload,
+  UpdateBonExamenPayload, BonExamen, CorrigerResultatPayload,
   ValiderBonExamenPayload, SaisirResultatPayload, BonExamenQueryParams,
 } from '../api/bon-examen.api'
 import { ApiError, isOfflineQueued } from '@/lib/api'
@@ -14,6 +14,42 @@ import i18n from '@/i18n/config'
 
 export const BONS_EXAMEN_KEY = ['bons-examen'] as const
 export const bonExamenKey = (id: string) => ['bons-examen', id] as const
+
+/** Après une écriture sur un bon : le bon, sa consultation et le suivi du dossier. */
+function rafraichirBon(qc: ReturnType<typeof useQueryClient>, bon: BonExamen) {
+  qc.invalidateQueries({ queryKey: BONS_EXAMEN_KEY })
+  qc.invalidateQueries({ queryKey: bonExamenKey(bon.id) })
+  qc.invalidateQueries({ queryKey: ['consultations', bon.consultationId] })
+  qc.invalidateQueries({ queryKey: ['patients', bon.consultation.visite.patient.id] })
+}
+
+export function useCorrigerResultat(bonId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ resultatId, data }: { resultatId: string; data: CorrigerResultatPayload }) =>
+      bonExamenApi.corrigerResultat(bonId, resultatId, data),
+    onSuccess: (bon) => { rafraichirBon(qc, bon); toast.success(i18n.t('bonExamen.toastResultCorrige')) },
+    onError: toastErr,
+  })
+}
+
+export function useAjouterCompteRendu(bonId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (file: File) => bonExamenApi.ajouterCompteRendu(bonId, file),
+    onSuccess: (bon) => { rafraichirBon(qc, bon); toast.success(i18n.t('bonExamen.toastCompteRenduJoint')) },
+    onError: toastErr,
+  })
+}
+
+export function useRetirerCompteRendu(bonId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (pieceId: string) => bonExamenApi.retirerCompteRendu(bonId, pieceId),
+    onSuccess: (bon) => { rafraichirBon(qc, bon); toast.success(i18n.t('bonExamen.toastCompteRenduRetire')) },
+    onError: toastErr,
+  })
+}
 
 function toastErr(err: unknown) {
   if (isOfflineQueued(err)) return

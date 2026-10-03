@@ -173,6 +173,7 @@ export const SOFT_DELETE_MODELS: ReadonlySet<string> = new Set<string>([
   'Ordonnance',
   'LigneOrdonnance',
   'BonExamen',
+  'PieceJointeResultat',
   'ResultatExamen',
   'BonPharmacie',
   'LigneBonPharmacie',

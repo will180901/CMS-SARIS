@@ -1141,6 +1141,7 @@ model BonExamen {
   ordonnance       Ordonnance?      @relation(fields: [ordonnanceId], references: [id])
   lignes           LigneExamen[]
   resultats        ResultatExamen[]
+  piecesJointes    PieceJointeResultat[]
 
   @@index([updatedAt])
 }
@@ -1152,6 +1153,7 @@ model LigneExamen {
   typeExamenId String
   bon          BonExamen  @relation(fields: [bonId], references: [id])
   typeExamen   TypeExamen @relation(fields: [typeExamenId], references: [id])
+  resultats    ResultatExamen[]
 
   @@index([updatedAt])
 }
@@ -1164,12 +1166,39 @@ model ResultatExamen {
   laboratoire    String?
   contenu        String
   interpretation String?
-  statut         String    @default("RECU")
+  statut         String    @default("RECU") // RECU | REMPLACE (corrigé par un résultat plus récent)
   saisiePar      String
   createdAt      DateTime  @default(now())
-  bon            BonExamen @relation(fields: [bonId], references: [id])
+  // Résultat PAR examen prescrit (null = ancienne saisie globale, pour tout le bon).
+  ligneExamenId   String?
+  dateRealisation DateTime? // date à laquelle l'examen a été fait (≠ date de saisie)
+  anormal         Boolean? // null = non précisé
+  corrigeId       String? // ce résultat corrige le résultat corrigeId (passé REMPLACE)
+  motifCorrection String?
+  bon            BonExamen    @relation(fields: [bonId], references: [id])
+  ligneExamen    LigneExamen? @relation(fields: [ligneExamenId], references: [id], onDelete: SetNull)
 
   @@index([updatedAt])
+  @@index([ligneExamenId])
+}
+
+/// Compte rendu du laboratoire joint à un bon d'examen (photo ou PDF), chiffré comme
+/// les pièces jointes de la messagerie (AES-256-GCM, base64).
+model PieceJointeResultat {
+  updatedAt      DateTime  @default(now()) @updatedAt
+  deletedAt      DateTime?
+  id             String    @id @default(uuid())
+  bonId          String
+  nomFichier     String
+  mimeType       String
+  taille         Int // octets, avant chiffrement
+  contenuChiffre String
+  createdAt      DateTime  @default(now())
+  createdBy      String?
+  bon            BonExamen @relation(fields: [bonId], references: [id], onDelete: Cascade)
+
+  @@index([updatedAt])
+  @@index([bonId])
 }
 
 // Bon de pharmacie (recueil) — voucher de retrait de médicaments (gratuits), généré depuis une

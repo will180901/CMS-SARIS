@@ -16,8 +16,10 @@ import {
   UpdateBonExamenDto,
   ValiderBonExamenDto,
   SaisirResultatDto,
+  CorrigerResultatDto,
   BonExamenQueryDto,
 } from './dto/bon-examen.dto'
+import { encryptBytes, decryptBytes } from '../../common/crypto/message-crypto'
 
 const BON_INCLUDE = {
   lignes: {
@@ -28,6 +30,12 @@ const BON_INCLUDE = {
     },
   },
   resultats: { orderBy: { createdAt: 'desc' as const } },
+  // Comptes rendus joints : métadonnées seules (le contenu chiffré n'est servi qu'à la demande).
+  piecesJointes: {
+    where: { deletedAt: null },
+    orderBy: { createdAt: 'desc' as const },
+    select: { id: true, nomFichier: true, mimeType: true, taille: true, createdAt: true, createdBy: true },
+  },
   // Statut de l'ordonnance d'origine : permet au frontend de signaler un bon dont l'ordonnance
   // a été annulée APRÈS coup (bon déjà VALIDE/résultat saisi, non touché par la cascade).
   ordonnance: { select: { id: true, statut: true } },
@@ -70,7 +78,18 @@ export class BonExamenService {
       include: BON_INCLUDE,
     })
     if (!bon) throw new NotFoundException("Bon d'examen introuvable")
-    return bon
+    return (await this.avecEtablissement([bon]))[0]
+  }
+
+  /** Nom de l'établissement choisi à la prescription (pas de relation Prisma sur le bon) :
+   *  il pré-remplit le laboratoire à la saisie du résultat. */
+  private async avecEtablissement<T extends { etablissementId: string | null }>(bons: T[]) {
+    const ids = [...new Set(bons.map((b) => b.etablissementId).filter((x): x is string => !!x))]
+    const etabs = ids.length
+      ? await this.prisma.etablissementReference.findMany({ where: { id: { in: ids } }, select: { id: true, nom: true } })
+      : []
+    const noms = new Map(etabs.map((e) => [e.id, e.nom]))
+    return bons.map((b) => ({ ...b, etablissementNom: b.etablissementId ? noms.get(b.etablissementId) ?? null : null }))
   }
 
   // ── Liste ─────────────────────────────────────────────────────────────────
@@ -85,11 +104,12 @@ export class BonExamenService {
       where.statut = query.statut
     }
 
-    return this.prisma.bonExamen.findMany({
+    const bons = await this.prisma.bonExamen.findMany({
       where,
       include: BON_INCLUDE,
       orderBy: { createdAt: 'desc' },
     })
+    return this.avecEtablissement(bons)
   }
 
   // ── Détail ────────────────────────────────────────────────────────────────
@@ -205,17 +225,145 @@ export class BonExamenService {
         'Seul un bon validé peut recevoir un résultat',
       )
     }
+    const dateRealisation = this.dateRealisationValide(dto.dateRealisation)
+    const commun = {
+      bonId,
+      laboratoire: dto.laboratoire?.trim() || null,
+      interpretation: dto.interpretation?.trim() || null,
+      dateRealisation,
+      statut: 'RECU',
+      saisiePar: acteurId,
+    }
 
+    if (dto.resultats?.length) {
+      // Un résultat ne se saisit QUE pour un examen prescrit sur CE bon, et une seule fois :
+      // une erreur se corrige (correction tracée), elle ne s'écrase pas par une 2e saisie.
+      const lignes = new Map(bon.lignes.map((l) => [l.id, l]))
+      const dejaSaisies = new Set(
+        bon.resultats.filter((r) => r.statut === 'RECU' && r.ligneExamenId).map((r) => r.ligneExamenId),
+      )
+      const vues = new Set<string>()
+      for (const r of dto.resultats) {
+        const ligne = lignes.get(r.ligneExamenId)
+        if (!ligne)
+          throw new BadRequestException("Cet examen n'a pas été prescrit sur ce bon")
+        if (vues.has(r.ligneExamenId))
+          throw new BadRequestException(`« ${ligne.typeExamen.libelle} » apparaît deux fois dans la saisie`)
+        vues.add(r.ligneExamenId)
+        if (dejaSaisies.has(r.ligneExamenId))
+          throw new ConflictException(
+            `Le résultat de « ${ligne.typeExamen.libelle} » est déjà saisi : corrigez-le plutôt que de le saisir à nouveau`,
+          )
+      }
+      await this.prisma.$transaction(
+        dto.resultats.map((r) =>
+          this.prisma.resultatExamen.create({
+            data: {
+              ...commun,
+              ligneExamenId: r.ligneExamenId,
+              contenu: r.contenu.trim(),
+              anormal: r.anormal ?? null,
+            },
+          }),
+        ),
+      )
+      return this.getOrThrow(bonId)
+    }
+
+    if (!dto.contenu?.trim())
+      throw new BadRequestException('Aucun résultat à enregistrer')
+    // Ancienne forme : un résultat global pour tout le bon.
     await this.prisma.resultatExamen.create({
+      data: { ...commun, contenu: dto.contenu.trim() },
+    })
+    return this.getOrThrow(bonId)
+  }
+
+  /** Date à laquelle l'examen a été RÉALISÉ : jamais dans le futur. */
+  private dateRealisationValide(iso?: string): Date | null {
+    if (!iso) return null
+    const d = new Date(iso)
+    if (Number.isNaN(d.getTime())) throw new BadRequestException('Date de réalisation invalide')
+    if (d.getTime() > Date.now() + 60_000)
+      throw new BadRequestException("La date de réalisation de l'examen ne peut pas être dans le futur")
+    return d
+  }
+
+  // ── Corriger un résultat (l'ancien est gardé, statut REMPLACE) ─────────────
+
+  async corrigerResultat(
+    bonId: string,
+    resultatId: string,
+    dto: CorrigerResultatDto,
+    acteurId: string,
+  ) {
+    const bon = await this.getOrThrow(bonId)
+    const ancien = bon.resultats.find((r) => r.id === resultatId)
+    if (!ancien) throw new NotFoundException('Résultat introuvable sur ce bon')
+    if (ancien.statut === 'REMPLACE')
+      throw new ConflictException('Ce résultat a déjà été corrigé : corrigez la version la plus récente')
+    const dateRealisation =
+      dto.dateRealisation !== undefined ? this.dateRealisationValide(dto.dateRealisation) : ancien.dateRealisation
+    await this.prisma.$transaction([
+      this.prisma.resultatExamen.update({ where: { id: ancien.id }, data: { statut: 'REMPLACE' } }),
+      this.prisma.resultatExamen.create({
+        data: {
+          bonId,
+          ligneExamenId: ancien.ligneExamenId,
+          contenu: dto.contenu.trim(),
+          anormal: dto.anormal ?? ancien.anormal,
+          laboratoire: dto.laboratoire !== undefined ? dto.laboratoire.trim() || null : ancien.laboratoire,
+          interpretation: dto.interpretation !== undefined ? dto.interpretation.trim() || null : ancien.interpretation,
+          dateRealisation,
+          statut: 'RECU',
+          saisiePar: acteurId,
+          corrigeId: ancien.id,
+          motifCorrection: dto.motifCorrection.trim(),
+        },
+      }),
+    ])
+    return this.getOrThrow(bonId)
+  }
+
+  // ── Comptes rendus joints (photo / PDF, chiffrés) ─────────────────────────
+
+  async ajouterPieceJointe(
+    bonId: string,
+    fichier: { originalname: string; mimetype: string; size: number; buffer: Buffer },
+    acteurId: string,
+  ) {
+    const bon = await this.getOrThrow(bonId)
+    if (bon.statut !== 'VALIDE')
+      throw new ConflictException('Un compte rendu se joint à un bon validé')
+    await this.prisma.pieceJointeResultat.create({
       data: {
         bonId,
-        laboratoire: dto.laboratoire?.trim() ?? null,
-        contenu: dto.contenu.trim(),
-        interpretation: dto.interpretation?.trim() ?? null,
-        statut: 'RECU',
-        saisiePar: acteurId,
+        nomFichier: fichier.originalname.slice(0, 200) || 'compte-rendu',
+        mimeType: fichier.mimetype,
+        taille: fichier.size,
+        contenuChiffre: encryptBytes(fichier.buffer),
+        createdBy: acteurId,
       },
     })
+    return this.getOrThrow(bonId)
+  }
+
+  async lirePieceJointe(bonId: string, pieceId: string) {
+    const pj = await this.prisma.pieceJointeResultat.findFirst({ where: { id: pieceId, bonId } })
+    if (!pj) throw new NotFoundException('Compte rendu introuvable')
+    const octets = decryptBytes(pj.contenuChiffre)
+    return {
+      id: pj.id,
+      nomFichier: pj.nomFichier,
+      mimeType: pj.mimeType,
+      dataUrl: `data:${pj.mimeType};base64,${octets.toString('base64')}`,
+    }
+  }
+
+  async supprimerPieceJointe(bonId: string, pieceId: string) {
+    const pj = await this.prisma.pieceJointeResultat.findFirst({ where: { id: pieceId, bonId }, select: { id: true } })
+    if (!pj) throw new NotFoundException('Compte rendu introuvable')
+    await this.prisma.pieceJointeResultat.delete({ where: { id: pj.id } })
     return this.getOrThrow(bonId)
   }
 }

@@ -78,6 +78,7 @@ export const labels = {
 
     // ── Statuts (par famille) ────────────────────────────────────────
     statut: {
+      resultat_examen: { RECU: 'Reçu', REMPLACE: 'Corrigé' },
       generique: {
         ACTIF: 'Actif',
         INACTIF: 'Inactif',
@@ -495,6 +496,7 @@ export const labels = {
 
     // ── Statuses (by family) ─────────────────────────────────────────
     statut: {
+      resultat_examen: { RECU: 'Received', REMPLACE: 'Corrected' },
       generique: {
         ACTIF: 'Active',
         INACTIF: 'Inactive',

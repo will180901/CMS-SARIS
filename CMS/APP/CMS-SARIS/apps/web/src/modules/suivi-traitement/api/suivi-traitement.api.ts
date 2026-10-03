@@ -56,7 +56,6 @@ export interface AddFicheSuiviPayload {
   poids?:                  number
   noteEvolution?:          string
   medicamentsAdministres?: string
-  resultatExamen?:         string
 }
 
 // ── API ───────────────────────────────────────────────────────────────────────

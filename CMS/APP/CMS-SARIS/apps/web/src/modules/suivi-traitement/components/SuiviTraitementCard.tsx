@@ -94,7 +94,7 @@ const CONST_FIELDS: { key: keyof typeof EMPTY_FICHE; label: string; unit: string
 const EMPTY_FICHE = {
   temperature: '', tensionSystolique: '', tensionDiastolique: '', frequenceCardiaque: '',
   frequenceRespiratoire: '', saturationO2: '', poids: '',
-  noteEvolution: '', medicamentsAdministres: '', resultatExamen: '',
+  noteEvolution: '', medicamentsAdministres: '',
 }
 
 function SuiviDetail({ suivi, canUpdate, canClose, canCancel, canDelete }: {
@@ -141,7 +141,6 @@ function SuiviDetail({ suivi, canUpdate, canClose, canCancel, canDelete }: {
       poids:                  f.poids?.toString() ?? '',
       noteEvolution:          f.noteEvolution ?? '',
       medicamentsAdministres: f.medicamentsAdministres ?? '',
-      resultatExamen:         f.resultatExamen ?? '',
     })
     setEditingFicheId(f.id)
     setShowAddFiche(true)
@@ -160,7 +159,6 @@ function SuiviDetail({ suivi, canUpdate, canClose, canCancel, canDelete }: {
       poids:                  num(fiche.poids),
       noteEvolution:          fiche.noteEvolution.trim() || undefined,
       medicamentsAdministres: fiche.medicamentsAdministres.trim() || undefined,
-      resultatExamen:         fiche.resultatExamen.trim() || undefined,
     }
     if (editingFicheId) await updateFiche.mutateAsync({ ficheId: editingFicheId, data })
     else                await addFiche.mutateAsync(data)
@@ -251,7 +249,7 @@ function SuiviDetail({ suivi, canUpdate, canClose, canCancel, canDelete }: {
                   )}
                   {f.resultatExamen && (
                     <p style={{ margin: 0, fontSize: 'var(--font-size-caption)', color: 'var(--texte-secondaire)' }}>
-                      <strong>{t('suiviTraitement.fieldResultat')} :</strong> {f.resultatExamen}
+                      <strong>{t('patients.ficheResultatAncien')} :</strong> {f.resultatExamen}
                     </p>
                   )}
                 </div>
@@ -289,9 +287,6 @@ function SuiviDetail({ suivi, canUpdate, canClose, canCancel, canDelete }: {
               </Field>
               <Field label={t('suiviTraitement.fieldMedicaments')}>
                 {(id) => <Textarea id={id} rows={2} maxLength={1000} value={fiche.medicamentsAdministres} onChange={e => setF('medicamentsAdministres', e.target.value)} placeholder={t('suiviTraitement.medicamentsPlaceholder')} />}
-              </Field>
-              <Field label={t('suiviTraitement.fieldResultat')}>
-                {(id) => <Textarea id={id} rows={2} maxLength={1000} value={fiche.resultatExamen} onChange={e => setF('resultatExamen', e.target.value)} placeholder={t('suiviTraitement.resultatPlaceholder')} />}
               </Field>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--espace-2)' }}>
                 <Button size="sm" variant="ghost" onClick={closeFicheForm}>{t('suiviTraitement.cancelForm')}</Button>

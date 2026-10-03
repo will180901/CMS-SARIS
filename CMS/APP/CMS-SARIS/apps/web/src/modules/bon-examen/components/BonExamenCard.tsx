@@ -10,21 +10,19 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   FileWarning, FlaskConical, ShieldCheck, FileText,
-  CheckCircle2, Printer, Ban,
+  Printer, Ban,
 } from 'lucide-react'
 import {
-  Card, Button, StatusPill, EmptyState,
-  Field, Textarea, TextInput, Modal, MotifDialog,
+  Card, Button, StatusPill, EmptyState, MotifDialog,
 } from '@/components/saris'
 import { usePatientCouverture } from '@/modules/patients/hooks/usePatients'
 import {
   useBonsExamen, useValiderBonExamen,
-  useAnnulerBonExamen, useSaisirResultat,
+  useAnnulerBonExamen,
 } from '../hooks/useBonExamen'
+import { ResultatsParExamen, SaisieResultatsModal, ComptesRendus, examensManquants } from './ResultatsBon'
 import { usePermissions } from '@/hooks/usePermissions'
-import { formatDate } from '@/lib/intl'
 import { BonExamenPrintModal } from './BonExamenPrintModal'
-import { labelDomaine } from '@/config/labels'
 import type { BonExamen } from '../api/bon-examen.api'
 import type { PrintSoignant } from '@/components/print/MedicalPrintSheet'
 
@@ -174,69 +172,11 @@ function BonExamenItem({
           </p>
         </div>
 
-        {/* Lignes examen */}
-        <div>
-          <p style={{
-            margin: 0,
-            fontSize: 'var(--font-size-overline)',
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            letterSpacing: '0.07em',
-            color: 'var(--texte-tertiaire)',
-            marginBottom: 4,
-          }}>
-            {t('bonExamen.examsRequested', { count: bon.lignes.length })}
-          </p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-            {bon.lignes.map(l => (
-              <StatusPill key={l.id} tone="accent" dot={false}>
-                {l.typeExamen.libelle}
-                <span style={{ marginLeft: 4, opacity: 0.6, fontSize: 9 }}>
-                  {labelDomaine(l.typeExamen.domaine)}
-                </span>
-              </StatusPill>
-            ))}
-          </div>
-        </div>
+        {/* Examens prescrits et leurs résultats, examen par examen */}
+        <ResultatsParExamen bon={bon} canResult={canResult && bon.statut === 'VALIDE'} />
 
-        {/* Résultats */}
-        {bon.resultats.length > 0 && (
-          <div style={{
-            background: 'var(--info-fond)',
-            border: '1px solid var(--info-bordure)',
-            borderRadius: 'var(--radius-md)',
-            padding: 'var(--espace-2) var(--espace-3)',
-          }}>
-            <p style={{
-              margin: 0,
-              fontSize: 'var(--font-size-overline)',
-              fontWeight: 700,
-              color: 'var(--info-texte)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.07em',
-              display: 'flex', alignItems: 'center', gap: 5,
-            }}>
-              <FileText size={11} /> {t('bonExamen.resultsReceived', { count: bon.resultats.length })}
-            </p>
-            {bon.resultats.map(r => (
-              <div key={r.id} style={{ marginTop: 4 }}>
-                {r.laboratoire && (
-                  <p style={{ margin: 0, fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)' }}>
-                    {r.laboratoire} · {formatDate(r.createdAt)}
-                  </p>
-                )}
-                <p style={{ margin: '2px 0 0', fontSize: 'var(--font-size-body-sm)', color: 'var(--texte-primaire)', whiteSpace: 'pre-wrap' }}>
-                  {r.contenu}
-                </p>
-                {r.interpretation && (
-                  <p style={{ margin: '4px 0 0', fontSize: 'var(--font-size-caption)', fontStyle: 'italic', color: 'var(--texte-secondaire)' }}>
-                    💡 {r.interpretation}
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+        {/* Compte rendu du laboratoire (photo ou PDF) */}
+        {bon.statut === 'VALIDE' && <ComptesRendus bon={bon} canResult={canResult} />}
 
         {bon.ordonnance?.statut === 'ANNULEE' && bon.statut !== 'ANNULE' && (
           <div style={{
@@ -311,14 +251,14 @@ function BonExamenItem({
               >
                 {t('bonExamen.print')}
               </Button>
-              {canResult && !showResultForm && (
+              {canResult && !showResultForm && examensManquants(bon).length > 0 && (
                 <Button
                   size="sm"
                   variant="primary"
                   leftIcon={<FileText size={13} />}
                   onClick={() => setShowResultForm(true)}
                 >
-                  {t('bonExamen.addResult')}
+                  {t('bonExamen.saisirResultats')}
                 </Button>
               )}
             </>
@@ -327,8 +267,8 @@ function BonExamenItem({
 
         {/* Formulaire résultat */}
         {showResultForm && canResult && (
-          <ResultatForm
-            bonId={bon.id}
+          <SaisieResultatsModal
+            bon={bon}
             onClose={() => setShowResultForm(false)}
           />
         )}
@@ -364,62 +304,3 @@ function BonExamenItem({
     </div>
   )
 }
-
-// ── Modal saisie résultat ──────────────────────────────────────────────────────
-
-function ResultatForm({ bonId, onClose }: { bonId: string; onClose: () => void }) {
-  const { t } = useTranslation()
-  const saisir = useSaisirResultat(bonId)
-  const [laboratoire, setLaboratoire]       = useState('')
-  const [contenu, setContenu]                = useState('')
-  const [interpretation, setInterpretation] = useState('')
-
-  async function handleSubmit() {
-    if (!contenu.trim()) return
-    await saisir.mutateAsync({
-      contenu: contenu.trim(),
-      laboratoire: laboratoire.trim() || undefined,
-      interpretation: interpretation.trim() || undefined,
-    })
-    onClose()
-  }
-
-  return (
-    <Modal
-      icon={<FileText size={16} />}
-      title={t('bonExamen.resultModalTitle')}
-      subtitle={t('bonExamen.resultModalSubtitle')}
-      width={560}
-      onClose={onClose}
-      footer={<>
-        <Button variant="secondary" onClick={onClose}>{t('bonExamen.cancel')}</Button>
-        <Button
-          variant="primary"
-          loading={saisir.isPending}
-          disabled={!contenu.trim()}
-          leftIcon={<CheckCircle2 size={14} />}
-          onClick={handleSubmit}
-        >
-          {t('bonExamen.saveResult')}
-        </Button>
-      </>}
-    >
-      <Field label={t('bonExamen.labLabel')}>
-        {(id) => (
-          <TextInput id={id} maxLength={500} value={laboratoire} onChange={e => setLaboratoire(e.target.value)} placeholder={t('bonExamen.labPlaceholder')} />
-        )}
-      </Field>
-      <Field label={t('bonExamen.resultLabel')} required>
-        {(id) => (
-          <Textarea id={id} maxLength={5000} value={contenu} onChange={e => setContenu(e.target.value)} rows={5} placeholder={t('bonExamen.resultPlaceholder')} autoFocus />
-        )}
-      </Field>
-      <Field label={t('bonExamen.interpretationLabel')}>
-        {(id) => (
-          <Textarea id={id} maxLength={2000} value={interpretation} onChange={e => setInterpretation(e.target.value)} rows={3} placeholder={t('bonExamen.interpretationPlaceholder')} />
-        )}
-      </Field>
-    </Modal>
-  )
-}
-

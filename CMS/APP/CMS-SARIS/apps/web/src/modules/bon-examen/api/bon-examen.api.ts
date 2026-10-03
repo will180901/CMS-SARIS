@@ -22,9 +22,28 @@ export interface ResultatExamen {
   laboratoire:    string | null
   contenu:        string
   interpretation: string | null
+  /** RECU (en vigueur) | REMPLACE (corrigé par un résultat plus récent) */
   statut:         string
   saisiePar:      string
   createdAt:      string
+  /** Examen prescrit visé ; null = ancienne saisie globale, pour tout le bon. */
+  ligneExamenId?:   string | null
+  /** Date à laquelle l'examen a été réalisé (≠ date de saisie). */
+  dateRealisation?: string | null
+  anormal?:         boolean | null
+  /** Ce résultat corrige le résultat `corrigeId`. */
+  corrigeId?:       string | null
+  motifCorrection?: string | null
+}
+
+/** Compte rendu du laboratoire joint au bon (métadonnées ; le contenu se lit à la demande). */
+export interface PieceJointeResultat {
+  id:         string
+  nomFichier: string
+  mimeType:   string
+  taille:     number
+  createdAt:  string
+  createdBy:  string | null
 }
 
 export interface BonExamen {
@@ -41,6 +60,9 @@ export interface BonExamen {
   createdAt:        string
   lignes:           LigneExamen[]
   resultats:        ResultatExamen[]
+  piecesJointes?:   PieceJointeResultat[]
+  /** Établissement choisi à la prescription — pré-remplit le laboratoire. */
+  etablissementNom?: string | null
   consultation: {
     id: string
     visite: {
@@ -68,9 +90,22 @@ export interface ValiderBonExamenPayload {
 }
 
 export interface SaisirResultatPayload {
-  contenu:        string
-  laboratoire?:   string
-  interpretation?: string
+  /** Un résultat par examen prescrit (saisie partielle permise). */
+  resultats?:       { ligneExamenId: string; contenu: string; anormal?: boolean }[]
+  /** Ancienne forme : un texte pour tout le bon. */
+  contenu?:         string
+  laboratoire?:     string
+  interpretation?:  string
+  dateRealisation?: string
+}
+
+export interface CorrigerResultatPayload {
+  contenu:          string
+  anormal?:         boolean
+  laboratoire?:     string
+  interpretation?:  string
+  dateRealisation?: string
+  motifCorrection:  string
 }
 
 export interface BonExamenQueryParams {
@@ -94,6 +129,17 @@ export const bonExamenApi = {
     api.patch<BonExamen>(`/bons-examen/${id}/annuler`, { motifAnnulation }),
   saisirResultat: (id: string, data: SaisirResultatPayload) =>
     api.post<BonExamen>(`/bons-examen/${id}/resultats`, data),
+  corrigerResultat: (id: string, resultatId: string, data: CorrigerResultatPayload) =>
+    api.patch<BonExamen>(`/bons-examen/${id}/resultats/${resultatId}`, data),
+  ajouterCompteRendu: (id: string, file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return api.upload<BonExamen>(`/bons-examen/${id}/pieces-jointes`, form)
+  },
+  lireCompteRendu: (id: string, pieceId: string) =>
+    api.get<{ id: string; nomFichier: string; mimeType: string; dataUrl: string }>(`/bons-examen/${id}/pieces-jointes/${pieceId}`),
+  retirerCompteRendu: (id: string, pieceId: string) =>
+    api.delete<BonExamen>(`/bons-examen/${id}/pieces-jointes/${pieceId}`),
   remove: (id: string) =>
     api.delete<{ id: string; deleted: boolean }>(`/bons-examen/${id}`),
 }

@@ -429,6 +429,18 @@ function ResultatBody({ consultationId, resultat }: { consultationId: string; re
         {resultat.examens.length > 0 && (
           <InfoRow label={t('patients.suiviExamensRealises')} value={resultat.examens.join(', ')} full />
         )}
+        {resultat.dateRealisation && (
+          <InfoRow label={t('patients.suiviDateRealisation')} value={formatDate(resultat.dateRealisation, { day: '2-digit', month: 'long', year: 'numeric' })} />
+        )}
+        {resultat.anormal != null && (
+          <InfoRow
+            label={t('patients.suiviNormalite')}
+            valueNode={<StatusPill tone={resultat.anormal ? 'error' : 'success'}>{resultat.anormal ? t('patients.suiviAnormal') : t('patients.suiviNormal')}</StatusPill>}
+          />
+        )}
+        {resultat.corrige && (
+          <InfoRow label={t('bonExamen.correctionTitre')} value={t('patients.suiviResultatCorrigeInfo')} full />
+        )}
         {resultat.laboratoire && (
           <InfoRow label={t('patients.suiviLaboratoire')} value={resultat.laboratoire} />
         )}

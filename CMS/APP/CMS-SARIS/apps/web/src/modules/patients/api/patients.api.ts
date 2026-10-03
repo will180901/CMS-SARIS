@@ -268,6 +268,11 @@ export interface SuiviResultatExamenItem {
   interpretation: string | null
   statut:         string
   examens:        string[]
+  /** Date à laquelle l'examen a été réalisé (≠ date de saisie). */
+  dateRealisation?: string | null
+  anormal?:         boolean | null
+  /** Version corrigée d'un résultat (l'ancienne reste sur le bon). */
+  corrige?:         boolean
 }
 
 export interface SuiviResultatEnAttenteItem {
@@ -277,6 +282,9 @@ export interface SuiviResultatEnAttenteItem {
   examens:        string[]
   /** Bon encore à valider (généré par un infirmier) : à valider avant d'y saisir un résultat. */
   aValider?:      boolean
+  /** Examens du bon ayant déjà leur résultat / examens prescrits. `examens` = ceux qui manquent. */
+  recus?:         number
+  total?:         number
 }
 
 export interface PatientSuivi {

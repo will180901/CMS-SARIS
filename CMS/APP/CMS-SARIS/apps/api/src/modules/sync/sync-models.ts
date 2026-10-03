@@ -129,6 +129,7 @@ export const SYNC_MODELS: readonly SyncModelDef[] = [
   def('BonExamen', 'bonExamen', GLOBAL),
   def('LigneExamen', 'ligneExamen', GLOBAL),
   def('ResultatExamen', 'resultatExamen', GLOBAL),
+  def('PieceJointeResultat', 'pieceJointeResultat', GLOBAL), // compte rendu joint — après BonExamen (FK)
   def('BonPharmacie', 'bonPharmacie', GLOBAL),
   def('LigneBonPharmacie', 'ligneBonPharmacie', GLOBAL),
   def('ConsultationPrenatale', 'consultationPrenatale', GLOBAL),

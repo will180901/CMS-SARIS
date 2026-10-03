@@ -41,10 +41,8 @@ export class AddFicheSuiviDto {
   @MaxLength(1000)
   medicamentsAdministres?: string
 
-  @IsOptional()
-  @IsString()
-  @MaxLength(1000)
-  resultatExamen?: string
+  // Plus de « résultat d'examen » en texte libre : un résultat ne se saisit que sur
+  // l'examen prescrit (bon d'examen). Les anciennes valeurs restent lisibles.
 }
 
 export class CloturerSuiviTraitementDto {

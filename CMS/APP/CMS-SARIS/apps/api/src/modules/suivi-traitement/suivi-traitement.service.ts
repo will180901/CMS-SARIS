@@ -75,7 +75,6 @@ const FICHE_FIELDS = [
   'poids',
   'noteEvolution',
   'medicamentsAdministres',
-  'resultatExamen',
 ] as const
 
 @Injectable()
@@ -288,7 +287,6 @@ export class SuiviTraitementService {
         poids: dto.poids ?? null,
         noteEvolution: dto.noteEvolution?.trim() || null,
         medicamentsAdministres: dto.medicamentsAdministres?.trim() || null,
-        resultatExamen: dto.resultatExamen?.trim() || null,
         createdBy: acteurId,
       },
     })
@@ -334,7 +332,6 @@ export class SuiviTraitementService {
         poids: dto.poids ?? null,
         noteEvolution: dto.noteEvolution?.trim() || null,
         medicamentsAdministres: dto.medicamentsAdministres?.trim() || null,
-        resultatExamen: dto.resultatExamen?.trim() || null,
       },
     })
     return this.getOrThrow(id)

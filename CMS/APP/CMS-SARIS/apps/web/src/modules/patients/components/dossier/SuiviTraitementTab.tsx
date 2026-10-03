@@ -711,6 +711,7 @@ export function ResultatsExamensTab({ patientId, historiqueRestreint = false }: 
                 key={r.bonId}
                 icon={<PenLine size={14} />} tint="var(--avert-texte)" bg="var(--avert-fond)"
                 title={r.examens.length > 0 ? r.examens.join(', ') : t('patients.suiviExamensRealises')}
+                subtitle={!r.aValider && r.total && r.recus ? t('patients.suiviRecusSur', { recus: r.recus, total: r.total }) : undefined}
                 badge={r.aValider ? t('patients.suiviAValiderBadge') : t('patients.suiviEnAttenteBadge')}
                 badgeTone="warning"
                 date={r.date}
@@ -731,11 +732,13 @@ export function ResultatsExamensTab({ patientId, historiqueRestreint = false }: 
             {resultatsExamens.map((r: SuiviResultatExamenItem) => (
               <ClickableRow
                 key={r.id}
-                icon={<FlaskConical size={14} />} tint="var(--info-accent)" bg="var(--info-fond)"
+                icon={<FlaskConical size={14} />}
+                tint={r.anormal ? 'var(--erreur-texte)' : 'var(--info-accent)'} bg={r.anormal ? 'var(--erreur-fond)' : 'var(--info-fond)'}
                 title={r.examens.length > 0 ? r.examens.join(', ') : t('patients.suiviExamensRealises')}
-                subtitle={[r.laboratoire, r.interpretation].filter(Boolean).join(' · ') || undefined}
-                badge={labelStatut('resultat_examen', r.statut)}
-                date={r.date}
+                subtitle={[r.contenu.length > 80 ? r.contenu.slice(0, 80) + '…' : r.contenu, r.laboratoire, r.corrige ? t('patients.suiviCorrige') : null].filter(Boolean).join(' · ') || undefined}
+                badge={r.anormal ? t('patients.suiviAnormal') : labelStatut('resultat_examen', r.statut)}
+                badgeTone={r.anormal ? 'error' : undefined}
+                date={r.dateRealisation ?? r.date}
                 onClick={() => setDetail({ kind: 'RESULTAT', consultationId: r.consultationId, bonId: r.bonId, resultat: r })}
               />
             ))}
