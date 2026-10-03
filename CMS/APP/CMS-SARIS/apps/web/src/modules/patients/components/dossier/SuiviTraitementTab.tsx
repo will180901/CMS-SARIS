@@ -115,7 +115,7 @@ const STATUT_SUIVI: Record<string, { labelKey: string; tint: string; bg: string 
   ANNULE:   { labelKey: 'suiviTraitement.statutAnnule',  tint: 'var(--texte-tertiaire)', bg: 'var(--fond-surface-2)' },
 }
 
-function EpisodesSection({ patientId, onOpen }: { patientId: string; onOpen: (t: DossierDetailTarget) => void }) {
+function EpisodesSection({ patientId, onOpen, historiqueRestreint = false }: { patientId: string; onOpen: (t: DossierDetailTarget) => void; historiqueRestreint?: boolean }) {
   const { t } = useTranslation()
   const { data: episodes = [], isLoading } = useSuivisTraitement({ patientId })
 
@@ -127,7 +127,7 @@ function EpisodesSection({ patientId, onOpen }: { patientId: string; onOpen: (t:
           <Loader2 size={14} className="animate-spin" /> <span style={{ fontSize: 13 }}>{t('patients.loading')}</span>
         </div>
       ) : episodes.length === 0 ? (
-        <EmptySection text={t('suiviTraitement.emptyTitle')} />
+        <EmptySection text={t(historiqueRestreint ? 'patients.suiviEpisodesEmptyEnCours' : 'suiviTraitement.emptyTitle')} />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 680 }}>
           {episodes.map(ep => {
@@ -516,11 +516,11 @@ function Chargement() {
 }
 
 /** Parcours de soins › Suivi de traitement : les ÉPISODES de suivi, sa fonction propre. */
-export function SuiviTraitementTab({ patientId }: OngletProps) {
+export function SuiviTraitementTab({ patientId, historiqueRestreint = false }: OngletProps) {
   const [detail, setDetail] = useState<DossierDetailTarget | null>(null)
   return (
     <div>
-      <EpisodesSection patientId={patientId} onOpen={setDetail} />
+      <EpisodesSection patientId={patientId} onOpen={setDetail} historiqueRestreint={historiqueRestreint} />
       {/* Tiroir de détail (glisse de la droite, la liste reste derrière) */}
       {detail && <DossierDetailDrawer target={detail} onClose={() => setDetail(null)} />}
     </div>

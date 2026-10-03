@@ -10,7 +10,21 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common'
+
+/**
+ * Portée de lecture d'un suivi de traitement — la même que le reste du dossier.
+ *  - canViewLocked : supervision (médecin chef, admin) ; un dossier VERROUILLÉ n'est
+ *    lisible que par elle. Avant, /suivi-traitement ignorait le verrou : motifs, fiches,
+ *    médicaments administrés et constantes d'un dossier fermé restaient lisibles.
+ *  - restreindreHistorique : infirmier hors supervision ; il voit les épisodes EN COURS
+ *    (soins actuels — c'est lui qui y saisit les fiches), pas l'historique clos.
+ */
+export interface PorteeSuivi {
+  canViewLocked: boolean
+  restreindreHistorique: boolean
+}
 import { PrismaService } from '../../prisma/prisma.service'
 import { NotificationService } from '../notification/notification.service'
 import {
@@ -81,13 +95,39 @@ export class SuiviTraitementService {
     return s
   }
 
-  async findAll(query: SuiviTraitementQueryDto) {
+  /** Refuse l'accès au suivi d'un dossier verrouillé hors supervision. */
+  private async assertNonVerrouille(id: string, portee?: PorteeSuivi) {
+    if (!portee || portee.canViewLocked) return
+    const s = await this.prisma.suiviTraitement.findFirst({
+      where: { id },
+      select: {
+        consultation: {
+          select: { visite: { select: { patient: { select: { verrouille: true } } } } },
+        },
+      },
+    })
+    if (s?.consultation?.visite?.patient?.verrouille) {
+      throw new ForbiddenException(
+        'Dossier verrouillé : accès réservé au médecin chef',
+      )
+    }
+  }
+
+  async findAll(query: SuiviTraitementQueryDto, portee?: PorteeSuivi) {
     // Volontairement SANS filtre de site (accès gouverné par permission).
     const where: any = {}
-    if (query.patientId)
-      where.consultation = { visite: { patientId: query.patientId } }
+    const visite: any = {}
+    if (query.patientId) visite.patientId = query.patientId
+    // Verrou : jamais le contenu d'un dossier verrouillé hors supervision.
+    if (portee && !portee.canViewLocked) visite.patient = { verrouille: false }
+    if (Object.keys(visite).length) where.consultation = { visite }
     if (query.consultationId) where.consultationId = query.consultationId
     if (query.statut && query.statut !== 'TOUS') where.statut = query.statut
+    // Infirmier, depuis le dossier : les épisodes EN COURS seulement.
+    if (portee?.restreindreHistorique && query.patientId) {
+      if (where.statut && where.statut !== 'EN_COURS') return []
+      where.statut = 'EN_COURS'
+    }
 
     return this.prisma.suiviTraitement.findMany({
       where,
@@ -96,8 +136,20 @@ export class SuiviTraitementService {
     })
   }
 
-  async findById(id: string) {
-    return this.getOrThrow(id)
+  async findById(id: string, portee?: PorteeSuivi) {
+    await this.assertNonVerrouille(id, portee)
+    const s = await this.getOrThrow(id)
+    if (portee?.restreindreHistorique && s.statut !== 'EN_COURS') {
+      throw new ForbiddenException(
+        "Suivi clôturé : l'historique est réservé au médecin chef",
+      )
+    }
+    return s
+  }
+
+  /** Garde commune aux écritures : pas d'écriture dans un dossier qu'on ne peut pas lire. */
+  async assertModifiable(id: string, portee?: PorteeSuivi) {
+    await this.assertNonVerrouille(id, portee)
   }
 
   async create(dto: CreateSuiviTraitementDto, acteurId?: string) {
