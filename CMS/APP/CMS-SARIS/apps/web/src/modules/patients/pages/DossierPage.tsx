@@ -13,7 +13,7 @@ import {
 import { usePermissions }      from '@/hooks/usePermissions'
 import { useIsCompact }        from '@/hooks/useMediaQuery'
 import { usePersistedState }   from '@/hooks/usePersistedState'
-import { usePatientDossier, useUpdateStatutPatient, usePatientAlertesCliniques, useDeletePatient, useSetVerrouPatient, usePatientCouverture, usePatientAyantsDroits } from '../hooks/usePatients'
+import { usePatientDossier, useUpdateStatutPatient, usePatientAlertesCliniques, useDeletePatient, useSetVerrouPatient, usePatientCouverture, usePatientAyantsDroits, usePatientSuivi } from '../hooks/usePatients'
 import { useSessionStore } from '@/stores/session.store'
 import { ConfirmDeleteModal }  from '../components/dossier/ConfirmDeleteModal'
 import { CategorieBadge, PatientAvatar } from '../components/CategorieBadge'
@@ -649,6 +649,10 @@ export function DossierPage() {
   const [lockMotif, setLockMotif]           = useState('')
 
   const { data: dossier, isLoading } = usePatientDossier(id ?? '')
+  // Mêmes données (même cache) que les onglets du suivi : sert aux COMPTEURS d'onglets
+  // (constat 83) — des résultats en attente de saisie étaient invisibles tant qu'on
+  // n'ouvrait pas le bon onglet.
+  const { data: suiviResume } = usePatientSuivi(id ?? '', canViewClinique)
   const updateStatut = useUpdateStatutPatient(id ?? '')
   const deletePatient = useDeletePatient()
   const setVerrou = useSetVerrouPatient(id ?? '')
@@ -700,11 +704,15 @@ export function DossierPage() {
                 dossier.alertesMedicales.filter(a => a.statut === 'ACTIVE').length,
     antecedents: dossier.antecedents.filter(a => a.statut === 'ACTIF').length,
     rattachements: dossier.rattachementsAD.filter(r => r.statut === 'ACTIF').length,
+    chroniques: suiviResume?.chroniques.length,
+    resultats: suiviResume?.resultatsEnAttente.length,
   }
   const sectionBadge: Partial<Record<SectionKey, number>> = {
     apercu: tabCounts.alertes,
     medical: tabCounts.antecedents,
     administratif: tabCounts.rattachements,
+    // Des résultats attendent d'être saisis : signalé dès la barre des sections.
+    parcours: tabCounts.resultats,
   }
 
   // Section active + ses sous-onglets, filtrés par permission (onglets cliniques
