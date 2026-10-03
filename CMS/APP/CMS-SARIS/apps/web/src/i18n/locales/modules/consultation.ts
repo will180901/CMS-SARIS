@@ -21,6 +21,8 @@ export const consultation = {
     // ── Carte file (queue) ──────────────────────────────────────────
     ageYears: '{{age}} ans',
     doctorPrefix: 'Dr. {{name}}',
+    nursePrefix: 'Inf. {{name}}',
+    midwifePrefix: 'SF {{name}}',
 
     // ── Détail consultation : états ─────────────────────────────────
     notFound: 'Consultation introuvable',
@@ -299,6 +301,8 @@ export const consultation = {
     // ── Queue card ──────────────────────────────────────────────────
     ageYears: '{{age}} yrs',
     doctorPrefix: 'Dr. {{name}}',
+    nursePrefix: 'Nurse {{name}}',
+    midwifePrefix: 'Midwife {{name}}',
 
     // ── Consultation detail: states ─────────────────────────────────
     notFound: 'Consultation not found',

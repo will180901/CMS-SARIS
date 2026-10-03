@@ -5,6 +5,7 @@
  */
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { nomSoignant } from '@/lib/soignant'
 import { Stethoscope, ChevronRight, Loader2 } from 'lucide-react'
 import { EmptyState } from '@/components/saris'
 import { formatDate, formatTime } from '@/lib/intl'
@@ -83,7 +84,7 @@ export function ConsultationsTab({ patientId, historiqueRestreint = false }: { p
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--texte-primaire)' }}>
-                      {c.soignant ? t('consultation.doctorPrefix', { name: c.soignant.nom }) : (c.visite?.motifPrincipal?.libelle ?? t('patients.consultationsTitle'))}
+                      {c.soignant ? nomSoignant(c.soignant, t) : (c.visite?.motifPrincipal?.libelle ?? t('patients.consultationsTitle'))}
                     </span>
                     <span style={{
                       fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.03em',

@@ -7,6 +7,7 @@
 
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { nomSoignant } from '@/lib/soignant'
 import { Stethoscope, ChevronRight, Clock } from 'lucide-react'
 import { PatientAvatar } from '@/modules/patients/components/CategorieBadge'
 import { LiveDuration }  from '@/components/saris'
@@ -108,7 +109,7 @@ export function ConsultationQueueCard({ consultation, selected, onClick }: Props
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: '3px' }}>
             <Stethoscope size={11} style={{ color: 'var(--ap-600)', flexShrink: 0 }} />
             <span style={{ fontSize: '11px', color: 'var(--ap-700)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {t('consultation.doctorPrefix', { name: consultation.soignant.nom })}
+              {nomSoignant(consultation.soignant, t)}
             </span>
           </div>
         )}
