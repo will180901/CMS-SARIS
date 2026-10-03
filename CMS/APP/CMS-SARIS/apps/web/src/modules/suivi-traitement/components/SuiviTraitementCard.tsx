@@ -84,6 +84,9 @@ const CONST_FIELDS: { key: keyof typeof EMPTY_FICHE; label: string; unit: string
   { key: 'tensionSystolique',  label: 'suiviTraitement.fieldTensionSys',  unit: 'mmHg', icon: <Gauge size={11} />,       min: 50,  max: 300 },
   { key: 'tensionDiastolique', label: 'suiviTraitement.fieldTensionDia',  unit: 'mmHg', icon: <Gauge size={11} />,       min: 30,  max: 200 },
   { key: 'frequenceCardiaque', label: 'suiviTraitement.fieldFc',          unit: 'bpm', icon: <HeartPulse size={11} />,  min: 20,  max: 300 },
+  // Fréquence respiratoire : présente en base et au triage, mais ni saisissable ni
+  // affichée ici (constat 88). Plage de lib/validation.ts.
+  { key: 'frequenceRespiratoire', label: 'suiviTraitement.fieldFr',       unit: 'cpm', icon: <Wind size={11} />,        min: 4,   max: 80  },
   { key: 'saturationO2',       label: 'suiviTraitement.fieldSpo2',        unit: '%',   icon: <Wind size={11} />,        min: 50,  max: 100 },
   { key: 'poids',              label: 'suiviTraitement.fieldPoids',       unit: 'kg',  icon: <Weight size={11} />,      min: 0.5, max: 300 },
 ]
@@ -216,7 +219,8 @@ function SuiviDetail({ suivi, canUpdate, canClose, canCancel, canDelete }: {
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                     <span style={{ fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)' }}>
-                      {formatDateTime(f.createdAt, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                      {formatDateTime(f.createdAt, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      {f.auteurNom && <> · {f.auteurNom}</>}
                     </span>
                     {!isClosed && canUpdate && (
                       <button
@@ -235,6 +239,7 @@ function SuiviDetail({ suivi, canUpdate, canClose, canCancel, canDelete }: {
                     {f.temperature != null && <FicheChip label={t('suiviTraitement.fieldTemperature')} value={`${f.temperature}°C`} />}
                     {f.tensionSystolique != null && <FicheChip label={t('suiviTraitement.fieldTensionSys')} value={`${f.tensionSystolique}/${f.tensionDiastolique ?? '—'}`} />}
                     {f.frequenceCardiaque != null && <FicheChip label={t('suiviTraitement.fieldFc')} value={`${f.frequenceCardiaque} bpm`} />}
+                    {f.frequenceRespiratoire != null && <FicheChip label={t('suiviTraitement.fieldFr')} value={`${f.frequenceRespiratoire} cpm`} />}
                     {f.saturationO2 != null && <FicheChip label={t('suiviTraitement.fieldSpo2')} value={`${f.saturationO2}%`} />}
                     {f.poids != null && <FicheChip label={t('suiviTraitement.fieldPoids')} value={`${f.poids} kg`} />}
                   </div>

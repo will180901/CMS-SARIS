@@ -92,7 +92,30 @@ export class SuiviTraitementService {
       include: SUIVI_TRAITEMENT_INCLUDE,
     })
     if (!s) throw new NotFoundException('Suivi de traitement introuvable')
-    return s
+    return (await this.avecAuteurs([s]))[0]
+  }
+
+  /**
+   * Nom lisible de l'auteur de chaque fiche (constat 88) : `createdBy` est un id
+   * Utilisateur sans relation Prisma — résolu comme pour les constantes du dossier
+   * (nom du soignant, login à défaut).
+   */
+  private async avecAuteurs<T extends { fiches: { createdBy: string | null }[] }>(suivis: T[]) {
+    const ids = [...new Set(suivis.flatMap((s) => s.fiches.map((f) => f.createdBy)).filter((x): x is string => !!x))]
+    const users = ids.length
+      ? await this.prisma.utilisateur.findMany({
+          where: { id: { in: ids } },
+          select: { id: true, login: true, personnelMedical: { select: { nom: true, prenom: true } } },
+        })
+      : []
+    const noms = new Map(users.map((u) => [
+      u.id,
+      u.personnelMedical ? `${u.personnelMedical.prenom} ${u.personnelMedical.nom}` : u.login,
+    ]))
+    return suivis.map((s) => ({
+      ...s,
+      fiches: s.fiches.map((f) => ({ ...f, auteurNom: f.createdBy ? noms.get(f.createdBy) ?? null : null })),
+    }))
   }
 
   /** Refuse l'accès au suivi d'un dossier verrouillé hors supervision. */
@@ -129,11 +152,12 @@ export class SuiviTraitementService {
       where.statut = 'EN_COURS'
     }
 
-    return this.prisma.suiviTraitement.findMany({
+    const suivis = await this.prisma.suiviTraitement.findMany({
       where,
       include: SUIVI_TRAITEMENT_INCLUDE,
       orderBy: { createdAt: 'desc' },
     })
+    return this.avecAuteurs(suivis)
   }
 
   async findById(id: string, portee?: PorteeSuivi) {

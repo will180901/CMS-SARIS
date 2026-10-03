@@ -21,6 +21,8 @@ export interface FicheSuiviTraitement {
   resultatExamen:         string | null
   createdAt:              string
   createdBy:              string | null
+  /** Nom du soignant qui a saisi la fiche (résolu par le serveur). */
+  auteurNom?:             string | null
 }
 
 export interface SuiviTraitement {
