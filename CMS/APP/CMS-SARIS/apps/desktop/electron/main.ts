@@ -650,6 +650,9 @@ async function startLocalBackend(): Promise<void> {
       apiMainPath: path.join(resources, 'api', 'dist', 'main.js'),
       // Client Prisma SQLite généré, packagé séparément (extraResources → resources/sqlite-client).
       sqliteClientPath: path.join(resources, 'sqlite-client'),
+      // Migrations SQLite (extraResources → resources/sqlite-migrations) : mise à niveau
+      // en place de la base d'un poste installé avec une version antérieure.
+      sqliteMigrationsPath: path.join(resources, 'sqlite-migrations'),
       dbPath,
       port,
       serverUrl: resolveServerUrl(),

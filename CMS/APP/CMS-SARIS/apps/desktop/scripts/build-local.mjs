@@ -13,6 +13,7 @@
  *   4. client Prisma SQLite                 → packages/db/prisma/sqlite/generated
  *   5. seed.db pré-migrée (db push)         → build/seed.db (toutes les tables)
  *   6. client SQLite copié                  → build/sqlite-client
+ *      + migrations SQLite                  → build/sqlite-migrations (mise à niveau des postes)
  *   7. deploy API à plat + binaires natifs  → build/api-runtime (node_modules complet)
  *   8. electron-builder                     → release/CMS SARIS-Setup-*.exe
  *
@@ -71,6 +72,9 @@ run('pnpm --filter @cms-saris/db exec prisma db push --schema prisma/sqlite/sche
 
 // 6 — client SQLite généré → build/sqlite-client (extraResource)
 copyDir(path.join(repoRoot, 'packages', 'db', 'prisma', 'sqlite', 'generated'), path.join(buildDir, 'sqlite-client'))
+// 6 bis — migrations SQLite → build/sqlite-migrations (extraResource) : le backend embarqué
+// les applique au démarrage à la base d'un poste DÉJÀ installé (mise-a-niveau-locale.ts).
+copyDir(path.join(repoRoot, 'packages', 'db', 'prisma', 'sqlite', 'migrations'), path.join(buildDir, 'sqlite-migrations'))
 
 // 7 — deploy API à plat (node_modules sans symlink) + binaires natifs non inclus par le deploy
 const apiRuntime = path.join(buildDir, 'api-runtime')

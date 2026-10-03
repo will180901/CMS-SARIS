@@ -36,6 +36,8 @@ extraResources:
     to: sqlite-client  # → resources/sqlite-client (client Prisma SQLite généré)
   - from: build/seed.db
     to: seed.db        # → resources/seed.db (base SQLite pré-migrée, copiée au 1er run)
+  - from: build/sqlite-migrations
+    to: sqlite-migrations  # → resources/sqlite-migrations (mise à niveau d'un poste déjà installé)
 
 win:
   target:

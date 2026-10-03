@@ -36,6 +36,9 @@ export interface BackendOptions {
    * erreur en mode SQLite si `SQLITE_CLIENT_PATH` est absent. Packagé via extraResources.
    */
   sqliteClientPath: string
+  /** Migrations SQLite embarquées : le backend met à niveau la base d'un poste déjà
+   *  installé avant de démarrer (apps/api/src/prisma/mise-a-niveau-locale.ts). */
+  sqliteMigrationsPath?: string
   /** Fichier SQLite local. */
   dbPath: string
   port: number
@@ -84,6 +87,7 @@ export async function startBackend(opts: BackendOptions): Promise<void> {
     DATABASE_URL: `file:${opts.dbPath}?connection_limit=1`,
     // Chemin du client Prisma SQLite généré (exigé par PrismaService en mode sqlite).
     SQLITE_CLIENT_PATH: opts.sqliteClientPath,
+    SQLITE_MIGRATIONS_DIR: opts.sqliteMigrationsPath ?? '',
     PORT: String(opts.port),
     HOST: LOOPBACK_HOST,
     SARIS_API_MAIN: opts.apiMainPath,

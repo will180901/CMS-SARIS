@@ -10,6 +10,7 @@ import {
   buildSoftDeleteExtension,
   SOFT_DELETE_MODELS,
 } from './soft-delete.extension'
+import { mettreANiveauBaseLocale } from './mise-a-niveau-locale'
 
 /**
  * PrismaService — wrapper NestJS autour de PrismaClient, **bi-cible** et
@@ -113,6 +114,13 @@ export class PrismaService
       // On désactive l'enforcement des clés étrangères pour que la synchro n'ait pas à
       // appliquer les enregistrements dans l'ordre parent → enfant.
       await this.baseClient.$executeRawUnsafe('PRAGMA foreign_keys = OFF')
+      // Poste déjà installé : son schéma date de son installation — on le met à niveau
+      // AVANT que quoi que ce soit ne lise la base (cf. mise-a-niveau-locale.ts).
+      await mettreANiveauBaseLocale(
+        this.baseClient,
+        process.env['SQLITE_MIGRATIONS_DIR'],
+        this.logger,
+      )
     }
     this.logger.log(
       `Base de données ${sqlite ? 'SQLite locale' : 'PostgreSQL'} connectée (soft-delete actif)`,
