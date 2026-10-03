@@ -754,12 +754,21 @@ export function DossierPage() {
     chroniques: suiviResume?.chroniques.length,
     resultats: suiviResume?.resultatsEnAttente.length,
   }
-  const sectionBadge: Partial<Record<SectionKey, number>> = {
-    apercu: tabCounts.alertes,
-    medical: tabCounts.antecedents,
-    administratif: tabCounts.rattachements,
+  // Ce que compte la pastille d'une section = celle de l'un de ses onglets.
+  const sectionBadgeSource: Partial<Record<SectionKey, SubTabKey>> = {
+    apercu: 'alertes',
+    medical: 'antecedents',
+    administratif: 'rattachements',
     // Des résultats attendent d'être saisis : signalé dès la barre des sections.
-    parcours: tabCounts.resultats,
+    parcours: 'resultats',
+  }
+  // Un nombre seul ne disait pas ce qu'il comptait — et chaque onglet compte autre chose
+  // (constat 15) : l'infobulle le dit.
+  const pastille = (key: SubTabKey | undefined) => {
+    const n = key ? tabCounts[key] ?? 0 : 0
+    if (!key || n <= 0) return undefined
+    const libelle = t(`patients.badgeTitle_${key}`, { count: n })
+    return <span title={libelle} aria-label={libelle}>{n}</span>
   }
 
   // Section active + ses sous-onglets, filtrés par permission (onglets cliniques
@@ -914,7 +923,7 @@ export function DossierPage() {
                   key: s.key,
                   label: t(s.labelKey),
                   icon: <s.icon size={13} />,
-                  badge: (sectionBadge[s.key] ?? 0) > 0 ? sectionBadge[s.key] : undefined,
+                  badge: pastille(sectionBadgeSource[s.key]),
                 }))}
               />
             </div>
@@ -929,7 +938,7 @@ export function DossierPage() {
                   tabs={visibleSubTabs.map(st => ({
                     key: st.key,
                     label: t(st.labelKey),
-                    badge: (tabCounts[st.key] ?? 0) > 0 ? tabCounts[st.key] : undefined,
+                    badge: pastille(st.key),
                   }))}
                 />
               </div>

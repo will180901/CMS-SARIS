@@ -12,7 +12,7 @@
  *   - CONSULTATION  → résumé complet lecture seule (ConsultationArchiveSummary)
  */
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { humanizeCode } from '@/config/labels'
 import type { ConstanteVitale } from '@cms-saris/types'
 import { useTranslation } from 'react-i18next'
@@ -449,6 +449,32 @@ function ResultatBody({ consultationId, resultat }: { consultationId: string; re
 
 // ── Tiroir principal (glisse de la droite, par-dessus la liste) ────────────────
 
+/** Types dont le corps charge déjà la consultation : la date en vient sans requête de plus. */
+const AVEC_CONSULTATION: DossierDetailTarget['kind'][] = ['CONSULTATION', 'ORDONNANCE', 'BON_EXAMEN', 'BON_PHARMACIE', 'EVACUATION', 'CERTIFICAT_REPOS']
+
+/**
+ * Patient et date de l'acte sous le titre du tiroir (constat 19) : l'en-tête générique
+ * (« Ordonnance », « Visite »…) ne disait ni de qui ni de quand. Données déjà en cache
+ * (le dossier ouvert, la consultation ou la visite que le corps charge).
+ */
+function SousTitreDetail({ target }: { target: DossierDetailTarget }) {
+  const { id: patientId = '' } = useParams<{ id: string }>()
+  const { data: dossier } = usePatientDossier(patientId)
+  const { data: visite } = useVisite(target.kind === 'VISITE' ? target.visiteId : '')
+  const { data: consultation } = useConsultation(
+    AVEC_CONSULTATION.includes(target.kind) && 'consultationId' in target ? target.consultationId : '',
+  )
+  const nom = dossier?.identite ? `${dossier.identite.prenom} ${dossier.identite.nom}` : null
+  const date = visite?.dateOuverture ?? consultation?.createdAt ?? null
+  const morceaux = [nom, date ? formatDate(date, { day: '2-digit', month: 'long', year: 'numeric' }) : null].filter(Boolean)
+  if (morceaux.length === 0) return null
+  return (
+    <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--texte-secondaire)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      {morceaux.join(' · ')}
+    </p>
+  )
+}
+
 export function DossierDetailDrawer({ target, onClose }: { target: DossierDetailTarget; onClose: () => void }) {
   const { t } = useTranslation()
   const [host, setHost] = useState<HTMLDivElement | null>(null)
@@ -486,9 +512,12 @@ export function DossierDetailDrawer({ target, onClose }: { target: DossierDetail
           }}>
             <Icon size={17} />
           </div>
-          <SheetTitle style={{ margin: 0, flex: 1, minWidth: 0, fontSize: 'var(--font-size-h4)', fontWeight: 700, color: 'var(--texte-primaire)', lineHeight: 1.25 }}>
-            {t(TITLE_KEY[target.kind])}
-          </SheetTitle>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <SheetTitle style={{ margin: 0, fontSize: 'var(--font-size-h4)', fontWeight: 700, color: 'var(--texte-primaire)', lineHeight: 1.25 }}>
+              {t(TITLE_KEY[target.kind])}
+            </SheetTitle>
+            <SousTitreDetail target={target} />
+          </div>
           <button
             aria-label={t('common.close', { defaultValue: 'Fermer' })}
             onClick={requestClose}
