@@ -109,9 +109,20 @@ export function ChangerCategorieModal({
   const { data: categories = [] } = useCategoriesPatient()
   const changer = useChangerCategorie(dossier.id)
 
+  // Passage en CDI/CDD : matricule et données d'emploi DÉJÀ connus du dossier sont
+  // préremplis (constat 64). Les ressaisir de mémoire, c'était risquer une faute de frappe
+  // dans le matricule — donc un second employé au registre pour la même personne.
+  const valeursInitiales = (): Form => ({
+    nouvelleCategId: '', motif: '',
+    matricule:   dossier.matricule ?? '',
+    fonction:    dossier.donneesEmploi?.fonction    ?? '',
+    sectionPaie: dossier.donneesEmploi?.sectionPaie ?? '',
+    service:     dossier.donneesEmploi?.service     ?? '',
+    departement: dossier.donneesEmploi?.departement ?? '',
+  })
   const form = useForm<Form>({
     resolver: zodResolver(makeSchema(t)),
-    defaultValues: { nouvelleCategId: '', motif: '', matricule: '', fonction: '', sectionPaie: '', service: '', departement: '' },
+    defaultValues: valeursInitiales(),
   })
   const { register, watch, setValue, reset, formState: { errors } } = form
 
@@ -139,13 +150,13 @@ export function ChangerCategorieModal({
         departement: v.departement!.trim(),
       } : {}),
     })
-    reset()
+    reset(valeursInitiales())
     onClose()
   }
 
   function handleClose() {
     if (changer.isPending) return
-    reset()
+    reset(valeursInitiales())
     onClose()
   }
 
