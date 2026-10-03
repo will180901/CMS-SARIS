@@ -493,6 +493,8 @@ export class PatientService {
       personnelMedicalId: string | null
       canViewLocked?: boolean
       restreindreHistorique?: boolean
+      /** Sans `patient.confidentiel.read` : pathologies à confidentialité renforcée masquées. */
+      masquerConfidentiel?: boolean
     },
   ) {
     const dossier = await this.prisma.patient.findUnique({
@@ -503,9 +505,10 @@ export class PatientService {
     await this.assertOwnPatient(id, scope)
 
     // Confidentialité renforcée (VIH/SIDA, santé mentale, etc.) : un antécédent lié à
-    // une pathologie marquée `confidentialiteRenforcee` est masqué à l'INFIRMIER, même si
-    // le reste des antécédents (sécurité clinique de base) lui reste visible.
-    const antecedents = scope?.restreindreHistorique
+    // une pathologie marquée `confidentialiteRenforcee` est masqué à qui n'a pas la
+    // permission `patient.confidentiel.read`, même si le reste des antécédents (sécurité
+    // clinique de base) lui reste visible.
+    const antecedents = scope?.masquerConfidentiel
       ? dossier.antecedents.filter(
           (a) => !a.pathologie?.confidentialiteRenforcee,
         )
@@ -705,6 +708,8 @@ export class PatientService {
        *  securite clinique —, sauf ce qui touche une pathologie a confidentialite
        *  renforcee, exactement comme pour les antecedents. */
       restreindreHistorique?: boolean
+      /** Sans `patient.confidentiel.read` : pathologies à confidentialité renforcée masquées. */
+      masquerConfidentiel?: boolean
     },
   ): Promise<AlerteClinique[]> {
     await this.assertOwnPatient(patientId, scope)
@@ -762,7 +767,7 @@ export class PatientService {
               // suivi » affichait le LIBELLE en clair — un diagnostic VIH, par exemple —
               // dans le bandeau de tete du dossier : la porte fermee d'un cote restait
               // grande ouverte de l'autre.
-              ...(scope?.restreindreHistorique
+              ...(scope?.masquerConfidentiel
                 ? { confidentialiteRenforcee: false }
                 : {}),
             },
@@ -938,6 +943,8 @@ export class PatientService {
       personnelMedicalId: string | null
       canViewLocked?: boolean
       restreindreHistorique?: boolean
+      /** Sans `patient.confidentiel.read` : pathologies à confidentialité renforcée masquées. */
+      masquerConfidentiel?: boolean
     },
   ) {
     await this.assertPatientExists(patientId)
@@ -964,11 +971,17 @@ export class PatientService {
               // Meme exception que les antecedents et les alertes : une pathologie a
               // confidentialite renforcee n'apparait jamais a l'infirmier, meme
               // diagnostiquee pendant la visite en cours.
-              pathologie: { chronique: true, confidentialiteRenforcee: false },
+              pathologie: {
+                chronique: true,
+                ...(scope?.masquerConfidentiel ? { confidentialiteRenforcee: false } : {}),
+              },
               consultation: consultationsDuDossier(patientId, true),
             }
           : {
-              pathologie: { chronique: true },
+              pathologie: {
+                chronique: true,
+                ...(scope?.masquerConfidentiel ? { confidentialiteRenforcee: false } : {}),
+              },
               consultation: consultationsDuDossier(patientId),
             },
         select: {

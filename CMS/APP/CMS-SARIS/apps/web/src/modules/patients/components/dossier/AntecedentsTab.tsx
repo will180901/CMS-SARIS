@@ -16,6 +16,7 @@ import { ConfirmDeleteModal } from './ConfirmDeleteModal'
 import { useCreateAntecedent, useUpdateAntecedent, useDeleteAntecedent } from '../../hooks/usePatients'
 import { usePathologies }     from '@/modules/referentiels/hooks/useReferentiels'
 import { isActif }            from '@/modules/referentiels/api/referentiels.api'
+import { usePermissions }     from '@/hooks/usePermissions'
 import type { PatientDossier, AntecedentPatient, TypeAntecedent } from '@cms-saris/types'
 
 // ── Config types ──────────────────────────────────────────────────────────────
@@ -199,6 +200,12 @@ export function AntecedentsTab({ dossier, canWrite }: { dossier: PatientDossier;
 
   const actifs  = dossier.antecedents.filter(a => a.statut === 'ACTIF')
   const resolus = dossier.antecedents.filter(a => a.statut === 'RESOLU')
+  // Sans `patient.confidentiel.read`, le serveur retire les antécédents liés à une
+  // pathologie à confidentialité renforcée. On le DIT, toujours (qu'il y en ait ou non :
+  // n'afficher l'avertissement que s'il en existe révélerait leur existence). Sinon
+  // « Aucun antécédent documenté » serait affirmé là où il y en a peut-être.
+  const { has } = usePermissions()
+  const vueFiltree = !has('patient.confidentiel.read')
 
   const fld = { display: 'flex', flexDirection: 'column' as const, gap: '5px' }
   const lbl = { fontSize: '12px', fontWeight: '500' as const, color: 'var(--texte-secondaire)' }
@@ -220,6 +227,12 @@ export function AntecedentsTab({ dossier, canWrite }: { dossier: PatientDossier;
           </Button>
         )}
       </div>
+
+      {vueFiltree && (
+        <p style={{ fontSize: '12px', color: 'var(--texte-tertiaire)', margin: '-6px 0 14px', lineHeight: 1.45 }}>
+          {t('patients.antecedentsConfidentielsMasques')}
+        </p>
+      )}
 
       {/* Actifs */}
       {actifs.length === 0 && resolus.length === 0 && (

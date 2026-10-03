@@ -88,6 +88,12 @@ function isHistoriqueRestreint(req: AuthedRequest): boolean {
   return roles.includes('INFIRMIER') && !isSupervision(req)
 }
 
+/** Pathologies à confidentialité renforcée : masquées à qui n'a pas la permission dédiée
+ *  (le médecin chef et l'administrateur l'ont ; l'infirmier, non). */
+function masquerConfidentiel(req: AuthedRequest): boolean {
+  return !(req.user?.permissions ?? []).includes('patient.confidentiel.read')
+}
+
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('patients')
 @Audit('patient', 'Patient')
@@ -137,6 +143,7 @@ export class PatientController {
       personnelMedicalId: req.user?.personnelMedicalId ?? null,
       canViewLocked: isSupervision(req),
       restreindreHistorique: isHistoriqueRestreint(req),
+      masquerConfidentiel: masquerConfidentiel(req),
     })
   }
 
@@ -190,6 +197,7 @@ export class PatientController {
       // Seule lecture clinique du dossier qui ne recevait pas cette restriction : c'est
       // par elle que les pathologies confidentielles fuyaient vers l'infirmier.
       restreindreHistorique: isHistoriqueRestreint(req),
+      masquerConfidentiel: masquerConfidentiel(req),
     })
   }
 
@@ -205,6 +213,7 @@ export class PatientController {
       personnelMedicalId: req.user?.personnelMedicalId ?? null,
       canViewLocked: isSupervision(req),
       restreindreHistorique: isHistoriqueRestreint(req),
+      masquerConfidentiel: masquerConfidentiel(req),
     })
   }
 

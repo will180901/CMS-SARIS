@@ -23,6 +23,10 @@ export const PERMISSIONS = {
   PATIENT_ARCHIVE:         'patient.archive',
   PATIENT_CHANGE_CATEGORY: 'patient.change_category',
   PATIENT_LOCK:            'patient.lock',
+  // Pathologies à confidentialité renforcée (VIH, santé mentale…) : une PERMISSION, et non
+  // plus le nom du rôle. Avant, seul le rôle nommé « INFIRMIER » en était privé : un rôle
+  // créé par l'administrateur sous un autre nom les voyait toutes.
+  PATIENT_CONFIDENTIEL_READ: 'patient.confidentiel.read',
   // Rattachements (CDI / sous-traitants) — partie administrative du dossier,
   // séparée de patient.update pour pouvoir la confier à un autre profil.
   PATIENT_RATTACHEMENT_MANAGE: 'patient.rattachement.manage',
@@ -221,6 +225,7 @@ export const PERMISSION_META: Record<PermissionCode, { libelle: string; module: 
   'patient.archive':             { libelle: 'Archiver / réactiver un dossier', module: 'patient' },
   'patient.change_category':     { libelle: 'Changer la catégorie d\'un patient', module: 'patient' },
   'patient.lock':                { libelle: 'Verrouiller / déverrouiller l\'accès à un dossier', module: 'patient' },
+  'patient.confidentiel.read':   { libelle: 'Voir les pathologies à confidentialité renforcée (VIH, santé mentale…)', module: 'patient' },
   'patient.rattachement.manage': { libelle: 'Gérer les rattachements (CDI / sous-traitants)', module: 'patient' },
 
   // Visite / Triage
@@ -499,7 +504,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionCode[]> = {
   MEDECIN_CHEF: [
     'dashboard.read',
     'patient.read', 'patient.create', 'patient.update', 'patient.change_category',
-    'patient.rattachement.manage', 'patient.archive', 'patient.lock',
+    'patient.rattachement.manage', 'patient.archive', 'patient.lock', 'patient.confidentiel.read',
     'visite.read', 'visite.create', 'visite.update', 'visite.assign_soignant',
     'visite.cancel', 'visite.close', 'visite.delete',
     'consultation.read', 'consultation.create', 'consultation.update',

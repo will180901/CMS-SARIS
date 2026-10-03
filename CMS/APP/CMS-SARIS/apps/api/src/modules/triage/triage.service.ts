@@ -293,7 +293,7 @@ export class TriageService {
 
   // ── Détail visite ─────────────────────────────────────────────────────────
 
-  async findById(id: string, restreindreHistorique = false) {
+  async findById(id: string, masquerConfidentiel = false) {
     const visite = await this.prisma.visite.findUnique({
       where: { id },
       include: VISITE_DETAIL_INCLUDE,
@@ -301,8 +301,8 @@ export class TriageService {
     if (!visite) throw new NotFoundException('Visite introuvable')
 
     // Confidentialité renforcée (VIH/SIDA, santé mentale, etc.) — miroir de
-    // patient.service.ts::findById : masqué à l'INFIRMIER, visible au médecin chef.
-    if (restreindreHistorique) {
+    // patient.service.ts::findById : masqué sans `patient.confidentiel.read`.
+    if (masquerConfidentiel) {
       visite.patient.antecedents = visite.patient.antecedents.filter(
         (a) => !a.pathologie?.confidentialiteRenforcee,
       )

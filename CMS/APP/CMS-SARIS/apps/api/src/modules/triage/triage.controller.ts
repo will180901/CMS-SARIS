@@ -42,6 +42,7 @@ interface AuthedRequest {
     siteId?: string
     roles?: string[]
     personnelMedicalId?: string | null
+    permissions?: string[]
   }
 }
 
@@ -115,7 +116,12 @@ export class TriageController {
   @RequirePermissions('visite.read')
   findById(@Param('id') id: string, @Req() req: AuthedRequest) {
     requireUser(req)
-    return this.triageService.findById(id, isHistoriqueRestreint(req))
+    // Pathologies à confidentialité renforcée : par PERMISSION (patient.confidentiel.read),
+    // comme le dossier — plus par le nom du rôle.
+    return this.triageService.findById(
+      id,
+      !(req.user?.permissions ?? []).includes('patient.confidentiel.read'),
+    )
   }
 
   @Delete(':id')
