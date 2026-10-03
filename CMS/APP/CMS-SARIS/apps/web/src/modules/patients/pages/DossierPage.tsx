@@ -232,8 +232,10 @@ function DossierSidebar({ dossier, onChangerCategorie, canChangerCategorie, onOu
           </p>
           {id && (
             <p style={{ fontSize: '12px', color: 'var(--texte-secondaire)', margin: '2px 0 0' }}>
-              {id.dateNaissance && <>{t('patients.infoYears', { count: calcAge(id.dateNaissance) })} · </>}
-              {id.sexe === 'M' ? t('patients.sexMale') : id.sexe === 'F' ? t('patients.sexFemale') : '—'}
+              {/* Un « — » seul ne disait pas ce qui manquait : on le nomme. */}
+              {id.dateNaissance ? t('patients.infoYears', { count: calcAge(id.dateNaissance) }) : t('patients.ageNonRenseigne')}
+              {' · '}
+              {id.sexe === 'M' ? t('patients.sexMale') : id.sexe === 'F' ? t('patients.sexFemale') : t('patients.sexeNonRenseigne')}
             </p>
           )}
         </div>
@@ -465,7 +467,7 @@ function Pastille({ ton, icone, children, fort }: { ton: Ton; icone?: React.Reac
 
 function SecuriteClinique({ dossier, alertesActives }: { dossier: PatientDossier; alertesActives: boolean }) {
   const { t } = useTranslation()
-  const { data: alertes = [] } = usePatientAlertesCliniques(dossier.id, alertesActives)
+  const { data: alertes = [], isError: alertesEnErreur, refetch: recalculer } = usePatientAlertesCliniques(dossier.id, alertesActives)
   const [ouvert, setOuvert] = usePersistedState<boolean>('dossier', 'securiteDetails', false)
   // Instant figé au montage : appeler Date.now() à chaque rendu rendrait le composant
   // impur (React peut re-rendre à tout moment) et l'ancienneté bougerait toute seule.
@@ -476,14 +478,16 @@ function SecuriteClinique({ dossier, alertesActives }: { dossier: PatientDossier
   const calculees   = alertesActives ? alertes : []
   const actuelles   = calculees.filter(a => a.portee !== 'HISTORIQUE')
   const historiques = calculees.filter(a => a.portee === 'HISTORIQUE')
-  if (severes.length + critiques.length + calculees.length === 0) return null
+  // Un échec du calcul donnait le même écran qu'« aucune alerte » : on le dit.
+  const echecCalcul = alertesActives && alertesEnErreur
+  if (severes.length + critiques.length + calculees.length === 0 && !echecCalcul) return null
 
   // Le bloc entier passe au rouge dès qu'un danger PRÉSENT existe : c'est le signal fort
   // que portait l'ancien bandeau « Informations critiques », conservé tel quel.
   const danger = severes.length + critiques.length + actuelles.filter(a => a.gravite === 'CRITIQUE').length > 0
   // Constat 5 : une alerte saisie au dossier était réduite à son message — sans type,
-  // sans gravité écrite, sans date. Le détail couvre désormais aussi ces saisies : il y
-  // a donc toujours quelque chose à déplier.
+  // sans gravité écrite, sans date. Le détail couvre désormais aussi ces saisies.
+  const aDuDetail = severes.length + critiques.length + calculees.length > 0
   const typeAlerte = (type: string) => t(TYPE_ALERTE_CLE[type] ?? 'patients.alertTypeAutre')
 
   const anciennete = (iso: string) => {
@@ -545,25 +549,35 @@ function SecuriteClinique({ dossier, alertesActives }: { dossier: PatientDossier
               {t('patients.securiteHistorique', { count: historiques.length })}
             </Pastille>
           )}
+          {echecCalcul && (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <Pastille ton={TON_GRAVITE.ELEVE} icone={<AlertTriangle size={11} />}>{t('patients.securiteEchecCalcul')}</Pastille>
+              <button type="button" onClick={() => recalculer()} style={{ fontSize: 12, fontWeight: 600, padding: '2px 6px', borderRadius: 6, cursor: 'pointer', background: 'transparent', border: 'none', color: 'var(--ap-600)' }}>
+                {t('patients.securiteReessayer')}
+              </button>
+            </span>
+          )}
         </div>
 
-        <button
-          type="button"
-          onClick={() => setOuvert(!ouvert)}
-          aria-expanded={ouvert}
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0, marginLeft: 'auto',
-            fontSize: 12, fontWeight: 600, padding: '3px 8px', borderRadius: 6, cursor: 'pointer',
-            background: 'transparent', border: 'none',
-            color: danger ? 'var(--erreur-texte)' : 'var(--ap-600)',
-          }}
-        >
-          {ouvert ? t('patients.securiteMasquer') : t('patients.securiteDetails')}
-          {ouvert ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-        </button>
+        {aDuDetail && (
+          <button
+            type="button"
+            onClick={() => setOuvert(!ouvert)}
+            aria-expanded={ouvert}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0, marginLeft: 'auto',
+              fontSize: 12, fontWeight: 600, padding: '3px 8px', borderRadius: 6, cursor: 'pointer',
+              background: 'transparent', border: 'none',
+              color: danger ? 'var(--erreur-texte)' : 'var(--ap-600)',
+            }}
+          >
+            {ouvert ? t('patients.securiteMasquer') : t('patients.securiteDetails')}
+            {ouvert ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+          </button>
+        )}
       </div>
 
-      {ouvert && (
+      {ouvert && aDuDetail && (
         <div style={{
           display: 'flex', flexDirection: 'column', gap: 6, padding: '10px 14px 12px',
           borderTop: `1px solid ${danger ? 'var(--erreur-bordure)' : 'var(--bordure-legere)'}`,
