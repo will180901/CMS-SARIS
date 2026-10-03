@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { toast } from '@workspace/ui/components/sonner'
 import { consultationApi } from '../api/consultation.api'
 import type { AnamnesePayload } from '../api/consultation.api'
@@ -218,13 +218,23 @@ export function useCloturer(consultationId: string) {
 
 // ── Annuler ───────────────────────────────────────────────────────────────────
 
+/**
+ * Annuler ou supprimer une consultation touche tout ce qui en dépend (constat 90) : la
+ * visite (remise en file), ordonnances, bons, évacuation et suivi (annulés en cascade
+ * ou purgés), et le dossier du patient. Clés littérales : importer les hooks des autres
+ * modules créerait des imports circulaires.
+ */
+function invaliderDependancesConsultation(qc: QueryClient) {
+  for (const queryKey of [['consultations'], ['visites'], ['patients'], ['suivi-traitement'], ['bons-examen'], ['bons-pharmacie'], ['evacuations']])
+    qc.invalidateQueries({ queryKey })
+}
+
 export function useAnnulerConsultation(consultationId: string) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (motif: string) => consultationApi.annuler(consultationId, motif),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: CONSULTATIONS_KEY })
-      qc.invalidateQueries({ queryKey: consultationKey(consultationId) })
+      invaliderDependancesConsultation(qc)
       toast.success(i18n.t('consultation.toastConsultationCancelled'))
     },
     onError: toastError,
@@ -236,7 +246,7 @@ export function useDeleteConsultation(consultationId: string) {
   return useMutation({
     mutationFn: () => consultationApi.remove(consultationId),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: CONSULTATIONS_KEY })
+      invaliderDependancesConsultation(qc)
       toast.success(i18n.t('consultation.toastConsultationDeleted'))
     },
     onError: toastError,
