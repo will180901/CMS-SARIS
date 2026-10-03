@@ -157,6 +157,12 @@ export class SuiviTraitementService {
       where: { id: dto.consultationId },
     })
     if (!c) throw new NotFoundException('Consultation introuvable')
+    // Une consultation annulée n'a plus de décision médicale : rien ne s'y rattache.
+    if (c.statut === 'ANNULEE') {
+      throw new ConflictException(
+        'Consultation annulée : aucun suivi de traitement ne peut y être rattaché',
+      )
+    }
 
     // Décision médicale = choix unique (Évacuation OU Suivi de traitement, jamais les
     // deux) — vérifié ici et pas seulement dans le picker frontend, qui ne fait que

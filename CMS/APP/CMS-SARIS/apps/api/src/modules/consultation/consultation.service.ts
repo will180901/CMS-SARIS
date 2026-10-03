@@ -893,6 +893,33 @@ export class ConsultationService {
         where: { id: c.visiteId },
         data: { statut: 'EN_ATTENTE', typeCloture: null, dateCloture: null },
       })
+      // CASCADE. Une consultation annulée ne laisse plus d'actes VIVANTS derrière elle.
+      // Avant, ses ordonnances restaient « Validée », ses bons « En attente » (un bon de
+      // pharmacie restait délivrable, donc gratuit), son évacuation et son suivi de
+      // traitement restaient « En cours » — tableau de bord, sorties critiques et rapports
+      // les comptaient. Ce qui s'est RÉELLEMENT passé n'est pas réécrit : un bon déjà
+      // délivré ou validé reste tel quel (même règle que annulerOrdonnance).
+      const motif = `Consultation annulée : ${dto.motifAnnulation}`
+      await tx.ordonnance.updateMany({
+        where: { consultationId: id, statut: { in: ['BROUILLON', 'VALIDEE'] } },
+        data: { statut: 'ANNULEE', motifAnnulation: motif },
+      })
+      await tx.bonExamen.updateMany({
+        where: { consultationId: id, statut: 'EN_ATTENTE' },
+        data: { statut: 'ANNULE', motifAnnulation: motif },
+      })
+      await tx.bonPharmacie.updateMany({
+        where: { consultationId: id, statut: 'EN_ATTENTE' },
+        data: { statut: 'ANNULE', motifAnnulation: motif },
+      })
+      await tx.evacuation.updateMany({
+        where: { consultationId: id, statut: 'EN_COURS' },
+        data: { statut: 'ANNULE', motifAnnulation: motif },
+      })
+      await tx.suiviTraitement.updateMany({
+        where: { consultationId: id, statut: 'EN_COURS' },
+        data: { statut: 'ANNULE', motifAnnulation: motif },
+      })
       return updated
     })
   }
