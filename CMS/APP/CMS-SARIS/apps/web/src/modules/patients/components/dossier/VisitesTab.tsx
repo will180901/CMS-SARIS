@@ -8,6 +8,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { HeartPulse, ChevronRight, Loader2 } from 'lucide-react'
 import { EmptyState } from '@/components/saris'
+import { AfficherPlus, TRANCHE_HISTORIQUE } from './AfficherPlus'
 import { formatDate, formatTime } from '@/lib/intl'
 import { usePatientVisites } from '@/modules/triage/hooks/useTriage'
 import { DossierDetailDrawer } from './DossierDetailPanel'
@@ -40,6 +41,7 @@ export function VisitesTab({ patientId, historiqueRestreint = false }: { patient
   const { t } = useTranslation()
   const { data: visites = [], isLoading, isError } = usePatientVisites(patientId)
   const [detail, setDetail] = useState<DossierDetailTarget | null>(null)
+  const [nbAffiches, setNbAffiches] = useState(TRANCHE_HISTORIQUE)
 
   return (
     <div>
@@ -70,8 +72,8 @@ export function VisitesTab({ patientId, historiqueRestreint = false }: { patient
       )}
 
       {!isError && !isLoading && visites.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 720 }}>
-          {visites.map(v => {
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 960 }}>
+          {visites.slice(0, nbAffiches).map(v => {
             const cfg = etatPassage(v)
             return (
               <button
@@ -117,6 +119,7 @@ export function VisitesTab({ patientId, historiqueRestreint = false }: { patient
               </button>
             )
           })}
+          <AfficherPlus affiches={nbAffiches} total={visites.length} onPlus={() => setNbAffiches(n => n + TRANCHE_HISTORIQUE)} />
         </div>
       )}
 

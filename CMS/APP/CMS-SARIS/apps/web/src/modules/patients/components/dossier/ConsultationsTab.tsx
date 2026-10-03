@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next'
 import { nomSoignant } from '@/lib/soignant'
 import { Stethoscope, ChevronRight, Loader2 } from 'lucide-react'
 import { EmptyState } from '@/components/saris'
+import { AfficherPlus, TRANCHE_HISTORIQUE } from './AfficherPlus'
 import { formatDate, formatTime } from '@/lib/intl'
 import { labelDecision } from '@/config/labels'
 import { usePatientConsultations } from '@/modules/consultation/hooks/useConsultation'
@@ -24,6 +25,7 @@ export function ConsultationsTab({ patientId, historiqueRestreint = false }: { p
   const { t } = useTranslation()
   const { data: consultations = [], isLoading, isError } = usePatientConsultations(patientId)
   const [detail, setDetail] = useState<DossierDetailTarget | null>(null)
+  const [nbAffiches, setNbAffiches] = useState(TRANCHE_HISTORIQUE)
 
   return (
     <div>
@@ -54,8 +56,8 @@ export function ConsultationsTab({ patientId, historiqueRestreint = false }: { p
       )}
 
       {!isError && !isLoading && consultations.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 720 }}>
-          {consultations.map(c => {
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 960 }}>
+          {consultations.slice(0, nbAffiches).map(c => {
             const cfg = STATUT_CONSULT[c.statut] ?? STATUT_CONSULT.CLOTUREE
             const decision = c.decisionMedicale ? labelDecision(c.decisionMedicale) : null
             return (
@@ -109,6 +111,7 @@ export function ConsultationsTab({ patientId, historiqueRestreint = false }: { p
               </button>
             )
           })}
+          <AfficherPlus affiches={nbAffiches} total={consultations.length} onPlus={() => setNbAffiches(n => n + TRANCHE_HISTORIQUE)} />
         </div>
       )}
 
