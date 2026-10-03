@@ -73,6 +73,14 @@ export const fr = {
     parametres: 'Paramètres',
   },
   // Barre de pagination — composant partagé par TOUTES les listes de l'application.
+  file: {
+    annule: 'Annulé',
+    avecConsultation: 'Envoyé en consultation',
+    sansConsultation: 'Clôturé sans consultation',
+    passages: '{{count}} passage(s)',
+    dernier: 'dernier le {{date}}',
+    autresPassages: 'Autres passages',
+  },
   pagination: {
     rowsPerPage: 'Lignes par page',
     rowsPerPageAria: 'Nombre de lignes par page',

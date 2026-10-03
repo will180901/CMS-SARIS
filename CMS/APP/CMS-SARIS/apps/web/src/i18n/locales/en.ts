@@ -75,6 +75,14 @@ export const en: Resources = {
     parametres: 'Settings',
   },
   // Pagination bar — shared by EVERY list in the application.
+  file: {
+    annule: 'Cancelled',
+    avecConsultation: 'Sent to consultation',
+    sansConsultation: 'Closed without consultation',
+    passages: '{{count}} visit(s)',
+    dernier: 'last on {{date}}',
+    autresPassages: 'Other visits',
+  },
   pagination: {
     rowsPerPage: 'Rows per page',
     rowsPerPageAria: 'Number of rows per page',

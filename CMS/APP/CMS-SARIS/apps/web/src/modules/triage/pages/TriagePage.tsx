@@ -15,6 +15,7 @@ import { useVisites }          from '../hooks/useTriage'
 import { useMotifs }           from '@/modules/referentiels/hooks/useReferentiels'
 import { useSoignants }        from '../hooks/useSoignants'
 import { QueueCard }           from '../components/QueueCard'
+import { GroupesParPatient }   from '@/components/file/GroupesParPatient'
 import { VisiteDetail }        from '../components/VisiteDetail'
 import { PrivacyCurtain }      from '@/components/PrivacyCurtain'
 import { NouvelleVisitePanel } from '../components/NouvelleVisiteDrawer'
@@ -581,14 +582,37 @@ export function TriagePage() {
                   )}
                 </div>
               ) : (
-                filteredVisites.map(v => (
+                filter === 'ACTIVES' ? filteredVisites.map(v => (
                   <QueueCard
                     key={v.id}
                     visite={v}
                     selected={v.id === selectedId}
                     onClick={() => { setSelected(v.id); setCreating(false) }}
                   />
-                ))
+                )) : (
+                  // Historique : un patient UNE fois, ses passages rangés par motif.
+                  <GroupesParPatient
+                    items={filteredVisites}
+                    idDe={v => v.id}
+                    patientDe={v => ({ id: v.patient?.id ?? v.patientId, numeroPatient: v.patient?.numeroPatient ?? '', identite: v.patient?.identite ?? null })}
+                    dateDe={v => v.dateOuverture}
+                    problemeDe={v => v.motifPrincipal?.libelle ?? null}
+                    carte={v => (
+                      <QueueCard visite={v} selected={v.id === selectedId} onClick={() => { setSelected(v.id); setCreating(false) }} />
+                    )}
+                    ligne={v => (
+                      <LignePassage
+                        date={v.dateOuverture}
+                        titre={v.motifPrincipal?.libelle ?? ''}
+                        detail={v.statut === 'ANNULEE' ? v.motifAnnulation : v.typeCloture ? t(v.typeCloture === 'AVEC_CONSULTATION' ? 'file.avecConsultation' : 'file.sansConsultation') : null}
+                        annule={v.statut === 'ANNULEE'}
+                      />
+                    )}
+                    selectedId={selectedId}
+                    onSelect={v => { setSelected(v.id); setCreating(false) }}
+                    toutOuvrir={!!search.trim()}
+                  />
+                )
               )}
             </div>
           </div>
@@ -703,5 +727,20 @@ function EmptyPanel({
         )}
       </div>
     </div>
+  )
+}
+
+// Ligne compacte d'un passage dans la bulle d'un patient (le nom est déjà dans la bulle).
+function LignePassage({ date, titre, detail, annule }: { date: string; titre: string; detail?: string | null; annule?: boolean }) {
+  const { t } = useTranslation()
+  return (
+    <span style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }}>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: 'var(--texte-primaire)' }}>
+        <span style={{ fontVariantNumeric: 'tabular-nums', color: 'var(--texte-secondaire)' }}>{formatDate(date, { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{titre}</span>
+        {annule && <span style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 700, color: 'var(--erreur-texte)' }}>{t('file.annule')}</span>}
+      </span>
+      {detail && <span style={{ fontSize: 11, color: 'var(--texte-tertiaire)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{detail}</span>}
+    </span>
   )
 }

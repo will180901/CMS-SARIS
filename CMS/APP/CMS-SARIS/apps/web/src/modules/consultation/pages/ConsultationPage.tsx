@@ -12,6 +12,9 @@ import { TILE_TONE_MAP } from '@/components/saris'
 import { useConsultations }        from '../hooks/useConsultation'
 import { consultationApi }         from '../api/consultation.api'
 import { ConsultationQueueCard }   from '../components/ConsultationQueueCard'
+import { GroupesParPatient }       from '@/components/file/GroupesParPatient'
+import { formatDate }              from '@/lib/intl'
+import { nomSoignant }             from '@/lib/soignant'
 import { ConsultationDetail }      from '../components/ConsultationDetail'
 import { PrivacyCurtain }          from '@/components/PrivacyCurtain'
 import { useIsCompact }            from '@/hooks/useMediaQuery'
@@ -263,14 +266,38 @@ export function ConsultationPage() {
             </div>
           )}
 
-          {filtered.map(c => (
+          {/* « En cours » : une ligne par consultation (jamais deux fois le même patient).
+              Historique : un patient UNE fois, ses consultations rangées par diagnostic. */}
+          {filter === 'ACTIVES' ? filtered.map(c => (
             <ConsultationQueueCard
               key={c.id}
               consultation={c}
               selected={c.id === selectedId}
               onClick={() => setSelected(c.id)}
             />
-          ))}
+          )) : (
+            <GroupesParPatient
+              items={filtered}
+              idDe={c => c.id}
+              patientDe={c => ({ id: c.visite.patient.id, numeroPatient: c.visite.patient.numeroPatient, identite: c.visite.patient.identite })}
+              dateDe={c => c.createdAt}
+              problemeDe={c => c.diagnosticPrincipal?.libelle ?? null}
+              carte={c => (
+                <ConsultationQueueCard consultation={c} selected={c.id === selectedId} onClick={() => setSelected(c.id)} />
+              )}
+              ligne={c => (
+                <LignePassage
+                  date={c.createdAt}
+                  titre={c.diagnosticPrincipal?.libelle ?? c.visite.motifPrincipal?.libelle ?? ''}
+                  detail={[c.visite.motifPrincipal?.libelle, c.soignant ? nomSoignant(c.soignant, t) : null].filter(Boolean).join(' · ')}
+                  annule={c.statut === 'ANNULEE'}
+                />
+              )}
+              selectedId={selectedId}
+              onSelect={c => setSelected(c.id)}
+              toutOuvrir={!!search.trim()}
+            />
+          )}
         </div>
       </div>
       )}
@@ -378,5 +405,20 @@ function EmptyState() {
         {t('consultation.noSelectionDescription')}
       </p>
     </div>
+  )
+}
+
+// Ligne compacte d'un passage dans la bulle d'un patient (le nom est déjà dans la bulle).
+function LignePassage({ date, titre, detail, annule }: { date: string; titre: string; detail?: string | null; annule?: boolean }) {
+  const { t } = useTranslation()
+  return (
+    <span style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }}>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: 'var(--texte-primaire)' }}>
+        <span style={{ fontVariantNumeric: 'tabular-nums', color: 'var(--texte-secondaire)' }}>{formatDate(date, { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{titre}</span>
+        {annule && <span style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 700, color: 'var(--erreur-texte)' }}>{t('file.annule')}</span>}
+      </span>
+      {detail && <span style={{ fontSize: 11, color: 'var(--texte-tertiaire)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{detail}</span>}
+    </span>
   )
 }
