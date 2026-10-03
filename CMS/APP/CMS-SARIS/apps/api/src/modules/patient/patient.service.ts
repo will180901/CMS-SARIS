@@ -337,14 +337,45 @@ export class PatientService {
     const prenom = normaliser(input.prenom)
     if (nom.length < 2 || prenom.length < 2) return []
 
+    // PRÉ-FILTRE EN BASE (constat 105). Avant : 1 000 dossiers pris au hasard (sans
+    // tri), puis comparés — au-delà de 1 000 patients, un doublon pouvait tout simplement
+    // ne jamais être examiné. On ne garde désormais que les dossiers plausibles : même
+    // initiale de nom ou de prénom (dans les deux sens, pour l'inversion nom/prénom),
+    // ou même date de naissance.
+    const initiales = [
+      ...new Set(
+        [input.nom.trim()[0], input.prenom.trim()[0], nom[0], prenom[0]].filter(
+          (c): c is string => !!c,
+        ),
+      ),
+    ]
+    const dobIso = input.dateNaissance ? isoDate(input.dateNaissance) : null
+    const jour = dobIso ? new Date(`${dobIso}T00:00:00.000Z`) : null
+    const lendemain = jour ? new Date(jour.getTime() + 86_400_000) : null
     const candidats = await this.prisma.patient.findMany({
-      where: { statut: 'ACTIF', ...(siteId && { siteCreationId: siteId }) },
+      where: {
+        statut: 'ACTIF',
+        ...(siteId && { siteCreationId: siteId }),
+        identite: {
+          is: {
+            OR: [
+              ...initiales.flatMap((l) => [
+                { nom: { startsWith: l, ...CI } },
+                { prenom: { startsWith: l, ...CI } },
+              ]),
+              ...(jour && lendemain
+                ? [{ dateNaissance: { gte: jour, lt: lendemain } }]
+                : []),
+            ],
+          },
+        },
+      },
       include: {
         identite: true,
         categoriePatient: CATEGORIE_SELECT,
         siteCreation: SITE_SELECT,
       },
-      take: 1000,
+      take: 3000,
     })
 
     const cibleFull = `${prenom} ${nom}`
@@ -355,11 +386,16 @@ export class PatientService {
         const pNom = normaliser(p.identite?.nom)
         const pPrenom = normaliser(p.identite?.prenom)
         const full = `${pPrenom} ${pNom}`
-        const dist = levenshtein(cibleFull, full)
+        // Inversion nom/prénom (constat 105) : « Kevin MBEMBA » saisi « MBEMBA Kevin »
+        // n'était jamais rapproché — on compare aussi dans l'autre sens.
+        const dist = Math.min(
+          levenshtein(cibleFull, full),
+          levenshtein(cibleFull, `${pNom} ${pPrenom}`),
+        )
         const sameDob =
           !!dobCible && isoDate(p.identite?.dateNaissance) === dobCible
-        const nomEq = pNom === nom
-        const prenomEq = pPrenom === prenom
+        const nomEq = pNom === nom || pPrenom === nom
+        const prenomEq = pPrenom === prenom || pNom === prenom
         const isMatch =
           dist <= 2 || (nomEq && prenomEq) || (sameDob && (nomEq || prenomEq))
         return { p, dist, sameDob, exact: nomEq && prenomEq, isMatch }

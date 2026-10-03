@@ -386,9 +386,10 @@ export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Pr
                   employeRefus={employeRefus}
                   lookupLoading={lookupLoading}
                   onBack={() => { setMode('search'); setNp(EMPTY_NP) }}
-                />
-                {similaires.length > 0 && (
-                  <div style={{
+                  // Doublons possibles : affichés JUSTE SOUS l'identité (constat 105), au
+                  // moment où on la saisit — et non sous le formulaire déjà rempli.
+                  alerteDoublons={similaires.length > 0 ? (
+                    <div style={{
                     marginTop: 12, padding: '10px 12px', borderRadius: 8,
                     background: 'var(--avert-fond)', border: '1px solid var(--avert-bordure)',
                   }}>
@@ -424,7 +425,8 @@ export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Pr
                       ))}
                     </div>
                   </div>
-                )}
+                  ) : null}
+                />
               </>
             ) : selectedPatient ? (
               <>
@@ -802,7 +804,7 @@ export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Pr
 
 // ── Mini-formulaire « nouveau dossier » intégré au triage ──────────────────────
 
-function NewPatientForm({ np, setNp, categories, societes, employeReconnu, employeNom, employeRefus, lookupLoading, onBack }: {
+function NewPatientForm({ np, setNp, categories, societes, employeReconnu, employeNom, employeRefus, lookupLoading, onBack, alerteDoublons }: {
   np:         NewPatient
   setNp:      React.Dispatch<React.SetStateAction<NewPatient>>
   categories: { id: string; code: string; libelle: string }[]
@@ -812,6 +814,7 @@ function NewPatientForm({ np, setNp, categories, societes, employeReconnu, emplo
   employeRefus:   string | null
   lookupLoading:  boolean
   onBack:     () => void
+  alerteDoublons?: React.ReactNode
 }) {
   const { t } = useTranslation()
   const isCompact = useIsCompact()
@@ -894,6 +897,8 @@ function NewPatientForm({ np, setNp, categories, societes, employeReconnu, emplo
           </div>
         </div>
       </div>
+
+      {alerteDoublons}
 
       <div>
         <Label style={{ ...lbl, fontSize: '12px' }}>{t('triage.categorie')} <span style={{ color: 'var(--erreur-texte)' }}>*</span></Label>
