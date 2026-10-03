@@ -1861,6 +1861,26 @@ export class PatientService {
             `Le matricule ${matricule} est déjà attribué à un patient`,
           )
       }
+      // Dossier relié au registre : le registre suit (constat 98) — mêmes garde-fous
+      // d'unicité de son côté. Un matricule VIDÉ ne touche pas au registre.
+      const lien = await this.prisma.patient.findUnique({
+        where: { id },
+        select: { employeId: true },
+      })
+      if (matricule && lien?.employeId) {
+        const pris = await this.prisma.raw.employeSaris.findFirst({
+          where: { matricule, id: { not: lien.employeId } },
+          select: { id: true },
+        })
+        if (pris)
+          throw new ConflictException(
+            `Le matricule ${matricule} est déjà celui d'un autre employé au registre`,
+          )
+        await this.prisma.employeSaris.update({
+          where: { id: lien.employeId },
+          data: { matricule },
+        })
+      }
       await this.prisma.patient.update({
         where: { id },
         data: { matricule: matricule || null },

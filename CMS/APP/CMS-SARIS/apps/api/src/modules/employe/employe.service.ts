@@ -119,6 +119,23 @@ export class EmployeService {
         throw new ConflictException(
           `Le matricule ${dto.matricule.trim()} est déjà utilisé`,
         )
+      // Le matricule est AUSSI la clé du dossier de l'employé : il suit (constat 98).
+      // Avant, le registre et le dossier gardaient chacun le leur — deux vérités pour la
+      // clé des rattachements d'ayants droit.
+      const pris = await this.prisma.raw.patient.findFirst({
+        where: { matricule: dto.matricule.trim(), employeId: { not: id } },
+        select: { numeroPatient: true },
+      })
+      if (pris)
+        throw new ConflictException(
+          `Le matricule ${dto.matricule.trim()} est déjà celui du dossier ${pris.numeroPatient}`,
+        )
+    }
+    if (dto.matricule) {
+      await this.prisma.patient.updateMany({
+        where: { employeId: id },
+        data: { matricule: dto.matricule.trim() },
+      })
     }
     const maj = await this.prisma.employeSaris.update({
       where: { id },
