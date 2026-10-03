@@ -9,7 +9,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { CheckCircle2, XCircle, Trash2 } from 'lucide-react'
+import { CheckCircle2, XCircle, Trash2, ArrowUpRight } from 'lucide-react'
 import { Button, Modal, InfoSection, InfoRow, StatusPill } from '@/components/saris'
 import { usePermissions } from '@/hooks/usePermissions'
 import { useDeleteConsultation } from '../hooks/useConsultation'
@@ -33,9 +33,11 @@ interface Props {
   /** Appelé après suppression définitive — défaut : navigation vers /consultations.
    *  (Le dossier patient passe un retour à l'onglet courant pour ne pas quitter la page.) */
   onDeleted?:     () => void
+  /** Ouvre la visite d'origine (dossier patient) — absent ailleurs, le bouton aussi. */
+  onOuvrirVisite?: (visiteId: string) => void
 }
 
-export function ConsultationArchiveSummary({ consultationId, consultation, onDeleted }: Props) {
+export function ConsultationArchiveSummary({ consultationId, consultation, onDeleted, onOuvrirVisite }: Props) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { has } = usePermissions()
@@ -80,6 +82,14 @@ export function ConsultationArchiveSummary({ consultationId, consultation, onDel
         )}
         {consultation.visite.motifPrincipal?.libelle && (
           <InfoRow label={t('consultation.archiveMotifLabel')} value={consultation.visite.motifPrincipal.libelle} />
+        )}
+        {/* Retour à la visite d'origine (constat 80) : triage, constantes, notes d'accueil. */}
+        {onOuvrirVisite && (
+          <div style={{ marginTop: 8 }}>
+            <Button variant="outline" size="sm" leftIcon={<ArrowUpRight size={13} />} onClick={() => onOuvrirVisite(consultation.visiteId)}>
+              {t('consultation.archiveVoirVisite')}
+            </Button>
+          </div>
         )}
       </InfoSection>
 

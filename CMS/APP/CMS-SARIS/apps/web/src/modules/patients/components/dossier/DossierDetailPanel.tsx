@@ -117,7 +117,7 @@ function NotFound({ msgKey }: { msgKey: string }) {
 
 // ── Corps par type de cible ────────────────────────────────────────────────────
 
-function ConsultationBody({ consultationId, onBack }: { consultationId: string; onBack: () => void }) {
+function ConsultationBody({ consultationId, onBack, onVoirVisite }: { consultationId: string; onBack: () => void; onVoirVisite?: (visiteId: string) => void }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { data: consultation, isLoading } = useConsultation(consultationId)
@@ -162,7 +162,14 @@ function ConsultationBody({ consultationId, onBack }: { consultationId: string; 
     )
   }
 
-  return <ConsultationArchiveSummary consultationId={consultationId} consultation={consultation} onDeleted={onBack} />
+  return <ConsultationArchiveSummary consultationId={consultationId} consultation={consultation} onDeleted={onBack} onOuvrirVisite={onVoirVisite} />
+}
+
+/** Consultation ouverte depuis le dossier, avec retour possible vers sa visite d'origine. */
+function ConsultationOuVisite({ consultationId, onBack }: { consultationId: string; onBack: () => void }) {
+  const [visiteId, setVisiteId] = useState<string | null>(null)
+  if (visiteId) return <VisiteBody visiteId={visiteId} />
+  return <ConsultationBody consultationId={consultationId} onBack={onBack} onVoirVisite={setVisiteId} />
 }
 
 const VISITE_STATUT_TONE: Record<string, 'warning' | 'info' | 'success' | 'error'> = {
@@ -218,7 +225,7 @@ function VisiteBody({ visiteId }: { visiteId: string }) {
   const [showConsultationId, setShowConsultationId] = useState<string | null>(null)
 
   if (showConsultationId) {
-    return <ConsultationBody consultationId={showConsultationId} onBack={() => setShowConsultationId(null)} />
+    return <ConsultationBody consultationId={showConsultationId} onBack={() => setShowConsultationId(null)} onVoirVisite={() => setShowConsultationId(null)} />
   }
 
   if (isLoading) return <Loading />
@@ -537,7 +544,7 @@ export function DossierDetailDrawer({ target, onClose }: { target: DossierDetail
         <div ref={setHost} style={{ position: 'relative', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <PreviewHostContext.Provider value={host}>
             {target.kind === 'VISITE'        && <VisiteBody visiteId={target.visiteId} />}
-            {target.kind === 'CONSULTATION'  && <ConsultationBody consultationId={target.consultationId} onBack={requestClose} />}
+            {target.kind === 'CONSULTATION'  && <ConsultationOuVisite consultationId={target.consultationId} onBack={requestClose} />}
             {target.kind === 'ORDONNANCE'    && <OrdonnanceBody consultationId={target.consultationId} ordonnanceId={target.ordonnanceId} onBack={requestClose} />}
             {target.kind === 'BON_EXAMEN'    && <BonExamenBody consultationId={target.consultationId} bonId={target.bonId} onBack={requestClose} />}
             {target.kind === 'BON_PHARMACIE' && <BonPharmacieBody consultationId={target.consultationId} bonId={target.bonId} onBack={requestClose} />}
