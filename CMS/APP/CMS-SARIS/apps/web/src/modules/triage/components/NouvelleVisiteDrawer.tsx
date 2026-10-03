@@ -103,7 +103,11 @@ export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Pr
     const id = setTimeout(() => setLookupMat(matRecherche.trim()), 400)
     return () => clearTimeout(id)
   }, [matRecherche])
-  const { data: employeTrouve, isFetching: lookupLoading } = useEmployeLookup(lookupMat)
+  const { data: employeTrouve, isFetching: lookupFetching } = useEmployeLookup(lookupMat)
+  // Les 400 ms d'attente comptent comme une recherche en cours : sinon un matricule CONNU
+  // s'affichait « inconnu » et le formulaire d'enregistrement du CDI apparaissait puis
+  // disparaissait (constat 108).
+  const lookupLoading = lookupFetching || (matRecherche.trim().length >= 3 && matRecherche.trim() !== lookupMat)
   const employeReconnu = !!employeTrouve && employeTrouve.matricule === matRecherche.trim() && matRecherche.trim().length >= 3
   // Même refus que le serveur (resoudreCdiRattachement) : un matricule reconnu ne suffit
   // pas, il doit être celui d'un CDI ACTIF. Dit AVANT la validation, pas en erreur après.

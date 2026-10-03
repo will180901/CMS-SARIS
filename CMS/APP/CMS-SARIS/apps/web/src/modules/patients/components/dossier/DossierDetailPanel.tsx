@@ -37,6 +37,7 @@ import { SuiviTraitementCard } from '@/modules/suivi-traitement/components/Suivi
 import { formatDate, formatTime } from '@/lib/intl'
 import { labelStatut } from '@/config/labels'
 import type { SuiviResultatExamenItem } from '../../api/patients.api'
+import { usePatientDossier } from '../../hooks/usePatients'
 
 // ── Cible de la page détail ────────────────────────────────────────────────────
 
@@ -54,7 +55,7 @@ export type DossierDetailTarget =
    *  useConsultation() (qui applique la restriction confidentialité infirmier sur
    *  l'historique) : la liste des bons n'est, elle, pas restreinte, et la saisie
    *  du résultat est un acte propre gardé par sa propre permission (bon_examen.result). */
-  | { kind: 'BON_EXAMEN_ACTION';  consultationId: string; bonId: string }
+  | { kind: 'BON_EXAMEN_ACTION';  consultationId: string; bonId: string; patientId: string }
 
 /** Cible détail pour un document du dossier (Chronologie, Documents). */
 export function targetForDocument(
@@ -328,10 +329,14 @@ function BonExamenBody({ consultationId, bonId, onBack }: { consultationId: stri
  * résultat est gardée par sa propre permission (bon_examen.result). C'est le
  * chemin direct depuis « Résultats en attente » du Suivi.
  */
-function BonExamenActionBody({ consultationId }: { consultationId: string }) {
+function BonExamenActionBody({ consultationId, patientId }: { consultationId: string; patientId: string }) {
+  // Le patient (déjà en cache : on est dans son dossier) donne sa catégorie et ses droits
+  // RÉELS. Sans eux, la carte jugeait le bon éligible d'office et l'imprimait sans ligne
+  // « Catégorie » (constat 121).
+  const { data: dossier } = usePatientDossier(patientId)
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
-      <BonExamenCard consultationId={consultationId} />
+      <BonExamenCard consultationId={consultationId} patientId={patientId} categorieLibelle={dossier?.categoriePatient.libelle} />
     </div>
   )
 }
@@ -511,7 +516,7 @@ export function DossierDetailDrawer({ target, onClose }: { target: DossierDetail
             {target.kind === 'CERTIFICAT_REPOS' && <CertificatReposBody consultationId={target.consultationId} />}
             {target.kind === 'SUIVI_TRAITEMENT' && <SuiviTraitementBody consultationId={target.consultationId} suiviId={target.suiviId} />}
             {target.kind === 'RESULTAT'      && <ResultatBody consultationId={target.consultationId} resultat={target.resultat} />}
-            {target.kind === 'BON_EXAMEN_ACTION' && <BonExamenActionBody consultationId={target.consultationId} />}
+            {target.kind === 'BON_EXAMEN_ACTION' && <BonExamenActionBody consultationId={target.consultationId} patientId={target.patientId} />}
           </PreviewHostContext.Provider>
         </div>
       </SheetContent>

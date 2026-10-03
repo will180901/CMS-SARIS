@@ -698,7 +698,7 @@ export function ResultatsExamensTab({ patientId, historiqueRestreint = false }: 
                 badge={t('patients.suiviEnAttenteBadge')}
                 badgeTone="warning"
                 date={r.date}
-                onClick={() => setDetail({ kind: 'BON_EXAMEN_ACTION', consultationId: r.consultationId, bonId: r.bonId })}
+                onClick={() => setDetail({ kind: 'BON_EXAMEN_ACTION', consultationId: r.consultationId, bonId: r.bonId, patientId })}
               />
             ))}
           </div>
