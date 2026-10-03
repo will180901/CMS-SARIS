@@ -62,6 +62,13 @@ export const SYNC_MODELS: readonly SyncModelDef[] = [
   def('MedicamentReference', 'medicamentReference', GLOBAL),
   def('TypeExamen', 'typeExamen', GLOBAL),
   def('EtablissementReference', 'etablissementReference', GLOBAL),
+  // Types de consultation et de certificat : référentiels que des actes SYNCHRONISÉS
+  // référencent (Consultation.typeConsultationId, CertificatMedical.typeCertificatId).
+  // Absents du registre, un poste n'en recevait jamais aucun : toute consultation typée
+  // venue du central y butait sur une clé étrangère — elle figeait la synchro du poste
+  // (avant la mise en quarantaine), puis y manquait purement et simplement.
+  def('TypeConsultation', 'typeConsultation', GLOBAL),
+  def('TypeCertificat', 'typeCertificat', GLOBAL),
   def('SocieteSousTraitante', 'societeSousTraitante', GLOBAL),
   def('EmployeSaris', 'employeSaris', GLOBAL), // registre des employés SARIS (main-d'œuvre, partagé inter-sites)
   def('Role', 'role', GLOBAL),
@@ -121,6 +128,12 @@ export const SYNC_MODELS: readonly SyncModelDef[] = [
   def('LigneBonPharmacie', 'ligneBonPharmacie', GLOBAL),
   def('ConsultationPrenatale', 'consultationPrenatale', GLOBAL),
   def('Evacuation', 'evacuation', GLOBAL),
+  // Suivi de traitement (épisode) et certificats médicaux : actes cliniques à part
+  // entière, absents du registre — un épisode ouvert ou un certificat établi sur un poste
+  // n'existait nulle part ailleurs, et inversement. (Les fiches de suivi et le suivi
+  // d'évacuation n'ont pas encore les colonnes updatedAt/deletedAt : migration à part.)
+  def('SuiviTraitement', 'suiviTraitement', GLOBAL),
+  def('CertificatMedical', 'certificatMedical', GLOBAL),
 
   // ── Messagerie (scope site via conversation) ──────────────────────────────
   def('Conversation', 'conversation', BY_SITE),
