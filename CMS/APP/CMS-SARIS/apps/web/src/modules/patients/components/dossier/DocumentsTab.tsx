@@ -35,6 +35,7 @@ const TYPE_META: Record<PatientDocument['type'], { labelKey: string; icon: typeo
   BON_EXAMEN:       { labelKey: 'patients.docBonExamen',       icon: FlaskConical, tint: 'var(--info-accent)', bg: 'var(--info-fond)' },
   BON_PHARMACIE:    { labelKey: 'patients.docBonPharmacie',    icon: Receipt,      tint: 'var(--succes-accent)', bg: 'var(--succes-fond)' },
   EVACUATION:       { labelKey: 'patients.docEvacuation',      icon: Ambulance,    tint: 'var(--erreur-accent)', bg: 'var(--erreur-fond)' },
+  CERTIFICAT_REPOS: { labelKey: 'patients.docCertificatRepos', icon: FileText,     tint: 'var(--avert-texte)',  bg: 'var(--avert-fond)' },
 }
 
 // Famille `labelStatut()` par type de document (aligné sur `labels.statut.*`).
@@ -43,6 +44,7 @@ const STATUT_FAMILLE: Record<PatientDocument['type'], string> = {
   BON_EXAMEN:    'bon_examen',
   BON_PHARMACIE: 'bon_pharmacie',
   EVACUATION:    'evacuation',
+  CERTIFICAT_REPOS: 'bon_examen', // même libellé « Émis »
 }
 
 // Permission requise pour supprimer chaque type (le serveur reste l'arbitre final).
@@ -51,6 +53,7 @@ const DELETE_PERM: Record<PatientDocument['type'], PermissionCode> = {
   BON_EXAMEN:       'bon_examen.delete',
   BON_PHARMACIE:    'bon_pharmacie.delete',
   EVACUATION:       'evacuation.delete',
+  CERTIFICAT_REPOS: 'consultation.delete', // pas de suppression propre : il suit sa consultation
 }
 
 function formatDate(iso: string) {
@@ -63,6 +66,7 @@ const FILTERS: { key: 'TOUS' | PatientDocument['type']; labelKey: string }[] = [
   { key: 'BON_EXAMEN',       labelKey: 'patients.docFilterBons' },
   { key: 'BON_PHARMACIE',    labelKey: 'patients.docFilterBonsPharmacie' },
   { key: 'EVACUATION',       labelKey: 'patients.docFilterEvacuations' },
+  { key: 'CERTIFICAT_REPOS', labelKey: 'patients.docFilterCertificats' },
 ]
 
 export function DocumentsTab({ patientId }: { patientId: string }) {
@@ -190,7 +194,7 @@ export function DocumentsTab({ patientId }: { patientId: string }) {
           const Icon = meta.icon
           // EVACUATION exclue : suppression/annulation gérées depuis la carte
           // interactive ouverte au clic (un seul chemin de suppression, pas deux).
-          const canDelete = d.type !== 'EVACUATION' && has(DELETE_PERM[d.type])
+          const canDelete = d.type !== 'EVACUATION' && d.type !== 'CERTIFICAT_REPOS' && has(DELETE_PERM[d.type])
           return (
             <div
               key={`${d.type}-${d.id}`}

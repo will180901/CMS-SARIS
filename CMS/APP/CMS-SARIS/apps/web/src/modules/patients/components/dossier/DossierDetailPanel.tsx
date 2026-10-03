@@ -26,6 +26,7 @@ import { useVisite } from '@/modules/triage/hooks/useTriage'
 import { useConsultation } from '@/modules/consultation/hooks/useConsultation'
 import { ConsultationArchiveSummary } from '@/modules/consultation/components/ConsultationArchiveSummary'
 import { OrdonnancePrintModal } from '@/modules/consultation/components/OrdonnancePrintModal'
+import { CertificatReposPrintModal } from '@/modules/consultation/components/CertificatReposPrintModal'
 import { useBonsExamen } from '@/modules/bon-examen/hooks/useBonExamen'
 import { BonExamenCard } from '@/modules/bon-examen/components/BonExamenCard'
 import { BonExamenPrintModal } from '@/modules/bon-examen/components/BonExamenPrintModal'
@@ -47,6 +48,7 @@ export type DossierDetailTarget =
   | { kind: 'BON_PHARMACIE';      consultationId: string; bonId: string }
   | { kind: 'EVACUATION';         consultationId: string; evacuationId: string }
   | { kind: 'SUIVI_TRAITEMENT';   consultationId: string; suiviId?: string }
+  | { kind: 'CERTIFICAT_REPOS';   consultationId: string }
   | { kind: 'RESULTAT';           consultationId: string; bonId: string; resultat: SuiviResultatExamenItem }
   /** Saisie d'un résultat en attente — carte interactive du bon SANS passer par
    *  useConsultation() (qui applique la restriction confidentialité infirmier sur
@@ -56,11 +58,12 @@ export type DossierDetailTarget =
 
 /** Cible détail pour un document du dossier (Chronologie, Documents). */
 export function targetForDocument(
-  type: 'ORDONNANCE' | 'BON_EXAMEN' | 'BON_PHARMACIE' | 'EVACUATION',
+  type: 'ORDONNANCE' | 'BON_EXAMEN' | 'BON_PHARMACIE' | 'EVACUATION' | 'CERTIFICAT_REPOS',
   id: string,
   consultationId: string,
 ): DossierDetailTarget {
   switch (type) {
+    case 'CERTIFICAT_REPOS': return { kind: 'CERTIFICAT_REPOS', consultationId }
     case 'ORDONNANCE':    return { kind: 'ORDONNANCE',    consultationId, ordonnanceId: id }
     case 'BON_EXAMEN':    return { kind: 'BON_EXAMEN',    consultationId, bonId: id }
     case 'BON_PHARMACIE': return { kind: 'BON_PHARMACIE', consultationId, bonId: id }
@@ -76,6 +79,7 @@ const TITLE_KEY: Record<DossierDetailTarget['kind'], string> = {
   BON_PHARMACIE:     'patients.docBonPharmacie',
   EVACUATION:        'patients.docEvacuation',
   SUIVI_TRAITEMENT:  'suiviTraitement.cardTitle',
+  CERTIFICAT_REPOS:  'patients.docCertificatRepos',
   RESULTAT:          'patients.suiviResultatTitle',
   BON_EXAMEN_ACTION: 'patients.docBonExamen',
 }
@@ -88,6 +92,7 @@ const KIND_ICON: Record<DossierDetailTarget['kind'], typeof FileText> = {
   BON_PHARMACIE:     Receipt,
   EVACUATION:        Ambulance,
   SUIVI_TRAITEMENT:  Activity,
+  CERTIFICAT_REPOS:  FileText,
   RESULTAT:          FlaskConical,
   BON_EXAMEN_ACTION: PenLine,
 }
@@ -377,6 +382,13 @@ function EvacuationBody({ consultationId }: { consultationId: string; evacuation
  * pour rester gérable depuis le dossier même après clôture de la consultation
  * d'origine (c'est là que vivent les fiches suivantes, jamais depuis triage/consultation).
  */
+function CertificatReposBody({ consultationId }: { consultationId: string }) {
+  const { data: consultation, isLoading } = useConsultation(consultationId)
+  if (isLoading) return <Loading />
+  if (!consultation) return <NotFound msgKey="patients.docViewerNotFound" />
+  return <CertificatReposPrintModal consultation={consultation} variant="inline" onClose={() => {}} />
+}
+
 function SuiviTraitementBody({ consultationId, suiviId }: { consultationId: string; suiviId?: string }) {
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
@@ -496,6 +508,7 @@ export function DossierDetailDrawer({ target, onClose }: { target: DossierDetail
             {target.kind === 'BON_EXAMEN'    && <BonExamenBody consultationId={target.consultationId} bonId={target.bonId} onBack={requestClose} />}
             {target.kind === 'BON_PHARMACIE' && <BonPharmacieBody consultationId={target.consultationId} bonId={target.bonId} onBack={requestClose} />}
             {target.kind === 'EVACUATION'    && <EvacuationBody consultationId={target.consultationId} evacuationId={target.evacuationId} onBack={requestClose} />}
+            {target.kind === 'CERTIFICAT_REPOS' && <CertificatReposBody consultationId={target.consultationId} />}
             {target.kind === 'SUIVI_TRAITEMENT' && <SuiviTraitementBody consultationId={target.consultationId} suiviId={target.suiviId} />}
             {target.kind === 'RESULTAT'      && <ResultatBody consultationId={target.consultationId} resultat={target.resultat} />}
             {target.kind === 'BON_EXAMEN_ACTION' && <BonExamenActionBody consultationId={target.consultationId} />}

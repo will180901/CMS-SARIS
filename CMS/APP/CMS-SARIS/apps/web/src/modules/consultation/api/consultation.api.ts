@@ -68,7 +68,7 @@ export interface ConsultationQueryParams {
 
 export interface PatientDocument {
   id:             string
-  type:           'ORDONNANCE' | 'BON_EXAMEN' | 'BON_PHARMACIE' | 'EVACUATION'
+  type:           'ORDONNANCE' | 'BON_EXAMEN' | 'BON_PHARMACIE' | 'EVACUATION' | 'CERTIFICAT_REPOS'
   consultationId: string
   date:           string
   statut:         string

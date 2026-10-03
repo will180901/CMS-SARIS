@@ -18,10 +18,12 @@ import type { PatientDocument } from '@/modules/consultation/api/consultation.ap
 // `labelKey` = clé i18n (résolue dans le composant, jamais au niveau module).
 const DOC_LABEL_KEY: Record<PatientDocument['type'], string> = {
   ORDONNANCE: 'patients.docOrdonnance', BON_EXAMEN: 'patients.docBonExamen', BON_PHARMACIE: 'patients.docBonPharmacie', EVACUATION: 'patients.docEvacuation',
+  CERTIFICAT_REPOS: 'patients.docCertificatRepos',
 }
 // Famille de statut par type de document (pour traduire le statut en français).
 const DOC_STATUT_FAMILY: Record<PatientDocument['type'], string> = {
   ORDONNANCE: 'ordonnance', BON_EXAMEN: 'bon_examen', BON_PHARMACIE: 'bon_pharmacie', EVACUATION: 'evacuation',
+  CERTIFICAT_REPOS: 'bon_examen', // même libellé « Émis »
 }
 
 function fmt(iso: string) {

@@ -141,7 +141,7 @@ const CONSULTATION_DETAIL_INCLUDE = {
 
 export interface PatientDocumentItem {
   id: string
-  type: 'ORDONNANCE' | 'BON_EXAMEN' | 'BON_PHARMACIE' | 'EVACUATION'
+  type: 'ORDONNANCE' | 'BON_EXAMEN' | 'BON_PHARMACIE' | 'EVACUATION' | 'CERTIFICAT_REPOS'
   consultationId: string
   date: Date
   statut: string
@@ -500,6 +500,22 @@ export class ConsultationService {
           statut: bp.statut,
           titre: 'Bon de pharmacie',
           details: `${n} médicament${n > 1 ? 's' : ''}`,
+          motif,
+          site,
+        })
+      }
+      // Certificat de repos (constat 36) : il s'imprime depuis la consultation mais
+      // n'apparaissait jamais dans les Documents du dossier. Un par consultation CLÔTURÉE
+      // ayant prescrit un repos (l'id est celui de la consultation : il n'a pas de table).
+      if (c.statut === 'CLOTUREE' && c.reposJours != null && c.reposJours > 0) {
+        docs.push({
+          id: c.id,
+          type: 'CERTIFICAT_REPOS',
+          consultationId: c.id,
+          date: c.closedAt ?? c.createdAt,
+          statut: 'EMIS',
+          titre: 'Certificat de repos',
+          details: `${c.reposJours} jour${c.reposJours > 1 ? 's' : ''}${c.dateReprise ? ` · reprise le ${c.dateReprise.toLocaleDateString('fr-FR')}` : ''}`,
           motif,
           site,
         })
