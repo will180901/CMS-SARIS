@@ -1,4 +1,5 @@
 import { useState }            from 'react'
+import { useNavigate }         from 'react-router-dom'
 import { useForm, Controller } from 'react-hook-form'
 import { useTranslation }      from 'react-i18next'
 import { DatePicker }          from '@/components/saris'
@@ -61,9 +62,15 @@ function RattachementADCard({ ratt, canWrite, patientId }: { ratt: RattachementA
   })
   const editTypeLienVal = editForm.watch('typeLien')
   const LIEN_LABELS: Record<string, string> = { CONJOINT: t('patients.relLabelConjoint'), ENFANT: t('patients.relLabelEnfant'), PARENT: t('patients.relLabelParent'), AUTRE: t('patients.relLabelAutre') }
+  const navigate = useNavigate()
   const actif = ratt.statut === 'ACTIF'
+  // Échu : statut encore ACTIF mais date de fin dépassée (constat 53). Il était affiché
+  // et compté « Actif » ; les droits, eux, sont déjà suspendus (couverturePatient).
+  const [maintenant] = useState(() => Date.now())
+  const echu = actif && !!ratt.dateFin && new Date(ratt.dateFin).getTime() <= maintenant
+  const enVigueur = actif && !echu
   return (
-    <div style={{ background: 'var(--fond-surface)', border: '1px solid var(--bordure-legere)', borderRadius: 8, padding: '12px 14px', opacity: actif ? 1 : 0.6 }}>
+    <div style={{ background: 'var(--fond-surface)', border: '1px solid var(--bordure-legere)', borderRadius: 8, padding: '12px 14px', opacity: enVigueur ? 1 : 0.6 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         <div style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--ap-50)', border: '1px solid var(--ap-100)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <Users size={14} style={{ color: 'var(--ap-600)' }} />
@@ -73,13 +80,24 @@ function RattachementADCard({ ratt, canWrite, patientId }: { ratt: RattachementA
             <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--texte-primaire)' }}>
               {LIEN_LABELS[ratt.typeLien] ?? humanizeCode(ratt.typeLien)}
             </span>
-            <span style={{ fontSize: '11px', padding: '1px 7px', borderRadius: 99, background: actif ? 'var(--succes-fond)' : 'var(--fond-surface-2)', color: actif ? 'var(--succes-texte)' : 'var(--texte-tertiaire)', fontWeight: '600' }}>
-              {actif ? t('patients.attachActive') : t('patients.attachClosed')}
+            <span style={{ fontSize: '11px', padding: '1px 7px', borderRadius: 99, background: enVigueur ? 'var(--succes-fond)' : echu ? 'var(--avert-fond)' : 'var(--fond-surface-2)', color: enVigueur ? 'var(--succes-texte)' : echu ? 'var(--avert-texte)' : 'var(--texte-tertiaire)', fontWeight: '600' }}>
+              {enVigueur ? t('patients.attachActive') : echu ? t('patients.attachExpired') : t('patients.attachClosed')}
             </span>
           </div>
           <p style={{ fontSize: '12px', color: 'var(--texte-secondaire)', margin: '3px 0 0' }}>
             {ratt.cdi
-              ? t('patients.attachCdiOf', { name: `${ratt.cdi.prenom} ${ratt.cdi.nom}`, numero: ratt.cdi.identifiant })
+              ? (ratt.cdi.patientId
+                  ? (
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/patients/${ratt.cdi!.patientId}`)}
+                      title={t('patients.openRecord')}
+                      style={{ padding: 0, background: 'none', border: 'none', cursor: 'pointer', font: 'inherit', color: 'var(--ap-600)', textDecoration: 'underline', textAlign: 'left' }}
+                    >
+                      {t('patients.attachCdiOf', { name: `${ratt.cdi.prenom} ${ratt.cdi.nom}`, numero: ratt.cdi.identifiant })}
+                    </button>
+                  )
+                  : t('patients.attachCdiOf', { name: `${ratt.cdi.prenom} ${ratt.cdi.nom}`, numero: ratt.cdi.identifiant }))
               : t('patients.attachCdiUnknown')}
           </p>
           <p style={{ fontSize: '12px', color: 'var(--texte-tertiaire)', margin: '2px 0 0' }}>
@@ -203,6 +221,7 @@ function RattachementADCard({ ratt, canWrite, patientId }: { ratt: RattachementA
 function AyantsDroitsDependants({ patientId }: { patientId: string }) {
   const { t } = useTranslation()
   const { data: liens = [] } = usePatientAyantsDroits(patientId)
+  const navigate = useNavigate()
   if (liens.length === 0) return null
   const LIEN_LABELS: Record<string, string> = { CONJOINT: t('patients.relLabelConjoint'), ENFANT: t('patients.relLabelEnfant'), PARENT: t('patients.relLabelParent'), AUTRE: t('patients.relLabelAutre') }
   return (
@@ -225,9 +244,17 @@ function AyantsDroitsDependants({ patientId }: { patientId: string }) {
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--texte-primaire)' }}>{nom}</span>
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/patients/${l.patient.id}`)}
+                      title={t('patients.openRecord')}
+                      style={{ padding: 0, background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: '600', color: 'var(--ap-600)', textDecoration: 'underline' }}
+                    >
+                      {nom}
+                    </button>
                     <span style={{ fontSize: '11px', padding: '1px 7px', borderRadius: 99, background: 'var(--ap-50)', color: 'var(--ap-700)', fontWeight: '600' }}>{LIEN_LABELS[l.typeLien] ?? humanizeCode(l.typeLien)}</span>
                     <span style={{ fontSize: '11px', color: 'var(--texte-tertiaire)', fontFamily: 'monospace' }}>{l.patient.numeroPatient}</span>
+                    <span style={{ fontSize: '11px', color: 'var(--texte-tertiaire)' }}>{t('patients.attachSince', { date: formatDate(l.dateDebut) })}</span>
                   </div>
                   <p style={{ fontSize: '12px', color: 'var(--texte-tertiaire)', margin: '3px 0 0' }}>
                     {/* Trois cas, et non deux : une activite MASQUEE n'est pas une activite

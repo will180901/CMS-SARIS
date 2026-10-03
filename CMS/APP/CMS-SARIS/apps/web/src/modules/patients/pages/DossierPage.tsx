@@ -13,7 +13,7 @@ import {
 import { usePermissions }      from '@/hooks/usePermissions'
 import { useIsCompact }        from '@/hooks/useMediaQuery'
 import { usePersistedState }   from '@/hooks/usePersistedState'
-import { usePatientDossier, useUpdateStatutPatient, usePatientAlertesCliniques, useDeletePatient, useSetVerrouPatient, usePatientCouverture } from '../hooks/usePatients'
+import { usePatientDossier, useUpdateStatutPatient, usePatientAlertesCliniques, useDeletePatient, useSetVerrouPatient, usePatientCouverture, usePatientAyantsDroits } from '../hooks/usePatients'
 import { useSessionStore } from '@/stores/session.store'
 import { ConfirmDeleteModal }  from '../components/dossier/ConfirmDeleteModal'
 import { CategorieBadge, PatientAvatar } from '../components/CategorieBadge'
@@ -200,8 +200,6 @@ function DossierSidebar({ dossier, onChangerCategorie, canChangerCategorie, onOu
   const allergiesActives    = dossier.allergies.filter(a => a.statut === 'ACTIVE')
   const alertesMedActives   = dossier.alertesMedicales.filter(a => a.statut === 'ACTIVE')
   const antecedentsActifs   = dossier.antecedents.filter(a => a.statut === 'ACTIF')
-  const rattAD              = dossier.rattachementsAD.filter(r => r.statut === 'ACTIF')
-  const rattST              = dossier.rattachementsST.filter(r => r.statut === 'ACTIF')
 
   return (
     <aside style={{
@@ -309,13 +307,10 @@ function DossierSidebar({ dossier, onChangerCategorie, canChangerCategorie, onOu
         )}
       </SidebarSection>
 
-      {/* Rattachements */}
-      {(rattAD.length + rattST.length) > 0 && (
-        <SidebarSection title={t('patients.sectionActiveAttachments')}>
-          {rattAD.length > 0 && <SidebarCounter label={t('patients.counterBeneficiariesCdi')}     count={rattAD.length} />}
-          {rattST.length > 0 && <SidebarCounter label={t('patients.counterSubcontractor')}        count={rattST.length} />}
-        </SidebarSection>
-      )}
+      {/* Rattachements — des NOMS, et dans le bon sens. Avant : « Ayants droit CDI 1 »
+          sur le dossier d'un ayant droit (c'est LUI qui l'est), rien sur celui d'un CDI qui
+          en a, et « Sous-traitant 1 » sans jamais nommer la société. */}
+      <RattachementsResume dossier={dossier} />
 
       {/* Actions — même garde que l'entrée du menu « ⋮ » : sans `patient.change_category`,
           le bouton ouvrait un formulaire que le serveur refusait ensuite. */}
@@ -330,6 +325,78 @@ function DossierSidebar({ dossier, onChangerCategorie, canChangerCategorie, onOu
         </div>
       )}
     </aside>
+  )
+}
+
+/** En vigueur = statut ACTIF et date de fin non dépassée. */
+function enVigueur(r: { statut: string; dateFin: string | null }, maintenant: number) {
+  return r.statut === 'ACTIF' && (!r.dateFin || new Date(r.dateFin).getTime() > maintenant)
+}
+
+function RattachementsResume({ dossier }: { dossier: PatientDossier }) {
+  const { t } = useTranslation()
+  const navigate = useNavigate()
+  const [maintenant] = useState(() => Date.now())
+  const code = dossier.categoriePatient.code
+  const estCdi = code === 'ASSURE_CDI'
+  const { data: dependants = [] } = usePatientAyantsDroits(dossier.id, estCdi)
+  const rattAD = dossier.rattachementsAD.filter(r => enVigueur(r, maintenant))
+  const rattST = dossier.rattachementsST.filter(r => enVigueur(r, maintenant))
+  const LIEN: Record<string, string> = { CONJOINT: t('patients.relLabelConjoint'), ENFANT: t('patients.relLabelEnfant'), PARENT: t('patients.relLabelParent'), AUTRE: t('patients.relLabelAutre') }
+
+  const lignes: { cle: string; texte: string; detail?: string; vers?: string | null }[] = [
+    // Ayant droit : le CDI dont il dépend.
+    ...rattAD.map(r => ({
+      cle: r.id,
+      texte: r.cdi ? `${r.cdi.prenom} ${r.cdi.nom}` : t('patients.attachCdiUnknown'),
+      detail: LIEN[r.typeLien] ?? r.typeLien,
+      vers: r.cdi?.patientId ?? null,
+    })),
+    // CDI : ses ayants droit.
+    ...(estCdi ? dependants.map(l => ({
+      cle: l.id,
+      texte: l.patient.identite ? `${l.patient.identite.prenom} ${l.patient.identite.nom}` : l.patient.numeroPatient,
+      detail: LIEN[l.typeLien] ?? l.typeLien,
+      vers: l.patient.id,
+    })) : []),
+    // Sous-traitant : la société.
+    ...rattST.map(r => ({
+      cle: r.id,
+      texte: r.societe.nom,
+      detail: t('patients.attachSince', { date: formatDate(r.dateDebut) }),
+      vers: null,
+    })),
+  ]
+  if (lignes.length === 0) return null
+  const titre = rattAD.length > 0
+    ? t('patients.sidebarAyantDroitDe')
+    : estCdi
+      ? t('patients.sidebarSesAyantsDroit')
+      : t('patients.sidebarSociete')
+
+  return (
+    <SidebarSection title={titre}>
+      {lignes.slice(0, 5).map(l => (
+        <div key={l.cle} style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, fontSize: 12 }}>
+          {l.vers ? (
+            <button
+              type="button"
+              onClick={() => navigate(`/patients/${l.vers}`)}
+              title={t('patients.openRecord')}
+              style={{ flex: 1, minWidth: 0, padding: 0, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', fontSize: 12, color: 'var(--ap-600)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+            >
+              {l.texte}
+            </button>
+          ) : (
+            <span style={{ flex: 1, minWidth: 0, color: 'var(--texte-primaire)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.texte}</span>
+          )}
+          {l.detail && <span style={{ flexShrink: 0, fontSize: 10.5, color: 'var(--texte-tertiaire)' }}>{l.detail}</span>}
+        </div>
+      ))}
+      {lignes.length > 5 && (
+        <p style={{ margin: 0, fontSize: 11.5, color: 'var(--texte-tertiaire)' }}>{t('patients.sidebarMore', { count: lignes.length - 5 })}</p>
+      )}
+    </SidebarSection>
   )
 }
 
@@ -354,21 +421,6 @@ function SidebarRow({ label, value }: { label: string; value: string }) {
     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
       <span style={{ color: 'var(--texte-tertiaire)' }}>{label}</span>
       <span style={{ fontWeight: '500', color: 'var(--texte-primaire)' }}>{value}</span>
-    </div>
-  )
-}
-
-function SidebarCounter({ label, count, danger }: { label: string; count: number; danger?: boolean }) {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px' }}>
-      <span style={{ color: 'var(--texte-secondaire)' }}>{label}</span>
-      <span style={{
-        minWidth: 20, height: 20, borderRadius: 10, padding: '0 5px',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: '11px', fontWeight: '600',
-        background: danger && count > 0 ? '#fee2e2' : 'var(--fond-surface-2)',
-        color:      danger && count > 0 ? '#b91c1c' : 'var(--texte-secondaire)',
-      }}>{count}</span>
     </div>
   )
 }

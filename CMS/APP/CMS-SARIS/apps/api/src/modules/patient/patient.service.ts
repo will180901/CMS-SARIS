@@ -548,14 +548,26 @@ export class PatientService {
       }),
       this.prisma.employeSaris.findMany({
         where: { id: { in: employeIds } },
-        select: { id: true, matricule: true, nom: true, prenom: true },
+        select: {
+          id: true,
+          matricule: true,
+          nom: true,
+          prenom: true,
+          patients: { select: { id: true }, take: 1 },
+        },
       }),
     ])
     const cdiPatientMap = new Map(cdiPatients.map((c) => [c.id, c]))
     const employeMap = new Map(employes.map((e) => [e.id, e]))
     const rattachementsAD = dossier.rattachementsAD.map((r) => {
-      let cdi: { nom: string; prenom: string; identifiant: string } | null =
-        null
+      // patientId : le dossier du CDI, pour l'ouvrir d'un clic depuis celui de l'ayant
+      // droit (aucun lien n'existait, dans un sens comme dans l'autre).
+      let cdi: {
+        nom: string
+        prenom: string
+        identifiant: string
+        patientId: string | null
+      } | null = null
       const parPatient = r.cdiId ? cdiPatientMap.get(r.cdiId) : null
       const parEmploye =
         !parPatient && r.employeId ? employeMap.get(r.employeId) : null
@@ -564,12 +576,14 @@ export class PatientService {
           nom: parPatient.identite?.nom ?? '',
           prenom: parPatient.identite?.prenom ?? '',
           identifiant: parPatient.numeroPatient,
+          patientId: parPatient.id,
         }
       else if (parEmploye)
         cdi = {
           nom: parEmploye.nom,
           prenom: parEmploye.prenom,
           identifiant: parEmploye.matricule,
+          patientId: parEmploye.patients[0]?.id ?? null,
         }
       return { ...r, cdi }
     })
@@ -1566,9 +1580,21 @@ export class PatientService {
       where: {
         OR: [{ employeId: employe.id }, { matricule: employe.matricule }],
       },
-      select: { id: true },
+      select: { id: true, employeId: true },
     })
-    if (existing) return null
+    if (existing) {
+      // Dossier déjà là pour ce matricule mais jamais relié au registre (créé avant le
+      // registre, ou saisi à la main) : on POSE le lien. Sans lui, le CDI ne voyait pas
+      // ses ayants droit dans son dossier, et ses propres droits ne suivaient pas son
+      // statut d'employé.
+      if (!existing.employeId) {
+        await client.patient.update({
+          where: { id: existing.id },
+          data: { employeId: employe.id },
+        })
+      }
+      return null
+    }
 
     const categorie = await client.categoriePatient.findFirst({
       where: { code: employe.categorie },
@@ -1919,17 +1945,38 @@ export class PatientService {
       )
     }
 
-    if (
-      (ancienCode === 'ASSURE_CDI' || ancienCode === 'ASSURE_CDD') &&
-      patient.employeId
-    ) {
-      const ayantsDroitActifs =
-        await this.prisma.rattachementAyantDroitCdi.count({
-          where: { employeId: patient.employeId, statut: 'ACTIF' },
-        })
-      if (ayantsDroitActifs > 0) {
+    if (ancienCode === 'ASSURE_CDI' || ancienCode === 'ASSURE_CDD') {
+      // Les deux voies de rattachement : par le registre (employeId) ET l'ancien lien
+      // direct vers ce dossier (cdiId) — la seconde était ignorée, et le blocage avec.
+      const liens = await this.prisma.rattachementAyantDroitCdi.findMany({
+        where: {
+          statut: 'ACTIF',
+          OR: [
+            ...(patient.employeId ? [{ employeId: patient.employeId }] : []),
+            { cdiId: id },
+          ],
+        },
+        select: {
+          patient: {
+            select: {
+              numeroPatient: true,
+              identite: { select: { prenom: true, nom: true } },
+            },
+          },
+        },
+      })
+      if (liens.length > 0) {
+        // On NOMME les ayants droit : l'écran du CDI ne permet pas de clôturer leurs
+        // rattachements, il faut ouvrir leur dossier — encore faut-il savoir lesquels.
+        const noms = liens
+          .slice(0, 5)
+          .map(
+            (l) =>
+              `${l.patient.identite ? `${l.patient.identite.prenom} ${l.patient.identite.nom}` : ''} (${l.patient.numeroPatient})`.trim(),
+          )
+          .join(', ')
         throw new ConflictException(
-          `Ce patient a encore ${ayantsDroitActifs} ayant(s) droit rattaché(s) — clôturez d'abord leurs rattachements avant de changer sa catégorie.`,
+          `Ce patient a encore ${liens.length} ayant(s) droit rattaché(s) : ${noms}${liens.length > 5 ? '…' : ''}. Clôturez leurs rattachements depuis leur dossier (Administratif › Rattachements) avant de changer sa catégorie.`,
         )
       }
     }
@@ -2020,6 +2067,32 @@ export class PatientService {
             data: { rattachementId: ratt.id, evenement: 'CLOTURE', createdBy: userId ?? null },
           })
         }
+      }
+
+      // REGISTRE DES EMPLOYÉS. Il n'était jamais mis à jour : un CDI passé « retraité »
+      // restait CDI ACTIF au registre — son matricule était encore « reconnu » à l'accueil
+      // et ouvrait la gratuité à de nouveaux ayants droit. Et un CDD passé CDI y restait
+      // CDD. Le registre suit désormais la catégorie.
+      const quitteCdiCdd =
+        (ancienCode === 'ASSURE_CDI' || ancienCode === 'ASSURE_CDD') && !isCdiCdd
+      if (quitteCdiCdd && patient.employeId) {
+        await tx.employeSaris.update({
+          where: { id: patient.employeId },
+          data: { statut: 'INACTIF' },
+        })
+      }
+      if (isCdiCdd && patientEmployeId) {
+        await tx.employeSaris.update({
+          where: { id: patientEmployeId },
+          data: {
+            categorie: nouveauCode,
+            statut: 'ACTIF',
+            fonction: dto.fonction!.trim(),
+            sectionPaie: dto.sectionPaie!.trim(),
+            service: dto.service!.trim(),
+            departement: dto.departement!.trim(),
+          },
+        })
       }
 
       if (isCdiCdd) {

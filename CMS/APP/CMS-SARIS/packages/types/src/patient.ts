@@ -162,7 +162,7 @@ export interface RattachementAyantDroitCdi {
   dateFin:    string | null
   historiques: HistoriqueRattachement[]
   /** Identité du CDI rattaché, résolue côté serveur (via cdiId OU employeId). */
-  cdi: { nom: string; prenom: string; identifiant: string } | null
+  cdi: { nom: string; prenom: string; identifiant: string; patientId?: string | null } | null
 }
 
 export interface RattachementSousTraitant {
