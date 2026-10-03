@@ -168,13 +168,22 @@ function taSev(v?: number | null): Sev { if (v == null) return 'normal'; return 
 function spo2Sev(v?: number | null): Sev { if (v == null) return 'normal'; return v < 90 ? 'danger' : v < 95 ? 'warning' : 'normal' }
 function fcSev(v?: number | null): Sev { if (v == null) return 'normal'; return v >= 120 || v < 50 ? 'danger' : v >= 100 || v < 60 ? 'warning' : 'normal' }
 
-function Sparkline({ values, color }: { values: number[]; color: string }) {
-  if (values.length < 2) return <div style={{ height: 28 }} />
+/**
+ * Mini-courbe placée sur le TEMPS (constat 77) : avant, les points étaient espacés par
+ * rang — trois mesures sur trois mois ressemblaient à trois mesures sur trois jours, et
+ * une évolution lente passait pour une chute brutale.
+ */
+function Sparkline({ points, color }: { points: Point[]; color: string }) {
+  if (points.length < 2) return <div style={{ height: 28 }} />
   const w = 104, h = 28, pad = 3
+  const values = points.map(p => p.v)
+  const temps = points.map(p => new Date(p.date).getTime())
+  const t0 = Math.min(...temps), t1 = Math.max(...temps)
+  const duree = t1 - t0 || 1
   const min = Math.min(...values), max = Math.max(...values)
   const range = max - min || 1
   const pts = values.map((v, i) => {
-    const x = pad + (i / (values.length - 1)) * (w - 2 * pad)
+    const x = pad + ((temps[i]! - t0) / duree) * (w - 2 * pad)
     const y = h - pad - ((v - min) / range) * (h - 2 * pad)
     return `${x.toFixed(1)},${y.toFixed(1)}`
   })
@@ -233,7 +242,7 @@ function VitalCard({ icon, label, unit, points, sevOf }: {
           {t('patients.vitalMeasuredOn', { date: formatDate(dernier.date) })}
         </span>
       )}
-      <Sparkline values={series} color="var(--ap-400)" />
+      <Sparkline points={points} color="var(--ap-400)" />
     </div>
   )
 }
