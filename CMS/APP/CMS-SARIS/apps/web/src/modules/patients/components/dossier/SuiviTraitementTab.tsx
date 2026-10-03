@@ -288,6 +288,7 @@ function ConstantesSection({ patientId, historiqueRestreint }: { patientId: stri
   const aTaille     = constantes.some(c => c.taille != null)
   const aGlasgow    = constantes.some(c => c.scoreGlasgow != null)
   const aConscience = constantes.some(c => !!c.etatConscience)
+  const aSuivi      = constantes.some(c => c.origine === 'SUIVI')
 
   return (
     <div>
@@ -330,6 +331,7 @@ function ConstantesSection({ patientId, historiqueRestreint }: { patientId: stri
                   {aTaille && <Th>{t('patients.colTaille')}</Th>}
                   {aGlasgow && <Th>{t('patients.colGlasgow')}</Th>}
                   {aConscience && <Th>{t('patients.colConscience')}</Th>}
+                  {aSuivi && <Th>{t('patients.colOrigine')}</Th>}
                   <Th>{t('patients.colSaisiePar')}</Th>
                 </tr>
               </thead>
@@ -351,6 +353,7 @@ function ConstantesSection({ patientId, historiqueRestreint }: { patientId: stri
                     {aTaille && <Cell>{c.taille != null ? `${c.taille} cm` : null}</Cell>}
                     {aGlasgow && <Cell sev={c.scoreGlasgow != null && c.scoreGlasgow <= 8 ? 'danger' : c.scoreGlasgow != null && c.scoreGlasgow < 15 ? 'warning' : 'normal'}>{c.scoreGlasgow ?? null}</Cell>}
                     {aConscience && <Cell>{c.etatConscience ? humanizeCode(c.etatConscience) : null}</Cell>}
+                    {aSuivi && <Cell>{c.origine === 'SUIVI' ? t('patients.origineSuivi') : t('patients.origineTriage')}</Cell>}
                     <Cell>{c.saisieParNom}</Cell>
                   </tr>
                 ))}

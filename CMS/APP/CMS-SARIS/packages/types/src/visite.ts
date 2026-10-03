@@ -63,6 +63,8 @@ export interface ConstanteVitale {
   saisiePar:        string
   /** Nom lisible du soignant ayant saisi la mesure, résolu côté serveur. */
   saisieParNom?:    string | null
+  /** TRIAGE (constante de visite) ou SUIVI (fiche de suivi de traitement). */
+  origine?:      'TRIAGE' | 'SUIVI'
   createdAt:        string
 }
 

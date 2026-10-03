@@ -778,9 +778,60 @@ export class PatientService {
       orderBy: { createdAt: 'desc' },
     })
 
+    // Constantes prises dans les FICHES DE SUIVI de traitement (constat 75) : elles
+    // n'apparaissaient nulle part ailleurs que dans la fiche elle-même. Elles rejoignent
+    // l'historique, marquées « Suivi ». Jamais celles d'un épisode annulé ; pour
+    // l'infirmier, celles des épisodes EN COURS (même règle que la liste des épisodes).
+    const fiches = await this.prisma.ficheSuiviTraitement.findMany({
+      where: {
+        suiviTraitement: {
+          consultation: { visite: { patientId } },
+          statut: scope?.restreindreHistorique ? 'EN_COURS' : { not: 'ANNULE' },
+        },
+        OR: [
+          { temperature: { not: null } },
+          { tensionSystolique: { not: null } },
+          { frequenceCardiaque: { not: null } },
+          { frequenceRespiratoire: { not: null } },
+          { saturationO2: { not: null } },
+          { poids: { not: null } },
+        ],
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+    const toutes = [
+      ...constantes.map((c) => ({ ...c, origine: 'TRIAGE' as const })),
+      ...fiches.map((f) => ({
+        id: f.id,
+        visiteId: null,
+        patientId,
+        temperature: f.temperature,
+        tensionSystolique: f.tensionSystolique,
+        tensionDiastolique: f.tensionDiastolique,
+        frequenceCardiaque: f.frequenceCardiaque,
+        frequenceRespiratoire: f.frequenceRespiratoire,
+        saturationO2: f.saturationO2,
+        poids: f.poids,
+        taille: null,
+        imc: null,
+        glycemie: null,
+        etatConscience: null,
+        scoreGlasgow: null,
+        etatGeneral: null,
+        hydratation: null,
+        coloration: null,
+        saisiePar: f.createdBy ?? '',
+        createdAt: f.createdAt,
+        updatedAt: f.createdAt,
+        deletedAt: null,
+        origine: 'SUIVI' as const,
+        suiviTraitementId: f.suiviTraitementId,
+      })),
+    ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+
     // `saisiePar` = id Utilisateur, sans relation Prisma directe sur ConstanteVitale
     // → résolu manuellement en nom lisible (soignant + login de secours).
-    const userIds = [...new Set(constantes.map((c) => c.saisiePar))]
+    const userIds = [...new Set(toutes.map((c) => c.saisiePar).filter(Boolean))]
     const users = userIds.length
       ? await this.prisma.utilisateur.findMany({
           where: { id: { in: userIds } },
@@ -799,7 +850,7 @@ export class PatientService {
           : u.login,
       ]),
     )
-    return constantes.map((c) => ({
+    return toutes.map((c) => ({
       ...c,
       saisieParNom: userMap.get(c.saisiePar) ?? null,
     }))
@@ -836,7 +887,7 @@ export class PatientService {
     const [
       allergies,
       lignes,
-      lastConst,
+      lastConstTriage,
       chronicDiags,
       suivisActifs,
       lastConstEnCours,
@@ -903,6 +954,25 @@ export class PatientService {
           orderBy: { createdAt: 'desc' },
         }),
       ])
+    // Dernière fiche de suivi portant une constante (constat 75) : la règle « constante
+    // critique » l'ignorait. Elle entre en compte comme mesure HISTORIQUE datée — le
+    // rouge reste réservé à la visite en cours (décision de l'étape 2).
+    const derniereFiche = await this.prisma.ficheSuiviTraitement.findFirst({
+      where: {
+        suiviTraitement: { consultation: { visite: { patientId } }, statut: { not: 'ANNULE' } },
+        OR: [
+          { temperature: { not: null } },
+          { tensionSystolique: { not: null } },
+          { frequenceCardiaque: { not: null } },
+          { saturationO2: { not: null } },
+        ],
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+    const lastConst =
+      derniereFiche && (!lastConstTriage || derniereFiche.createdAt > lastConstTriage.createdAt)
+        ? derniereFiche
+        : lastConstTriage
 
     const alertes: AlerteClinique[] = []
 
