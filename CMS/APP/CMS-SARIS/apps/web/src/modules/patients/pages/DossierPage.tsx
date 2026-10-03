@@ -827,6 +827,15 @@ export function DossierPage() {
         {/* ── Corps principal ──────────────────────────────────────────── */}
         <div style={{ flex: 1, display: 'flex', flexDirection: isCompact ? 'column' : 'row', minHeight: 0, overflow: isCompact ? 'auto' : 'hidden' }}>
 
+          {/* Écran compact : la Sécurité clinique PASSE AVANT la colonne empilée (constat 11).
+              Sinon, sur tablette ou téléphone, allergies sévères et alertes critiques
+              n'apparaissaient qu'après tout le panneau d'identité — hors de l'écran. */}
+          {isCompact && !lockedForMe && (
+            <div style={{ paddingBottom: 12 }}>
+              <SecuriteClinique dossier={dossier} alertesActives={canViewClinique} />
+            </div>
+          )}
+
           {/* Sidebar — colonne fixe (bureau) / bandeau empilé pleine largeur (compact) */}
           <DossierSidebar
             dossier={dossier}
@@ -845,8 +854,9 @@ export function DossierPage() {
               <LockedDossier motif={dossier.motifVerrou} />
             ) : (
             <>
-            {/* Sécurité clinique : allergies sévères, alertes critiques et alertes calculées */}
-            <SecuriteClinique dossier={dossier} alertesActives={canViewClinique} />
+            {/* Sécurité clinique : allergies sévères, alertes critiques et alertes calculées
+                (sur écran compact, déjà affichée avant la colonne). */}
+            {!isCompact && <SecuriteClinique dossier={dossier} alertesActives={canViewClinique} />}
 
             {/* Sections (niveau 1) */}
             <div style={{ borderBottom: '1px solid var(--bordure-legere)', padding: 'var(--espace-3) 24px', marginTop: '12px', flexShrink: 0, overflowX: 'auto' }}>
