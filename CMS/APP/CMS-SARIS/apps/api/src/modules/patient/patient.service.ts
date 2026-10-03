@@ -74,6 +74,22 @@ export interface AlerteClinique {
  * parcours en cours, cote consultation, c'est donc exactement « statut OUVERTE » — la
  * meme regle que la liste des consultations et les documents du dossier.
  */
+/** Identité saisie pour un travailleur CDI inconnu du registre. */
+interface NouvelEmployeSaisie {
+  nom: string
+  prenom: string
+  dateNaissance?: string
+  sexe?: string
+  fonction?: string
+  sectionPaie?: string
+  service?: string
+  departement?: string
+}
+/** Travailleur CDI d'un rattachement : déjà au registre, ou à créer / restaurer. */
+type PlanCdi =
+  | { existant: EmployeSaris }
+  | { aCreer: NouvelEmployeSaisie & { matricule: string }; tombeId: string | null }
+
 function consultationsDuDossier(
   patientId: string,
   restreindreHistorique?: boolean,
@@ -1446,10 +1462,9 @@ export class PatientService {
 
     // ── Registre des employés SARIS : reconnaissance / enregistrement dynamique par matricule ──
     let patientEmployeId: string | null = null // le patient EST un employé (CDI/CDD)
-    let rattEmployeId: string | null = null // ayant droit : l'employé CDI rattaché
-    // CDI rattaché résolu (reconnu ou créé à la volée) — utilisé après la création du
-    // patient courant pour lui garantir un dossier, s'il n'en a pas déjà un (cas 4).
-    let rattEmploye: EmployeSaris | null = null
+    // Ayant droit : le CDI rattaché est VÉRIFIÉ avant la transaction mais créé/restauré
+    // DEDANS (cf. planifierCdiRattachement / materialiserCdi).
+    let planCdi: PlanCdi | null = null
     if (isCdiCdd) {
       // Le patient est un employé : reconnu par matricule, ou enregistré au registre à la volée.
       const emp = await this.employes.ensureByMatricule({
@@ -1477,11 +1492,7 @@ export class PatientService {
         )
       if (!typeLien)
         throw new BadRequestException('Le lien de parenté est obligatoire')
-      rattEmploye = await this.resoudreCdiRattachement(
-        cdiMatricule,
-        nouvelEmploye,
-      )
-      rattEmployeId = rattEmploye.id
+      planCdi = await this.planifierCdiRattachement(cdiMatricule, nouvelEmploye)
     }
 
     const numeroPatient = await this.generateNumeroPatient(siteCreationId)
@@ -1545,11 +1556,12 @@ export class PatientService {
       })
 
       // Rattachement ayant droit → employé CDI du registre (recueil §5)
-      if (rattEmployeId) {
+      if (planCdi) {
+        const rattEmploye = await this.materialiserCdi(planCdi, tx)
         const ratt = await tx.rattachementAyantDroitCdi.create({
           data: {
             patientId: p.id,
-            employeId: rattEmployeId,
+            employeId: rattEmploye.id,
             typeLien: typeLien!,
             dateDebut: new Date(),
           },
@@ -1564,8 +1576,7 @@ export class PatientService {
         // invisible à `generateNumeroPatient` (lecture `.raw`, hors transaction) tant
         // que cette transaction n'a pas validé — sans ce plancher les deux dossiers
         // calculeraient le même « prochain numéro » et entreraient en collision.
-        if (rattEmploye)
-          await this.createFromEmploye(
+        await this.createFromEmploye(
             rattEmploye,
             siteCreationId,
             createdBy,
@@ -2289,27 +2300,22 @@ export class PatientService {
   // enregistré (rattacherAyantDroit ci-dessous). Rien depuis le dossier lui-même.
 
   /**
-   * Travailleur CDI auquel rattacher un ayant droit : reconnu au registre par son
-   * matricule, ou enregistré à la volée si le matricule est inconnu.
+   * Travailleur CDI auquel rattacher un ayant droit — ÉTAPE 1, hors transaction :
+   * reconnu au registre par son matricule, ou à enregistrer si le matricule est inconnu.
    *
    * Un matricule CONNU doit désigner un CDI ACTIF. Avant, « Employé reconnu » suffisait :
    * le matricule d'un CDD, ou d'un CDI parti de l'entreprise, créait un ayant droit avec
    * la gratuité complète. Une faute de frappe sur un matricule existant reste possible —
    * c'est pourquoi l'écran affiche le NOM du travailleur reconnu avant validation.
+   *
+   * Un employé SUPPRIMÉ du registre (pierre tombale) bloquait son matricule pour toujours
+   * (constat 100) : « inconnu » pour la recherche, « existe déjà » pour la création. Il
+   * est désormais RESTAURÉ avec l'identité fournie.
    */
-  private async resoudreCdiRattachement(
+  private async planifierCdiRattachement(
     cdiMatricule: string,
-    nouvelEmploye?: {
-      nom: string
-      prenom: string
-      dateNaissance?: string
-      sexe?: string
-      fonction?: string
-      sectionPaie?: string
-      service?: string
-      departement?: string
-    },
-  ): Promise<EmployeSaris> {
+    nouvelEmploye?: NouvelEmployeSaisie,
+  ): Promise<PlanCdi> {
     const mat = cdiMatricule.trim()
     const existing = await this.employes.findByMatricule(mat)
     if (existing) {
@@ -2324,26 +2330,55 @@ export class PatientService {
           `${nom} (matricule ${mat}) est inactif au registre des employés : aucun ayant droit ne peut lui être rattaché.`,
         )
       }
-      return existing
+      return { existant: existing }
     }
-    // CDI inconnu → on l'enregistre à la volée avec l'identité fournie.
+    // CDI inconnu → à enregistrer avec l'identité fournie.
     if (!nouvelEmploye?.nom?.trim() || !nouvelEmploye?.prenom?.trim()) {
       throw new BadRequestException(
         `Matricule CDI « ${mat} » inconnu — renseignez l'identité du travailleur CDI rattaché`,
       )
     }
-    return this.employes.create({
-      matricule: mat,
-      nom: nouvelEmploye.nom,
-      prenom: nouvelEmploye.prenom,
-      dateNaissance: nouvelEmploye.dateNaissance,
-      sexe: nouvelEmploye.sexe,
-      fonction: nouvelEmploye.fonction,
-      sectionPaie: nouvelEmploye.sectionPaie,
-      service: nouvelEmploye.service,
-      departement: nouvelEmploye.departement,
-      categorie: 'ASSURE_CDI',
+    const tombe = await this.prisma.raw.employeSaris.findUnique({
+      where: { matricule: mat },
+      select: { id: true, deletedAt: true },
     })
+    return {
+      aCreer: { matricule: mat, ...nouvelEmploye },
+      tombeId: tombe?.deletedAt ? tombe.id : null,
+    }
+  }
+
+  /**
+   * ÉTAPE 2, DANS la transaction : crée (ou restaure) l'employé planifié. Avant, il était
+   * créé hors transaction : si l'enregistrement de l'ayant droit échouait ensuite, un
+   * employé orphelin — saisi à la hâte, parfois mal orthographié — restait au registre et
+   * devenait « reconnu » au nouvel essai (constat 104).
+   */
+  private async materialiserCdi(
+    plan: PlanCdi,
+    client: Prisma.TransactionClient,
+  ): Promise<EmployeSaris> {
+    if ('existant' in plan) return plan.existant
+    const e = plan.aCreer
+    const data = {
+      nom: e.nom.trim(),
+      prenom: e.prenom.trim(),
+      dateNaissance: e.dateNaissance ? new Date(e.dateNaissance) : null,
+      sexe: e.sexe ?? null,
+      fonction: e.fonction?.trim() || null,
+      sectionPaie: e.sectionPaie?.trim() || null,
+      service: e.service?.trim() || null,
+      departement: e.departement?.trim() || null,
+      categorie: 'ASSURE_CDI',
+      statut: 'ACTIF',
+    }
+    if (plan.tombeId) {
+      return client.employeSaris.update({
+        where: { id: plan.tombeId },
+        data: { ...data, deletedAt: null },
+      })
+    }
+    return client.employeSaris.create({ data: { matricule: e.matricule, ...data } })
   }
 
   /**
@@ -2382,19 +2417,22 @@ export class PatientService {
       )
     }
 
-    const cdi = await this.resoudreCdiRattachement(
+    const plan = await this.planifierCdiRattachement(
       dto.cdiMatricule,
       dto.nouvelEmploye,
     )
 
-    const dejaRattache = await this.prisma.rattachementAyantDroitCdi.findFirst({
-      where: { patientId, employeId: cdi.id, statut: 'ACTIF' },
-      select: { id: true },
-    })
-    if (dejaRattache) {
-      throw new ConflictException(
-        `Ce patient est déjà rattaché à ${cdi.prenom} ${cdi.nom} (matricule ${cdi.matricule}).`,
-      )
+    if ('existant' in plan) {
+      const cdiConnu = plan.existant
+      const dejaRattache = await this.prisma.rattachementAyantDroitCdi.findFirst({
+        where: { patientId, employeId: cdiConnu.id, statut: 'ACTIF' },
+        select: { id: true },
+      })
+      if (dejaRattache) {
+        throw new ConflictException(
+          `Ce patient est déjà rattaché à ${cdiConnu.prenom} ${cdiConnu.nom} (matricule ${cdiConnu.matricule}).`,
+        )
+      }
     }
 
     const categAD = await this.prisma.categoriePatient.findUnique({
@@ -2408,6 +2446,7 @@ export class PatientService {
 
     const site = siteId ?? patient.siteCreationId
     return this.prisma.$transaction(async (tx) => {
+      const cdi = await this.materialiserCdi(plan, tx)
       if (code !== 'AYANT_DROIT_CDI') {
         await tx.historiqueCategoriePatient.create({
           data: {
