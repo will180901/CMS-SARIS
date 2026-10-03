@@ -25,11 +25,15 @@ interface ConfirmDeleteModalProps {
   onConfirm:    () => Promise<void>
   /** Ferme la modale après succès (défaut true). Mettre false si la page se démonte (ex. navigation). */
   closeOnSuccess?: boolean
+  /** Icône de l'action (défaut : corbeille) — p. ex. pour confirmer une désactivation. */
+  icon?: ReactNode
+  /** Libellé pendant l'action (défaut « Suppression… »). */
+  busyLabel?: string
 }
 
 export function ConfirmDeleteModal({
   title, subtitle, message, confirmLabel,
-  onClose, onConfirm, closeOnSuccess = true,
+  onClose, onConfirm, closeOnSuccess = true, icon, busyLabel,
 }: ConfirmDeleteModalProps) {
   const { t } = useTranslation()
   const [busy, setBusy] = useState(false)
@@ -49,7 +53,7 @@ export function ConfirmDeleteModal({
 
   return (
     <Modal
-      icon={<Trash2 size={17} />}
+      icon={icon ?? <Trash2 size={17} />}
       title={title}
       subtitle={subtitle}
       width={440}
@@ -65,7 +69,7 @@ export function ConfirmDeleteModal({
             disabled={busy}
             style={{ fontSize: '13px', height: 34, gap: '5px', color: '#fff', border: 'none', background: 'var(--erreur-accent)' }}
           >
-            {busy ? t('patients.deleting') : <><Trash2 size={13} /> {resolvedConfirmLabel}</>}
+            {busy ? (busyLabel ?? t('patients.deleting')) : <>{icon ? null : <Trash2 size={13} />} {resolvedConfirmLabel}</>}
           </Button>
         </>
       }

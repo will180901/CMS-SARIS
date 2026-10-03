@@ -4,7 +4,7 @@ import { useTranslation }      from 'react-i18next'
 import { DatePicker }          from '@/components/saris'
 import { zodResolver }         from '@hookform/resolvers/zod'
 import { z }                   from 'zod'
-import { Users, MoreVertical, Trash2 } from 'lucide-react'
+import { Users, MoreVertical, Trash2 , Ban } from 'lucide-react'
 import { Button }              from '@workspace/ui/components/button'
 import { Label }               from '@workspace/ui/components/label'
 import {
@@ -16,6 +16,7 @@ import {
 } from '@workspace/ui/components/dropdown-menu'
 import { DrawerShell }         from '@/modules/referentiels/components/DrawerShell'
 import { ConfirmDeleteModal }  from './ConfirmDeleteModal'
+import { usePermissions }      from '@/hooks/usePermissions'
 import { useUpdateRattachementAD, useDeleteRattachementAD, usePatientAyantsDroits } from '../../hooks/usePatients'
 import type { PatientDossier, RattachementAyantDroitCdi } from '@cms-saris/types'
 import { humanizeCode } from '@/config/labels'
@@ -49,6 +50,10 @@ function RattachementADCard({ ratt, canWrite, patientId }: { ratt: RattachementA
   const update = useUpdateRattachementAD(patientId)
   const remove = useDeleteRattachementAD(patientId)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [confirmCloturer, setConfirmCloturer] = useState(false)
+  // Supprimer (au lieu de clôturer) : droit dédié, l'historique est conservé.
+  const { has } = usePermissions()
+  const peutSupprimer = has('patient.rattachement.delete')
   const [editOpen, setEditOpen] = useState(false)
   const editForm = useForm<ADEditForm>({
     resolver: zodResolver(makeAdEditSchema(t)),
@@ -94,13 +99,19 @@ function RattachementADCard({ ratt, canWrite, patientId }: { ratt: RattachementA
               <DropdownMenuItem onClick={() => setEditOpen(true)} style={{ cursor: 'pointer' }}>
                 {t('patients.editAttachment')}
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => update.mutate({ rId: ratt.id, data: { statut: actif ? 'INACTIF' : 'ACTIF' } })} style={{ cursor: 'pointer', color: actif ? 'var(--erreur-texte)' : 'var(--succes-texte)' }}>
+              {/* Clôturer suspend les droits de l'ayant droit (médicaments, examens) :
+                  confirmation obligatoire, la clôture n'est plus un clic de trop. */}
+              <DropdownMenuItem onClick={() => actif ? setConfirmCloturer(true) : update.mutate({ rId: ratt.id, data: { statut: 'ACTIF' } })} style={{ cursor: 'pointer', color: actif ? 'var(--erreur-texte)' : 'var(--succes-texte)' }}>
                 {actif ? t('patients.close') : t('patients.reactivate')}
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setConfirmDelete(true)} style={{ cursor: 'pointer', color: 'var(--erreur-texte)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Trash2 size={13} /> {t('patients.delete')}
-              </DropdownMenuItem>
+              {peutSupprimer && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setConfirmDelete(true)} style={{ cursor: 'pointer', color: 'var(--erreur-texte)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Trash2 size={13} /> {t('patients.delete')}
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         )}
@@ -113,6 +124,18 @@ function RattachementADCard({ ratt, canWrite, patientId }: { ratt: RattachementA
           message={t('patients.deleteAttachmentAdBody')}
           onClose={() => setConfirmDelete(false)}
           onConfirm={async () => { await remove.mutateAsync(ratt.id) }}
+        />
+      )}
+      {confirmCloturer && (
+        <ConfirmDeleteModal
+          icon={<Ban size={17} />}
+          title={t('patients.closeAttachmentTitle')}
+          subtitle={LIEN_LABELS[ratt.typeLien] ?? humanizeCode(ratt.typeLien)}
+          message={t('patients.closeAttachmentBody')}
+          confirmLabel={t('patients.close')}
+          busyLabel={t('patients.closing')}
+          onClose={() => setConfirmCloturer(false)}
+          onConfirm={async () => { await update.mutateAsync({ rId: ratt.id, data: { statut: 'INACTIF' } }) }}
         />
       )}
 

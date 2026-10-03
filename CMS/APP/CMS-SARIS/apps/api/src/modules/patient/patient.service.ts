@@ -2376,14 +2376,28 @@ export class PatientService {
     return { id: alerteId, deleted: true }
   }
 
-  async deleteRattachementAD(patientId: string, rattId: string) {
+  /**
+   * Suppression d'un rattachement (droit dédié patient.rattachement.delete).
+   *
+   * L'HISTORIQUE n'est plus jamais effacé : il était supprimé physiquement avec le lien
+   * (HistoriqueRattachementAyantDroit n'est pas un modèle à suppression logique), si bien
+   * qu'on ne pouvait plus dire qui avait rattaché qui, ni quand. On ajoute à la place
+   * l'événement SUPPRESSION ; le lien, lui, est retiré logiquement (pierre tombale
+   * synchronisée). Sans rattachement en vigueur, les droits de l'ayant droit sont
+   * suspendus (couverturePatient) et il peut être rattaché à nouveau depuis la visite.
+   */
+  async deleteRattachementAD(patientId: string, rattId: string, userId?: string) {
     const r = await this.prisma.rattachementAyantDroitCdi.findFirst({
       where: { id: rattId, patientId },
     })
     if (!r) throw new NotFoundException('Rattachement ayant droit introuvable')
     await this.prisma.$transaction([
-      this.prisma.historiqueRattachementAyantDroit.deleteMany({
-        where: { rattachementId: rattId },
+      this.prisma.historiqueRattachementAyantDroit.create({
+        data: {
+          rattachementId: rattId,
+          evenement: 'SUPPRESSION',
+          createdBy: userId ?? null,
+        },
       }),
       this.prisma.rattachementAyantDroitCdi.delete({ where: { id: rattId } }),
     ])

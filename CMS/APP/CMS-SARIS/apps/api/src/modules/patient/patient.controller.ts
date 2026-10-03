@@ -338,7 +338,7 @@ export class PatientController {
   }
 
   @Delete(':id/allergies/:aId')
-  @RequirePermissions('patient.update')
+  @RequirePermissions('patient.medical.delete')
   deleteAllergie(@Param('id') id: string, @Param('aId') aId: string) {
     return this.patientService.deleteAllergie(id, aId)
   }
@@ -362,7 +362,7 @@ export class PatientController {
   }
 
   @Delete(':id/antecedents/:aId')
-  @RequirePermissions('patient.update')
+  @RequirePermissions('patient.medical.delete')
   deleteAntecedent(@Param('id') id: string, @Param('aId') aId: string) {
     return this.patientService.deleteAntecedent(id, aId)
   }
@@ -386,7 +386,7 @@ export class PatientController {
   }
 
   @Delete(':id/alertes/:aId')
-  @RequirePermissions('patient.update')
+  @RequirePermissions('patient.medical.delete')
   deleteAlerte(@Param('id') id: string, @Param('aId') aId: string) {
     return this.patientService.deleteAlerte(id, aId)
   }
@@ -424,9 +424,13 @@ export class PatientController {
   }
 
   @Delete(':id/rattachements-ad/:rId')
-  @RequirePermissions('patient.rattachement.manage')
-  deleteRattachementAD(@Param('id') id: string, @Param('rId') rId: string) {
-    return this.patientService.deleteRattachementAD(id, rId)
+  @RequirePermissions('patient.rattachement.delete')
+  deleteRattachementAD(
+    @Param('id') id: string,
+    @Param('rId') rId: string,
+    @Req() req: any,
+  ) {
+    return this.patientService.deleteRattachementAD(id, rId, req.user?.id)
   }
 
   // ── Suppression définitive du dossier ─────────────────────────────────────

@@ -81,6 +81,9 @@ function AntecedentCard({ ant, canWrite, patientId }: { ant: AntecedentPatient; 
   const update = useUpdateAntecedent(patientId)
   const remove = useDeleteAntecedent(patientId)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  // Supprimer (définitif) ≠ marquer résolu : droit dédié patient.medical.delete.
+  const { has } = usePermissions()
+  const peutSupprimer = has('patient.medical.delete')
   const [editOpen, setEditOpen] = useState(false)
   const editForm = useForm<Form>({ resolver: zodResolver(makeSchema(t)), values: { type: ant.type, description: ant.description, pathologieId: ant.pathologieId ?? undefined } })
   const editTypeVal = editForm.watch('type')
@@ -123,13 +126,17 @@ function AntecedentCard({ ant, canWrite, patientId }: { ant: AntecedentPatient; 
               >
                 {ant.statut === 'ACTIF' ? t('patients.markResolved') : t('patients.reactivate')}
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => setConfirmDelete(true)}
-                style={{ cursor: 'pointer', color: 'var(--erreur-texte)', display: 'flex', alignItems: 'center', gap: 8 }}
-              >
-                <Trash2 size={13} /> {t('patients.delete')}
-              </DropdownMenuItem>
+              {peutSupprimer && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => setConfirmDelete(true)}
+                    style={{ cursor: 'pointer', color: 'var(--erreur-texte)', display: 'flex', alignItems: 'center', gap: 8 }}
+                  >
+                    <Trash2 size={13} /> {t('patients.delete')}
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         )}

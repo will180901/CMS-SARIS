@@ -3,7 +3,7 @@ import { useForm }            from 'react-hook-form'
 import { zodResolver }        from '@hookform/resolvers/zod'
 import { z }                  from 'zod'
 import { useTranslation }     from 'react-i18next'
-import { Plus, MoreVertical, AlertTriangle, ShieldAlert, Trash2 } from 'lucide-react'
+import { Plus, MoreVertical, AlertTriangle, ShieldAlert, Trash2 , EyeOff } from 'lucide-react'
 import { Button }             from '@workspace/ui/components/button'
 import { Input }              from '@workspace/ui/components/input'
 import { Label }              from '@workspace/ui/components/label'
@@ -16,6 +16,7 @@ import {
 } from '@workspace/ui/components/dropdown-menu'
 import { DrawerShell }        from '@/modules/referentiels/components/DrawerShell'
 import { ConfirmDeleteModal } from './ConfirmDeleteModal'
+import { usePermissions } from '@/hooks/usePermissions'
 import { useCreateAllergie, useUpdateAllergie, useDeleteAllergie, useCreateAlerte, useUpdateAlerte, useDeleteAlerte } from '../../hooks/usePatients'
 import { formatDate } from '@/lib/intl'
 import type { PatientDossier, AllergiePatient, AlerteMedicale } from '@cms-saris/types'
@@ -78,6 +79,11 @@ function AllergieCard({ allergie, canWrite, patientId }: { allergie: AllergiePat
   const update = useUpdateAllergie(patientId)
   const remove = useDeleteAllergie(patientId)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  // Désactiver une allergie la retire du bloc « Sécurité clinique » et du contrôle
+  // allergie ↔ médicament : un clic de trop dans le menu ne doit pas suffire.
+  const [confirmDesactiver, setConfirmDesactiver] = useState(false)
+  const { has } = usePermissions()
+  const peutSupprimer = has('patient.medical.delete')
   const inactive = allergie.statut !== 'ACTIVE'
   return (
     <div style={{ background: 'var(--fond-surface)', border: '1px solid var(--bordure-legere)', borderRadius: 8, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: '12px', opacity: inactive ? 0.6 : 1 }}>
@@ -103,13 +109,17 @@ function AllergieCard({ allergie, canWrite, patientId }: { allergie: AllergiePat
               {allergie.confirme ? t('patients.markUnconfirmed') : t('patients.confirmAllergy')}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => update.mutate({ aId: allergie.id, data: { statut: allergie.statut === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE' } })} style={{ cursor: 'pointer', color: allergie.statut === 'ACTIVE' ? 'var(--erreur-texte)' : 'var(--succes-texte)' }}>
+            <DropdownMenuItem onClick={() => allergie.statut === 'ACTIVE' ? setConfirmDesactiver(true) : update.mutate({ aId: allergie.id, data: { statut: 'ACTIVE' } })} style={{ cursor: 'pointer', color: allergie.statut === 'ACTIVE' ? 'var(--erreur-texte)' : 'var(--succes-texte)' }}>
               {allergie.statut === 'ACTIVE' ? t('patients.deactivate') : t('patients.reactivate')}
             </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => setConfirmDelete(true)} style={{ cursor: 'pointer', color: 'var(--erreur-texte)', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Trash2 size={13} /> {t('patients.delete')}
-            </DropdownMenuItem>
+            {peutSupprimer && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setConfirmDelete(true)} style={{ cursor: 'pointer', color: 'var(--erreur-texte)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Trash2 size={13} /> {t('patients.delete')}
+                </DropdownMenuItem>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       )}
@@ -123,6 +133,18 @@ function AllergieCard({ allergie, canWrite, patientId }: { allergie: AllergiePat
           onConfirm={async () => { await remove.mutateAsync(allergie.id) }}
         />
       )}
+      {confirmDesactiver && (
+        <ConfirmDeleteModal
+          icon={<EyeOff size={17} />}
+          title={t('patients.deactivateAllergyTitle')}
+          subtitle={allergie.substance}
+          message={t('patients.deactivateAllergyBody')}
+          confirmLabel={t('patients.deactivate')}
+          busyLabel={t('patients.deactivating')}
+          onClose={() => setConfirmDesactiver(false)}
+          onConfirm={async () => { await update.mutateAsync({ aId: allergie.id, data: { statut: 'INACTIVE' } }) }}
+        />
+      )}
     </div>
   )
 }
@@ -134,6 +156,9 @@ function AlerteCard({ alerte, canWrite, patientId }: { alerte: AlerteMedicale; c
   const update = useUpdateAlerte(patientId)
   const remove = useDeleteAlerte(patientId)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [confirmDesactiver, setConfirmDesactiver] = useState(false)
+  const { has } = usePermissions()
+  const peutSupprimer = has('patient.medical.delete')
   const TYPE_LABELS: Record<string, string> = {
     ALLERGIE: t('patients.alertTypeAllergie'), PATHOLOGIE_CHRONIQUE: t('patients.alertTypePathologie'),
     CONTRE_INDICATION: t('patients.alertTypeContreIndication'), SURVEILLANCE: t('patients.alertTypeSurveillance'), AUTRE: t('patients.alertTypeAutre'),
@@ -163,13 +188,17 @@ function AlerteCard({ alerte, canWrite, patientId }: { alerte: AlerteMedicale; c
               <Button variant="ghost" size="icon" style={{ width: 28, height: 28, flexShrink: 0 }}><MoreVertical size={13} /></Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" style={{ fontSize: '13px' }}>
-              <DropdownMenuItem onClick={() => update.mutate({ aId: alerte.id, data: { statut: alerte.statut === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE' } })} style={{ cursor: 'pointer', color: alerte.statut === 'ACTIVE' ? 'var(--erreur-texte)' : 'var(--succes-texte)' }}>
+              <DropdownMenuItem onClick={() => alerte.statut === 'ACTIVE' ? setConfirmDesactiver(true) : update.mutate({ aId: alerte.id, data: { statut: 'ACTIVE' } })} style={{ cursor: 'pointer', color: alerte.statut === 'ACTIVE' ? 'var(--erreur-texte)' : 'var(--succes-texte)' }}>
                 {alerte.statut === 'ACTIVE' ? t('patients.resolveDeactivate') : t('patients.reactivate')}
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setConfirmDelete(true)} style={{ cursor: 'pointer', color: 'var(--erreur-texte)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Trash2 size={13} /> {t('patients.delete')}
-              </DropdownMenuItem>
+              {peutSupprimer && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setConfirmDelete(true)} style={{ cursor: 'pointer', color: 'var(--erreur-texte)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Trash2 size={13} /> {t('patients.delete')}
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         )}
@@ -181,6 +210,18 @@ function AlerteCard({ alerte, canWrite, patientId }: { alerte: AlerteMedicale; c
           message={t('patients.deleteAlertBody')}
           onClose={() => setConfirmDelete(false)}
           onConfirm={async () => { await remove.mutateAsync(alerte.id) }}
+        />
+      )}
+      {confirmDesactiver && (
+        <ConfirmDeleteModal
+          icon={<EyeOff size={17} />}
+          title={t('patients.deactivateAlertTitle')}
+          subtitle={alerte.message}
+          message={t('patients.deactivateAlertBody')}
+          confirmLabel={t('patients.resolveDeactivate')}
+          busyLabel={t('patients.deactivating')}
+          onClose={() => setConfirmDesactiver(false)}
+          onConfirm={async () => { await update.mutateAsync({ aId: alerte.id, data: { statut: 'INACTIVE' } }) }}
         />
       )}
     </div>

@@ -30,6 +30,13 @@ export const PERMISSIONS = {
   // Rattachements (CDI / sous-traitants) — partie administrative du dossier,
   // séparée de patient.update pour pouvoir la confier à un autre profil.
   PATIENT_RATTACHEMENT_MANAGE: 'patient.rattachement.manage',
+  // SUPPRIMER n'est pas MODIFIER. Avant, effacer une allergie sévère, une alerte ou un
+  // antécédent demandait le même droit que corriger une adresse (patient.update), et
+  // supprimer un rattachement le même que le clôturer : tout infirmier pouvait effacer ce
+  // que le médecin chef avait saisi. Désactiver / clôturer (réversible) reste à
+  // patient.update / patient.rattachement.manage.
+  PATIENT_MEDICAL_DELETE:      'patient.medical.delete',
+  PATIENT_RATTACHEMENT_DELETE: 'patient.rattachement.delete',
 
   // Visite / Triage
   VISITE_READ:             'visite.read',
@@ -227,6 +234,8 @@ export const PERMISSION_META: Record<PermissionCode, { libelle: string; module: 
   'patient.lock':                { libelle: 'Verrouiller / déverrouiller l\'accès à un dossier', module: 'patient' },
   'patient.confidentiel.read':   { libelle: 'Voir les pathologies à confidentialité renforcée (VIH, santé mentale…)', module: 'patient' },
   'patient.rattachement.manage': { libelle: 'Gérer les rattachements (CDI / sous-traitants)', module: 'patient' },
+  'patient.medical.delete':      { libelle: 'Supprimer définitivement une allergie, une alerte ou un antécédent', module: 'patient' },
+  'patient.rattachement.delete': { libelle: 'Supprimer un rattachement (au lieu de le clôturer)', module: 'patient' },
 
   // Visite / Triage
   'visite.read':                 { libelle: 'Consulter les visites de triage', module: 'visite' },
@@ -505,6 +514,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionCode[]> = {
     'dashboard.read',
     'patient.read', 'patient.create', 'patient.update', 'patient.change_category',
     'patient.rattachement.manage', 'patient.archive', 'patient.lock', 'patient.confidentiel.read',
+    'patient.medical.delete', 'patient.rattachement.delete',
     'visite.read', 'visite.create', 'visite.update', 'visite.assign_soignant',
     'visite.cancel', 'visite.close', 'visite.delete',
     'consultation.read', 'consultation.create', 'consultation.update',
