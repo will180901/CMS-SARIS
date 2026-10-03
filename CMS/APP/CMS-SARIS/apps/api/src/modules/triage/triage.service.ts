@@ -280,6 +280,9 @@ export class TriageService {
         statut: true,
         typeCloture: true,
         motifPrincipal: { select: { libelle: true } },
+        // Site du passage (constat 91) : le parcours ne disait nulle part OÙ le patient
+        // avait été vu — multi-site, c'est une information clinique (qui l'a reçu, où).
+        site: { select: { libelle: true } },
         // deletedAt:null OBLIGATOIRE : l'extension soft-delete ne filtre PAS les
         // relations imbriquées → sans ça, une consultation supprimée resterait
         // visible dans le dossier patient (timeline). Vérifié E2E.

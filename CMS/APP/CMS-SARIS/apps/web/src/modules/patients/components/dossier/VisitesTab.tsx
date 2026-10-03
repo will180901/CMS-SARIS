@@ -110,6 +110,7 @@ export function VisitesTab({ patientId, historiqueRestreint = false }: { patient
                   </div>
                   <p style={{ margin: '3px 0 0', fontSize: 12, color: 'var(--texte-secondaire)' }}>
                     {formatDate(v.dateOuverture, { day: '2-digit', month: 'long', year: 'numeric' })} · {formatTime(v.dateOuverture, { hour: '2-digit', minute: '2-digit' })}
+                    {v.site?.libelle ? ` · ${v.site.libelle}` : ''}
                   </p>
                 </div>
                 <ChevronRight size={15} style={{ color: 'var(--texte-tertiaire)', flexShrink: 0 }} />

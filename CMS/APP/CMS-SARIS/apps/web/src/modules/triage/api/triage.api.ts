@@ -46,6 +46,7 @@ export interface VisitePatientItem {
   statut:         string
   typeCloture:    string | null
   motifPrincipal: { libelle: string } | null
+  site?:          { libelle: string } | null
   consultations:  { id: string; statut: string }[]
 }
 

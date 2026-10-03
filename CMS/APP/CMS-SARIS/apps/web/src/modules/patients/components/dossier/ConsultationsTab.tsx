@@ -95,6 +95,7 @@ export function ConsultationsTab({ patientId, historiqueRestreint = false }: { p
                   </div>
                   <p style={{ margin: '3px 0 0', fontSize: 12, color: 'var(--texte-secondaire)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {formatDate(c.createdAt, { day: '2-digit', month: 'long', year: 'numeric' })} · {formatTime(c.createdAt, { hour: '2-digit', minute: '2-digit' })}
+                    {c.visite?.site?.libelle ? ` · ${c.visite.site.libelle}` : ''}
                     {c.visite?.motifPrincipal?.libelle ? ` · ${c.visite.motifPrincipal.libelle}` : ''}
                     {decision ? ` · ${decision}` : ''}
                   </p>
