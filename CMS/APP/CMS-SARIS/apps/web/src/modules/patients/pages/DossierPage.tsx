@@ -58,7 +58,7 @@ const SECTIONS = [
   {
     key: 'medical', labelKey: 'patients.sectionMedicalDossier', icon: Stethoscope,
     subTabs: [
-      { key: 'antecedents', labelKey: 'patients.tabHistory' },
+      { key: 'antecedents', labelKey: 'patients.tabHistory', clinicalOnly: true },
       { key: 'chroniques',  labelKey: 'suiviTraitement.subTabChroniques', clinicalOnly: true },
       { key: 'constantes',  labelKey: 'suiviTraitement.subTabConstantes', clinicalOnly: true },
       { key: 'documents',   labelKey: 'patients.tabDocuments', clinicalOnly: true },
@@ -184,12 +184,14 @@ function ResumeLigne({ texte, etiquette }: { texte: string; etiquette?: { libell
   )
 }
 
-function DossierSidebar({ dossier, onChangerCategorie, canChangerCategorie, onOuvrir, compact, locked }: {
+function DossierSidebar({ dossier, onChangerCategorie, canChangerCategorie, onOuvrir, canViewClinique, compact, locked }: {
   dossier: PatientDossier
   onChangerCategorie: () => void
   /** `patient.change_category` — le bouton était affiché à tous, même à qui le serveur refuse. */
   canChangerCategorie: boolean
   onOuvrir: (section: SectionKey, sousOnglet: SubTabKey) => void
+  /** consultation.read — les antécédents sont des données cliniques (non envoyées sinon). */
+  canViewClinique: boolean
   compact?: boolean
   locked?: boolean
 }) {
@@ -289,6 +291,7 @@ function DossierSidebar({ dossier, onChangerCategorie, canChangerCategorie, onOu
                   return <ResumeLigne key={a.id} texte={a.message} etiquette={ton ? { ...ton, libelle: t(ton.labelKey) } : undefined} />
                 })}
             </ResumeGroupe>
+            {canViewClinique && (
             <ResumeGroupe
               titre={t('patients.counterAntecedents')} total={antecedentsActifs.length}
               vide={t('patients.sidebarNothingRecorded')} onOuvrir={() => onOuvrir('medical', 'antecedents')}
@@ -301,6 +304,7 @@ function DossierSidebar({ dossier, onChangerCategorie, canChangerCategorie, onOu
                 />
               ))}
             </ResumeGroupe>
+            )}
           </div>
         )}
       </SidebarSection>
@@ -769,6 +773,7 @@ export function DossierPage() {
             onChangerCategorie={() => setChangerCateg(true)}
             canChangerCategorie={has('patient.change_category')}
             onOuvrir={(section, sousOnglet) => { setActiveSection(section); setActiveSubTab(sousOnglet) }}
+            canViewClinique={canViewClinique}
             compact={isCompact}
             locked={lockedForMe}
           />

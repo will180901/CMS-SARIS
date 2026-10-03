@@ -495,6 +495,8 @@ export class PatientService {
       restreindreHistorique?: boolean
       /** Sans `patient.confidentiel.read` : pathologies à confidentialité renforcée masquées. */
       masquerConfidentiel?: boolean
+      /** `consultation.read` : antécédents et mode de vie sont des données CLINIQUES. */
+      canViewClinique?: boolean
     },
   ) {
     const dossier = await this.prisma.patient.findUnique({
@@ -586,6 +588,13 @@ export class PatientService {
         modeVie: null,
         donneesEmploi: null,
       }
+    }
+    // Antécédents et mode de vie (tabac, alcool, drogues…) sont des données CLINIQUES :
+    // `patient.read` (droit administratif, ex. un rôle d'accueil créé par l'administrateur)
+    // ne suffit pas pour les recevoir. `false` explicite seulement : un appel interne sans
+    // portée n'ampute rien.
+    if (scope?.canViewClinique === false) {
+      return { ...dossier, rattachementsAD, antecedents: [], modeVie: null }
     }
     return { ...dossier, rattachementsAD, antecedents }
   }

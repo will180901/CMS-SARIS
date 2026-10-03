@@ -12,6 +12,7 @@ import {
 } from '@workspace/ui/components/select'
 import { useUpdateIdentite } from '../../hooks/usePatients'
 import { ModeVieCard } from './ModeVieCard'
+import { usePermissions } from '@/hooks/usePermissions'
 import { useIsCompact } from '@/hooks/useMediaQuery'
 import type { PatientDossier } from '@cms-saris/types'
 import { nomPersonne, dateNaissance as dateNaissanceSchema, telephone, telephoneOpt, texteOpt, todayISO, minBirthISO } from '@/lib/validation'
@@ -82,6 +83,8 @@ function Field({ label, value }: { label: string; value?: string | null }) {
 // ── Onglet Identité ───────────────────────────────────────────────────────────
 
 export function IdentiteTab({ dossier, canWrite }: { dossier: PatientDossier; canWrite: boolean }) {
+  const { has } = usePermissions()
+  const canViewClinique = has('consultation.read')
   const { t } = useTranslation()
   const [editing, setEditing] = useState(false)
   const update = useUpdateIdentite(dossier.id)
@@ -287,7 +290,9 @@ export function IdentiteTab({ dossier, canWrite }: { dossier: PatientDossier; ca
 
       {/* Carte mode de vie — toutes catégories (recueil) */}
       <div style={{ gridColumn: '1 / -1' }}>
-        <ModeVieCard dossier={dossier} canWrite={canWrite} />
+        {/* Mode de vie = donnée clinique : réservé aux profils à lecture clinique (le
+            serveur ne l'envoie pas aux autres — l'afficher « Non renseigné » serait faux). */}
+        {canViewClinique && <ModeVieCard dossier={dossier} canWrite={canWrite} />}
       </div>
     </div>
   )

@@ -144,6 +144,7 @@ export class PatientController {
       canViewLocked: isSupervision(req),
       restreindreHistorique: isHistoriqueRestreint(req),
       masquerConfidentiel: masquerConfidentiel(req),
+      canViewClinique: (req.user?.permissions ?? []).includes('consultation.read'),
     })
   }
 
