@@ -13,6 +13,11 @@ export function HistoriqueCategorieTab({ dossier }: { dossier: PatientDossier })
   const historiques = [...dossier.historiquesCateg].sort(
     (a, b) => new Date(b.dateEffet ?? b.createdAt).getTime() - new Date(a.dateEffet ?? a.createdAt).getTime(),
   )
+  // Catégorie INITIALE (constat 58) : jamais enregistrée comme événement. Elle se déduit :
+  // l'ancienne catégorie du plus ancien changement, ou, sans changement, l'actuelle.
+  const plusAncien = historiques[historiques.length - 1]
+  const initiale = plusAncien?.ancienneCategorie?.libelle
+    ?? (historiques.length === 0 ? dossier.categoriePatient.libelle : null)
 
   return (
     <div>
@@ -24,7 +29,7 @@ export function HistoriqueCategorieTab({ dossier }: { dossier: PatientDossier })
         </span>
       </div>
 
-      {historiques.length === 0 ? (
+      {historiques.length === 0 && !initiale ? (
         <EmptyState icon={<Tag size={20} />} title={t('patients.historyEmptyTitle')} variant="subtle" />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 680 }}>
@@ -49,8 +54,13 @@ export function HistoriqueCategorieTab({ dossier }: { dossier: PatientDossier })
                   {h.ancienneCategId ? t('patients.tlCategoryChange') : t('patients.tlInitialCategory')}
                 </span>
                 <p style={{ margin: '3px 0 0', fontSize: 12, color: 'var(--texte-secondaire)' }}>
-                  → {h.nouvelleCategorie.libelle}{h.motif ? ` · ${h.motif}` : ''}
+                  {h.ancienneCategorie ? `${h.ancienneCategorie.libelle} ` : ''}→ {h.nouvelleCategorie.libelle}{h.motif ? ` · ${h.motif}` : ''}
                 </p>
+                {h.auteur && (
+                  <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--texte-tertiaire)' }}>
+                    {t('patients.historyBy', { nom: h.auteur })}
+                  </p>
+                )}
               </div>
               <div style={{ textAlign: 'right', flexShrink: 0 }}>
                 <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--texte-tertiaire)' }}>
@@ -62,6 +72,28 @@ export function HistoriqueCategorieTab({ dossier }: { dossier: PatientDossier })
               </div>
             </div>
           ))}
+          {initiale && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              background: 'var(--fond-surface-2)', border: '1px dashed var(--bordure-normale)',
+              borderRadius: 10, padding: '12px 14px',
+            }}>
+              <div style={{
+                width: 34, height: 34, borderRadius: 8, flexShrink: 0,
+                background: 'var(--fond-surface)', color: 'var(--texte-tertiaire)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Tag size={16} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--texte-primaire)' }}>{t('patients.tlInitialCategory')}</span>
+                <p style={{ margin: '3px 0 0', fontSize: 12, color: 'var(--texte-secondaire)' }}>{initiale}</p>
+              </div>
+              <div style={{ textAlign: 'right', flexShrink: 0, fontSize: 11, fontWeight: 600, color: 'var(--texte-tertiaire)' }}>
+                {formatDate(dossier.createdAt, { day: '2-digit', month: '2-digit', year: '2-digit' })}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

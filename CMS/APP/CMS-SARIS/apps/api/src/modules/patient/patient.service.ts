@@ -557,6 +557,64 @@ export class PatientService {
         },
       }),
     ])
+    // Historique de catégorie : l'ANCIENNE catégorie et l'AUTEUR n'ont pas de relation
+    // Prisma (ids nus) — l'écran n'affichait donc ni d'où l'on venait, ni qui avait fait
+    // le changement (constats 57, 58). On les résout ici, une fois pour toutes.
+    const ancIds = [
+      ...new Set(
+        dossier.historiquesCateg
+          .map((h) => h.ancienneCategId)
+          .filter((v): v is string => !!v),
+      ),
+    ]
+    const auteurIds = [
+      ...new Set(
+        dossier.historiquesCateg
+          .map((h) => h.createdBy)
+          .filter((v): v is string => !!v),
+      ),
+    ]
+    const [ancCategs, auteurs] = await Promise.all([
+      ancIds.length
+        ? this.prisma.categoriePatient.findMany({
+            where: { id: { in: ancIds } },
+            select: { id: true, code: true, libelle: true },
+          })
+        : Promise.resolve([] as { id: string; code: string; libelle: string }[]),
+      auteurIds.length
+        ? this.prisma.utilisateur.findMany({
+            where: { id: { in: auteurIds } },
+            select: {
+              id: true,
+              login: true,
+              personnelMedical: { select: { nom: true, prenom: true } },
+            },
+          })
+        : Promise.resolve(
+            [] as {
+              id: string
+              login: string
+              personnelMedical: { nom: string; prenom: string } | null
+            }[],
+          ),
+    ])
+    const ancMap = new Map(ancCategs.map((c) => [c.id, c] as const))
+    const auteurMap = new Map<string, string>(
+      auteurs.map((u): [string, string] => [
+        u.id,
+        u.personnelMedical
+          ? `${u.personnelMedical.prenom} ${u.personnelMedical.nom}`
+          : u.login,
+      ]),
+    )
+    const historiquesCateg = dossier.historiquesCateg.map((h) => ({
+      ...h,
+      ancienneCategorie: h.ancienneCategId
+        ? (ancMap.get(h.ancienneCategId) ?? null)
+        : null,
+      auteur: h.createdBy ? (auteurMap.get(h.createdBy) ?? null) : null,
+    }))
+
     const cdiPatientMap = new Map(cdiPatients.map((c) => [c.id, c]))
     const employeMap = new Map(employes.map((e) => [e.id, e]))
     const rattachementsAD = dossier.rattachementsAD.map((r) => {
@@ -595,6 +653,7 @@ export class PatientService {
     if (dossier.verrouille && !scope?.canViewLocked) {
       return {
         ...dossier,
+        historiquesCateg,
         rattachementsAD,
         allergies: [],
         antecedents: [],
@@ -608,9 +667,9 @@ export class PatientService {
     // ne suffit pas pour les recevoir. `false` explicite seulement : un appel interne sans
     // portée n'ampute rien.
     if (scope?.canViewClinique === false) {
-      return { ...dossier, rattachementsAD, antecedents: [], modeVie: null }
+      return { ...dossier, historiquesCateg, rattachementsAD, antecedents: [], modeVie: null }
     }
-    return { ...dossier, rattachementsAD, antecedents }
+    return { ...dossier, historiquesCateg, rattachementsAD, antecedents }
   }
 
   /** Verrou (médecin-chef) : restreint l'accès au dossier à la supervision. */

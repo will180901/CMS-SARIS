@@ -139,6 +139,10 @@ export interface HistoriqueCategoriePatient {
   createdBy:        string | null
   createdAt:        string
   nouvelleCategorie: CategorieResume
+  /** Résolue par le serveur (pas de relation en base). */
+  ancienneCategorie?: { id: string; code: string; libelle: string } | null
+  /** Nom de l'auteur du changement, résolu par le serveur. */
+  auteur?: string | null
 }
 
 export interface HistoriqueRattachement {
