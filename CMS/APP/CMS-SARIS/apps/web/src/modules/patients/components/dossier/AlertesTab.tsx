@@ -74,7 +74,7 @@ type AlerteForm = z.infer<ReturnType<typeof makeAlerteSchema>>
 
 // ── Card allergie ─────────────────────────────────────────────────────────────
 
-function AllergieCard({ allergie, canWrite, patientId }: { allergie: AllergiePatient; canWrite: boolean; patientId: string }) {
+function AllergieCard({ allergie, canWrite, patientId, onEdit }: { allergie: AllergiePatient; canWrite: boolean; patientId: string; onEdit: () => void }) {
   const { t } = useTranslation()
   const update = useUpdateAllergie(patientId)
   const remove = useDeleteAllergie(patientId)
@@ -105,6 +105,9 @@ function AllergieCard({ allergie, canWrite, patientId }: { allergie: AllergiePat
             <Button variant="ghost" size="icon" style={{ width: 28, height: 28, flexShrink: 0 }}><MoreVertical size={13} /></Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" style={{ fontSize: '13px' }}>
+            <DropdownMenuItem onClick={onEdit} style={{ cursor: 'pointer' }}>
+              {t('patients.edit')}
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => update.mutate({ aId: allergie.id, data: { confirme: !allergie.confirme } })} style={{ cursor: 'pointer' }}>
               {allergie.confirme ? t('patients.markUnconfirmed') : t('patients.confirmAllergy')}
             </DropdownMenuItem>
@@ -151,7 +154,7 @@ function AllergieCard({ allergie, canWrite, patientId }: { allergie: AllergiePat
 
 // ── Card alerte ───────────────────────────────────────────────────────────────
 
-function AlerteCard({ alerte, canWrite, patientId }: { alerte: AlerteMedicale; canWrite: boolean; patientId: string }) {
+function AlerteCard({ alerte, canWrite, patientId, onEdit }: { alerte: AlerteMedicale; canWrite: boolean; patientId: string; onEdit: () => void }) {
   const { t } = useTranslation()
   const update = useUpdateAlerte(patientId)
   const remove = useDeleteAlerte(patientId)
@@ -188,6 +191,9 @@ function AlerteCard({ alerte, canWrite, patientId }: { alerte: AlerteMedicale; c
               <Button variant="ghost" size="icon" style={{ width: 28, height: 28, flexShrink: 0 }}><MoreVertical size={13} /></Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" style={{ fontSize: '13px' }}>
+              <DropdownMenuItem onClick={onEdit} style={{ cursor: 'pointer' }}>
+                {t('patients.edit')}
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => alerte.statut === 'ACTIVE' ? setConfirmDesactiver(true) : update.mutate({ aId: alerte.id, data: { statut: 'ACTIVE' } })} style={{ cursor: 'pointer', color: alerte.statut === 'ACTIVE' ? 'var(--erreur-texte)' : 'var(--succes-texte)' }}>
                 {alerte.statut === 'ACTIVE' ? t('patients.resolveDeactivate') : t('patients.reactivate')}
               </DropdownMenuItem>
@@ -230,10 +236,13 @@ function AlerteCard({ alerte, canWrite, patientId }: { alerte: AlerteMedicale; c
 
 // ── Section générique ─────────────────────────────────────────────────────────
 
-function Section({ title, icon, count, onAdd, canWrite, children, emptyMsg }: {
+function Section({ title, icon, count, affiches, onAdd, canWrite, children, emptyMsg }: {
   title:    string
   icon:     React.ReactNode
+  /** Éléments ACTIFS (pastille de compte). */
   count:    number
+  /** Éléments réellement AFFICHÉS (actifs + désactivés si on les a demandés). */
+  affiches: number
   onAdd?:   () => void
   canWrite: boolean
   children: React.ReactNode
@@ -254,7 +263,10 @@ function Section({ title, icon, count, onAdd, canWrite, children, emptyMsg }: {
           </Button>
         )}
       </div>
-      {count === 0 ? (
+      {/* Sur ce qui est AFFICHÉ, pas sur les seuls actifs : quand tout était désactivé,
+          « Afficher les désactivées » ne montrait rien — et la réactivation devenait
+          impossible. */}
+      {affiches === 0 ? (
         <p style={{ fontSize: '13px', color: 'var(--texte-tertiaire)', fontStyle: 'italic', padding: '12px 0' }}>{emptyMsg}</p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>{children}</div>
@@ -277,9 +289,35 @@ export function AlertesTab({ dossier, canWrite }: { dossier: PatientDossier; can
 
   const createAllergie = useCreateAllergie(dossier.id)
   const createAlerte   = useCreateAlerte(dossier.id)
+  const updateAllergie = useUpdateAllergie(dossier.id)
+  const updateAlerte   = useUpdateAlerte(dossier.id)
+  // Modification EN PLACE (constat 32) : passer une allergie de « Modéré » à « Sévère »
+  // obligeait à la supprimer puis la recréer — date de saisie et « confirmée » perdues.
+  const [allergieEditee, setAllergieEditee] = useState<AllergiePatient | null>(null)
+  const [alerteEditee,   setAlerteEditee]   = useState<AlerteMedicale | null>(null)
 
   const allergieForm = useForm<AllergieForm>({ resolver: zodResolver(makeAllergieSchema(t)), defaultValues: { gravite: 'MODERE', confirme: false } })
-  const alerteForm   = useForm<AlerteForm>({ resolver: zodResolver(makeAlerteSchema(t)),   defaultValues: { type: 'ALLERGIE', gravite: 'IMPORTANT' } })
+  // Type par défaut SURVEILLANCE, et plus ALLERGIE (constats 6 et 31) : une « alerte de
+  // type allergie » n'est PAS une allergie — elle échappe au contrôle allergie ↔
+  // médicament et au bloc « Sécurité clinique ». Une allergie se saisit dans Allergies.
+  const alerteForm   = useForm<AlerteForm>({ resolver: zodResolver(makeAlerteSchema(t)),   defaultValues: { type: 'SURVEILLANCE', gravite: 'IMPORTANT' } })
+
+  function ouvrirAllergie(a: AllergiePatient | null) {
+    setAllergieEditee(a)
+    allergieForm.reset(a
+      ? { substance: a.substance, gravite: a.gravite as AllergieForm['gravite'], confirme: a.confirme }
+      : { gravite: 'MODERE', confirme: false })
+    setAllergieDrawer(true)
+  }
+  function ouvrirAlerte(a: AlerteMedicale | null) {
+    setAlerteEditee(a)
+    alerteForm.reset(a
+      ? { type: a.type as AlerteForm['type'], message: a.message, gravite: a.gravite as AlerteForm['gravite'] }
+      : { type: 'SURVEILLANCE', gravite: 'IMPORTANT' })
+    setAlerteDrawer(true)
+  }
+  const allergiesAffichees = [...dossier.allergies].filter(a => showInactiveAllergies || a.statut === 'ACTIVE')
+  const alertesAffichees   = [...dossier.alertesMedicales].filter(a => showInactiveAlertes || a.statut === 'ACTIVE')
 
   const severeFirst = [...dossier.allergies].sort((a, b) => {
     const order = { SEVERE: 0, MODERE: 1, FAIBLE: 2 }
@@ -303,12 +341,13 @@ export function AlertesTab({ dossier, canWrite }: { dossier: PatientDossier; can
       <Section
         title={t('patients.sectionAllergies')} icon={<AlertTriangle size={15} style={{ color: 'var(--ton-rose-icone)' }} />}
         count={dossier.allergies.filter(a => a.statut === 'ACTIVE').length}
-        onAdd={() => setAllergieDrawer(true)}
+        affiches={allergiesAffichees.length}
+        onAdd={() => ouvrirAllergie(null)}
         canWrite={canWrite}
-        emptyMsg={t('patients.emptyAllergies')}
+        emptyMsg={dossier.allergies.length > 0 ? t('patients.emptyAllergiesActives') : t('patients.emptyAllergies')}
       >
         {severeFirst.filter(a => showInactiveAllergies || a.statut === 'ACTIVE').map(a => (
-          <AllergieCard key={a.id} allergie={a} canWrite={canWrite} patientId={dossier.id} />
+          <AllergieCard key={a.id} allergie={a} canWrite={canWrite} patientId={dossier.id} onEdit={() => ouvrirAllergie(a)} />
         ))}
       </Section>
       {dossier.allergies.some(a => a.statut !== 'ACTIVE') && (
@@ -328,12 +367,13 @@ export function AlertesTab({ dossier, canWrite }: { dossier: PatientDossier; can
       <Section
         title={t('patients.sectionMedicalAlerts')} icon={<ShieldAlert size={15} style={{ color: 'var(--ton-ambre-icone)' }} />}
         count={dossier.alertesMedicales.filter(a => a.statut === 'ACTIVE').length}
-        onAdd={() => setAlerteDrawer(true)}
+        affiches={alertesAffichees.length}
+        onAdd={() => ouvrirAlerte(null)}
         canWrite={canWrite}
         emptyMsg={t('patients.emptyMedicalAlerts')}
       >
         {critiqueFirst.filter(a => showInactiveAlertes || a.statut === 'ACTIVE').map(a => (
-          <AlerteCard key={a.id} alerte={a} canWrite={canWrite} patientId={dossier.id} />
+          <AlerteCard key={a.id} alerte={a} canWrite={canWrite} patientId={dossier.id} onEdit={() => ouvrirAlerte(a)} />
         ))}
       </Section>
       {dossier.alertesMedicales.some(a => a.statut !== 'ACTIVE') && (
@@ -351,21 +391,22 @@ export function AlertesTab({ dossier, canWrite }: { dossier: PatientDossier; can
       {/* Drawer allergie */}
       <DrawerShell
         open={allergieDrawer}
-        onClose={() => { setAllergieDrawer(false); allergieForm.reset() }}
+        onClose={() => { setAllergieDrawer(false); setAllergieEditee(null); allergieForm.reset() }}
         icon={<AlertTriangle size={18} />}
-        title={t('patients.drawerNewAllergy')}
+        title={allergieEditee ? t('patients.drawerEditAllergy') : t('patients.drawerNewAllergy')}
         description={t('patients.drawerNewAllergyDesc')}
         onSave={async () => {
           const ok = await allergieForm.trigger()
           if (!ok) return
-          await createAllergie.mutateAsync(allergieForm.getValues())
-          setAllergieDrawer(false); allergieForm.reset()
+          if (allergieEditee) await updateAllergie.mutateAsync({ aId: allergieEditee.id, data: allergieForm.getValues() })
+          else await createAllergie.mutateAsync(allergieForm.getValues())
+          setAllergieDrawer(false); setAllergieEditee(null); allergieForm.reset()
         }}
-        isSaving={createAllergie.isPending}
+        isSaving={createAllergie.isPending || updateAllergie.isPending}
         isDirty={allergieForm.formState.isDirty}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          <div style={fld}><Label style={lbl}>{t('patients.fieldSubstance')}</Label><Input {...allergieForm.register('substance')} placeholder={t('patients.substancePlaceholder')} style={{ fontSize: '13px' }} /></div>
+          <div style={fld}><Label style={lbl}>{t('patients.fieldSubstance')}</Label><Input {...allergieForm.register('substance')} placeholder={t('patients.substancePlaceholder')} style={{ fontSize: '13px' }} />{allergieForm.formState.errors.substance && <p style={{ fontSize: '11px', color: 'var(--erreur-texte)', margin: 0 }}>{allergieForm.formState.errors.substance.message}</p>}</div>
           <div style={fld}>
             <Label style={lbl}>{t('patients.fieldSeverity')}</Label>
             <div style={{ display: 'flex', gap: '8px' }}>
@@ -393,17 +434,18 @@ export function AlertesTab({ dossier, canWrite }: { dossier: PatientDossier; can
       {/* Drawer alerte */}
       <DrawerShell
         open={alerteDrawer}
-        onClose={() => { setAlerteDrawer(false); alerteForm.reset() }}
+        onClose={() => { setAlerteDrawer(false); setAlerteEditee(null); alerteForm.reset() }}
         icon={<ShieldAlert size={18} />}
-        title={t('patients.drawerNewAlert')}
+        title={alerteEditee ? t('patients.drawerEditAlert') : t('patients.drawerNewAlert')}
         description={t('patients.drawerNewAlertDesc')}
         onSave={async () => {
           const ok = await alerteForm.trigger()
           if (!ok) return
-          await createAlerte.mutateAsync(alerteForm.getValues())
-          setAlerteDrawer(false); alerteForm.reset()
+          if (alerteEditee) await updateAlerte.mutateAsync({ aId: alerteEditee.id, data: alerteForm.getValues() })
+          else await createAlerte.mutateAsync(alerteForm.getValues())
+          setAlerteDrawer(false); setAlerteEditee(null); alerteForm.reset()
         }}
-        isSaving={createAlerte.isPending}
+        isSaving={createAlerte.isPending || updateAlerte.isPending}
         isDirty={alerteForm.formState.isDirty}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -412,17 +454,22 @@ export function AlertesTab({ dossier, canWrite }: { dossier: PatientDossier; can
             <Select value={alerteType} onValueChange={v => alerteForm.setValue('type', v as any)}>
               <SelectTrigger style={{ height: 36, fontSize: '13px', border: '1px solid var(--bordure-normale)' }}><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="ALLERGIE">{t('patients.alertTypeAllergie')}</SelectItem>
+                {/* « Allergie » n'est proposé que pour une ancienne alerte déjà de ce type. */}
+                {alerteType === 'ALLERGIE' && <SelectItem value="ALLERGIE">{t('patients.alertTypeAllergie')}</SelectItem>}
                 <SelectItem value="PATHOLOGIE_CHRONIQUE">{t('patients.alertTypePathologie')}</SelectItem>
                 <SelectItem value="CONTRE_INDICATION">{t('patients.alertTypeContreIndication')}</SelectItem>
                 <SelectItem value="SURVEILLANCE">{t('patients.alertTypeSurveillance')}</SelectItem>
                 <SelectItem value="AUTRE">{t('patients.alertTypeAutre')}</SelectItem>
               </SelectContent>
             </Select>
+            <p style={{ fontSize: '11px', color: 'var(--texte-tertiaire)', margin: 0, lineHeight: 1.45 }}>
+              {t('patients.alertNotAllergyHint')}
+            </p>
           </div>
           <div style={fld}>
             <Label style={lbl}>{t('patients.fieldMessage')}</Label>
-            <textarea {...alerteForm.register('message')} placeholder={t('patients.alertMessagePlaceholder')} style={{ fontSize: '13px', padding: '8px 10px', borderRadius: 6, border: '1px solid var(--bordure-normale)', background: 'var(--fond-surface)', color: 'var(--texte-primaire)', minHeight: 80, resize: 'vertical', fontFamily: 'inherit' }} />
+            <textarea {...alerteForm.register('message')} placeholder={t('patients.alertMessagePlaceholder')} style={{ fontSize: '13px', padding: '8px 10px', borderRadius: 6, border: `1px solid ${alerteForm.formState.errors.message ? 'var(--erreur-accent)' : 'var(--bordure-normale)'}`, background: 'var(--fond-surface)', color: 'var(--texte-primaire)', minHeight: 80, resize: 'vertical', fontFamily: 'inherit' }} />
+            {alerteForm.formState.errors.message && <p style={{ fontSize: '11px', color: 'var(--erreur-texte)', margin: 0 }}>{alerteForm.formState.errors.message.message}</p>}
           </div>
           <div style={fld}>
             <Label style={lbl}>{t('patients.fieldSeverityLevel')}</Label>

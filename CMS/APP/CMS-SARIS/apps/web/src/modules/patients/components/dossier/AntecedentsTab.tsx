@@ -161,7 +161,10 @@ function AntecedentCard({ ant, canWrite, patientId }: { ant: AntecedentPatient; 
           const ok = await editForm.trigger()
           if (!ok) return
           const v = editForm.getValues()
-          await update.mutateAsync({ aId: ant.id, data: { type: v.type, description: v.description, pathologieId: v.pathologieId || undefined } })
+          // null (et non undefined) : « Pathologie non listée » DÉLIE la pathologie. Omise,
+          // l'ancienne restait — et, si elle était confidentielle, masquait encore
+          // l'antécédent à l'infirmier.
+          await update.mutateAsync({ aId: ant.id, data: { type: v.type, description: v.description, pathologieId: v.pathologieId || null } })
           setEditOpen(false)
         }}
         isSaving={update.isPending}

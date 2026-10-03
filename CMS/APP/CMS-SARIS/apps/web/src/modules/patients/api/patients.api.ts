@@ -153,7 +153,8 @@ export interface AntecedentPayload {
   type:        string
   description: string
   statut?:     string
-  pathologieId?: string
+  /** null = délier la pathologie (« Pathologie non listée »). */
+  pathologieId?: string | null
 }
 
 export interface AlertePayload {
