@@ -41,7 +41,8 @@ export function SuiviTraitementCard({ consultationId, readonly, suiviId }: Props
   const canUpdate = has('suivi_traitement.update') && !readonly
   const canClose  = has('suivi_traitement.close')
   const canCancel = has('suivi_traitement.cancel')
-  const canDelete = has('suivi_traitement.delete')
+  // Lecture seule (consultation clôturée) : la gestion du suivi se fait dans le dossier.
+  const canDelete = has('suivi_traitement.delete') && !readonly
 
   const { data: suivis = [], isLoading } = useSuivisTraitement({ consultationId })
 

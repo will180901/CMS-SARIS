@@ -1,16 +1,21 @@
 /**
  * ConsultationArchiveSummary — vue de fin de vie d'une consultation CLÔTURÉE ou
- * ANNULÉE : remplace ENTIÈREMENT le stepper actif (Examen & diagnostic / Documents
- * / Décision) par un seul écran qui défile, en lecture seule, propre et lisible.
+ * ANNULÉE, en lecture seule, rangée en 5 ONGLETS horizontaux (Résumé · Examen ·
+ * Prescriptions · Résultats · Décision) — calqués sur le déroulé de la consultation
+ * active. Avant : onze blocs empilés qu'il fallait faire défiler.
  *
  * Réutilise les cartes documents existantes (déjà lecture-seule-capables) plutôt
  * que de réinventer leur affichage — seule la présentation d'ensemble change.
+ * Les résultats d'examens, qui arrivent APRÈS la clôture, restent saisissables.
  */
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { CheckCircle2, XCircle, Trash2, ArrowUpRight } from 'lucide-react'
-import { Button, Modal, InfoSection, InfoRow, StatusPill } from '@/components/saris'
+import { CheckCircle2, XCircle, Trash2, ArrowUpRight, FileText, Stethoscope, Pill, FlaskConical, Flag } from 'lucide-react'
+import { Button, Modal, InfoSection, InfoRow, StatusPill, SegmentedTabs, EmptyState } from '@/components/saris'
+import { usePersistedState } from '@/hooks/usePersistedState'
+import { useBonsExamen } from '@/modules/bon-examen/hooks/useBonExamen'
+import { ResultatsDesBons, examensManquants } from '@/modules/bon-examen/components/ResultatsBon'
 import { usePermissions } from '@/hooks/usePermissions'
 import { useDeleteConsultation } from '../hooks/useConsultation'
 import { formatDateTime, formatDate } from '@/lib/intl'
@@ -26,6 +31,8 @@ import { BonPharmacieCard } from '@/modules/bon-pharmacie/components/BonPharmaci
 import { EvacuationCard } from '@/modules/sorties-critiques/components/EvacuationCard'
 import { SuiviTraitementCard } from '@/modules/suivi-traitement/components/SuiviTraitementCard'
 import type { useConsultation } from '../hooks/useConsultation'
+
+type Onglet = 'resume' | 'examen' | 'prescriptions' | 'resultats' | 'decision'
 
 interface Props {
   consultationId: string
@@ -45,6 +52,14 @@ export function ConsultationArchiveSummary({ consultationId, consultation, onDel
   const [previewRepos, setPreviewRepos] = useState(false)
   const [confirmDel, setConfirmDel] = useState(false)
   const deleteConsult = useDeleteConsultation(consultationId)
+  const [onglet, setOnglet] = usePersistedState<Onglet>('consultation', 'archiveOnglet', 'resume')
+  const { data: bons = [] } = useBonsExamen({ consultationId })
+  const bonsActifs = bons.filter(b => b.statut !== 'ANNULE')
+  const totalExamens = bonsActifs.reduce((n, b) => n + b.lignes.length, 0)
+  const totalRecus = bonsActifs.reduce((n, b) => n + b.lignes.length - examensManquants(b).length, 0)
+  const aEvacuation = consultation.decisionMedicale === 'EVACUATION' || (!!consultation.evacuation && consultation.evacuation.statut !== 'ANNULE')
+  const aSuivi = consultation.decisionMedicale === 'SUIVI_TRAITEMENT' || (!!consultation.suiviTraitement && consultation.suiviTraitement.statut !== 'ANNULE')
+  const aRepos = (consultation.reposJours ?? 0) > 0 || consultation._count.certificats > 0
 
   const { patient } = consultation.visite
   const cloturee = consultation.statut === 'CLOTUREE'
@@ -67,115 +82,156 @@ export function ConsultationArchiveSummary({ consultationId, consultation, onDel
           sans qu'aucun défilement ne puisse jamais révéler le contenu coupé. */}
       <style>{`.cons-archive > * { flex-shrink: 0; }`}</style>
 
-      {/* Qui, quand, où, pourquoi (constat 80) : le résumé ne disait ni la date de la
-          consultation, ni le soignant, ni le site, ni le motif — seulement l'issue. */}
-      <InfoSection title={t('consultation.archiveContexteTitle')}>
-        <InfoRow
-          label={t('consultation.archiveDateLabel')}
-          value={formatDateTime(consultation.createdAt, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+      {/* Onglets : chaque bloc à sa place, compteurs à l'appui. */}
+      <div style={{ overflowX: 'auto', flexShrink: 0 }}>
+        <SegmentedTabs
+          value={onglet}
+          onChange={k => setOnglet(k as Onglet)}
+          tabs={[
+            { key: 'resume',        label: t('consultation.ongletResume'),        icon: <FileText size={13} /> },
+            { key: 'examen',        label: t('consultation.ongletExamen'),        icon: <Stethoscope size={13} />, badge: consultation.diagnostics.length || undefined },
+            { key: 'prescriptions', label: t('consultation.ongletPrescriptions'), icon: <Pill size={13} />, badge: consultation.ordonnances.length || undefined },
+            { key: 'resultats',     label: t('consultation.ongletResultats'),     icon: <FlaskConical size={13} />, badge: totalExamens ? `${totalRecus}/${totalExamens}` : undefined },
+            { key: 'decision',      label: t('consultation.ongletDecision'),      icon: <Flag size={13} /> },
+          ]}
         />
-        {consultation.soignant && (
-          <InfoRow label={t('consultation.archiveSoignantLabel')} value={nomSoignant(consultation.soignant, t)} />
-        )}
-        {consultation.visite.site?.libelle && (
-          <InfoRow label={t('consultation.archiveSiteLabel')} value={consultation.visite.site.libelle} />
-        )}
-        {consultation.visite.motifPrincipal?.libelle && (
-          <InfoRow label={t('consultation.archiveMotifLabel')} value={consultation.visite.motifPrincipal.libelle} />
-        )}
-        {/* Retour à la visite d'origine (constat 80) : triage, constantes, notes d'accueil. */}
-        {onOuvrirVisite && (
-          <div style={{ marginTop: 8 }}>
-            <Button variant="outline" size="sm" leftIcon={<ArrowUpRight size={13} />} onClick={() => onOuvrirVisite(consultation.visiteId)}>
-              {t('consultation.archiveVoirVisite')}
-            </Button>
-          </div>
-        )}
-      </InfoSection>
+      </div>
 
-      <InfoSection
-        title={t('consultation.archiveDecisionTitle')}
-        icon={cloturee ? <CheckCircle2 size={14} /> : <XCircle size={14} />}
-      >
-        <InfoRow
-          label={t('consultation.archiveStatusLabel')}
-          valueNode={
-            <StatusPill tone={cloturee ? 'success' : 'error'}>
-              {cloturee ? t('consultation.consultationClosed') : t('consultation.consultationCancelled')}
-            </StatusPill>
-          }
-        />
-        <InfoRow
-          label={cloturee ? t('consultation.archiveClosedAtLabel') : t('consultation.archiveCancelledAtLabel')}
-          value={consultation.closedAt ? formatDateTime(consultation.closedAt, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : null}
-        />
-        {cloturee && (
-          <InfoRow label={t('consultation.archiveDecisionLabel')} value={labelDecision(consultation.decisionMedicale)} />
-        )}
-        {!cloturee && (
-          <InfoRow label={t('consultation.archiveCancelReasonLabel')} value={consultation.motifAnnulation} full />
-        )}
-        {consultation.conclusion && (
-          <InfoRow label={t('consultation.conclusionTitle')} value={consultation.conclusion} full />
-        )}
-      </InfoSection>
-
-      {/* Anamnèse en lecture seule : elle n'existait que dans le stepper actif, et
-          disparaissait donc à la clôture. */}
-      {(consultation.anamneseSymptomes || consultation.anamneseDateDebut || consultation.anamneseDuree || consultation.anamneseModeDebut) && (
-        <InfoSection title={t('consultation.anamneseTitle')}>
-          {consultation.anamneseSymptomes && <InfoRow label={t('consultation.anamneseSymptomes')} value={consultation.anamneseSymptomes} full />}
-          {consultation.anamneseDateDebut && <InfoRow label={t('consultation.anamneseDateDebut')} value={formatDate(consultation.anamneseDateDebut)} />}
-          {consultation.anamneseDuree && <InfoRow label={t('consultation.anamneseDuree')} value={consultation.anamneseDuree} />}
-          {consultation.anamneseModeDebut && <InfoRow label={t('consultation.anamneseModeDebut')} value={consultation.anamneseModeDebut} />}
+      {onglet === 'resume' && (
+        <>
+        {/* Qui, quand, où, pourquoi (constat 80) : le résumé ne disait ni la date de la
+            consultation, ni le soignant, ni le site, ni le motif — seulement l'issue. */}
+        <InfoSection title={t('consultation.archiveContexteTitle')}>
+          <InfoRow
+            label={t('consultation.archiveDateLabel')}
+            value={formatDateTime(consultation.createdAt, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+          />
+          {consultation.soignant && (
+            <InfoRow label={t('consultation.archiveSoignantLabel')} value={nomSoignant(consultation.soignant, t)} />
+          )}
+          {consultation.visite.site?.libelle && (
+            <InfoRow label={t('consultation.archiveSiteLabel')} value={consultation.visite.site.libelle} />
+          )}
+          {consultation.visite.motifPrincipal?.libelle && (
+            <InfoRow label={t('consultation.archiveMotifLabel')} value={consultation.visite.motifPrincipal.libelle} />
+          )}
+          {/* Retour à la visite d'origine (constat 80) : triage, constantes, notes d'accueil. */}
+          {onOuvrirVisite && (
+            <div style={{ marginTop: 8 }}>
+              <Button variant="outline" size="sm" leftIcon={<ArrowUpRight size={13} />} onClick={() => onOuvrirVisite(consultation.visiteId)}>
+                {t('consultation.archiveVoirVisite')}
+              </Button>
+            </div>
+          )}
         </InfoSection>
+        <InfoSection
+          title={t('consultation.archiveDecisionTitle')}
+          icon={cloturee ? <CheckCircle2 size={14} /> : <XCircle size={14} />}
+        >
+          <InfoRow
+            label={t('consultation.archiveStatusLabel')}
+            valueNode={
+              <StatusPill tone={cloturee ? 'success' : 'error'}>
+                {cloturee ? t('consultation.consultationClosed') : t('consultation.consultationCancelled')}
+              </StatusPill>
+            }
+          />
+          <InfoRow
+            label={cloturee ? t('consultation.archiveClosedAtLabel') : t('consultation.archiveCancelledAtLabel')}
+            value={consultation.closedAt ? formatDateTime(consultation.closedAt, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : null}
+          />
+          {cloturee && (
+            <InfoRow label={t('consultation.archiveDecisionLabel')} value={labelDecision(consultation.decisionMedicale)} />
+          )}
+          {!cloturee && (
+            <InfoRow label={t('consultation.archiveCancelReasonLabel')} value={consultation.motifAnnulation} full />
+          )}
+          {consultation.conclusion && (
+            <InfoRow label={t('consultation.conclusionTitle')} value={consultation.conclusion} full />
+          )}
+        </InfoSection>
+        </>
       )}
 
-      <InfoSection title={t('consultation.stepExamen')}>
-        <InfoRow label={t('consultation.archiveTypeConsultationLabel')} value={consultation.typeConsultation?.libelle} full />
-        <InfoRow label={t('consultation.examenClinicalLabel', { defaultValue: 'Examen clinique' })} value={consultation.examenClinique} full />
-      </InfoSection>
+      {onglet === 'examen' && (
+        <>
+        {/* Anamnèse en lecture seule : elle n'existait que dans le stepper actif, et
+            disparaissait donc à la clôture. */}
+        {(consultation.anamneseSymptomes || consultation.anamneseDateDebut || consultation.anamneseDuree || consultation.anamneseModeDebut) && (
+          <InfoSection title={t('consultation.anamneseTitle')}>
+            {consultation.anamneseSymptomes && <InfoRow label={t('consultation.anamneseSymptomes')} value={consultation.anamneseSymptomes} full />}
+            {consultation.anamneseDateDebut && <InfoRow label={t('consultation.anamneseDateDebut')} value={formatDate(consultation.anamneseDateDebut)} />}
+            {consultation.anamneseDuree && <InfoRow label={t('consultation.anamneseDuree')} value={consultation.anamneseDuree} />}
+            {consultation.anamneseModeDebut && <InfoRow label={t('consultation.anamneseModeDebut')} value={consultation.anamneseModeDebut} />}
+          </InfoSection>
+        )}
+        <InfoSection title={t('consultation.stepExamen')}>
+          <InfoRow label={t('consultation.archiveTypeConsultationLabel')} value={consultation.typeConsultation?.libelle} full />
+          <InfoRow label={t('consultation.examenClinicalLabel', { defaultValue: 'Examen clinique' })} value={consultation.examenClinique} full />
+        </InfoSection>
+        <DiagnosticsCard consultationId={consultationId} diagnostics={consultation.diagnostics} readonly />
+        </>
+      )}
 
-      <DiagnosticsCard consultationId={consultationId} diagnostics={consultation.diagnostics} readonly />
+      {onglet === 'prescriptions' && (
+        <>
+        <OrdonnanceCard
+          consultationId={consultationId}
+          consultation={consultation}
+          ordonnances={consultation.ordonnances}
+          readonly
+          onPreview={setPreviewOrdId}
+        />
+        <BonExamenCard
+          consultationId={consultationId}
+          readonly
+          soignant={consultation.soignant}
+          categorieLibelle={patient.categoriePatient.libelle}
+          patientId={patient.id}
+          sansResultats
+        />
+        <BonPharmacieCard
+          consultationId={consultationId}
+          readonly
+          patientId={patient.id}
+          soignant={consultation.soignant}
+          categorieLibelle={patient.categoriePatient.libelle}
+        />
+        </>
+      )}
 
-      <OrdonnanceCard
-        consultationId={consultationId}
-        consultation={consultation}
-        ordonnances={consultation.ordonnances}
-        readonly
-        onPreview={setPreviewOrdId}
-      />
-      <BonExamenCard
-        consultationId={consultationId}
-        readonly
-        soignant={consultation.soignant}
-        categorieLibelle={patient.categoriePatient.libelle}
-        patientId={patient.id}
-      />
-      <BonPharmacieCard
-        consultationId={consultationId}
-        readonly
-        patientId={patient.id}
-        soignant={consultation.soignant}
-        categorieLibelle={patient.categoriePatient.libelle}
-      />
-      <EvacuationCard
-        consultationId={consultationId}
-        readonly
-        patient={{ identite: patient.identite, numeroPatient: patient.numeroPatient, categorieLibelle: patient.categoriePatient.libelle }}
-        soignant={consultation.soignant}
-      />
-      <SuiviTraitementCard consultationId={consultationId} readonly />
-      <CertificatCard
-        consultationId={consultationId}
-        reposJours={consultation.reposJours ?? null}
-        reposInclutJour={consultation.reposInclutJour ?? false}
-        dateReprise={consultation.dateReprise ?? null}
-        readonly
-        onPrint={() => setPreviewRepos(true)}
-      />
+      {onglet === 'resultats' && <ResultatsDesBons consultationId={consultationId} />}
 
-      {canDelete && (
+      {/* Décision : seulement la suite RÉELLEMENT donnée — plus de carte « aucune
+          évacuation » vide sous un suivi, ni de repos à 0 jour. */}
+      {onglet === 'decision' && (
+        <>
+        {!aEvacuation && !aSuivi && !aRepos && (
+          <EmptyState icon={<Flag size={18} />} title={t('consultation.aucuneSuiteTitre')} description={t('consultation.aucuneSuiteDescription')} variant="subtle" />
+        )}
+        {aEvacuation && (
+          <EvacuationCard
+            consultationId={consultationId}
+            readonly
+            patient={{ identite: patient.identite, numeroPatient: patient.numeroPatient, categorieLibelle: patient.categoriePatient.libelle }}
+            soignant={consultation.soignant}
+          />
+        )}
+        {aSuivi && <SuiviTraitementCard consultationId={consultationId} readonly />}
+        {aRepos && (
+          <CertificatCard
+            consultationId={consultationId}
+            reposJours={consultation.reposJours ?? null}
+            reposInclutJour={consultation.reposInclutJour ?? false}
+            dateReprise={consultation.dateReprise ?? null}
+            readonly
+            onPrint={() => setPreviewRepos(true)}
+          />
+        )}
+        </>
+      )}
+
+      {onglet === 'resume' && canDelete && (
         <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 4 }}>
           <Button
             variant="outline"

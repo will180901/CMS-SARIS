@@ -20,7 +20,7 @@ import {
   useBonsExamen, useValiderBonExamen,
   useAnnulerBonExamen,
 } from '../hooks/useBonExamen'
-import { ResultatsParExamen, SaisieResultatsModal, ComptesRendus, examensManquants } from './ResultatsBon'
+import { ResultatsParExamen, SaisieResultatsModal, ComptesRendus, ListeExamensPrescrits, examensManquants } from './ResultatsBon'
 import { usePermissions } from '@/hooks/usePermissions'
 import { BonExamenPrintModal } from './BonExamenPrintModal'
 import type { BonExamen } from '../api/bon-examen.api'
@@ -33,9 +33,11 @@ interface Props {
   categorieLibelle?: string
   /** Patient de la consultation — ses droits RÉELS (catégorie + rattachement) décident du bon. */
   patientId?: string
+  /** Résultats affichés ailleurs (onglet Résultats) : ne montrer que les examens prescrits. */
+  sansResultats?: boolean
 }
 
-export function BonExamenCard({ consultationId, readonly, soignant, categorieLibelle, patientId }: Props) {
+export function BonExamenCard({ consultationId, readonly, soignant, categorieLibelle, patientId, sansResultats }: Props) {
   const { t } = useTranslation()
   const { has } = usePermissions()
   // RÈGLE CENTRALE (recueil) : bon d'examens réservé au personnel CDI + ayants droit.
@@ -88,6 +90,7 @@ export function BonExamenCard({ consultationId, readonly, soignant, categorieLib
                 canResult={canResult}
                 soignant={soignant}
                 categorieLibelle={categorieLibelle}
+                sansResultats={sansResultats}
               />
             ))}
           </div>
@@ -100,8 +103,9 @@ export function BonExamenCard({ consultationId, readonly, soignant, categorieLib
 // ── Item Bon d'examen ─────────────────────────────────────────────────────────
 
 function BonExamenItem({
-  bon, canValidate, canCancel, canResult, soignant, categorieLibelle,
+  bon, canValidate, canCancel, canResult, soignant, categorieLibelle, sansResultats,
 }: {
+  sansResultats?: boolean
   bon: BonExamen
   canValidate: boolean
   canCancel:   boolean
@@ -172,11 +176,15 @@ function BonExamenItem({
           </p>
         </div>
 
-        {/* Examens prescrits et leurs résultats, examen par examen */}
-        <ResultatsParExamen bon={bon} canResult={canResult && bon.statut === 'VALIDE'} />
-
-        {/* Compte rendu du laboratoire (photo ou PDF) */}
-        {bon.statut === 'VALIDE' && <ComptesRendus bon={bon} canResult={canResult} />}
+        {/* Examens prescrits et leurs résultats, examen par examen — ou la seule liste des
+            examens quand les résultats ont leur propre onglet (consultation clôturée). */}
+        {sansResultats ? <ListeExamensPrescrits bon={bon} /> : (
+          <>
+            <ResultatsParExamen bon={bon} canResult={canResult && bon.statut === 'VALIDE'} />
+            {/* Compte rendu du laboratoire (photo ou PDF) */}
+            {bon.statut === 'VALIDE' && <ComptesRendus bon={bon} canResult={canResult} />}
+          </>
+        )}
 
         {bon.ordonnance?.statut === 'ANNULEE' && bon.statut !== 'ANNULE' && (
           <div style={{
@@ -251,7 +259,7 @@ function BonExamenItem({
               >
                 {t('bonExamen.print')}
               </Button>
-              {canResult && !showResultForm && examensManquants(bon).length > 0 && (
+              {canResult && !sansResultats && !showResultForm && examensManquants(bon).length > 0 && (
                 <Button
                   size="sm"
                   variant="primary"

@@ -9,14 +9,15 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { FileText, Image as ImageIcon, PenLine, History, Paperclip, Eye, Trash2, CheckCircle2, Download } from 'lucide-react'
-import { Button, StatusPill, Field, Textarea, TextInput, Modal, DatePicker } from '@/components/saris'
+import { FileText, Image as ImageIcon, PenLine, History, Paperclip, Eye, Trash2, CheckCircle2, Download, FlaskConical } from 'lucide-react'
+import { Button, StatusPill, Field, Textarea, TextInput, Modal, DatePicker, EmptyState } from '@/components/saris'
+import { usePermissions } from '@/hooks/usePermissions'
 import { formatDate } from '@/lib/intl'
 import { todayISO } from '@/lib/validation'
 import { labelDomaine } from '@/config/labels'
 import { bonExamenApi } from '../api/bon-examen.api'
 import type { BonExamen, ResultatExamen, PieceJointeResultat } from '../api/bon-examen.api'
-import { useSaisirResultat, useCorrigerResultat, useAjouterCompteRendu, useRetirerCompteRendu } from '../hooks/useBonExamen'
+import { useSaisirResultat, useCorrigerResultat, useAjouterCompteRendu, useRetirerCompteRendu, useBonsExamen } from '../hooks/useBonExamen'
 
 type Normalite = 'NON_PRECISE' | 'NORMAL' | 'ANORMAL'
 const versNormalite = (a: boolean | null | undefined): Normalite => (a === true ? 'ANORMAL' : a === false ? 'NORMAL' : 'NON_PRECISE')
@@ -403,5 +404,81 @@ function ApercuCompteRendu({ bonId, piece, onClose }: { bonId: string; piece: Pi
         <iframe src={url} title={piece.nomFichier} style={{ width: '100%', height: '70vh', border: '1px solid var(--bordure-legere)', borderRadius: 'var(--radius-md)' }} />
       )}
     </Modal>
+  )
+}
+
+// ── Onglet « Résultats » d'une consultation ─────────────────────────────────
+
+/** Tous les bons d'examen d'une consultation, avec leurs résultats examen par examen. */
+export function ResultatsDesBons({ consultationId }: { consultationId: string }) {
+  const { t } = useTranslation()
+  const { has } = usePermissions()
+  const canResult = has('bon_examen.result')
+  const { data: bons = [], isLoading } = useBonsExamen({ consultationId })
+  const [saisie, setSaisie] = useState<BonExamen | null>(null)
+  const actifs = bons.filter(b => b.statut !== 'ANNULE')
+
+  if (isLoading) return <p style={{ margin: 0, fontSize: 13, color: 'var(--texte-tertiaire)' }}>{t('bonExamen.loading')}</p>
+  if (actifs.length === 0) return <EmptyState icon={<FlaskConical size={18} />} title={t('bonExamen.aucunExamenPrescrit')} variant="subtle" />
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {actifs.map(b => {
+        const manquants = examensManquants(b)
+        return (
+          <div key={b.id} style={{ border: '1px solid var(--bordure-legere)', borderRadius: 'var(--radius-lg)', background: 'var(--fond-surface)', padding: 'var(--espace-3)', display: 'flex', flexDirection: 'column', gap: 'var(--espace-3)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <FlaskConical size={13} style={{ color: 'var(--ap-600)' }} />
+              <span style={{ fontSize: 'var(--font-size-body-sm)', fontWeight: 600, color: 'var(--texte-primaire)' }}>
+                {t('bonExamen.bonNumber', { numero: b.id.slice(0, 8).toUpperCase() })}
+              </span>
+              {b.indicationClinik && <span style={{ fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)' }}>· {b.indicationClinik}</span>}
+              {canResult && b.statut === 'VALIDE' && manquants.length > 0 && (
+                <span style={{ marginLeft: 'auto' }}>
+                  <Button size="sm" variant="primary" leftIcon={<FileText size={13} />} onClick={() => setSaisie(b)}>{t('bonExamen.saisirResultats')}</Button>
+                </span>
+              )}
+            </div>
+            {b.statut === 'EN_ATTENTE' ? (
+              <p style={{ margin: 0, fontSize: 'var(--font-size-caption)', color: 'var(--avert-texte)' }}>{t('bonExamen.bonAValiderAvantResultats')}</p>
+            ) : (
+              <>
+                <ResultatsParExamen bon={b} canResult={canResult} />
+                <ComptesRendus bon={b} canResult={canResult} />
+              </>
+            )}
+          </div>
+        )
+      })}
+      {saisie && <SaisieResultatsModal bon={saisie} onClose={() => setSaisie(null)} />}
+    </div>
+  )
+}
+
+/** Examens prescrits d'un bon, sans leurs résultats (onglet Prescriptions : les résultats
+ *  ont leur propre onglet). Le décompte dit où on en est. */
+export function ListeExamensPrescrits({ bon }: { bon: BonExamen }) {
+  const { t } = useTranslation()
+  const manquants = examensManquants(bon)
+  const globaux = bon.resultats.some(r => r.statut !== 'REMPLACE' && !r.ligneExamenId)
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        <p style={surtitre}>{t('bonExamen.examsRequested', { count: bon.lignes.length })}</p>
+        {bon.statut === 'VALIDE' && !globaux && (
+          <StatusPill tone={manquants.length === 0 ? 'success' : 'warning'} dot={false}>
+            {t('bonExamen.resultatsRecus', { recus: bon.lignes.length - manquants.length, total: bon.lignes.length })}
+          </StatusPill>
+        )}
+      </div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+        {bon.lignes.map(l => (
+          <StatusPill key={l.id} tone="accent" dot={false}>
+            {l.typeExamen.libelle}
+            <span style={{ marginLeft: 4, opacity: 0.6, fontSize: 9 }}>{labelDomaine(l.typeExamen.domaine)}</span>
+          </StatusPill>
+        ))}
+      </div>
+    </div>
   )
 }
