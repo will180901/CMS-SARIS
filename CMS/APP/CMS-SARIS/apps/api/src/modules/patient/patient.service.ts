@@ -1636,7 +1636,7 @@ export class PatientService {
     if (code === 'AYANT_DROIT_CDI') {
       if (!fonction?.trim())
         throw new BadRequestException(
-          'La fonction est obligatoire pour un ayant droit',
+          "L'occupation de l'ayant droit est obligatoire (ex. : élève, sans emploi, enfant en bas âge)",
         )
       if (!cdiMatricule?.trim())
         throw new BadRequestException(
@@ -2744,9 +2744,11 @@ export class PatientService {
   }
 
   // Rattachements Sous-Traitant : gestion manuelle retirée. Le lien se crée
-  // automatiquement à la visite (create(), catégorie SOUS_TRAITANT) ; ces patients
-  // n'ont plus d'onglet Administratif du tout (DossierPage.tsx), donc plus aucune
-  // UI ne consomme create/update/delete pour ce rattachement.
+  // automatiquement à la visite (create(), catégorie SOUS_TRAITANT). L'onglet
+  // Administratif reste visible pour tous (historique de catégorie) ; seul son
+  // sous-onglet Rattachements est réservé au CDI et à ses ayants droit (DossierPage.tsx), et la
+  // société d'un sous-traitant est montrée dans la colonne du dossier — aucune UI ne
+  // consomme create/update/delete pour ce rattachement.
 
   // ── Suppression des sous-entités du dossier (perm patient.update) ──────────
 

@@ -953,12 +953,14 @@ function NewPatientForm({ np, setNp, categories, societes, employeReconnu, emplo
             employeRefus={employeRefus}
             lookupLoading={lookupLoading}
           />
+          {/* « Fonction » pour un nourrisson n'avait pas de sens, et la mention « hérités du
+              CDI » promettait des données qui n'étaient ni copiées ni affichées (constat 109). */}
           <div>
-            <Label style={{ ...lbl, fontSize: '12px' }}>{t('patients.fieldFonction', { defaultValue: 'Fonction' })} <span style={{ color: 'var(--erreur-texte)' }}>*</span></Label>
-            <input value={np.fonction} maxLength={100} onChange={e => patch({ fonction: e.target.value })} style={errInput(false)} />
+            <Label style={{ ...lbl, fontSize: '12px' }}>{t('patients.fieldOccupation')} <span style={{ color: 'var(--erreur-texte)' }}>*</span></Label>
+            <input value={np.fonction} maxLength={100} onChange={e => patch({ fonction: e.target.value })} placeholder={t('patients.occupationPlaceholder')} style={errInput(false)} />
           </div>
           <p style={{ fontSize: '10px', color: 'var(--texte-tertiaire)', margin: 0, fontStyle: 'italic' }}>
-            {t('patients.ayantDroitHint', { defaultValue: 'Section de paie, service et département sont hérités du CDI rattaché.' })}
+            {t('patients.ayantDroitHint')}
           </p>
         </>
       )}

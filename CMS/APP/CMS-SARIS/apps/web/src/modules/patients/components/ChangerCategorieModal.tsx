@@ -7,7 +7,7 @@ import { Label }             from '@workspace/ui/components/label'
 import { Input }             from '@workspace/ui/components/input'
 import { Button }            from '@workspace/ui/components/button'
 import { Modal, Textarea }   from '@/components/saris'
-import { useCategoriesPatient } from '@/modules/referentiels/hooks/useReferentiels'
+import { useCategoriesPatient, useCategoriesDroits } from '@/modules/referentiels/hooks/useReferentiels'
 import { CategorieBadge, getCategConfig } from './CategorieBadge'
 import { useChangerCategorie } from '../hooks/usePatients'
 import type { PatientDossier } from '@cms-saris/types'
@@ -107,6 +107,7 @@ export function ChangerCategorieModal({
 }) {
   const { t } = useTranslation()
   const { data: categories = [] } = useCategoriesPatient()
+  const { data: droits = [] } = useCategoriesDroits()
   const changer = useChangerCategorie(dossier.id)
 
   // Passage en CDI/CDD : matricule et données d'emploi DÉJÀ connus du dossier sont
@@ -131,6 +132,15 @@ export function ChangerCategorieModal({
   const isCdiCddTarget = !!selectedCateg && CATEGORIES_CDI_CDD.includes(selectedCateg.code)
   const [matriculeVal, fonctionVal, sectionPaieVal, serviceVal, departementVal] =
     watch(['matricule', 'fonction', 'sectionPaie', 'service', 'departement'])
+  // Ce que le changement fait gagner ou perdre (constat 65) : la fenêtre ne le disait pas.
+  // Consultation et premiers soins sont toujours dus ; seuls médicaments et examens varient.
+  const droitsDe = (categorieId: string | undefined) => droits.find(d => d.categorieId === categorieId)
+  const droitsAvant = droitsDe(dossier.categoriePatient.id)
+  const droitsApres = droitsDe(selectedId)
+  const lignesDroits = droitsAvant && droitsApres ? [
+    { cle: 'medicament', libelle: t('patients.changeDroitMedicament'), avant: droitsAvant.bonPharmacie, apres: droitsApres.bonPharmacie },
+    { cle: 'examen',     libelle: t('patients.changeDroitExamen'),     avant: droitsAvant.bonExamen,    apres: droitsApres.bonExamen },
+  ] : []
   const cdiDataValid = !isCdiCddTarget || !!(
     matriculeVal?.trim() && fonctionVal?.trim() && sectionPaieVal?.trim() && serviceVal?.trim() && departementVal?.trim()
   )
@@ -281,6 +291,35 @@ export function ChangerCategorieModal({
                   <Input {...register('departement')} style={{ fontSize: '13px' }} />
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Prise en charge avant → après */}
+          {selectedCateg && selectedCateg.code !== currentCode && lignesDroits.length > 0 && (
+            <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: 6, padding: '10px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--bordure-legere)', background: 'var(--fond-surface-2)' }}>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--texte-secondaire)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                {t('patients.changeDroitsTitle')}
+              </span>
+              {lignesDroits.map(l => {
+                const change = l.avant !== l.apres
+                const couleur = !change ? 'var(--texte-secondaire)' : l.apres ? 'var(--succes-texte)' : 'var(--erreur-texte)'
+                return (
+                  <div key={l.cle} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, flexWrap: 'wrap' }}>
+                    <span style={{ color: 'var(--texte-primaire)', minWidth: 110 }}>{l.libelle}</span>
+                    <span style={{ color: 'var(--texte-tertiaire)' }}>{l.avant ? t('patients.changeDroitCouvert') : t('patients.changeDroitNonCouvert')}</span>
+                    <ArrowRight size={12} style={{ color: 'var(--texte-tertiaire)' }} />
+                    <span style={{ color: couleur, fontWeight: change ? 700 : 400 }}>
+                      {l.apres ? t('patients.changeDroitCouvert') : t('patients.changeDroitNonCouvert')}
+                    </span>
+                    {change && (
+                      <span style={{ fontSize: 11, color: couleur }}>
+                        ({l.apres ? t('patients.changeDroitGagne') : t('patients.changeDroitPerdu')})
+                      </span>
+                    )}
+                  </div>
+                )
+              })}
+              <span style={{ fontSize: 11, color: 'var(--texte-tertiaire)', lineHeight: 1.45 }}>{t('patients.changeDroitsToujours')}</span>
             </div>
           )}
 

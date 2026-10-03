@@ -330,7 +330,9 @@ export function useUpdateRattachementAD(patientId: string) {
   return useMutation({
     mutationFn: ({ rId, data }: { rId: string; data: UpdateRattachementADPayload }) =>
       patientsApi.updateRattachementAD(patientId, rId, data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: dossierKey(patientId) }); toast.success(i18n.t('patients.toastAttachmentAdUpdated')) },
+    // Toute la clé patients, pas seulement ce dossier : la fiche du CDI liste ses ayants
+    // droit et leur couverture en dépend — elle restait périmée jusqu'au rafraîchissement.
+    onSuccess: () => { qc.invalidateQueries({ queryKey: PATIENTS_KEY }); toast.success(i18n.t('patients.toastAttachmentAdUpdated')) },
     onError: toastError,
   })
 }
@@ -368,7 +370,7 @@ export function useDeleteRattachementAD(patientId: string) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (rId: string) => patientsApi.deleteRattachementAD(patientId, rId),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: dossierKey(patientId) }); toast.success(i18n.t('patients.toastAttachmentAdDeleted')) },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: PATIENTS_KEY }); toast.success(i18n.t('patients.toastAttachmentAdDeleted')) },
     onError: toastError,
   })
 }

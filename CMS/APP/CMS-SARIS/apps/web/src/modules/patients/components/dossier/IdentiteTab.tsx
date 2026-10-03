@@ -123,6 +123,8 @@ export function IdentiteTab({ dossier, canWrite }: { dossier: PatientDossier; ca
   // Données professionnelles : uniquement personnel CDI/CDD (recueil).
   const code = dossier.categoriePatient?.code
   const isCdiCdd = code === 'ASSURE_CDI' || code === 'ASSURE_CDD'
+  // Ayant droit : son occupation, obligatoire à l'accueil, n'était réaffichée nulle part.
+  const isAyantDroit = code === 'AYANT_DROIT_CDI'
 
   // Valeurs du dossier TEL QU'IL EST MAINTENANT. Avant, le formulaire gardait celles du
   // premier affichage : après une modification puis « Annuler », il réaffichait l'ancien
@@ -171,6 +173,8 @@ export function IdentiteTab({ dossier, canWrite }: { dossier: PatientDossier; ca
         sectionPaie: v.sectionPaie?.trim() ?? '',
         service:     v.service?.trim()     ?? '',
         departement: v.departement?.trim() ?? '',
+      } : isAyantDroit ? {
+        fonction:    v.fonction?.trim()    ?? '',
       } : {}),
       ...([v.contactNom, v.contactPrenom, v.contactTel, v.contactLien].some(x => x.trim() !== '')
         ? { contactUrgence: { nom: v.contactNom.trim(), prenom: v.contactPrenom.trim(), telephone: v.contactTel.trim(), lien: v.contactLien } }
@@ -321,6 +325,23 @@ export function IdentiteTab({ dossier, canWrite }: { dossier: PatientDossier; ca
         </div>
       )}
 
+      {/* Ayant droit : son occupation (saisie à l'accueil) */}
+      {isAyantDroit && (
+        <div style={{ gridColumn: '1 / -1' }}>
+          <InfoCard title={t('patients.situationAyantDroit')} icon={<Briefcase size={13} style={{ color: 'var(--ap-600)' }} />}>
+            {!editing ? (
+              <div style={{ display: 'grid', gridTemplateColumns: cols3, gap: '12px' }}>
+                <Field label={t('patients.fieldOccupation')} value={emp?.fonction ?? undefined} />
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: cols3, gap: '10px' }}>
+                <div style={fld}><Label style={lbl}>{t('patients.fieldOccupation')}</Label><Input {...register('fonction')} maxLength={100} placeholder={t('patients.occupationPlaceholder')} style={{ fontSize: '13px', height: 34 }} /></div>
+              </div>
+            )}
+          </InfoCard>
+        </div>
+      )}
+
       {/* Une seule barre d'actions, SOUS les cartes qu'elle enregistre (constat 46) :
           avant, un petit bouton en haut de la première carte enregistrait aussi le
           contact d'urgence et les données professionnelles, sans le dire. */}
@@ -333,7 +354,7 @@ export function IdentiteTab({ dossier, canWrite }: { dossier: PatientDossier; ca
           position: 'sticky', bottom: 8, zIndex: 2, boxShadow: 'var(--ombre-2)',
         }}>
           <span style={{ marginRight: 'auto', fontSize: 12, color: 'var(--texte-secondaire)', lineHeight: 1.4 }}>
-            {isCdiCdd ? t('patients.identiteSaveHintCdi') : t('patients.identiteSaveHint')}
+            {isCdiCdd ? t('patients.identiteSaveHintCdi') : isAyantDroit ? t('patients.identiteSaveHintAd') : t('patients.identiteSaveHint')}
           </span>
           <Button variant="secondary" leftIcon={<X size={14} />} onClick={handleCancel} disabled={update.isPending}>
             {t('common.cancel')}

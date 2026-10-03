@@ -300,7 +300,9 @@ export function useCategoriesDroits() {
     staleTime: 5 * 60_000,
     // Sans la permission de lecture, la requête ne part pas : pas de 403 inutile,
     // et surtout aucune donnée en cache qu'un écran pourrait ensuite afficher.
-    enabled:  has('referentiel.categorie.read'),
+    // MÊME permission que la route serveur (referentiel.read) : avec l'autre, un profil
+    // autorisé par le serveur voyait « non pris en charge » faute de données.
+    enabled:  has('referentiel.read'),
   })
 }
 
