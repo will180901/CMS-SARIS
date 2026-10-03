@@ -236,6 +236,16 @@ function OrdonnanceBlock({ ord, consultationId, patientId, medicaments = [], typ
               <CheckCircle2 size={11} /> {t('consultation.bonDejaGenere')}
             </span>
           )}
+          {/* Bon refusé : on DIT pourquoi (constat 116). Avant, le bouton disparaissait
+              sans un mot — le soignant ne savait pas si c'était un oubli, un bug ou une
+              règle. La raison vient des droits RÉELS du patient (suspension) ou, à défaut,
+              de sa catégorie. */}
+          {isValid && permGenerer && !droitsLoading && !eligibleBon && !dejaGenere && (
+            <span title={couverture?.suspension ? t(`patients.suspension_${couverture.suspension.motif}`) : undefined}
+              style={{ fontSize: '11px', fontWeight: 600, color: 'var(--avert-texte)', background: 'var(--avert-fond)', border: '1px solid var(--avert-bordure)', padding: '2px 8px', borderRadius: 99 }}>
+              {couverture?.suspension ? t('patients.droitsSuspendus') : t('consultation.bonNonCouvert')}
+            </span>
+          )}
           {canGenerer && (
             <button onClick={() => genererBon.mutate()} disabled={genererBon.isPending} style={miniBtn('var(--ap-700)', 'var(--ap-300)')}>
               {genererBon.isPending ? <Loader2 size={11} className="animate-spin" /> : <Receipt size={11} />} {t('consultation.genererBon')}
