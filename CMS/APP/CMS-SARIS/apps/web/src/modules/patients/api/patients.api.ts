@@ -224,6 +224,14 @@ export interface SuiviChroniqueItem {
     statut:         string
     createdAt:      string
   } | null
+  /** Dernier suivi clôturé (affiché quand aucun n'est actif). */
+  dernierSuiviClos?: {
+    id:             string
+    frequenceSuivi: string | null
+    createdAt:      string
+    closedAt:       string | null
+    motifCloture:   string | null
+  } | null
   occurrences:       number
   premierDiagnostic: string
   dernierDiagnostic: string

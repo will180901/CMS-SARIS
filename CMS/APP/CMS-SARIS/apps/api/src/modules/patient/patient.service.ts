@@ -925,7 +925,7 @@ export class PatientService {
       lignes,
       lastConstTriage,
       chronicDiags,
-      suivisActifs,
+      suivisChroniques,
       lastConstEnCours,
     ] =
       await Promise.all([
@@ -981,9 +981,14 @@ export class PatientService {
           // Le plus recent d'abord : c'est sa date qui sera montree.
           orderBy: { consultation: { createdAt: 'desc' } },
         }),
+        // ACTIF et CLÔTURÉ : une clôture postérieure au dernier diagnostic est une
+        // décision (fin de suivi), pas un oubli — l'alerte ne doit pas revenir (constat 89).
         this.prisma.suiviChronique.findMany({
-          where: { patientId, statut: 'ACTIF' },
-          select: { pathologieId: true },
+          where: {
+            OR: [{ patientId }, { consultation: { visite: { patientId } } }],
+            statut: { in: ['ACTIF', 'CLOTURE'] },
+          },
+          select: { pathologieId: true, statut: true, closedAt: true },
         }),
         this.prisma.constanteVitale.findFirst({
           where: { patientId, visite: PARCOURS_EN_COURS },
@@ -1114,11 +1119,23 @@ export class PatientService {
     }
 
     // ── Règle 3 : pathologie chronique sans suivi actif ───────────────────────
-    const suiviSet = new Set(suivisActifs.map((s) => s.pathologieId))
+    const suiviSet = new Set(
+      suivisChroniques.filter((s) => s.statut === 'ACTIF').map((s) => s.pathologieId),
+    )
+    const derniereCloture = new Map<string, Date>()
+    for (const s of suivisChroniques) {
+      if (s.statut !== 'CLOTURE' || !s.closedAt) continue
+      const prec = derniereCloture.get(s.pathologieId)
+      if (!prec || s.closedAt > prec) derniereCloture.set(s.pathologieId, s.closedAt)
+    }
     const seenPath = new Set<string>()
+    // chronicDiags est trié du plus récent au plus ancien : la 1re occurrence d'une
+    // pathologie est son DERNIER diagnostic.
     for (const d of chronicDiags) {
       if (suiviSet.has(d.pathologieId) || seenPath.has(d.pathologieId)) continue
       seenPath.add(d.pathologieId)
+      const cloture = derniereCloture.get(d.pathologieId)
+      if (cloture && cloture >= d.consultation.createdAt) continue
       alertes.push({
         type: 'CHRONIQUE_SANS_SUIVI',
         gravite: 'MODERE',
@@ -1224,6 +1241,8 @@ export class PatientService {
           objectifs: true,
           statut: true,
           createdAt: true,
+          closedAt: true,
+          motifCloture: true,
         },
         orderBy: { createdAt: 'desc' },
       }),
@@ -1336,11 +1355,18 @@ export class PatientService {
         .map((s) => [s.pathologieId, s]),
     )
 
+    // Dernier suivi CLÔTURÉ par pathologie (suivis triés du plus récent) : sans lui, la
+    // carte revenait à « Aucun suivi formel » comme si rien n'avait jamais été fait.
+    const dernierClos = new Map<string, (typeof suivis)[number]>()
+    for (const s of suivis)
+      if (s.statut === 'CLOTURE' && !dernierClos.has(s.pathologieId)) dernierClos.set(s.pathologieId, s)
+
     const chroniques = [...parPathologie.entries()].map(
       ([pathologieId, v]) => ({
         pathologieId,
         pathologie: v.pathologie,
         suivi: suiviMap.get(pathologieId) ?? null,
+        dernierSuiviClos: dernierClos.get(pathologieId) ?? null,
         occurrences: v.dates.length,
         premierDiagnostic: v.dates[v.dates.length - 1],
         dernierDiagnostic: v.dates[0],

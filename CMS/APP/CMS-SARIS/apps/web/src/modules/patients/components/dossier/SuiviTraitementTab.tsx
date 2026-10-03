@@ -402,6 +402,7 @@ function ChroniqueCard({ item, patientId, canManage }: { item: SuiviChroniqueIte
   const create = useCreateSuiviChronique(patientId)
   const update = useUpdateSuiviChronique(patientId)
 
+  const clos = item.dernierSuiviClos ?? null
   const [formOpen, setFormOpen]   = useState(false)
   const [closeOpen, setCloseOpen] = useState(false)
   const [freq, setFreq]           = useState<string>('Mensuel')
@@ -427,9 +428,24 @@ function ChroniqueCard({ item, patientId, canManage }: { item: SuiviChroniqueIte
           {t(item.occurrences > 1 ? 'patients.suiviOccurrencePlural' : 'patients.suiviOccurrenceSingular', { count: item.occurrences })}
         </StatusPill>
         <StatusPill tone={suivi ? 'success' : 'neutral'}>
-          {suivi ? t('patients.suiviChroniqueSuiviActif') : t('patients.suiviChroniqueSansSuivi')}
+          {suivi
+            ? t('patients.suiviChroniqueSuiviActif')
+            : clos?.closedAt
+              ? t('patients.suiviChroniqueClos', { date: formatDate(clos.closedAt) })
+              : t('patients.suiviChroniqueSansSuivi')}
         </StatusPill>
       </div>
+
+      {!suivi && clos && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginBottom: 8, fontSize: 12, color: 'var(--texte-secondaire)' }}>
+          <span>
+            <strong style={{ color: 'var(--texte-tertiaire)', fontWeight: 600 }}>{t('patients.suiviChroniqueCloturePeriode')} : </strong>
+            {formatDate(clos.createdAt)}{clos.closedAt ? ` → ${formatDate(clos.closedAt)}` : ''}
+            {clos.frequenceSuivi ? ` · ${clos.frequenceSuivi}` : ''}
+          </span>
+          {clos.motifCloture && <span><strong style={{ color: 'var(--texte-tertiaire)', fontWeight: 600 }}>{t('patients.suiviChroniqueMotif')} : </strong>{clos.motifCloture}</span>}
+        </div>
+      )}
 
       {suivi && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginBottom: 8, fontSize: 12, color: 'var(--texte-secondaire)' }}>
