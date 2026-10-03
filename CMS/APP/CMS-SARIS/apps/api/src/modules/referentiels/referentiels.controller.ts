@@ -24,6 +24,7 @@ import { CreatePathologieDto, UpdatePathologieDto } from './dto/pathologie.dto'
 import { CreateMedicamentDto, UpdateMedicamentDto } from './dto/medicament.dto'
 import {
   CreateCategoriePatientDto,
+  UpdateDroitsCategorieDto,
   UpdateCategoriePatientDto,
 } from './dto/categorie-patient.dto'
 import { CreateTypeExamenDto, UpdateTypeExamenDto } from './dto/type-examen.dto'
@@ -243,6 +244,16 @@ export class ReferentielsController {
     @Body() dto: UpdateCategoriePatientDto,
   ) {
     return this.svc.updateCategoriePatient(id, dto)
+  }
+
+  /** Droits configurables d'une catégorie (médicaments, examens) — constat 117. */
+  @Patch('categories-patient/:id/droits')
+  @RequirePermissions('referentiel.categorie.update')
+  setDroitsCategoriePatient(
+    @Param('id') id: string,
+    @Body() dto: UpdateDroitsCategorieDto,
+  ) {
+    return this.svc.setDroitsCategoriePatient(id, dto)
   }
 
   @Patch('categories-patient/:id/statut')

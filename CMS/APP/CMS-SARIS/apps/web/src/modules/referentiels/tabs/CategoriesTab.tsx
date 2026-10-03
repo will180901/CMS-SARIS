@@ -12,7 +12,7 @@ import { Button } from '@workspace/ui/components/button'
 import { Input }  from '@workspace/ui/components/input'
 import { Label }  from '@workspace/ui/components/label'
 import type { CategoriePatient } from '@cms-saris/types'
-import { useCategoriesPatient, useCreateCategorie, useUpdateCategorie, useToggleCategorieStatut, QUERY_KEYS, useDeleteCategorie } from '../hooks/useReferentiels'
+import { useCategoriesPatient, useCreateCategorie, useSetDroitsCategorie, useCategoriesDroits, useUpdateCategorie, useToggleCategorieStatut, QUERY_KEYS, useDeleteCategorie } from '../hooks/useReferentiels'
 import { usePagination } from '../hooks/usePagination'
 import { useRowsPerPage } from '@/hooks/useRowsPerPage'
 import { isActif, referentielsApi }         from '../api/referentiels.api'
@@ -22,6 +22,7 @@ import { SkeletonRows }    from '../components/SkeletonRows'
 import { EmptyState }      from '../components/EmptyState'
 import { ConfirmDialog }   from '../components/ConfirmDialog'
 import { DrawerShell }     from '../components/DrawerShell'
+import { CheckBox }        from '@/components/saris'
 import { PaginationBar }   from '../components/PaginationBar'
 import { DataTableHead, dataRowStyle, DATA_TABLE_CARD, useColumnResize, useSelectionLot, BarreSelectionLot, CaseSelectionLigne, ActionSelectionner, proprietesLigne, type SelectionLot } from '@/components/saris'
 import { codeReferentiel, libelle as libelleSchema } from '@/lib/validation'
@@ -32,8 +33,15 @@ const catSchema = z.object({
   libelle: libelleSchema('Libellé', 2, 100),
 })
 type CatForm = z.infer<typeof catSchema>
+const DROITS_VIDES = { couvreMedicament: false, couvreExamen: false }
 
-function CatFormFields({ form, isEdit }: { form: ReturnType<typeof useForm<CatForm>>; isEdit: boolean }) {
+function CatFormFields({ form, isEdit, droits, onDroits, droitsModifiables }: {
+  form: ReturnType<typeof useForm<CatForm>>
+  isEdit: boolean
+  droits: { couvreMedicament: boolean; couvreExamen: boolean }
+  onDroits: (d: { couvreMedicament: boolean; couvreExamen: boolean }) => void
+  droitsModifiables: boolean
+}) {
   const { t } = useTranslation()
   const { register, formState: { errors } } = form
   return (
@@ -55,6 +63,21 @@ function CatFormFields({ form, isEdit }: { form: ReturnType<typeof useForm<CatFo
         <Input {...register('libelle')} placeholder={t('referentiels.catLabelPlaceholder')} style={{ fontSize: '13px' }} />
         {errors.libelle && <p style={{ fontSize: '12px', color: 'var(--erreur-texte)', marginTop: '4px' }}>{errors.libelle.message}</p>}
       </div>
+      {/* Droits de la catégorie (constat 117) : une catégorie créée ici n'en avait aucun,
+          et rien ne permettait de lui en donner. Consultation et premiers soins sont
+          toujours dus ; médicaments et examens se choisissent. */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <Label style={{ fontSize: '13px', fontWeight: '500', color: 'var(--texte-primaire)' }}>{t('referentiels.catDroitsTitle')}</Label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--texte-secondaire)', cursor: droitsModifiables ? 'pointer' : 'not-allowed', opacity: droitsModifiables ? 1 : 0.6 }}>
+          <CheckBox size={14} checked={droits.couvreMedicament} disabled={!droitsModifiables} onChange={v => onDroits({ ...droits, couvreMedicament: v })} />
+          {t('referentiels.catDroitMedicament')}
+        </label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--texte-secondaire)', cursor: droitsModifiables ? 'pointer' : 'not-allowed', opacity: droitsModifiables ? 1 : 0.6 }}>
+          <CheckBox size={14} checked={droits.couvreExamen} disabled={!droitsModifiables} onChange={v => onDroits({ ...droits, couvreExamen: v })} />
+          {t('referentiels.catDroitExamen')}
+        </label>
+        <p style={{ fontSize: 11, color: 'var(--texte-tertiaire)', margin: 0, lineHeight: 1.45 }}>{t('referentiels.catDroitsHint')}</p>
+      </div>
       <div style={{ padding: '12px', borderRadius: '6px', background: 'var(--info-fond)', border: '1px solid var(--info-bordure)' }}>
         <p style={{ fontSize: '12px', color: 'var(--info-texte)', margin: 0, lineHeight: '1.5' }}>
           {t('referentiels.catFormHint')}
@@ -69,6 +92,11 @@ export function CategoriesTab({ canCreate, canUpdate, canDelete }: { canCreate: 
   const { data: categories = [], isLoading } = useCategoriesPatient()
   const createCat    = useCreateCategorie()
   const updateCat    = useUpdateCategorie()
+  const setDroitsCat = useSetDroitsCategorie()
+  const { data: droitsCategories = [] } = useCategoriesDroits()
+  const [droits, setDroits]         = useState(DROITS_VIDES)
+  const [droitsInit, setDroitsInit] = useState(DROITS_VIDES)
+  const droitsChanges = droits.couvreMedicament !== droitsInit.couvreMedicament || droits.couvreExamen !== droitsInit.couvreExamen
   const toggleStatut = useToggleCategorieStatut()
   const deleteCat    = useDeleteCategorie()
 
@@ -104,8 +132,13 @@ export function CategoriesTab({ canCreate, canUpdate, canDelete }: { canCreate: 
     invalider: [QUERY_KEYS.categories],
   })
 
-  function openCreate() { setEdit(null); form.reset({ code: '', libelle: '' }); setDrawer(true) }
-  function openEdit(c: CategoriePatient) { setEdit(c); form.reset({ code: c.code, libelle: c.libelle }); setDrawer(true) }
+  function openCreate() { setEdit(null); form.reset({ code: '', libelle: '' }); setDroits(DROITS_VIDES); setDroitsInit(DROITS_VIDES); setDrawer(true) }
+  function openEdit(c: CategoriePatient) {
+    setEdit(c); form.reset({ code: c.code, libelle: c.libelle })
+    const d = droitsCategories.find(x => x.categorieId === c.id)
+    const v = { couvreMedicament: !!d?.bonPharmacie, couvreExamen: !!d?.bonExamen }
+    setDroits(v); setDroitsInit(v); setDrawer(true)
+  }
   function closeDrawer() { setDrawer(false); setEdit(null); form.reset() }
 
   async function handleSave() {
@@ -119,8 +152,11 @@ export function CategoriesTab({ canCreate, canUpdate, canDelete }: { canCreate: 
     // `code` est immuable après création (cf. UpdateCategoriePayload) — on ne renvoie
     // jamais que le libellé à la mise à jour, même si le champ (désactivé) est présent
     // dans le formulaire.
-    if (editTarget) { await updateCat.mutateAsync({ id: editTarget.id, data: { libelle: data.libelle } }) }
-    else { await createCat.mutateAsync(data) }
+    if (editTarget) {
+      if (form.formState.isDirty) await updateCat.mutateAsync({ id: editTarget.id, data: { libelle: data.libelle } })
+      if (droitsChanges) await setDroitsCat.mutateAsync({ id: editTarget.id, data: droits })
+    }
+    else { await createCat.mutateAsync({ ...data, ...droits }) }
     closeDrawer()
   }
 
@@ -167,8 +203,8 @@ export function CategoriesTab({ canCreate, canUpdate, canDelete }: { canCreate: 
 
       <DrawerShell open={drawerOpen} onClose={closeDrawer} icon={<Users size={18} />}
         title={editTarget ? t('referentiels.editPrefix', { value: editTarget.code }) : t('referentiels.catDrawerNewTitle')}
-        onSave={handleSave} isSaving={createCat.isPending || updateCat.isPending} isDirty={form.formState.isDirty}>
-        <CatFormFields form={form} isEdit={!!editTarget} />
+        onSave={handleSave} isSaving={createCat.isPending || updateCat.isPending || setDroitsCat.isPending} isDirty={form.formState.isDirty || droitsChanges}>
+        <CatFormFields form={form} isEdit={!!editTarget} droits={droits} onDroits={setDroits} droitsModifiables={editTarget ? canUpdate : canCreate} />
       </DrawerShell>
 
       <ConfirmDialog open={!!confirm} onCancel={() => setConfirm(null)}

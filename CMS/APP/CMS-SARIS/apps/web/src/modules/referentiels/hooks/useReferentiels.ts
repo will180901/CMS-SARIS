@@ -310,8 +310,19 @@ export function useCreateCategorie() {
     mutationFn: (data: CreateCategoriePayload) => referentielsApi.categories.create(data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: QUERY_KEYS.categories })
+      qc.invalidateQueries({ queryKey: QUERY_KEYS.categoriesDroits })
       toast.success(i18n.t('referentiels.catCreated'))
     },
+    onError: toastError,
+  })
+}
+
+export function useSetDroitsCategorie() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: { couvreMedicament: boolean; couvreExamen: boolean } }) =>
+      referentielsApi.categories.setDroits(id, data),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: QUERY_KEYS.categoriesDroits }) },
     onError: toastError,
   })
 }

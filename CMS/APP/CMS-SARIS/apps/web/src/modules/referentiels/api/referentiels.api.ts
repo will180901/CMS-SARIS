@@ -52,7 +52,7 @@ export interface UpdatePathologiePayload { code?: string; libelle?: string; chro
 export interface CreateMedicamentPayload { nomGenerique: string; nomCommercial?: string; familleThera?: string }
 export interface UpdateMedicamentPayload { nomGenerique?: string; nomCommercial?: string; familleThera?: string }
 
-export interface CreateCategoriePayload  { code: string; libelle: string }
+export interface CreateCategoriePayload  { code: string; libelle: string; couvreMedicament?: boolean; couvreExamen?: boolean }
 // `code` volontairement absent : immuable après création (cf. UpdateCategoriePatientDto backend —
 // c'est le seul référentiel dont le code pilote de vraies règles métier : droits par catégorie,
 // obligations de saisie CDI/ayant droit/sous-traitant).
@@ -124,6 +124,9 @@ export const referentielsApi = {
     create:    (data: CreateCategoriePayload)      => api.post<CategoriePatient>('/referentiels/categories-patient', data),
     update:    (id: string, data: UpdateCategoriePayload) => api.patch<CategoriePatient>(`/referentiels/categories-patient/${id}`, data),
     setStatut: (id: string, statut: CategoriePatient['statut']) => api.patch<CategoriePatient>(`/referentiels/categories-patient/${id}/statut`, { statut }),
+    // Médicaments / examens pris en charge (consultation et premiers soins : toujours dus).
+    setDroits: (id: string, data: { couvreMedicament: boolean; couvreExamen: boolean }) =>
+      api.patch<DroitCategoriePatientResume[]>(`/referentiels/categories-patient/${id}/droits`, data),
     remove:    (id: string)                        => api.delete<{ id: string; deleted: true }>(`/referentiels/categories-patient/${id}`),
   },
 

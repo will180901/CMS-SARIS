@@ -20,6 +20,7 @@ import type {
 import type {
   CreateCategoriePatientDto,
   UpdateCategoriePatientDto,
+  UpdateDroitsCategorieDto,
 } from './dto/categorie-patient.dto'
 import type {
   CreateTypeExamenDto,
@@ -322,8 +323,11 @@ export class ReferentielsService {
         bonExamen: false,
         bonPharmacie: false,
       }
-      if (d.typePrestation === 'EXAMEN') entry.bonExamen = d.couvert
-      if (d.typePrestation === 'MEDICAMENT') entry.bonPharmacie = d.couvert
+      // « Au moins une ligne vraie », comme la garde serveur (assertPrestationCouverte) :
+      // avant, la DERNIÈRE ligne lue l'emportait — un doublon faux masquait le bouton
+      // d'un bon que le serveur aurait accepté.
+      if (d.typePrestation === 'EXAMEN') entry.bonExamen = entry.bonExamen || d.couvert
+      if (d.typePrestation === 'MEDICAMENT') entry.bonPharmacie = entry.bonPharmacie || d.couvert
       parCategorie.set(d.categorieId, entry)
     }
     return [...parCategorie.entries()].map(([categorieId, droits]) => ({
@@ -332,18 +336,68 @@ export class ReferentielsService {
     }))
   }
 
+  /**
+   * Écrit les droits d'une catégorie. Constat 117 : une catégorie créée depuis les
+   * Référentiels n'avait AUCUNE ligne de droits, et rien ne permettait de lui en donner —
+   * ses patients n'avaient, faute de ligne, même pas droit à la consultation au regard
+   * de la matrice. Consultation et premiers soins : toujours dus (créés s'ils manquent,
+   * jamais retirés) ; médicaments et examens : ceux choisis.
+   */
+  private async ecrireDroitsCategorie(
+    categorieId: string,
+    droits: { couvreMedicament?: boolean; couvreExamen?: boolean },
+  ) {
+    const voulus: [string, boolean | undefined, boolean][] = [
+      ['CONSULTATION', true, false],
+      ['PREMIERS_SOINS', true, false],
+      ['MEDICAMENT', droits.couvreMedicament, true],
+      ['EXAMEN', droits.couvreExamen, true],
+    ]
+    for (const [typePrestation, valeur, ecraser] of voulus) {
+      const existant = await this.prisma.droitCategoriePatient.findFirst({
+        where: { categorieId, typePrestation },
+        select: { id: true },
+      })
+      if (!existant) {
+        await this.prisma.droitCategoriePatient.create({
+          data: { categorieId, typePrestation, couvert: valeur ?? false },
+        })
+      } else if (ecraser && valeur !== undefined) {
+        // Toutes les lignes (pas d'unicité en base : un doublon ne doit pas contredire).
+        await this.prisma.droitCategoriePatient.updateMany({
+          where: { categorieId, typePrestation },
+          data: { couvert: valeur },
+        })
+      }
+    }
+  }
+
   async createCategoriePatient(dto: CreateCategoriePatientDto) {
+    const { couvreMedicament, couvreExamen, ...donnees } = dto
     const existing = await this.prisma.raw.categoriePatient.findUnique({
-      where: { code: dto.code },
+      where: { code: donnees.code },
     })
     if (existing && !existing.deletedAt)
-      throw new ConflictException(`Code catégorie "${dto.code}" déjà utilisé`)
-    if (existing)
-      return this.prisma.categoriePatient.update({
-        where: { id: existing.id },
-        data: { ...dto, deletedAt: null },
-      })
-    return this.prisma.categoriePatient.create({ data: dto })
+      throw new ConflictException(`Code catégorie "${donnees.code}" déjà utilisé`)
+    const cat = existing
+      ? await this.prisma.categoriePatient.update({
+          where: { id: existing.id },
+          data: { ...donnees, deletedAt: null },
+        })
+      : await this.prisma.categoriePatient.create({ data: donnees })
+    await this.ecrireDroitsCategorie(cat.id, {
+      couvreMedicament: couvreMedicament ?? false,
+      couvreExamen: couvreExamen ?? false,
+    })
+    return cat
+  }
+
+  /** Droits configurables d'une catégorie existante (médicaments, examens). */
+  async setDroitsCategoriePatient(id: string, dto: UpdateDroitsCategorieDto) {
+    const existing = await this.prisma.categoriePatient.findUnique({ where: { id } })
+    if (!existing) throw new NotFoundException(`Catégorie ${id} introuvable`)
+    await this.ecrireDroitsCategorie(id, dto)
+    return this.findDroitsCategoriesPatient()
   }
 
   async updateCategoriePatient(id: string, dto: UpdateCategoriePatientDto) {
