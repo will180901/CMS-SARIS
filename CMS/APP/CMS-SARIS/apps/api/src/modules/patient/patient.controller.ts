@@ -419,8 +419,9 @@ export class PatientController {
     @Param('id') id: string,
     @Param('rId') rId: string,
     @Body() dto: UpdateRattachementADDto,
+    @Req() req: any,
   ) {
-    return this.patientService.updateRattachementAD(id, rId, dto)
+    return this.patientService.updateRattachementAD(id, rId, dto, req.user?.id)
   }
 
   @Delete(':id/rattachements-ad/:rId')

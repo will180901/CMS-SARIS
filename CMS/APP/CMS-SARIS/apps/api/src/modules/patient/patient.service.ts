@@ -1473,7 +1473,7 @@ export class PatientService {
           },
         })
         await tx.historiqueRattachementAyantDroit.create({
-          data: { rattachementId: ratt.id, evenement: 'CREATION' },
+          data: { rattachementId: ratt.id, evenement: 'CREATION', createdBy: createdBy ?? null },
         })
         // Le CDI rattaché doit être trouvable comme patient dès l'enregistrement de son
         // ayant droit, même s'il n'est jamais venu lui-même — dossier vide créé à la
@@ -1496,7 +1496,7 @@ export class PatientService {
           data: { patientId: p.id, societeId, dateDebut: new Date() },
         })
         await tx.historiqueRattachementSousTraitant.create({
-          data: { rattachementId: ratt.id, evenement: 'CREATION' },
+          data: { rattachementId: ratt.id, evenement: 'CREATION', createdBy: createdBy ?? null },
         })
       }
 
@@ -1985,7 +1985,7 @@ export class PatientService {
             data: { statut: 'INACTIF' },
           })
           await tx.historiqueRattachementAyantDroit.create({
-            data: { rattachementId: ratt.id, evenement: 'CLOTURE' },
+            data: { rattachementId: ratt.id, evenement: 'CLOTURE', createdBy: userId ?? null },
           })
         }
       }
@@ -1999,7 +1999,7 @@ export class PatientService {
             data: { statut: 'INACTIF' },
           })
           await tx.historiqueRattachementSousTraitant.create({
-            data: { rattachementId: ratt.id, evenement: 'CLOTURE' },
+            data: { rattachementId: ratt.id, evenement: 'CLOTURE', createdBy: userId ?? null },
           })
         }
       }
@@ -2280,7 +2280,7 @@ export class PatientService {
               data: { statut: 'INACTIF', dateFin: new Date() },
             })
             await tx.historiqueRattachementSousTraitant.create({
-              data: { rattachementId: r.id, evenement: 'CLOTURE' },
+              data: { rattachementId: r.id, evenement: 'CLOTURE', createdBy: userId ?? null },
             })
           }
         }
@@ -2316,12 +2316,45 @@ export class PatientService {
     patientId: string,
     rattId: string,
     dto: UpdateRattachementADDto,
+    userId?: string,
   ) {
     const ratt = await this.prisma.rattachementAyantDroitCdi.findFirst({
       where: { id: rattId, patientId },
+      include: {
+        employe: { select: { id: true, statut: true, categorie: true, nom: true, prenom: true } },
+        patient: { select: { categoriePatient: { select: { code: true } } } },
+      },
     })
     if (!ratt)
       throw new NotFoundException('Rattachement ayant droit introuvable')
+
+    // RÉACTIVATION : mêmes garde-fous qu'à la création. Sans eux, un ancien ayant droit
+    // devenu CDI (son lien clôturé reste affiché avec « Réactiver ») redevenait l'ayant
+    // droit ACTIF de son parent — et la réactivation d'un lien vers un CDI parti rendait
+    // la gratuité.
+    if (dto.statut === 'ACTIF' && ratt.statut !== 'ACTIF') {
+      if (ratt.patient.categoriePatient.code !== 'AYANT_DROIT_CDI') {
+        throw new ConflictException(
+          "Ce patient n'est plus ayant droit : son ancien rattachement reste dans l'historique mais ne peut pas être réactivé.",
+        )
+      }
+      if (ratt.employe) {
+        if (ratt.employe.categorie !== 'ASSURE_CDI' || ratt.employe.statut !== 'ACTIF') {
+          throw new ConflictException(
+            `${ratt.employe.prenom} ${ratt.employe.nom} n'est plus un travailleur CDI actif au registre : ce rattachement ne peut pas être réactivé.`,
+          )
+        }
+        const doublon = await this.prisma.rattachementAyantDroitCdi.findFirst({
+          where: { patientId, employeId: ratt.employe.id, statut: 'ACTIF', id: { not: rattId } },
+          select: { id: true },
+        })
+        if (doublon) {
+          throw new ConflictException(
+            'Un rattachement actif vers ce même travailleur existe déjà.',
+          )
+        }
+      }
+    }
     const { dateDebut, dateFin, ...rest } = dto
     const updated = await this.prisma.rattachementAyantDroitCdi.update({
       where: { id: rattId },
@@ -2333,10 +2366,17 @@ export class PatientService {
         }),
       },
     })
+    // L'événement dit ce qui s'est passé, et QUI l'a fait (auteur jamais renseigné avant).
     await this.prisma.historiqueRattachementAyantDroit.create({
       data: {
         rattachementId: rattId,
-        evenement: dto.statut === 'INACTIF' ? 'CLOTURE' : 'MODIFICATION',
+        evenement:
+          dto.statut === 'INACTIF'
+            ? 'CLOTURE'
+            : dto.statut === 'ACTIF' && ratt.statut !== 'ACTIF'
+              ? 'REACTIVATION'
+              : 'MODIFICATION',
+        createdBy: userId ?? null,
       },
     })
     return updated
