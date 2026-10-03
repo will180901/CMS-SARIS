@@ -13,7 +13,8 @@ import { CheckCircle2, XCircle, Trash2 } from 'lucide-react'
 import { Button, Modal, InfoSection, InfoRow, StatusPill } from '@/components/saris'
 import { usePermissions } from '@/hooks/usePermissions'
 import { useDeleteConsultation } from '../hooks/useConsultation'
-import { formatDateTime } from '@/lib/intl'
+import { formatDateTime, formatDate } from '@/lib/intl'
+import { nomSoignant } from '@/lib/soignant'
 import { labelDecision } from '@/config/labels'
 import { DiagnosticsCard } from './DiagnosticsCard'
 import { OrdonnanceCard } from './OrdonnanceCard'
@@ -64,6 +65,24 @@ export function ConsultationArchiveSummary({ consultationId, consultation, onDel
           sans qu'aucun défilement ne puisse jamais révéler le contenu coupé. */}
       <style>{`.cons-archive > * { flex-shrink: 0; }`}</style>
 
+      {/* Qui, quand, où, pourquoi (constat 80) : le résumé ne disait ni la date de la
+          consultation, ni le soignant, ni le site, ni le motif — seulement l'issue. */}
+      <InfoSection title={t('consultation.archiveContexteTitle')}>
+        <InfoRow
+          label={t('consultation.archiveDateLabel')}
+          value={formatDateTime(consultation.createdAt, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+        />
+        {consultation.soignant && (
+          <InfoRow label={t('consultation.archiveSoignantLabel')} value={nomSoignant(consultation.soignant, t)} />
+        )}
+        {consultation.visite.site?.libelle && (
+          <InfoRow label={t('consultation.archiveSiteLabel')} value={consultation.visite.site.libelle} />
+        )}
+        {consultation.visite.motifPrincipal?.libelle && (
+          <InfoRow label={t('consultation.archiveMotifLabel')} value={consultation.visite.motifPrincipal.libelle} />
+        )}
+      </InfoSection>
+
       <InfoSection
         title={t('consultation.archiveDecisionTitle')}
         icon={cloturee ? <CheckCircle2 size={14} /> : <XCircle size={14} />}
@@ -90,6 +109,17 @@ export function ConsultationArchiveSummary({ consultationId, consultation, onDel
           <InfoRow label={t('consultation.conclusionTitle')} value={consultation.conclusion} full />
         )}
       </InfoSection>
+
+      {/* Anamnèse en lecture seule : elle n'existait que dans le stepper actif, et
+          disparaissait donc à la clôture. */}
+      {(consultation.anamneseSymptomes || consultation.anamneseDateDebut || consultation.anamneseDuree || consultation.anamneseModeDebut) && (
+        <InfoSection title={t('consultation.anamneseTitle')}>
+          {consultation.anamneseSymptomes && <InfoRow label={t('consultation.anamneseSymptomes')} value={consultation.anamneseSymptomes} full />}
+          {consultation.anamneseDateDebut && <InfoRow label={t('consultation.anamneseDateDebut')} value={formatDate(consultation.anamneseDateDebut)} />}
+          {consultation.anamneseDuree && <InfoRow label={t('consultation.anamneseDuree')} value={consultation.anamneseDuree} />}
+          {consultation.anamneseModeDebut && <InfoRow label={t('consultation.anamneseModeDebut')} value={consultation.anamneseModeDebut} />}
+        </InfoSection>
+      )}
 
       <InfoSection title={t('consultation.stepExamen')}>
         <InfoRow label={t('consultation.archiveTypeConsultationLabel')} value={consultation.typeConsultation?.libelle} full />
