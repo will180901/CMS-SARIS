@@ -16,6 +16,7 @@
 import { useMemo, useState } from 'react'
 import { humanizeCode } from '@/config/labels'
 import { useTranslation } from 'react-i18next'
+import { nomSoignant } from '@/lib/soignant'
 import {
   Activity, TrendingUp, Pill, FlaskConical, Loader2, ChevronRight, Plus, Pencil,
   CircleCheck, HeartPulse, PenLine, Thermometer, Wind, Weight, Ruler, Gauge,
@@ -592,10 +593,22 @@ export function PathologiesChroniquesTab({ patientId, historiqueRestreint = fals
 }
 
 /** Parcours de soins › Traitements. */
+function grouperParOrdonnance(lignes: SuiviTraitementItem[]) {
+  const groupes = new Map<string, { ordonnanceId: string; date: string; prescripteur: SuiviTraitementItem['prescripteur']; delivrance: string | null; delivreLe: string | null; lignes: SuiviTraitementItem[] }>()
+  for (const l of lignes) {
+    const g = groupes.get(l.ordonnanceId) ?? { ordonnanceId: l.ordonnanceId, date: l.date, prescripteur: l.prescripteur ?? null, delivrance: l.delivrance ?? null, delivreLe: l.delivreLe ?? null, lignes: [] }
+    g.lignes.push(l)
+    groupes.set(l.ordonnanceId, g)
+  }
+  return [...groupes.values()]
+}
+
 export function TraitementsTab({ patientId, historiqueRestreint = false }: OngletProps) {
   const { t } = useTranslation()
   const { data, isLoading, isError, refetch } = usePatientSuivi(patientId)
   const [detail, setDetail] = useState<DossierDetailTarget | null>(null)
+  // Instant figé au montage (rendu pur) pour juger « en cours » / « terminé ».
+  const [maintenant] = useState(() => Date.now())
   if (isError) return <ErreurChargement onRetry={() => { void refetch() }} />
   if (isLoading) return <Chargement />
   const traitements = data?.traitements ?? []
@@ -605,18 +618,42 @@ export function TraitementsTab({ patientId, historiqueRestreint = false }: Ongle
       {traitements.length === 0 ? (
         <EmptySection text={t(historiqueRestreint ? 'patients.suiviEmptyTraitementsEnCours' : 'patients.suiviEmptyTraitements')} />
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 680 }}>
-          {traitements.map((tr: SuiviTraitementItem) => (
-            <ClickableRow
-              key={tr.ligneId}
-              icon={<Pill size={14} />} tint="var(--ap-600)" bg="var(--ap-50)"
-              title={tr.medicament}
-              subtitle={`${tr.posologie} · ${tr.duree} · ${tr.voieAdmin}`}
-              badge={labelStatut('ordonnance', tr.statutOrdonnance)}
-              badgeTone={tr.statutOrdonnance === 'VALIDEE' ? 'success' : tr.statutOrdonnance === 'ANNULEE' ? 'error' : 'neutral'}
-              date={tr.date}
-              onClick={() => setDetail({ kind: 'ORDONNANCE', consultationId: tr.consultationId, ordonnanceId: tr.ordonnanceId })}
-            />
+        // Regroupé PAR ORDONNANCE (constat 82) : une ordonnance de 4 médicaments donnait 4
+        // lignes séparées, toutes « Validée », sans prescripteur, sans délivrance, et un
+        // traitement de 5 jours d'il y a deux ans ressemblait exactement à celui d'hier.
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 720 }}>
+          {grouperParOrdonnance(traitements).map(g => (
+            <div key={g.ordonnanceId} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 12, color: 'var(--texte-secondaire)' }}>
+                <span style={{ fontWeight: 600, color: 'var(--texte-primaire)' }}>
+                  {t('patients.ordonnanceDu', { date: formatDate(g.date) })}
+                </span>
+                {g.prescripteur && <span>· {nomSoignant(g.prescripteur, t)}</span>}
+                <StatusPill tone={g.delivrance === 'DELIVRE' ? 'success' : g.delivrance === 'EN_ATTENTE' ? 'warning' : 'neutral'}>
+                  {g.delivrance === 'DELIVRE'
+                    ? (g.delivreLe ? t('patients.delivreLe', { date: formatDate(g.delivreLe) }) : t('patients.delivre'))
+                    : g.delivrance === 'EN_ATTENTE' ? t('patients.nonDelivre') : t('patients.sansBonPharmacie')}
+                </StatusPill>
+              </div>
+              {g.lignes.map(tr => {
+                const fin = tr.finEstimee ? new Date(tr.finEstimee).getTime() : null
+                const enCours = fin != null && fin > maintenant
+                return (
+                  <ClickableRow
+                    key={tr.ligneId}
+                    icon={<Pill size={14} />} tint="var(--ap-600)" bg="var(--ap-50)"
+                    title={tr.medicament}
+                    subtitle={`${tr.posologie} · ${tr.duree} · ${tr.voieAdmin}`}
+                    badge={fin == null ? undefined : enCours
+                      ? t('patients.traitementEnCoursJusquau', { date: formatDate(tr.finEstimee!) })
+                      : t('patients.traitementTermine', { date: formatDate(tr.finEstimee!) })}
+                    badgeTone={enCours ? 'success' : 'neutral'}
+                    date={tr.date}
+                    onClick={() => setDetail({ kind: 'ORDONNANCE', consultationId: tr.consultationId, ordonnanceId: tr.ordonnanceId })}
+                  />
+                )
+              })}
+            </div>
           ))}
         </div>
       )}

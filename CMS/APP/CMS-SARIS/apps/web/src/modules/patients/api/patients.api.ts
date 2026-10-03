@@ -239,6 +239,12 @@ export interface SuiviTraitementItem {
   posologie:        string
   duree:            string
   voieAdmin:        string
+  prescripteur?:    { nom: string; prenom: string; role: string } | null
+  /** Bon de pharmacie lié : EN_ATTENTE | DELIVRE ; null = pas de bon. */
+  delivrance?:      string | null
+  delivreLe?:       string | null
+  /** Fin estimée d'après la durée ; null si la durée n'est pas lisible. */
+  finEstimee?:      string | null
 }
 
 export interface SuiviResultatExamenItem {

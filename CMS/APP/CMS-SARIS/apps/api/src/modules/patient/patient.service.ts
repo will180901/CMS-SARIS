@@ -74,6 +74,23 @@ export interface AlerteClinique {
  * parcours en cours, cote consultation, c'est donc exactement « statut OUVERTE » — la
  * meme regle que la liste des consultations et les documents du dossier.
  */
+/**
+ * Fin estimée d'un traitement à partir de sa durée en texte libre (« 30 jours »,
+ * « 2 semaines », « 1 mois », « 5 j »). `null` si la durée n'est pas lisible : on ne
+ * devine jamais une fin.
+ */
+function finDeTraitement(debut: Date, duree: string | null | undefined): Date | null {
+  const m = duree?.toLowerCase().match(/(\d+)\s*(jours?|j\b|semaines?|sem\b|mois)/)
+  if (!m) return null
+  const n = parseInt(m[1]!, 10)
+  if (!n) return null
+  const fin = new Date(debut)
+  if (m[2]!.startsWith('sem')) fin.setDate(fin.getDate() + n * 7)
+  else if (m[2]!.startsWith('mois')) fin.setMonth(fin.getMonth() + n)
+  else fin.setDate(fin.getDate() + n)
+  return fin
+}
+
 /** Identité saisie pour un travailleur CDI inconnu du registre. */
 interface NouvelEmployeSaisie {
   nom: string
@@ -1133,6 +1150,13 @@ export class PatientService {
               statut: true,
               consultationId: true,
               createdAt: true,
+              prescripteurId: true,
+              // Délivrance en pharmacie (constat 82) : le bon lié dit si le traitement a
+              // été remis au patient.
+              bonsPharmacie: {
+                where: { deletedAt: null, statut: { not: 'ANNULE' } },
+                select: { statut: true, delivreLe: true },
+              },
             },
           },
         },
@@ -1217,18 +1241,40 @@ export class PatientService {
       }),
     )
 
-    const traitements = lignesOrdonnance.map((l) => ({
-      ligneId: l.id,
-      ordonnanceId: l.ordonnance.id,
-      consultationId: l.ordonnance.consultationId,
-      date: l.ordonnance.createdAt,
-      statutOrdonnance: l.ordonnance.statut,
-      // Le where (medicamentId: { not: null }) garantit l.medicament non nul ici.
-      medicament: l.medicament!.nomCommercial || l.medicament!.nomGenerique,
-      posologie: l.posologie,
-      duree: l.duree,
-      voieAdmin: l.voieAdmin,
-    }))
+    // Prescripteur de chaque ordonnance (pas de relation Prisma : id nu).
+    const prescripteurIds = [
+      ...new Set(lignesOrdonnance.map((l) => l.ordonnance.prescripteurId)),
+    ]
+    const prescripteurs = prescripteurIds.length
+      ? await this.prisma.personnelMedical.findMany({
+          where: { id: { in: prescripteurIds } },
+          select: { id: true, nom: true, prenom: true, role: true },
+        })
+      : []
+    const prescripteurMap = new Map(prescripteurs.map((p) => [p.id, p] as const))
+
+    const traitements = lignesOrdonnance.map((l) => {
+      const bon = l.ordonnance.bonsPharmacie[0] ?? null
+      const pr = prescripteurMap.get(l.ordonnance.prescripteurId) ?? null
+      return {
+        ligneId: l.id,
+        ordonnanceId: l.ordonnance.id,
+        consultationId: l.ordonnance.consultationId,
+        date: l.ordonnance.createdAt,
+        statutOrdonnance: l.ordonnance.statut,
+        // Le where (medicamentId: { not: null }) garantit l.medicament non nul ici.
+        medicament: l.medicament!.nomCommercial || l.medicament!.nomGenerique,
+        posologie: l.posologie,
+        duree: l.duree,
+        voieAdmin: l.voieAdmin,
+        prescripteur: pr ? { nom: pr.nom, prenom: pr.prenom, role: pr.role } : null,
+        delivrance: bon ? bon.statut : null,
+        delivreLe: bon?.delivreLe ?? null,
+        // Fin estimée quand la durée est lisible (« 30 jours », « 2 semaines »…) :
+        // c'est elle qui permet de distinguer un traitement EN COURS d'un traitement fini.
+        finEstimee: finDeTraitement(l.ordonnance.createdAt, l.duree),
+      }
+    })
 
     const resultatsExamens = resultats.map((r) => ({
       id: r.id,
