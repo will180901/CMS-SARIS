@@ -59,6 +59,8 @@ export interface AddLignePayload {
   justification?: string
   /** Confirmation médicale explicite pour passer outre une contre-indication bloquante. */
   acknowledgeWarnings?: boolean
+  /** Séance de suivi : la ligne arrêtée de l'épisode que ce médicament remplace. */
+  remplaceLigneId?: string
 }
 
 export interface ConsultationQueryParams {

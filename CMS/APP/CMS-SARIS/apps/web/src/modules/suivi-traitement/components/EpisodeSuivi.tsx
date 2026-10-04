@@ -10,15 +10,16 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Activity, CalendarClock, ClipboardList, FlaskConical, Pill, Stethoscope, PenLine, ArrowUpRight, Loader2, FileText } from 'lucide-react'
-import { Button, StatusPill, SegmentedTabs, DatePicker, EmptyState } from '@/components/saris'
+import { Activity, CalendarClock, ClipboardList, FlaskConical, Pill, Stethoscope, PenLine, ArrowUpRight, Loader2, FileText, Syringe, Replace, OctagonX, X } from 'lucide-react'
+import { Button, StatusPill, SegmentedTabs, DatePicker, EmptyState, Modal, MotifDialog, Field, TextInput, Textarea } from '@/components/saris'
+import { useSessionStore } from '@/stores/session.store'
 import { usePermissions } from '@/hooks/usePermissions'
 import { usePersistedState } from '@/hooks/usePersistedState'
-import { formatDate } from '@/lib/intl'
+import { formatDate, formatDateTime } from '@/lib/intl'
 import { todayISO } from '@/lib/validation'
 import { nomSoignant } from '@/lib/soignant'
 import { etatTraitement } from '@/lib/traitement'
-import { useEpisodeSuivi, useSetProchainControle, useCreerSeanceSuivi } from '../hooks/useSuiviTraitement'
+import { useEpisodeSuivi, useSetProchainControle, useCreerSeanceSuivi, useArreterTraitement, useAdministrer, useRetirerAdministration } from '../hooks/useSuiviTraitement'
 import { SuiviTraitementCard } from './SuiviTraitementCard'
 import { useBonExamen } from '@/modules/bon-examen/hooks/useBonExamen'
 import { SaisieResultatsModal } from '@/modules/bon-examen/components/ResultatsBon'
@@ -59,10 +60,8 @@ export function EpisodeSuivi({ suiviId }: { suiviId: string }) {
   const lancerSeance = (motif?: string) => creerSeance.mutate(motif, { onSuccess: r => ouvrirConsultation(r.consultationId) })
   const controleDepasse = !!suivi.prochainControle && new Date(suivi.prochainControle).getTime() < maintenant
 
-  const lignesTraitement = data.ordonnances
-    .filter(o => (o.typeOrdonnance ?? 'PHARMACEUTIQUE') === 'PHARMACEUTIQUE')
-    .flatMap(o => o.lignes.filter(l => l.medicament).map(l => ({ ligne: l, ord: o })))
-  const enCoursTraitements = lignesTraitement.filter(({ ligne, ord }) => etatTraitement(ligne, ord.createdAt, maintenant).etat !== 'TERMINE' && !ligne.arreteLe).length
+  const enCoursTraitements = lignesDeTraitement(data)
+    .filter(({ l, o }) => ['EN_COURS', 'INDETERMINE'].includes(etatTraitement(l, o.createdAt, maintenant).etat)).length
   const totalExamens = data.bons.reduce((n, b) => n + b.lignes.length, 0)
   const recus = data.bons.reduce((n, b) => n + b.lignes.filter(l => b.resultats.some(r => r.ligneExamenId === l.id) || b.resultats.some(r => !r.ligneExamenId)).length, 0)
 
@@ -126,7 +125,7 @@ export function EpisodeSuivi({ suiviId }: { suiviId: string }) {
       </div>
 
       {onglet === 'chrono' && <Chronologie data={data} onOuvrir={ouvrirConsultation} />}
-      {onglet === 'traitements' && <Traitements data={data} maintenant={maintenant} />}
+      {onglet === 'traitements' && <Traitements data={data} maintenant={maintenant} suiviId={suiviId} onSeance={lancerSeance} />}
       {onglet === 'examens' && <Examens data={data} peutPrescrire={peutSeance} onPrescrire={lancerSeance} enCoursDePrescription={creerSeance.isPending} />}
       {onglet === 'releves' && <SuiviTraitementCard consultationId={suivi.consultationId} suiviId={suiviId} />}
     </div>
@@ -146,7 +145,7 @@ function Chronologie({ data, onOuvrir }: { data: Episode; onOuvrir: (consultatio
   const evts: Evenement[] = []
   if (data.consultationInitiale) evts.push({ genre: 'rencontre', date: data.consultationInitiale.createdAt, r: data.consultationInitiale, rang: 0 })
   data.seances.forEach((s, i) => evts.push({ genre: 'rencontre', date: s.createdAt, r: s, rang: i + 1 }))
-  data.ordonnances.forEach(o => evts.push({ genre: 'ordonnance', date: o.createdAt, o }))
+  data.ordonnances.filter(o => o.statut === 'VALIDEE').forEach(o => evts.push({ genre: 'ordonnance', date: o.createdAt, o }))
   data.bons.forEach(b => b.resultats.forEach(r => {
     const examen = r.ligneExamenId ? b.lignes.find(l => l.id === r.ligneExamenId)?.typeExamen.libelle ?? '' : b.lignes.map(l => l.typeExamen.libelle).join(', ')
     evts.push({ genre: 'resultat', date: r.dateRealisation ?? r.createdAt, examen, contenu: r.contenu, anormal: r.anormal, realiseLe: r.dateRealisation })
@@ -232,32 +231,70 @@ function Chronologie({ data, onOuvrir }: { data: Episode; onOuvrir: (consultatio
 
 // ── Traitements ──────────────────────────────────────────────────────────────
 
-function Traitements({ data, maintenant }: { data: Episode; maintenant: number }) {
+type LigneT = { l: Episode['ordonnances'][number]['lignes'][number]; o: OrdonnanceEpisode }
+
+/** Lignes de médicaments PRESCRITES (ordonnance validée) de l'épisode, les plus récentes d'abord. */
+function lignesDeTraitement(data: Episode): LigneT[] {
+  return data.ordonnances
+    .filter(o => (o.typeOrdonnance ?? 'PHARMACEUTIQUE') === 'PHARMACEUTIQUE' && o.statut === 'VALIDEE')
+    .flatMap(o => o.lignes.filter(l => l.medicament).map(l => ({ l, o })))
+    .sort((a, b) => new Date(b.o.createdAt).getTime() - new Date(a.o.createdAt).getTime())
+}
+
+/**
+ * Chaque traitement avec son cycle de vie (en cours, terminé, arrêté, remplacé) et son
+ * évolution (prescrit, délivré, administrations, arrêt). Les gestes se font ici :
+ * administrer (soignant du suivi), arrêter ou remplacer (prescripteur).
+ */
+function Traitements({ data, maintenant, suiviId, onSeance }: {
+  data: Episode; maintenant: number; suiviId: string; onSeance: (motif: string) => void
+}) {
   const { t } = useTranslation()
+  const { has } = usePermissions()
+  const moi = useSessionStore(s => s.user?.id)
+  const arreter = useArreterTraitement(suiviId)
+  const administrer = useAdministrer(suiviId)
+  const retirer = useRetirerAdministration(suiviId)
+  const [ouverte, setOuverte] = useState<string | null>(null)
+  const [action, setAction] = useState<{ genre: 'administrer' | 'arreter' | 'remplacer'; ligne: LigneT } | null>(null)
+  const [dose, setDose] = useState('')
+  const [observation, setObservation] = useState('')
+
+  const enCours = data.suivi.statut === 'EN_COURS'
+  const peutAdministrer = enCours && has('suivi_traitement.update')
+  const peutArreter = enCours && has('suivi_traitement.update') && has('ordonnance.create')
+  const peutRemplacer = peutArreter && has('consultation.create')
   const rencontreDe = (consultationId: string) => {
     if (data.consultationInitiale?.id === consultationId) return t('suiviTraitement.consultationDepart')
     const i = data.seances.findIndex(s => s.id === consultationId)
     return i >= 0 ? t('suiviTraitement.seanceN', { n: i + 1 }) : ''
   }
-  const lignes = data.ordonnances
-    .filter(o => (o.typeOrdonnance ?? 'PHARMACEUTIQUE') === 'PHARMACEUTIQUE')
-    .flatMap(o => o.lignes.filter(l => l.medicament).map(l => ({ l, o })))
-    .sort((a, b) => new Date(b.o.createdAt).getTime() - new Date(a.o.createdAt).getTime())
+  const lignes = lignesDeTraitement(data)
+  const nomDe = (id: string | null) => lignes.find(x => x.l.id === id)?.l.medicament?.nomGenerique ?? ''
+  const fermer = () => { setAction(null); setDose(''); setObservation('') }
+
   if (lignes.length === 0) return <EmptyState icon={<Pill size={18} />} title={t('suiviTraitement.aucunTraitement')} variant="subtle" />
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {lignes.map(({ l, o }) => {
+      {lignes.map(x => {
+        const { l, o } = x
+        const nom = l.medicament!.nomGenerique
         const { etat, fin } = etatTraitement(l, o.createdAt, maintenant)
+        const actif = etat === 'EN_COURS' || etat === 'INDETERMINE'
         const delivre = o.bonsPharmacie.find(b => b.statut === 'DELIVRE')
+        const remplacante = l.remplaceParId ? nomDe(l.remplaceParId) : ''
+        const remplacee = lignes.find(y => y.l.remplaceParId === l.id)?.l.medicament?.nomGenerique
         const derniere = l.administrations[0]
+        const evolutionOuverte = ouverte === l.id
         return (
-          <div key={l.id} style={{ ...carte, opacity: etat === 'TERMINE' || etat === 'ARRETE' ? 0.75 : 1 }}>
+          <div key={l.id} style={{ ...carte, opacity: actif ? 1 : 0.8 }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <Pill size={13} style={{ color: 'var(--ap-600)' }} />
-              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--texte-primaire)' }}>{l.medicament!.nomGenerique}</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--texte-primaire)' }}>{nom}</span>
               {l.medicament!.nomCommercial && <span style={petit}>({l.medicament!.nomCommercial})</span>}
               <span style={{ marginLeft: 'auto' }}>
-                {etat === 'ARRETE' ? <StatusPill tone="neutral">{t('suiviTraitement.etatArrete', { date: formatDate(fin!) })}</StatusPill>
+                {etat === 'REMPLACE' ? <StatusPill tone="neutral">{t('suiviTraitement.etatRemplace', { date: formatDate(fin!) })}</StatusPill>
+                  : etat === 'ARRETE' ? <StatusPill tone="warning">{t('suiviTraitement.etatArrete', { date: formatDate(fin!) })}</StatusPill>
                   : etat === 'TERMINE' ? <StatusPill tone="success">{t('suiviTraitement.etatTermine', { date: formatDate(fin!) })}</StatusPill>
                   : etat === 'EN_COURS' ? <StatusPill tone="info">{t('suiviTraitement.etatEnCours', { date: formatDate(fin!) })}</StatusPill>
                   : <StatusPill tone="info">{t('suiviTraitement.etatEnCoursSansFin')}</StatusPill>}
@@ -269,15 +306,117 @@ function Traitements({ data, maintenant }: { data: Episode; maintenant: number }
               {o.prescripteur ? ` · ${nomSoignant(o.prescripteur, t)}` : ''}
               {' · '}{delivre ? t('suiviTraitement.delivreLe', { date: delivre.delivreLe ? formatDate(delivre.delivreLe) : '—' }) : t('suiviTraitement.nonDelivre')}
             </span>
-            {l.arreteLe && l.motifArret && <span style={{ fontSize: 12, color: 'var(--avert-texte)' }}>{t('suiviTraitement.motifArret', { motif: l.motifArret })}</span>}
-            <span style={petit}>
-              {l.administrations.length === 0
-                ? t('suiviTraitement.aucuneAdministration')
-                : t('suiviTraitement.administrations', { count: l.administrations.length, date: formatDate(derniere.administreLe), auteur: derniere.auteurNom ?? '—' })}
+            {remplacee && <span style={{ fontSize: 12, color: 'var(--texte-secondaire)' }}>{t('suiviTraitement.remplaceLigne', { medicament: remplacee })}</span>}
+            {l.arreteLe && (
+              <span style={{ fontSize: 12, color: 'var(--avert-texte)' }}>
+                {l.motifArret ? t('suiviTraitement.motifArret', { motif: l.motifArret }) : ''}
+                {l.arreteParNom ? ` · ${t('suiviTraitement.arretePar', { auteur: l.arreteParNom })}` : ''}
+                {remplacante ? ` · ${t('suiviTraitement.remplacePar', { medicament: remplacante })}` : ''}
+              </span>
+            )}
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 2 }}>
+              <span style={petit}>
+                {l.administrations.length === 0
+                  ? t('suiviTraitement.aucuneAdministration')
+                  : t('suiviTraitement.administrations', { count: l.administrations.length, date: formatDate(derniere.administreLe), auteur: derniere.auteurNom ?? '—' })}
+              </span>
+              <button type="button" onClick={() => setOuverte(evolutionOuverte ? null : l.id)}
+                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--ap-600)' }}>
+                {evolutionOuverte ? t('suiviTraitement.masquerEvolution') : t('suiviTraitement.voirEvolution')}
+              </button>
+              <span style={{ marginLeft: 'auto', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {actif && peutAdministrer && <Button size="sm" variant="outline" leftIcon={<Syringe size={12} />} onClick={() => setAction({ genre: 'administrer', ligne: x })}>{t('suiviTraitement.administrer')}</Button>}
+                {actif && peutRemplacer && <Button size="sm" variant="ghost" leftIcon={<Replace size={12} />} onClick={() => setAction({ genre: 'remplacer', ligne: x })}>{t('suiviTraitement.remplacer')}</Button>}
+                {actif && peutArreter && <Button size="sm" variant="ghost" leftIcon={<OctagonX size={12} />} onClick={() => setAction({ genre: 'arreter', ligne: x })}>{t('suiviTraitement.arreter')}</Button>}
+              </span>
             </span>
+            {evolutionOuverte && (
+              <ul style={{ margin: '6px 0 0', paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {l.arreteLe && (
+                  <li style={{ fontSize: 12, color: 'var(--avert-texte)' }}>
+                    {t('suiviTraitement.evolutionArrete', { date: formatDate(l.arreteLe), motif: l.motifArret ?? '—' })}
+                  </li>
+                )}
+                {l.administrations.map(a => (
+                  <li key={a.id} style={{ fontSize: 12, color: 'var(--texte-secondaire)' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      {t('suiviTraitement.evolutionAdministre', {
+                        date: formatDateTime(a.administreLe, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+                        dose: a.dose ? ` · ${a.dose}` : '',
+                        auteur: a.auteurNom ?? '—',
+                      })}
+                      {a.observation && <em style={{ color: 'var(--texte-tertiaire)' }}>« {a.observation} »</em>}
+                      {a.createdBy === moi && enCours && (
+                        <button type="button" title={t('suiviTraitement.retirerAdministration')} aria-label={t('suiviTraitement.retirerAdministration')}
+                          disabled={retirer.isPending} onClick={() => retirer.mutate(a.id)}
+                          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'var(--texte-tertiaire)', display: 'inline-flex' }}>
+                          <X size={12} />
+                        </button>
+                      )}
+                    </span>
+                  </li>
+                ))}
+                {delivre?.delivreLe && <li style={{ fontSize: 12, color: 'var(--texte-secondaire)' }}>{t('suiviTraitement.evolutionDelivre', { date: formatDate(delivre.delivreLe) })}</li>}
+                <li style={{ fontSize: 12, color: 'var(--texte-secondaire)' }}>{t('suiviTraitement.evolutionPrescrit', { date: formatDate(o.createdAt) })}</li>
+              </ul>
+            )}
           </div>
         )
       })}
+
+      {action?.genre === 'administrer' && (
+        <Modal
+          icon={<Syringe size={16} />}
+          title={t('suiviTraitement.administrerTitre')}
+          subtitle={t('suiviTraitement.administrerSousTitre', { medicament: action.ligne.l.medicament!.nomGenerique, posologie: action.ligne.l.posologie ?? '' })}
+          width={460}
+          onClose={fermer}
+          footer={<>
+            <Button variant="secondary" onClick={fermer}>{t('suiviTraitement.cancelForm')}</Button>
+            <Button variant="primary" leftIcon={<Syringe size={14} />} loading={administrer.isPending}
+              onClick={() => administrer.mutate(
+                { ligneOrdonnanceId: action.ligne.l.id, dose: dose.trim() || undefined, observation: observation.trim() || undefined },
+                { onSuccess: fermer },
+              )}>
+              {t('suiviTraitement.save')}
+            </Button>
+          </>}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <Field label={t('suiviTraitement.fieldDose')}>
+              {(id) => <TextInput id={id} size="sm" maxLength={200} value={dose} onChange={e => setDose(e.target.value)} placeholder={t('suiviTraitement.dosePlaceholder')} />}
+            </Field>
+            <Field label={t('suiviTraitement.fieldObservation')}>
+              {(id) => <Textarea id={id} rows={2} maxLength={1000} value={observation} onChange={e => setObservation(e.target.value)} placeholder={t('suiviTraitement.observationPlaceholder')} />}
+            </Field>
+          </div>
+        </Modal>
+      )}
+
+      {(action?.genre === 'arreter' || action?.genre === 'remplacer') && (
+        <MotifDialog
+          icon={action.genre === 'arreter' ? <OctagonX size={16} /> : <Replace size={16} />}
+          title={t(action.genre === 'arreter' ? 'suiviTraitement.arreterTitre' : 'suiviTraitement.remplacerTitre')}
+          subtitle={`${action.ligne.l.medicament!.nomGenerique} — ${t(action.genre === 'arreter' ? 'suiviTraitement.arreterSousTitre' : 'suiviTraitement.remplacerSousTitre')}`}
+          label={t(action.genre === 'arreter' ? 'suiviTraitement.motifArretLabel' : 'suiviTraitement.motifRemplacementLabel')}
+          placeholder={t('suiviTraitement.motifArretPlaceholder')}
+          confirmLabel={t(action.genre === 'arreter' ? 'suiviTraitement.arreter' : 'suiviTraitement.remplacer')}
+          confirmIcon={action.genre === 'arreter' ? <OctagonX size={14} /> : <Replace size={14} />}
+          danger={action.genre === 'arreter'}
+          loading={arreter.isPending}
+          onConfirm={motif => {
+            const { l } = action.ligne
+            const remplacer = action.genre === 'remplacer'
+            arreter.mutate({ ligneId: l.id, motifArret: motif }, {
+              onSuccess: () => {
+                fermer()
+                if (remplacer) onSeance(t('suiviTraitement.motifRemplacement', { medicament: l.medicament!.nomGenerique, motif }))
+              },
+            })
+          }}
+          onClose={fermer}
+        />
+      )}
     </div>
   )
 }

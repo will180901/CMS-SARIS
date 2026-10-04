@@ -150,6 +150,9 @@ export class UpdateOrdonnanceDto {
 // vérifie ce qui est effectivement requis selon le typeOrdonnance de l'ordonnance ciblée.
 
 export class AddLigneOrdonnanceDto {
+  /** Séance de suivi : la ligne arrêtée de l'épisode que ce médicament remplace. */
+  @IsOptional() @IsUUID() remplaceLigneId?: string
+
   // ── Branche PHARMACEUTIQUE ──
   @IsOptional() @IsUUID() medicamentId?: string
   @IsOptional() @IsString() @MaxLength(500) posologie?: string

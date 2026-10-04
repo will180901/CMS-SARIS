@@ -18,6 +18,7 @@ export function consultationCascadeDeleteOps(
 ): Prisma.PrismaPromise<unknown>[] {
   const where = { consultationId }
   return [
+    prisma.administrationTraitement.deleteMany({ where: { ligneOrdonnance: { ordonnance: where } } }),
     prisma.ligneOrdonnance.deleteMany({ where: { ordonnance: where } }),
     prisma.ordonnance.deleteMany({ where }),
     prisma.ligneExamen.deleteMany({ where: { bon: where } }),

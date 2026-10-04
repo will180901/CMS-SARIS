@@ -1,4 +1,8 @@
+import { Type } from 'class-transformer'
 import {
+  ArrayMaxSize,
+  IsArray,
+  ValidateNested,
   IsDateString,
   IsUUID,
   IsString,
@@ -37,13 +41,53 @@ export class AddFicheSuiviDto {
   @MaxLength(2000)
   noteEvolution?: string
 
+  /** Ancien texte libre — n'est plus saisi (remplacé par `administrations`), gardé pour
+   *  les postes pas encore mis à jour et pour relire les fiches anciennes. */
   @IsOptional()
   @IsString()
   @MaxLength(1000)
   medicamentsAdministres?: string
 
+  /** Traitements prescrits administrés lors de ce relevé (case cochée = administré). */
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(50)
+  @ValidateNested({ each: true })
+  @Type(() => AdministrationLigneDto)
+  administrations?: AdministrationLigneDto[]
+
   // Plus de « résultat d'examen » en texte libre : un résultat ne se saisit que sur
   // l'examen prescrit (bon d'examen). Les anciennes valeurs restent lisibles.
+}
+
+export class AdministrationLigneDto {
+  @IsUUID()
+  ligneOrdonnanceId!: string
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  dose?: string
+}
+
+/** Une administration notée seule (hors relevé). */
+export class AdministrerDto extends AdministrationLigneDto {
+  @IsOptional()
+  @IsDateString()
+  administreLe?: string
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  observation?: string
+}
+
+/** Arrêt d'un traitement avant sa fin prévue. */
+export class ArreterTraitementDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(500)
+  motifArret!: string
 }
 
 export class CloturerSuiviTraitementDto {

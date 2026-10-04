@@ -256,6 +256,10 @@ export interface SuiviTraitementItem {
   delivreLe?:       string | null
   /** Fin estimée d'après la durée ; null si la durée n'est pas lisible. */
   finEstimee?:      string | null
+  /** Arrêté avant sa fin prévue (date, motif) ; remplacé par un autre traitement. */
+  arreteLe?:        string | null
+  motifArret?:      string | null
+  remplace?:        boolean
 }
 
 export interface SuiviResultatExamenItem {

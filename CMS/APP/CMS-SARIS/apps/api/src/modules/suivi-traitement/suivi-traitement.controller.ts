@@ -22,7 +22,9 @@ import {
 } from './suivi-traitement.service'
 import { JwtAuthGuard } from '../security/guards/jwt-auth.guard'
 import { PermissionsGuard } from '../security/guards/permissions.guard'
-import { RequirePermissions } from '../../common/decorators/require-permissions.decorator'
+import { RequirePermissions, RequireAllPermissions } from '../../common/decorators/require-permissions.decorator'
+import { assertPeutPrescrire } from '../../common/prescription'
+import { PrismaService } from '../../prisma/prisma.service'
 import { Audit } from '../../common/decorators/audit.decorator'
 import {
   CreateSuiviTraitementDto,
@@ -31,10 +33,12 @@ import {
   AnnulerSuiviTraitementDto,
   SuiviTraitementQueryDto,
   ProchainControleDto,
+  AdministrerDto,
+  ArreterTraitementDto,
 } from './dto/suivi-traitement.dto'
 
 interface AuthedRequest {
-  user?: { id?: string; roles?: string[]; permissions?: string[] }
+  user?: { id?: string; roles?: string[]; permissions?: string[]; personnelMedicalId?: string | null }
 }
 
 // Même règle que le dossier patient (patient.controller) : la supervision voit tout,
@@ -53,7 +57,10 @@ function portee(req: AuthedRequest): PorteeSuivi {
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Audit('suivi_traitement', 'Suivi de traitement')
 export class SuiviTraitementController {
-  constructor(private readonly svc: SuiviTraitementService) {}
+  constructor(
+    private readonly svc: SuiviTraitementService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   @Get()
   @RequirePermissions('suivi_traitement.read')
@@ -103,6 +110,47 @@ export class SuiviTraitementController {
   ) {
     await this.svc.assertModifiable(id, portee(req))
     return this.svc.addFiche(id, dto, req.user?.id ?? 'unknown')
+  }
+
+  /** Arrêter un traitement : décision de prescripteur (même droit que prescrire). */
+  @Patch(':id/traitements/:ligneId/arret')
+  @RequireAllPermissions('suivi_traitement.update', 'ordonnance.create')
+  async arreterTraitement(
+    @Param('id') id: string,
+    @Param('ligneId') ligneId: string,
+    @Body() dto: ArreterTraitementDto,
+    @Req() req: AuthedRequest,
+  ) {
+    await this.svc.assertModifiable(id, portee(req))
+    await assertPeutPrescrire(this.prisma, {
+      roles: req.user?.roles ?? [],
+      personnelMedicalId: req.user?.personnelMedicalId ?? null,
+    })
+    return this.svc.arreterTraitement(id, ligneId, dto, req.user?.id ?? 'unknown')
+  }
+
+  /** Noter une administration (prise, injection…) d'un traitement prescrit. */
+  @Post(':id/administrations')
+  @RequirePermissions('suivi_traitement.update')
+  @HttpCode(HttpStatus.CREATED)
+  async administrer(
+    @Param('id') id: string,
+    @Body() dto: AdministrerDto,
+    @Req() req: AuthedRequest,
+  ) {
+    await this.svc.assertModifiable(id, portee(req))
+    return this.svc.administrer(id, dto, req.user?.id ?? 'unknown')
+  }
+
+  @Delete(':id/administrations/:administrationId')
+  @RequirePermissions('suivi_traitement.update')
+  async retirerAdministration(
+    @Param('id') id: string,
+    @Param('administrationId') administrationId: string,
+    @Req() req: AuthedRequest,
+  ) {
+    await this.svc.assertModifiable(id, portee(req))
+    return this.svc.retirerAdministration(id, administrationId, req.user?.id ?? 'unknown')
   }
 
   @Patch(':id/fiches/:ficheId')

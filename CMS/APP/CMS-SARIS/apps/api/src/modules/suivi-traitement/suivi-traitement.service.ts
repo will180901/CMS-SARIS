@@ -34,6 +34,9 @@ import {
   AnnulerSuiviTraitementDto,
   SuiviTraitementQueryDto,
   ProchainControleDto,
+  AdministrerDto,
+  AdministrationLigneDto,
+  ArreterTraitementDto,
 } from './dto/suivi-traitement.dto'
 
 /** Une rencontre de l'épisode (consultation de départ ou séance de suivi). */
@@ -93,6 +96,9 @@ const FICHE_FIELDS = [
   'noteEvolution',
   'medicamentsAdministres',
 ] as const
+
+/** Jour (UTC) d'une date — comparaison « pas avant le jour de la prescription ». */
+const jour = (d: Date) => d.toISOString().slice(0, 10)
 
 @Injectable()
 export class SuiviTraitementService {
@@ -221,7 +227,7 @@ export class SuiviTraitementService {
               administrations: {
                 where: { deletedAt: null },
                 orderBy: { administreLe: 'desc' },
-                select: { id: true, administreLe: true, dose: true, observation: true, createdBy: true },
+                select: { id: true, administreLe: true, dose: true, observation: true, createdBy: true, ficheId: true },
               },
             },
           },
@@ -252,7 +258,7 @@ export class SuiviTraitementService {
       select: { id: true, nom: true, prenom: true, role: true },
     })
     const nomPresc = new Map(prescripteurs.map((p) => [p.id, p]))
-    const auteursIds = [...new Set(ordonnances.flatMap((o) => o.lignes.flatMap((l) => l.administrations.map((a) => a.createdBy))).filter((x): x is string => !!x))]
+    const auteursIds = [...new Set(ordonnances.flatMap((o) => o.lignes.flatMap((l) => [...l.administrations.map((a) => a.createdBy), l.arretePar])).filter((x): x is string => !!x))]
     const auteurs = auteursIds.length
       ? await this.prisma.utilisateur.findMany({
           where: { id: { in: auteursIds } },
@@ -279,6 +285,7 @@ export class SuiviTraitementService {
         lignes: o.lignes.map((l) => ({
           ...l,
           administrations: l.administrations.map((a) => ({ ...a, auteurNom: a.createdBy ? nomAuteur.get(a.createdBy) ?? null : null })),
+          arreteParNom: l.arretePar ? nomAuteur.get(l.arretePar) ?? null : null,
         })),
       })),
       bons,
@@ -408,7 +415,9 @@ export class SuiviTraitementService {
         'Suivi de traitement déjà ' + s.statut.toLowerCase(),
       )
     }
+    const administrations = dto.administrations ?? []
     if (
+      administrations.length === 0 &&
       !FICHE_FIELDS.some(
         (f) => dto[f] !== undefined && dto[f] !== null && dto[f] !== '',
       )
@@ -417,8 +426,12 @@ export class SuiviTraitementService {
         'Une fiche de suivi doit contenir au moins une information (constante, note, médicament ou résultat)',
       )
     }
+    const maintenant = new Date()
+    for (const a of administrations) await this.ligneAdministrable(id, a.ligneOrdonnanceId, maintenant)
+    if (new Set(administrations.map((a) => a.ligneOrdonnanceId)).size !== administrations.length)
+      throw new BadRequestException('Un même traitement apparaît deux fois dans le relevé')
 
-    await this.prisma.ficheSuiviTraitement.create({
+    const fiche = await this.prisma.ficheSuiviTraitement.create({
       data: {
         suiviTraitementId: id,
         temperature: dto.temperature ?? null,
@@ -433,7 +446,109 @@ export class SuiviTraitementService {
         createdBy: acteurId,
       },
     })
+    if (administrations.length)
+      await this.prisma.administrationTraitement.createMany({
+        data: administrations.map((a) => ({
+          ligneOrdonnanceId: a.ligneOrdonnanceId,
+          suiviTraitementId: id,
+          ficheId: fiche.id,
+          administreLe: maintenant,
+          dose: a.dose?.trim() || null,
+          createdBy: acteurId,
+        })),
+      })
     return this.getOrThrow(id)
+  }
+
+  // ── Évolution des traitements : arrêt, administrations ─────────────────────
+
+  /**
+   * Une ligne de traitement de CET épisode : prescrite à la consultation de départ ou à
+   * l'une de ses séances, sur une ordonnance de médicaments validée.
+   */
+  private async ligneDeLEpisode(id: string, ligneId: string) {
+    const s = await this.getOrThrow(id)
+    const ligne = await this.prisma.ligneOrdonnance.findFirst({
+      where: { id: ligneId },
+      include: {
+        ordonnance: { select: { statut: true, createdAt: true, consultationId: true, typeOrdonnance: true } },
+        medicament: { select: { nomGenerique: true } },
+      },
+    })
+    if (!ligne) throw new NotFoundException('Traitement introuvable')
+    const c = await this.prisma.consultation.findFirst({
+      where: { id: ligne.ordonnance.consultationId },
+      select: { id: true, episodeSuiviId: true },
+    })
+    if (!c || (c.id !== s.consultationId && c.episodeSuiviId !== id))
+      throw new BadRequestException("Ce traitement n'a pas été prescrit dans ce suivi")
+    if (!ligne.medicamentId || (ligne.ordonnance.typeOrdonnance ?? 'PHARMACEUTIQUE') !== 'PHARMACEUTIQUE')
+      throw new BadRequestException("Seul un médicament prescrit s'administre ou s'arrête")
+    if (ligne.ordonnance.statut !== 'VALIDEE')
+      throw new ConflictException("L'ordonnance de ce traitement n'est pas validée")
+    return { suivi: s, ligne }
+  }
+
+  /** Un traitement s'administre tant qu'il n'est pas arrêté, jamais avant sa prescription. */
+  private async ligneAdministrable(id: string, ligneId: string, le: Date) {
+    const { suivi, ligne } = await this.ligneDeLEpisode(id, ligneId)
+    if (suivi.statut !== 'EN_COURS')
+      throw new ConflictException('Suivi clôturé ou annulé : plus aucune administration ne s’y note')
+    const nom = ligne.medicament?.nomGenerique ?? 'ce traitement'
+    if (ligne.arreteLe && le.getTime() > ligne.arreteLe.getTime())
+      throw new ConflictException(`${nom} a été arrêté : il ne s'administre plus`)
+    if (jour(le) < jour(ligne.ordonnance.createdAt))
+      throw new BadRequestException(`${nom} n'était pas encore prescrit à cette date`)
+    return ligne
+  }
+
+  /** Note une administration (prise, injection…) d'un traitement prescrit. */
+  async administrer(id: string, dto: AdministrerDto, acteurId: string) {
+    const le = dto.administreLe ? new Date(dto.administreLe) : new Date()
+    if (Number.isNaN(le.getTime())) throw new BadRequestException("Date d'administration invalide")
+    if (le.getTime() > Date.now() + 60_000)
+      throw new BadRequestException("Une administration ne peut pas être notée dans le futur")
+    await this.ligneAdministrable(id, dto.ligneOrdonnanceId, le)
+    await this.prisma.administrationTraitement.create({
+      data: {
+        ligneOrdonnanceId: dto.ligneOrdonnanceId,
+        suiviTraitementId: id,
+        administreLe: le,
+        dose: dto.dose?.trim() || null,
+        observation: dto.observation?.trim() || null,
+        createdBy: acteurId,
+      },
+    })
+    return { ok: true }
+  }
+
+  /** Retire une administration notée par erreur — par son auteur uniquement. */
+  async retirerAdministration(id: string, administrationId: string, acteurId: string) {
+    const a = await this.prisma.administrationTraitement.findFirst({
+      where: { id: administrationId, suiviTraitementId: id },
+    })
+    if (!a) throw new NotFoundException('Administration introuvable')
+    if (a.createdBy !== acteurId)
+      throw new ForbiddenException("Seul le soignant qui l'a notée peut retirer cette administration")
+    await this.prisma.administrationTraitement.delete({ where: { id: administrationId } })
+    return { deleted: true }
+  }
+
+  /**
+   * Arrête un traitement avant sa fin prévue (effet indésirable, inefficacité, guérison…).
+   * Date, motif et auteur restent visibles dans l'épisode. Un remplacement se prescrit
+   * ensuite dans une séance de suivi ; la nouvelle ligne y désigne celle qu'elle remplace.
+   */
+  async arreterTraitement(id: string, ligneId: string, dto: ArreterTraitementDto, acteurId: string) {
+    const { suivi, ligne } = await this.ligneDeLEpisode(id, ligneId)
+    if (suivi.statut !== 'EN_COURS')
+      throw new ConflictException('Suivi clôturé ou annulé : ses traitements ne se modifient plus')
+    if (ligne.arreteLe) throw new ConflictException('Ce traitement est déjà arrêté')
+    await this.prisma.ligneOrdonnance.update({
+      where: { id: ligneId },
+      data: { arreteLe: new Date(), motifArret: dto.motifArret.trim(), arretePar: acteurId },
+    })
+    return { ok: true }
   }
 
   /**

@@ -297,6 +297,8 @@ export const consultation = {
     evacGenerated: 'Fiche d\'évacuation générée.',
     suiviGenerated: 'Suivi de traitement généré.',
     viewInDocuments: 'Voir dans Documents',
+    remplaceLabel: 'Remplace un traitement arrêté (facultatif)',
+    remplaceAucun: 'Aucun — nouveau traitement',
   },
   en: {
     // ── Queue / consultations page ──────────────────────────────────
@@ -592,5 +594,7 @@ export const consultation = {
     evacGenerated: 'Evacuation form generated.',
     suiviGenerated: 'Treatment follow-up generated.',
     viewInDocuments: 'View in Documents',
+    remplaceLabel: 'Replaces a stopped treatment (optional)',
+    remplaceAucun: 'None — new treatment',
   },
 }

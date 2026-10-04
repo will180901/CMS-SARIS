@@ -1078,9 +1078,14 @@ export class ConsultationService {
           closedAt: new Date(),
         },
       })
+      // Séance de suivi : son passage n'a été ouvert QUE pour elle, sans triage — il est
+      // annulé avec elle, au lieu d'atterrir dans la file du triage (il y bloquerait aussi
+      // toute nouvelle séance du patient).
       await tx.visite.update({
         where: { id: c.visiteId },
-        data: { statut: 'EN_ATTENTE', typeCloture: null, dateCloture: null },
+        data: c.episodeSuiviId
+          ? { statut: 'ANNULEE', motifAnnulation: `Séance de suivi annulée : ${dto.motifAnnulation}`.slice(0, 1000), dateCloture: new Date() }
+          : { statut: 'EN_ATTENTE', typeCloture: null, dateCloture: null },
       })
       // CASCADE. Une consultation annulée ne laisse plus d'actes VIVANTS derrière elle.
       // Avant, ses ordonnances restaient « Validée », ses bons « En attente » (un bon de
@@ -1130,6 +1135,25 @@ export class ConsultationService {
         'Clôturez ou annulez la consultation avant de la supprimer',
       )
     }
+    // Consultation de départ d'un suivi qui a des séances : celles-ci (consultations
+    // signées, avec leurs prescriptions) perdraient leur épisode.
+    const episode = await this.prisma.suiviTraitement.findFirst({ where: { consultationId: id }, select: { id: true } })
+    const seances = episode
+      ? await this.prisma.consultation.count({ where: { episodeSuiviId: episode.id, statut: { not: 'ANNULEE' } } })
+      : 0
+    if (seances > 0)
+      throw new ConflictException(
+        'Des séances de suivi se rattachent au suivi ouvert par cette consultation : elle ne peut pas être supprimée.',
+      )
+    // Ses lignes ne remplacent plus rien (le traitement remplacé redevient « à remplacer »).
+    const lignesSupprimees = await this.prisma.ligneOrdonnance.findMany({
+      where: { ordonnance: { consultationId: id } },
+      select: { id: true },
+    })
+    await this.prisma.ligneOrdonnance.updateMany({
+      where: { remplaceParId: { in: lignesSupprimees.map((l) => l.id) } },
+      data: { remplaceParId: null },
+    })
     // Suppression réellement DÉFINITIVE : passe par le client BRUT (`this.prisma.raw`) pour
     // contourner l'extension soft-delete — sinon Consultation/Ordonnance/BonExamen/… (tous
     // dans l'allow-list) deviendraient de simples tombstones (update deletedAt) au lieu
@@ -1299,6 +1323,10 @@ export class ConsultationService {
       })
     }
 
+    // Remplacement : seulement dans une séance, d'un traitement ARRÊTÉ de son épisode, pas
+    // déjà remplacé.
+    if (dto.remplaceLigneId) await this.assertRemplacable(c.episodeSuiviId, dto.remplaceLigneId)
+
     const ligne = await this.prisma.ligneOrdonnance.create({
       data: {
         ordonnanceId,
@@ -1313,9 +1341,40 @@ export class ConsultationService {
       include: LIGNE_INCLUDE,
     })
 
+    if (dto.remplaceLigneId)
+      await this.prisma.ligneOrdonnance.update({
+        where: { id: dto.remplaceLigneId },
+        data: { remplaceParId: ligne.id },
+      })
+
     // On renvoie les warnings au front pour qu'il puisse les afficher
     // après ajout réussi (en cas de gravité moindre).
     return warnings.length > 0 ? { ...ligne, _warnings: warnings } : ligne
+  }
+
+  /** Ligne arrêtée de l'épisode de la séance, sans remplaçant. */
+  private async assertRemplacable(episodeSuiviId: string | null, ligneId: string) {
+    if (!episodeSuiviId)
+      throw new BadRequestException('Un remplacement de traitement se prescrit dans une séance de suivi')
+    const suivi = await this.prisma.suiviTraitement.findFirst({
+      where: { id: episodeSuiviId },
+      select: { consultationId: true },
+    })
+    const ancienne = await this.prisma.ligneOrdonnance.findFirst({
+      where: { id: ligneId },
+      select: { arreteLe: true, remplaceParId: true, ordonnance: { select: { consultationId: true } } },
+    })
+    if (!suivi || !ancienne) throw new NotFoundException('Traitement à remplacer introuvable')
+    const rencontre = await this.prisma.consultation.findFirst({
+      where: { id: ancienne.ordonnance.consultationId },
+      select: { id: true, episodeSuiviId: true },
+    })
+    if (!rencontre || (rencontre.id !== suivi.consultationId && rencontre.episodeSuiviId !== episodeSuiviId))
+      throw new BadRequestException("Le traitement à remplacer n'appartient pas à ce suivi")
+    if (!ancienne.arreteLe)
+      throw new ConflictException("Arrêtez d'abord le traitement à remplacer")
+    if (ancienne.remplaceParId)
+      throw new ConflictException('Ce traitement a déjà été remplacé')
   }
 
   /**
@@ -1431,6 +1490,10 @@ export class ConsultationService {
       throw new NotFoundException('Ligne introuvable')
     }
 
+    await this.prisma.ligneOrdonnance.updateMany({
+      where: { remplaceParId: ligneId },
+      data: { remplaceParId: null },
+    })
     return this.prisma.ligneOrdonnance.delete({ where: { id: ligneId } })
   }
 
@@ -1461,7 +1524,12 @@ export class ConsultationService {
       )
     }
 
+    const lignes = await this.prisma.ligneOrdonnance.findMany({ where: { ordonnanceId }, select: { id: true } })
     await this.prisma.$transaction([
+      this.prisma.ligneOrdonnance.updateMany({
+        where: { remplaceParId: { in: lignes.map((l) => l.id) } },
+        data: { remplaceParId: null },
+      }),
       this.prisma.ligneOrdonnance.deleteMany({ where: { ordonnanceId } }),
       this.prisma.ordonnance.delete({ where: { id: ordonnanceId } }),
     ])

@@ -141,6 +141,8 @@ export const SYNC_MODELS: readonly SyncModelDef[] = [
   def('SuiviTraitement', 'suiviTraitement', GLOBAL),
   // Fiches de suivi (migration 20261003090000) — après SuiviTraitement (FK).
   def('FicheSuiviTraitement', 'ficheSuiviTraitement', GLOBAL),
+  // Administrations d'un traitement (migration 20261004090000) — après LigneOrdonnance (FK).
+  def('AdministrationTraitement', 'administrationTraitement', GLOBAL),
   def('CertificatMedical', 'certificatMedical', GLOBAL),
 
   // ── Messagerie (scope site via conversation) ──────────────────────────────

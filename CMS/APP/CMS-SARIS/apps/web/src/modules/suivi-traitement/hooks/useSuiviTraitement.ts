@@ -138,3 +138,44 @@ export function useCreerSeanceSuivi(id: string) {
     onError: toastErr,
   })
 }
+
+// ── Évolution des traitements : arrêt, administrations ──────────────────────
+
+export function useArreterTraitement(id: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ ligneId, motifArret }: { ligneId: string; motifArret: string }) =>
+      suiviTraitementApi.arreterTraitement(id, ligneId, motifArret),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: SUIVI_TRAITEMENT_KEY })
+      qc.invalidateQueries({ queryKey: ['patients'] })
+      toast.success(i18n.t('suiviTraitement.toastArrete'))
+    },
+    onError: toastErr,
+  })
+}
+
+export function useAdministrer(id: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: { ligneOrdonnanceId: string; dose?: string; observation?: string }) =>
+      suiviTraitementApi.administrer(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: SUIVI_TRAITEMENT_KEY })
+      toast.success(i18n.t('suiviTraitement.toastAdministre'))
+    },
+    onError: toastErr,
+  })
+}
+
+export function useRetirerAdministration(id: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (administrationId: string) => suiviTraitementApi.retirerAdministration(id, administrationId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: SUIVI_TRAITEMENT_KEY })
+      toast.success(i18n.t('suiviTraitement.toastAdministrationRetiree'))
+    },
+    onError: toastErr,
+  })
+}

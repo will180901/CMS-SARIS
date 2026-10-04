@@ -14,15 +14,15 @@ export function finDeTraitement(debut: string | Date, duree: string | null | und
   return fin
 }
 
-export type EtatTraitement = 'EN_COURS' | 'TERMINE' | 'ARRETE' | 'INDETERMINE'
+export type EtatTraitement = 'EN_COURS' | 'TERMINE' | 'ARRETE' | 'REMPLACE' | 'INDETERMINE'
 
 /** État d'une ligne de traitement à un instant donné. */
 export function etatTraitement(
-  ligne: { arreteLe?: string | null; duree?: string | null },
+  ligne: { arreteLe?: string | null; duree?: string | null; remplaceParId?: string | null },
   prescritLe: string,
   maintenant: number,
 ): { etat: EtatTraitement; fin: Date | null } {
-  if (ligne.arreteLe) return { etat: 'ARRETE', fin: new Date(ligne.arreteLe) }
+  if (ligne.arreteLe) return { etat: ligne.remplaceParId ? 'REMPLACE' : 'ARRETE', fin: new Date(ligne.arreteLe) }
   const fin = finDeTraitement(prescritLe, ligne.duree)
   if (!fin) return { etat: 'INDETERMINE', fin: null }
   return { etat: fin.getTime() < maintenant ? 'TERMINE' : 'EN_COURS', fin }

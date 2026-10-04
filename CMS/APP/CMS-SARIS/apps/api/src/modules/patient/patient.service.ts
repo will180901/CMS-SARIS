@@ -1296,6 +1296,9 @@ export class PatientService {
           posologie: true,
           duree: true,
           voieAdmin: true,
+          arreteLe: true,
+          motifArret: true,
+          remplaceParId: true,
           medicament: { select: { nomGenerique: true, nomCommercial: true } },
           ordonnance: {
             select: {
@@ -1443,6 +1446,10 @@ export class PatientService {
         // Fin estimée quand la durée est lisible (« 30 jours », « 2 semaines »…) :
         // c'est elle qui permet de distinguer un traitement EN COURS d'un traitement fini.
         finEstimee: finDeTraitement(l.ordonnance.createdAt, l.duree),
+        // Arrêté avant sa fin prévue (suivi de traitement) — et remplacé, le cas échéant.
+        arreteLe: l.arreteLe,
+        motifArret: l.motifArret,
+        remplace: !!l.remplaceParId,
       }
     })
 

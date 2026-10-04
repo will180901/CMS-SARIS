@@ -184,6 +184,7 @@ export const SOFT_DELETE_MODELS: ReadonlySet<string> = new Set<string>([
   'SuiviEvacuation',
   'Evacuation',
   'FicheSuiviTraitement',
+  'AdministrationTraitement',
   'SuiviTraitement',
   'MessageReaction',
   'MessagePieceJointe',

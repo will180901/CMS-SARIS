@@ -24,7 +24,9 @@ import { usePermissions } from '@/hooks/usePermissions'
 import {
   useSuivisTraitement, useAddFicheSuivi, useUpdateFicheSuivi,
   useCloturerSuiviTraitement, useAnnulerSuiviTraitement, useDeleteSuiviTraitement,
+  useEpisodeSuivi,
 } from '../hooks/useSuiviTraitement'
+import { etatTraitement } from '@/lib/traitement'
 import { formatDateTime } from '@/lib/intl'
 import type { SuiviTraitement, FicheSuiviTraitement } from '../api/suivi-traitement.api'
 
@@ -115,9 +117,21 @@ function SuiviDetail({ suivi, canUpdate, canClose, canCancel, canDelete }: {
   const [showDelete, setShowDelete]     = useState(false)
   const [motifCloture, setMotifCloture] = useState('')
   const [fiche, setFiche] = useState(EMPTY_FICHE)
+  // Traitements administrés lors de ce relevé : id de ligne → dose (case cochée).
+  const [coches, setCoches] = useState<Record<string, string>>({})
+  const { data: episode } = useEpisodeSuivi(suivi.id)
+  const [maintenant] = useState(() => Date.now())
+
+  // Traitements PRESCRITS de l'épisode encore en cours : ce qu'on peut administrer.
+  const lignesEpisode = (episode?.ordonnances ?? [])
+    .filter(o => (o.typeOrdonnance ?? 'PHARMACEUTIQUE') === 'PHARMACEUTIQUE' && o.statut === 'VALIDEE')
+    .flatMap(o => o.lignes.filter(l => l.medicament).map(l => ({ l, o })))
+  const aAdministrer = lignesEpisode.filter(({ l, o }) => ['EN_COURS', 'INDETERMINE'].includes(etatTraitement(l, o.createdAt, maintenant).etat))
+  const administresDe = (ficheId: string) => lignesEpisode.flatMap(({ l }) =>
+    l.administrations.filter(a => a.ficheId === ficheId).map(a => `${l.medicament!.nomGenerique}${a.dose ? ` (${a.dose})` : ''}`))
 
   const isClosed = suivi.statut === 'CLOTURE' || suivi.statut === 'ANNULE'
-  const ficheDirty = Object.values(fiche).some(v => v.trim() !== '')
+  const ficheDirty = Object.values(fiche).some(v => v.trim() !== '') || Object.keys(coches).length > 0
   const savingFiche = addFiche.isPending || updateFiche.isPending
 
   function setF<K extends keyof typeof EMPTY_FICHE>(key: K, value: string) {
@@ -125,7 +139,15 @@ function SuiviDetail({ suivi, canUpdate, canClose, canCancel, canDelete }: {
   }
 
   function closeFicheForm() {
-    setShowAddFiche(false); setEditingFicheId(null); setFiche(EMPTY_FICHE)
+    setShowAddFiche(false); setEditingFicheId(null); setFiche(EMPTY_FICHE); setCoches({})
+  }
+
+  function cocher(ligneId: string) {
+    setCoches(c => {
+      const n = { ...c }
+      if (ligneId in n) delete n[ligneId]; else n[ligneId] = ''
+      return n
+    })
   }
 
   // Ouvre le formulaire pré-rempli avec les valeurs déjà enregistrées — corrige
@@ -162,7 +184,10 @@ function SuiviDetail({ suivi, canUpdate, canClose, canCancel, canDelete }: {
       medicamentsAdministres: fiche.medicamentsAdministres.trim() || undefined,
     }
     if (editingFicheId) await updateFiche.mutateAsync({ ficheId: editingFicheId, data })
-    else                await addFiche.mutateAsync(data)
+    else await addFiche.mutateAsync({
+      ...data,
+      administrations: Object.entries(coches).map(([ligneOrdonnanceId, dose]) => ({ ligneOrdonnanceId, dose: dose.trim() || undefined })),
+    })
     closeFicheForm()
   }
 
@@ -243,9 +268,14 @@ function SuiviDetail({ suivi, canUpdate, canClose, canCancel, canDelete }: {
                     {f.poids != null && <FicheChip label={t('suiviTraitement.fieldPoids')} value={`${f.poids} kg`} />}
                   </div>
                   {f.noteEvolution && <p style={{ margin: 0, fontSize: 'var(--font-size-body-sm)', color: 'var(--texte-primaire)', whiteSpace: 'pre-wrap' }}>{f.noteEvolution}</p>}
+                  {administresDe(f.id).length > 0 && (
+                    <p style={{ margin: 0, fontSize: 'var(--font-size-caption)', color: 'var(--texte-secondaire)' }}>
+                      {t('suiviTraitement.releveAdministresListe', { liste: administresDe(f.id).join(', ') })}
+                    </p>
+                  )}
                   {f.medicamentsAdministres && (
                     <p style={{ margin: 0, fontSize: 'var(--font-size-caption)', color: 'var(--texte-secondaire)' }}>
-                      <strong>{t('suiviTraitement.fieldMedicaments')} :</strong> {f.medicamentsAdministres}
+                      <strong>{t('suiviTraitement.releveAncienTexte')} :</strong> {f.medicamentsAdministres}
                     </p>
                   )}
                   {f.resultatExamen && (
@@ -286,9 +316,42 @@ function SuiviDetail({ suivi, canUpdate, canClose, canCancel, canDelete }: {
               <Field label={t('suiviTraitement.fieldEvolution')}>
                 {(id) => <Textarea id={id} rows={2} maxLength={2000} value={fiche.noteEvolution} onChange={e => setF('noteEvolution', e.target.value)} placeholder={t('suiviTraitement.evolutionPlaceholder')} />}
               </Field>
-              <Field label={t('suiviTraitement.fieldMedicaments')}>
-                {(id) => <Textarea id={id} rows={2} maxLength={1000} value={fiche.medicamentsAdministres} onChange={e => setF('medicamentsAdministres', e.target.value)} placeholder={t('suiviTraitement.medicamentsPlaceholder')} />}
-              </Field>
+              {editingFicheId ? (
+                fiche.medicamentsAdministres.trim() !== '' && (
+                  <Field label={t('suiviTraitement.releveAncienTexte')}>
+                    {(id) => <Textarea id={id} rows={2} maxLength={1000} value={fiche.medicamentsAdministres} onChange={e => setF('medicamentsAdministres', e.target.value)} placeholder={t('suiviTraitement.medicamentsPlaceholder')} />}
+                  </Field>
+                )
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <p style={{ margin: 0, fontSize: 'var(--font-size-caption)', fontWeight: 600, color: 'var(--texte-secondaire)' }}>
+                    {t('suiviTraitement.releveAdministres')}
+                  </p>
+                  {aAdministrer.length === 0 ? (
+                    <p style={{ margin: 0, fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)' }}>{t('suiviTraitement.releveAucunTraitement')}</p>
+                  ) : aAdministrer.map(({ l }) => {
+                    const coche = l.id in coches
+                    return (
+                      <div key={l.id} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', flex: 1, minWidth: 180 }}>
+                          <input type="checkbox" checked={coche} onChange={() => cocher(l.id)} style={{ accentColor: 'var(--ap-500)', width: 15, height: 15 }} />
+                          <span style={{ fontSize: 'var(--font-size-body-sm)', color: 'var(--texte-primaire)' }}>
+                            {l.medicament!.nomGenerique}
+                            {l.posologie && <span style={{ color: 'var(--texte-tertiaire)' }}> — {l.posologie}</span>}
+                          </span>
+                        </label>
+                        {coche && (
+                          <div style={{ width: 180 }}>
+                            <TextInput size="sm" maxLength={200} value={coches[l.id]} placeholder={t('suiviTraitement.dosePlaceholder')}
+                              aria-label={t('suiviTraitement.fieldDose')}
+                              onChange={e => setCoches(c => ({ ...c, [l.id]: e.target.value }))} />
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--espace-2)' }}>
                 <Button size="sm" variant="ghost" onClick={closeFicheForm}>{t('suiviTraitement.cancelForm')}</Button>
                 <Button size="sm" variant="primary" leftIcon={<Check size={13} />} loading={savingFiche} disabled={!ficheDirty} onClick={handleSaveFiche}>{t('suiviTraitement.save')}</Button>

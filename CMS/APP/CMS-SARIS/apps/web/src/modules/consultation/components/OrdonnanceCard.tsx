@@ -27,6 +27,8 @@ import {
 import { useMedicaments, useCreateMedicament, useTypesExamen } from '@/modules/referentiels/hooks/useReferentiels'
 import { usePatientCouverture } from '@/modules/patients/hooks/usePatients'
 import { usePermissions } from '@/hooks/usePermissions'
+import { useQueryClient } from '@tanstack/react-query'
+import { useEpisodeSuivi, SUIVI_TRAITEMENT_KEY } from '@/modules/suivi-traitement/hooks/useSuiviTraitement'
 import { SelectBox, Card, Modal, Button } from '@/components/saris'
 import { Popover, PopoverAnchor, PopoverContent } from '@workspace/ui/components/popover'
 import type { OrdonnanceDetail, LigneOrdonnanceDetail, ConsultationDetail, TypeOrdonnance } from '@cms-saris/types'
@@ -108,6 +110,7 @@ export function OrdonnanceCard({ consultationId, consultation, ordonnances, read
           <OrdonnanceBlock
             key={brouillon.id} ord={brouillon} consultationId={consultationId} patientId={patientId}
             medicaments={medicaments} typesExamen={typesExamen} readonly={readonly} onPreview={onPreview}
+            episodeSuiviId={consultation.episodeSuiviId}
           />
         )}
 
@@ -124,7 +127,7 @@ export function OrdonnanceCard({ consultationId, consultation, ordonnances, read
                 <ChevronLeft size={12} /> {pendingType === 'PHARMACEUTIQUE' ? t('consultation.ordTypePharma') : t('consultation.ordTypeExamen')}
               </button>
               {pendingType === 'PHARMACEUTIQUE' ? (
-                <LigneAddFormWithGuard medicaments={medicaments} busy={createAvecLigne.isPending} submit={createWith} />
+                <LigneAddFormWithGuard medicaments={medicaments} busy={createAvecLigne.isPending} submit={createWith} episodeSuiviId={consultation.episodeSuiviId} />
               ) : (
                 <ExamLignesForm typesExamen={typesExamen} showIndication indicationInitiale={consultation.motifSeance ?? ''} busy={createAvecLigne.isPending} onSubmit={createWith} />
               )}
@@ -185,9 +188,11 @@ interface BlockProps {
   readonly?:      boolean
   canCancel?:     boolean
   onPreview?:     (ordId: string) => void
+  /** Séance de suivi : son épisode (une nouvelle ligne peut remplacer un traitement arrêté). */
+  episodeSuiviId?: string | null
 }
 
-function OrdonnanceBlock({ ord, consultationId, patientId, medicaments = [], typesExamen = [], readonly, canCancel, onPreview }: BlockProps) {
+function OrdonnanceBlock({ ord, consultationId, patientId, medicaments = [], typesExamen = [], readonly, canCancel, onPreview, episodeSuiviId }: BlockProps) {
   const { t } = useTranslation()
   const [confirmCancel, setConfirmCancel] = useState(false)
 
@@ -325,7 +330,7 @@ function OrdonnanceBlock({ ord, consultationId, patientId, medicaments = [], typ
         {isDraft && !readonly && (
           type === 'PRESCRIPTION_EXAMEN'
             ? <ExamLignesForm typesExamen={typesExamen} showIndication={false} busy={addLigne.isPending} onSubmit={p => addLigne.mutateAsync(p).then(() => {})} />
-            : <LigneAddFormWithGuard medicaments={medicaments} busy={addLigne.isPending} submit={addLigne.mutateAsync} />
+            : <LigneAddFormWithGuard medicaments={medicaments} busy={addLigne.isPending} submit={addLigne.mutateAsync} episodeSuiviId={episodeSuiviId} />
         )}
       </div>
     </div>
@@ -399,10 +404,11 @@ function IndicationClinikField({ consultationId, ordonnanceId, value, editable }
 
 // ── Formulaire d'ajout de ligne — branche PHARMACEUTIQUE (partagé) ────────────
 
-function LigneAddForm({ medicaments, busy, onSubmit }: {
+function LigneAddForm({ medicaments, busy, onSubmit, episodeSuiviId }: {
   medicaments: MedRef[]
   busy?:       boolean
   onSubmit:    (payload: AddLignePayload) => Promise<void>
+  episodeSuiviId?: string | null
 }) {
   const { t } = useTranslation()
   const isCompact = useIsCompact()
@@ -414,6 +420,16 @@ function LigneAddForm({ medicaments, busy, onSubmit }: {
   const [voie, setVoie]               = useState('PO (oral)')
   const [quantite, setQuantite]       = useState('')
   const [instructions, setInstructions] = useState('')
+  // Séance de suivi : traitements ARRÊTÉS de l'épisode, pas encore remplacés.
+  const qc = useQueryClient()
+  const { data: episode } = useEpisodeSuivi(episodeSuiviId ?? undefined)
+  const aRemplacer = (episode?.ordonnances ?? []).flatMap(o => o.lignes.filter(l => l.medicament && l.arreteLe && !l.remplaceParId))
+  const [remplace, setRemplace] = useState('')
+  useEffect(() => {
+    // Un seul traitement à remplacer (cas du bouton « Remplacer ») : présélectionné.
+    if (aRemplacer.length === 1 && !remplace) setRemplace(aRemplacer[0]!.id)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aRemplacer.length])
   const createMedicament = useCreateMedicament()
   const { has } = usePermissions()
   const canCreateMed = has('referentiel.medicament.create')
@@ -431,7 +447,7 @@ function LigneAddForm({ medicaments, busy, onSubmit }: {
   const peutAjouter = medInput.trim().length >= 2 && posologie.trim() !== '' && duree.trim() !== '' && !localBusy
 
   function reset() {
-    setMedInput(''); setMedSelected(null); setPosologie(''); setDuree(''); setVoie('PO (oral)'); setQuantite(''); setInstructions('')
+    setMedInput(''); setMedSelected(null); setPosologie(''); setDuree(''); setVoie('PO (oral)'); setQuantite(''); setInstructions(''); setRemplace('')
   }
 
   async function submitWith(medicamentId: string) {
@@ -442,7 +458,9 @@ function LigneAddForm({ medicaments, busy, onSubmit }: {
       voieAdmin:    voie,
       quantite:     quantite.trim() || undefined,
       instructions: instructions.trim() || undefined,
+      remplaceLigneId: remplace || undefined,
     })
+    if (remplace) qc.invalidateQueries({ queryKey: SUIVI_TRAITEMENT_KEY })
     reset()
   }
 
@@ -530,6 +548,24 @@ function LigneAddForm({ medicaments, busy, onSubmit }: {
       </div>
 
       <FormField label={t('consultation.instructionsLabel')} value={instructions} onChange={setInstructions} placeholder={t('consultation.instructionsPlaceholder')} maxLength={1000} />
+
+      {aRemplacer.length > 0 && (
+        <div>
+          <label style={{ fontSize: '11px', fontWeight: '600', color: 'var(--texte-secondaire)', display: 'block', marginBottom: 3 }}>
+            {t('consultation.remplaceLabel')}
+          </label>
+          <SelectBox
+            size="sm"
+            value={remplace}
+            onChange={setRemplace}
+            aria-label={t('consultation.remplaceLabel')}
+            options={[
+              { value: '', label: t('consultation.remplaceAucun') },
+              ...aRemplacer.map(l => ({ value: l.id, label: [l.medicament!.nomGenerique, l.posologie].filter(Boolean).join(' — ') })),
+            ]}
+          />
+        </div>
+      )}
     </div>
   )
 }
@@ -704,10 +740,11 @@ function ExamLignesForm({ typesExamen, showIndication, indicationInitiale = '', 
 // confirmation explicite (« prescrire malgré tout ») au lieu d'un toast d'erreur.
 // Ne s'applique qu'à la branche PHARMACEUTIQUE (les examens n'ont pas de contre-indication).
 
-function LigneAddFormWithGuard({ medicaments, busy, submit }: {
+function LigneAddFormWithGuard({ medicaments, busy, submit, episodeSuiviId }: {
   medicaments: MedRef[]
   busy?:       boolean
   submit:      (p: AddLignePayload) => Promise<unknown>
+  episodeSuiviId?: string | null
 }) {
   const { t } = useTranslation()
   const [warnings, setWarnings]     = useState<{ message: string }[] | null>(null)
@@ -744,7 +781,7 @@ function LigneAddFormWithGuard({ medicaments, busy, submit }: {
 
   return (
     <>
-      <LigneAddForm medicaments={medicaments} busy={busy || confirming} onSubmit={guarded} />
+      <LigneAddForm medicaments={medicaments} busy={busy || confirming} onSubmit={guarded} episodeSuiviId={episodeSuiviId} />
       {warnings && (
         <Modal
           icon={<AlertTriangle size={18} style={{ color: 'var(--erreur-accent)' }} />}

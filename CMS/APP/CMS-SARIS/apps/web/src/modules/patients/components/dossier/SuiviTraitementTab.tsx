@@ -693,17 +693,20 @@ export function TraitementsTab({ patientId, historiqueRestreint = false }: Ongle
               </div>
               {g.lignes.map(tr => {
                 const fin = tr.finEstimee ? new Date(tr.finEstimee).getTime() : null
-                const enCours = fin != null && fin > maintenant
+                // Un traitement ARRÊTÉ (ou remplacé) n'est plus en cours, quelle que soit sa durée prévue.
+                const enCours = !tr.arreteLe && fin != null && fin > maintenant
                 return (
                   <ClickableRow
                     key={tr.ligneId}
                     icon={<Pill size={14} />} tint="var(--ap-600)" bg="var(--ap-50)"
                     title={tr.medicament}
-                    subtitle={`${tr.posologie} · ${tr.duree} · ${tr.voieAdmin}`}
-                    badge={fin == null ? undefined : enCours
+                    subtitle={[`${tr.posologie} · ${tr.duree} · ${tr.voieAdmin}`, tr.motifArret ? t('suiviTraitement.motifArret', { motif: tr.motifArret }) : null].filter(Boolean).join(' — ')}
+                    badge={tr.arreteLe
+                      ? t(tr.remplace ? 'suiviTraitement.etatRemplace' : 'suiviTraitement.etatArrete', { date: formatDate(tr.arreteLe) })
+                      : fin == null ? undefined : enCours
                       ? t('patients.traitementEnCoursJusquau', { date: formatDate(tr.finEstimee!) })
                       : t('patients.traitementTermine', { date: formatDate(tr.finEstimee!) })}
-                    badgeTone={enCours ? 'success' : 'neutral'}
+                    badgeTone={tr.arreteLe ? (tr.remplace ? 'neutral' : 'warning') : enCours ? 'success' : 'neutral'}
                     date={tr.date}
                     onClick={() => setDetail({ kind: 'ORDONNANCE', consultationId: tr.consultationId, ordonnanceId: tr.ordonnanceId })}
                   />

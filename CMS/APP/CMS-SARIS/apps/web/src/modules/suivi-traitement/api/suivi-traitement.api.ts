@@ -65,6 +65,8 @@ export interface AdministrationEpisode {
   observation:  string | null
   createdBy:    string | null
   auteurNom:    string | null
+  /** Relevé au cours duquel elle a été notée (null = notée seule). */
+  ficheId:      string | null
 }
 
 export interface LigneEpisode {
@@ -78,6 +80,7 @@ export interface LigneEpisode {
   motifArret:    string | null
   arretePar:     string | null
   remplaceParId: string | null
+  arreteParNom:  string | null
   medicament:    { id: string; nomGenerique: string; nomCommercial: string | null } | null
   typeExamen:    { libelle: string } | null
   administrations: AdministrationEpisode[]
@@ -128,6 +131,8 @@ export interface AddFicheSuiviPayload {
   poids?:                  number
   noteEvolution?:          string
   medicamentsAdministres?: string
+  /** Traitements prescrits administrés lors de ce relevé. */
+  administrations?:        { ligneOrdonnanceId: string; dose?: string }[]
 }
 
 // ── API ───────────────────────────────────────────────────────────────────────
@@ -149,4 +154,11 @@ export const suiviTraitementApi = {
   cloturer: (id: string, motifCloture?: string) => api.patch<SuiviTraitement>(`/suivi-traitement/${id}/cloturer`, { motifCloture }),
   annuler:  (id: string, motif: string) => api.patch<SuiviTraitement>(`/suivi-traitement/${id}/annuler`, { motifAnnulation: motif }),
   supprimer: (id: string) => api.delete<{ id: string; deleted: boolean }>(`/suivi-traitement/${id}`),
+  /** Arrêt d'un traitement avant sa fin prévue (date, motif, auteur tracés). */
+  arreterTraitement: (id: string, ligneId: string, motifArret: string) =>
+    api.patch<{ ok: true }>(`/suivi-traitement/${id}/traitements/${ligneId}/arret`, { motifArret }),
+  administrer: (id: string, data: { ligneOrdonnanceId: string; dose?: string; observation?: string; administreLe?: string }) =>
+    api.post<{ ok: true }>(`/suivi-traitement/${id}/administrations`, data),
+  retirerAdministration: (id: string, administrationId: string) =>
+    api.delete<{ deleted: true }>(`/suivi-traitement/${id}/administrations/${administrationId}`),
 }
