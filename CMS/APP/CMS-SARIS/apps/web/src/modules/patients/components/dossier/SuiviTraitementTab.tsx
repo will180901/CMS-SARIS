@@ -13,7 +13,7 @@
  * ligne cliquable ouvre son détail dans un TIROIR qui glisse de la droite,
  * la liste reste visible derrière (jamais de redirection hors du dossier).
  */
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { humanizeCode } from '@/config/labels'
 import { useTranslation } from 'react-i18next'
 import { nomSoignant } from '@/lib/soignant'
@@ -605,17 +605,14 @@ export function SuiviTraitementTab({ patientId, historiqueRestreint = false, ouv
 }) {
   const [detail, setDetail] = useState<DossierDetailTarget | null>(null)
   const { data: episodes } = useSuivisTraitement({ patientId })
-  useEffect(() => {
-    if (!ouvrirSuiviId || !episodes) return
-    const ep = episodes.find(e => e.id === ouvrirSuiviId)
-    if (ep) setDetail({ kind: 'SUIVI_TRAITEMENT', consultationId: ep.consultationId, suiviId: ep.id })
-    onOuvert?.()
-  }, [ouvrirSuiviId, episodes, onOuvert])
+  // Épisode demandé à l'arrivée : ouvert tant qu'on ne l'a pas refermé.
+  const demande = ouvrirSuiviId ? episodes?.find(e => e.id === ouvrirSuiviId) : undefined
+  const cible = detail ?? (demande ? { kind: 'SUIVI_TRAITEMENT' as const, consultationId: demande.consultationId, suiviId: demande.id } : null)
   return (
     <div>
       <EpisodesSection patientId={patientId} onOpen={setDetail} historiqueRestreint={historiqueRestreint} />
       {/* Tiroir de détail (glisse de la droite, la liste reste derrière) */}
-      {detail && <DossierDetailDrawer target={detail} onClose={() => setDetail(null)} />}
+      {cible && <DossierDetailDrawer key={cible.kind === 'SUIVI_TRAITEMENT' ? cible.suiviId : undefined} target={cible} onClose={() => { setDetail(null); onOuvert?.() }} />}
     </div>
   )
 }

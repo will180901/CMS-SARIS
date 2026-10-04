@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next'
 import { Activity, CalendarClock, ClipboardList, FlaskConical, Pill, Stethoscope, PenLine, ArrowUpRight, Loader2, FileText, Syringe, Replace, OctagonX, X } from 'lucide-react'
 import { Button, StatusPill, SegmentedTabs, DatePicker, EmptyState, Modal, MotifDialog, Field, TextInput, Textarea } from '@/components/saris'
 import { useSessionStore } from '@/stores/session.store'
+import { useMyActiveDelegation } from '@/modules/acteurs/hooks/useDelegations'
 import { usePermissions } from '@/hooks/usePermissions'
 import { usePersistedState } from '@/hooks/usePersistedState'
 import { formatDate, formatDateTime } from '@/lib/intl'
@@ -26,6 +27,17 @@ import { SaisieResultatsModal } from '@/modules/bon-examen/components/ResultatsB
 import type { EpisodeSuivi as Episode, RencontreEpisode, OrdonnanceEpisode, BonEpisode } from '../api/suivi-traitement.api'
 
 type Onglet = 'chrono' | 'traitements' | 'examens' | 'releves'
+
+/** Droit de prescrire, comme dans la consultation : l'infirmier seulement avec une délégation active. */
+function usePeutPrescrire() {
+  const { has } = usePermissions()
+  const roles = useSessionStore(s => s.user?.roles ?? [])
+  const { data: delegation } = useMyActiveDelegation()
+  const infirmierNonDelegue = roles.includes('INFIRMIER')
+    && !roles.includes('MEDECIN_CHEF') && !roles.includes('ADMIN_SYSTEME')
+    && !delegation?.active
+  return has('ordonnance.create') && !infirmierNonDelegue
+}
 
 const carte = {
   border: '1px solid var(--bordure-legere)', borderRadius: 'var(--radius-lg)', background: 'var(--fond-surface)',
@@ -42,6 +54,7 @@ export function EpisodeSuivi({ suiviId }: { suiviId: string }) {
   const creerSeance = useCreerSeanceSuivi(suiviId)
   const setControle = useSetProchainControle(suiviId)
   const [maintenant] = useState(() => Date.now())
+  const peutPrescrire = usePeutPrescrire()
 
   if (isLoading) return <p style={{ ...petit, display: 'flex', alignItems: 'center', gap: 6 }}><Loader2 size={13} className="animate-spin" /> {t('suiviTraitement.loading')}</p>
   if (isError || !data) return (
@@ -126,7 +139,7 @@ export function EpisodeSuivi({ suiviId }: { suiviId: string }) {
 
       {onglet === 'chrono' && <Chronologie data={data} onOuvrir={ouvrirConsultation} />}
       {onglet === 'traitements' && <Traitements data={data} maintenant={maintenant} suiviId={suiviId} onSeance={lancerSeance} />}
-      {onglet === 'examens' && <Examens data={data} peutPrescrire={peutSeance} onPrescrire={lancerSeance} enCoursDePrescription={creerSeance.isPending} />}
+      {onglet === 'examens' && <Examens data={data} peutPrescrire={peutSeance && peutPrescrire} onPrescrire={lancerSeance} enCoursDePrescription={creerSeance.isPending} />}
       {onglet === 'releves' && <SuiviTraitementCard consultationId={suivi.consultationId} suiviId={suiviId} />}
     </div>
   )
@@ -138,7 +151,9 @@ type Evenement =
   | { genre: 'rencontre'; date: string; r: RencontreEpisode; rang: number }
   | { genre: 'ordonnance'; date: string; o: OrdonnanceEpisode }
   | { genre: 'resultat'; date: string; examen: string; contenu: string; anormal: boolean | null; realiseLe: string | null }
-  | { genre: 'releve'; date: string; resume: string; note: string | null; auteur: string | null }
+  | { genre: 'releve'; date: string; resume: string; note: string | null; auteur: string | null; administres: string[] }
+  | { genre: 'administration'; date: string; medicament: string; dose: string | null; auteur: string | null }
+  | { genre: 'arret'; date: string; medicament: string; motif: string | null; auteur: string | null }
 
 function Chronologie({ data, onOuvrir }: { data: Episode; onOuvrir: (consultationId: string) => void }) {
   const { t } = useTranslation()
@@ -150,6 +165,14 @@ function Chronologie({ data, onOuvrir }: { data: Episode; onOuvrir: (consultatio
     const examen = r.ligneExamenId ? b.lignes.find(l => l.id === r.ligneExamenId)?.typeExamen.libelle ?? '' : b.lignes.map(l => l.typeExamen.libelle).join(', ')
     evts.push({ genre: 'resultat', date: r.dateRealisation ?? r.createdAt, examen, contenu: r.contenu, anormal: r.anormal, realiseLe: r.dateRealisation })
   }))
+  // Administrations : rattachées à leur relevé, ou événement à part si notées seules.
+  const lignesMed = data.ordonnances.flatMap(o => o.lignes.filter(l => l.medicament))
+  lignesMed.forEach(l => l.administrations.filter(a => !a.ficheId).forEach(a => evts.push({
+    genre: 'administration', date: a.administreLe, medicament: l.medicament!.nomGenerique, dose: a.dose, auteur: a.auteurNom,
+  })))
+  lignesMed.filter(l => l.arreteLe).forEach(l => evts.push({
+    genre: 'arret', date: l.arreteLe!, medicament: l.medicament!.nomGenerique, motif: l.motifArret, auteur: l.arreteParNom,
+  }))
   data.suivi.fiches.forEach(f => {
     const morceaux = [
       f.temperature != null ? `T° ${f.temperature}` : null,
@@ -159,7 +182,8 @@ function Chronologie({ data, onOuvrir }: { data: Episode; onOuvrir: (consultatio
       f.saturationO2 != null ? `SpO₂ ${f.saturationO2} %` : null,
       f.poids != null ? `${f.poids} kg` : null,
     ].filter(Boolean)
-    evts.push({ genre: 'releve', date: f.createdAt, resume: morceaux.join(' · '), note: f.noteEvolution, auteur: f.auteurNom ?? null })
+    const administres = lignesMed.flatMap(l => l.administrations.filter(a => a.ficheId === f.id).map(a => `${l.medicament!.nomGenerique}${a.dose ? ` (${a.dose})` : ''}`))
+    evts.push({ genre: 'releve', date: f.createdAt, resume: morceaux.join(' · '), note: f.noteEvolution, auteur: f.auteurNom ?? null, administres })
   })
   evts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
@@ -213,6 +237,30 @@ function Chronologie({ data, onOuvrir }: { data: Episode; onOuvrir: (consultatio
             </div>
           )
         }
+        if (e.genre === 'arret') {
+          return (
+            <div key={i} style={{ ...carte, background: 'var(--avert-fond)' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <OctagonX size={13} style={{ color: 'var(--avert-texte)' }} />
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--texte-primaire)' }}>{t('suiviTraitement.arretDe', { medicament: e.medicament })}</span>
+                <span style={{ ...petit, marginLeft: 'auto' }}>{formatDate(e.date)}{e.auteur ? ` · ${e.auteur}` : ''}</span>
+              </span>
+              {e.motif && <span style={{ fontSize: 12, color: 'var(--texte-secondaire)' }}>{e.motif}</span>}
+            </div>
+          )
+        }
+        if (e.genre === 'administration') {
+          return (
+            <div key={i} style={carte}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Syringe size={13} style={{ color: 'var(--ap-600)' }} />
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--texte-primaire)' }}>{t('suiviTraitement.administrationDe', { medicament: e.medicament })}</span>
+                <span style={{ ...petit, marginLeft: 'auto' }}>{formatDate(e.date)}{e.auteur ? ` · ${e.auteur}` : ''}</span>
+              </span>
+              {e.dose && <span style={{ fontSize: 12, color: 'var(--texte-secondaire)' }}>{e.dose}</span>}
+            </div>
+          )
+        }
         return (
           <div key={i} style={carte}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -221,6 +269,7 @@ function Chronologie({ data, onOuvrir }: { data: Episode; onOuvrir: (consultatio
               <span style={{ ...petit, marginLeft: 'auto' }}>{formatDate(e.date)}{e.auteur ? ` · ${e.auteur}` : ''}</span>
             </span>
             {e.resume && <span style={{ fontSize: 12, color: 'var(--texte-secondaire)' }}>{e.resume}</span>}
+            {e.administres.length > 0 && <span style={{ fontSize: 12, color: 'var(--texte-secondaire)' }}>{t('suiviTraitement.releveAdministresListe', { liste: e.administres.join(', ') })}</span>}
             {e.note && <span style={{ fontSize: 12, color: 'var(--texte-primaire)' }}>{e.note}</span>}
           </div>
         )
@@ -252,6 +301,7 @@ function Traitements({ data, maintenant, suiviId, onSeance }: {
   const { t } = useTranslation()
   const { has } = usePermissions()
   const moi = useSessionStore(s => s.user?.id)
+  const peutPrescrire = usePeutPrescrire()
   const arreter = useArreterTraitement(suiviId)
   const administrer = useAdministrer(suiviId)
   const retirer = useRetirerAdministration(suiviId)
@@ -262,7 +312,7 @@ function Traitements({ data, maintenant, suiviId, onSeance }: {
 
   const enCours = data.suivi.statut === 'EN_COURS'
   const peutAdministrer = enCours && has('suivi_traitement.update')
-  const peutArreter = enCours && has('suivi_traitement.update') && has('ordonnance.create')
+  const peutArreter = enCours && has('suivi_traitement.update') && peutPrescrire
   const peutRemplacer = peutArreter && has('consultation.create')
   const rencontreDe = (consultationId: string) => {
     if (data.consultationInitiale?.id === consultationId) return t('suiviTraitement.consultationDepart')

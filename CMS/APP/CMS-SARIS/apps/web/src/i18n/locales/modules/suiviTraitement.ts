@@ -167,6 +167,8 @@ export const suiviTraitement = {
     releveAucunTraitement: 'Aucun traitement en cours à administrer.',
     releveAncienTexte: 'Médicaments administrés (ancienne saisie)',
     releveAdministresListe: 'Administrés : {{liste}}',
+    administrationDe: 'Administration — {{medicament}}',
+    arretDe: 'Traitement arrêté — {{medicament}}',
   },
   en: {
     // ── Sub-tabs (dossier tab "Treatment follow-up") ─────────────────
@@ -330,5 +332,7 @@ export const suiviTraitement = {
     releveAucunTraitement: 'No ongoing treatment to administer.',
     releveAncienTexte: 'Medications administered (former entry)',
     releveAdministresListe: 'Administered: {{liste}}',
+    administrationDe: 'Administration — {{medicament}}',
+    arretDe: 'Treatment stopped — {{medicament}}',
   },
 }
