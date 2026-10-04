@@ -99,3 +99,42 @@ export function useDeleteSuiviTraitement(id: string) {
     onError: toastErr,
   })
 }
+
+// ── Épisode complet, prochain contrôle, séances ─────────────────────────────
+
+export function useEpisodeSuivi(id: string | undefined) {
+  return useQuery({
+    queryKey: [...SUIVI_TRAITEMENT_KEY, id, 'episode'],
+    queryFn:  () => suiviTraitementApi.episode(id!),
+    enabled:  !!id,
+    staleTime: 15_000,
+  })
+}
+
+export function useSetProchainControle(id: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (date: string | null) => suiviTraitementApi.setProchainControle(id, date),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: SUIVI_TRAITEMENT_KEY })
+      qc.invalidateQueries({ queryKey: ['patients'] })
+      toast.success(i18n.t('suiviTraitement.toastProchainControle'))
+    },
+    onError: toastErr,
+  })
+}
+
+/** Ouvre (ou rouvre) la séance de suivi de l'épisode, puis la consultation correspondante. */
+export function useCreerSeanceSuivi(id: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (motifSeance?: string) => suiviTraitementApi.creerSeance(id, motifSeance),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: SUIVI_TRAITEMENT_KEY })
+      qc.invalidateQueries({ queryKey: ['consultations'] })
+      qc.invalidateQueries({ queryKey: ['visites'] })
+      qc.invalidateQueries({ queryKey: ['patients'] })
+    },
+    onError: toastErr,
+  })
+}

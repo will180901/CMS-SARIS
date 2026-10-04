@@ -215,3 +215,15 @@ export class UpdateReposDto {
     | null
   @IsOptional() @IsBoolean() reposInclutJour?: boolean
 }
+
+/** Séance de suivi : lancée depuis un épisode de suivi EN COURS, sans repasser par le triage. */
+export class CreerSeanceSuiviDto {
+  @IsUUID()
+  suiviTraitementId!: string
+
+  /** Raison de la séance (ex. « Suite au résultat de Glycémie du 02/10 : 1,32 g/L »). */
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  motifSeance?: string
+}

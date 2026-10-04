@@ -13,7 +13,7 @@
  * ligne cliquable ouvre son détail dans un TIROIR qui glisse de la droite,
  * la liste reste visible derrière (jamais de redirection hors du dossier).
  */
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { humanizeCode } from '@/config/labels'
 import { useTranslation } from 'react-i18next'
 import { nomSoignant } from '@/lib/soignant'
@@ -117,6 +117,23 @@ const STATUT_SUIVI: Record<string, { labelKey: string; tint: string; bg: string 
   ANNULE:   { labelKey: 'suiviTraitement.statutAnnule',  tint: 'var(--texte-tertiaire)', bg: 'var(--fond-surface-2)' },
 }
 
+/** Contrôle prévu et dépassé, sur un épisode encore en cours. */
+function enRetard(ep: { statut: string; prochainControle?: string | null }) {
+  return ep.statut === 'EN_COURS' && !!ep.prochainControle && new Date(ep.prochainControle).getTime() < Date.now()
+}
+
+/** Séances, relevés et prochain contrôle, en une ligne. */
+function resumeEpisode(
+  ep: { fiches: unknown[]; seances?: unknown[]; prochainControle?: string | null; statut: string },
+  t: (k: string, o?: Record<string, unknown>) => string,
+) {
+  return [
+    t('suiviTraitement.nbSeances', { count: ep.seances?.length ?? 0 }),
+    `${t('suiviTraitement.ongletReleves')} · ${ep.fiches.length}`,
+    ep.statut === 'EN_COURS' && ep.prochainControle ? t('suiviTraitement.controleLe', { date: formatDate(ep.prochainControle) }) : null,
+  ].filter(Boolean).join(' · ')
+}
+
 function EpisodesSection({ patientId, onOpen, historiqueRestreint = false }: { patientId: string; onOpen: (t: DossierDetailTarget) => void; historiqueRestreint?: boolean }) {
   const { t } = useTranslation()
   const { data: episodes = [], isLoading, isError, refetch } = useSuivisTraitement({ patientId })
@@ -141,9 +158,9 @@ function EpisodesSection({ patientId, onOpen, historiqueRestreint = false }: { p
                 key={ep.id}
                 icon={<Activity size={14} />} tint="var(--ap-600)" bg="var(--ap-50)"
                 title={ep.motif}
-                subtitle={t('suiviTraitement.fichesTitle') + ` · ${ep.fiches.length}`}
-                badge={t(cfg.labelKey)}
-                badgeTone={ep.statut === 'EN_COURS' ? 'info' : ep.statut === 'CLOTURE' ? 'success' : 'neutral'}
+                subtitle={resumeEpisode(ep, t)}
+                badge={enRetard(ep) ? t('suiviTraitement.controleEnRetard') : t(cfg.labelKey)}
+                badgeTone={enRetard(ep) ? 'error' : ep.statut === 'EN_COURS' ? 'info' : ep.statut === 'CLOTURE' ? 'success' : 'neutral'}
                 date={ep.createdAt}
                 onClick={() => onOpen({ kind: 'SUIVI_TRAITEMENT', consultationId: ep.consultationId, suiviId: ep.id })}
               />
@@ -581,8 +598,19 @@ function Chargement() {
 }
 
 /** Parcours de soins › Suivi de traitement : les ÉPISODES de suivi, sa fonction propre. */
-export function SuiviTraitementTab({ patientId, historiqueRestreint = false }: OngletProps) {
+export function SuiviTraitementTab({ patientId, historiqueRestreint = false, ouvrirSuiviId, onOuvert }: OngletProps & {
+  /** Épisode à ouvrir d'emblée (arrivée depuis une consultation). */
+  ouvrirSuiviId?: string | null
+  onOuvert?: () => void
+}) {
   const [detail, setDetail] = useState<DossierDetailTarget | null>(null)
+  const { data: episodes } = useSuivisTraitement({ patientId })
+  useEffect(() => {
+    if (!ouvrirSuiviId || !episodes) return
+    const ep = episodes.find(e => e.id === ouvrirSuiviId)
+    if (ep) setDetail({ kind: 'SUIVI_TRAITEMENT', consultationId: ep.consultationId, suiviId: ep.id })
+    onOuvert?.()
+  }, [ouvrirSuiviId, episodes, onOuvert])
   return (
     <div>
       <EpisodesSection patientId={patientId} onOpen={setDetail} historiqueRestreint={historiqueRestreint} />

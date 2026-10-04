@@ -158,6 +158,12 @@ export interface ConsultationListItem extends Consultation {
   visite:   VisiteResume
   typeConsultation: TypeConsultationResume | null
   _count: { diagnostics: number; ordonnances: number }
+  /** Séance de suivi : l'épisode auquel elle se rattache, et la raison de la séance. */
+  episodeSuiviId?:  string | null
+  motifSeance?:     string | null
+  episodeSuivi?:    { id: string; motif: string; statut?: string } | null
+  /** Consultation de départ d'un épisode de suivi (rangement par problème dans les files). */
+  suiviTraitement?: { id: string; statut: string; motif?: string } | null
   /** Liste uniquement : libellé du diagnostic principal, déjà filtré par confidentialité. */
   diagnosticPrincipal?: { libelle: string } | null
 }

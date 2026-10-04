@@ -11,7 +11,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { CheckCircle2, XCircle, Trash2, ArrowUpRight, FileText, Stethoscope, Pill, FlaskConical, Flag } from 'lucide-react'
+import { CheckCircle2, XCircle, Trash2, ArrowUpRight, FileText, Stethoscope, Pill, FlaskConical, Flag, Activity } from 'lucide-react'
 import { Button, Modal, InfoSection, InfoRow, StatusPill, SegmentedTabs, EmptyState } from '@/components/saris'
 import { usePersistedState } from '@/hooks/usePersistedState'
 import { useBonsExamen } from '@/modules/bon-examen/hooks/useBonExamen'
@@ -63,6 +63,11 @@ export function ConsultationArchiveSummary({ consultationId, consultation, onDel
 
   const { patient } = consultation.visite
   const cloturee = consultation.statut === 'CLOTUREE'
+  // Le suivi se gère dans le dossier : y aller directement, l'épisode s'y ouvre.
+  const suiviId = consultation.episodeSuivi?.id ?? (consultation.suiviTraitement?.statut !== 'ANNULE' ? consultation.suiviTraitement?.id : undefined)
+  const ouvrirSuivi = suiviId
+    ? () => navigate(`/patients/${patient.id}`, { state: { ouvrirSuiviId: suiviId } })
+    : undefined
   const canDelete = has('consultation.delete')
 
   const impact = [
@@ -96,6 +101,23 @@ export function ConsultationArchiveSummary({ consultationId, consultation, onDel
           ]}
         />
       </div>
+
+      {/* Séance de suivi : rattachée à son épisode, dit pourquoi elle a eu lieu. */}
+      {consultation.episodeSuivi && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '10px 12px',
+          borderRadius: 'var(--radius-lg)', background: 'var(--info-fond)', border: '1px solid var(--bordure-legere)',
+        }}>
+          <Activity size={15} style={{ color: 'var(--info-texte)', flexShrink: 0 }} />
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--texte-primaire)' }}>{t('suiviTraitement.seanceDe', { motif: consultation.episodeSuivi.motif })}</span>
+            {consultation.motifSeance && <span style={{ fontSize: 12, color: 'var(--texte-secondaire)', whiteSpace: 'pre-wrap' }}>{t('suiviTraitement.seanceSuiteA', { motif: consultation.motifSeance })}</span>}
+          </div>
+          {ouvrirSuivi && (
+            <Button size="sm" variant="outline" leftIcon={<ArrowUpRight size={13} />} onClick={ouvrirSuivi}>{t('suiviTraitement.ouvrirDansDossier')}</Button>
+          )}
+        </div>
+      )}
 
       {onglet === 'resume' && (
         <>
@@ -218,6 +240,11 @@ export function ConsultationArchiveSummary({ consultationId, consultation, onDel
           />
         )}
         {aSuivi && <SuiviTraitementCard consultationId={consultationId} readonly />}
+        {aSuivi && ouvrirSuivi && !consultation.episodeSuivi && (
+          <div>
+            <Button size="sm" variant="primary" leftIcon={<ArrowUpRight size={13} />} onClick={ouvrirSuivi}>{t('suiviTraitement.ouvrirDansDossier')}</Button>
+          </div>
+        )}
         {aRepos && (
           <CertificatCard
             consultationId={consultationId}

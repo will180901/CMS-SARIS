@@ -225,7 +225,7 @@ export class BonExamenService {
         'Seul un bon validé peut recevoir un résultat',
       )
     }
-    const dateRealisation = this.dateRealisationValide(dto.dateRealisation)
+    const dateRealisation = this.dateRealisationValide(dto.dateRealisation, bon.createdAt)
     const commun = {
       bonId,
       laboratoire: dto.laboratoire?.trim() || null,
@@ -279,13 +279,16 @@ export class BonExamenService {
     return this.getOrThrow(bonId)
   }
 
-  /** Date à laquelle l'examen a été RÉALISÉ : jamais dans le futur. */
-  private dateRealisationValide(iso?: string): Date | null {
+  /** Date à laquelle l'examen a été RÉALISÉ : jamais dans le futur, jamais avant le jour
+   *  de la prescription (un examen ne se fait pas avant d'avoir été demandé). */
+  private dateRealisationValide(iso: string | undefined, prescritLe: Date): Date | null {
     if (!iso) return null
     const d = new Date(iso)
     if (Number.isNaN(d.getTime())) throw new BadRequestException('Date de réalisation invalide')
     if (d.getTime() > Date.now() + 60_000)
       throw new BadRequestException("La date de réalisation de l'examen ne peut pas être dans le futur")
+    if (d.toISOString().slice(0, 10) < prescritLe.toISOString().slice(0, 10))
+      throw new BadRequestException("La date de réalisation de l'examen ne peut pas précéder sa prescription")
     return d
   }
 
@@ -303,7 +306,7 @@ export class BonExamenService {
     if (ancien.statut === 'REMPLACE')
       throw new ConflictException('Ce résultat a déjà été corrigé : corrigez la version la plus récente')
     const dateRealisation =
-      dto.dateRealisation !== undefined ? this.dateRealisationValide(dto.dateRealisation) : ancien.dateRealisation
+      dto.dateRealisation !== undefined ? this.dateRealisationValide(dto.dateRealisation, bon.createdAt) : ancien.dateRealisation
     await this.prisma.$transaction([
       this.prisma.resultatExamen.update({ where: { id: ancien.id }, data: { statut: 'REMPLACE' } }),
       this.prisma.resultatExamen.create({

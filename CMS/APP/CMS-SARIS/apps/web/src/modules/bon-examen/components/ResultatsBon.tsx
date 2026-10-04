@@ -13,7 +13,7 @@ import { FileText, Image as ImageIcon, PenLine, History, Paperclip, Eye, Trash2,
 import { Button, StatusPill, Field, Textarea, TextInput, Modal, DatePicker, EmptyState } from '@/components/saris'
 import { usePermissions } from '@/hooks/usePermissions'
 import { formatDate } from '@/lib/intl'
-import { todayISO } from '@/lib/validation'
+import { todayISO, jourISO } from '@/lib/validation'
 import { labelDomaine } from '@/config/labels'
 import { bonExamenApi } from '../api/bon-examen.api'
 import type { BonExamen, ResultatExamen, PieceJointeResultat } from '../api/bon-examen.api'
@@ -223,7 +223,7 @@ export function SaisieResultatsModal({ bon, onClose }: { bon: BonExamen; onClose
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
           <Field label={t('bonExamen.dateRealisation')}>
-            {() => <DatePicker value={dateRealisation} onChange={v => setDateRealisation(v ?? '')} max={todayISO()} />}
+            {() => <DatePicker value={dateRealisation} onChange={v => setDateRealisation(v ?? '')} min={jourISO(bon.createdAt)} max={todayISO()} />}
           </Field>
           <Field label={t('bonExamen.labLabel')}>
             {(id) => <TextInput id={id} maxLength={500} value={laboratoire} onChange={e => setLaboratoire(e.target.value)} placeholder={t('bonExamen.labPlaceholder')} />}

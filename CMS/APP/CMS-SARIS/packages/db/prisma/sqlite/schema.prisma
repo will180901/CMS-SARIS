@@ -1050,8 +1050,16 @@ model Consultation {
   consultationsPrenat ConsultationPrenatale[]
   typeConsultation    TypeConsultation?        @relation(fields: [typeConsultationId], references: [id])
   certificats         CertificatMedical[]
+  // Séance de suivi : consultation rattachée à un épisode de suivi (lancée depuis le suivi,
+  // sans repasser par le triage), avec la raison de la séance. Référence SANS clé
+  // étrangère, volontairement : SuiviTraitement pointe déjà vers sa consultation de
+  // départ — une clé dans l'autre sens formerait une boucle que la synchronisation
+  // (parents avant enfants) ne sait pas ordonner. Le service garantit l'épisode.
+  episodeSuiviId      String?
+  motifSeance         String?
 
   @@index([updatedAt])
+  @@index([episodeSuiviId])
 }
 
 
@@ -1113,9 +1121,16 @@ model LigneOrdonnance {
   justification String?
   // Branche PRESCRIPTION_EXAMEN : un type d'examen par ligne (miroir LigneExamen).
   typeExamenId  String?
+  // Évolution du traitement : arrêté avant sa fin prévue (date, motif, auteur), ou
+  // remplacé par une ligne prescrite plus tard (séance de suivi).
+  arreteLe      DateTime?
+  motifArret    String?
+  arretePar     String?
+  remplaceParId String?
   ordonnance    Ordonnance           @relation(fields: [ordonnanceId], references: [id])
   medicament    MedicamentReference? @relation(fields: [medicamentId], references: [id])
   typeExamen    TypeExamen?          @relation(fields: [typeExamenId], references: [id])
+  administrations AdministrationTraitement[]
 
   @@index([updatedAt])
 }
@@ -1337,10 +1352,32 @@ model SuiviTraitement {
   motifAnnulation String?
   createdAt       DateTime               @default(now())
   closedAt        DateTime?
+  prochainControle DateTime? // date à laquelle revoir le patient
   consultation    Consultation           @relation(fields: [consultationId], references: [id])
   fiches          FicheSuiviTraitement[]
 
   @@index([updatedAt])
+}
+
+/// Administration d'un traitement prescrit (prise, injection…), notée au fil du suivi —
+/// remplace le texte libre « médicaments administrés » des fiches de suivi.
+model AdministrationTraitement {
+  updatedAt         DateTime        @default(now()) @updatedAt
+  deletedAt         DateTime?
+  id                String          @id @default(uuid())
+  ligneOrdonnanceId String
+  suiviTraitementId String?
+  ficheId           String? // relevé de suivi au cours duquel elle a été notée
+  administreLe      DateTime        @default(now())
+  dose              String?
+  observation       String?
+  createdBy         String?
+  createdAt         DateTime        @default(now())
+  ligneOrdonnance   LigneOrdonnance @relation(fields: [ligneOrdonnanceId], references: [id], onDelete: Cascade)
+
+  @@index([updatedAt])
+  @@index([ligneOrdonnanceId])
+  @@index([suiviTraitementId])
 }
 
 model FicheSuiviTraitement {

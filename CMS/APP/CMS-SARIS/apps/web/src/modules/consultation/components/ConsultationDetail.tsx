@@ -36,6 +36,7 @@ import { BonExamenCard }   from '@/modules/bon-examen/components/BonExamenCard'
 import { BonPharmacieCard } from '@/modules/bon-pharmacie/components/BonPharmacieCard'
 import { EvacuationCard }     from '@/modules/sorties-critiques/components/EvacuationCard'
 import { SuiviTraitementCard } from '@/modules/suivi-traitement/components/SuiviTraitementCard'
+import { EpisodeSuivi } from '@/modules/suivi-traitement/components/EpisodeSuivi'
 import { FlaskConical, Ambulance, Activity, Loader2 } from 'lucide-react'
 import { usePermissions } from '@/hooks/usePermissions'
 import { formatDuree, elapsedMinutes } from '@/lib/duree'
@@ -366,6 +367,26 @@ export function ConsultationDetail({ consultationId, initialDocView }: Props) {
           </div>
         )}
 
+        {/* Séance de suivi : on sait d'emblée de quel suivi il s'agit, et pourquoi. */}
+        {consultation.episodeSuivi && (
+          <div style={{
+            display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 14px', borderRadius: 10,
+            background: 'var(--info-fond)', border: '1px solid var(--bordure-legere)',
+          }}>
+            <Activity size={16} style={{ color: 'var(--info-texte)', flexShrink: 0, marginTop: 1 }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: 'var(--texte-primaire)' }}>
+                {t('suiviTraitement.seanceDe', { motif: consultation.episodeSuivi.motif })}
+              </p>
+              {consultation.motifSeance && (
+                <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--texte-secondaire)', whiteSpace: 'pre-wrap' }}>
+                  {t('suiviTraitement.seanceSuiteA', { motif: consultation.motifSeance })}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* ① Examen & diagnostic */}
         {step === 1 && (
           <>
@@ -514,10 +535,9 @@ export function ConsultationDetail({ consultationId, initialDocView }: Props) {
 
             {docView === 'suivi-traitement' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--espace-3)' }}>
-                <SuiviTraitementCard
-                  consultationId={consultationId}
-                  readonly={!isActive}
-                />
+                {consultation.episodeSuiviId
+                  ? <EpisodeSuivi suiviId={consultation.episodeSuiviId} />
+                  : <SuiviTraitementCard consultationId={consultationId} readonly={!isActive} />}
               </div>
             )}
           </>
@@ -857,6 +877,8 @@ function DecisionSection({ consultationId, consultation, isActive, canClose: can
     EVACUATION:       suiviActif,
     SUIVI_TRAITEMENT: evacActive,
   }
+  // Une séance de suivi appartient DÉJÀ à un suivi : pas d'en ouvrir un second.
+  const decisions = consultation.episodeSuiviId ? DECISIONS.filter(d => d.value !== 'SUIVI_TRAITEMENT') : DECISIONS
 
   // Prérequis de clôture, anticipés AVANT le clic (alignés sur les gardes serveur).
   // Aucune décision (voie normale, cas dominant) : aucun prérequis documentaire supplémentaire.
@@ -885,12 +907,12 @@ function DecisionSection({ consultationId, consultation, isActive, canClose: can
           </p>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          {DECISIONS.map((d, i) => {
+          {decisions.map((d, i) => {
             const active = decision === d.value
             const blocked = blockedByOther[d.value] ?? false
             const clickable = isActive && !blocked
             return (
-              <div key={d.value} style={{ borderBottom: i < DECISIONS.length - 1 ? '1px solid var(--bordure-legere)' : 'none' }}>
+              <div key={d.value} style={{ borderBottom: i < decisions.length - 1 ? '1px solid var(--bordure-legere)' : 'none' }}>
                 <button
                   onClick={() => onPickDecision(d.value)}
                   disabled={!clickable}

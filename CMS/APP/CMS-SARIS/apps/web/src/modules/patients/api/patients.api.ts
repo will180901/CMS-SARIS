@@ -130,7 +130,7 @@ export interface CouverturePatient {
 }
 
 export interface AlerteClinique {
-  type:    'ALLERGIE_MEDICAMENT' | 'CONSTANTE_CRITIQUE' | 'CHRONIQUE_SANS_SUIVI'
+  type:    'ALLERGIE_MEDICAMENT' | 'CONSTANTE_CRITIQUE' | 'CHRONIQUE_SANS_SUIVI' | 'CONTROLE_EN_RETARD'
   gravite: 'CRITIQUE' | 'ELEVE' | 'MODERE'
   titre:   string
   /** Objet en quelques mots (médicament, valeur mesurée, pathologie) — vue condensée. */

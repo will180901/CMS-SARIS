@@ -33,7 +33,24 @@ import {
   CloturerSuiviTraitementDto,
   AnnulerSuiviTraitementDto,
   SuiviTraitementQueryDto,
+  ProchainControleDto,
 } from './dto/suivi-traitement.dto'
+
+/** Une rencontre de l'épisode (consultation de départ ou séance de suivi). */
+const SELECT_RENCONTRE = {
+  id: true,
+  statut: true,
+  createdAt: true,
+  closedAt: true,
+  motifSeance: true,
+  conclusion: true,
+  soignant: { select: { nom: true, prenom: true, role: true } },
+  diagnostics: {
+    where: { type: 'PRINCIPAL' },
+    select: { pathologie: { select: { libelle: true, confidentialiteRenforcee: true } } },
+    take: 1,
+  },
+} as const
 
 const SUIVI_TRAITEMENT_INCLUDE = {
   consultation: {
@@ -100,7 +117,7 @@ export class SuiviTraitementService {
    * Utilisateur sans relation Prisma — résolu comme pour les constantes du dossier
    * (nom du soignant, login à défaut).
    */
-  private async avecAuteurs<T extends { fiches: { createdBy: string | null }[] }>(suivis: T[]) {
+  private async avecAuteurs<T extends { id: string; fiches: { createdBy: string | null }[] }>(suivis: T[]) {
     const ids = [...new Set(suivis.flatMap((s) => s.fiches.map((f) => f.createdBy)).filter((x): x is string => !!x))]
     const users = ids.length
       ? await this.prisma.utilisateur.findMany({
@@ -112,9 +129,19 @@ export class SuiviTraitementService {
       u.id,
       u.personnelMedical ? `${u.personnelMedical.prenom} ${u.personnelMedical.nom}` : u.login,
     ]))
+    // Séances de suivi de chaque épisode (référence `episodeSuiviId`, sans relation Prisma :
+    // une clé étrangère formerait une boucle avec la consultation de départ).
+    const seances = suivis.length
+      ? await this.prisma.consultation.findMany({
+          where: { episodeSuiviId: { in: suivis.map((s) => s.id) }, statut: { not: 'ANNULEE' } },
+          select: { id: true, statut: true, createdAt: true, episodeSuiviId: true },
+          orderBy: { createdAt: 'asc' },
+        })
+      : []
     return suivis.map((s) => ({
       ...s,
       fiches: s.fiches.map((f) => ({ ...f, auteurNom: f.createdBy ? noms.get(f.createdBy) ?? null : null })),
+      seances: seances.filter((c) => c.episodeSuiviId === s.id).map(({ episodeSuiviId: _e, ...c }) => c),
     }))
   }
 
@@ -160,6 +187,116 @@ export class SuiviTraitementService {
     return this.avecAuteurs(suivis)
   }
 
+  /**
+   * L'ÉPISODE en entier, pour le dossier : la consultation de départ et ses séances, les
+   * traitements prescrits à chacune (avec délivrance, arrêt, administrations), les
+   * examens prescrits et leurs résultats, les fiches. Tout ce qui concerne ce problème,
+   * au même endroit.
+   */
+  async findEpisode(id: string, portee?: PorteeSuivi, masquerConfidentiel = false) {
+    const suivi = await this.findById(id, portee)
+    const [initiale, seances] = await Promise.all([
+      this.prisma.consultation.findUnique({ where: { id: suivi.consultationId }, select: SELECT_RENCONTRE }),
+      this.prisma.consultation.findMany({
+        where: { episodeSuiviId: id, statut: { not: 'ANNULEE' } },
+        select: SELECT_RENCONTRE,
+        orderBy: { createdAt: 'asc' },
+      }),
+    ])
+    const ids = [suivi.consultationId, ...seances.map((s) => s.id)]
+    const [ordonnances, bons] = await Promise.all([
+      this.prisma.ordonnance.findMany({
+        where: { consultationId: { in: ids }, statut: { not: 'ANNULEE' } },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          id: true, consultationId: true, statut: true, typeOrdonnance: true, indicationClinik: true,
+          createdAt: true, prescripteurId: true,
+          lignes: {
+            where: { deletedAt: null },
+            select: {
+              id: true, posologie: true, duree: true, voieAdmin: true, quantite: true, instructions: true,
+              arreteLe: true, motifArret: true, arretePar: true, remplaceParId: true,
+              medicament: { select: { id: true, nomGenerique: true, nomCommercial: true } },
+              typeExamen: { select: { libelle: true } },
+              administrations: {
+                where: { deletedAt: null },
+                orderBy: { administreLe: 'desc' },
+                select: { id: true, administreLe: true, dose: true, observation: true, createdBy: true },
+              },
+            },
+          },
+          bonsPharmacie: {
+            where: { deletedAt: null, statut: { not: 'ANNULE' } },
+            select: { statut: true, delivreLe: true },
+          },
+        },
+      }),
+      this.prisma.bonExamen.findMany({
+        where: { consultationId: { in: ids }, statut: { not: 'ANNULE' } },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          id: true, consultationId: true, statut: true, createdAt: true, indicationClinik: true,
+          lignes: { select: { id: true, typeExamen: { select: { libelle: true } } } },
+          resultats: {
+            where: { statut: 'RECU' },
+            orderBy: { createdAt: 'desc' },
+            select: { id: true, ligneExamenId: true, contenu: true, anormal: true, dateRealisation: true, laboratoire: true, interpretation: true, createdAt: true, corrigeId: true },
+          },
+        },
+      }),
+    ])
+
+    // Noms : prescripteurs (soignants) et auteurs des administrations (comptes).
+    const prescripteurs = await this.prisma.personnelMedical.findMany({
+      where: { id: { in: [...new Set(ordonnances.map((o) => o.prescripteurId))] } },
+      select: { id: true, nom: true, prenom: true, role: true },
+    })
+    const nomPresc = new Map(prescripteurs.map((p) => [p.id, p]))
+    const auteursIds = [...new Set(ordonnances.flatMap((o) => o.lignes.flatMap((l) => l.administrations.map((a) => a.createdBy))).filter((x): x is string => !!x))]
+    const auteurs = auteursIds.length
+      ? await this.prisma.utilisateur.findMany({
+          where: { id: { in: auteursIds } },
+          select: { id: true, login: true, personnelMedical: { select: { nom: true, prenom: true } } },
+        })
+      : []
+    const nomAuteur = new Map(auteurs.map((u) => [u.id, u.personnelMedical ? `${u.personnelMedical.prenom} ${u.personnelMedical.nom}` : u.login]))
+
+    const rencontre = (c: NonNullable<typeof initiale>) => {
+      const d = c.diagnostics[0]?.pathologie
+      return {
+        id: c.id, statut: c.statut, createdAt: c.createdAt, closedAt: c.closedAt,
+        motifSeance: c.motifSeance, conclusion: c.conclusion, soignant: c.soignant,
+        diagnosticPrincipal: d && !(masquerConfidentiel && d.confidentialiteRenforcee) ? d.libelle : null,
+      }
+    }
+    return {
+      suivi,
+      consultationInitiale: initiale ? rencontre(initiale) : null,
+      seances: seances.map(rencontre),
+      ordonnances: ordonnances.map((o) => ({
+        ...o,
+        prescripteur: nomPresc.get(o.prescripteurId) ?? null,
+        lignes: o.lignes.map((l) => ({
+          ...l,
+          administrations: l.administrations.map((a) => ({ ...a, auteurNom: a.createdBy ? nomAuteur.get(a.createdBy) ?? null : null })),
+        })),
+      })),
+      bons,
+    }
+  }
+
+  /** Date à laquelle revoir le patient — pilote l'alerte « contrôle en retard ». */
+  async setProchainControle(id: string, dto: ProchainControleDto) {
+    const s = await this.getOrThrow(id)
+    if (s.statut !== 'EN_COURS')
+      throw new ConflictException('Suivi clôturé ou annulé : pas de prochain contrôle')
+    await this.prisma.suiviTraitement.update({
+      where: { id },
+      data: { prochainControle: dto.prochainControle ? new Date(dto.prochainControle) : null },
+    })
+    return this.getOrThrow(id)
+  }
+
   async findById(id: string, portee?: PorteeSuivi) {
     await this.assertNonVerrouille(id, portee)
     const s = await this.getOrThrow(id)
@@ -185,6 +322,12 @@ export class SuiviTraitementService {
     if (c.statut === 'ANNULEE') {
       throw new ConflictException(
         'Consultation annulée : aucun suivi de traitement ne peut y être rattaché',
+      )
+    }
+    // Une SÉANCE de suivi poursuit son épisode : elle n'en ouvre pas un second.
+    if (c.episodeSuiviId) {
+      throw new ConflictException(
+        "Cette consultation est une séance d'un suivi déjà ouvert : poursuivez-le (ou clôturez-le) plutôt que d'en ouvrir un autre",
       )
     }
 
@@ -372,7 +515,18 @@ export class SuiviTraitementService {
    */
   async delete(id: string) {
     await this.getOrThrow(id)
+    // Des séances de suivi y sont rattachées : ce sont des consultations signées, avec
+    // leurs prescriptions — on n'efface pas l'épisode qui les relie (traçabilité).
+    const seances = await this.prisma.consultation.count({
+      where: { episodeSuiviId: id, statut: { not: 'ANNULEE' } },
+    })
+    if (seances > 0)
+      throw new ConflictException(
+        'Des séances de suivi sont rattachées à ce suivi : annulez-le ou clôturez-le plutôt que de le supprimer.',
+      )
     await this.prisma.$transaction([
+      // Séances annulées éventuelles : elles ne pointent plus vers un épisode disparu.
+      this.prisma.consultation.updateMany({ where: { episodeSuiviId: id }, data: { episodeSuiviId: null } }),
       this.prisma.ficheSuiviTraitement.deleteMany({
         where: { suiviTraitementId: id },
       }),

@@ -1,5 +1,5 @@
-import { useState }           from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useEffect, useState }  from 'react'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation }       from 'react-i18next'
 import {
   ArrowLeft, Users, AlertTriangle, MoreVertical, Archive, RotateCcw, Printer, Activity, Trash2, Lock, Unlock,
@@ -690,6 +690,19 @@ export function DossierPage() {
 
   const [activeSection, setActiveSection]   = usePersistedState<SectionKey>('dossier', 'activeSection', 'apercu')
   const [activeSubTabRaw, setActiveSubTab]  = usePersistedState<SubTabKey>('dossier', 'activeSubTab', 'identite')
+  // Arrivée depuis une consultation (« Ouvrir le suivi dans le dossier ») : on se place sur
+  // Parcours de soins › Suivi de traitement et l'épisode s'ouvre de lui-même.
+  const location = useLocation()
+  const [suiviAOuvrir, setSuiviAOuvrir] = useState<string | null>(null)
+  const suiviDemande = (location.state as { ouvrirSuiviId?: string } | null)?.ouvrirSuiviId
+  useEffect(() => {
+    if (!suiviDemande) return
+    setSuiviAOuvrir(suiviDemande)
+    setActiveSection('parcours'); setActiveSubTab('suiviTraitement')
+    // L'état de navigation est consommé : un rechargement ne rouvre pas l'épisode.
+    navigate(location.pathname, { replace: true, state: null })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [suiviDemande])
   const [showChangerCateg, setChangerCateg] = useState(false)
   const [showArchiveConfirm, setShowArchive] = useState(false)
   const [showDeleteConfirm, setShowDelete]   = useState(false)
@@ -968,7 +981,7 @@ export function DossierPage() {
               {activeSubTab === 'consultations'       && canViewClinique && <ConsultationsTab patientId={dossier.id} historiqueRestreint={historiqueRestreint} />}
               {activeSubTab === 'chroniques'          && canViewClinique && <PathologiesChroniquesTab patientId={dossier.id} historiqueRestreint={historiqueRestreint} />}
               {activeSubTab === 'constantes'          && canViewClinique && <ConstantesTab patientId={dossier.id} historiqueRestreint={historiqueRestreint} />}
-              {activeSubTab === 'suiviTraitement'     && canViewClinique && <SuiviTraitementTab patientId={dossier.id} historiqueRestreint={historiqueRestreint} />}
+              {activeSubTab === 'suiviTraitement'     && canViewClinique && <SuiviTraitementTab patientId={dossier.id} historiqueRestreint={historiqueRestreint} ouvrirSuiviId={suiviAOuvrir} onOuvert={() => setSuiviAOuvrir(null)} />}
               {activeSubTab === 'traitements'         && canViewClinique && <TraitementsTab patientId={dossier.id} historiqueRestreint={historiqueRestreint} />}
               {activeSubTab === 'resultats'           && canViewClinique && <ResultatsExamensTab patientId={dossier.id} historiqueRestreint={historiqueRestreint} />}
               {activeSubTab === 'rattachements'       && <RattementsTab    dossier={dossier} canWrite={canManageRattachements} />}

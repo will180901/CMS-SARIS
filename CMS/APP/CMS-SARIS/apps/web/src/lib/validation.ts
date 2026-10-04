@@ -91,6 +91,12 @@ export function todayISO(): string {
   const off = d.getTimezoneOffset()
   return new Date(d.getTime() - off * 60_000).toISOString().slice(0, 10)
 }
+/** Jour (yyyy-MM-dd, heure locale) d'un horodatage — borne `min`/`max` d'un DatePicker. */
+export function jourISO(iso: string | Date): string {
+  const d = new Date(iso)
+  const off = d.getTimezoneOffset()
+  return new Date(d.getTime() - off * 60_000).toISOString().slice(0, 10)
+}
 /** Borne `min` raisonnable pour une date de naissance. */
 export function minBirthISO(): string {
   const d = new Date()

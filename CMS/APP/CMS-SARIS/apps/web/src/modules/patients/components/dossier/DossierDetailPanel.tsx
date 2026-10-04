@@ -34,6 +34,8 @@ import { useBonsPharmacie } from '@/modules/bon-pharmacie/hooks/useBonPharmacie'
 import { BonPharmaciePrintModal } from '@/modules/bon-pharmacie/components/BonPharmaciePrintModal'
 import { EvacuationCard } from '@/modules/sorties-critiques/components/EvacuationCard'
 import { SuiviTraitementCard } from '@/modules/suivi-traitement/components/SuiviTraitementCard'
+import { EpisodeSuivi } from '@/modules/suivi-traitement/components/EpisodeSuivi'
+import { useSuivisTraitement } from '@/modules/suivi-traitement/hooks/useSuiviTraitement'
 import { formatDate, formatTime } from '@/lib/intl'
 import { labelStatut } from '@/config/labels'
 import type { SuiviResultatExamenItem } from '../../api/patients.api'
@@ -401,10 +403,16 @@ function CertificatReposBody({ consultationId }: { consultationId: string }) {
   return <CertificatReposPrintModal consultation={consultation} variant="inline" onClose={() => {}} />
 }
 
+/** L'épisode en entier. Ouvert sans identifiant (depuis une consultation), on retrouve
+ *  l'épisode de cette consultation ; à défaut, l'ancienne carte (vide) l'explique. */
 function SuiviTraitementBody({ consultationId, suiviId }: { consultationId: string; suiviId?: string }) {
+  const { data: suivis = [], isLoading } = useSuivisTraitement({ consultationId }, !suiviId)
+  const id = suiviId ?? (suivis.find(s => s.statut !== 'ANNULE') ?? suivis[0])?.id
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
-      <SuiviTraitementCard consultationId={consultationId} suiviId={suiviId} />
+      {id ? <EpisodeSuivi suiviId={id} />
+        : isLoading ? <Loading />
+        : <SuiviTraitementCard consultationId={consultationId} />}
     </div>
   )
 }

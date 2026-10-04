@@ -24,6 +24,7 @@ import { calculerDateReprise } from '../../common/repos'
 import { consultationCascadeDeleteOps } from './consultation-cascade.util'
 import {
   CreateConsultationDto,
+  CreerSeanceSuiviDto,
   UpdateExamenCliniqueDto,
   AddDiagnosticDto,
   UpdateConclusionDto,
@@ -108,6 +109,9 @@ const CONSULTATION_LIST_INCLUDE = {
   _count: {
     select: { diagnostics: true, ordonnances: { where: { deletedAt: null } } },
   },
+  // Rangement par PROBLÈME dans les files : un épisode de suivi relie sa consultation de
+  // départ (ci-dessous) et ses séances (`episodeSuivi`, ajouté par findAll).
+  suiviTraitement: { select: { id: true, motif: true, statut: true } },
 } as const
 
 const CONSULTATION_DETAIL_INCLUDE = {
@@ -294,7 +298,25 @@ export class ConsultationService {
       }
     })
 
-    return this.attachSoignants(consultations)
+    const episodes = await this.episodesDe(consultations.map((c) => c.episodeSuiviId))
+    return this.attachSoignants(
+      consultations.map((c) => ({ ...c, episodeSuivi: c.episodeSuiviId ? episodes.get(c.episodeSuiviId) ?? null : null })),
+    )
+  }
+
+  /**
+   * Épisodes de suivi des séances. `episodeSuiviId` est une référence sans clé étrangère
+   * (une clé formerait une boucle avec SuiviTraitement.consultationId, que la synchro ne
+   * sait pas ordonner) : l'épisode se lit donc ici, et non par une relation Prisma.
+   */
+  private async episodesDe(ids: (string | null)[]) {
+    const uniques = [...new Set(ids.filter((x): x is string => !!x))]
+    if (uniques.length === 0) return new Map<string, { id: string; motif: string; statut: string }>()
+    const lignes = await this.prisma.suiviTraitement.findMany({
+      where: { id: { in: uniques } },
+      select: { id: true, motif: true, statut: true },
+    })
+    return new Map(lignes.map((e) => [e.id, e]))
   }
 
   // ── Détail consultation ──────────────────────────────────────────────────
@@ -363,7 +385,12 @@ export class ConsultationService {
     const ordonnances =
       scope?.canReadOrdonnances === false ? [] : consultation.ordonnances
 
-    return { ...consultation, ordonnances, soignant, priseEnCharge }
+    // Séance de suivi : l'épisode auquel elle appartient.
+    const episodeSuivi = consultation.episodeSuiviId
+      ? (await this.episodesDe([consultation.episodeSuiviId])).get(consultation.episodeSuiviId) ?? null
+      : null
+
+    return { ...consultation, ordonnances, soignant, priseEnCharge, episodeSuivi }
   }
 
   /** Résout le nom affichable de l'utilisateur qui a la consultation en main. */
@@ -570,6 +597,100 @@ export class ConsultationService {
   }
 
   // ── Ouvrir une consultation ──────────────────────────────────────────────
+
+  /**
+   * Séance de suivi : le médecin la lance DEPUIS le suivi, sans repasser par le triage.
+   * Elle crée elle-même le passage (visite) puis une consultation ordinaire — mêmes
+   * règles, mêmes outils (ordonnances, examens, bons, délégation, droits de catégorie) —
+   * reliée à l'épisode. Le diagnostic principal de la consultation de départ est repris.
+   * Une séance déjà ouverte pour cet épisode est rouverte plutôt que dédoublée.
+   */
+  async creerSeanceSuivi(
+    dto: CreerSeanceSuiviDto,
+    acteur: { id: string; siteId: string; personnelMedicalId: string | null },
+  ) {
+    const suivi = await this.prisma.suiviTraitement.findFirst({
+      where: { id: dto.suiviTraitementId },
+      include: {
+        consultation: {
+          select: {
+            typeConsultationId: true,
+            visite: { select: { patientId: true, siteId: true, motifPrincipalId: true } },
+            diagnostics: { where: { type: 'PRINCIPAL' }, select: { pathologieId: true, certitude: true }, take: 1 },
+          },
+        },
+      },
+    })
+    if (!suivi) throw new NotFoundException('Suivi de traitement introuvable')
+    if (suivi.statut !== 'EN_COURS')
+      throw new ConflictException('Ce suivi est clôturé ou annulé : aucune séance ne peut y être ajoutée')
+
+    const ouverte = await this.prisma.consultation.findFirst({
+      where: { episodeSuiviId: suivi.id, statut: 'OUVERTE' },
+      select: { id: true, motifSeance: true },
+    })
+    if (ouverte) {
+      // La raison d'un nouveau clic (« suite au résultat… ») s'ajoute à celle de la séance.
+      const motif = dto.motifSeance?.trim()
+      if (motif && !(ouverte.motifSeance ?? '').includes(motif))
+        await this.prisma.consultation.update({
+          where: { id: ouverte.id },
+          data: { motifSeance: [ouverte.motifSeance, motif].filter(Boolean).join(' — ').slice(0, 1000) },
+        })
+      return { consultationId: ouverte.id, existante: true }
+    }
+
+    if (!acteur.personnelMedicalId)
+      throw new BadRequestException(
+        "Votre compte n'est relié à aucun soignant : impossible d'ouvrir une séance de suivi",
+      )
+    const patientId = suivi.consultation.visite.patientId
+    const passage = await this.prisma.visite.findFirst({
+      where: { patientId, statut: { in: ['EN_ATTENTE', 'EN_COURS'] } },
+      select: { id: true },
+    })
+    if (passage)
+      throw new ConflictException(
+        "Ce patient a déjà un passage en cours (triage ou consultation) : terminez-le avant d'ouvrir une séance de suivi",
+      )
+
+    // La séance porte sur le MÊME problème : elle reprend le motif de venue et le type de la
+    // consultation de départ. (Deviner un motif « suivi » par mot-clé tombait sur « Suivi de
+    // grossesse » ; le référentiel n'a pas de motif générique de séance.)
+    const visite = await this.prisma.visite.create({
+      data: {
+        patientId,
+        siteId: acteur.siteId || suivi.consultation.visite.siteId,
+        motifPrincipalId: suivi.consultation.visite.motifPrincipalId,
+        statut: 'EN_COURS',
+        soignantId: acteur.personnelMedicalId,
+        notesAccueil: `Séance de suivi — ${suivi.motif}`.slice(0, 1000),
+      },
+    })
+    let consultationId: string
+    try {
+      const c = await this.create({ visiteId: visite.id }, acteur.id)
+      consultationId = c.id
+    } catch (e) {
+      // Rien ne doit rester d'une séance qui n'a pas pu s'ouvrir (passage fantôme).
+      await this.prisma.raw.visite.delete({ where: { id: visite.id } }).catch(() => undefined)
+      throw e
+    }
+    await this.prisma.consultation.update({
+      where: { id: consultationId },
+      data: {
+        episodeSuiviId: suivi.id,
+        motifSeance: dto.motifSeance?.trim() || null,
+        typeConsultationId: suivi.consultation.typeConsultationId,
+      },
+    })
+    const principal = suivi.consultation.diagnostics[0]
+    if (principal)
+      await this.prisma.diagnosticConsultation.create({
+        data: { consultationId, pathologieId: principal.pathologieId, type: 'PRINCIPAL', certitude: principal.certitude },
+      })
+    return { consultationId, existante: false }
+  }
 
   async create(dto: CreateConsultationDto, acteurUserId: string) {
     // Vérifier la visite — multi-site sans restriction : n'importe quel soignant

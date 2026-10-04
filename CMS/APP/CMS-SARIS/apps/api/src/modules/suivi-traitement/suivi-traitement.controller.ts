@@ -30,10 +30,11 @@ import {
   CloturerSuiviTraitementDto,
   AnnulerSuiviTraitementDto,
   SuiviTraitementQueryDto,
+  ProchainControleDto,
 } from './dto/suivi-traitement.dto'
 
 interface AuthedRequest {
-  user?: { id?: string; roles?: string[] }
+  user?: { id?: string; roles?: string[]; permissions?: string[] }
 }
 
 // Même règle que le dossier patient (patient.controller) : la supervision voit tout,
@@ -58,6 +59,25 @@ export class SuiviTraitementController {
   @RequirePermissions('suivi_traitement.read')
   findAll(@Query() query: SuiviTraitementQueryDto, @Req() req: AuthedRequest) {
     return this.svc.findAll(query, portee(req))
+  }
+
+  /** L'épisode en entier (séances, traitements, examens et résultats, fiches). */
+  @Get(':id/episode')
+  @RequirePermissions('suivi_traitement.read')
+  findEpisode(@Param('id') id: string, @Req() req: AuthedRequest) {
+    const masquer = !(req.user?.permissions ?? []).includes('patient.confidentiel.read')
+    return this.svc.findEpisode(id, portee(req), masquer)
+  }
+
+  @Patch(':id/prochain-controle')
+  @RequirePermissions('suivi_traitement.update')
+  async setProchainControle(
+    @Param('id') id: string,
+    @Body() dto: ProchainControleDto,
+    @Req() req: AuthedRequest,
+  ) {
+    await this.svc.assertModifiable(id, portee(req))
+    return this.svc.setProchainControle(id, dto)
   }
 
   @Get(':id')

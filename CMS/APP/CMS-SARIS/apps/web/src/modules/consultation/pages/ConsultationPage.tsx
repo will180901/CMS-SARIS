@@ -281,7 +281,7 @@ export function ConsultationPage() {
               idDe={c => c.id}
               patientDe={c => ({ id: c.visite.patient.id, numeroPatient: c.visite.patient.numeroPatient, identite: c.visite.patient.identite })}
               dateDe={c => c.createdAt}
-              problemeDe={c => c.diagnosticPrincipal?.libelle ?? null}
+              problemeDe={c => c.episodeSuivi?.motif ?? (c.suiviTraitement && c.suiviTraitement.statut !== 'ANNULE' ? c.suiviTraitement.motif : undefined) ?? c.diagnosticPrincipal?.libelle ?? null}
               carte={c => (
                 <ConsultationQueueCard consultation={c} selected={c.id === selectedId} onClick={() => setSelected(c.id)} />
               )}

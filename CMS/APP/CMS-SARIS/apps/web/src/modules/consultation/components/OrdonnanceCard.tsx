@@ -126,7 +126,7 @@ export function OrdonnanceCard({ consultationId, consultation, ordonnances, read
               {pendingType === 'PHARMACEUTIQUE' ? (
                 <LigneAddFormWithGuard medicaments={medicaments} busy={createAvecLigne.isPending} submit={createWith} />
               ) : (
-                <ExamLignesForm typesExamen={typesExamen} showIndication busy={createAvecLigne.isPending} onSubmit={createWith} />
+                <ExamLignesForm typesExamen={typesExamen} showIndication indicationInitiale={consultation.motifSeance ?? ''} busy={createAvecLigne.isPending} onSubmit={createWith} />
               )}
             </div>
           )
@@ -538,15 +538,17 @@ function LigneAddForm({ medicaments, busy, onSubmit }: {
 // `showIndication` : affiché seulement à la création (1ʳᵉ ligne) — l'indication clinique est
 // portée par l'ordonnance entière, pas resaisie pour les lignes suivantes du même brouillon.
 
-function ExamLignesForm({ typesExamen, showIndication, busy, onSubmit }: {
+function ExamLignesForm({ typesExamen, showIndication, indicationInitiale = '', busy, onSubmit }: {
   typesExamen: TypeExamenRef[]
   showIndication: boolean
+  /** Séance de suivi : la raison de la séance (ex. « suite au résultat de… ») pré-remplit l'indication. */
+  indicationInitiale?: string
   busy?: boolean
   onSubmit: (payload: { indicationClinik?: string; typesExamenIds: string[]; instructions?: string }) => Promise<void>
 }) {
   const { t } = useTranslation()
   const typesActifs = useMemo(() => typesExamen.filter(t => t.statut === 'ACTIF'), [typesExamen])
-  const [indication, setIndication] = useState('')
+  const [indication, setIndication] = useState(indicationInitiale)
   const [selected, setSelected]     = useState<string[]>([])
   const [examInput, setExamInput]   = useState('')
   const [examFocus, setExamFocus]   = useState(false)

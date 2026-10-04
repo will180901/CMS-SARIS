@@ -45,7 +45,7 @@ import { UpdateRattachementADDto } from './dto/rattachement.dto'
 // ── Alertes cliniques calculées ─────────────────────────────────────────────────
 
 export interface AlerteClinique {
-  type: 'ALLERGIE_MEDICAMENT' | 'CONSTANTE_CRITIQUE' | 'CHRONIQUE_SANS_SUIVI'
+  type: 'ALLERGIE_MEDICAMENT' | 'CONSTANTE_CRITIQUE' | 'CHRONIQUE_SANS_SUIVI' | 'CONTROLE_EN_RETARD'
   gravite: 'CRITIQUE' | 'ELEVE' | 'MODERE'
   titre: string
   /** Objet de l'alerte en quelques mots (médicament, valeur mesurée, pathologie) : ce
@@ -1150,6 +1150,29 @@ export class PatientService {
         date: d.consultation.createdAt.toISOString(),
         // L'absence de suivi est un etat ACTUEL, meme si le diagnostic est ancien : c'est
         // aujourd'hui qu'il n'y a personne pour suivre cette pathologie.
+        portee: 'ACTUELLE',
+      })
+    }
+
+    // ── Règle 4 : contrôle de suivi en retard ─────────────────────────────────
+    // Un épisode de suivi EN COURS dont la date de prochain contrôle est passée : le
+    // patient n'a pas été revu quand il devait l'être.
+    const enRetard = await this.prisma.suiviTraitement.findMany({
+      where: {
+        statut: 'EN_COURS',
+        prochainControle: { lt: new Date() },
+        consultation: { visite: { patientId } },
+      },
+      select: { motif: true, prochainControle: true },
+    })
+    for (const e of enRetard) {
+      alertes.push({
+        type: 'CONTROLE_EN_RETARD',
+        gravite: 'MODERE',
+        titre: 'Contrôle de suivi en retard',
+        sujet: e.motif.length > 60 ? e.motif.slice(0, 60) + '…' : e.motif,
+        detail: `Le patient devait être revu pour le suivi « ${e.motif} ».`,
+        date: e.prochainControle!.toISOString(),
         portee: 'ACTUELLE',
       })
     }

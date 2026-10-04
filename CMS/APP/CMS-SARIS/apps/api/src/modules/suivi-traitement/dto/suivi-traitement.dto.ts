@@ -1,4 +1,5 @@
 import {
+  IsDateString,
   IsUUID,
   IsString,
   IsOptional,
@@ -71,4 +72,11 @@ export class SuiviTraitementQueryDto {
   @IsOptional()
   @IsIn(['EN_COURS', 'CLOTURE', 'ANNULE', 'TOUS'])
   statut?: string
+}
+
+/** Date à laquelle revoir le patient (null = aucune). */
+export class ProchainControleDto {
+  @IsOptional()
+  @IsDateString()
+  prochainControle?: string | null
 }

@@ -27,11 +27,12 @@ import {
 import { ConsultationService } from './consultation.service'
 import { JwtAuthGuard } from '../security/guards/jwt-auth.guard'
 import { PermissionsGuard } from '../security/guards/permissions.guard'
-import { RequirePermissions } from '../../common/decorators/require-permissions.decorator'
+import { RequirePermissions, RequireAllPermissions } from '../../common/decorators/require-permissions.decorator'
 import { LiveRefresh } from '../../common/decorators/live-refresh.decorator'
 import { Audit } from '../../common/decorators/audit.decorator'
 import {
   CreateConsultationDto,
+  CreerSeanceSuiviDto,
   UpdateExamenCliniqueDto,
   AddDiagnosticDto,
   UpdateConclusionDto,
@@ -111,6 +112,19 @@ export class ConsultationController {
   create(@Body() dto: CreateConsultationDto, @Req() req: AuthedRequest) {
     const { id: acteurUserId } = requireUser(req)
     return this.consultationService.create(dto, acteurUserId)
+  }
+
+  /** Séance de suivi lancée depuis un épisode (sans triage) — cf. creerSeanceSuivi. */
+  @Post('seances-suivi')
+  @RequireAllPermissions('consultation.create', 'suivi_traitement.update')
+  @HttpCode(HttpStatus.CREATED)
+  creerSeanceSuivi(@Body() dto: CreerSeanceSuiviDto, @Req() req: AuthedRequest) {
+    const { id, siteId } = requireUser(req)
+    return this.consultationService.creerSeanceSuivi(dto, {
+      id,
+      siteId,
+      personnelMedicalId: req.user?.personnelMedicalId ?? null,
+    })
   }
 
   // ── Documents générés d'un patient (dossier) ───────────────────────────────
