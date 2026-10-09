@@ -128,7 +128,7 @@ interface Props<T> {
 export function ListePrintSheet<T>({
   rootId, titre, sousTitre, colonnes, lignes, cleDe, blocs,
   libelleSuite = '(suite)', piedGauche,
-  etablissement = 'Centre Médico-Social — République du Congo',
+  etablissement = 'Centre Médico-Sanitaire de la SARIS CONGO',
   onClose,
 }: Props<T>) {
   const styleRef = useRef<HTMLStyleElement | null>(null)
@@ -598,7 +598,7 @@ function RenduBloc({ bloc }: { bloc: BlocImprimable }) {
             margin: 0, fontSize: 11, fontWeight: 700, letterSpacing: '0.22em',
             textTransform: 'uppercase', color: ACCENT,
           }}>
-            {bloc.site ?? 'Centre Médico-Social'}
+            {bloc.site ?? 'Centre Médico-Sanitaire de la SARIS CONGO'}
           </p>
 
           <h1 style={{

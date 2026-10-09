@@ -112,7 +112,7 @@ export const bonExamen = {
     printColNumber: '#',
     printColExam: 'Examen',
     printColDomain: 'Domaine',
-    printCallout: 'Patient adressé par le CMS SARIS. Merci de transmettre les résultats au centre médico-social émetteur.',
+    printCallout: 'Patient adressé par le CMS SARIS. Merci de transmettre les résultats au Centre Médico-Sanitaire de la SARIS CONGO.',
 
     // ── Toasts (hooks runtime) ──────────────────────────────────────
     toastErrorGeneric: 'Erreur',
@@ -231,7 +231,7 @@ export const bonExamen = {
     printColNumber: '#',
     printColExam: 'Examination',
     printColDomain: 'Domain',
-    printCallout: 'Patient referred by CMS SARIS. Please send the results back to the issuing medico-social center.',
+    printCallout: 'Patient referred by CMS SARIS. Please send the results back to the SARIS CONGO Medical and Health Centre.',
 
     // ── Toasts (runtime hooks) ──────────────────────────────────────
     toastErrorGeneric: 'Error',

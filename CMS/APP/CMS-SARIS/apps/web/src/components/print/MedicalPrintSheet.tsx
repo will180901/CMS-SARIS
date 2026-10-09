@@ -82,7 +82,7 @@ interface Props {
   firstSignatureLabel?: string
   /** Libellé de la 2e zone de signature (ex. « Cachet établissement destinataire »). */
   secondSignatureLabel?: string
-  /** Ligne d'établissement sous le logo (ex. « Centre Médico-Social — CMS Moutela »). */
+  /** Ligne d'établissement sous le logo (par défaut « Centre Médico-Sanitaire de la SARIS CONGO »). */
   etablissement?: string
   children:      React.ReactNode  // corps du document
   onClose:       () => void
@@ -130,7 +130,7 @@ export function MedicalPrintSheet({
   soignantTitle = 'Prescripteur',
   firstSignatureLabel = 'Signature et cachet du prescripteur',
   secondSignatureLabel = "Cachet de l'établissement destinataire",
-  etablissement = 'Centre Médico-Social — République du Congo',
+  etablissement = 'Centre Médico-Sanitaire de la SARIS CONGO',
   children, onClose, variant = 'modal',
 }: Props) {
   const styleRef = useRef<HTMLStyleElement | null>(null)
