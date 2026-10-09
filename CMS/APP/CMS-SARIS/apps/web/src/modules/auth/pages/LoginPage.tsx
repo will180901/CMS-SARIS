@@ -176,8 +176,15 @@ export function LoginPage() {
 
             {/* ── Logo + Titre ─────────────────────────────────────────── */}
             <div className="flex flex-col items-center mb-8">
+              {/* Logo selon le thème : fond transparent, bleu-vert éclairci en sombre. */}
               <img
-                src="/logo_cms_saris.png" alt="CMS SARIS"
+                src="/logo_cms_saris_clair.png" alt="CMS SARIS"
+                className="block dark:hidden"
+                style={{ height: 46, width: 'auto', maxWidth: '100%', marginBottom: 10 }}
+              />
+              <img
+                src="/logo_cms_saris_sombre.png" alt="CMS SARIS"
+                className="hidden dark:block"
                 style={{ height: 46, width: 'auto', maxWidth: '100%', marginBottom: 10 }}
               />
               <p
