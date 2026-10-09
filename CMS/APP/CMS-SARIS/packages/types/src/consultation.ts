@@ -121,6 +121,9 @@ export interface TypeConsultationResume {
 
 export interface DiagnosticDetail extends DiagnosticConsultation {
   pathologie: PathologieResume
+  /** Diagnostic à confidentialité renforcée masqué pour ce lecteur (sans le droit
+   *  `patient.confidentiel.read`) : libellé générique, pathologie non identifiable. */
+  masque?: boolean
 }
 
 export interface LigneOrdonnanceDetail extends LigneOrdonnance {

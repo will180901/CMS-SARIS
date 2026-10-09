@@ -70,6 +70,12 @@ function isHistoriqueRestreint(req: AuthedRequest): boolean {
   )
 }
 
+// Confidentialité renforcée (VIH…) : sans `patient.confidentiel.read`, un diagnostic de
+// ce type est masqué (liste, détail, prise en main) et ne peut pas être retiré.
+function masquerConfidentiel(req: AuthedRequest): boolean {
+  return !(req.user?.permissions ?? []).includes('patient.confidentiel.read')
+}
+
 function requireUser(req: AuthedRequest): { id: string; siteId: string } {
   const id = req.user?.id
   const siteId = req.user?.siteId
@@ -98,9 +104,7 @@ export class ConsultationController {
       personnelMedicalId: req.user?.personnelMedicalId ?? null,
       canViewLocked: canReadAll,
       restreindreHistorique: isHistoriqueRestreint(req),
-      masquerConfidentiel: !(req.user?.permissions ?? []).includes(
-        'patient.confidentiel.read',
-      ),
+      masquerConfidentiel: masquerConfidentiel(req),
     })
   }
 
@@ -170,7 +174,7 @@ export class ConsultationController {
         'ordonnance.read',
       ),
       lireConsultationEnCours: isHistoriqueRestreint(req),
-    })
+    }, masquerConfidentiel(req))
   }
 
   // ── Examen clinique ───────────────────────────────────────────────────────
@@ -252,7 +256,7 @@ export class ConsultationController {
     @Req() req: AuthedRequest,
   ) {
     const { id: userId } = requireUser(req)
-    return this.consultationService.removeDiagnostic(id, diagId, userId)
+    return this.consultationService.removeDiagnostic(id, diagId, userId, masquerConfidentiel(req))
   }
 
   // ── Clôturer / Annuler ────────────────────────────────────────────────────
@@ -293,7 +297,7 @@ export class ConsultationController {
   @HttpCode(HttpStatus.OK)
   prendreEnCharge(@Param('id') id: string, @Req() req: AuthedRequest) {
     const { id: userId } = requireUser(req)
-    return this.consultationService.prendreEnCharge(id, userId)
+    return this.consultationService.prendreEnCharge(id, userId, masquerConfidentiel(req))
   }
 
   // ── Ordonnances ───────────────────────────────────────────────────────────

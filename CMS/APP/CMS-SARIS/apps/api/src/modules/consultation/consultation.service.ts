@@ -83,9 +83,36 @@ const VISITE_RESUME = {
 
 const DIAGNOSTIC_INCLUDE = {
   pathologie: {
-    select: { id: true, code: true, libelle: true, chronique: true },
+    select: { id: true, code: true, libelle: true, chronique: true, confidentialiteRenforcee: true },
   },
 } as const
+
+/** Libellé affiché à la place d'un diagnostic à confidentialité renforcée. */
+const LIBELLE_DIAGNOSTIC_CONFIDENTIEL = 'Diagnostic confidentiel (réservé au médecin)'
+
+/**
+ * Confidentialité renforcée (VIH…) : pour qui n'a pas `patient.confidentiel.read`, le
+ * diagnostic reste une ligne — le décompte reste juste et personne ne croit la
+ * consultation sans diagnostic — mais rien ne permet d'en retrouver la pathologie :
+ * ni libellé, ni code, ni identifiant, ni caractère chronique.
+ */
+function masquerDiagnostic<
+  D extends { pathologieId: string; pathologie: { confidentialiteRenforcee: boolean } },
+>(d: D, masquer: boolean) {
+  if (!masquer || !d.pathologie.confidentialiteRenforcee) return { ...d, masque: false }
+  return {
+    ...d,
+    pathologieId: '',
+    pathologie: {
+      id: '',
+      code: '',
+      libelle: LIBELLE_DIAGNOSTIC_CONFIDENTIEL,
+      chronique: false,
+      confidentialiteRenforcee: true,
+    },
+    masque: true,
+  }
+}
 
 const LIGNE_INCLUDE = {
   medicament: {
@@ -346,6 +373,7 @@ export class ConsultationService {
        *  quel qu'en soit le soignant — celle que la liste de son dossier lui montre. */
       lireConsultationEnCours?: boolean
     },
+    masquerConfidentiel = false,
   ) {
     const where: any = { id }
     // Confidentialité : un soignant non-superviseur ne peut ouvrir QUE ses propres
@@ -391,7 +419,13 @@ export class ConsultationService {
       ? (await this.episodesDe([consultation.episodeSuiviId])).get(consultation.episodeSuiviId) ?? null
       : null
 
-    return { ...consultation, ordonnances, soignant, priseEnCharge, episodeSuivi }
+    // Même règle que la liste, les antécédents et les alertes : l'infirmier peut ouvrir
+    // la consultation EN COURS d'un patient, il n'y lit pas un diagnostic confidentiel.
+    const diagnostics = consultation.diagnostics.map((d) =>
+      masquerDiagnostic(d, masquerConfidentiel),
+    )
+
+    return { ...consultation, diagnostics, ordonnances, soignant, priseEnCharge, episodeSuivi }
   }
 
   /** Résout le nom affichable de l'utilisateur qui a la consultation en main. */
@@ -412,14 +446,14 @@ export class ConsultationService {
   }
 
   /** Verrou souple : marque la consultation comme prise en main par l'utilisateur. */
-  async prendreEnCharge(id: string, userId: string) {
+  async prendreEnCharge(id: string, userId: string, masquerConfidentiel = false) {
     const c = await this.getOrThrow(id)
     this.assertModifiable(c.statut)
     await this.prisma.consultation.update({
       where: { id },
       data: { pickedUpById: userId, pickedUpAt: new Date() },
     })
-    return this.findById(id)
+    return this.findById(id, undefined, masquerConfidentiel)
   }
 
   // ── Documents générés d'un patient (dossier → onglet Documents) ────────────
@@ -892,14 +926,22 @@ export class ConsultationService {
     consultationId: string,
     diagId: string,
     userId: string,
+    masquerConfidentiel = false,
   ) {
     await this.assertEditable(consultationId, userId)
 
     const diag = await this.prisma.diagnosticConsultation.findUnique({
       where: { id: diagId },
+      include: { pathologie: { select: { confidentialiteRenforcee: true } } },
     })
     if (!diag || diag.consultationId !== consultationId) {
       throw new NotFoundException('Diagnostic introuvable')
+    }
+    // Un diagnostic qu'on ne peut pas lire ne se retire pas à l'aveugle.
+    if (masquerConfidentiel && diag.pathologie.confidentialiteRenforcee) {
+      throw new ForbiddenException(
+        'Diagnostic confidentiel : seul un soignant habilité peut le retirer',
+      )
     }
 
     return this.prisma.diagnosticConsultation.delete({ where: { id: diagId } })

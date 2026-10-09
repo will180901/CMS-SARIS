@@ -12,7 +12,7 @@
 
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Plus, X, Loader2 } from 'lucide-react'
+import { Plus, X, Loader2, Lock } from 'lucide-react'
 import { Card } from '@/components/saris'
 import { useAddDiagnostic, useRemoveDiagnostic } from '../hooks/useConsultation'
 import { usePathologies, useCreatePathologie } from '@/modules/referentiels/hooks/useReferentiels'
@@ -145,7 +145,9 @@ export function DiagnosticsCard({ consultationId, diagnostics, readonly }: Props
                     border: principal ? 'none' : '1.5px solid var(--ap-400)',
                   }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ fontSize: '14px', fontWeight: principal ? 700 : 500, color: 'var(--texte-primaire)', lineHeight: 1.35 }}>
+                    {/* Confidentialité renforcée, lecteur non habilité : ligne générique. */}
+                    <span style={{ fontSize: '14px', fontWeight: principal ? 700 : 500, color: d.masque ? 'var(--texte-tertiaire)' : 'var(--texte-primaire)', fontStyle: d.masque ? 'italic' : undefined, lineHeight: 1.35 }}>
+                      {d.masque && <Lock size={12} style={{ marginRight: 5, verticalAlign: '-1px' }} />}
                       {d.pathologie.libelle}
                     </span>
                     <span style={{ fontSize: '11px', color: 'var(--texte-tertiaire)', marginLeft: 8 }}>
@@ -153,7 +155,7 @@ export function DiagnosticsCard({ consultationId, diagnostics, readonly }: Props
                       {d.pathologie.chronique && <span style={{ marginLeft: 6, color: 'var(--avert-accent)', fontWeight: 600 }}>{t('consultation.diagChronicSuffix')}</span>}
                     </span>
                   </div>
-                  {!readonly && (
+                  {!readonly && !d.masque && (
                     <button
                       onClick={() => removeDiag.mutate(d.id)}
                       disabled={removeDiag.isPending}
