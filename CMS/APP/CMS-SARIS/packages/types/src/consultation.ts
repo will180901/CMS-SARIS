@@ -150,7 +150,7 @@ export interface VisiteResume {
   }
   motifPrincipal: { id: string; code: string; libelle: string }
   constantes:     ConstanteVitale[]
-  site:           { libelle: string }
+  site:           { id: string; libelle: string }
 }
 
 export interface ConsultationListItem extends Consultation {

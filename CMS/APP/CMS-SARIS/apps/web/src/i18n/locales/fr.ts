@@ -144,6 +144,7 @@ export const fr = {
     pending: '{{count}} en attente',
     pendingTooltip: '{{count}} action(s) en attente de synchronisation',
     currentSiteTooltip: 'Poste rattaché au site {{site}}',
+    autreSite: 'Passage enregistré sur un autre site : {{site}}',
   },
   settings: {
     title: 'Mes paramètres',

@@ -20,6 +20,7 @@ import { VisiteDetail }        from '../components/VisiteDetail'
 import { PrivacyCurtain }      from '@/components/PrivacyCurtain'
 import { NouvelleVisitePanel } from '../components/NouvelleVisiteDrawer'
 import { formatDate, formatTime } from '@/lib/intl'
+import { SiteAutreBadge } from '@/components/layout/SiteAutreBadge'
 
 // ── Horloge live ──────────────────────────────────────────────────────────────
 // Composant feuille : seul ce <span> se re-render chaque seconde, pas toute la page.
@@ -606,6 +607,7 @@ export function TriagePage() {
                         titre={v.motifPrincipal?.libelle ?? ''}
                         detail={v.statut === 'ANNULEE' ? v.motifAnnulation : v.typeCloture ? t(v.typeCloture === 'AVEC_CONSULTATION' ? 'file.avecConsultation' : 'file.sansConsultation') : null}
                         annule={v.statut === 'ANNULEE'}
+                        site={v.site}
                       />
                     )}
                     selectedId={selectedId}
@@ -731,13 +733,14 @@ function EmptyPanel({
 }
 
 // Ligne compacte d'un passage dans la bulle d'un patient (le nom est déjà dans la bulle).
-function LignePassage({ date, titre, detail, annule }: { date: string; titre: string; detail?: string | null; annule?: boolean }) {
+function LignePassage({ date, titre, detail, annule, site }: { date: string; titre: string; detail?: string | null; annule?: boolean; site?: { id?: string; libelle: string } | null }) {
   const { t } = useTranslation()
   return (
     <span style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }}>
       <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: 'var(--texte-primaire)' }}>
         <span style={{ fontVariantNumeric: 'tabular-nums', color: 'var(--texte-secondaire)' }}>{formatDate(date, { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{titre}</span>
+        <SiteAutreBadge site={site} />
         {annule && <span style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 700, color: 'var(--erreur-texte)' }}>{t('file.annule')}</span>}
       </span>
       {detail && <span style={{ fontSize: 11, color: 'var(--texte-tertiaire)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{detail}</span>}

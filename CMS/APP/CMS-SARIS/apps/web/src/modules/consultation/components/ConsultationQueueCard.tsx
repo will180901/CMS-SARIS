@@ -8,6 +8,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { nomSoignant } from '@/lib/soignant'
+import { SiteAutreBadge } from '@/components/layout/SiteAutreBadge'
 import { Stethoscope, ChevronRight, Clock } from 'lucide-react'
 import { PatientAvatar } from '@/modules/patients/components/CategorieBadge'
 import { LiveDuration }  from '@/components/saris'
@@ -97,6 +98,7 @@ export function ConsultationQueueCard({ consultation, selected, onClick }: Props
           <span style={{ fontSize: '11px', color: 'var(--texte-tertiaire)', fontFamily: 'monospace' }}>
             {patient.numeroPatient}
           </span>
+          <SiteAutreBadge site={visite.site} />
         </div>
 
         <div style={{ fontSize: '11px', color: 'var(--texte-tertiaire)', marginTop: '2px',

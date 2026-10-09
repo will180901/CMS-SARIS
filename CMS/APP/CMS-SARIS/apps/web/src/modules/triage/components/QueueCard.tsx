@@ -5,6 +5,7 @@ import { PatientAvatar }   from '@/modules/patients/components/CategorieBadge'
 import { LiveDuration }    from '@/components/saris'
 import type { VisiteListItem } from '@cms-saris/types'
 import { calcAge } from '@/lib/age'
+import { SiteAutreBadge } from '@/components/layout/SiteAutreBadge'
 
 // ── Composant ─────────────────────────────────────────────────────────────────
 
@@ -110,11 +111,12 @@ export function QueueCard({
           )}
         </div>
 
-        {/* Numéro patient */}
+        {/* Numéro patient (+ site, s'il n'est pas celui où l'on travaille) */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '3px' }}>
           <span style={{ fontSize: '11px', color: 'var(--texte-tertiaire)', fontFamily: 'monospace' }}>
             {visite.patient?.numeroPatient}
           </span>
+          <SiteAutreBadge site={visite.site} />
         </div>
 
         {/* Motif · âge */}

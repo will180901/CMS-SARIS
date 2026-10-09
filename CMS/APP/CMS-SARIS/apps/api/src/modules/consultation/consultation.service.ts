@@ -76,7 +76,7 @@ const VISITE_RESUME = {
   },
   motifPrincipal: { select: { id: true, code: true, libelle: true } },
   constantes: { orderBy: { createdAt: 'desc' as const }, take: 1 },
-  site: { select: { libelle: true } },
+  site: { select: { id: true, libelle: true } },
 } as const
 
 const DIAGNOSTIC_INCLUDE = {

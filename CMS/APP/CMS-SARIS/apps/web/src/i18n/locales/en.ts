@@ -146,6 +146,7 @@ export const en: Resources = {
     pending: '{{count}} pending',
     pendingTooltip: '{{count}} action(s) pending synchronization',
     currentSiteTooltip: 'Workstation registered to {{site}} site',
+    autreSite: 'Visit recorded at another site: {{site}}',
   },
   settings: {
     title: 'My settings',
