@@ -112,7 +112,7 @@ export function ChangerCategorieModal({
 
   // Passage en CDI/CDD : matricule et données d'emploi DÉJÀ connus du dossier sont
   // préremplis (constat 64). Les ressaisir de mémoire, c'était risquer une faute de frappe
-  // dans le matricule — donc un second employé au registre pour la même personne.
+  // dans le matricule — donc deux dossiers pour la même personne.
   const valeursInitiales = (): Form => ({
     nouvelleCategId: '', motif: '',
     matricule:   dossier.matricule ?? '',

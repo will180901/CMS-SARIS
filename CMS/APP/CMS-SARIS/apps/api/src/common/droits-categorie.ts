@@ -60,8 +60,8 @@ export async function assertPrestationCouverte(
  *  - AUCUN_RATTACHEMENT   : ayant droit sans aucun lien vers un travailleur CDI.
  *  - RATTACHEMENT_CLOTURE : le lien a existé mais il est clôturé (ou arrivé à échéance).
  *  - CDI_INACTIF          : le travailleur CDI (le patient lui-même, ou celui dont il
- *                           est l'ayant droit) n'est plus actif au registre des employés,
- *                           ou n'y figure pas comme CDI.
+ *                           est l'ayant droit) n'est plus actif : son dossier n'est plus
+ *                           en catégorie CDI, ou il n'est plus actif (archivé, décédé…).
  */
 export type MotifSuspension =
   | 'AUCUN_RATTACHEMENT'
@@ -87,12 +87,15 @@ const MESSAGES_SUSPENSION: Record<MotifSuspension, string> = {
   RATTACHEMENT_CLOTURE:
     'Rattachement au travailleur CDI clôturé : droits suspendus — médicaments et examens ne sont plus pris en charge.',
   CDI_INACTIF:
-    "Le travailleur CDI n'est plus actif au registre des employés : droits suspendus — médicaments et examens ne sont plus pris en charge.",
+    "Le travailleur CDI n'est plus actif (dossier hors catégorie CDI ou inactif) : droits suspendus — médicaments et examens ne sont plus pris en charge.",
 }
 
-/** Un employé du registre ouvre des droits s'il est CDI et ACTIF. */
-function cdiActif(e: { statut: string; categorie: string } | null | undefined) {
-  return !!e && e.statut === 'ACTIF' && e.categorie === 'ASSURE_CDI'
+/** Le dossier d'un travailleur ouvre des droits s'il est en catégorie CDI et ACTIF.
+ *  (Il n'y a plus de registre des employés : le dossier patient fait foi.) */
+function cdiActif(
+  p: { statut: string; categoriePatient: { code: string } } | null | undefined,
+) {
+  return !!p && p.statut === 'ACTIF' && p.categoriePatient.code === 'ASSURE_CDI'
 }
 
 /**
@@ -111,9 +114,9 @@ export async function couverturePatient(
   const patient = await prisma.patient.findUnique({
     where: { id: patientId },
     select: {
+      statut: true,
       categoriePatientId: true,
       categoriePatient: { select: { code: true } },
-      employe: { select: { statut: true, categorie: true } },
     },
   })
   if (!patient) throw new NotFoundException('Patient introuvable')
@@ -142,7 +145,6 @@ export async function couverturePatient(
         dateDebut: true,
         dateFin: true,
         cdiId: true,
-        employe: { select: { statut: true, categorie: true } },
       },
     })
     const enVigueur = liens.filter(
@@ -154,33 +156,21 @@ export async function couverturePatient(
     if (enVigueur.length === 0) {
       motif = liens.length > 0 ? 'RATTACHEMENT_CLOTURE' : 'AUCUN_RATTACHEMENT'
     } else {
-      // Ancien modèle : lien vers le DOSSIER du CDI (cdiId) et non vers le registre —
-      // on remonte alors à l'employé de ce dossier.
-      const cdiIdsAnciens = enVigueur
-        .filter((l) => !l.employe && l.cdiId)
-        .map((l) => l.cdiId!)
-      const anciens = cdiIdsAnciens.length
+      // Le lien pointe vers le DOSSIER du travailleur CDI (cdiId) : c'est lui qui dit
+      // s'il est toujours CDI et actif.
+      const cdiIds = enVigueur
+        .map((l) => l.cdiId)
+        .filter((v): v is string => !!v)
+      const cdis = cdiIds.length
         ? await prisma.patient.findMany({
-            where: { id: { in: cdiIdsAnciens } },
-            select: {
-              categoriePatient: { select: { code: true } },
-              employe: { select: { statut: true, categorie: true } },
-            },
+            where: { id: { in: cdiIds } },
+            select: { statut: true, categoriePatient: { select: { code: true } } },
           })
         : []
-      const unCdiActif =
-        enVigueur.some((l) => cdiActif(l.employe)) ||
-        anciens.some((p) =>
-          p.employe
-            ? cdiActif(p.employe)
-            : p.categoriePatient.code === 'ASSURE_CDI',
-        )
-      if (!unCdiActif) motif = 'CDI_INACTIF'
+      if (!cdis.some(cdiActif)) motif = 'CDI_INACTIF'
     }
-  } else if (code === 'ASSURE_CDI' && patient.employe && !cdiActif(patient.employe)) {
-    // Le travailleur lui-même : sorti des effectifs (INACTIF au registre).
-    // Un dossier CDI sans fiche au registre (données anciennes) garde ses droits :
-    // rien ne permet d'affirmer qu'il est parti.
+  } else if (code === 'ASSURE_CDI' && patient.statut !== 'ACTIF') {
+    // Le travailleur lui-même : dossier archivé, décédé…
     motif = 'CDI_INACTIF'
   }
 
@@ -201,7 +191,7 @@ export async function couverturePatient(
 
 /**
  * Garde de génération d'un bon : la catégorie d'abord (message habituel), puis la
- * situation du patient (rattachement, registre des employés).
+ * situation du patient (rattachement, dossier du travailleur CDI).
  */
 export async function assertPatientCouvert(
   prisma: PrismaService,

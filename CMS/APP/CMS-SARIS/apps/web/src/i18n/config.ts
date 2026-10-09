@@ -12,7 +12,6 @@ import { bonExamen } from './locales/modules/bonExamen'
 import { bonPharmacie } from './locales/modules/bonPharmacie'
 import { consultation } from './locales/modules/consultation'
 import { dashboard } from './locales/modules/dashboard'
-import { employes } from './locales/modules/employes'
 import { labels } from './locales/modules/labels'
 import { messagerie } from './locales/modules/messagerie'
 import { patients } from './locales/modules/patients'
@@ -26,14 +25,14 @@ import { triage } from './locales/modules/triage'
 // Espaces de noms par module (un fichier i18n par module, fusionnés sous leur préfixe).
 const MODULES_FR = {
   acteurs: acteurs.fr, admin: admin.fr, bonExamen: bonExamen.fr, bonPharmacie: bonPharmacie.fr, consultation: consultation.fr,
-  dashboard: dashboard.fr, employes: employes.fr, labels: labels.fr, messagerie: messagerie.fr, patients: patients.fr,
+  dashboard: dashboard.fr, labels: labels.fr, messagerie: messagerie.fr, patients: patients.fr,
   personnelSoignant: personnelSoignant.fr,
   rapports: rapports.fr,
   referentiels: referentiels.fr, sorties: sorties.fr, suiviTraitement: suiviTraitement.fr, triage: triage.fr,
 }
 const MODULES_EN = {
   acteurs: acteurs.en, admin: admin.en, bonExamen: bonExamen.en, bonPharmacie: bonPharmacie.en, consultation: consultation.en,
-  dashboard: dashboard.en, employes: employes.en, labels: labels.en, messagerie: messagerie.en, patients: patients.en,
+  dashboard: dashboard.en, labels: labels.en, messagerie: messagerie.en, patients: patients.en,
   personnelSoignant: personnelSoignant.en,
   rapports: rapports.en,
   referentiels: referentiels.en, sorties: sorties.en, suiviTraitement: suiviTraitement.en, triage: triage.en,

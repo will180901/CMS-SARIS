@@ -155,7 +155,6 @@ export const SOFT_DELETE_MODELS: ReadonlySet<string> = new Set<string>([
   'TypeConsultation',
   'EtablissementReference',
   'SocieteSousTraitante',
-  'EmployeSaris',
   'PersonnelMedical',
   'IdentitePatient',
   'DonneesEmploi',

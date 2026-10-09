@@ -53,8 +53,6 @@ const A_VIDER = [
   'alertePatient', 'antecedentPatient', 'allergiePatient', 'modeVie',
   'suiviChronique', 'rattachementAyantDroit', 'donneesEmploi',
   'contactUrgence', 'identitePatient', 'patient',
-  // ── Registre employés (demandé explicitement) ──
-  'employeSaris',
   // ── Synchronisation ──
   'conflitSynchronisation', 'journalSynchronisation', 'syncState',
   'mutationSync', 'posteLocal',

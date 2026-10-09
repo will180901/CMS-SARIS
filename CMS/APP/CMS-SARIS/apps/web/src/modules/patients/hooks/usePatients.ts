@@ -110,7 +110,7 @@ export function useUpdateSuiviChronique(patientId: string) {
 }
 
 // Ayants droit (dépendants) d'un travailleur CDI + leur activité récente (traçabilité dossier).
-/** Droits réels (catégorie + rattachement + registre des employés). Clé sous
+/** Droits réels (catégorie + rattachement + dossier du travailleur CDI). Clé sous
  *  ['patients', id] : toute mutation du dossier (dont la clôture d'un rattachement)
  *  qui invalide le dossier invalide aussi la couverture. */
 export function usePatientCouverture(id: string, enabled = true) {
@@ -143,6 +143,29 @@ export function useFindSimilarPatients(q: SimilarPatientQuery) {
     queryKey: ['patients', 'similar', q],
     queryFn:  () => patientsApi.findSimilar(q),
     enabled:  enabled && has('patient.read'),
+    staleTime: 10_000,
+  })
+}
+
+/**
+ * Dossier patient portant ce matricule (accueil) — `null` s'il n'y en a pas. Il n'existe
+ * pas de registre des employés : un travailleur se reconnaît à son dossier.
+ * `matricule` doit déjà être « débouncé » par l'appelant.
+ */
+export function useDossierParMatricule(matricule: string) {
+  const { has } = usePermissions()
+  const m = matricule.trim()
+  return useQuery({
+    queryKey: ['patients', 'matricule', m],
+    queryFn:  async () => {
+      try {
+        return await patientsApi.byMatricule(m)
+      } catch (e) {
+        if (e instanceof ApiError && e.isNotFound) return null
+        throw e
+      }
+    },
+    enabled:  has('patient.read') && m.length >= 3,
     staleTime: 10_000,
   })
 }

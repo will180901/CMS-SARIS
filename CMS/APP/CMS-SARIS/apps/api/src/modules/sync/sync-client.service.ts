@@ -291,10 +291,6 @@ export class SyncClientService implements OnApplicationBootstrap {
           // Passagère : on interrompt comme avant — le curseur n'avance pas, le prochain
           // cycle réessaiera cette page. Seule une erreur définitive est mise de côté.
           if (!estRejetDefinitif(e)) throw e
-          if (await this.fusionnerDoublonEmploye(env, e)) {
-            applied++
-            continue
-          }
           this.rejetsPull++
           this.logger.warn(
             `pull: ${env.model} ${env.id} ignoré — ${raisonRejet(e)}`,
@@ -447,65 +443,6 @@ export class SyncClientService implements OnApplicationBootstrap {
 
   /** Changements reçus du central mais inapplicables ici (journalisés), depuis le démarrage. */
   private rejetsPull = 0
-
-  /**
-   * Même travailleur CDI enregistré hors ligne sur deux postes : deux fiches, deux
-   * identifiants, UN matricule. La fiche arrivée la première au central y fait foi ;
-   * l'autre poste la reçoit et bute sur le matricule (clé unique).
-   *
-   * Plutôt que d'ignorer la fiche du central (et de laisser ce poste diverger pour
-   * toujours), on FUSIONNE : la fiche locale libère son matricule, celle du central
-   * s'installe, tout ce qui pointait vers la locale (dossiers, rattachements d'ayants
-   * droit) est réorienté vers elle — ces lignes sont ré-horodatées et remonteront
-   * corrigées au prochain push —, puis la fiche locale, que le central n'a jamais
-   * acceptée, disparaît.
-   */
-  private async fusionnerDoublonEmploye(
-    env: SyncEntityEnvelope,
-    e: unknown,
-  ): Promise<boolean> {
-    if (env.model !== 'EmployeSaris') return false
-    if ((e as { code?: string })?.code !== 'P2002') return false
-    const matricule = env.data['matricule']
-    if (typeof matricule !== 'string' || !matricule) return false
-    const raw = this.prisma.raw
-    const locale = await raw.employeSaris.findUnique({ where: { matricule } })
-    if (!locale || locale.id === env.id) return false
-
-    const temporaire = `${matricule}#fusion-${locale.id}`
-    await raw.employeSaris.update({
-      where: { id: locale.id },
-      data: { matricule: temporaire },
-    })
-    try {
-      await this.sync.ingest(env)
-    } catch (e2) {
-      // La fiche du central ne s'installe toujours pas : on remet la locale en l'état.
-      await raw.employeSaris.update({
-        where: { id: locale.id },
-        data: { matricule },
-      })
-      this.logger.warn(
-        `fusion employé ${matricule} abandonnée — ${raisonRejet(e2)}`,
-      )
-      return false
-    }
-    await raw.$transaction([
-      raw.patient.updateMany({
-        where: { employeId: locale.id },
-        data: { employeId: env.id },
-      }),
-      raw.rattachementAyantDroitCdi.updateMany({
-        where: { employeId: locale.id },
-        data: { employeId: env.id },
-      }),
-      raw.employeSaris.delete({ where: { id: locale.id } }),
-    ])
-    this.logger.warn(
-      `fusion : fiche employé locale ${locale.id} (matricule ${matricule}) fondue dans celle du central ${env.id}`,
-    )
-    return true
-  }
 
   /** PUSH : envoie au serveur les changements locaux depuis le dernier push. */
   async push(): Promise<SyncPushResponseV2 | null> {

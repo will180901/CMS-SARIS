@@ -13,6 +13,7 @@
  * traité ici (restauration SQL) — à confirmer en base.
  */
 import { Injectable, Logger } from '@nestjs/common'
+import { Prisma } from '@prisma/client'
 import { Subject, interval, merge, type Observable } from 'rxjs'
 import { filter, map } from 'rxjs/operators'
 import type { MessageEvent } from '@nestjs/common'
@@ -44,6 +45,35 @@ import type {
   SyncRejet,
   SyncStatusV2,
 } from '@cms-saris/types/sync'
+
+/**
+ * Colonnes connues de chaque modèle, d'après le schéma de CETTE version du serveur.
+ * Un poste resté sur une version antérieure peut envoyer une colonne qui n'existe plus
+ * (ex. `employeId`, retiré avec le registre des employés) : elle est ignorée, au lieu de
+ * faire rejeter toute la ligne — et avec elle la synchronisation de ce poste.
+ */
+const COLONNES_PAR_MODELE = new Map(
+  Prisma.dmmf.datamodel.models.map((m) => [
+    m.name,
+    new Set(
+      m.fields
+        .filter((f) => f.kind === 'scalar' || f.kind === 'enum')
+        .map((f) => f.name),
+    ),
+  ]),
+)
+
+/** Garde seulement les colonnes que ce serveur connaît pour ce modèle. */
+export function colonnesConnues(
+  model: string,
+  data: Record<string, unknown>,
+): Record<string, unknown> {
+  const connues = COLONNES_PAR_MODELE.get(model)
+  if (!connues) return { ...data }
+  return Object.fromEntries(
+    Object.entries(data).filter(([k]) => connues.has(k)),
+  )
+}
 
 interface AnyDelegate {
   findMany: (a: unknown) => Promise<Array<Record<string, unknown>>>
@@ -328,7 +358,7 @@ export class SyncService {
   ): Promise<void> {
     const delegate = this.delegate(def.delegate)
     if (!delegate) return
-    const data = { ...env.data }
+    const data = colonnesConnues(def.model, env.data)
     await delegate.upsert({
       where: this.keyWhere(def, data),
       create: data,

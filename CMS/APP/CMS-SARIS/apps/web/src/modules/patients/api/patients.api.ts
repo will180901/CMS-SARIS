@@ -31,8 +31,8 @@ export interface CreatePatientPayload {
   cdiMatricule?:     string   // ayant droit : matricule du CDI rattaché
   typeLien?:         string   // ayant droit : CONJOINT | ENFANT | PARENT | AUTRE
   societeId?:        string   // sous-traitant : société
-  // Ayant droit : CDI à enregistrer au registre si son matricule est inconnu
-  nouvelEmploye?: {
+  // Ayant droit : travailleur CDI dont le dossier est à créer (matricule sans dossier)
+  nouveauTravailleur?: {
     nom:           string
     prenom:        string
     dateNaissance?: string
@@ -168,7 +168,7 @@ export interface AlertePayload {
 export interface RattacherAyantDroitPayload {
   cdiMatricule:   string
   typeLien:       string
-  nouvelEmploye?: CreatePatientPayload['nouvelEmploye']
+  nouveauTravailleur?: CreatePatientPayload['nouveauTravailleur']
 }
 
 // Le rattachement se crée à la visite (création du dossier, ou patient existant via
@@ -211,6 +211,7 @@ export interface MatriculeLookup {
   id:               string
   numeroPatient:    string
   matricule:        string | null
+  statut:           string
   categoriePatient: { code: string; libelle: string }
   identite:         { nom: string; prenom: string; dateNaissance: string | null; sexe: string | null } | null
 }

@@ -8,8 +8,8 @@
  * endroit où la mettre. Le gabarit faisait son travail ; c'est le choix du gabarit
  * qui était faux.
  *
- * Un rapport est une SUITE DE TABLEAUX : il relève de `ListePrintSheet`, celui du
- * registre des employés, avec son aperçu paginé et son bouton Imprimer / PDF.
+ * Un rapport est une SUITE DE TABLEAUX : il relève de `ListePrintSheet`, celui des
+ * listes exportées, avec son aperçu paginé et son bouton Imprimer / PDF.
  *
  * COHÉRENCE AVEC L'ÉCRAN. Le papier reprend les blocs de la page dans le MÊME ORDRE
  * et avec les MÊMES LIBELLÉS : synthèse, alertes, tendance, puis les cinq volets avec

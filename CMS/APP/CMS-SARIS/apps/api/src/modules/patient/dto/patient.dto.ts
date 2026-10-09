@@ -39,10 +39,10 @@ export class UpdateContactUrgenceDto extends PartialType(
   CreateContactUrgenceDto,
 ) {}
 
-// ── Nouvel employé CDI (registre) — saisi à la volée si le matricule du CDI rattaché
-//    d'un ayant droit n'existe pas encore au registre des employés SARIS. ──────────
+// ── Travailleur CDI sans dossier — saisi à la volée quand le matricule du CDI
+//    rattaché à un ayant droit n'appartient encore à aucun dossier patient. ────────
 
-export class NouvelEmployeDto {
+export class TravailleurCdiDto {
   @IsString() @IsNotEmpty() @MaxLength(100) nom: string
   @IsString() @IsNotEmpty() @MaxLength(100) prenom: string
   @IsOptional() @IsDateString() dateNaissance?: string
@@ -87,12 +87,12 @@ export class CreatePatientDto {
   @IsIn(['CONJOINT', 'ENFANT', 'PARENT', 'AUTRE'])
   typeLien?: string
   @IsOptional() @IsUUID() societeId?: string
-  // Ayant droit : si le matricule du CDI rattaché est INCONNU au registre, on enregistre
-  // le travailleur CDI à la volée via ces informations.
+  // Ayant droit : si le matricule du CDI rattaché n'a pas encore de dossier, celui du
+  // travailleur CDI est créé à la volée avec ces informations.
   @IsOptional()
   @ValidateNested()
-  @Type(() => NouvelEmployeDto)
-  nouvelEmploye?: NouvelEmployeDto
+  @Type(() => TravailleurCdiDto)
+  nouveauTravailleur?: TravailleurCdiDto
 
   // Contact urgence — optionnel à la création (accueil rapide au triage) ;
   // peut être complété ensuite dans le dossier (cf. WF-05 « si requis »).

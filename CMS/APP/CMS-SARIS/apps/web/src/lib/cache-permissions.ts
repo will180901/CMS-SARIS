@@ -30,7 +30,6 @@ const CACHE_PAR_PERMISSION: Partial<Record<PermissionCode, readonly (readonly un
   'referentiel.examen.read':            [['referentiels', 'examens']],
   'referentiel.type_consultation.read': [['referentiels', 'types-consultation']],
   'sous_traitant.read':                 [['sous-traitants']],
-  'employe.read':                       [['employes']],
 
   // Données cliniques. Le dossier patient porte aussi les constantes, alertes, suivi
   // et ayants droit sous la même racine ['patients', id, …] — le préfixe les emporte.

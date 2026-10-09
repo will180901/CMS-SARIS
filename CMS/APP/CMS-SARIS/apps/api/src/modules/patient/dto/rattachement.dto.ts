@@ -8,7 +8,7 @@ import {
   ValidateNested,
 } from 'class-validator'
 import { Type } from 'class-transformer'
-import { NouvelEmployeDto } from './patient.dto'
+import { TravailleurCdiDto } from './patient.dto'
 
 // ── Rattachement Ayant Droit CDI ──────────────────────────────────────────────
 // Création retirée : le rattachement se crée automatiquement à la visite
@@ -30,11 +30,11 @@ const LIENS_PARENTE = ['CONJOINT', 'ENFANT', 'PARENT', 'AUTRE'] as const
 export class RattacherAyantDroitDto {
   @IsString() @IsNotEmpty() @MaxLength(50) cdiMatricule: string
   @IsIn(LIENS_PARENTE) typeLien: string
-  /** Si le matricule est inconnu au registre : le travailleur CDI à enregistrer. */
+  /** Si le matricule n'a pas encore de dossier : le travailleur CDI à enregistrer. */
   @IsOptional()
   @ValidateNested()
-  @Type(() => NouvelEmployeDto)
-  nouvelEmploye?: NouvelEmployeDto
+  @Type(() => TravailleurCdiDto)
+  nouveauTravailleur?: TravailleurCdiDto
 }
 
 export class UpdateRattachementADDto {

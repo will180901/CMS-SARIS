@@ -510,47 +510,18 @@ model DelegationPrescription {
   @@index([updatedAt])
 }
 
-// Registre des employés SARIS — main-d'œuvre des autres départements/services qui vient se
-// faire soigner au CMS. DISTINCT des utilisateurs/soignants du CMS (système séparé : Utilisateur
-// + PersonnelMedical) et des sociétés sous-traitantes. Construit DYNAMIQUEMENT à l'accueil
-// (reconnaissance par matricule). Un employé peut figurer ici SANS être patient (seul son ayant
-// droit vient) ou être lié à un patient (Patient.employeId) quand il vient lui-même.
-model EmployeSaris {
-  updatedAt     DateTime  @default(now()) @updatedAt
-  deletedAt     DateTime?
-  id            String    @id @default(uuid())
-  matricule     String    @unique
-  nom           String
-  prenom        String
-  dateNaissance DateTime?
-  sexe          String?
-  fonction      String?
-  sectionPaie   String?
-  service       String?
-  departement   String?
-  categorie     String    // ASSURE_CDI | ASSURE_CDD
-  statut        String    @default("ACTIF")
-  createdAt     DateTime  @default(now())
-  patients                Patient[]
-  rattachementsAyantDroit RattachementAyantDroitCdi[]
-
-  @@index([updatedAt])
-}
-
 model RattachementAyantDroitCdi {
   updatedAt   DateTime                           @default(now()) @updatedAt
   deletedAt   DateTime?
   id          String                             @id @default(uuid())
   patientId   String
-  cdiId       String?                            // (legacy) id du patient CDI rattaché — conservé pour compat
-  employeId   String?                            // CDI rattaché dans le registre des employés SARIS (nouveau modèle)
+  cdiId       String?                            // dossier patient du travailleur CDI rattaché
   typeLien    String
   statut      String                             @default("ACTIF")
   dateDebut   DateTime
   dateFin     DateTime?
   historiques HistoriqueRattachementAyantDroit[]
   patient     Patient                            @relation(fields: [patientId], references: [id])
-  employe     EmployeSaris?                      @relation(fields: [employeId], references: [id])
 
   @@index([updatedAt])
 }
@@ -605,7 +576,6 @@ model Patient {
   id                 String        @id @default(uuid())
   numeroPatient      String        @unique
   matricule          String?       @unique  // Matricule employeur (travailleur CDI) — base du rattachement des ayants droit ; NULL pour les non-CDI
-  employeId          String?       // Lien vers le registre des employés SARIS (si ce patient EST un employé CDI/CDD)
   siteCreationId     String
   categoriePatientId String
   statut             String @default("ACTIF")
@@ -623,7 +593,6 @@ model Patient {
 
   siteCreation     Site                         @relation(fields: [siteCreationId], references: [id])
   categoriePatient CategoriePatient             @relation(fields: [categoriePatientId], references: [id])
-  employe          EmployeSaris?                @relation(fields: [employeId], references: [id])
   identite         IdentitePatient?
   contactUrgence   ContactUrgence?
   donneesEmploi    DonneesEmploi?

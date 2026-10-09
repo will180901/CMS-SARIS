@@ -74,7 +74,7 @@ export type BlocImprimable =
   /**
    * PAGE DE GARDE — un bloc que seuls les documents qui la demandent emettent.
    *
-   * Additif par construction : les listes existantes (registre des employes, etc.)
+   * Additif par construction : les listes existantes (référentiels, etc.)
    * n'en produisent jamais, leur rendu est donc inchange au pixel pres.
    *
    * Elle occupe sa page a elle seule : un document destine a une Direction s'ouvre

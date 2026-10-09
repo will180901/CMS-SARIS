@@ -69,7 +69,6 @@ export const SYNC_MODELS: readonly SyncModelDef[] = [
   // (avant la mise en quarantaine), puis y manquait purement et simplement.
   def('TypeConsultation', 'typeConsultation', GLOBAL),
   def('SocieteSousTraitante', 'societeSousTraitante', GLOBAL),
-  def('EmployeSaris', 'employeSaris', GLOBAL), // registre des employés SARIS (main-d'œuvre, partagé inter-sites)
   def('Role', 'role', GLOBAL),
   def('Permission', 'permission', GLOBAL),
 

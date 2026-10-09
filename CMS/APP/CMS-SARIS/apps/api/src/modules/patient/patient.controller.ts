@@ -90,13 +90,6 @@ function isHistoriqueRestreint(req: AuthedRequest): boolean {
 
 /** Pathologies à confidentialité renforcée : masquées à qui n'a pas la permission dédiée
  *  (le médecin chef et l'administrateur l'ont ; l'infirmier, non). */
-/** Écrire au REGISTRE des employés (CDI inconnu saisi à l'accueil) relève de
- *  employe.create, pas de patient.create seul (constat 110). Reconnaître un employé
- *  déjà enregistré reste permis à qui peut créer un dossier. */
-function peutCreerEmploye(req: AuthedRequest): boolean {
-  return (req.user?.permissions ?? []).includes('employe.create')
-}
-
 function masquerConfidentiel(req: AuthedRequest): boolean {
   return !(req.user?.permissions ?? []).includes('patient.confidentiel.read')
 }
@@ -119,7 +112,7 @@ export class PatientController {
   @RequirePermissions('patient.create')
   @HttpCode(HttpStatus.CREATED)
   create(@Body() dto: CreatePatientDto, @Req() req: any) {
-    return this.patientService.create(dto, req.user?.id, peutCreerEmploye(req))
+    return this.patientService.create(dto, req.user?.id)
   }
 
   /**
@@ -418,7 +411,6 @@ export class PatientController {
       dto,
       req.user?.id,
       req.user?.siteId,
-      peutCreerEmploye(req),
     )
   }
 

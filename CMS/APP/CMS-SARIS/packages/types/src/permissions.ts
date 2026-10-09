@@ -150,12 +150,6 @@ export const PERMISSIONS = {
   SOUS_TRAITANT_UPDATE:    'sous_traitant.update',
   SOUS_TRAITANT_DELETE:    'sous_traitant.delete',
 
-  // Registre des employés SARIS (main-d'œuvre patiente — CDI/CDD reconnus par matricule)
-  EMPLOYE_READ:            'employe.read',
-  EMPLOYE_CREATE:          'employe.create',
-  EMPLOYE_UPDATE:          'employe.update',
-  EMPLOYE_DELETE:          'employe.delete',
-
   // Délégations
   DELEGATION_READ:         'delegation.read',
   DELEGATION_CREATE:       'delegation.create',
@@ -341,10 +335,6 @@ export const PERMISSION_META: Record<PermissionCode, { libelle: string; module: 
   'sous_traitant.delete':        { libelle: 'Désactiver ou supprimer une société sous-traitante', module: 'sous_traitant' },
 
   // Registre des employés SARIS
-  'employe.read':                { libelle: 'Consulter le registre des employés SARIS', module: 'employe' },
-  'employe.create':              { libelle: 'Enregistrer un employé SARIS', module: 'employe' },
-  'employe.update':              { libelle: 'Modifier un employé SARIS', module: 'employe' },
-  'employe.delete':              { libelle: 'Supprimer un employé SARIS', module: 'employe' },
 
   // Délégations
   'delegation.read':             { libelle: 'Consulter les délégations', module: 'delegation' },
@@ -553,7 +543,6 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionCode[]> = {
     // Personnel & sous-traitants (gouvernance RH médicale, anciennement AGENT_RH)
     'personnel.read', 'personnel.create', 'personnel.update', 'personnel.delete',
     'sous_traitant.read', 'sous_traitant.create', 'sous_traitant.update', 'sous_traitant.delete',
-    'employe.read', 'employe.create', 'employe.update', 'employe.delete',
     // Audit (anciennement ADMIN_MEDICAL)
     'audit.read',
   ],
@@ -590,8 +579,6 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionCode[]> = {
     // titre que le médecin chef (contrôle d'état de santé, fiches datées).
     'suivi_traitement.read', 'suivi_traitement.create', 'suivi_traitement.update',
     'suivi_traitement.cancel', 'suivi_traitement.close', 'suivi_traitement.delete',
-    // Registre employés : l'infirmière reconnaît/enregistre les travailleurs SARIS à l'accueil
-    'employe.read', 'employe.create',
     // Lecture seule des sociétés sous-traitantes : nécessaire pour renseigner le select du
     // drawer « Rattachement sous-traitant » (patient.rattachement.manage sans ce droit de
     // lecture laissait la liste déroulante vide, ajout impossible en pratique).
