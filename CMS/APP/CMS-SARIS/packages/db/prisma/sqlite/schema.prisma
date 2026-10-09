@@ -483,6 +483,14 @@ model PersonnelMedical {
   role               String
   siteId             String?
   statut             String                   @default("ACTIF")
+  // Données d'employé de la SARIS : elles ouvrent son dossier patient sans ressaisie
+  // le jour où il passe à l'accueil (la fonction est `role`, son métier au centre).
+  dateNaissance      DateTime?
+  sexe               String?
+  typeContrat        String                   @default("CDI")
+  sectionPaie        String?
+  service            String                   @default("Centre Médico-Sanitaire")
+  departement        String?
   createdAt          DateTime                 @default(now())
   utilisateur        Utilisateur?
   delegationsDonnees DelegationPrescription[] @relation("DelegationDonneeParMedecin")

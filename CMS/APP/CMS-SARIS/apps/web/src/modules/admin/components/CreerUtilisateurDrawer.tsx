@@ -2,7 +2,8 @@
  * CreerUtilisateurDrawer — assistant d'enregistrement d'une PERSONNE.
  *
  * Assistant en 2 étapes :
- *   1. Identité — nom, prénom, matricule, fonction
+ *   1. Identité — nom, prénom, matricule, fonction, naissance, sexe, et son
+ *                 emploi à la SARIS (contrat, section de paie, service, département)
  *   2. Accès    — facultatif : login, mot de passe, rôles
  *
  * L'ordre compte : on enregistre d'abord QUI est la personne, et seulement
@@ -23,7 +24,7 @@ import { useTranslation } from 'react-i18next'
 import { useIsCompact } from '@/hooks/useMediaQuery'
 import {
   X, UserPlus, Eye, EyeOff, Stethoscope, ShieldCheck,
-  Check, ChevronLeft, ChevronRight, KeyRound,
+  Check, ChevronLeft, ChevronRight, KeyRound, Briefcase,
 } from 'lucide-react'
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
@@ -32,6 +33,8 @@ import { Button, Field, TextInput, StatusPill, SelectBox, CheckBox } from '@/com
 import { useCreateUtilisateur, useRoles } from '../hooks/useAdmin'
 import { useCreatePersonnel } from '@/modules/acteurs/hooks/usePersonnel'
 import { labelFonction, optionsFonction, roleParDefaut } from '@/config/fonctions'
+import { ChampsEmploye } from './ChampsEmploye'
+import { employeComplet, employeDepuisFiche, employeVersPayload } from './donneesEmploye'
 
 /** Personne déjà enregistrée à qui l'on vient donner un accès. */
 export interface PersonneExistante {
@@ -75,13 +78,16 @@ export function CreerUtilisateurDrawer({ open, onClose, personnel = null }: Prop
   const [prenom,    setPrenom]    = useState(personnel?.prenom ?? '')
   const [matricule, setMatricule] = useState(personnel?.matricule ?? '')
   const [metier,    setMetier]    = useState<string>(personnel?.role ?? 'INFIRMIER')
+  const [employe,   setEmploye]   = useState(() => employeDepuisFiche())
   // En mode « donner un accès », la question ne se pose pas : c'est le but même.
   const [avecAcces, setAvecAcces] = useState(modeAcces)
 
   const { data: roles = [] } = useRoles()
 
+  // En mode « donner un accès », la fiche existe déjà : l'emploi n'est pas redemandé.
   const identityValid =
     nom.trim().length >= 2 && prenom.trim().length >= 2 && matricule.trim().length >= 2
+    && (modeAcces || employeComplet(employe))
 
   // Aucun site n'est demandé ni transmis : une personne n'est pas rattachée à un
   // site, elle intervient là où elle travaille ce jour-là. Le serveur rattache le
@@ -115,6 +121,7 @@ export function CreerUtilisateurDrawer({ open, onClose, personnel = null }: Prop
     setRoleIds([])
     setNom(personnel?.nom ?? ''); setPrenom(personnel?.prenom ?? '')
     setMatricule(personnel?.matricule ?? ''); setMetier(personnel?.role ?? 'INFIRMIER')
+    setEmploye(employeDepuisFiche())
     setAvecAcces(modeAcces)
   }
   function handleClose() { reset(); onClose() }
@@ -154,6 +161,7 @@ export function CreerUtilisateurDrawer({ open, onClose, personnel = null }: Prop
             prenom:    prenom.trim(),
             matricule: matricule.trim(),
             role:      metier as never,
+            ...employeVersPayload(employe),
           })).id
 
       // 2. L'accès ensuite, s'il a été demandé. En cas d'échec ici, la personne
@@ -334,6 +342,13 @@ export function CreerUtilisateurDrawer({ open, onClose, personnel = null }: Prop
                   )}
                 </Field>
               </div>
+
+              <ChampsEmploye
+                valeur={employe} onChange={setEmploye} cols2={cols2} requis
+                intertitre={
+                  <SectionTitle icon={<Briefcase size={14} />} label={t('admin.emploiSection', { defaultValue: 'Emploi à la SARIS' })} />
+                }
+              />
             </>
           )}
 

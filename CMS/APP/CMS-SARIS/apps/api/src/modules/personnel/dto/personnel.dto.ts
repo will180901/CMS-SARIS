@@ -3,6 +3,7 @@ import {
   IsNotEmpty,
   IsOptional,
   IsIn,
+  IsDateString,
   MaxLength,
 } from 'class-validator'
 import { PartialType } from '@nestjs/mapped-types'
@@ -14,6 +15,11 @@ export const ROLES_PERSONNEL = [
   'TECHNICIEN_LAB',
   'ADMINISTRATIF',
 ] as const
+
+export const CONTRATS_PERSONNEL = ['CDI', 'CDD'] as const
+
+/** Service d'un membre du personnel quand rien d'autre n'est précisé : le centre lui-même. */
+export const SERVICE_PAR_DEFAUT = 'Centre Médico-Sanitaire'
 
 export class CreatePersonnelDto {
   @IsString()
@@ -37,6 +43,34 @@ export class CreatePersonnelDto {
   @IsOptional()
   @IsString()
   siteId?: string
+
+  // ── Données d'employé de la SARIS (reprises dans son dossier patient) ──────
+  @IsOptional()
+  @IsDateString()
+  dateNaissance?: string | null
+
+  @IsOptional()
+  @IsIn(['M', 'F'])
+  sexe?: string | null
+
+  @IsOptional()
+  @IsIn(CONTRATS_PERSONNEL)
+  typeContrat?: string
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  sectionPaie?: string
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  service?: string
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  departement?: string
 }
 
 // SÉCURITÉ : `statut` retiré — toggle ACTIF/INACTIF passe par

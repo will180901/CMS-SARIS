@@ -2,15 +2,15 @@
  * FichePersonnelModal — modifier l'IDENTITÉ d'une personne (sa fiche clinique).
  *
  * À ne pas confondre avec le panneau de détail du compte : ici on touche à ce
- * qu'est la personne (nom, matricule, métier, statut), pas à sa façon de se
- * connecter. La distinction compte : la fiche est référencée par tout
+ * qu'est la personne (nom, matricule, métier, emploi à la SARIS, statut), pas à
+ * sa façon de se connecter. La distinction compte : la fiche est référencée par tout
  * l'historique clinique, alors que le compte n'est qu'un moyen d'accès.
  *
  * Remplace le formulaire de l'ancien onglet « Personnel soignant », dont c'était
  * la seule raison d'être une fois la liste fusionnée.
  */
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Stethoscope, Trash2, Power, PowerOff } from 'lucide-react'
 import { Modal, Button, Field, TextInput, SelectBox } from '@/components/saris'
@@ -19,6 +19,12 @@ import {
   useUpdatePersonnel, useSetStatutPersonnel, useDeletePersonnel,
 } from '@/modules/acteurs/hooks/usePersonnel'
 import { optionsFonction } from '@/config/fonctions'
+import type { PersonnelMedical } from '@/modules/acteurs/api/personnel.api'
+import { ChampsEmploye } from './ChampsEmploye'
+import {
+  employeCoherent, employeComplet, employeDepuisFiche,
+  employeModifie, employeVersPayload,
+} from './donneesEmploye'
 
 export interface FichePersonnel {
   id:        string
@@ -29,6 +35,8 @@ export interface FichePersonnel {
   active:    boolean
   /** Une personne qui peut se connecter : sa fiche ne se supprime pas telle quelle. */
   aUnCompte: boolean
+  /** Fiche complète telle que renvoyée par l'API (naissance, contrat, service…). */
+  employe?:  Partial<PersonnelMedical> | null
 }
 
 export function FichePersonnelModal({ fiche, onClose, canUpdate, canDelete }: {
@@ -49,13 +57,19 @@ export function FichePersonnelModal({ fiche, onClose, canUpdate, canDelete }: {
   const [prenom,    setPrenom]    = useState(fiche.prenom)
   const [matricule, setMatricule] = useState(fiche.matricule)
   const [metier,    setMetier]    = useState(fiche.metier)
+  const employeInitial = useMemo(() => employeDepuisFiche(fiche.employe), [fiche.employe])
+  const [employe,   setEmploye]   = useState(employeInitial)
   const [confirmerSuppression, setConfirmerSuppression] = useState(false)
 
+  // Une fiche ancienne peut rester incomplète (on la complète quand on sait) ;
+  // seule une date saisie mais fausse bloque.
   const valide =
     nom.trim().length >= 2 && prenom.trim().length >= 2 && matricule.trim().length >= 2
+    && employeCoherent(employe)
   const modifie =
     nom !== fiche.nom || prenom !== fiche.prenom ||
-    matricule !== fiche.matricule || metier !== fiche.metier
+    matricule !== fiche.matricule || metier !== fiche.metier ||
+    employeModifie(employe, employeInitial)
 
   const enCours = update.isPending || setStatut.isPending || remove.isPending
 
@@ -69,6 +83,7 @@ export function FichePersonnelModal({ fiche, onClose, canUpdate, canDelete }: {
           prenom:    prenom.trim(),
           matricule: matricule.trim(),
           role:      metier as never,
+          ...employeVersPayload(employe),
         },
       })
       onClose()
@@ -99,7 +114,7 @@ export function FichePersonnelModal({ fiche, onClose, canUpdate, canDelete }: {
       icon={<Stethoscope size={16} />}
       title={t('admin.ficheTitre', { defaultValue: 'Fiche de la personne' })}
       subtitle={`${fiche.prenom} ${fiche.nom} · ${fiche.matricule}`}
-      width={520}
+      width={560}
       onClose={() => { if (!enCours) onClose() }}
       footer={
         <>
@@ -153,6 +168,28 @@ export function FichePersonnelModal({ fiche, onClose, canUpdate, canDelete }: {
             )}
           </Field>
         </div>
+
+        <ChampsEmploye
+          valeur={employe} onChange={setEmploye} cols2={cols2} disabled={!canUpdate}
+          intertitre={
+            <span style={{
+              fontSize: 'var(--font-size-overline)', fontWeight: 700,
+              textTransform: 'uppercase', letterSpacing: '0.07em',
+              color: 'var(--texte-tertiaire)',
+            }}>
+              {t('admin.emploiSection', { defaultValue: 'Emploi à la SARIS' })}
+            </span>
+          }
+        />
+
+        {/* Ce que l'on perd à laisser la fiche incomplète : la dire, pas l'imposer. */}
+        {canUpdate && !employeComplet(employe) && (
+          <p style={{ margin: 0, fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)' }}>
+            {t('admin.ficheIncompleteHint', {
+              defaultValue: 'Fiche incomplète : complétez-la pour que son dossier patient s’ouvre à l’accueil sans rien ressaisir.',
+            })}
+          </p>
+        )}
 
         {/* Actions sur l'existence de la fiche, séparées de la simple édition */}
         {(canUpdate || canDelete) && (

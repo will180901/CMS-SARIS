@@ -2,15 +2,17 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  BadRequestException,
   Logger,
 } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
 import { PatientService } from '../patient/patient.service'
 import { CI } from '../../common/prisma/search'
-import type {
-  CreatePersonnelDto,
-  UpdatePersonnelDto,
-  PersonnelQueryDto,
+import {
+  SERVICE_PAR_DEFAUT,
+  type CreatePersonnelDto,
+  type UpdatePersonnelDto,
+  type PersonnelQueryDto,
 } from './dto/personnel.dto'
 import type {
   CreateDelegationDto,
@@ -32,6 +34,33 @@ const DELEGATION_INCLUDE = {
     infirmier: PERSONNEL_RESUME,
   },
 } as const
+
+/**
+ * Fiche saisie → colonnes. Un champ vide efface la valeur ; le service, lui, revient
+ * au centre (un membre du personnel en relève toujours, sauf précision contraire).
+ */
+function donneesFiche<T extends UpdatePersonnelDto>(dto: T) {
+  const { dateNaissance, sexe, sectionPaie, service, departement, ...reste } =
+    dto
+  if (dateNaissance && new Date(dateNaissance) > new Date())
+    throw new BadRequestException(
+      'La date de naissance ne peut pas être dans le futur',
+    )
+  const texte = (v: string | undefined) =>
+    v === undefined ? undefined : v.trim() || null
+  return {
+    ...reste,
+    ...(dateNaissance !== undefined && {
+      dateNaissance: dateNaissance ? new Date(dateNaissance) : null,
+    }),
+    ...(sexe !== undefined && { sexe: sexe || null }),
+    ...(sectionPaie !== undefined && { sectionPaie: texte(sectionPaie) }),
+    ...(departement !== undefined && { departement: texte(departement) }),
+    ...(service !== undefined && {
+      service: service.trim() || SERVICE_PAR_DEFAUT,
+    }),
+  }
+}
 
 @Injectable()
 export class PersonnelService {
@@ -111,7 +140,9 @@ export class PersonnelService {
           : `Matricule "${dto.matricule}" déjà utilisé`,
       )
     }
-    const agent = await this.prisma.personnelMedical.create({ data: dto })
+    const agent = await this.prisma.personnelMedical.create({
+      data: donneesFiche(dto),
+    })
 
     // Le dossier patient s'ouvre dans la foulée : les soignants se soignent ici
     // aussi, et leur faire ressaisir leur identité le jour d'une consultation
@@ -145,7 +176,10 @@ export class PersonnelService {
         )
       }
     }
-    return this.prisma.personnelMedical.update({ where: { id }, data: dto })
+    return this.prisma.personnelMedical.update({
+      where: { id },
+      data: donneesFiche(dto),
+    })
   }
 
   async setStatut(id: string, statut: 'ACTIF' | 'INACTIF') {

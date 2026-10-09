@@ -3,9 +3,9 @@
  * centre, assignables au triage / consultation. Géré par le médecin-chef / admin.
  */
 import { api } from '@/lib/api'
-import type { PersonnelMedical, RolePersonnel } from '@cms-saris/types'
+import type { PersonnelMedical, RolePersonnel, TypeContratPersonnel } from '@cms-saris/types'
 
-export type { PersonnelMedical, RolePersonnel }
+export type { PersonnelMedical, RolePersonnel, TypeContratPersonnel }
 
 export interface PersonnelPayload {
   matricule: string
@@ -13,6 +13,13 @@ export interface PersonnelPayload {
   prenom:    string
   role:      RolePersonnel
   siteId?:   string
+  // Données d'employé de la SARIS — null (ou texte vide) = effacer
+  dateNaissance?: string | null
+  sexe?:          'M' | 'F' | null
+  typeContrat?:   TypeContratPersonnel
+  sectionPaie?:   string
+  service?:       string
+  departement?:   string
 }
 
 export interface PersonnelQueryParams {

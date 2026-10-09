@@ -445,6 +445,7 @@ export function UtilisateursPage({ embedded = false }: { embedded?: boolean } = 
             metier:    openFiche.metier ?? 'INFIRMIER',
             active:    openFiche.ficheActive,
             aUnCompte: !!openFiche.compte,
+            employe:   personnel.find(p => p.id === openFiche.personnelId),
           }}
           canUpdate={has('personnel.update')}
           canDelete={has('personnel.delete')}

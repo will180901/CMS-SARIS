@@ -15,8 +15,17 @@ export interface PersonnelMedical {
   role:       RolePersonnel
   siteId?:    string | null
   statut:     'ACTIF' | 'INACTIF'
+  // Données d'employé de la SARIS (reprises dans son dossier patient à l'accueil)
+  dateNaissance?: string | null
+  sexe?:          'M' | 'F' | null
+  typeContrat?:   TypeContratPersonnel
+  sectionPaie?:   string | null
+  service?:       string
+  departement?:   string | null
   createdAt?: string
 }
+
+export type TypeContratPersonnel = 'CDI' | 'CDD'
 
 // ── Délégations de prescription ───────────────────────────────────────────────
 
