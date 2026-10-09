@@ -2,7 +2,7 @@ export const fr = {
   common: {
     appName: 'CMS SARIS',
     exporter: 'Exporter',
-    tagline: 'Centre Médico-Social · Congo',
+    tagline: 'Centre Médico-Sanitaire de la SARIS CONGO',
     save: 'Enregistrer',
     cancel: 'Annuler',
     close: 'Fermer',

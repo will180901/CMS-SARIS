@@ -4,7 +4,7 @@ export const en: Resources = {
   common: {
     appName: 'CMS SARIS',
     exporter: 'Export',
-    tagline: 'Medical & Social Center · Congo',
+    tagline: 'SARIS CONGO Medical and Health Centre',
     save: 'Save',
     cancel: 'Cancel',
     close: 'Close',
