@@ -582,9 +582,10 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionCode[]> = {
     // ordonnance VALIDÉE du type correspondant (ConsultationService.genererBonDepuisOrdonnance).
     'bon_examen.create', 'bon_examen.update', 'bon_examen.cancel',
     'bon_pharmacie.read', 'bon_pharmacie.create', 'bon_pharmacie.cancel',
-    // Rapports : accessibles avant l'ajout de rapport.* via consultation.read — comportement
-    // conservé à l'identique (l'admin peut le retirer depuis la matrice s'il le souhaite).
-    'rapport.read',
+    // Rapports / statistiques : PAS pour l'infirmier (décision 2026-10-09). Les statistiques
+    // (comptage « Jeannette ») sont l'outil de supervision du Médecin Chef ; le tableau de bord
+    // infirmier reste centré sur son travail (file, traitements, résultats). Un rôle
+    // personnalisé ou une dérogation peut toujours accorder rapport.read.
     // Suivi de traitement : l'infirmier ouvre/gère les épisodes de suivi au même
     // titre que le médecin chef (contrôle d'état de santé, fiches datées).
     'suivi_traitement.read', 'suivi_traitement.create', 'suivi_traitement.update',

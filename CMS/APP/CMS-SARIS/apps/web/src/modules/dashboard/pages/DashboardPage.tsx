@@ -170,7 +170,7 @@ function ClinicalView() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const compact = useIsCompact()
-  const { has } = usePermissions()
+  const { has, hasAny } = usePermissions()
   const { data: overview, isLoading: lo } = useOverview()
   const { data: urgences = [], isLoading: lu } = useUrgences()
   const { data: motifs = [], isLoading: lm } = useMotifsJour()
@@ -195,149 +195,160 @@ function ClinicalView() {
         ? { tone: 'warning' as const, icon: <Clock size={16} />, msg: t('dashboard.alertAvgWaitHigh', { duree: formatDureeMinutes(overview.tempsAttenteMoyenMin) }) }
     : null
 
+  // ORDRE selon le métier dominant — lui aussi déduit des droits, jamais du nom du rôle :
+  // qui peut PRENDRE les décisions médicales (valider un bon d'examen, décider une
+  // évacuation) supervise le suivi médical → ce suivi et les statistiques passent en
+  // premier, l'accueil en dessous. Les autres (poste d'accueil) gardent l'accueil d'abord.
+  const supervisionMedicale = hasAny('bon_examen.validate', 'evacuation.create')
+
+  // L'alerte porte sur la file d'attente : sans droit de lire les visites,
+  // elle signalerait une urgence que la personne ne peut pas aller traiter.
+  const blocAlerte = alerte && peutVisites
+    ? <AlertBanner key="alerte" tone={alerte.tone} icon={alerte.icon} message={alerte.msg} />
+    : null
+
+  const carteConsultations = overview && has('consultation.read') ? (
+    <StatCard
+      key="consultations"
+      icon={<Stethoscope size={18} />} label={t('dashboard.kpiActiveConsultations')} value={overview.consultationsActives}
+      tone="accent" hint={t('dashboard.kpiClosedTodayHint', { count: overview.consultationsClotureesJour })}
+      onClick={() => navigate('/consultations')}
+    />
+  ) : null
+
+  // KPI de l'accueil (visites) — avec les consultations actives quand l'accueil passe d'abord.
+  const blocKpiAccueil = (
+    <div key="kpi-accueil" style={GRID_AUTO}>
+      {lo ? (
+        Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} height={120} />)
+      ) : overview ? (
+        <>
+          {peutVisites && <>
+          <StatCardSpark
+            icon={<HeartPulse size={18} />} label={t('dashboard.kpiVisitsToday')} value={overview.visitesAujourdhui}
+            tone="accent"
+            trend={overview.tendanceVisitesPct !== null ? {
+              value: t('dashboard.kpiTrendVsYesterday', { sign: overview.tendanceVisitesPct > 0 ? '+' : '', pct: overview.tendanceVisitesPct }),
+              direction: overview.tendanceVisitesPct > 0 ? 'up' : overview.tendanceVisitesPct < 0 ? 'down' : 'flat',
+              tone: overview.tendanceVisitesPct > 0 ? 'positive' : overview.tendanceVisitesPct < 0 ? 'negative' : 'neutral',
+            } : undefined}
+            hint={t('dashboard.kpiVisitsHint', { enCours: overview.visitesEnCours, attente: overview.visitesAttente })}
+            spark={spark7} sparkColor="var(--ap-400)"
+            onClick={() => navigate('/triage')}
+          />
+          <StatCard
+            icon={<ClipboardList size={18} />} label={t('dashboard.kpiVisitsWaiting')} value={overview.visitesAttente}
+            tone={overview.visitesAttente > 0 ? 'warning' : 'success'}
+            hint={overview.visitesAttente > 0 ? t('dashboard.kpiInQueue') : t('dashboard.kpiQueueEmpty')}
+            onClick={() => navigate('/triage')}
+          />
+          <StatCard
+            icon={<Clock size={18} />} label={t('dashboard.kpiAvgWaitTime')}
+            value={overview.tempsAttenteMoyenMin !== null ? formatDureeMinutes(overview.tempsAttenteMoyenMin) : '—'}
+            tone={overview.tempsAttenteMoyenMin === null ? 'neutral' : overview.tempsAttenteMoyenMin < 30 ? 'success' : overview.tempsAttenteMoyenMin < 60 ? 'warning' : 'error'}
+            hint={t('dashboard.kpiClosedVisitsHint')}
+          />
+          </>}
+          {!supervisionMedicale && carteConsultations}
+        </>
+      ) : null}
+    </div>
+  )
+
+  // Tendance 14j + Affluence horaire — deux lectures de l'activité de visite
+  const blocGraphiques = peutVisites ? (
+    <div key="graphiques" style={{ display: 'grid', gridTemplateColumns: compact ? '1fr' : '1.5fr 1fr', gap: 'var(--espace-4)' }}>
+      <ChartCard
+        icon={<TrendingUp size={15} />} title={t('dashboard.chartTrendTitle')} subtitle={t('dashboard.chartTrendSubtitle')}
+        loading={lt} empty={tendance.every(t => t.visites === 0)} emptyLabel={t('dashboard.chartTrendEmpty')}
+      >
+        <AreaTrend
+          data={tendance} xKey="date" xTickFormatter={shortDate}
+          series={[
+            { key: 'visites',   label: t('dashboard.seriesVisits'),   color: 'var(--ap-400)' },
+            { key: 'cloturees', label: t('dashboard.seriesClosed'), color: 'var(--succes-accent)' },
+          ]}
+        />
+      </ChartCard>
+
+      <ChartCard
+        icon={<BarChart3 size={15} />} title={t('dashboard.chartAffluenceTitle')} subtitle={t('dashboard.chartAffluenceSubtitle')}
+        loading={la} empty={affluence.every(a => a.count === 0)} emptyLabel={t('dashboard.chartAffluenceEmpty')}
+      >
+        <MiniBars data={affluence} xKey="label" yKey="count" unit={t('dashboard.affluenceUnit')} color="var(--ap-400)" />
+      </ChartCard>
+    </div>
+  ) : null
+
+  // File d'attente + motifs du jour — le cœur du poste d'accueil
+  const blocFile = peutVisites ? (
+    <div key="file" style={{ display: 'grid', gridTemplateColumns: compact ? '1fr' : '1.4fr 1fr', gap: 'var(--espace-4)' }}>
+      <Card>
+        <Card.Header
+          icon={<ClipboardList size={15} />} title={t('dashboard.queueTitle')} subtitle={t('dashboard.queueSubtitle')}
+          actions={<Button variant="ghost" size="sm" onClick={() => navigate('/triage')}>{t('dashboard.seeAll')} <ChevronRight size={14} /></Button>}
+        />
+        <Card.Body padding="none">
+          {lu ? (
+            <div style={{ padding: 'var(--espace-3)' }}>
+              {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} height={56} style={{ marginBottom: 6 }} />)}
+            </div>
+          ) : urgences.length === 0 ? (
+            <EmptyState title={t('dashboard.queueEmptyTitle')} description={t('dashboard.queueEmptyDescription')} variant="subtle" icon={<ClipboardList size={20} />} />
+          ) : (
+            urgences.map((u, i) => <UrgenceRow key={u.id} u={u} rank={i + 1} striped={i % 2 === 1} />)
+          )}
+        </Card.Body>
+      </Card>
+
+      <ChartCard
+        icon={<TrendingUp size={15} />} title={t('dashboard.topMotifsTitle')} subtitle={t('dashboard.topMotifsSubtitle')}
+        loading={lm} empty={motifs.length === 0} emptyLabel={t('dashboard.motifsEmpty')}
+        minHeight={220}
+      >
+        <DonutChart
+          height={180} centerLabel={t('dashboard.donutVisits')}
+          data={motifs.map((m, i): DonutSlice => ({
+            name: m.libelle, value: m.count,
+            color: CHART_PALETTE[i % CHART_PALETTE.length],
+          }))}
+        />
+      </ChartCard>
+    </div>
+  ) : null
+
+  // Suivi médical — chaque indicateur suit le droit de LIRE le module dont il rend
+  // compte. Un infirmier sans `evacuation.read` ne voit pas la carte Évacuations plutôt
+  // qu'un chiffre qu'il ne peut pas ouvrir. En supervision, les consultations actives
+  // ouvrent cette rangée.
+  const cartesMedicales = overview ? [
+    supervisionMedicale ? carteConsultations : null,
+    has('ordonnance.read') ? <StatCard key="ordonnances" icon={<Pill size={16} />} label={t('dashboard.kpiValidatedPrescriptions')} value={overview.ordonnancesValideesJour} tone="success" hint={t('dashboard.today')} /> : null,
+    has('bon_examen.read') ? <StatCard key="bons" icon={<FileWarning size={16} />} label={t('dashboard.kpiExamFormsPending')} value={overview.bonsExamenAttente} tone={overview.bonsExamenAttente > 0 ? 'warning' : 'neutral'} hint={t('dashboard.examFormsHint')} /> : null,
+    has('evacuation.read') ? <StatCard key="evacuations" icon={<Ambulance size={16} />} label={t('dashboard.kpiEvacuationsInProgress')} value={overview.evacuationsEnCours} tone={overview.evacuationsEnCours > 0 ? 'error' : 'neutral'} /> : null,
+    has('suivi_traitement.read') ? <StatCard key="suivis" icon={<Activity size={16} />} label={t('dashboard.kpiChronicFollowups')} value={overview.suivisChroniquesActifs} tone="accent" hint={t('dashboard.chronicFollowupsHint')} /> : null,
+  ].filter(Boolean) : []
+  const blocMedical = cartesMedicales.length > 0
+    ? <div key="medical" style={GRID_AUTO}>{cartesMedicales}</div>
+    : (supervisionMedicale && lo ? <div key="medical" style={GRID_AUTO}>{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} height={120} />)}</div> : null)
+
+  // Analyse statistique : réservée à qui peut consulter les rapports.
+  const blocStats = has('rapport.read') ? (
+    <div key="stats" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--espace-4)' }}>
+      <StatistiquesSection />
+      <EvolutionAnnuelleSection />
+    </div>
+  ) : null
+
+  const blocDelegations = has('delegation.read') ? <DelegationsWidget key="delegations" /> : null
+
+  const blocs = supervisionMedicale
+    ? [blocAlerte, blocMedical, blocStats, blocKpiAccueil, blocGraphiques, blocFile, blocDelegations]
+    : [blocAlerte, blocKpiAccueil, blocGraphiques, blocFile, blocMedical, blocStats, blocDelegations]
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--espace-4)' }}>
-
-      {/* L'alerte porte sur la file d'attente : sans droit de lire les visites,
-          elle signalerait une urgence que la personne ne peut pas aller traiter. */}
-      {alerte && peutVisites && <AlertBanner tone={alerte.tone} icon={alerte.icon} message={alerte.msg} />}
-
-      {/* KPI principaux */}
-      <div style={GRID_AUTO}>
-        {lo ? (
-          Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} height={120} />)
-        ) : overview ? (
-          <>
-            {peutVisites && <>
-            <StatCardSpark
-              icon={<HeartPulse size={18} />} label={t('dashboard.kpiVisitsToday')} value={overview.visitesAujourdhui}
-              tone="accent"
-              trend={overview.tendanceVisitesPct !== null ? {
-                value: t('dashboard.kpiTrendVsYesterday', { sign: overview.tendanceVisitesPct > 0 ? '+' : '', pct: overview.tendanceVisitesPct }),
-                direction: overview.tendanceVisitesPct > 0 ? 'up' : overview.tendanceVisitesPct < 0 ? 'down' : 'flat',
-                tone: overview.tendanceVisitesPct > 0 ? 'positive' : overview.tendanceVisitesPct < 0 ? 'negative' : 'neutral',
-              } : undefined}
-              hint={t('dashboard.kpiVisitsHint', { enCours: overview.visitesEnCours, attente: overview.visitesAttente })}
-              spark={spark7} sparkColor="var(--ap-400)"
-              onClick={has('visite.read') ? () => navigate('/triage') : undefined}
-            />
-            <StatCard
-              icon={<ClipboardList size={18} />} label={t('dashboard.kpiVisitsWaiting')} value={overview.visitesAttente}
-              tone={overview.visitesAttente > 0 ? 'warning' : 'success'}
-              hint={overview.visitesAttente > 0 ? t('dashboard.kpiInQueue') : t('dashboard.kpiQueueEmpty')}
-              onClick={has('visite.read') ? () => navigate('/triage') : undefined}
-            />
-            <StatCard
-              icon={<Clock size={18} />} label={t('dashboard.kpiAvgWaitTime')}
-              value={overview.tempsAttenteMoyenMin !== null ? formatDureeMinutes(overview.tempsAttenteMoyenMin) : '—'}
-              tone={overview.tempsAttenteMoyenMin === null ? 'neutral' : overview.tempsAttenteMoyenMin < 30 ? 'success' : overview.tempsAttenteMoyenMin < 60 ? 'warning' : 'error'}
-              hint={t('dashboard.kpiClosedVisitsHint')}
-            />
-            </>}
-            {has('consultation.read') && (
-              <StatCard
-                icon={<Stethoscope size={18} />} label={t('dashboard.kpiActiveConsultations')} value={overview.consultationsActives}
-                tone="accent" hint={t('dashboard.kpiClosedTodayHint', { count: overview.consultationsClotureesJour })}
-                onClick={() => navigate('/consultations')}
-              />
-            )}
-          </>
-        ) : null}
-      </div>
-
-      {/* Tendance 14j + Affluence horaire — deux lectures de l'activité de visite */}
-      {peutVisites && (
-      <div style={{ display: 'grid', gridTemplateColumns: compact ? '1fr' : '1.5fr 1fr', gap: 'var(--espace-4)' }}>
-        <ChartCard
-          icon={<TrendingUp size={15} />} title={t('dashboard.chartTrendTitle')} subtitle={t('dashboard.chartTrendSubtitle')}
-          loading={lt} empty={tendance.every(t => t.visites === 0)} emptyLabel={t('dashboard.chartTrendEmpty')}
-        >
-          <AreaTrend
-            data={tendance} xKey="date" xTickFormatter={shortDate}
-            series={[
-              { key: 'visites',   label: t('dashboard.seriesVisits'),   color: 'var(--ap-400)' },
-              { key: 'cloturees', label: t('dashboard.seriesClosed'), color: 'var(--succes-accent)' },
-            ]}
-          />
-        </ChartCard>
-
-        <ChartCard
-          icon={<BarChart3 size={15} />} title={t('dashboard.chartAffluenceTitle')} subtitle={t('dashboard.chartAffluenceSubtitle')}
-          loading={la} empty={affluence.every(a => a.count === 0)} emptyLabel={t('dashboard.chartAffluenceEmpty')}
-        >
-          <MiniBars data={affluence} xKey="label" yKey="count" unit={t('dashboard.affluenceUnit')} color="var(--ap-400)" />
-        </ChartCard>
-      </div>
-      )}
-
-      {/* File d'attente + motifs du jour — le cœur du poste d'accueil */}
-      {peutVisites && (
-      <div style={{ display: 'grid', gridTemplateColumns: compact ? '1fr' : '1.4fr 1fr', gap: 'var(--espace-4)' }}>
-        <Card>
-          <Card.Header
-            icon={<ClipboardList size={15} />} title={t('dashboard.queueTitle')} subtitle={t('dashboard.queueSubtitle')}
-            actions={has('visite.read') ? (
-              <Button variant="ghost" size="sm" onClick={() => navigate('/triage')}>{t('dashboard.seeAll')} <ChevronRight size={14} /></Button>
-            ) : null}
-          />
-          <Card.Body padding="none">
-            {lu ? (
-              <div style={{ padding: 'var(--espace-3)' }}>
-                {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} height={56} style={{ marginBottom: 6 }} />)}
-              </div>
-            ) : urgences.length === 0 ? (
-              <EmptyState title={t('dashboard.queueEmptyTitle')} description={t('dashboard.queueEmptyDescription')} variant="subtle" icon={<ClipboardList size={20} />} />
-            ) : (
-              urgences.map((u, i) => <UrgenceRow key={u.id} u={u} rank={i + 1} striped={i % 2 === 1} />)
-            )}
-          </Card.Body>
-        </Card>
-
-        <ChartCard
-          icon={<TrendingUp size={15} />} title={t('dashboard.topMotifsTitle')} subtitle={t('dashboard.topMotifsSubtitle')}
-          loading={lm} empty={motifs.length === 0} emptyLabel={t('dashboard.motifsEmpty')}
-          minHeight={220}
-        >
-          <DonutChart
-            height={180} centerLabel={t('dashboard.donutVisits')}
-            data={motifs.map((m, i): DonutSlice => ({
-              name: m.libelle, value: m.count,
-              color: CHART_PALETTE[i % CHART_PALETTE.length],
-            }))}
-          />
-        </ChartCard>
-      </div>
-      )}
-
-      {/* Suivis & sorties critiques — chaque indicateur suit le droit de LIRE le
-          module dont il rend compte. Un infirmier sans `evacuation.read` ne voit
-          pas la carte Évacuations plutôt qu'un chiffre qu'il ne peut pas ouvrir. */}
-      {overview && (has('ordonnance.read') || has('bon_examen.read') || has('evacuation.read') || has('suivi_traitement.read')) && (
-        <div style={GRID_AUTO}>
-          {has('ordonnance.read') && (
-            <StatCard icon={<Pill size={16} />} label={t('dashboard.kpiValidatedPrescriptions')} value={overview.ordonnancesValideesJour} tone="success" hint={t('dashboard.today')} />
-          )}
-          {has('bon_examen.read') && (
-            <StatCard icon={<FileWarning size={16} />} label={t('dashboard.kpiExamFormsPending')} value={overview.bonsExamenAttente} tone={overview.bonsExamenAttente > 0 ? 'warning' : 'neutral'} hint={t('dashboard.examFormsHint')} />
-          )}
-          {has('evacuation.read') && (
-            <StatCard icon={<Ambulance size={16} />} label={t('dashboard.kpiEvacuationsInProgress')} value={overview.evacuationsEnCours} tone={overview.evacuationsEnCours > 0 ? 'error' : 'neutral'} />
-          )}
-          {has('suivi_traitement.read') && (
-            <StatCard icon={<Activity size={16} />} label={t('dashboard.kpiChronicFollowups')} value={overview.suivisChroniquesActifs} tone="accent" hint={t('dashboard.chronicFollowupsHint')} />
-          )}
-        </div>
-      )}
-
-      {/* Analyse statistique : réservée à qui peut consulter les rapports. */}
-      {has('rapport.read') && (
-        <>
-          <StatistiquesSection />
-          <EvolutionAnnuelleSection />
-        </>
-      )}
-
-      {has('delegation.read') && <DelegationsWidget />}
+      {blocs}
     </div>
   )
 }
