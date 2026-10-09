@@ -172,6 +172,7 @@ export const en: Resources = {
     theme: 'Theme',
     themeLight: 'Light',
     themeDark: 'Dark',
+    darkMode: 'Dark mode',
     themeSystem: 'Auto',
     photoTitle: 'Profile photo',
     photoHint: 'Visible everywhere your name appears in the application',

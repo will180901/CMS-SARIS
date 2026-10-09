@@ -14,7 +14,7 @@ import { useState, useEffect } from 'react'
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import {
   LogOut, ChevronsUpDown,
-  Stethoscope, Settings,
+  Stethoscope, Settings, Moon,
 } from 'lucide-react'
 import {
   Popover, PopoverContent, PopoverTrigger,
@@ -33,6 +33,9 @@ import { useUiStore } from '@/stores/ui.store'
 import { isDesktop } from '@/lib/desktop'
 import { DESKTOP_TITLEBAR_H } from './DesktopTitleBar'
 import { UserAvatar } from '@/components/saris'
+import { useTheme } from '@/components/theme-provider'
+import { THEME_MAP } from '@/components/PreferencesSync'
+import { useUpdateMyPreferences } from '@/modules/admin/hooks/useAdmin'
 import type { Role } from '@cms-saris/types'
 import { useTranslation } from 'react-i18next'
 
@@ -77,6 +80,8 @@ export function Sidebar() {
   const user             = useSessionStore(s => s.user)
   const logoutMutation   = useLogout()
   const { data: sites = [] } = useSites()
+  const { theme, setTheme } = useTheme()
+  const majPreferences   = useUpdateMyPreferences({ silencieux: true })
 
   // Badge non-lus sur l'item « Messagerie » (seulement si la nav le contient).
   const hasMessagerie = navGroups.some(g => g.items.some(i => i.key === 'messagerie'))
@@ -97,6 +102,17 @@ export function Sidebar() {
   function handleLogout() {
     setMenuOpen(false)
     logoutMutation.mutate()
+  }
+
+  // Raccourci du thème : bascule clair ↔ sombre et l'enregistre comme préférence (la
+  // même que dans Mes paramètres) — sinon elle serait reprise à la prochaine connexion.
+  // « Auto » se lit selon le système ; basculer le remplace par un choix explicite.
+  const sombre = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+  function basculerTheme() {
+    const precedent = theme
+    const suivant = sombre ? 'clair' : 'sombre'
+    setTheme(THEME_MAP[suivant])
+    majPreferences.mutate({ theme: suivant }, { onError: () => setTheme(precedent) })
   }
 
   // Contenu déployé (labels visibles) : TOUJOURS sur mobile (drawer plein) ; sur
@@ -361,7 +377,6 @@ export function Sidebar() {
                 background: 'var(--fond-surface-2)',
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--espace-3)' }}>
-                  <UserAvatar userId={user.id} nom={user.login} size={44} tone="accent" />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{
                       margin: 0,
@@ -414,6 +429,12 @@ export function Sidebar() {
                   label={t('settings.title')}
                   onClick={() => { setMenuOpen(false); navigate('/admin/parametres') }}
                 />
+                <InterrupteurItem
+                  icon={<Moon size={13} />}
+                  label={t('settings.darkMode')}
+                  actif={sombre}
+                  onToggle={basculerTheme}
+                />
                 <div style={{ height: 1, background: 'var(--bordure-legere)', margin: '4px 0' }} />
                 <MenuItem
                   icon={<LogOut size={13} />}
@@ -428,6 +449,55 @@ export function Sidebar() {
         </div>
       </aside>
     </>
+  )
+}
+
+// ── InterrupteurItem : ligne du menu avec un interrupteur (le menu reste ouvert) ──
+
+function InterrupteurItem({
+  icon, label, actif, onToggle,
+}: {
+  icon: React.ReactNode
+  label: string
+  actif: boolean
+  onToggle: () => void
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={actif}
+      onClick={onToggle}
+      className="saris-focus-ring"
+      style={{
+        width: '100%',
+        display: 'flex', alignItems: 'center', gap: 'var(--espace-2)',
+        padding: 'var(--espace-2) var(--espace-3)',
+        borderRadius: 'var(--radius-md)',
+        fontSize: 'var(--font-size-body-sm)',
+        color: 'var(--texte-secondaire)', background: 'transparent', border: 'none',
+        cursor: 'pointer', textAlign: 'left',
+        transition: 'background 0.12s',
+      }}
+      onMouseEnter={e => (e.currentTarget.style.background = 'var(--fond-surface-2)')}
+      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+    >
+      {icon}
+      <span style={{ flex: 1 }}>{label}</span>
+      {/* Rail + bouton coulissant — même dessin que l'interrupteur du rideau (en-tête). */}
+      <span aria-hidden="true" style={{
+        position: 'relative', width: 30, height: 17, borderRadius: 9999, flexShrink: 0,
+        background: actif ? 'var(--ap-500)' : 'var(--bordure-normale)',
+        transition: 'background 0.18s',
+      }}>
+        <span style={{
+          position: 'absolute', top: 2, left: actif ? 15 : 2,
+          width: 13, height: 13, borderRadius: 9999, background: '#fff',
+          boxShadow: '0 1px 2px rgba(15,23,42,0.28)',
+          transition: 'left 0.18s',
+        }} />
+      </span>
+    </button>
   )
 }
 

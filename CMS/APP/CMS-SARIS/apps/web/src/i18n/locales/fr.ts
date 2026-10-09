@@ -170,6 +170,7 @@ export const fr = {
     theme: 'Thème',
     themeLight: 'Clair',
     themeDark: 'Sombre',
+    darkMode: 'Mode sombre',
     themeSystem: 'Auto',
     photoTitle: 'Photo de profil',
     photoHint: 'Visible partout où votre nom apparaît dans l’application',

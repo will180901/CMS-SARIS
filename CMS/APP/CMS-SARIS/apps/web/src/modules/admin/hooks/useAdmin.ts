@@ -479,13 +479,14 @@ export function useMyPreferences() {
   })
 }
 
-export function useUpdateMyPreferences() {
+/** `silencieux` : pas de notification de succès (bascule rapide, ex. raccourci du thème). */
+export function useUpdateMyPreferences({ silencieux = false }: { silencieux?: boolean } = {}) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (data: UpdatePreferencesPayload) => adminApi.me.updatePreferences(data),
     onSuccess: (pref) => {
       qc.setQueryData(ME_KEYS.preferences, pref)
-      toast.success(i18n.t('admin.toastPreferencesSaved'))
+      if (!silencieux) toast.success(i18n.t('admin.toastPreferencesSaved'))
     },
     onError: toastErr,
   })
