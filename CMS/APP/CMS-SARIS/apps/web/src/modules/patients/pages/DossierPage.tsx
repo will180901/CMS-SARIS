@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@workspace/ui/components/dropdown-menu'
 import { usePermissions }      from '@/hooks/usePermissions'
-import { useIsCompact }        from '@/hooks/useMediaQuery'
+import { useIsCompact, useIsMobile } from '@/hooks/useMediaQuery'
 import { usePersistedState }   from '@/hooks/usePersistedState'
 import { usePatientDossier, useUpdateStatutPatient, usePatientAlertesCliniques, useDeletePatient, useSetVerrouPatient, usePatientCouverture, usePatientAyantsDroits, usePatientSuivi } from '../hooks/usePatients'
 import { useSessionStore } from '@/stores/session.store'
@@ -474,6 +474,7 @@ function SecuriteClinique({ dossier, alertesActives }: { dossier: PatientDossier
   // Instant figé au montage : appeler Date.now() à chaque rendu rendrait le composant
   // impur (React peut re-rendre à tout moment) et l'ancienneté bougerait toute seule.
   const [maintenant] = useState(() => Date.now())
+  const isMobile = useIsMobile()
 
   const severes     = dossier.allergies.filter(a => a.statut === 'ACTIVE' && a.gravite === 'SEVERE')
   const critiques   = dossier.alertesMedicales.filter(a => a.statut === 'ACTIVE' && a.gravite === 'CRITIQUE')
@@ -534,7 +535,10 @@ function SecuriteClinique({ dossier, alertesActives }: { dossier: PatientDossier
           {t('patients.securiteClinique')}
         </span>
 
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, flex: 1, minWidth: 0 }}>
+        {/* Téléphone : les pastilles passent sous le titre, sur toute la largeur. Serrées
+            entre le titre et « Détails », il ne leur restait que quelques pixels
+            (« Chro… », « Hist… »). */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, flex: 1, minWidth: 0, ...(isMobile ? { order: 2, flexBasis: '100%' } : {}) }}>
           {severes.map(a => (
             <Pastille key={a.id} ton={TON_GRAVITE.CRITIQUE} fort>{t('patients.bannerAllergyPrefix', { substance: a.substance })}</Pastille>
           ))}
@@ -567,7 +571,7 @@ function SecuriteClinique({ dossier, alertesActives }: { dossier: PatientDossier
             onClick={() => setOuvert(!ouvert)}
             aria-expanded={ouvert}
             style={{
-              display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0, marginLeft: 'auto',
+              display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0, marginLeft: 'auto', order: isMobile ? 1 : undefined,
               fontSize: 12, fontWeight: 600, padding: '3px 8px', borderRadius: 6, cursor: 'pointer',
               background: 'transparent', border: 'none',
               color: danger ? 'var(--erreur-texte)' : 'var(--ap-600)',
