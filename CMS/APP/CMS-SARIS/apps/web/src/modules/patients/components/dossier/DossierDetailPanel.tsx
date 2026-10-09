@@ -16,6 +16,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { humanizeCode } from '@/config/labels'
 import type { ConstanteVitale } from '@cms-saris/types'
 import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { X, Loader2, FlaskConical, FileText, Stethoscope, Pill, Receipt, Ambulance, ArrowUpRight, PenLine, Activity, HeartPulse } from 'lucide-react'
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
@@ -204,21 +205,36 @@ const CONSULT_STATUT_LABEL_KEY: Record<string, string> = {
  * montre donc les deux statuts côte à côte plutôt que de faire croire que la
  * visite clôturée = prise en charge terminée.
  */
-/** Une ligne de constantes, lisible d'un coup d'œil (unités incluses). */
-function resumeConstante(c: ConstanteVitale): string[] {
-  const out: string[] = []
-  if (c.temperature != null) out.push(`T° ${c.temperature} °C`)
-  if (c.tensionSystolique != null) out.push(`TA ${c.tensionSystolique}/${c.tensionDiastolique ?? '—'}`)
-  if (c.frequenceCardiaque != null) out.push(`FC ${c.frequenceCardiaque}`)
-  if (c.frequenceRespiratoire != null) out.push(`FR ${c.frequenceRespiratoire}`)
-  if (c.saturationO2 != null) out.push(`SpO₂ ${c.saturationO2} %`)
-  if (c.poids != null) out.push(`${c.poids} kg`)
-  if (c.taille != null) out.push(`${c.taille} cm`)
-  if (c.imc != null) out.push(`IMC ${c.imc}`)
-  if (c.glycemie != null) out.push(`Gly ${c.glycemie} g/L`)
-  if (c.scoreGlasgow != null) out.push(`Glasgow ${c.scoreGlasgow}`)
-  if (c.etatConscience) out.push(humanizeCode(c.etatConscience))
+/** Les constantes d'une prise, une par case (mêmes libellés qu'au triage, unités incluses). */
+function casesConstante(c: ConstanteVitale, t: TFunction): { label: string; valeur: string }[] {
+  const out: { label: string; valeur: string }[] = []
+  if (c.temperature != null) out.push({ label: t('triage.labelTemperature'), valeur: `${c.temperature} °C` })
+  if (c.tensionSystolique != null) out.push({ label: t('triage.labelTensionArterielle'), valeur: `${c.tensionSystolique}/${c.tensionDiastolique ?? '—'} mmHg` })
+  if (c.frequenceCardiaque != null) out.push({ label: t('triage.labelFreqCardiaque'), valeur: `${c.frequenceCardiaque} bpm` })
+  if (c.frequenceRespiratoire != null) out.push({ label: t('triage.labelFreqRespiratoire'), valeur: `${c.frequenceRespiratoire} cpm` })
+  if (c.saturationO2 != null) out.push({ label: t('triage.labelSpo2'), valeur: `${c.saturationO2} %` })
+  if (c.poids != null) out.push({ label: t('triage.labelPoids'), valeur: `${c.poids} kg` })
+  if (c.taille != null) out.push({ label: t('triage.labelTaille'), valeur: `${c.taille} cm` })
+  if (c.imc != null) out.push({ label: t('consultation.vitalImc'), valeur: `${c.imc} kg/m²` })
+  if (c.glycemie != null) out.push({ label: t('triage.labelGlycemie'), valeur: `${c.glycemie} g/L` })
+  if (c.scoreGlasgow != null) out.push({ label: t('consultation.vitalGlasgow'), valeur: `${c.scoreGlasgow}/15` })
+  if (c.etatConscience) out.push({ label: t('consultation.vitalConscience'), valeur: humanizeCode(c.etatConscience) })
   return out
+}
+
+/** Grille lisible : une case par constante, libellé au-dessus de la valeur. */
+function GrilleConstantes({ cases }: { cases: { label: string; valeur: string }[] }) {
+  if (cases.length === 0) return <span>—</span>
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '10px 16px', marginTop: 2 }}>
+      {cases.map(c => (
+        <div key={c.label} style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+          <span style={{ fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)' }}>{c.label}</span>
+          <span style={{ fontSize: 'var(--font-size-body-sm)', fontWeight: 600, color: 'var(--texte-primaire)', fontVariantNumeric: 'tabular-nums' }}>{c.valeur}</span>
+        </div>
+      ))}
+    </div>
+  )
 }
 
 function VisiteBody({ visiteId }: { visiteId: string }) {
@@ -273,7 +289,7 @@ function VisiteBody({ visiteId }: { visiteId: string }) {
               <InfoRow
                 key={c.id}
                 label={formatTime(c.createdAt, { hour: '2-digit', minute: '2-digit' })}
-                value={resumeConstante(c).join(' · ') || '—'}
+                valueNode={<GrilleConstantes cases={casesConstante(c, t)} />}
                 full
               />
             ))}
