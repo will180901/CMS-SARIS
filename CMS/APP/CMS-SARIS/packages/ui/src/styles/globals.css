@@ -606,6 +606,103 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
+   TABLEAUX EN CARTES SUR TÉLÉPHONE — classe .saris-cartes
+   Posée sur une <table> (par DataTableHead) ou sur la carte d'un tableau en
+   grille ; useCartesMobile (apps/web/src/components/saris/cartesMobile.ts)
+   recopie l'intitulé de chaque colonne dans data-label. Sous 768 px, chaque
+   ligne devient une carte : 1re cellule en titre, puis « INTITULÉ … valeur ».
+   Les lignes portent leurs styles en ligne (grille, largeurs, padding) : les
+   surcharges ont besoin de !important.
+═══════════════════════════════════════════════════════════════ */
+@media (max-width: 767px) {
+  table.saris-cartes,
+  table.saris-cartes > tbody {
+    display: block;
+    width: 100% !important;
+  }
+  table.saris-cartes > thead,
+  .saris-cartes [role="row"]:has(> [role="columnheader"]) {
+    display: none !important;
+  }
+  .saris-cartes [role="table"] {
+    min-width: 0 !important;
+    overflow-x: hidden !important;
+  }
+  /* Ligne → carte (seulement une fois étiquetée : état vide et chargement intacts). */
+  .saris-cartes :is(tbody > tr, [role="table"] > *):has(> [data-label]) {
+    display: flex !important;
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 6px !important;
+    position: relative;
+    width: 100%;
+    min-width: 0 !important;
+    padding: 12px 14px !important;
+  }
+  /* Cellule → « INTITULÉ … valeur » : l'intitulé à gauche, la valeur à droite ; une
+     cellule à plusieurs éléments les empile sous la première ligne. */
+  .saris-cartes [data-label] {
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 12px;
+    align-items: center;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    padding: 0 !important;
+    border: 0 !important;
+    text-align: right !important;
+  }
+  .saris-cartes [data-label]::before {
+    content: attr(data-label);
+    grid-column: 1;
+    grid-row: 1;
+    text-align: left;
+    font-size: var(--font-size-overline);
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--texte-tertiaire);
+  }
+  .saris-cartes [data-label] > * {
+    grid-column: 2;
+    justify-self: end;
+    min-width: 0;
+    max-width: 100%;
+  }
+  .saris-cartes [data-label]:empty {
+    display: none !important;
+  }
+  /* 1re cellule = titre de la carte (sans intitulé), place laissée au menu d'actions. */
+  .saris-cartes [data-label]:first-child {
+    display: flex !important;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    text-align: left !important;
+    padding-right: 36px !important;
+  }
+  .saris-cartes [data-label]:first-child > * {
+    justify-self: auto;
+  }
+  .saris-cartes [data-label]:first-child::before,
+  .saris-cartes [data-label=""]::before {
+    content: none;
+  }
+  /* Colonne sans intitulé (menu ⋮, chevron) : en haut à droite de la carte, et
+     toujours visible — au doigt, il n'y a pas de survol pour la faire apparaître. */
+  .saris-cartes [data-label=""]:not(:first-child) {
+    display: block !important;
+    position: absolute;
+    top: 8px;
+    right: 8px;
+  }
+  .saris-cartes [data-label=""] :is(button, [role="button"]) {
+    opacity: 1 !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
    CHARTE — grain subtil + verre poli (glassmorphism)
    Utilitaires réutilisables, combinables : class="saris-glass saris-grain".
    - .saris-grain : texture de bruit fractal mélangée en soft-light/overlay.

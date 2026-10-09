@@ -1,5 +1,7 @@
 import type React from 'react'
+import { useCallback } from 'react'
 import type { ColumnResize } from './useColumnResize'
+import { useCartesMobile } from './cartesMobile'
 
 /**
  * Primitives de tableau SARIS — alignées sur le tableau des Journaux d'audit.
@@ -49,13 +51,16 @@ export interface DataColumn {
  */
 export function DataTableHead({ columns, resize }: { columns: DataColumn[]; resize?: ColumnResize }) {
   const last = columns.length - 1
+  // Sur téléphone, la table passe en cartes (cartesMobile.ts) : l'en-tête marque sa table.
+  const poserCartes = useCartesMobile()
+  const refThead = useCallback((el: HTMLTableSectionElement | null) => poserCartes(el?.parentElement ?? null), [poserCartes])
   // Garde-fou : des largeurs mesurées pour un AUTRE nombre de colonnes seraient
   // appliquées décalées d'un cran (colonne 0 recevant la largeur de la colonne 1…),
   // avec débordement horizontal à la clé. Tant que le compte ne correspond pas, on
   // repasse en largeurs automatiques — le temps que `useColumnResize` re-mesure.
   const widths = resize?.widths?.length === columns.length ? resize.widths : null
   return (
-    <thead>
+    <thead ref={refThead}>
       <tr style={{ background: 'var(--fond-surface-2)', borderBottom: '1px solid var(--bordure-legere)' }}>
         {columns.map((c, i) => (
           <th

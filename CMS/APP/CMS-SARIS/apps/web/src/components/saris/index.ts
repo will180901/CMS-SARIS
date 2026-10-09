@@ -57,6 +57,7 @@ export { DataTableHead, dataRowStyle, dataRowBackground, DATA_TABLE_CARD, DATA_T
 export type { DataColumn }                 from './DataTable'
 
 export { useColumnResize }                 from './useColumnResize'
+export { useCartesMobile, CLASSE_CARTES }  from './cartesMobile'
 export type { ColumnResize }               from './useColumnResize'
 
 export { useSelectionLot, BarreSelectionLot, CaseSelectionLigne, ActionSelectionner, proprietesLigne } from './SelectionLot'

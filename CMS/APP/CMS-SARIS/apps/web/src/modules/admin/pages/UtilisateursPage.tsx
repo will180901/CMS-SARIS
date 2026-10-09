@@ -28,7 +28,7 @@ import {
 } from 'lucide-react'
 import { PageHeader, Toolbar, Card, Button, StatCard,
   StatusPill, UserAvatar, EmptyState, Skeleton, IconButton, SelectBox, PaginationBar, useColumnResize, Modal,
-  useSelectionLot, BarreSelectionLot, CheckBox,
+  useSelectionLot, BarreSelectionLot, CheckBox, useCartesMobile, CLASSE_CARTES,
 } from '@/components/saris'
 import { usePagination } from '@/hooks/usePagination'
 import { useRowsPerPage } from '@/hooks/useRowsPerPage'
@@ -539,6 +539,7 @@ function UserTableSection({
   const tableMinW = isCompact ? 720 : undefined
   const pagination = usePagination(personnes, useRowsPerPage())
   const rz = useColumnResize({ storageKey: 'admin-utilisateurs', ready: !isLoading && personnes.length > 0, cellsSelector: ':scope > *' })
+  const poserCartes = useCartesMobile()
 
   // Sélection en lot : seuls les comptes SONT supprimables. Une personne sans accès
   // n'a rien à supprimer ici (sa fiche se gère dans Personnel), et son propre compte
@@ -569,8 +570,9 @@ function UserTableSection({
     }}>
       <BarreSelectionLot sel={sel} lignes={personnes} />
 
-      {/* Card du tableau avec scroll interne (hauteur fixe utilisable en mobile) */}
-      <div style={{
+      {/* Card du tableau avec scroll interne (hauteur fixe utilisable en mobile) ;
+          sur téléphone, chaque personne devient une carte (cartesMobile.ts). */}
+      <div ref={poserCartes} className={CLASSE_CARTES} style={{
         flex: isCompact ? 'none' : 1,
         height: isCompact ? '70vh' : undefined,
         minHeight: 0,

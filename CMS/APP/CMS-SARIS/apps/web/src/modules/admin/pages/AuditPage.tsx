@@ -28,7 +28,7 @@ import { useIsCompact } from '@/hooks/useMediaQuery'
 import {
   PageHeader, Card, Button, IconButton, StatusPill, Modal,
   UserAvatar, EmptyState, Skeleton, Toolbar, SelectBox, DatePicker, PaginationBar, SegmentedTabs,
-  useColumnResize,
+  useColumnResize, useCartesMobile, CLASSE_CARTES,
 } from '@/components/saris'
 import type { ColumnResize } from '@/components/saris'
 import { usePagination } from '@/hooks/usePagination'
@@ -82,6 +82,7 @@ function libelleConnexion(e: AuthLogEntry, t: (k: string, o?: Record<string, unk
 type Tab = 'actions' | 'auth'
 
 export function AuditPage() {
+  const isCompact = useIsCompact()
   const { t } = useTranslation()
   const [tab,           setTab]           = useState<Tab>('actions')
   const [search,        setSearch]        = useState('')
@@ -186,7 +187,11 @@ export function AuditPage() {
 
   return (
     <>
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+      {/* Petit écran : toute la page défile (en-tête, filtres puis liste), au lieu d'une
+          liste coincée dans le peu de hauteur laissé par les filtres empilés. */}
+      <div style={isCompact
+        ? { display: 'block', height: '100%', overflowY: 'auto' }
+        : { display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
 
         <PageHeader
           icon={<History size={18} />}
@@ -640,6 +645,8 @@ function ActionsTable({ entries, loading, onOpen }: {
   const pagination = usePagination(entries, useRowsPerPage())
   const rz = useColumnResize({ storageKey: 'audit-actions', ready: !loading && entries.length > 0, cellsSelector: ':scope > *' })
   const cols = rz.gridTemplate ?? ACTIONS_COLS
+  // Sur téléphone, chaque entrée devient une carte (cartesMobile.ts).
+  const poserCartes = useCartesMobile()
 
   return (
     <div style={{
@@ -647,7 +654,7 @@ function ActionsTable({ entries, loading, onOpen }: {
       padding: isCompact ? 'var(--espace-3) var(--espace-4) var(--espace-5)' : 'var(--espace-3) var(--espace-6) var(--espace-6)',
       gap: 'var(--espace-3)',
     }}>
-      <div style={{
+      <div ref={poserCartes} className={CLASSE_CARTES} style={{
         flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column',
         background: 'var(--fond-surface)',
         border: '1px solid var(--bordure-legere)',
@@ -756,6 +763,7 @@ function AuthTable({ entries, loading }: {
   const pagination = usePagination(entries, useRowsPerPage())
   const rz = useColumnResize({ storageKey: 'audit-auth-v2', ready: !loading && entries.length > 0, cellsSelector: ':scope > *' })
   const cols = rz.gridTemplate ?? AUTH_COLS
+  const poserCartes = useCartesMobile()
 
   return (
     <div style={{
@@ -763,7 +771,7 @@ function AuthTable({ entries, loading }: {
       padding: isCompact ? 'var(--espace-3) var(--espace-4) var(--espace-5)' : 'var(--espace-3) var(--espace-6) var(--espace-6)',
       gap: 'var(--espace-3)',
     }}>
-      <div style={{
+      <div ref={poserCartes} className={CLASSE_CARTES} style={{
         flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column',
         background: 'var(--fond-surface)',
         border: '1px solid var(--bordure-legere)',
@@ -1446,7 +1454,7 @@ function Row({ columns, header, cols, resize }: { columns: string[]; header?: bo
   const { t } = useTranslation()
   const last = columns.length - 1
   return (
-    <div ref={resize ? resize.containerRef : undefined} style={{
+    <div ref={resize ? resize.containerRef : undefined} role={header ? 'row' : undefined} style={{
       display: 'grid',
       gridTemplateColumns: cols,
       padding: 'var(--espace-2) var(--espace-4)',
@@ -1461,7 +1469,7 @@ function Row({ columns, header, cols, resize }: { columns: string[]; header?: bo
       flexShrink: 0,
     }}>
       {columns.map((c, i) => (
-        <div key={i} style={{ position: 'relative', minWidth: 0 }}>
+        <div key={i} role={header ? 'columnheader' : undefined} style={{ position: 'relative', minWidth: 0 }}>
           {c}
           {resize && i < last && (
             <span

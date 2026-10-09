@@ -102,7 +102,11 @@ export function ReferentielsPage() {
 
   return (
     <>
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+      {/* Petit écran : toute la page défile (en-tête, onglets, outils puis liste), au lieu
+          d'une liste coincée dans le peu de hauteur laissé au-dessus. */}
+      <div style={isCompact
+        ? { display: 'block', height: '100%', overflowY: 'auto' }
+        : { display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
 
         {/* ── En-tête de page ─────────────────────────────────────────────── */}
         <div style={{ padding: 'var(--espace-4) var(--espace-6) 0', flexShrink: 0 }}>
