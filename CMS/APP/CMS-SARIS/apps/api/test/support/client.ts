@@ -10,6 +10,9 @@ import type { NestExpressApplication } from '@nestjs/platform-express'
 export const COMPTES = {
   admin: { login: 'admin', motDePasse: 'Admin123!' },
   medecinChef: { login: 'moukanda', motDePasse: 'Saris2026!' },
+  /** Second médecin (Nkayi) : un médecin n'a qu'une consultation ouverte à la fois,
+   *  les fichiers de test ne se marchent donc pas dessus. */
+  autreMedecin: { login: 'nzinga', motDePasse: 'Saris2026!' },
   /** Infirmier AVEC une délégation de prescription active (seed : MOUKANDA → BATCHI). */
   infirmier: { login: 'batchi', motDePasse: 'Saris2026!' },
   /** Infirmier SANS délégation en cours (seed : délégation de MAFOUTA expirée). */
@@ -25,11 +28,32 @@ export interface Reponse<T = unknown> {
 export interface Client {
   jeton: string
   refreshToken: string
-  user: { id: string; login: string; siteId?: string; [k: string]: unknown }
+  user: {
+    id: string
+    login: string
+    siteId?: string
+    roles: string[]
+    permissions: string[]
+    personnelMedicalId?: string | null
+  }
   get<T = unknown>(chemin: string): Promise<Reponse<T>>
   post<T = unknown>(chemin: string, corps?: object): Promise<Reponse<T>>
   patch<T = unknown>(chemin: string, corps?: object): Promise<Reponse<T>>
   delete<T = unknown>(chemin: string): Promise<Reponse<T>>
+  /** Appel avec une méthode HTTP quelconque (inventaire des routes). */
+  appel(methode: Methode, chemin: string): Promise<Reponse>
+}
+
+export type Methode = 'get' | 'post' | 'put' | 'patch' | 'delete'
+
+/** Appel SANS jeton d'accès. */
+export async function appelAnonyme(
+  app: NestExpressApplication,
+  methode: Methode,
+  chemin: string,
+): Promise<Reponse> {
+  const r = await serveur(app)[methode](chemin)
+  return { status: r.status, body: r.body as unknown }
 }
 
 /** Réponse de /auth/login et /auth/session/confirmer. */
@@ -110,5 +134,7 @@ function client(
       ),
     delete: async (c) =>
       repondre(await serveur(app).delete(c).set('Authorization', auth)),
+    appel: async (methode, c) =>
+      repondre(await serveur(app)[methode](c).set('Authorization', auth)),
   }
 }
