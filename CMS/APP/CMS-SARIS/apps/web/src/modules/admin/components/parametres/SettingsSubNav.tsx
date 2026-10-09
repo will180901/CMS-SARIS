@@ -3,7 +3,8 @@
  * (ParametresPage = personnel, ParametresSystemePage = système). Extrait de ParametresPage
  * lors de leur séparation pour éviter d'en dupliquer le style.
  *
- * En mode compact, le rail devient une barre horizontale défilante (pas de menu masqué).
+ * En mode compact, le rail devient une barre horizontale qui passe à la ligne (pas de menu
+ * masqué, pas d'entrée coupée hors champ).
  */
 
 import type { ReactNode } from 'react'
@@ -26,7 +27,7 @@ export function SettingsSubNav({ items, value, onChange, compact = false }: {
   return (
     <nav aria-label={t('settings.sectionsAria')} style={
       compact
-        ? { flexShrink: 0, display: 'flex', flexDirection: 'row', gap: 6, overflowX: 'auto', paddingBottom: 4 }
+        ? { flexShrink: 0, display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingBottom: 4 }
         : { width: 232, flexShrink: 0, alignSelf: 'flex-start', position: 'sticky', top: 0, display: 'flex', flexDirection: 'column', gap: 2 }
     }>
       {items.map((it) => {

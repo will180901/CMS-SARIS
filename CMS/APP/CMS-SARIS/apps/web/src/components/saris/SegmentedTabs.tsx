@@ -64,6 +64,10 @@ export function SegmentedTabs({
       aria-label={ariaLabel}
       style={{
         display:      'inline-flex',
+        // Trop étroit (téléphone, panneau latéral) : les onglets passent à la ligne au
+        // lieu de défiler hors champ — un onglet coupé à droite ne se devinait pas.
+        flexWrap:     'wrap',
+        maxWidth:     '100%',
         gap:          2,
         padding:      3,
         background:   'var(--fond-surface-2)',
