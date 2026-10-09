@@ -100,7 +100,7 @@ export interface VisiteListItem extends Visite {
 export interface VisiteConsultationResume {
   id:     string
   statut: string
-  _count: { diagnostics: number; ordonnances: number; bonsExamen: number; bonsPharmacie: number; certificats: number }
+  _count: { diagnostics: number; ordonnances: number; bonsExamen: number; bonsPharmacie: number }
 }
 
 export interface VisiteDetail extends VisiteListItem {

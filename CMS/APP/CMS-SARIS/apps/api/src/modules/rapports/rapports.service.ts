@@ -237,14 +237,12 @@ export class RapportsService {
     const [
       visites,
       evacuations,
-      certificats,
       nouveauxDossiers,
       dossiersActifs,
       ordonnances,
       bonsExamen,
       resultatsRecus,
       suivisChroniques,
-      grossessesSuivies,
       alertesActives,
     ] = await Promise.all([
       // Volet 1 — ACTIVITE : la visite est le vrai volume de passage. La consultation n'en
@@ -253,9 +251,9 @@ export class RapportsService {
       this.prisma.visite.count({ where: { dateOuverture: periode } }),
       this.prisma.evacuation.count({ where: { createdAt: periode } }),
 
-      // Volet 2 — SANTE AU TRAVAIL. Les jours d'arret figurent deja dans `repos` ; on
-      // ajoute le nombre de certificats emis, qui mesure l'activite administrative reelle.
-      this.prisma.certificatMedical.count({ where: { createdAt: periode } }),
+      // Volet 2 — SANTE AU TRAVAIL : accidents et jours d'arret figurent deja dans le
+      // contenu du rapport (`repos`). Le nombre de certificats emis n'y figure plus : la
+      // table n'etait plus alimentee depuis juin 2026, l'indicateur valait toujours 0.
 
       // Volet 3 — POPULATION. Les nouveaux dossiers disent la progression de la couverture ;
       // les dossiers actifs disent la population suivie a ce jour (donc HORS periode : c'est
@@ -270,8 +268,8 @@ export class RapportsService {
 
       // Volet 5 — SUIVI ET RISQUES. Des ETATS a la date du rapport, pas des flux : ce qui
       // reste ouvert est ce qui demande de l'attention.
+      // (Plus de « grossesses suivies » : module retire en juin 2026, toujours 0.)
       this.prisma.suiviChronique.count({ where: { closedAt: null } }),
-      this.prisma.suiviGrossesse.count({ where: { dateFinReelle: null } }),
       this.prisma.alerteMedicale.count({ where: { resolvedAt: null } }),
     ])
 
@@ -339,7 +337,6 @@ export class RapportsService {
         // Part des visites qui ont donne lieu a une consultation. Se calcule cote client
         // avec le total de consultations deja present : on ne duplique pas la donnee.
       },
-      santeTravail: { certificats },
       population: {
         nouveauxDossiers,
         dossiersActifs,
@@ -352,7 +349,7 @@ export class RapportsService {
         parMedicament: classer(medsBruts, 'medicamentId', medsRef),
         parExamen: classer(examensBruts, 'typeExamenId', examensRef),
       },
-      suiviRisques: { suivisChroniques, grossessesSuivies, alertesActives },
+      suiviRisques: { suivisChroniques, alertesActives },
     }
   }
 

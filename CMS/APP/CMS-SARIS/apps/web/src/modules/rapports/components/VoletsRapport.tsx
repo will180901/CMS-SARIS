@@ -8,7 +8,7 @@
  *
  * Cinq volets, dans l'ordre où on se les pose :
  *   1. ACTIVITÉ         — combien de passages, et combien ont donné lieu à un acte
- *   2. SANTÉ AU TRAVAIL — accidents, jours d'arrêt prescrits, certificats
+ *   2. SANTÉ AU TRAVAIL — accidents, jours d'arrêt prescrits
  *   3. POPULATION       — qui est suivi, et depuis quand
  *   4. PHARMACIE/EXAMENS— ce qui est prescrit, donc consommé et budgété
  *   5. SUIVI & RISQUES  — ce qui reste ouvert, donc ce qui demande de l'attention
@@ -125,7 +125,6 @@ export function VoletsRapport({ contenu }: { contenu: ContenuRapport }) {
         items={[
           { label: t('rapports.kpiAccidents'), valeur: at, hint: t('rapports.kpiAccidentsHint') },
           { label: t('rapports.kpiJoursArret'), valeur: contenu.repos.totalJours, hint: t('rapports.kpiJoursArretHint') },
-          { label: t('rapports.kpiCertificats'), valeur: v.santeTravail.certificats, hint: t('rapports.kpiCertificatsHint') },
         ]}
       />
 
@@ -153,7 +152,6 @@ export function VoletsRapport({ contenu }: { contenu: ContenuRapport }) {
         titre={t('rapports.voletSuivi')}
         items={[
           { label: t('rapports.kpiChroniques'), valeur: v.suiviRisques.suivisChroniques, hint: t('rapports.kpiEtatHint') },
-          { label: t('rapports.kpiGrossesses'), valeur: v.suiviRisques.grossessesSuivies, hint: t('rapports.kpiEtatHint') },
           { label: t('rapports.kpiAlertes'), valeur: v.suiviRisques.alertesActives, hint: t('rapports.kpiAlertesHint') },
         ]}
       />

@@ -62,13 +62,12 @@ export const SYNC_MODELS: readonly SyncModelDef[] = [
   def('MedicamentReference', 'medicamentReference', GLOBAL),
   def('TypeExamen', 'typeExamen', GLOBAL),
   def('EtablissementReference', 'etablissementReference', GLOBAL),
-  // Types de consultation et de certificat : référentiels que des actes SYNCHRONISÉS
-  // référencent (Consultation.typeConsultationId, CertificatMedical.typeCertificatId).
-  // Absents du registre, un poste n'en recevait jamais aucun : toute consultation typée
+  // Types de consultation : référentiel que des actes SYNCHRONISÉS référencent
+  // (Consultation.typeConsultationId). Absent du registre, un poste n'en recevait
+  // jamais aucun : toute consultation typée
   // venue du central y butait sur une clé étrangère — elle figeait la synchro du poste
   // (avant la mise en quarantaine), puis y manquait purement et simplement.
   def('TypeConsultation', 'typeConsultation', GLOBAL),
-  def('TypeCertificat', 'typeCertificat', GLOBAL),
   def('SocieteSousTraitante', 'societeSousTraitante', GLOBAL),
   def('EmployeSaris', 'employeSaris', GLOBAL), // registre des employés SARIS (main-d'œuvre, partagé inter-sites)
   def('Role', 'role', GLOBAL),
@@ -78,9 +77,7 @@ export const SYNC_MODELS: readonly SyncModelDef[] = [
   // PersonnelMedical = GLOBAL : un acte clinique d'un autre site doit pouvoir
   // afficher son soignant (« Dr X ») sur n'importe quel poste.
   def('PersonnelMedical', 'personnelMedical', GLOBAL),
-  // Planning / présence / délégation = opérationnel, propre au site.
-  def('PlanningPermutation', 'planningPermutation', BY_SITE),
-  def('PresenceJournaliere', 'presenceJournaliere', BY_SITE),
+  // Délégation = opérationnelle, propre au site.
   def(
     'DelegationPrescription',
     'delegationPrescription',
@@ -108,8 +105,6 @@ export const SYNC_MODELS: readonly SyncModelDef[] = [
   def('AllergiePatient', 'allergiePatient', GLOBAL),
   def('AntecedentPatient', 'antecedentPatient', GLOBAL),
   def('AlerteMedicale', 'alerteMedicale', GLOBAL),
-  def('PreSaisieMedicale', 'preSaisieMedicale', GLOBAL),
-  def('SuiviGrossesse', 'suiviGrossesse', GLOBAL),
   def('SuiviChronique', 'suiviChronique', GLOBAL),
   def('RattachementAyantDroitCdi', 'rattachementAyantDroitCdi', GLOBAL),
   def('RattachementSousTraitant', 'rattachementSousTraitant', GLOBAL),
@@ -132,18 +127,15 @@ export const SYNC_MODELS: readonly SyncModelDef[] = [
   def('PieceJointeResultat', 'pieceJointeResultat', GLOBAL), // compte rendu joint — après BonExamen (FK)
   def('BonPharmacie', 'bonPharmacie', GLOBAL),
   def('LigneBonPharmacie', 'ligneBonPharmacie', GLOBAL),
-  def('ConsultationPrenatale', 'consultationPrenatale', GLOBAL),
   def('Evacuation', 'evacuation', GLOBAL),
   def('SuiviEvacuation', 'suiviEvacuation', GLOBAL), // après Evacuation (FK)
-  // Suivi de traitement (épisode) et certificats médicaux : actes cliniques à part
-  // entière, absents du registre — un épisode ouvert ou un certificat établi sur un poste
-  // n'existait nulle part ailleurs, et inversement.
+  // Suivi de traitement (épisode) : acte clinique à part entière, longtemps absent du
+  // registre — un épisode ouvert sur un poste n'existait nulle part ailleurs, et inversement.
   def('SuiviTraitement', 'suiviTraitement', GLOBAL),
   // Fiches de suivi (migration 20261003090000) — après SuiviTraitement (FK).
   def('FicheSuiviTraitement', 'ficheSuiviTraitement', GLOBAL),
   // Administrations d'un traitement (migration 20261004090000) — après LigneOrdonnance (FK).
   def('AdministrationTraitement', 'administrationTraitement', GLOBAL),
-  def('CertificatMedical', 'certificatMedical', GLOBAL),
 
   // ── Messagerie (scope site via conversation) ──────────────────────────────
   def('Conversation', 'conversation', BY_SITE),

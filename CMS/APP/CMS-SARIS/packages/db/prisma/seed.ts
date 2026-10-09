@@ -463,13 +463,6 @@ async function main() {
     return agent!.id
   }
 
-  // Récupérer quelques médicaments pour les affecter aux délégations
-  const medPaludisme  = await prisma.medicamentReference.findFirst({ where: { nomGenerique: { contains: 'Arteméther' } } })
-  const medAmox       = await prisma.medicamentReference.findFirst({ where: { nomGenerique: 'Amoxicilline' } })
-  const medParacetamol = await prisma.medicamentReference.findFirst({ where: { nomGenerique: 'Paracétamol' } })
-  const medSRO        = await prisma.medicamentReference.findFirst({ where: { nomGenerique: { contains: 'réhydratation' } } })
-  const medCotri      = await prisma.medicamentReference.findFirst({ where: { nomGenerique: 'Cotrimoxazole' } })
-
   const idMED001 = await getPersonnelId('MED-001')  // MOUKANDA — Moutela
   const idMED003 = await getPersonnelId('MED-003')  // NZINGA    — Nkayi
   const idINF001 = await getPersonnelId('INF-001')  // BATCHI    — Moutela
@@ -488,7 +481,6 @@ async function main() {
       dateDebut: past(1), dateFin: future(2),
       statut: 'ACTIVE',
       perimetre: 'Consultations de routine, suivi des malades chroniques du lundi au vendredi',
-      medicamentIds: [medParacetamol?.id, medAmox?.id, medSRO?.id].filter(Boolean) as string[],
     },
     // Active — Moutela : MOUKANDA → NDINGA
     {
@@ -496,7 +488,6 @@ async function main() {
       dateDebut: past(0), dateFin: future(3),
       statut: 'ACTIVE',
       perimetre: 'Permanences de nuit et week-ends',
-      medicamentIds: [medParacetamol?.id, medSRO?.id].filter(Boolean) as string[],
     },
     // Active — Nkayi : NZINGA → LOEMBA
     {
@@ -504,7 +495,6 @@ async function main() {
       dateDebut: past(1), dateFin: future(1),
       statut: 'ACTIVE',
       perimetre: 'Prise en charge du paludisme non compliqué',
-      medicamentIds: [medPaludisme?.id, medParacetamol?.id, medCotri?.id].filter(Boolean) as string[],
     },
     // Expirée — Nkayi : NZINGA → MAFOUTA (dateFin dans le passé)
     {
@@ -512,7 +502,6 @@ async function main() {
       dateDebut: past(4), dateFin: past(1),
       statut: 'ACTIVE',
       perimetre: 'Campagne de vaccination trimestrielle',
-      medicamentIds: [] as string[],
     },
     // Suspendue — Moutela : MOUKANDA → BATCHI (statut INACTIVE)
     {
@@ -520,25 +509,20 @@ async function main() {
       dateDebut: past(3), dateFin: future(1),
       statut: 'INACTIVE',
       perimetre: 'Délégation suspendue suite à audit interne',
-      medicamentIds: [medAmox?.id, medCotri?.id].filter(Boolean) as string[],
     },
   ]
 
   let delegCount = 0
   for (const d of DELEGATIONS) {
-    const { medicamentIds, ...rest } = d
     const existing = await prisma.delegationPrescription.findFirst({
-      where: { medecinChefId: rest.medecinChefId, infirmierId: rest.infirmierId, dateDebut: new Date(rest.dateDebut) },
+      where: { medecinChefId: d.medecinChefId, infirmierId: d.infirmierId, dateDebut: new Date(d.dateDebut) },
     })
     if (!existing) {
       await prisma.delegationPrescription.create({
         data: {
-          ...rest,
-          dateDebut: new Date(rest.dateDebut),
-          dateFin:   new Date(rest.dateFin),
-          ...(medicamentIds.length && {
-            medicamentsAutorises: { create: medicamentIds.map(medicamentId => ({ medicamentId })) },
-          }),
+          ...d,
+          dateDebut: new Date(d.dateDebut),
+          dateFin:   new Date(d.dateFin),
         },
       })
       delegCount++

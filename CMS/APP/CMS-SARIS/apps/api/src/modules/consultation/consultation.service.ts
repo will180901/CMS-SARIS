@@ -147,7 +147,6 @@ const CONSULTATION_DETAIL_INCLUDE = {
       ordonnances: { where: { deletedAt: null } },
       bonsExamen: { where: { deletedAt: null } },
       bonsPharmacie: { where: { deletedAt: null } },
-      certificats: { where: { deletedAt: null } },
     },
   },
 } as const
@@ -1124,8 +1123,8 @@ export class ConsultationService {
   /**
    * Supprime DÉFINITIVEMENT une consultation CLÔTURÉE ou ANNULÉE — jamais une
    * consultation encore OUVERTE (il faut d'abord la clôturer ou l'annuler).
-   * Purge en cascade tous ses documents (ordonnance, bons, évacuation, accident,
-   * suivi, prénatale, certificats, diagnostics) — réservée à `consultation.delete`.
+   * Purge en cascade tous ses documents (ordonnances, bons, évacuation, suivis,
+   * diagnostics) — réservée à `consultation.delete`.
    * L'appelant (contrôleur) doit avoir présenté à l'utilisateur un écran de
    * confirmation listant ce qui va être détruit AVANT d'appeler cette méthode.
    */

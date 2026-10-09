@@ -134,7 +134,6 @@ const VISITE_DETAIL_INCLUDE = {
           ordonnances: true,
           bonsExamen: true,
           bonsPharmacie: true,
-          certificats: true,
         },
       },
     },

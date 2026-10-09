@@ -43,10 +43,9 @@ export interface Repartition { libelle: string; count: number }
 
 export interface VoletsRapportData {
   activite:         { visites: number; evacuations: number; parMotif?: Repartition[] }
-  santeTravail:     { certificats: number }
   population:       { nouveauxDossiers: number; dossiersActifs: number; parCategorie?: Repartition[] }
   pharmacieExamens: { ordonnances: number; bonsExamen: number; resultatsRecus: number; parMedicament?: Repartition[]; parExamen?: Repartition[] }
-  suiviRisques:     { suivisChroniques: number; grossessesSuivies: number; alertesActives: number }
+  suiviRisques:     { suivisChroniques: number; alertesActives: number }
 }
 
 export interface ContenuRapport extends StatistiquesActivite {

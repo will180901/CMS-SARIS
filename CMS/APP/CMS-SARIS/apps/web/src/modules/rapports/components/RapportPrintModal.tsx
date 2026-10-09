@@ -191,7 +191,6 @@ export function RapportPrintModal({ rapport, onClose }: { rapport: RapportDetail
         items: [
           { label: t('rapports.kpiAccidents'), valeur: at, hint: t('rapports.kpiAccidentsHint') },
           { label: t('rapports.kpiJoursArret'), valeur: c.repos.totalJours, hint: t('rapports.kpiJoursArretHint') },
-          { label: t('rapports.kpiCertificats'), valeur: v.santeTravail.certificats, hint: t('rapports.kpiCertificatsHint') },
         ],
       })
 
@@ -232,7 +231,6 @@ export function RapportPrintModal({ rapport, onClose }: { rapport: RapportDetail
         titre: t('rapports.voletSuivi'),
         items: [
           { label: t('rapports.kpiChroniques'), valeur: v.suiviRisques.suivisChroniques, hint: t('rapports.kpiEtatHint') },
-          { label: t('rapports.kpiGrossesses'), valeur: v.suiviRisques.grossessesSuivies, hint: t('rapports.kpiEtatHint') },
           { label: t('rapports.kpiAlertes'), valeur: v.suiviRisques.alertesActives, hint: t('rapports.kpiAlertesHint') },
         ],
       })

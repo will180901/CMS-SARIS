@@ -59,7 +59,7 @@ export function ConsultationArchiveSummary({ consultationId, consultation, onDel
   const totalRecus = bonsActifs.reduce((n, b) => n + b.lignes.length - examensManquants(b).length, 0)
   const aEvacuation = consultation.decisionMedicale === 'EVACUATION' || (!!consultation.evacuation && consultation.evacuation.statut !== 'ANNULE')
   const aSuivi = consultation.decisionMedicale === 'SUIVI_TRAITEMENT' || (!!consultation.suiviTraitement && consultation.suiviTraitement.statut !== 'ANNULE')
-  const aRepos = (consultation.reposJours ?? 0) > 0 || consultation._count.certificats > 0
+  const aRepos = (consultation.reposJours ?? 0) > 0
 
   const { patient } = consultation.visite
   const cloturee = consultation.statut === 'CLOTUREE'
@@ -75,7 +75,6 @@ export function ConsultationArchiveSummary({ consultationId, consultation, onDel
     consultation.ordonnances.length > 0 && t('consultation.archiveImpactOrdonnances', { count: consultation.ordonnances.length }),
     consultation._count.bonsExamen > 0 && t('consultation.archiveImpactBonsExamen', { count: consultation._count.bonsExamen }),
     consultation._count.bonsPharmacie > 0 && t('consultation.archiveImpactBonsPharmacie', { count: consultation._count.bonsPharmacie }),
-    consultation._count.certificats > 0 && t('consultation.archiveImpactCertificats', { count: consultation._count.certificats }),
     consultation.evacuation && consultation.evacuation.statut !== 'ANNULE' && t('consultation.archiveImpactEvacuation'),
   ].filter((x): x is string => !!x)
 

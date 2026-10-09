@@ -2926,19 +2926,6 @@ export class PatientService {
         'Ce dossier possède un historique clinique (visites/consultations) : il ne peut être supprimé. Archivez-le plutôt.',
       )
     }
-    // Le soft-delete global ne lève plus de violation FK : on protège explicitement les
-    // références vivantes (count filtré = on ne bloque que sur des références non archivées).
-    const nbPreSaisies = await this.prisma.preSaisieMedicale.count({
-      where: { patientId: id },
-    })
-    const nbSuivisGrossesse = await this.prisma.suiviGrossesse.count({
-      where: { patientId: id },
-    })
-    if (nbPreSaisies > 0 || nbSuivisGrossesse > 0) {
-      throw new ConflictException(
-        'Ce dossier est référencé par un suivi de grossesse ou une pré-saisie médicale : suppression impossible. Archivez-le plutôt.',
-      )
-    }
     // Purge des données administratives rattachées puis du dossier.
     const adIds = (
       await this.prisma.rattachementAyantDroitCdi.findMany({

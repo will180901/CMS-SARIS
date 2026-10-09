@@ -240,7 +240,6 @@ export const consultation = {
     archiveImpactOrdonnances: '{{count}} ordonnance(s)',
     archiveImpactBonsExamen: '{{count}} bon(s) d\'examen',
     archiveImpactBonsPharmacie: '{{count}} bon(s) de pharmacie',
-    archiveImpactCertificats: '{{count}} certificat(s)',
     archiveImpactEvacuation: 'la fiche d\'évacuation',
 
     // ── Impression de l'ordonnance ──────────────────────────────────
@@ -537,7 +536,6 @@ export const consultation = {
     archiveImpactOrdonnances: '{{count}} prescription(s)',
     archiveImpactBonsExamen: '{{count}} exam request(s)',
     archiveImpactBonsPharmacie: '{{count}} pharmacy voucher(s)',
-    archiveImpactCertificats: '{{count}} certificate(s)',
     archiveImpactEvacuation: 'the evacuation record',
 
     // ── Prescription printout ───────────────────────────────────────

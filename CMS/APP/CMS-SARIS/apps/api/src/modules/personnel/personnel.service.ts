@@ -318,13 +318,7 @@ export class PersonnelService {
 
   async deleteDelegation(id: string) {
     await this.findDelegationById(id)
-    // Les médicaments autorisés sont des enfants directs → on les retire d'abord.
-    await this.prisma.$transaction([
-      this.prisma.delegationMedicamentAutorise.deleteMany({
-        where: { delegationId: id },
-      }),
-      this.prisma.delegationPrescription.delete({ where: { id } }),
-    ])
+    await this.prisma.delegationPrescription.delete({ where: { id } })
     return { id, deleted: true }
   }
 

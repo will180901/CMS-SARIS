@@ -33,8 +33,6 @@ export function consultationCascadeDeleteOps(
     }),
     prisma.suiviTraitement.deleteMany({ where }),
     prisma.suiviChronique.deleteMany({ where }),
-    prisma.consultationPrenatale.deleteMany({ where }),
-    prisma.certificatMedical.deleteMany({ where }),
     prisma.diagnosticConsultation.deleteMany({ where }),
   ]
 }

@@ -65,7 +65,7 @@ const A_VIDER = [
   // ── Comptes & personnel (traités à part : on conserve `admin`) ──
   // 'utilisateur' et 'personnelMedical' : voir plus bas.
   // ── Délégations (dépendent du personnel) ──
-  'delegationPrescription', 'absencePersonnel',
+  'delegationPrescription',
 ] as const
 
 async function compter(modele: string): Promise<number | null> {
