@@ -17,7 +17,13 @@ import type { Request, Response } from 'express'
  *   timestamp  : string (ISO)
  *   path       : string
  *   message    : string | string[]
+ *   …          : champs ajoutés VOLONTAIREMENT par le code (ex. `code`, `warnings`)
  * }
+ *
+ * Les champs supplémentaires d'une HttpException construite avec un objet sont conservés :
+ * l'interface en dépend (« Prescrire quand même » sur contre-indication bloquante — code
+ * CONTRE_INDICATION_BLOCKING + warnings ; site déjà confirmé — SITE_DEJA_CONFIRME). Avant,
+ * ils étaient jetés et ces écrans ne pouvaient jamais reconnaître leur cas.
  */
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
@@ -30,6 +36,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     let status: number
     let message: string | string[]
+    let extras: Record<string, unknown> = {}
 
     // 1) Erreurs Prisma connues (duck-typing du code "P####") → statut HTTP propre.
     //    Sans ça, une violation de contrainte — ex. @unique encore occupé par un
@@ -71,6 +78,13 @@ export class GlobalExceptionFilter implements ExceptionFilter {
               'message' in rawMessage
             ? (rawMessage as { message: string | string[] }).message
             : String(rawMessage)
+      if (typeof rawMessage === 'object' && rawMessage !== null) {
+        extras = Object.fromEntries(
+          Object.entries(rawMessage as Record<string, unknown>).filter(
+            ([cle]) => !['statusCode', 'message', 'error'].includes(cle),
+          ),
+        )
+      }
     } else {
       status = HttpStatus.INTERNAL_SERVER_ERROR
       message = 'Erreur interne du serveur'
@@ -85,6 +99,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     }
 
     response.status(status).json({
+      ...extras, // en premier : ne peut pas écraser les champs ci-dessous
       statusCode: status,
       timestamp: new Date().toISOString(),
       path: request.url,
