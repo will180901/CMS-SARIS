@@ -747,7 +747,10 @@ export function DossierPage() {
   // ce privilège, cf. DroitCategoriePatient qui les exclut déjà tous de la couverture).
   // La section Administratif reste visible pour tous (l'historique de catégorie
   // s'applique à toute catégorie de patient), seul le sous-onglet est filtré.
-  const hasRattachements = dossier.categoriePatient.code === 'ASSURE_CDI' || dossier.categoriePatient.code === 'AYANT_DROIT_CDI'
+  // Sous-traitant aussi : son rattachement à la société (et son historique) n'était
+  // visible nulle part.
+  const hasRattachements = ['ASSURE_CDI', 'AYANT_DROIT_CDI', 'SOUS_TRAITANT'].includes(dossier.categoriePatient.code)
+    || dossier.rattachementsAD.length > 0 || dossier.rattachementsST.length > 0
 
   // Onglet visible pour CE profil et CE patient : réservé aux soignants (consultation.read)
   // ou au CDI / ayant droit (rattachements).

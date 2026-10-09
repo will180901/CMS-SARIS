@@ -5,7 +5,7 @@ import { useTranslation }      from 'react-i18next'
 import { DatePicker }          from '@/components/saris'
 import { zodResolver }         from '@hookform/resolvers/zod'
 import { z }                   from 'zod'
-import { Users, MoreVertical, Trash2 , Ban } from 'lucide-react'
+import { Users, MoreVertical, Trash2 , Ban, History, Building2, ChevronDown, ChevronRight } from 'lucide-react'
 import { Button }              from '@workspace/ui/components/button'
 import { Label }               from '@workspace/ui/components/label'
 import {
@@ -19,7 +19,9 @@ import { DrawerShell }         from '@/modules/referentiels/components/DrawerShe
 import { ConfirmDeleteModal }  from './ConfirmDeleteModal'
 import { usePermissions }      from '@/hooks/usePermissions'
 import { useUpdateRattachementAD, useDeleteRattachementAD, usePatientAyantsDroits } from '../../hooks/usePatients'
-import type { PatientDossier, RattachementAyantDroitCdi } from '@cms-saris/types'
+import type { PatientDossier, RattachementAyantDroitCdi, RattachementSousTraitant, HistoriqueRattachement } from '@cms-saris/types'
+import { useAnnuaire } from '@/modules/admin/hooks/useAdmin'
+import { formatDateTime } from '@/lib/intl'
 import { humanizeCode } from '@/config/labels'
 import { formatDate as intlFormatDate } from '@/lib/intl'
 
@@ -45,6 +47,90 @@ function makeAdEditSchema(t: (k: string) => string) {
 type ADEditForm = z.infer<ReturnType<typeof makeAdEditSchema>>
 
 // ── Cards ─────────────────────────────────────────────────────────────────────
+
+// ── Historique d'un rattachement ─────────────────────────────────────────────
+// Chaque création, clôture, réactivation ou modification est journalisée avec son
+// auteur (et synchronisée entre postes) — elle n'était affichée nulle part.
+
+const EVENEMENTS_RATT = ['CREATION', 'CLOTURE', 'REACTIVATION', 'MODIFICATION', 'SUPPRESSION']
+
+function HistoriqueRattachementBloc({ historiques }: { historiques: HistoriqueRattachement[] }) {
+  const { t } = useTranslation()
+  const { data: annuaire = [] } = useAnnuaire()
+  const [ouvert, setOuvert] = useState(false)
+  if (historiques.length === 0) return null
+  const auteur = (id: string | null) => {
+    if (!id) return null
+    const u = annuaire.find(a => a.id === id)
+    return u ? [u.prenom, u.nom].filter(Boolean).join(' ') : null
+  }
+  return (
+    <div style={{ marginTop: 10, borderTop: '1px solid var(--bordure-legere)', paddingTop: 8 }}>
+      <button
+        type="button"
+        onClick={() => setOuvert(o => !o)}
+        aria-expanded={ouvert}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: 0, background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--ap-600)' }}
+      >
+        {ouvert ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+        <History size={12} /> {t('patients.histRattTitle', { count: historiques.length })}
+      </button>
+      {ouvert && (
+        <ul style={{ listStyle: 'none', margin: '6px 0 0', padding: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {historiques.map(h => (
+            <li key={h.id} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', fontSize: 12 }}>
+              <span style={{ color: 'var(--texte-tertiaire)', fontVariantNumeric: 'tabular-nums', minWidth: 118 }}>
+                {formatDateTime(h.createdAt, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              </span>
+              <span style={{ color: 'var(--texte-primaire)', fontWeight: 500 }}>
+                {EVENEMENTS_RATT.includes(h.evenement) ? t(`patients.histEvt_${h.evenement}`) : humanizeCode(h.evenement)}
+              </span>
+              <span style={{ color: 'var(--texte-tertiaire)' }}>
+                {auteur(h.createdBy) ? t('patients.histParAuteur', { auteur: auteur(h.createdBy) }) : t('patients.histAuteurInconnu')}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+// ── Rattachement sous-traitant ↔ société (lecture) ───────────────────────────
+// Créé à la visite comme les autres ; visible ici avec sa période et son historique.
+
+function RattachementSTCard({ ratt }: { ratt: RattachementSousTraitant }) {
+  const { t } = useTranslation()
+  const [maintenant] = useState(() => Date.now())
+  const actif = ratt.statut === 'ACTIF'
+  const echu = actif && !!ratt.dateFin && new Date(ratt.dateFin).getTime() <= maintenant
+  const enVigueur = actif && !echu
+  return (
+    <div style={{ background: 'var(--fond-surface)', border: '1px solid var(--bordure-legere)', borderRadius: 8, padding: '12px 14px', opacity: enVigueur ? 1 : 0.6 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--ap-50)', border: '1px solid var(--ap-100)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Building2 size={14} style={{ color: 'var(--ap-600)' }} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--texte-primaire)' }}>{ratt.societe.nom}</span>
+            <span style={{ fontSize: '11px', padding: '1px 7px', borderRadius: 99, background: enVigueur ? 'var(--succes-fond)' : echu ? 'var(--avert-fond)' : 'var(--fond-surface-2)', color: enVigueur ? 'var(--succes-texte)' : echu ? 'var(--avert-texte)' : 'var(--texte-tertiaire)', fontWeight: '600' }}>
+              {enVigueur ? t('patients.attachActive') : echu ? t('patients.attachExpired') : t('patients.attachClosed')}
+            </span>
+          </div>
+          <p style={{ fontSize: '12px', color: 'var(--texte-tertiaire)', margin: '2px 0 0' }}>
+            {ratt.dateFin
+              ? t('patients.attachPeriod', { start: formatDate(ratt.dateDebut), end: formatDate(ratt.dateFin) })
+              : actif
+                ? t('patients.attachPeriodOngoing', { start: formatDate(ratt.dateDebut) })
+                : t('patients.attachPeriodClosedNoDate', { start: formatDate(ratt.dateDebut) })}
+          </p>
+        </div>
+      </div>
+      <HistoriqueRattachementBloc historiques={ratt.historiques} />
+    </div>
+  )
+}
 
 function RattachementADCard({ ratt, canWrite, patientId }: { ratt: RattachementAyantDroitCdi; canWrite: boolean; patientId: string }) {
   const { t } = useTranslation()
@@ -134,6 +220,7 @@ function RattachementADCard({ ratt, canWrite, patientId }: { ratt: RattachementA
           </DropdownMenu>
         )}
       </div>
+      <HistoriqueRattachementBloc historiques={ratt.historiques} />
 
       {confirmDelete && (
         <ConfirmDeleteModal
@@ -300,8 +387,8 @@ function AyantsDroitsDependants({ patientId }: { patientId: string }) {
 // ── Onglet ────────────────────────────────────────────────────────────────────
 // Purement automatique : les rattachements (ayant droit ↔ CDI, sous-traitant ↔
 // société) se créent à la visite (recueil), pas depuis le dossier. Cet onglet
-// n'est d'ailleurs affiché que pour les catégories CDI/CDD et ayant droit
-// (DossierPage.tsx) — un sous-traitant ou un patient externe ne l'a pas du tout.
+// est affiché pour les catégories CDI, ayant droit et sous-traitant (DossierPage.tsx),
+// ou dès qu'un rattachement existe — un patient externe ne l'a pas.
 
 export function RattementsTab({ dossier, canWrite }: { dossier: PatientDossier; canWrite: boolean }) {
   const { t } = useTranslation()
@@ -330,6 +417,23 @@ export function RattementsTab({ dossier, canWrite }: { dossier: PatientDossier; 
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {dossier.rattachementsAD.map(r => <RattachementADCard key={r.id} ratt={r} canWrite={canWrite} patientId={dossier.id} />)}
+          </div>
+        )}
+      </div>
+      )}
+
+      {/* Sous-traitant : sa société (rattachement créé à la visite), période et historique. */}
+      {(dossier.categoriePatient.code === 'SOUS_TRAITANT' || dossier.rattachementsST.length > 0) && (
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+          <Building2 size={15} style={{ color: 'var(--ap-600)' }} />
+          <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--texte-primaire)' }}>{t('patients.attachSocieteTitle')}</span>
+        </div>
+        {dossier.rattachementsST.length === 0 ? (
+          <p style={{ fontSize: '13px', color: 'var(--texte-tertiaire)', fontStyle: 'italic' }}>{t('patients.emptyAttachSociete')}</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {dossier.rattachementsST.map(r => <RattachementSTCard key={r.id} ratt={r} />)}
           </div>
         )}
       </div>
