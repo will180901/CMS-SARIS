@@ -12,7 +12,8 @@
  * dans l'installateur, dossier `SQLITE_MIGRATIONS_DIR`) non encore notée dans la table
  * `_MiseANiveauPoste` est :
  *  - CONSTATÉE si la base la reflète déjà (colonnes, tables et index qu'elle crée sont
- *    tous présents) — cas d'un poste installé depuis un `seed.db` récent, construit par
+ *    tous présents, et ce qu'elle supprime a disparu) — cas d'un poste installé depuis un
+ *    `seed.db` récent, construit par
  *    `prisma db push`, ou d'une migration déjà passée. Elle n'est PAS rejouée : une
  *    migration qui recrée une table (SQLite n'a pas d'ALTER complet) remettrait sinon à
  *    zéro des colonnes déjà remplies.
@@ -30,11 +31,25 @@ type ClientSql = Pick<PrismaClient, '$executeRawUnsafe' | '$queryRawUnsafe'>
 type Attente =
   | { genre: 'colonne'; table: string; colonne: string }
   | { genre: 'index'; nom: string }
+  /** Table supprimée par la migration : elle ne doit plus exister. */
+  | { genre: 'tableAbsente'; table: string }
+  /** Colonnes que la migration retire en recréant la table : elles ne doivent plus y être.
+   *  Sans cette attente, une migration qui retire une colonne passait pour « déjà faite »
+   *  sur un ancien poste — toutes les colonnes qu'elle recrée y étant déjà, plus la retirée. */
+  | { genre: 'colonnesAbsentes'; table: string; colonnes: string[] }
 
 const TABLE_SUIVI = '_MiseANiveauPoste'
 
-/** Ce que la migration laisse derrière elle : colonnes, tables (via leurs colonnes), index. */
-export function attentesDeMigration(sql: string): Attente[] {
+/**
+ * Ce que la migration laisse derrière elle : colonnes, tables (via leurs colonnes), index,
+ * et ce qu'elle fait disparaître. `avant` = schéma au bout des migrations PRÉCÉDENTES : il
+ * dit quelles colonnes une table recréée (« new_T ») perd — et seulement celles-là, pour
+ * qu'une ancienne recréation ne soit jamais rejouée à cause d'une colonne retirée plus tard.
+ */
+export function attentesDeMigration(
+  sql: string,
+  avant?: { tables: Map<string, Set<string>> },
+): Attente[] {
   const attentes: Attente[] = []
   for (const m of sql.matchAll(/ALTER TABLE "(\w+)" ADD COLUMN "(\w+)"/g))
     attentes.push({ genre: 'colonne', table: m[1], colonne: m[2] })
@@ -45,6 +60,16 @@ export function attentesDeMigration(sql: string): Attente[] {
   }
   for (const m of sql.matchAll(/CREATE (?:UNIQUE )?INDEX "(\w+)"/g))
     attentes.push({ genre: 'index', nom: m[1] })
+  for (const m of sql.matchAll(/DROP TABLE (?:IF EXISTS )?"(\w+)"/g))
+    if (!m[1].startsWith('new_')) attentes.push({ genre: 'tableAbsente', table: m[1] })
+  if (avant) {
+    for (const m of sql.matchAll(/CREATE TABLE "new_(\w+)" \(([\s\S]*?)\n\);/g)) {
+      const gardees = new Set([...m[2].matchAll(/^\s+"(\w+)"\s/gm)].map((c) => c[1]))
+      const retirees = [...(avant.tables.get(m[1]) ?? [])].filter((c) => !gardees.has(c))
+      if (retirees.length > 0)
+        attentes.push({ genre: 'colonnesAbsentes', table: m[1], colonnes: retirees })
+    }
+  }
   return attentes
 }
 
@@ -97,17 +122,29 @@ export function instructionsDeMigration(sql: string): string[] {
 
 async function attentesSatisfaites(client: ClientSql, attentes: Attente[]): Promise<boolean> {
   const colonnesParTable = new Map<string, Set<string>>()
+  const colonnesDe = async (table: string) => {
+    let cols = colonnesParTable.get(table)
+    if (!cols) {
+      const lignes = await client.$queryRawUnsafe<{ name: string }[]>(
+        `PRAGMA table_info("${table}")`,
+      )
+      cols = new Set(lignes.map((l) => l.name))
+      colonnesParTable.set(table, cols)
+    }
+    return cols
+  }
   for (const a of attentes) {
     if (a.genre === 'colonne') {
-      let cols = colonnesParTable.get(a.table)
-      if (!cols) {
-        const lignes = await client.$queryRawUnsafe<{ name: string }[]>(
-          `PRAGMA table_info("${a.table}")`,
-        )
-        cols = new Set(lignes.map((l) => l.name))
-        colonnesParTable.set(a.table, cols)
-      }
-      if (!cols.has(a.colonne)) return false
+      if (!(await colonnesDe(a.table)).has(a.colonne)) return false
+    } else if (a.genre === 'colonnesAbsentes') {
+      const cols = await colonnesDe(a.table)
+      if (a.colonnes.some((c) => cols.has(c))) return false
+    } else if (a.genre === 'tableAbsente') {
+      const t = await client.$queryRawUnsafe<{ name: string }[]>(
+        `SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?`,
+        a.table,
+      )
+      if (t.length > 0) return false
     } else {
       const idx = await client.$queryRawUnsafe<{ name: string }[]>(
         `SELECT name FROM sqlite_master WHERE type = 'index' AND name = ?`,
@@ -153,16 +190,25 @@ export async function mettreANiveauBaseLocale(
   const final = etatFinal([...sqlDe.values()])
 
   let appliquees = 0
-  for (const nom of migrations) {
+  for (const [rang, nom] of migrations.entries()) {
     if (dejaNotees.has(nom)) continue
     const sql = sqlDe.get(nom)
     if (sql === undefined) continue
-    // Seul ce qui existe ENCORE au bout de la chaîne est exigé (cf. etatFinal). Une
-    // migration sans rien de vérifiable (que des suppressions ou des données) est
-    // appliquée : toute nouvelle migration SQLite doit donc créer ou modifier quelque chose.
-    const attentes = attentesDeMigration(sql).filter((a) =>
-      a.genre === 'colonne' ? !!final.tables.get(a.table)?.has(a.colonne) : final.index.has(a.nom),
+    // Seul ce qui existe ENCORE au bout de la chaîne est exigé (cf. etatFinal) ; ce qu'elle
+    // supprime ne doit plus exister, sauf si une migration suivante le recrée. Une migration
+    // sans rien de vérifiable (que des données) est appliquée.
+    const avant = etatFinal(
+      migrations.slice(0, rang).map((n) => sqlDe.get(n)).filter((x): x is string => x !== undefined),
     )
+    const attentes = attentesDeMigration(sql, avant)
+      .map((a): Attente | null => {
+        if (a.genre === 'colonne') return final.tables.get(a.table)?.has(a.colonne) ? a : null
+        if (a.genre === 'index') return final.index.has(a.nom) ? a : null
+        if (a.genre === 'tableAbsente') return final.tables.has(a.table) ? null : a
+        const encoreAbsentes = a.colonnes.filter((c) => !final.tables.get(a.table)?.has(c))
+        return encoreAbsentes.length > 0 ? { ...a, colonnes: encoreAbsentes } : null
+      })
+      .filter((a): a is Attente => a !== null)
 
     if (attentes.length > 0 && (await attentesSatisfaites(client, attentes))) {
       await client.$executeRawUnsafe(
