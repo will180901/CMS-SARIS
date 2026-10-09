@@ -5,16 +5,13 @@ import helmet from 'helmet'
 import { AppModule } from './app.module'
 import { GlobalExceptionFilter } from './common/filters/http-exception.filter'
 
-export async function bootstrap(
-  opts: { port?: number; host?: string } = {},
-): Promise<NestExpressApplication> {
-  const logger = new Logger('Bootstrap')
-
-  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-    logger: ['error', 'warn', 'log', 'debug'],
-    bodyParser: false, // on configure les parseurs nous-mêmes (limite de taille relevée)
-  })
-
+/**
+ * Configuration HTTP de l'application (parseurs, proxy, sécurité, CORS, validation,
+ * filtre d'erreurs). Partagée entre le serveur et la suite de tests (test/support) :
+ * les tests passent ainsi par EXACTEMENT les mêmes règles qu'en production.
+ * L'application doit avoir été créée avec `bodyParser: false`.
+ */
+export function configurerApp(app: NestExpressApplication): void {
   // ── Corps de requête JSON : les lots de synchronisation peuvent être volumineux (50 Mo).
   app.useBodyParser('json', { limit: '50mb' })
   app.useBodyParser('urlencoded', { extended: true, limit: '50mb' })
@@ -78,6 +75,18 @@ export async function bootstrap(
 
   // ── Filtre global d'exceptions ────────────────────────────────────────────
   app.useGlobalFilters(new GlobalExceptionFilter())
+}
+
+export async function bootstrap(
+  opts: { port?: number; host?: string } = {},
+): Promise<NestExpressApplication> {
+  const logger = new Logger('Bootstrap')
+
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    logger: ['error', 'warn', 'log', 'debug'],
+    bodyParser: false, // on configure les parseurs nous-mêmes (limite de taille relevée)
+  })
+  configurerApp(app)
 
   const port = opts.port ?? parseInt(process.env['PORT'] ?? '3000', 10)
   const host = opts.host ?? process.env['HOST'] ?? '0.0.0.0'

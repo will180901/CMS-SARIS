@@ -14,9 +14,10 @@
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
-    "test": "tsx test/soft-delete-core.test.ts && tsx test/message-crypto.test.ts && tsx test/totp-secret.test.ts",
+    "test": "pnpm test:unit && pnpm test:e2e",
+    "test:unit": "tsx test/soft-delete-core.test.ts && tsx test/message-crypto.test.ts && tsx test/totp-secret.test.ts",
     "test:integration": "tsx test/crud-integration.test.ts && tsx test/messaging-integration.test.ts && tsx test/conversation-firstmessage.test.ts && tsx test/soft-delete-revive.test.ts",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json --runInBand"
   },
   "dependencies": {
     "@cms-saris/db": "workspace:*",

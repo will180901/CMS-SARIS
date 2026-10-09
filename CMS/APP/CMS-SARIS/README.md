@@ -181,6 +181,10 @@ pnpm --filter @cms-saris/db db:migrate        # nouvelle migration (dev)
 pnpm --filter @cms-saris/db db:seed           # (re)charger les données de démo
 pnpm --filter @cms-saris/db db:sqlite:gen     # (re)générer le schéma SQLite (mode autonome)
 
+# Tests automatisés (PostgreSQL local démarré) — l'API est testée sur une base
+# séparée `cms_saris_test`, recréée à chaque lancement ; la base de dev n'est pas touchée
+pnpm test
+
 # Vérifications TypeScript
 pnpm -C apps/api exec tsc --noEmit
 pnpm -C apps/web exec tsc --noEmit

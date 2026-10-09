@@ -1,19 +1,12 @@
-import { Test, TestingModule } from '@nestjs/testing'
-import { INestApplication } from '@nestjs/common'
 import request from 'supertest'
-import { App } from 'supertest/types'
-import { AppModule } from './../src/app.module'
+import type { NestExpressApplication } from '@nestjs/platform-express'
+import { demarrerApp } from './support/app-test'
 
 describe('AppController (e2e)', () => {
-  let app: INestApplication<App>
+  let app: NestExpressApplication
 
-  beforeEach(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile()
-
-    app = moduleFixture.createNestApplication()
-    await app.init()
+  beforeAll(async () => {
+    app = await demarrerApp()
   })
 
   it('/health (GET) — sonde de liveness, valide le wiring complet des modules', () => {
@@ -21,7 +14,8 @@ describe('AppController (e2e)', () => {
       .get('/health')
       .expect(200)
       .expect((res) => {
-        if (res.body?.status !== 'ok') {
+        const corps = res.body as { status?: string } | undefined
+        if (corps?.status !== 'ok') {
           throw new Error(
             `statut attendu "ok", reçu ${JSON.stringify(res.body)}`,
           )
@@ -35,7 +29,7 @@ describe('AppController (e2e)', () => {
       .expect(401)
   })
 
-  afterEach(async () => {
+  afterAll(async () => {
     await app.close()
   })
 })
