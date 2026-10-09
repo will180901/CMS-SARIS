@@ -207,11 +207,18 @@ model SessionUtilisateur {
   /// rechargée) : dans ce cas on ne dérange pas l'utilisateur. Distinct de
   /// `posteLocalId`, qui n'est rempli que par la session de SYNCHRO d'un poste desktop.
   appareilId       String?
+  /// CONNEXION à laquelle appartient cette ligne : chaque renouvellement de jeton crée une
+  /// session NEUVE (rotation), si bien qu'une connexion de la journée est une chaîne de
+  /// lignes. `connexionId` = id de la PREMIÈRE ligne de la chaîne (la sienne pour une
+  /// connexion fraîche), repris à chaque rotation — c'est ce qui permet d'afficher depuis
+  /// quand la personne est connectée et combien de temps a duré la connexion.
+  connexionId      String?
   utilisateur      Utilisateur @relation(fields: [utilisateurId], references: [id])
 
   /// Les sessions actives d'un utilisateur sont cherchées à CHAQUE connexion
   /// (détection de double session) — sans index, c'est un balayage de toute la table.
   @@index([utilisateurId, revokedAt])
+  @@index([connexionId])
 }
 
 model ConfigurationTotp {
@@ -256,6 +263,11 @@ model JournalAuthentification {
   ipAdresse     String?
   userAgent     String?
   createdAt     DateTime     @default(now())
+  /// Connexion ouverte par cet évènement (cf. SessionUtilisateur.connexionId) : sert à en
+  /// calculer la durée dans le journal. Vide pour les échecs et les anciennes lignes.
+  connexionId   String?
+  /// Poste desktop d'où vient la connexion (session de synchronisation) — vide en navigateur.
+  posteLocalId  String?
   utilisateur   Utilisateur? @relation(fields: [utilisateurId], references: [id])
 }
 

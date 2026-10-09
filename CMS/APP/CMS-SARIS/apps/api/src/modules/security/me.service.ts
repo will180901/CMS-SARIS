@@ -22,6 +22,7 @@ import { ParametresService } from '../parametres/parametres.service'
 import { UpdatePreferencesDto } from './dto/me.dto'
 import { encryptSecret, decryptSecret } from '../../common/crypto/totp-secret'
 import { resolveGeo } from '../../common/geo/geo.util'
+import { resumerConnexions } from './connexions.util'
 
 const PREF_DEFAULTS = {
   theme: 'auto',
@@ -202,15 +203,28 @@ export class MeService {
         userAgent: true,
         createdAt: true,
         expiresAt: true,
+        connexionId: true,
       },
     })
+    // Depuis quand la personne est CONNECTÉE : `createdAt` n'est que le dernier
+    // renouvellement du jeton ; la connexion, elle, remonte à la première ligne de la chaîne.
+    const connexions = await resumerConnexions(
+      this.prisma,
+      sessions.map((s) => s.connexionId ?? s.id),
+    )
     // Localisation (ville + coordonnées) dérivée de l'IP — ajoutée à la lecture.
     return Promise.all(
-      sessions.map(async (s) => ({
-        ...s,
-        current: s.id === currentSid,
-        localisation: await resolveGeo(s.ipAdresse),
-      })),
+      sessions.map(async ({ connexionId, ...s }) => {
+        const c = connexions.get(connexionId ?? s.id)
+        return {
+          ...s,
+          current: s.id === currentSid,
+          localisation: await resolveGeo(s.ipAdresse),
+          connecteDepuis: c?.debut ?? s.createdAt,
+          derniereActivite: c?.derniereActivite ?? s.createdAt,
+          dureeMinutes: c?.dureeMinutes ?? null,
+        }
+      }),
     )
   }
 

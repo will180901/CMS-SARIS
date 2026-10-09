@@ -43,6 +43,7 @@ import type { AuditEntry, AuthLogEntry } from '../api/admin.api'
 import { labelModule, labelAction, labelStatut, labelEntite, labelRole, labelPermission } from '@/config/labels'
 import { buildPermissionTree, parsePermCode, labelPermAction } from '@/config/permission-tree'
 import { ListePrintSheet, type ColonneExport } from '@/components/print/ListePrintSheet'
+import { formatDureeMinutes } from '@/lib/duree'
 
 // Résultats d'authentification possibles (liste stable, indépendante des données
 // chargées — pour que le filtre reste complet après sélection).
@@ -67,6 +68,16 @@ function formatAuditDateTime(iso: string): string {
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
+
+/** « En cours · 1 h 05 », « Durée : 2 h 14 », « Interrompue après 3 h 10 » — ou rien. */
+function libelleConnexion(e: AuthLogEntry, t: (k: string, o?: Record<string, unknown>) => string): string | null {
+  if (!e.connexion) return null
+  // Une durée, pas un instant : « moins d'une minute » plutôt que « à l'instant ».
+  const duree = e.connexion.dureeMinutes < 1 ? t('admin.dureeMoinsUneMinute') : formatDureeMinutes(e.connexion.dureeMinutes)
+  if (e.connexion.etat === 'EN_COURS') return t('admin.connexionEnCours', { duree })
+  if (e.connexion.etat === 'INTERROMPUE') return t('admin.connexionInterrompue', { duree })
+  return t('admin.connexionDuree', { duree })
+}
 
 type Tab = 'actions' | 'auth'
 
@@ -169,6 +180,8 @@ export function AuditPage() {
     { libelle: t('admin.colIpAddress'), valeur: e => e.ipAdresse ?? '—' },
     { libelle: t('admin.colLocation'),  valeur: e => (e.localisation && e.localisation.label !== 'Localisation inconnue' ? e.localisation.label : '—') },
     { libelle: t('admin.colBrowser'),   valeur: e => (e.userAgent ? parseUserAgent(e.userAgent).label : '—') },
+    { libelle: t('admin.colPoste'),     valeur: e => e.poste?.libelle ?? '—' },
+    { libelle: t('admin.colDuration'),  valeur: e => libelleConnexion(e, t) ?? '—' },
   ], [t])
 
   return (
@@ -803,6 +816,14 @@ function AuthTable({ entries, loading }: {
                 }
                 {labelStatut('auth_result', e.resultat)}
               </StatusPill>
+              {e.connexion && (
+                <span style={{
+                  display: 'block', marginTop: 3, fontSize: 'var(--font-size-caption)', fontVariantNumeric: 'tabular-nums',
+                  color: e.connexion.etat === 'EN_COURS' ? 'var(--info-texte)' : e.connexion.etat === 'INTERROMPUE' ? 'var(--avert-texte)' : 'var(--texte-tertiaire)',
+                }}>
+                  {libelleConnexion(e, t)}
+                </span>
+              )}
             </Cell>
             <Cell>
               {e.ipAdresse && (
@@ -838,6 +859,11 @@ function AuthTable({ entries, loading }: {
                     whiteSpace: 'nowrap',
                   }}>
                   {parseUserAgent(e.userAgent).label}
+                </span>
+              )}
+              {e.poste && (
+                <span style={{ display: 'block', marginTop: 3, fontSize: 'var(--font-size-caption)', color: 'var(--texte-secondaire)' }}>
+                  {t('admin.posteLabel', { poste: e.poste.libelle ?? e.poste.id.slice(0, 8) })}
                 </span>
               )}
             </Cell>

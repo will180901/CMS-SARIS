@@ -4,6 +4,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt'
 import { ConfigService } from '@nestjs/config'
 import { PrismaService } from '../../../prisma/prisma.service'
 import { PermissionsResolverService } from '../permissions-resolver.service'
+import { PAS_ACTIVITE_MS } from '../connexions.util'
 import type { JwtPayload, UserSession } from '@cms-saris/types'
 
 /**
@@ -57,10 +58,24 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (payload.sid && !isEmbedded) {
       const session = await this.prisma.sessionUtilisateur.findUnique({
         where: { id: payload.sid },
-        select: { revokedAt: true, expiresAt: true },
+        select: { revokedAt: true, expiresAt: true, derniereActiviteAt: true },
       })
       if (!session || session.revokedAt || session.expiresAt <= new Date()) {
         throw new UnauthorizedException('Session expirée ou révoquée')
+      }
+      // SIGNE DE VIE : sans lui, la « dernière activité » ne bougeait qu'au renouvellement du
+      // jeton (8 h par défaut) — impossible de savoir combien de temps a duré une connexion.
+      // Au plus une écriture par session et par tranche de 5 minutes, sans attendre.
+      if (
+        !session.derniereActiviteAt ||
+        Date.now() - session.derniereActiviteAt.getTime() > PAS_ACTIVITE_MS
+      ) {
+        void this.prisma.sessionUtilisateur
+          .update({
+            where: { id: payload.sid },
+            data: { derniereActiviteAt: new Date() },
+          })
+          .catch(() => undefined)
       }
     }
 

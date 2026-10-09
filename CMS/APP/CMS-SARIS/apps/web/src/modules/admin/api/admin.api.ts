@@ -157,6 +157,10 @@ export interface AuthLogEntry {
   localisation:  GeoLocalisation | null
   createdAt:     string
   utilisateur:   { id: string; login: string; email: string } | null
+  /** Connexion ouverte par cet évènement : état et durée (absente pour les échecs et les anciennes lignes). */
+  connexion?:    { etat: 'EN_COURS' | 'TERMINEE' | 'INTERROMPUE'; dureeMinutes: number; fin: string; derniereActivite: string } | null
+  /** Poste desktop d'origine (session de synchronisation). */
+  poste?:        { id: string; libelle: string | null } | null
 }
 
 export interface ParametreSysteme {
@@ -198,6 +202,10 @@ export interface SessionInfo {
   createdAt:    string
   expiresAt:    string
   current:      boolean
+  /** Début réel de la connexion (la session est renouvelée en cours de route). */
+  connecteDepuis?:   string
+  derniereActivite?: string
+  dureeMinutes?:     number | null
 }
 export interface TotpStatus  { actif: boolean; enAttente: boolean }
 export interface TotpSetup   { secret: string; otpauthUrl: string; issuer: string }

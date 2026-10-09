@@ -9,6 +9,7 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
 import { resolveGeo } from '../../common/geo/geo.util'
+import { resumerConnexions } from '../security/connexions.util'
 
 /** Ce que la purge doit effacer. */
 export type PortailPurge = 'actions' | 'authentifications' | 'tout'
@@ -119,12 +120,46 @@ export class AuditService {
       }),
       this.prisma.journalAuthentification.count({ where }),
     ])
+    // Durée de la connexion ouverte par chaque évènement, et poste desktop d'origine.
+    const connexions = await resumerConnexions(
+      this.prisma,
+      rows.map((r) => r.connexionId).filter((x): x is string => !!x),
+    )
+    const postesIds = [
+      ...new Set(
+        rows.map((r) => r.posteLocalId).filter((x): x is string => !!x),
+      ),
+    ]
+    const postes = postesIds.length
+      ? await this.prisma.posteLocal.findMany({
+          where: { id: { in: postesIds } },
+          select: { id: true, libelle: true },
+        })
+      : []
+    const nomPoste = new Map(postes.map((p) => [p.id, p.libelle]))
     // Localisation (ville + coordonnées) dérivée de l'IP — ajoutée à la lecture.
     const data = await Promise.all(
-      rows.map(async (r) => ({
-        ...r,
-        localisation: await resolveGeo(r.ipAdresse),
-      })),
+      rows.map(async (r) => {
+        const c = r.connexionId ? connexions.get(r.connexionId) : undefined
+        return {
+          ...r,
+          localisation: await resolveGeo(r.ipAdresse),
+          connexion: c
+            ? {
+                etat: c.etat,
+                dureeMinutes: c.dureeMinutes,
+                fin: c.fin,
+                derniereActivite: c.derniereActivite,
+              }
+            : null,
+          poste: r.posteLocalId
+            ? {
+                id: r.posteLocalId,
+                libelle: nomPoste.get(r.posteLocalId) ?? null,
+              }
+            : null,
+        }
+      }),
     )
     return { data, total }
   }
@@ -156,7 +191,8 @@ export class AuditService {
         : 0
     const authentifications =
       portee === 'authentifications' || portee === 'tout'
-        ? (await this.prisma.journalAuthentification.deleteMany({ where })).count
+        ? (await this.prisma.journalAuthentification.deleteMany({ where }))
+            .count
         : 0
 
     await this.tracerPurge(portee, auteurId, options, {

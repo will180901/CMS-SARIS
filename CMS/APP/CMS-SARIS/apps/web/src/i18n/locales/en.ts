@@ -262,6 +262,10 @@ export const en: Resources = {
     sessionsThis: 'this session',
     sessionsUnknownIp: 'Unknown IP',
     sessionsOpenedOn: 'opened on {{date}}',
+    sessionsConnectedSince: 'signed in since {{date}} · {{duree}}',
+    sessionsActiveNow: 'active just now',
+    sessionsConnectedSinceShort: 'signed in since {{date}}',
+    sessionsActiveAgo: 'last active {{duree}} ago',
     sessionsRevoke: 'Revoke',
     // ── Password ──
     passwordTitle: 'Password',

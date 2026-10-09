@@ -260,6 +260,10 @@ export const fr = {
     sessionsThis: 'cette session',
     sessionsUnknownIp: 'IP inconnue',
     sessionsOpenedOn: 'ouverte le {{date}}',
+    sessionsConnectedSince: 'connectée depuis le {{date}} · {{duree}}',
+    sessionsActiveNow: 'active à l\'instant',
+    sessionsConnectedSinceShort: 'connectée depuis le {{date}}',
+    sessionsActiveAgo: 'dernière activité il y a {{duree}}',
     sessionsRevoke: 'Révoquer',
     // ── Mot de passe ──
     passwordTitle: 'Mot de passe',

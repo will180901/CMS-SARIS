@@ -32,6 +32,7 @@ import {
   useUploadMyPhoto, useRemoveMyPhoto,
 } from '../../hooks/useAdmin'
 import type { Preferences } from '../../api/admin.api'
+import { formatDureeMinutes } from '@/lib/duree'
 
 const PHOTO_MAX_BYTES = 5 * 1024 * 1024
 const PHOTO_MIME_RE = /^image\/(jpeg|png|webp|gif)$/
@@ -384,6 +385,8 @@ function SessionsCard() {
   const revoke = useRevokeSession()
   const revokeOthers = useRevokeOtherSessions()
   const others = sessions.filter(s => !s.current).length
+  // Heure de référence figée au rendu de la carte (pas de Date.now() pendant le rendu).
+  const [maintenant] = useState(() => Date.now())
 
   return (
     <Card>
@@ -429,7 +432,21 @@ function SessionsCard() {
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                     <Globe size={11} /> {s.ipAdresse ?? t('settings.sessionsUnknownIp')}
                   </span>
-                  <span>{t('settings.sessionsOpenedOn', { date: formatDateTime(s.createdAt, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) })}</span>
+                  {/* Depuis quand la personne est CONNECTÉE (et non le dernier renouvellement du
+                      jeton, que montrait « ouverte le »), et sa dernière activité. */}
+                  <span>{(s.dureeMinutes ?? 0) >= 1
+                    ? t('settings.sessionsConnectedSince', {
+                        date: formatDateTime(s.connecteDepuis ?? s.createdAt, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }),
+                        duree: formatDureeMinutes(s.dureeMinutes ?? 0),
+                      })
+                    : t('settings.sessionsConnectedSinceShort', {
+                        date: formatDateTime(s.connecteDepuis ?? s.createdAt, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }),
+                      })}</span>
+                  {s.derniereActivite && (
+                    <span>{maintenant - new Date(s.derniereActivite).getTime() < 60_000
+                      ? t('settings.sessionsActiveNow')
+                      : t('settings.sessionsActiveAgo', { duree: formatDureeMinutes((maintenant - new Date(s.derniereActivite).getTime()) / 60_000) })}</span>
+                  )}
                 </p>
               </div>
               {!s.current && (

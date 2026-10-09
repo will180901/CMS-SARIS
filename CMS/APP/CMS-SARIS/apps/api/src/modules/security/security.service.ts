@@ -334,7 +334,7 @@ export class SecurityService {
     }
 
     // 8. Aucun conflit → créer la session finale
-    const tokens = await this.creerSession(
+    const { connexionId, ...tokens } = await this.creerSession(
       user.id,
       siteId,
       roles,
@@ -351,6 +351,7 @@ export class SecurityService {
       'SUCCES_LOGIN',
       ipAdresse,
       userAgent,
+      { connexionId, posteLocalId: dto.posteLocalId },
     )
 
     return {
@@ -495,7 +496,7 @@ export class SecurityService {
       }
     }
 
-    const tokens = await this.creerSession(
+    const { connexionId, ...tokens } = await this.creerSession(
       user.id,
       siteId,
       roles,
@@ -512,6 +513,7 @@ export class SecurityService {
       viaCodeSecours ? 'SUCCES_LOGIN_CODE_SECOURS' : 'SUCCES_LOGIN_TOTP',
       ipAdresse,
       userAgent,
+      { connexionId, posteLocalId: dto.posteLocalId },
     )
 
     return {
@@ -582,6 +584,9 @@ export class SecurityService {
       refreshTokenHash: string
       posteLocalId: string | null
       appareilId: string | null
+      connexionId: string | null
+      ipAdresse: string | null
+      userAgent: string | null
     }
     let matchingSession: SessionLite | null = null
     if (sid) {
@@ -654,22 +659,29 @@ export class SecurityService {
       // Web : le site confirmé à la connexion, transporté par le refresh token.
       : (siteForce ?? siteDuJeton ?? user.siteId)
 
-    const tokens = await this.creerSession(
+    const session = await this.creerSession(
       user.id,
       siteSession,
       roles,
       permissions,
       personnelMedicalId,
-      undefined,
-      undefined,
+      // L'appareil ne change pas avec le jeton : sans ces deux valeurs, toute session
+      // renouvelée (dont la confirmation du site à la connexion) devenait « Appareil
+      // inconnu · IP inconnue » dans « Mes sessions ».
+      matchingSession.ipAdresse ?? undefined,
+      matchingSession.userAgent ?? undefined,
       matchingSession.posteLocalId,
       matchingSession.appareilId,
       // Une fois le site confirmé, la mention suit la session à chaque renouvellement.
       siteDejaConfirme || siteForce !== undefined,
+      // Même connexion : la durée se mesure depuis la première ligne de la chaîne. Une
+      // ligne d'avant la migration n'a pas de connexionId : elle devient la racine.
+      matchingSession.connexionId ?? matchingSession.id,
     )
 
     return {
-      ...tokens,
+      accessToken: session.accessToken,
+      refreshToken: session.refreshToken,
       user: {
         id: user.id,
         login: user.login,
@@ -824,7 +836,9 @@ export class SecurityService {
     appareilId?: string | null,
     /** Le site de travail de cette session a déjà été confirmé (cf. `confirmerSite`). */
     siteConfirme = false,
-  ): Promise<{ accessToken: string; refreshToken: string }> {
+    /** Connexion à poursuivre (rotation) — absente pour une connexion fraîche. */
+    connexionId?: string | null,
+  ): Promise<{ accessToken: string; refreshToken: string; connexionId: string }> {
     // Identifiant de session pré-généré → embarqué dans le JWT (sid) ET utilisé
     // comme clé primaire de la SessionUtilisateur, pour la gestion des sessions.
     const sid = randomUUID()
@@ -883,6 +897,9 @@ export class SecurityService {
         posteLocalId: posteLocalId ?? null,
         appareilId: appareilId ?? null,
         derniereActiviteAt: new Date(),
+        // Première ligne d'une connexion : elle EST la connexion. Les rotations suivantes
+        // reprennent cet identifiant (cf. refresh) — d'où la durée de la connexion.
+        connexionId: connexionId ?? sid,
       },
     })
 
@@ -917,7 +934,7 @@ export class SecurityService {
       }
     }
 
-    return { accessToken, refreshToken }
+    return { accessToken, refreshToken, connexionId: connexionId ?? sid }
   }
 
   /**
@@ -1105,7 +1122,7 @@ export class SecurityService {
     // ── « C'était moi » ─────────────────────────────────────────────────────
     const roles = user.roles.map((ur) => ur.role.code) as Role[]
     const permissions = await chargerPermissions(this.prisma, user.id)
-    const tokens = await this.creerSession(
+    const { connexionId, ...tokens } = await this.creerSession(
       user.id,
       payload.siteId,
       roles,
@@ -1122,6 +1139,7 @@ export class SecurityService {
       'SUCCES_LOGIN_SESSION_REMPLACEE',
       ipAdresse,
       userAgent,
+      { connexionId, posteLocalId: payload.posteLocalId },
     )
     return {
       ...tokens,
@@ -1225,10 +1243,20 @@ export class SecurityService {
     resultat: string,
     ipAdresse?: string,
     userAgent?: string,
+    /** Connexion ouverte par cet évènement, et poste desktop d'origine le cas échéant. */
+    lien?: { connexionId?: string | null; posteLocalId?: string | null },
   ): Promise<void> {
     try {
       await this.prisma.journalAuthentification.create({
-        data: { utilisateurId, login, resultat, ipAdresse, userAgent },
+        data: {
+          utilisateurId,
+          login,
+          resultat,
+          ipAdresse,
+          userAgent,
+          connexionId: lien?.connexionId ?? null,
+          posteLocalId: lien?.posteLocalId ?? null,
+        },
       })
     } catch (error) {
       this.logger.error('Erreur lors de la journalisation auth', error)
