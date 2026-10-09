@@ -58,12 +58,14 @@ const PATIENT_SELECT_LIST = {
     },
   },
   categoriePatient: { select: { id: true, code: true, libelle: true } },
+  // deletedAt:null OBLIGATOIRE : l'extension soft-delete ne filtre pas les relations —
+  // sans lui, une allergie/alerte SUPPRIMÉE restait affichée comme critique.
   allergies: {
-    where: { gravite: 'SEVERE', statut: 'ACTIVE' },
+    where: { gravite: 'SEVERE', statut: 'ACTIVE', deletedAt: null },
     select: { id: true, substance: true, gravite: true },
   },
   alertesMedicales: {
-    where: { statut: 'ACTIVE', gravite: 'CRITIQUE' },
+    where: { statut: 'ACTIVE', gravite: 'CRITIQUE', deletedAt: null },
     select: { id: true, type: true, message: true, gravite: true },
   },
 } as const
@@ -82,16 +84,18 @@ const PATIENT_SELECT_DETAIL = {
     },
   },
   categoriePatient: { select: { id: true, code: true, libelle: true } },
+  // deletedAt:null OBLIGATOIRE : l'extension soft-delete ne filtre pas les relations —
+  // sans lui, une allergie/alerte/antécédent SUPPRIMÉE restait affichée comme critique.
   allergies: {
-    where: { statut: 'ACTIVE' },
+    where: { statut: 'ACTIVE', deletedAt: null },
     select: { id: true, substance: true, gravite: true },
   },
   alertesMedicales: {
-    where: { statut: 'ACTIVE' },
+    where: { statut: 'ACTIVE', deletedAt: null },
     select: { id: true, type: true, message: true, gravite: true },
   },
   antecedents: {
-    where: { statut: 'ACTIF' },
+    where: { statut: 'ACTIF', deletedAt: null },
     select: {
       id: true,
       type: true,

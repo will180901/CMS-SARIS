@@ -165,8 +165,10 @@ const LISTE_INCLUDE = {
   identite: true,
   categoriePatient: CATEGORIE_SELECT,
   siteCreation: SITE_SELECT,
+  // deletedAt:null OBLIGATOIRE : l'extension soft-delete ne filtre pas les relations —
+  // sans lui, une allergie/alerte SUPPRIMÉE restait affichée comme critique.
   allergies: {
-    where: { statut: 'ACTIVE', gravite: 'SEVERE' },
+    where: { statut: 'ACTIVE', gravite: 'SEVERE', deletedAt: null },
     select: {
       id: true,
       substance: true,
@@ -178,7 +180,7 @@ const LISTE_INCLUDE = {
     },
   },
   alertesMedicales: {
-    where: { statut: 'ACTIVE' },
+    where: { statut: 'ACTIVE', deletedAt: null },
     select: {
       id: true,
       type: true,

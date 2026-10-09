@@ -64,12 +64,14 @@ const VISITE_RESUME = {
         select: { nom: true, prenom: true, dateNaissance: true, sexe: true },
       },
       categoriePatient: { select: { id: true, code: true, libelle: true } },
+      // deletedAt:null OBLIGATOIRE : l'extension soft-delete ne filtre pas les relations —
+      // sans lui, une allergie/alerte SUPPRIMÉE restait affichée comme critique.
       allergies: {
-        where: { statut: 'ACTIVE' },
+        where: { statut: 'ACTIVE', deletedAt: null },
         select: { id: true, substance: true, gravite: true },
       },
       alertesMedicales: {
-        where: { statut: 'ACTIVE' },
+        where: { statut: 'ACTIVE', deletedAt: null },
         select: { id: true, type: true, message: true, gravite: true },
       },
     },
@@ -1399,8 +1401,10 @@ export class ConsultationService {
           include: {
             patient: {
               include: {
-                allergies: { where: { statut: 'ACTIVE' } },
-                alertesMedicales: { where: { statut: 'ACTIVE' } },
+                // Sans deletedAt:null, une allergie SUPPRIMÉE bloquait encore la
+                // prescription (l'extension soft-delete ne filtre pas les relations).
+                allergies: { where: { statut: 'ACTIVE', deletedAt: null } },
+                alertesMedicales: { where: { statut: 'ACTIVE', deletedAt: null } },
               },
             },
           },
