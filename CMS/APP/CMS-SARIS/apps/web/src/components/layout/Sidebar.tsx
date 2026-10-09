@@ -160,15 +160,23 @@ export function Sidebar() {
           gap:          'var(--espace-2)',
           flexShrink:   0,
         }}>
+          {/* Symbole adapté au thème (fond transparent), comme le logo de la connexion :
+              plus de carré blanc fixe qui tranchait sur le thème sombre. */}
           <span style={{
             width: 36, height: 36, borderRadius: 'var(--radius-lg)', flexShrink: 0,
-            background: '#fff', border: '1px solid var(--bordure-legere)',
+            background: 'var(--fond-surface)', border: '1px solid var(--bordure-legere)',
             boxShadow: '0 1px 2px rgba(15,23,42,0.06)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <img
-              src="/icon-192.png" alt="Logo CMS SARIS" width={24} height={24}
-              style={{ width: 24, height: 24, objectFit: 'contain', display: 'block', transform: 'translateX(-0.5px)' }}
+              src="/symbole_saris_clair.png" alt="Logo CMS SARIS" width={24} height={24}
+              className="block dark:hidden"
+              style={{ width: 24, height: 24, objectFit: 'contain' }}
+            />
+            <img
+              src="/symbole_saris_sombre.png" alt="Logo CMS SARIS" width={24} height={24}
+              className="hidden dark:block"
+              style={{ width: 24, height: 24, objectFit: 'contain' }}
             />
           </span>
           {open && (

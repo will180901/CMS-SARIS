@@ -39,11 +39,21 @@ export function DesktopTitleBar() {
         ...DRAG,
       }}
     >
+      {/* Symbole adapté au thème (fond transparent). */}
       <img
-        src="/icon-192.png"
+        src="/symbole_saris_clair.png"
         alt=""
         width={20}
         height={20}
+        className="block dark:hidden"
+        style={{ width: 20, height: 20, objectFit: 'contain', flexShrink: 0 }}
+      />
+      <img
+        src="/symbole_saris_sombre.png"
+        alt=""
+        width={20}
+        height={20}
+        className="hidden dark:block"
         style={{ width: 20, height: 20, objectFit: 'contain', flexShrink: 0 }}
       />
       <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--texte-primaire)', letterSpacing: '-0.01em' }}>
