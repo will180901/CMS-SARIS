@@ -7,8 +7,9 @@
  * <dialog>/panneaux inline incohérents.
  */
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
+import { FocusScope as FocusScopePrimitive } from 'radix-ui/internal'
 import type { ReactNode } from 'react'
 import { X } from 'lucide-react'
 import { IconButton } from './IconButton'
@@ -36,6 +37,7 @@ interface ModalProps {
 export function Modal({ icon, title, subtitle, onClose, width = 560, footer, bodyPadding = 'var(--espace-5)', tone = 'accent', children }: ModalProps) {
   const isMobile = useIsMobile()
   const t = TILE_TONE_MAP[tone]
+  const carteRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     document.addEventListener('keydown', onKey)
@@ -61,11 +63,23 @@ export function Modal({ icon, title, subtitle, onClose, width = 560, footer, bod
           pointerEvents: 'auto',
         }}
       />
+      {/* Zone de focus : ouverte depuis un tiroir (Sheet Radix), la modale est hors du
+          DOM du tiroir, qui reprenait le focus à chaque clic — impossible d'écrire dans
+          ses champs. Une FocusScope met celle du tiroir en pause tant qu'elle est ouverte. */}
+      <FocusScopePrimitive.Root
+        asChild
+        trapped
+        loop
+        onMountAutoFocus={e => { e.preventDefault(); carteRef.current?.focus() }}
+      >
       <div
+        ref={carteRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         className="saris-grain"
         style={{
+          outline: 'none',
           position: 'fixed',
           top: isDesktop ? `calc(${DESKTOP_TITLEBAR_H}px + (100vh - ${DESKTOP_TITLEBAR_H}px) / 2)` : '50%',
           left: '50%', transform: 'translate(-50%, -50%)',
@@ -112,6 +126,7 @@ export function Modal({ icon, title, subtitle, onClose, width = 560, footer, bod
           </div>
         )}
       </div>
+      </FocusScopePrimitive.Root>
     </>,
     document.body,
   )
