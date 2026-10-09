@@ -27,7 +27,6 @@ export const referentiels = {
     printExamens: "Types d'examen",
     printTypesConsultation: 'Types de consultation',
     printSousTraitants: 'Sociétés sous-traitantes',
-    printEmployes: 'Registre des employés',
 
     // ── Toolbar ─────────────────────────────────────────────────────
     searchPlaceholder: 'Rechercher…',
@@ -276,7 +275,6 @@ export const referentiels = {
     printExamens: 'Test types',
     printTypesConsultation: 'Consultation types',
     printSousTraitants: 'Subcontracting companies',
-    printEmployes: 'Employee register',
 
     // ── Toolbar ─────────────────────────────────────────────────────
     searchPlaceholder: 'Search…',

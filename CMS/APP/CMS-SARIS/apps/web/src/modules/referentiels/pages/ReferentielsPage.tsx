@@ -15,7 +15,6 @@ import { Database, Lock } from 'lucide-react'
 import { SegmentedTabs, TILE_TONE_MAP, EmptyState } from '@/components/saris'
 import { useSites, useMotifs, usePathologies, useMedicaments, useCategoriesPatient, useTypesExamen, useTypesConsultation } from '../hooks/useReferentiels'
 import { useSousTraitants } from '../hooks/useSousTraitants'
-import { useEmployes } from '../hooks/useEmployes'
 import { isActif } from '../api/referentiels.api'
 import { usePermissions } from '@/hooks/usePermissions'
 import { useIsCompact } from '@/hooks/useMediaQuery'
@@ -27,7 +26,6 @@ import { CategoriesTab }  from '../tabs/CategoriesTab'
 import { ExamensTab }     from '../tabs/ExamensTab'
 import { TypesConsultationTab } from '../tabs/TypesConsultationTab'
 import { SousTraitantsTab }     from '../tabs/SousTraitantsTab'
-import { EmployesTab }          from '../tabs/EmployesTab'
 
 // ── Page principale ────────────────────────────────────────────────────────────
 
@@ -48,7 +46,6 @@ export function ReferentielsPage() {
     examens:     { canCreate: has('referentiel.examen.create'),     canUpdate: has('referentiel.examen.update'),     canDelete: has('referentiel.examen.delete') },
     typesConsultation: { canCreate: has('referentiel.type_consultation.create'), canUpdate: has('referentiel.type_consultation.update'), canDelete: has('referentiel.type_consultation.delete') },
     sousTraitants:     { canCreate: has('sous_traitant.create'),                 canUpdate: has('sous_traitant.update'),                 canDelete: has('sous_traitant.delete') },
-    employes:          { canCreate: has('employe.create'),                       canUpdate: has('employe.update'),                       canDelete: has('employe.delete') },
   } as const
 
   // Prefetch de tous les référentiels → compteurs live + cache chaud pour chaque tab
@@ -60,7 +57,6 @@ export function ReferentielsPage() {
   const { data: examens     } = useTypesExamen()
   const { data: typesConsultation } = useTypesConsultation()
   const { data: sousTraitants } = useSousTraitants()
-  const { data: employes      } = useEmployes()
 
   const counts = {
     sites:       sites?.filter(s => isActif(s.statut)).length,
@@ -71,7 +67,6 @@ export function ReferentielsPage() {
     examens:     examens?.filter(e => isActif(e.statut)).length,
     typesConsultation: typesConsultation?.filter(e => isActif(e.statut)).length,
     sousTraitants:     sousTraitants?.filter(s => isActif(s.statut)).length,
-    employes:          employes?.filter(e => isActif(e.statut)).length,
   }
 
   // Un onglet n'existe QUE si sa permission de lecture est détenue. Retirer
@@ -87,7 +82,6 @@ export function ReferentielsPage() {
     { value: 'examens',     perm: 'referentiel.examen.read',      label: t('referentiels.tabExamens'),      count: counts.examens,      Component: ExamensTab     },
     { value: 'typesConsultation', perm: 'referentiel.type_consultation.read', label: t('referentiels.tabTypesConsultation', { defaultValue: 'Types consultation' }), count: counts.typesConsultation, Component: TypesConsultationTab },
     { value: 'sousTraitants',     perm: 'sous_traitant.read',     label: t('referentiels.tabSousTraitants', { defaultValue: 'Sous-traitants' }),         count: counts.sousTraitants,     Component: SousTraitantsTab },
-    { value: 'employes',          perm: 'employe.read',           label: t('referentiels.tabEmployes', { defaultValue: 'Registre employé' }),           count: counts.employes,          Component: EmployesTab },
   ] as const
 
   const TABS = TOUS_TABS.filter(o => has(o.perm))
