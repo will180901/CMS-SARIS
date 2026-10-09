@@ -20,7 +20,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { MapPin, Check, Loader2 } from 'lucide-react'
-import { api } from '@/lib/api'
+import { api, ApiError } from '@/lib/api'
 import { useSessionStore } from '@/stores/session.store'
 import { useSites } from '@/modules/referentiels/hooks/useReferentiels'
 import { SelectBox } from '@/components/saris/SelectBox'
@@ -65,7 +65,13 @@ export function ConfirmationSiteModal() {
       // recopié sur chaque acte de la session.
       setSession(r.user, r.accessToken, r.refreshToken)
       setSiteConfirme(true)
-    } catch {
+    } catch (err) {
+      // Le serveur a DÉJÀ le site de cette session (une seule confirmation par session) :
+      // rien à redemander — on ferme plutôt que de bloquer la personne sur cet écran.
+      if (err instanceof ApiError && err.status === 409 && (err.body as { code?: string } | null)?.code === 'SITE_DEJA_CONFIRME') {
+        setSiteConfirme(true)
+        return
+      }
       setErreur(t('site.confirmError'))
       setEnvoi(false)
     }

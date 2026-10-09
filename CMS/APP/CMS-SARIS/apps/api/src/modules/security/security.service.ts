@@ -2,6 +2,7 @@ import {
   Injectable,
   UnauthorizedException,
   BadRequestException,
+  ConflictException,
   Logger,
 } from '@nestjs/common'
 import { ModuleRef } from '@nestjs/core'
@@ -547,12 +548,14 @@ export class SecurityService {
     let sub: string
     let sid: string | undefined
     let siteDuJeton: string | undefined
+    let siteDejaConfirme = false
     try {
       const payload = await this.jwt.verifyAsync<{
         sub: string
         type: string
         sid?: string
         siteId?: string
+        siteConfirme?: boolean
       }>(dto.refreshToken, {
         secret: this.config.getOrThrow<string>('JWT_SECRET'),
       })
@@ -560,6 +563,7 @@ export class SecurityService {
       sub = payload.sub
       sid = payload.sid
       siteDuJeton = payload.siteId
+      siteDejaConfirme = payload.siteConfirme === true
     } catch {
       throw new UnauthorizedException('Refresh token invalide ou expiré')
     }
@@ -660,6 +664,8 @@ export class SecurityService {
       undefined,
       matchingSession.posteLocalId,
       matchingSession.appareilId,
+      // Une fois le site confirmé, la mention suit la session à chaque renouvellement.
+      siteDejaConfirme || siteForce !== undefined,
     )
 
     return {
@@ -752,13 +758,34 @@ export class SecurityService {
     refreshToken: string
     user: Omit<UserSession, 'token'>
   }> {
+    // UNE SEULE FOIS par session, à l'entrée. Sinon, avec son propre jeton, n'importe qui
+    // pouvait changer de site en pleine journée et réétiqueter ses actes suivants — ce que
+    // la suppression de l'ancien POST /auth/site-actif devait justement empêcher. Changer
+    // de site = se déconnecter puis se reconnecter. (Jeton invalide : `refresh` répondra 401.)
+    const deja = await this.jwt
+      .verifyAsync<{ siteConfirme?: boolean }>(dto.refreshToken, {
+        secret: this.config.getOrThrow<string>('JWT_SECRET'),
+      })
+      .then((p) => p.siteConfirme === true)
+      .catch(() => false)
+    if (deja)
+      throw new ConflictException({
+        code: 'SITE_DEJA_CONFIRME',
+        message:
+          'Le site de travail de cette session est déjà confirmé. Pour travailler sur un autre site, déconnectez-vous puis reconnectez-vous.',
+      })
     // `findFirst` et non `findUnique` : l'extension soft-delete y injecte `deletedAt: null`,
-    // donc un site supprimé est introuvable sans qu'on ait à y penser.
+    // donc un site supprimé est introuvable sans qu'on ait à y penser. Un site DÉSACTIVÉ
+    // n'accueille plus d'actes : refusé aussi.
     const site = await this.prisma.site.findFirst({
       where: { id: dto.siteId },
-      select: { id: true },
+      select: { id: true, statut: true },
     })
     if (!site) throw new BadRequestException('Site introuvable')
+    if (site.statut !== 'ACTIF')
+      throw new BadRequestException(
+        'Ce site est désactivé : choisissez un site actif',
+      )
     return this.refresh({ refreshToken: dto.refreshToken }, site.id)
   }
 
@@ -795,6 +822,8 @@ export class SecurityService {
     posteLocalId?: string | null,
     /** Appareil d'origine — sert à ne pas avertir lors d'une reconnexion depuis le même poste. */
     appareilId?: string | null,
+    /** Le site de travail de cette session a déjà été confirmé (cf. `confirmerSite`). */
+    siteConfirme = false,
   ): Promise<{ accessToken: string; refreshToken: string }> {
     // Identifiant de session pré-généré → embarqué dans le JWT (sid) ET utilisé
     // comme clé primaire de la SessionUtilisateur, pour la gestion des sessions.
@@ -825,8 +854,16 @@ export class SecurityService {
       // appartient à la SESSION, pas au compte. Le porter dans le refresh token le fait
       // survivre à chaque rotation, et disparaître de lui-même quand la session expire —
       // sans colonne en base, donc sans rien à nettoyer ni à oublier.
+      // `siteConfirme` suit la même logique : porté par le jeton, il interdit une seconde
+      // confirmation du site dans la même session, sans colonne en base.
       this.jwt.signAsync(
-        { sub: utilisateurId, type: 'refresh', sid, siteId },
+        {
+          sub: utilisateurId,
+          type: 'refresh',
+          sid,
+          siteId,
+          ...(siteConfirme ? { siteConfirme: true } : {}),
+        },
         { expiresIn: this.REFRESH_TOKEN_TTL },
       ),
     ])
