@@ -10,7 +10,10 @@ import type { NestExpressApplication } from '@nestjs/platform-express'
 export const COMPTES = {
   admin: { login: 'admin', motDePasse: 'Admin123!' },
   medecinChef: { login: 'moukanda', motDePasse: 'Saris2026!' },
+  /** Infirmier AVEC une délégation de prescription active (seed : MOUKANDA → BATCHI). */
   infirmier: { login: 'batchi', motDePasse: 'Saris2026!' },
+  /** Infirmier SANS délégation en cours (seed : délégation de MAFOUTA expirée). */
+  infirmierSansDelegation: { login: 'mafouta', motDePasse: 'Saris2026!' },
 } as const
 
 /** Corps typé par l'appelant : `get<MonType>(…)`. Sans précision, `unknown`. */

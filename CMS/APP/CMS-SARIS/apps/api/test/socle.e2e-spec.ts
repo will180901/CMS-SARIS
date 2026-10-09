@@ -44,7 +44,7 @@ describe('Socle des tests', () => {
     )
   })
 
-  it('connecte les comptes des trois rôles', async () => {
+  it('connecte les comptes de démonstration des trois rôles', async () => {
     for (const compte of Object.values(COMPTES)) {
       const c = await connecter(app, compte)
       expect(c.user.login).toBe(compte.login)
