@@ -24,6 +24,7 @@ describe('Employés du centre : jamais de doublon, jamais de ressaisie', () => {
   let app: NestExpressApplication
   let admin: Client
   let inf: Client
+  let med: Client
   let ref: Referentiels
   const s = `${Date.now() % 100_000}`
 
@@ -72,6 +73,7 @@ describe('Employés du centre : jamais de doublon, jamais de ressaisie', () => {
     app = await demarrerApp()
     admin = await connecter(app, COMPTES.admin)
     inf = await connecter(app, COMPTES.infirmier)
+    med = await connecter(app, COMPTES.medecinChef)
     ref = await referentiels(inf)
   })
   afterAll(async () => {
@@ -257,7 +259,7 @@ describe('Employés du centre : jamais de doublon, jamais de ressaisie', () => {
         categoriePatientId: ref.categories['PATIENT_EXTERNE'],
       })
 
-    it("l'accueil le voit (même nom, sans matricule) et le relie à la fiche au lieu d'en ouvrir un second", async () => {
+    it("l'accueil le voit (même nom, sans matricule) ; le médecin chef le relie à la fiche au lieu d'en ouvrir un second", async () => {
       const ancien = await ancienDossier(`OKEMBA${s}`, 'Jules')
       expect(ancien.status).toBe(201)
       // Fiche du personnel enregistrée plus tard, avec une petite variante d'écriture.
@@ -277,7 +279,7 @@ describe('Employés du centre : jamais de doublon, jamais de ressaisie', () => {
         ]),
       )
 
-      const r = await inf.post<{ id: string; cree: boolean; relie?: boolean }>(
+      const r = await med.post<{ id: string; cree: boolean; relie?: boolean }>(
         `/patients/depuis-personnel/${id}`,
         { siteCreationId: ref.siteId, dossierExistantId: ancien.body.id },
       )
@@ -307,7 +309,7 @@ describe('Employés du centre : jamais de doublon, jamais de ressaisie', () => {
         prenom: 'Anne',
       })
       const autreNom = await ancienDossier(`TCHIBINDA${s}`, 'Paul')
-      const refus = await inf.post(`/patients/depuis-personnel/${id}`, {
+      const refus = await med.post(`/patients/depuis-personnel/${id}`, {
         siteCreationId: ref.siteId,
         dossierExistantId: autreNom.body.id,
       })
@@ -327,7 +329,7 @@ describe('Employés du centre : jamais de doublon, jamais de ressaisie', () => {
         departement: 'Usine',
       })
       expect(travailleur.status).toBe(201)
-      const refus2 = await inf.post(`/patients/depuis-personnel/${id}`, {
+      const refus2 = await med.post(`/patients/depuis-personnel/${id}`, {
         siteCreationId: ref.siteId,
         dossierExistantId: travailleur.body.id,
       })
@@ -340,6 +342,49 @@ describe('Employés du centre : jamais de doublon, jamais de ressaisie', () => {
           )
         ).body.categoriePatient.code,
       ).toBe('PATIENT_EXTERNE')
+    })
+
+    it("l'infirmier ne relie pas un ancien dossier (cela change sa catégorie) ; l'administrateur le peut", async () => {
+      const ancien = await ancienDossier(`NGOMA${s}`, 'Pascal')
+      const id = await enregistrer({
+        matricule: `ED-U-${s}`,
+        nom: `NGOMA${s}`,
+        prenom: 'Pascal',
+        sexe: 'M',
+      })
+      const refus = await inf.post<{ message?: string }>(
+        `/patients/depuis-personnel/${id}`,
+        { siteCreationId: ref.siteId, dossierExistantId: ancien.body.id },
+      )
+      expect(refus.status).toBe(403)
+      expect(refus.body.message).toMatch(/médecin chef et à l'administrateur/)
+      // Rien n'a bougé : le dossier reste celui d'un patient externe, sans matricule.
+      const apres = await admin.get<Dossier>(`/patients/${ancien.body.id}`)
+      expect(apres.body).toMatchObject({
+        matricule: null,
+        categoriePatient: { code: 'PATIENT_EXTERNE' },
+      })
+      // L'infirmier peut, lui, ouvrir un dossier NEUF depuis la fiche (sans lien).
+      const neuf = await inf.post<{ cree: boolean }>(
+        `/patients/depuis-personnel/${id}`,
+        { siteCreationId: ref.siteId },
+      )
+      expect(neuf.status).toBe(200)
+      expect(neuf.body.cree).toBe(true)
+
+      const id2 = await enregistrer({
+        matricule: `ED-V-${s}`,
+        nom: `NGOMA${s}`,
+        prenom: 'Pascale',
+        sexe: 'F',
+      })
+      const ancien2 = await ancienDossier(`NGOMA${s}`, 'Pascale')
+      const ok = await admin.post<{ relie?: boolean }>(
+        `/patients/depuis-personnel/${id2}`,
+        { siteCreationId: ref.siteId, dossierExistantId: ancien2.body.id },
+      )
+      expect(ok.status).toBe(200)
+      expect(ok.body.relie).toBe(true)
     })
   })
 })

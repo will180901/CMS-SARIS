@@ -4,7 +4,10 @@
  * ressaisit rien, on complète seulement ce qui manque à sa fiche.
  *
  * Si un ANCIEN dossier à son nom existe sans matricule (venue avant d'avoir sa fiche),
- * on le signale : le relier à sa fiche évite un second dossier.
+ * on le signale. Le relier à sa fiche (il prend son matricule et la catégorie de son
+ * contrat) évite un second dossier : c'est un changement de catégorie, donc réservé au
+ * médecin chef et à l'administrateur. Les autres peuvent UTILISER cet ancien dossier pour
+ * la visite, sans le relier.
  */
 
 import { useTranslation } from 'react-i18next'
@@ -21,7 +24,7 @@ import type { ComplementsPersonnel } from './personnelAccueil'
 
 const lbl = { fontSize: '12px', fontWeight: '500', color: 'var(--texte-secondaire)' }
 
-export function PersonnelChoisi({ personne, complements, onChange, onRetirer, dossierARelier, onRelier }: {
+export function PersonnelChoisi({ personne, complements, onChange, onRetirer, dossierARelier, onRelier, peutRelier, onUtiliser }: {
   personne:    PersonnelSansDossier
   complements: ComplementsPersonnel
   onChange:    (c: ComplementsPersonnel) => void
@@ -29,6 +32,10 @@ export function PersonnelChoisi({ personne, complements, onChange, onRetirer, do
   /** Ancien dossier retenu pour être relié à sa fiche (null = ouvrir un nouveau dossier). */
   dossierARelier: string | null
   onRelier:       (dossierId: string | null) => void
+  /** `patient.change_category` : relier un ancien dossier change sa catégorie. */
+  peutRelier:     boolean
+  /** Sans ce droit : visite ouverte sur l'ancien dossier tel quel (pas de lien à la fiche). */
+  onUtiliser:     (dossier: { id: string; numeroPatient: string }) => void
 }) {
   const { t } = useTranslation()
   const isCompact = useIsCompact()
@@ -123,7 +130,8 @@ export function PersonnelChoisi({ personne, complements, onChange, onRetirer, do
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {anciens.map(s => (
               <button
-                key={s.id} type="button" onClick={() => onRelier(s.id)}
+                key={s.id} type="button"
+                onClick={() => (peutRelier ? onRelier(s.id) : onUtiliser(s))}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 8, width: '100%',
                   padding: '7px 10px', borderRadius: 6, cursor: 'pointer', textAlign: 'left',
@@ -141,13 +149,14 @@ export function PersonnelChoisi({ personne, complements, onChange, onRetirer, do
                   </div>
                 </div>
                 <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--ap-600)', flexShrink: 0 }}>
-                  {t('triage.relierAFiche')}
+                  {peutRelier ? t('triage.relierAFiche') : t('triage.utiliserCeDossier')}
                 </span>
               </button>
             ))}
           </div>
           <p style={{ margin: '8px 0 0', fontSize: '10px', color: 'var(--avert-texte)' }}>
             {t('triage.sinonNouveauDossier')}
+            {!peutRelier && <> {t('triage.relierReserve')}</>}
           </p>
         </div>
       )}

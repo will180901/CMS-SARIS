@@ -214,6 +214,12 @@ export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Pr
     setPersonnel(null); setComplements(COMPLEMENTS_VIDES); setDossierARelier(null)
   }
   function handleClose() { reset(); onClose() }
+  /** Visite sur l'ANCIEN dossier de la personne, sans le relier à sa fiche (sans le droit de
+   *  changer une catégorie). Recherché par son numéro : il se retrouve toujours ainsi. */
+  function utiliserAncienDossier(d: { id: string; numeroPatient: string }) {
+    setPersonnel(null); setDossierARelier(null); setComplements(COMPLEMENTS_VIDES)
+    setMode('search'); setSearch(d.numeroPatient); setPatient(d.id)
+  }
   function choisirPersonnel(p: PersonnelSansDossier) {
     setPatient(''); setPersonnel(p); setComplements(COMPLEMENTS_VIDES); setDossierARelier(null)
   }
@@ -485,6 +491,8 @@ export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Pr
                 onRetirer={() => { setPersonnel(null); setDossierARelier(null); setSearch('') }}
                 dossierARelier={dossierARelier}
                 onRelier={setDossierARelier}
+                peutRelier={has('patient.change_category')}
+                onUtiliser={utiliserAncienDossier}
               />
             ) : selectedPatient ? (
               <>

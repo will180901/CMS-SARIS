@@ -20,6 +20,7 @@ import {
   UseInterceptors,
   UploadedFile,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common'
 import { FileInterceptor } from '@nestjs/platform-express'
 import { memoryStorage } from 'multer'
@@ -147,6 +148,17 @@ export class PatientController {
     @Body() dto: OuvrirDossierPersonnelDto,
     @Req() req: AuthedRequest,
   ) {
+    // Relier un ANCIEN dossier à la fiche change sa catégorie (patient → CDI/CDD) : c'est
+    // le geste de « Changer la catégorie », réservé comme lui au médecin chef et à
+    // l'administrateur (`patient.change_category`). L'infirmier ouvre un dossier NEUF
+    // depuis la fiche, ou utilise l'ancien tel quel, sans le relier.
+    if (
+      dto.dossierExistantId &&
+      !(req.user?.permissions ?? []).includes('patient.change_category')
+    )
+      throw new ForbiddenException(
+        "Relier un ancien dossier à une fiche du personnel change sa catégorie : cette action est réservée au médecin chef et à l'administrateur.",
+      )
     return this.patientService.ouvrirDossierPersonnel(
       personnelId,
       dto,
