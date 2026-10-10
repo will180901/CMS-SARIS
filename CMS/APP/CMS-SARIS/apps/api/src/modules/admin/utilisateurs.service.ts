@@ -19,7 +19,7 @@ import {
 import * as bcrypt from 'bcrypt'
 import { randomBytes } from 'crypto'
 import { PrismaService } from '../../prisma/prisma.service'
-import { CI } from '../../common/prisma/search'
+import { CI, parMots } from '../../common/prisma/search'
 import {
   completerLectures,
   completerRevocations,
@@ -158,15 +158,15 @@ export class UtilisateursService {
     if (query.statut) where.statut = query.statut
     if (query.roleId) where.roles = { some: { roleId: query.roleId } }
 
-    if (query.search?.trim()) {
-      const q = query.search.trim()
-      where.OR = [
-        { login: { contains: q, ...CI } },
-        { email: { contains: q, ...CI } },
-        { personnelMedical: { nom: { contains: q, ...CI } } },
-        { personnelMedical: { prenom: { contains: q, ...CI } } },
-      ]
-    }
+    Object.assign(
+      where,
+      parMots(query.search, (mot) => [
+        { login: { contains: mot, ...CI } },
+        { email: { contains: mot, ...CI } },
+        { personnelMedical: { nom: { contains: mot, ...CI } } },
+        { personnelMedical: { prenom: { contains: mot, ...CI } } },
+      ]),
+    )
 
     const users = await this.prisma.utilisateur.findMany({
       where,

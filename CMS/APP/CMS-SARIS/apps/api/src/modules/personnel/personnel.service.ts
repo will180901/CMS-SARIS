@@ -5,7 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
-import { CI } from '../../common/prisma/search'
+import { CI, parMots } from '../../common/prisma/search'
 import {
   SERVICE_PAR_DEFAUT,
   type CreatePersonnelDto,
@@ -73,13 +73,11 @@ export class PersonnelService {
       where: {
         ...(query.statut && { statut: query.statut }),
         ...(query.role && { role: query.role }),
-        ...(query.search && {
-          OR: [
-            { nom: { contains: query.search, ...CI } },
-            { prenom: { contains: query.search, ...CI } },
-            { matricule: { contains: query.search, ...CI } },
-          ],
-        }),
+        ...parMots(query.search, (mot) => [
+          { nom: { contains: mot, ...CI } },
+          { prenom: { contains: mot, ...CI } },
+          { matricule: { contains: mot, ...CI } },
+        ]),
       },
       orderBy: [{ nom: 'asc' }, { prenom: 'asc' }],
     })

@@ -16,7 +16,7 @@ import {
 import { StatutPatient, Prisma } from '@prisma/client'
 import sharp from 'sharp'
 import { PrismaService } from '../../prisma/prisma.service'
-import { CI } from '../../common/prisma/search'
+import { CI, parMots } from '../../common/prisma/search'
 import { NotificationService } from '../notification/notification.service'
 import { PARCOURS_EN_COURS } from '../../common/clinical'
 import { couverturePatient } from '../../common/droits-categorie'
@@ -354,14 +354,12 @@ export class PatientService {
         ...(statut && { statut: statut as StatutPatient }),
         ...(categorieId && { categoriePatientId: categorieId }),
         ...(siteId && { siteCreationId: siteId }),
-        ...(search && {
-          OR: [
-            { numeroPatient: { contains: search, ...CI } },
-            { matricule: { contains: search, ...CI } },
-            { identite: { nom: { contains: search, ...CI } } },
-            { identite: { prenom: { contains: search, ...CI } } },
-          ],
-        }),
+        ...parMots(search, (mot) => [
+          { numeroPatient: { contains: mot, ...CI } },
+          { matricule: { contains: mot, ...CI } },
+          { identite: { nom: { contains: mot, ...CI } } },
+          { identite: { prenom: { contains: mot, ...CI } } },
+        ]),
       },
       include: LISTE_INCLUDE,
       orderBy: { createdAt: 'desc' },
@@ -1953,11 +1951,11 @@ export class PatientService {
     const personnes = await this.prisma.personnelMedical.findMany({
       where: {
         statut: 'ACTIF',
-        OR: [
-          { nom: { contains: q, ...CI } },
-          { prenom: { contains: q, ...CI } },
-          { matricule: { contains: q, ...CI } },
-        ],
+        ...parMots(q, (mot) => [
+          { nom: { contains: mot, ...CI } },
+          { prenom: { contains: mot, ...CI } },
+          { matricule: { contains: mot, ...CI } },
+        ]),
       },
       orderBy: [{ nom: 'asc' }, { prenom: 'asc' }],
       take: 20,
