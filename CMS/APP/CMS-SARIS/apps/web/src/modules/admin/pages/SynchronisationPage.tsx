@@ -11,7 +11,6 @@
  */
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { SelectBox } from '@/components/saris/SelectBox'
 import { useTranslation } from 'react-i18next'
 import i18n from '@/i18n/config'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -20,7 +19,7 @@ import {
   HardDrive, CheckCircle2, AlertTriangle, Loader2, CloudUpload, Trash2,
   RotateCcw, Users, Stethoscope, Pill, Ambulance, FlaskConical, HardHat, ClipboardList,
   CalendarClock, MonitorSmartphone, Activity, GitMerge, Radio, LayoutGrid, List, Search,
-  X, Clock, LogIn, Pencil, User, MessageSquare, Download, ChevronRight, ChevronDown, MapPin,
+  X, Clock, LogIn, Pencil, User, MessageSquare, Download, ChevronRight, ChevronDown, MapPin, Eye,
 } from 'lucide-react'
 import {
   PageHeader, Card, Button, StatusPill, Skeleton, EmptyState, Tooltip, Modal, SegmentedTabs,
@@ -38,7 +37,10 @@ import { formatDuree } from '@/lib/duree'
 import { labelModule, labelStatut, labelAction, labelRole } from '@/config/labels'
 import { useConnectivityStore } from '@/stores/connectivity.store'
 import { isDesktop } from '@/lib/desktop'
-import { BandeauEtatSync, SEUIL_MUET_MS, type EtatSync } from '../components/BandeauEtatSync'
+import { BandeauEtatSync, type EtatSync } from '../components/BandeauEtatSync'
+import { PosteActiviteDrawer } from '../components/PosteActiviteDrawer'
+import { ViderActiviteModal } from '../components/ViderActiviteModal'
+import { relative, etatDuPoste, PASTILLE_ETAT } from '../components/relatif'
 import { CePosteCard } from '../components/CePosteCard'
 import { useSyncStore } from '@/stores/sync.store'
 import { syncCycle, listMutations, purgeMutations, retryRejected } from '@/lib/sync'
@@ -46,11 +48,11 @@ import {
   useSyncStatus, useRestaurerSauvegarde, useSupprimerSauvegarde,
 } from '../hooks/useAdmin'
 import {
-  useSyncStatus as useDataSyncStatus, useSyncRun, useSyncSupervision, useSyncActivite, usePosteDetail, useMasquerPoste, useRenamePoste,
+  useSyncStatus as useDataSyncStatus, useSyncRun, useSyncSupervision, useActiviteParPoste, usePosteDetail, useMasquerPoste, useRenamePoste,
 } from '../hooks/useSync'
 import type { SauvegardeSysteme } from '../api/admin.api'
 import type {
-  SyncSupervisionPoste, SyncSupervisionJournal, SyncSupervisionConflit,
+  SyncSupervisionPoste, SyncActivitePoste, SyncSupervisionConflit,
 } from '../api/sync.api'
 import type { FileMutation } from '@cms-saris/types'
 
@@ -61,17 +63,6 @@ function formatDate(iso: string): string {
   return formatDateTime(iso, {
     day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
   })
-}
-
-function relative(d: Date | string | null | undefined): string {
-  if (!d) return i18n.t('admin.relativeNever')
-  const t = typeof d === 'string' ? new Date(d).getTime() : d.getTime()
-  const diff = (Date.now() - t) / 1000
-  if (diff < 10)     return i18n.t('admin.relativeNow')
-  if (diff < 60)     return i18n.t('admin.relativeSeconds', { count: Math.floor(diff) })
-  if (diff < 3600)   return i18n.t('admin.relativeMinutes', { count: Math.floor(diff / 60) })
-  if (diff < 86400)  return i18n.t('admin.relativeHours', { count: Math.floor(diff / 3600) })
-  return i18n.t('admin.relativeDays', { count: Math.floor(diff / 86400) })
 }
 
 const MODULE_ICONS: Record<string, ReactNode> = {
@@ -181,36 +172,6 @@ export function SynchronisationPage() {
 //  ZONE 0 — Supervision de la synchronisation (temps réel, serveur central)
 // ════════════════════════════════════════════════════════════════════════════════
 
-const JOURNAL_STATUT_TONE: Record<string, string> = {
-  SUCCESS:    'success',
-  REUSSI:     'success',
-  REUSSIE:    'success',
-  OK:         'success',
-  RUNNING:    'info',
-  EN_COURS:   'info',
-  PARTIAL:    'warning',
-  PARTIEL:    'warning',
-  FAILED:     'error',
-  ECHEC:      'error',
-  ERROR:      'error',
-}
-function journalStatutLabel(t: TFn, statut: string): string {
-  const map: Record<string, string> = {
-    SUCCESS:  t('admin.supJournalSuccess'),
-    REUSSI:   t('admin.supJournalSuccess'),
-    REUSSIE:  t('admin.supJournalSuccess'),
-    OK:       t('admin.supJournalSuccess'),
-    RUNNING:  t('admin.supJournalRunning'),
-    EN_COURS: t('admin.supJournalRunning'),
-    PARTIAL:  t('admin.supJournalPartial'),
-    PARTIEL:  t('admin.supJournalPartial'),
-    FAILED:   t('admin.supJournalFailed'),
-    ECHEC:    t('admin.supJournalFailed'),
-    ERROR:    t('admin.supJournalFailed'),
-  }
-  return map[(statut || '').toUpperCase()] ?? statut
-}
-
 type SupTab = 'postes' | 'activite' | 'conflits'
 type PosteFiltre = 'attention' | 'tous' | 'ligne' | 'horsligne'
 type PosteVue = 'grid' | 'list'
@@ -234,9 +195,7 @@ const SEUIL_PARC_IMPORTANT = 12
  * sur un site fermé est un fonctionnement attendu, pas un incident.
  */
 function aBesoinAttention(p: SyncSupervisionPoste, maintenant: number): boolean {
-  if (p.enLigne) return false
-  if (!p.derniereSyncAt) return true
-  return maintenant - new Date(p.derniereSyncAt).getTime() > SEUIL_MUET_MS
+  return etatDuPoste(p, maintenant) === 'attention'
 }
 
 function SupervisionZone() {
@@ -250,39 +209,54 @@ function SupervisionZone() {
 
   const [supTab, setSupTab] = useState<SupTab>('postes')
 
-  // ── Journal d'activité : état des filtres, requête côté serveur ───────────────
-  // Il ne vit plus dans la charge de supervision : le parc en produit des milliers de
-  // lignes par jour, et l'onglet n'est même pas ouvert la plupart du temps. `enabled`
-  // fait que rien n'est demandé tant qu'on ne l'affiche pas.
+  // ── Activité : UNE ligne par poste, filtrée et paginée par le serveur ─────────
+  // Elle ne vit pas dans la charge de supervision : l'onglet n'est même pas ouvert la
+  // plupart du temps. `enabled` fait que rien n'est demandé tant qu'on ne l'affiche pas.
   const [actPage, setActPage]     = useState(1)
   const [actTaille, setActTaille] = useState<number | null>(null)
-  const [actPoste, setActPoste]   = useState('')
-  const [actStatut, setActStatut] = useState('')
+  const [actStatut, setActStatut] = useState<'' | 'CONFLITS'>('')
+  // Ce que l'on TAPE, et ce qui PART au serveur une fois la frappe terminée : sans ce
+  // délai, chaque lettre déclencherait une requête.
+  const [actRecherche, setActRecherche] = useState('')
+  const [actMots, setActMots]           = useState('')
+  useEffect(() => {
+    const id = setTimeout(() => { setActMots(actRecherche.trim()); setActPage(1) }, 350)
+    return () => clearTimeout(id)
+  }, [actRecherche])
   const lignesParDefaut = useRowsPerPage()
   const taille = actTaille ?? lignesParDefaut
-  const { data: activite, isFetching: actLoading } = useSyncActivite(
+  const { data: activite, isFetching: actLoading } = useActiviteParPoste(
     {
       page: actPage,
       pageSize: taille,
-      posteId: actPoste || undefined,
+      recherche: actMots || undefined,
       statut: actStatut || undefined,
     },
     supTab === 'activite',
   )
-  const journaux = activite?.items ?? []
+  const lignes = activite?.items ?? []
+  const totaux = activite?.totaux ?? { echanges: 0, quarantaine: 0, conflitsAuto: 0, echangesAvecRefus: 0 }
   // Tout changement de filtre ramène à la première page : rester page 7 après avoir
-  // restreint à un poste qui n'a que 12 entrées afficherait un tableau vide.
+  // restreint à deux postes afficherait un tableau vide.
   const filtrer = (maj: () => void) => { maj(); setActPage(1) }
+
+  // Fiche d'un poste (tiroir à droite) et vidage de l'historique.
+  const [posteOuvert, setPosteOuvert] = useState<string | null>(null)
+  const [openPurge, setOpenPurge] = useState(false)
+  const canPurge = has('synchronisation.purge')
+  const aVider = totaux.echanges + totaux.quarantaine + totaux.conflitsAuto > 0
 
   // ── Extraction PDF ────────────────────────────────────────────────────────
   // Mêmes colonnes qu'à l'écran ; l'onglet actif décide du jeu imprimé.
   const [openExport, setOpenExport] = useState(false)
-  const colonnesActivite = useMemo<ColonneExport<SyncSupervisionJournal>[]>(() => [
-    { libelle: t('admin.colPoste'),     valeur: j => j.poste },
-    { libelle: t('admin.colStatus'),    valeur: j => journalStatutLabel(t, j.statut) },
-    { libelle: t('admin.colStarted'),   valeur: j => formatDateTime(j.startedAt) },
-    { libelle: t('admin.colMutations'), valeur: j => formatNumber(j.nbMutations), align: 'right' },
-    { libelle: t('admin.colConflicts'), valeur: j => formatNumber(j.nbConflits),  align: 'right' },
+  const colonnesActivite = useMemo<ColonneExport<SyncActivitePoste>[]>(() => [
+    { libelle: t('admin.colPoste'),              valeur: l => l.libelle },
+    { libelle: t('admin.supActColSite'),         valeur: l => l.siteLibelle ?? '' },
+    { libelle: t('admin.supActColDernier'),      valeur: l => l.dernierEchangeAt ? formatDateTime(l.dernierEchangeAt) : '—' },
+    { libelle: t('admin.supActColEchanges'),     valeur: l => formatNumber(l.nbEchanges),     align: 'right' },
+    { libelle: t('admin.supActColReussis'),      valeur: l => formatNumber(l.nbReussis),      align: 'right' },
+    { libelle: t('admin.supActColAvecConflits'), valeur: l => formatNumber(l.nbAvecConflits), align: 'right' },
+    { libelle: t('admin.colMutations'),          valeur: l => formatNumber(l.nbMutations),    align: 'right' },
   ], [t])
   const colonnesConflits = useMemo<ColonneExport<SyncSupervisionConflit>[]>(() => [
     { libelle: t('admin.colEntity'), valeur: c => humanizeCode(c.entiteType) },
@@ -318,39 +292,51 @@ function SupervisionZone() {
         <div style={{ marginBottom: 'var(--espace-4)', display: 'flex', alignItems: 'center', gap: 'var(--espace-3)', flexWrap: 'wrap' }}>
           <SegmentedTabs value={supTab} onChange={(k) => setSupTab(k as SupTab)} tabs={supTabs} size="sm" aria-label={t('admin.supTitle')} />
           {supTab !== 'postes' && (
-            <Button size="sm" variant="outline" style={{ marginLeft: 'auto' }} onClick={() => setOpenExport(true)}>
-              <Download size={14} /> {t('common.exporter', { defaultValue: 'Exporter' })}
-            </Button>
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 'var(--espace-2)' }}>
+              <Button size="sm" variant="outline" onClick={() => setOpenExport(true)}>
+                <Download size={14} /> {t('common.exporter', { defaultValue: 'Exporter' })}
+              </Button>
+              {/* Vider : à droite de l'export, et jamais avant lui — l'ordre des boutons
+                  suggère le bon réflexe, extraire puis effacer (comme le journal d'audit). */}
+              {supTab === 'activite' && canPurge && (
+                <Button
+                  size="sm" variant="outline" disabled={!aVider} onClick={() => setOpenPurge(true)}
+                  style={{ color: 'var(--erreur-texte)', borderColor: 'var(--erreur-accent)' }}
+                >
+                  <Trash2 size={14} /> {t('admin.supPurgeBtn')}
+                </Button>
+              )}
+            </div>
           )}
         </div>
 
         {supTab === 'postes' && <PostesSection postes={postes} enLigne={enLigne} loading={isLoading} canExecute={canExecute} />}
         {supTab === 'activite' && (
           <ActiviteTable
-            journaux={journaux}
+            lignes={lignes}
             total={activite?.total ?? 0}
             page={actPage} pageSize={taille}
             onPage={setActPage}
             onPageSize={(n) => filtrer(() => setActTaille(n))}
-            postes={postes}
-            posteId={actPoste} onPosteId={(v) => filtrer(() => setActPoste(v))}
-            statut={actStatut}  onStatut={(v) => filtrer(() => setActStatut(v))}
+            recherche={actRecherche} onRecherche={setActRecherche}
+            statut={actStatut} onStatut={(v) => filtrer(() => setActStatut(v))}
             loading={actLoading}
+            onOpen={setPosteOuvert}
           />
         )}
         {supTab === 'conflits' && <ConflitsTable conflits={conflits} loading={isLoading} />}
       </Card.Body>
 
       {openExport && (supTab === 'activite' ? (
-        <ListePrintSheet<SyncSupervisionJournal>
+        <ListePrintSheet<SyncActivitePoste>
           rootId="export-sync-activite"
           titre={t('admin.supActivityTitle')}
           /* L'export porte sur ce qui est À L'ÉCRAN — page et filtres courants. Avec un
-             journal de plusieurs milliers de lignes, « tout exporter » n'aurait pas de
+             parc de plusieurs centaines de postes, « tout exporter » n'aurait pas de
              sens ; on le dit dans le sous-titre plutôt que de laisser croire au contraire. */
-          sousTitre={t('admin.supExportPortee', { count: journaux.length, total: activite?.total ?? 0 })}
-          lignes={journaux}
-          cleDe={j => j.id}
+          sousTitre={t('admin.supExportPortee', { count: lignes.length, total: activite?.total ?? 0 })}
+          lignes={lignes}
+          cleDe={l => l.id}
           colonnes={colonnesActivite}
           onClose={() => setOpenExport(false)}
         />
@@ -365,6 +351,9 @@ function SupervisionZone() {
           onClose={() => setOpenExport(false)}
         />
       ))}
+
+      {posteOuvert && <PosteActiviteDrawer posteId={posteOuvert} onClose={() => setPosteOuvert(null)} />}
+      {openPurge && <ViderActiviteModal totaux={totaux} onClose={() => setOpenPurge(false)} />}
     </Card>
   )
 }
@@ -870,27 +859,34 @@ function DetailRow({ icon, label, value }: { icon: ReactNode; label: string; val
   )
 }
 
-// ── Onglet Activité récente : tableau propre (comme les autres pages) ────────
+// ── Onglet Activité récente : UNE ligne par poste ────────────────────────────
 
 /**
- * Journal d'activité. La pagination est SERVEUR : `journaux` ne contient que la page
- * demandée, et `total` dit combien d'entrées correspondent aux filtres. On ne peut donc
- * pas s'appuyer sur usePagination, qui découpe un tableau déjà complet — l'objet passé à
- * PaginationBar est construit à la main à partir de ce que le serveur a répondu.
+ * Activité récente regroupée par poste. Le journal écrit un échange à chaque envoi de
+ * données : lus à plat, ils répétaient le même poste vingt fois, et retrouver « le poste de
+ * Nkayi » revenait à les compter. Ici chaque machine tient en UNE ligne de bilan ; le détail
+ * de ses échanges (réussites, conflits, refus, chronologie) s'ouvre dans un tiroir à droite.
+ *
+ * La pagination est SERVEUR : `lignes` ne contient que la page demandée, et `total` dit
+ * combien de postes correspondent aux filtres. On ne peut donc pas s'appuyer sur
+ * usePagination, qui découpe un tableau déjà complet — l'objet passé à PaginationBar est
+ * construit à la main à partir de ce que le serveur a répondu.
  */
 function ActiviteTable({
-  journaux, total, page, pageSize, onPage, onPageSize,
-  postes, posteId, onPosteId, statut, onStatut, loading,
+  lignes, total, page, pageSize, onPage, onPageSize,
+  recherche, onRecherche, statut, onStatut, loading, onOpen,
 }: {
-  journaux: SyncSupervisionJournal[]; total: number
+  lignes: SyncActivitePoste[]; total: number
   page: number; pageSize: number
   onPage: (p: number) => void; onPageSize: (n: number) => void
-  postes: SyncSupervisionPoste[]
-  posteId: string; onPosteId: (v: string) => void
-  statut: string;  onStatut: (v: string) => void
+  recherche: string; onRecherche: (v: string) => void
+  statut: '' | 'CONFLITS'; onStatut: (v: '' | 'CONFLITS') => void
   loading: boolean
+  onOpen: (posteId: string) => void
 }) {
   const { t } = useTranslation()
+  // Horloge figée au montage : la relire à chaque rendu le rendrait impur.
+  const [maintenant] = useState(() => Date.now())
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
   const pagination = {
@@ -908,62 +904,49 @@ function ActiviteTable({
     canGoNext: page < totalPages,
   }
 
-  const filtreActif = !!posteId || !!statut
+  const filtreActif = !!recherche.trim() || !!statut
 
-  // Filtrer suppose qu'il y ait de quoi filtrer. Sans aucun poste ni aucune entrée, la
-  // barre n'offre qu'un menu vide et deux boutons sans effet — du décor. Elle réapparaît
-  // dès qu'un filtre est posé, sans quoi on se retrouverait enfermé dans une sélection
-  // trop restrictive sans moyen d'en sortir.
-  const filtrable = postes.length > 0 || total > 0 || filtreActif
-
-  // Les filtres restent affichés pendant le chargement et même si la page revient vide,
-  // pour cette même raison.
-  const barreFiltres = !filtrable ? null : (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 'var(--espace-2)',
-      marginBottom: 'var(--espace-3)', flexWrap: 'wrap',
-    }}>
-      {/* Dernier <select> natif de l'application, remplace par le combo SARIS. */}
-      <div style={{ width: 220 }}>
-        <SelectBox
-          value={posteId}
-          onChange={onPosteId}
-          size="sm"
-          aria-label={t('admin.supFiltrePoste')}
-          options={[
-            { value: '', label: t('admin.supFiltreTousPostes') },
-            ...postes.map(p => ({ value: p.id, label: p.libelle })),
-          ]}
-        />
-      </div>
-
-      <div style={{ display: 'flex', gap: 3, padding: 3, borderRadius: 'var(--radius-md)', background: 'var(--fond-surface-2)', border: '1px solid var(--bordure-legere)' }}>
-        {[
-          { key: '',         label: t('admin.supFiltreTout') },
-          { key: 'CONFLITS', label: t('admin.supConflictsTitle') },
-        ].map(f => (
-          <button
-            key={f.key || 'tout'} type="button" onClick={() => onStatut(f.key)}
-            style={{
-              padding: '4px 10px', borderRadius: 'var(--radius-sm)', border: 'none', cursor: 'pointer',
-              fontSize: 'var(--font-size-caption)', fontWeight: 600,
-              background: statut === f.key ? 'var(--fond-surface)' : 'transparent',
-              color:      statut === f.key ? 'var(--texte-primaire)' : 'var(--texte-tertiaire)',
-              boxShadow:  statut === f.key ? 'var(--ombre-1)' : 'none',
-            }}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
-
-      <span style={{ marginLeft: 'auto', fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)' }}>
-        {t('admin.supActiviteTotal', { count: total })}
-      </span>
-    </div>
+  // Filtrer suppose qu'il y ait de quoi filtrer. Sans aucune activité, la barre n'offrirait
+  // qu'une recherche et deux boutons sans effet — du décor. Elle réapparaît dès qu'un filtre
+  // est posé, sans quoi on se retrouverait enfermé dans une sélection trop restrictive sans
+  // moyen d'en sortir. Elle reste affichée pendant le chargement, pour la même raison.
+  const barreFiltres = total === 0 && !filtreActif ? null : (
+    <Card style={{ marginBottom: 'var(--espace-3)' }}>
+      <Toolbar
+        search={recherche}
+        onSearchChange={onRecherche}
+        searchPlaceholder={t('admin.supActRecherche')}
+        filters={
+          <div style={{ display: 'flex', gap: 3, padding: 3, borderRadius: 'var(--radius-md)', background: 'var(--fond-surface-2)', border: '1px solid var(--bordure-legere)' }}>
+            {([
+              { key: '',         label: t('admin.supFiltreTout') },
+              { key: 'CONFLITS', label: t('admin.supActFiltreConflits') },
+            ] as const).map(f => (
+              <button
+                key={f.key || 'tout'} type="button" onClick={() => onStatut(f.key)}
+                style={{
+                  padding: '4px 10px', borderRadius: 'var(--radius-sm)', border: 'none', cursor: 'pointer',
+                  fontSize: 'var(--font-size-caption)', fontWeight: 600,
+                  background: statut === f.key ? 'var(--fond-surface)' : 'transparent',
+                  color:      statut === f.key ? 'var(--texte-primaire)' : 'var(--texte-tertiaire)',
+                  boxShadow:  statut === f.key ? 'var(--ombre-1)' : 'none',
+                }}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        }
+        actions={
+          <span style={{ fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)' }}>
+            {t('admin.supGroupePostes', { count: total })}
+          </span>
+        }
+      />
+    </Card>
   )
 
-  if (loading && journaux.length === 0) {
+  if (loading && lignes.length === 0) {
     return (
       <>
         {barreFiltres}
@@ -971,7 +954,7 @@ function ActiviteTable({
       </>
     )
   }
-  if (journaux.length === 0) {
+  if (lignes.length === 0) {
     return (
       <>
         {barreFiltres}
@@ -991,32 +974,64 @@ function ActiviteTable({
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <DataTableHead columns={[
             { label: t('admin.colPoste') },
-            { label: t('admin.colStatus'), width: 110 },
-            { label: t('admin.colStarted'), width: 140 },
+            { label: t('admin.supActColEtat'), width: 130 },
+            { label: t('admin.supActColDernier'), width: 150 },
+            { label: t('admin.supActColEchanges'), align: 'right', width: 100 },
             { label: t('admin.colMutations'), align: 'right', width: 110 },
             { label: t('admin.colConflicts'), align: 'right', width: 100 },
+            // Intitulé invisible à l'écran mais réel : sur téléphone, une colonne SANS intitulé
+            // est reléguée en haut à droite de la carte (faite pour une petite icône) et un
+            // bouton aussi large recouvrirait le titre. Avec un intitulé, c'est une ligne de la carte.
+            { label: <span className="sr-only">{t('admin.supActColDetails')}</span>, align: 'right', width: 170 },
           ]} />
           <tbody>
-            {journaux.map((j, i) => {
-              const tone = JOURNAL_STATUT_TONE[(j.statut || '').toUpperCase()] ?? 'neutral'
+            {lignes.map((l, i) => {
+              const etat = etatDuPoste(l, maintenant)
+              const detail = [l.siteLibelle, l.utilisateurNom].filter(Boolean).join(' · ')
               return (
-                <tr key={j.id} style={dataRowStyle(i % 2 === 1, false)}>
+                <tr
+                  key={l.id}
+                  onClick={() => onOpen(l.id)}
+                  style={{ ...dataRowStyle(i % 2 === 1, false), cursor: 'pointer' }}
+                >
                   <td style={{ padding: DATA_TD_PADDING }}>
-                    <span style={{ fontSize: 'var(--font-size-body-sm)', fontWeight: 600, color: 'var(--texte-primaire)' }}>{j.poste}</span>
+                    {/* Un SEUL enfant : sur téléphone, la première cellule devient une rangée
+                        flex (titre de la carte) — deux enfants se retrouveraient côte à côte. */}
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--espace-2)', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: 'var(--font-size-body-sm)', fontWeight: 600, color: 'var(--texte-primaire)' }}>{l.libelle}</span>
+                        {l.retire && <StatusPill tone="neutral" size="sm" dot={false}>{t('admin.supActRetire')}</StatusPill>}
+                      </div>
+                      {detail && (
+                        <span style={{ display: 'block', fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)' }}>{detail}</span>
+                      )}
+                    </div>
                   </td>
                   <td style={{ padding: DATA_TD_PADDING }}>
-                    <StatusPill tone={tone as any} size="sm">{journalStatutLabel(t, j.statut)}</StatusPill>
+                    <StatusPill tone={PASTILLE_ETAT[etat].tone} size="sm">{t(PASTILLE_ETAT[etat].cle)}</StatusPill>
                   </td>
                   <td style={{ padding: DATA_TD_PADDING }}>
-                    <span style={{ fontSize: 'var(--font-size-body-sm)', color: 'var(--texte-secondaire)' }}>{relative(j.startedAt)}</span>
+                    <span style={{ fontSize: 'var(--font-size-body-sm)', color: 'var(--texte-secondaire)' }}>{relative(l.dernierEchangeAt)}</span>
                   </td>
                   <td style={{ padding: DATA_TD_PADDING, textAlign: 'right' }}>
-                    <span style={{ fontSize: 'var(--font-size-body-sm)', color: 'var(--texte-secondaire)' }}>{formatNumber(j.nbMutations)}</span>
+                    <span style={{ fontSize: 'var(--font-size-body-sm)', color: 'var(--texte-secondaire)' }}>{formatNumber(l.nbEchanges)}</span>
                   </td>
                   <td style={{ padding: DATA_TD_PADDING, textAlign: 'right' }}>
-                    <span style={{ fontSize: 'var(--font-size-body-sm)', color: j.nbConflits > 0 ? 'var(--avert-accent)' : 'var(--texte-tertiaire)', fontWeight: j.nbConflits > 0 ? 700 : 400 }}>
-                      {formatNumber(j.nbConflits)}
+                    <span style={{ fontSize: 'var(--font-size-body-sm)', color: 'var(--texte-secondaire)' }}>{formatNumber(l.nbMutations)}</span>
+                  </td>
+                  <td style={{ padding: DATA_TD_PADDING, textAlign: 'right' }}>
+                    <span style={{ fontSize: 'var(--font-size-body-sm)', color: l.nbConflits > 0 ? 'var(--avert-accent)' : 'var(--texte-tertiaire)', fontWeight: l.nbConflits > 0 ? 700 : 400 }}>
+                      {formatNumber(l.nbConflits)}
                     </span>
+                  </td>
+                  <td style={{ padding: DATA_TD_PADDING, textAlign: 'right' }}>
+                    <Button
+                      size="sm" variant="outline" leftIcon={<Eye size={13} />}
+                      aria-label={t('admin.supActVoirDetailsDe', { poste: l.libelle })}
+                      onClick={(e) => { e.stopPropagation(); onOpen(l.id) }}
+                    >
+                      {t('admin.supActVoirDetails')}
+                    </Button>
                   </td>
                 </tr>
               )

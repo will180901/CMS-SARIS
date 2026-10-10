@@ -1,5 +1,6 @@
 import {
   IsArray,
+  IsIn,
   IsISO8601,
   IsInt,
   IsNotEmpty,
@@ -138,4 +139,68 @@ export class ActiviteQueryDto {
   @IsOptional()
   @IsISO8601()
   depuis?: string
+}
+
+/**
+ * Activité REGROUPÉE PAR POSTE : une ligne par machine, quel que soit le nombre d'échanges
+ * qu'elle a eus. Le détail cycle par cycle d'un poste se lit avec `ActiviteQueryDto`
+ * (filtre `posteId`).
+ */
+export class ActiviteParPosteQueryDto {
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  page?: number
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(200)
+  pageSize?: number
+
+  /** Mots du nom du poste (tous doivent s'y retrouver, dans n'importe quel ordre). */
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  recherche?: string
+
+  /** `CONFLITS` : ne garder que les postes ayant eu au moins un échange avec conflit ou refus. */
+  @IsOptional()
+  @IsIn(['CONFLITS'])
+  statut?: 'CONFLITS'
+}
+
+/** Conflits et refus d'UN poste. */
+export class ConflitsPosteQueryDto {
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  page?: number
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  pageSize?: number
+
+  /**
+   * `QUARANTAINE` : changements refusés par le serveur (la donnée du poste y est gardée) ;
+   * `CONFLITS` : désaccords entre le poste et le serveur, tranchés automatiquement.
+   */
+  @IsOptional()
+  @IsIn(['QUARANTAINE', 'CONFLITS'])
+  type?: 'QUARANTAINE' | 'CONFLITS'
+}
+
+/**
+ * Portée du vidage de l'historique :
+ *  - `echanges` (défaut) : les échanges et les conflits tranchés automatiquement — la
+ *    quarantaine est CONSERVÉE, car c'est la seule copie, côté serveur, de changements
+ *    refusés ;
+ *  - `tout` : y compris la quarantaine.
+ */
+export class PurgeActiviteQueryDto {
+  @IsOptional()
+  @IsIn(['echanges', 'tout'])
+  portee?: 'echanges' | 'tout'
 }

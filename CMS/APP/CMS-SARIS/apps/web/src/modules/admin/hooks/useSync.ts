@@ -4,7 +4,9 @@
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { syncApi } from '../api/sync.api'
-import type { ActiviteParams } from '../api/sync.api'
+import type {
+  ActiviteParams, ActiviteParPosteParams, ConflitsPosteParams, PorteePurgeActivite,
+} from '../api/sync.api'
 
 export function useSyncStatus(enabled = true) {
   return useQuery({
@@ -50,6 +52,52 @@ export function useSyncActivite(params: ActiviteParams, enabled = true) {
     enabled,
     staleTime: 5_000,
     placeholderData: (prev) => prev,
+  })
+}
+
+/**
+ * Activité regroupée par poste : UNE ligne par machine, filtrée et paginée par le serveur.
+ * Même principe que `useSyncActivite` pour la page précédente conservée pendant le
+ * chargement. La clé commence par ['admin','sync'] : l'événement SSE SYNC_ACTIVITY la
+ * rafraîchit en direct.
+ */
+export function useActiviteParPoste(params: ActiviteParPosteParams, enabled = true) {
+  return useQuery({
+    queryKey: ['admin', 'sync', 'supervision', 'activite-postes', params],
+    queryFn: () => syncApi.activiteParPoste(params),
+    enabled,
+    staleTime: 5_000,
+    placeholderData: (prev) => prev,
+  })
+}
+
+/** Bilan d'un poste (tiroir « Voir les détails ») — chargé à la demande. */
+export function useBilanPoste(id: string | null) {
+  return useQuery({
+    queryKey: ['admin', 'sync', 'supervision', 'bilan', id],
+    queryFn: () => syncApi.bilanPoste(id as string),
+    enabled: !!id,
+    staleTime: 5_000,
+  })
+}
+
+/** Conflits et refus d'un poste, une page à la fois. */
+export function useConflitsPoste(id: string | null, params: ConflitsPosteParams) {
+  return useQuery({
+    queryKey: ['admin', 'sync', 'supervision', 'conflits-poste', id, params],
+    queryFn: () => syncApi.conflitsPoste(id as string, params),
+    enabled: !!id,
+    staleTime: 5_000,
+    placeholderData: (prev) => prev,
+  })
+}
+
+/** Vide l'historique des échanges (droit `synchronisation.purge`). */
+export function usePurgerActivite() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (portee: PorteePurgeActivite) => syncApi.purgerActivite(portee),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'sync'] }),
   })
 }
 

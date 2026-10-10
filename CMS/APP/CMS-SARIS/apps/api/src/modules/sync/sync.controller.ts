@@ -28,10 +28,14 @@ import {
   RenamePosteDto,
   ConfigurerPosteDto,
   ActiviteQueryDto,
+  ActiviteParPosteQueryDto,
+  ConflitsPosteQueryDto,
+  PurgeActiviteQueryDto,
 } from './sync.dto'
 
 interface AuthedRequest {
   user?: { id?: string; siteId?: string }
+  ip?: string
 }
 
 function requireUser(req: AuthedRequest): { userId: string; siteId: string } {
@@ -169,6 +173,46 @@ export class SyncController {
   @RequirePermissions('synchronisation.read')
   getActivite(@Query() q: ActiviteQueryDto) {
     return this.supervision.getActivite(q)
+  }
+
+  /** Activité regroupée par poste : UNE ligne par machine (cf. service). */
+  @Get('supervision/activite/postes')
+  @RequirePermissions('synchronisation.read')
+  getActiviteParPoste(@Query() q: ActiviteParPosteQueryDto) {
+    return this.supervision.getActiviteParPoste(q)
+  }
+
+  /**
+   * Vide l'historique des échanges. Sous `synchronisation.purge` et NON sous
+   * `synchronisation.execute` : consulter ou piloter la synchronisation et effacer son
+   * historique ne sont pas le même pouvoir. Le vidage se trace lui-même.
+   */
+  @Delete('supervision/activite')
+  @RequirePermissions('synchronisation.purge')
+  purgerActivite(@Req() req: AuthedRequest, @Query() q: PurgeActiviteQueryDto) {
+    const { userId } = requireUser(req)
+    return this.supervision.purgerActivite(
+      q.portee ?? 'echanges',
+      userId,
+      req.ip ?? null,
+    )
+  }
+
+  /** Bilan d'un poste : identité, réussites, conflits, refus, flux des dernières 24 h. */
+  @Get('supervision/postes/:id/bilan')
+  @RequirePermissions('synchronisation.read')
+  getBilanPoste(@Param('id') id: string) {
+    return this.supervision.getBilanPoste(id)
+  }
+
+  /** Conflits et refus d'un poste (jamais le contenu des fiches). */
+  @Get('supervision/postes/:id/conflits')
+  @RequirePermissions('synchronisation.read')
+  getConflitsPoste(
+    @Param('id') id: string,
+    @Query() q: ConflitsPosteQueryDto,
+  ) {
+    return this.supervision.getConflitsPoste(id, q)
   }
 
   /** Détail d'un poste (modale) : identité + fenêtre de sa dernière session connectée. */

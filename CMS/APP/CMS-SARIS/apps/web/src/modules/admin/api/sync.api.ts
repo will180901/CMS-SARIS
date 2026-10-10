@@ -82,18 +82,123 @@ export interface ActivitePage {
   pageSize: number
 }
 
+// ── Activité regroupée par poste, fiche d'un poste, vidage ───────────────────
+
+/** Une ligne d'activité : UN poste, avec le bilan de tous ses échanges. */
+export interface SyncActivitePoste extends SyncSupervisionPoste {
+  /** Poste retiré du parc : son historique reste lisible, il n'est plus supervisé. */
+  retire: boolean
+  nbEchanges: number
+  /** Échanges sans aucun désaccord ni refus. */
+  nbReussis: number
+  /** Échanges ayant produit au moins un conflit ou un refus. */
+  nbAvecConflits: number
+  nbMutations: number
+  /** Somme des conflits et des refus de tous les échanges. */
+  nbConflits: number
+  premierEchangeAt: string | null
+  dernierEchangeAt: string | null
+}
+export interface ActiviteParPosteParams {
+  page?: number
+  pageSize?: number
+  /** Mots du nom du poste. */
+  recherche?: string
+  /** `CONFLITS` : seulement les postes ayant eu un conflit ou un refus. */
+  statut?: 'CONFLITS'
+}
+export interface ActiviteParPostePage {
+  items: SyncActivitePoste[]
+  /** Nombre de postes (et non d'échanges) correspondant aux filtres. */
+  total: number
+  page: number
+  pageSize: number
+  /** Ce que contient l'historique, tous filtres confondus : ce qu'un vidage effacerait. */
+  totaux: {
+    echanges: number
+    quarantaine: number
+    conflitsAuto: number
+    /** Échanges qui portent un refus en quarantaine : le vidage par défaut les conserve. */
+    echangesAvecRefus: number
+  }
+}
+
+export interface BilanPoste {
+  poste: SyncSupervisionPosteDetail
+  bilan: {
+    nbEchanges: number
+    nbReussis: number
+    nbAvecConflits: number
+    nbMutations: number
+    nbConflits: number
+    premierEchangeAt: string | null
+    dernierEchangeAt: string | null
+    /** Changements refusés par le serveur, gardés en quarantaine. */
+    quarantaine: number
+    /** Désaccords poste/serveur tranchés automatiquement (le plus récent gagne). */
+    conflitsAuto: number
+    dernieres24h: { echanges: number; mutations: number }
+  }
+}
+
+/** `QUARANTAINE` : changements refusés ; `CONFLITS` : désaccords tranchés automatiquement. */
+export type TypeConflitPoste = 'QUARANTAINE' | 'CONFLITS'
+export interface ConflitPoste {
+  id: string
+  entiteType: string
+  entiteId: string
+  /** REJET_SERVEUR (refusé) · LOCAL_GAGNE · SERVEUR_GAGNE. */
+  typeConflit: string
+  createdAt: string
+  /** Raison du refus — `null` pour un conflit tranché. Jamais le contenu de la fiche. */
+  raison: string | null
+}
+export interface ConflitsPosteParams {
+  page?: number
+  pageSize?: number
+  type?: TypeConflitPoste
+}
+export interface ConflitsPostePage {
+  items: ConflitPoste[]
+  total: number
+  page: number
+  pageSize: number
+}
+
+/** `echanges` : l'historique, en gardant la quarantaine · `tout` : y compris la quarantaine. */
+export type PorteePurgeActivite = 'echanges' | 'tout'
+export interface ResultatPurgeActivite {
+  echanges: number
+  conflits: number
+  quarantaineConservee: number
+}
+
+function chaineRequete(p: object): string {
+  const q = new URLSearchParams()
+  for (const [k, v] of Object.entries(p)) if (v !== undefined && v !== '') q.set(k, String(v))
+  const s = q.toString()
+  return s ? `?${s}` : ''
+}
+
 export const syncApi = {
   status: () => api.get<SyncStatusResponse>('/sync/status'),
   run: () => api.post<SyncRunResult>('/sync/run', {}),
   supervision: () => api.get<SyncSupervision>('/sync/supervision'),
   /** Journal d'activité paginé et filtré par le serveur — le parc peut en produire
    *  des milliers de lignes par jour, on n'en rapatrie qu'une page. */
-  activite: (p: ActiviteParams = {}) => {
-    const q = new URLSearchParams()
-    for (const [k, v] of Object.entries(p)) if (v !== undefined && v !== '') q.set(k, String(v))
-    const s = q.toString()
-    return api.get<ActivitePage>(`/sync/supervision/activite${s ? `?${s}` : ''}`)
-  },
+  activite: (p: ActiviteParams = {}) =>
+    api.get<ActivitePage>(`/sync/supervision/activite${chaineRequete(p)}`),
+  /** Activité regroupée : UNE ligne par poste, avec le bilan de tous ses échanges. */
+  activiteParPoste: (p: ActiviteParPosteParams = {}) =>
+    api.get<ActiviteParPostePage>(`/sync/supervision/activite/postes${chaineRequete(p)}`),
+  /** Bilan d'un poste : identité, réussites, conflits, refus, flux des dernières 24 h. */
+  bilanPoste: (id: string) => api.get<BilanPoste>(`/sync/supervision/postes/${id}/bilan`),
+  /** Conflits et refus d'un poste (la raison du refus, jamais le contenu des fiches). */
+  conflitsPoste: (id: string, p: ConflitsPosteParams = {}) =>
+    api.get<ConflitsPostePage>(`/sync/supervision/postes/${id}/conflits${chaineRequete(p)}`),
+  /** Vide l'historique des échanges (droit `synchronisation.purge`) — se trace elle-même. */
+  purgerActivite: (portee: PorteePurgeActivite) =>
+    api.delete<ResultatPurgeActivite>(`/sync/supervision/activite${chaineRequete({ portee })}`),
   posteDetail: (id: string) => api.get<SyncSupervisionPosteDetail>(`/sync/supervision/postes/${id}`),
   masquerPoste: (id: string) => api.delete<{ ok: boolean }>(`/sync/supervision/postes/${id}`),
   renamePoste: (id: string, libelle: string) =>

@@ -19,6 +19,7 @@ import {
 } from '@nestjs/common'
 import type { Prisma } from '@prisma/client'
 import { PrismaService } from '../../prisma/prisma.service'
+import { CI, parMots } from '../../common/prisma/search'
 import { NotificationService } from '../notification/notification.service'
 
 export interface SyncConflictDetail {
@@ -55,6 +56,64 @@ const ONLINE_WINDOW_MS = 90_000
 /** Ordre de priorité d'affichage quand un utilisateur porte plusieurs rôles (même ordre que
  *  `getPrimaryRole` côté web, apps/web/src/config/navigation.config.ts). */
 const ROLE_PRIORITY = ['ADMIN_SYSTEME', 'MEDECIN_CHEF', 'INFIRMIER']
+
+/** Bilan des échanges d'un poste, cumulé à partir des lignes groupées du journal. */
+interface BilanEchanges {
+  nbEchanges: number
+  /** Échanges sans aucun désaccord ni refus. */
+  nbReussis: number
+  /** Échanges ayant produit au moins un conflit ou un refus. */
+  nbAvecConflits: number
+  nbMutations: number
+  /** Somme des conflits et refus de tous les échanges. */
+  nbConflits: number
+  premierEchangeAt: Date | null
+  dernierEchangeAt: Date | null
+}
+
+/** Une ligne du regroupement du journal, par statut d'échange. */
+interface LigneGroupee {
+  statut: string
+  _count: { _all: number }
+  _sum: { nbMutations: number | null; nbConflits: number | null }
+  _min: { startedAt: Date | null }
+  _max: { startedAt: Date | null }
+}
+
+function bilanVide(): BilanEchanges {
+  return {
+    nbEchanges: 0,
+    nbReussis: 0,
+    nbAvecConflits: 0,
+    nbMutations: 0,
+    nbConflits: 0,
+    premierEchangeAt: null,
+    dernierEchangeAt: null,
+  }
+}
+
+function cumuler(b: BilanEchanges, g: LigneGroupee): void {
+  b.nbEchanges += g._count._all
+  if (g.statut === 'REUSSIE') b.nbReussis += g._count._all
+  if (g.statut === 'CONFLITS') b.nbAvecConflits += g._count._all
+  b.nbMutations += g._sum.nbMutations ?? 0
+  b.nbConflits += g._sum.nbConflits ?? 0
+  const debut = g._min.startedAt
+  if (debut && (!b.premierEchangeAt || debut < b.premierEchangeAt))
+    b.premierEchangeAt = debut
+  const fin = g._max.startedAt
+  if (fin && (!b.dernierEchangeAt || fin > b.dernierEchangeAt))
+    b.dernierEchangeAt = fin
+}
+
+/** Raison d'un refus, telle que `record()` l'a rangée dans `valeurServeur` (`{ erreur }`). */
+function raisonDuRefus(valeurServeur: unknown): string | null {
+  if (valeurServeur && typeof valeurServeur === 'object') {
+    const erreur = (valeurServeur as { erreur?: unknown }).erreur
+    if (typeof erreur === 'string') return erreur
+  }
+  return null
+}
 
 @Injectable()
 export class SyncSupervisionService {
@@ -424,6 +483,305 @@ export class SyncSupervisionService {
       page,
       pageSize,
     }
+  }
+
+  /**
+   * Activité REGROUPÉE PAR POSTE : une ligne par machine.
+   *
+   * Le journal écrit un cycle à chaque envoi de données ; sur un poste actif ils se
+   * comptent par dizaines, et les lire à plat revenait à chercher « le poste de Nkayi »
+   * parmi vingt lignes identiques. Ici chaque machine tient en UNE ligne de bilan ; le
+   * détail de ses cycles se lit à la demande (`getActivite` filtré sur le poste).
+   *
+   * Ne figurent que les postes qui ont déjà échangé quelque chose : « activité » parle
+   * d'échanges. Un poste muet depuis toujours est dans la liste des postes, signalé « à
+   * surveiller » — pas ici.
+   *
+   * Le bilan vient d'UNE lecture groupée du journal (jamais une requête par poste) ; seule
+   * la page affichée est ensuite enrichie (dernier utilisateur, site).
+   */
+  async getActiviteParPoste(params: {
+    page?: number
+    pageSize?: number
+    recherche?: string
+    statut?: 'CONFLITS'
+  }) {
+    const pageSize = Math.min(Math.max(params.pageSize ?? 25, 1), 200)
+    const page = Math.max(params.page ?? 1, 1)
+
+    const [groupes, quarantaine, conflitsAuto, echangesAvecRefus] =
+      await Promise.all([
+      this.prisma.journalSynchronisation.groupBy({
+        by: ['posteLocalId', 'statut'],
+        _count: { _all: true },
+        _sum: { nbMutations: true, nbConflits: true },
+        _min: { startedAt: true },
+        _max: { startedAt: true },
+      }),
+      this.prisma.conflitSynchronisation.count({
+        where: { typeConflit: 'REJET_SERVEUR' },
+      }),
+      this.prisma.conflitSynchronisation.count({
+        where: { typeConflit: { not: 'REJET_SERVEUR' } },
+      }),
+      // Les échanges qui portent un refus : le vidage par défaut les CONSERVE.
+      this.prisma.journalSynchronisation.count({
+        where: { conflits: { some: { typeConflit: 'REJET_SERVEUR' } } },
+      }),
+    ])
+
+    const bilans = new Map<string, BilanEchanges>()
+    for (const g of groupes) {
+      let b = bilans.get(g.posteLocalId)
+      if (!b) {
+        b = bilanVide()
+        bilans.set(g.posteLocalId, b)
+      }
+      cumuler(b, g)
+    }
+
+    // Les totaux du parc ne dépendent d'aucun filtre : ils servent à annoncer ce qu'un
+    // vidage effacerait, pas à décrire la page affichée.
+    let echanges = 0
+    for (const b of bilans.values()) echanges += b.nbEchanges
+
+    let ids = [...bilans.keys()]
+    if (params.statut === 'CONFLITS')
+      ids = ids.filter((id) => (bilans.get(id)?.nbAvecConflits ?? 0) > 0)
+
+    const postes = ids.length
+      ? await this.prisma.posteLocal.findMany({
+          where: {
+            id: { in: ids },
+            ...parMots(params.recherche, (mot) => [
+              { libelle: { contains: mot, ...CI } },
+            ]),
+          },
+        })
+      : []
+
+    const dernier = (id: string) =>
+      bilans.get(id)?.dernierEchangeAt?.getTime() ?? 0
+    // Le plus récemment actif d'abord ; à égalité, ordre alphabétique pour que la liste
+    // ne saute pas d'un rafraîchissement à l'autre.
+    postes.sort(
+      (a, b) =>
+        dernier(b.id) - dernier(a.id) || a.libelle.localeCompare(b.libelle),
+    )
+
+    const pagePostes = postes.slice((page - 1) * pageSize, page * pageSize)
+    const retire = new Map(pagePostes.map((p) => [p.id, p.masque] as const))
+    const enrichis = await this.enrichPostes(pagePostes)
+
+    return {
+      items: enrichis.map((p) => ({
+        ...p,
+        retire: retire.get(p.id) ?? false,
+        ...(bilans.get(p.id) ?? bilanVide()),
+      })),
+      total: postes.length,
+      page,
+      pageSize,
+      totaux: { echanges, quarantaine, conflitsAuto, echangesAvecRefus },
+    }
+  }
+
+  /**
+   * Bilan d'UN poste, pour sa fiche : identité, réussites, échanges avec conflits,
+   * changements refusés, flux des dernières 24 heures.
+   *
+   * Un échange « avec conflits » est un échange qui a abouti mais où le serveur et le poste
+   * n'étaient pas d'accord (le plus récent l'emporte) ; un changement REFUSÉ est autre chose :
+   * le serveur l'a écarté et l'a mis en quarantaine. Les deux sont comptés à part.
+   */
+  async getBilanPoste(posteId: string) {
+    const poste = await this.getPosteDetail(posteId)
+    const depuis = new Date(Date.now() - 24 * 60 * 60 * 1000)
+
+    const [groupes, recents, quarantaine, conflitsAuto] = await Promise.all([
+      this.prisma.journalSynchronisation.groupBy({
+        by: ['statut'],
+        where: { posteLocalId: posteId },
+        _count: { _all: true },
+        _sum: { nbMutations: true, nbConflits: true },
+        _min: { startedAt: true },
+        _max: { startedAt: true },
+      }),
+      this.prisma.journalSynchronisation.aggregate({
+        where: { posteLocalId: posteId, startedAt: { gte: depuis } },
+        _count: { _all: true },
+        _sum: { nbMutations: true },
+      }),
+      this.prisma.conflitSynchronisation.count({
+        where: {
+          typeConflit: 'REJET_SERVEUR',
+          journal: { posteLocalId: posteId },
+        },
+      }),
+      this.prisma.conflitSynchronisation.count({
+        where: {
+          typeConflit: { not: 'REJET_SERVEUR' },
+          journal: { posteLocalId: posteId },
+        },
+      }),
+    ])
+
+    const bilan = bilanVide()
+    for (const g of groupes) cumuler(bilan, g)
+
+    return {
+      poste,
+      bilan: {
+        ...bilan,
+        quarantaine,
+        conflitsAuto,
+        dernieres24h: {
+          echanges: recents._count._all,
+          mutations: recents._sum.nbMutations ?? 0,
+        },
+      },
+    }
+  }
+
+  /**
+   * Conflits et refus d'UN poste, du plus récent au plus ancien.
+   *
+   * Ni `valeurLocale` ni `valeurServeur` ne sortent d'ici : ce sont des fiches COMPLÈTES
+   * (un dossier patient entier). La supervision a besoin de savoir QUOI a été écarté et
+   * POURQUOI — pas de relire la fiche, qui reste, elle, dans la base du poste.
+   */
+  async getConflitsPoste(
+    posteId: string,
+    params: {
+      page?: number
+      pageSize?: number
+      type?: 'QUARANTAINE' | 'CONFLITS'
+    },
+  ) {
+    const existe = await this.prisma.posteLocal.findUnique({
+      where: { id: posteId },
+      select: { id: true },
+    })
+    if (!existe) throw new NotFoundException('Poste introuvable')
+
+    const pageSize = Math.min(Math.max(params.pageSize ?? 10, 1), 100)
+    const page = Math.max(params.page ?? 1, 1)
+    const where: Prisma.ConflitSynchronisationWhereInput = {
+      journal: { posteLocalId: posteId },
+    }
+    if (params.type === 'QUARANTAINE') where.typeConflit = 'REJET_SERVEUR'
+    else if (params.type === 'CONFLITS')
+      where.typeConflit = { not: 'REJET_SERVEUR' }
+
+    const [lignes, total] = await Promise.all([
+      this.prisma.conflitSynchronisation.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        select: {
+          id: true,
+          entiteType: true,
+          entiteId: true,
+          typeConflit: true,
+          createdAt: true,
+          valeurServeur: true,
+        },
+      }),
+      this.prisma.conflitSynchronisation.count({ where }),
+    ])
+
+    return {
+      items: lignes.map((l) => ({
+        id: l.id,
+        entiteType: l.entiteType,
+        entiteId: l.entiteId,
+        typeConflit: l.typeConflit,
+        createdAt: l.createdAt,
+        raison:
+          l.typeConflit === 'REJET_SERVEUR'
+            ? raisonDuRefus(l.valeurServeur)
+            : null,
+      })),
+      total,
+      page,
+      pageSize,
+    }
+  }
+
+  /**
+   * Vide l'historique des échanges.
+   *
+   * La QUARANTAINE est un cas à part. Un changement refusé par le serveur n'est ni perdu
+   * ni rejoué : le poste fait avancer son curseur, et la copie gardée ici est la seule
+   * qui reste côté serveur. L'effacer en même temps que le bruit des échanges réussis
+   * ferait disparaître, sans que personne l'ait décidé, de quoi retrouver une donnée
+   * refusée. Par défaut (`echanges`) elle est donc CONSERVÉE — avec les échanges qui la
+   * portent, car un refus ne vit pas sans l'échange qui l'a produit. `tout` l'efface aussi.
+   *
+   * Le vidage se trace lui-même, après coup : effacer l'historique ne doit pas effacer la
+   * preuve que quelqu'un l'a fait (même principe que la purge du journal d'audit).
+   */
+  async purgerActivite(
+    portee: 'echanges' | 'tout',
+    auteurId: string | null,
+    ip: string | null = null,
+  ) {
+    const [conflits, journaux, quarantaineConservee] =
+      portee === 'tout'
+        ? await this.prisma.$transaction([
+            this.prisma.conflitSynchronisation.deleteMany({}),
+            this.prisma.journalSynchronisation.deleteMany({}),
+            this.prisma.conflitSynchronisation.count({
+              where: { typeConflit: 'REJET_SERVEUR' },
+            }),
+          ])
+        : await this.prisma.$transaction([
+            this.prisma.conflitSynchronisation.deleteMany({
+              where: { typeConflit: { not: 'REJET_SERVEUR' } },
+            }),
+            // Un échange qui porte encore un refus reste : le refus en dépend.
+            this.prisma.journalSynchronisation.deleteMany({
+              where: { conflits: { none: {} } },
+            }),
+            this.prisma.conflitSynchronisation.count({
+              where: { typeConflit: 'REJET_SERVEUR' },
+            }),
+          ])
+
+    const resultat = {
+      echanges: journaux.count,
+      conflits: conflits.count,
+      quarantaineConservee,
+    }
+
+    try {
+      await this.prisma.journalAudit.create({
+        data: {
+          utilisateurId: auteurId,
+          action: 'PURGE',
+          module: 'synchronisation',
+          entiteType: 'JournalSynchronisation',
+          ipAdresse: ip,
+          statut: 'SUCCES',
+          apresJson: { portee, ...resultat },
+        },
+      })
+    } catch (e) {
+      // La trace ne doit jamais faire échouer le vidage déjà effectué.
+      this.logger.error(
+        `Le vidage n'a pas pu être tracé : ${(e as Error).message}`,
+      )
+    }
+    this.logger.log(
+      `Historique de synchronisation vidé (${portee}) : ${resultat.echanges} échange(s), ` +
+        `${resultat.conflits} conflit(s), ${resultat.quarantaineConservee} refus conservé(s)`,
+    )
+
+    this.notifications.broadcastLive('SYNC_ACTIVITY', {
+      requiredPermission: 'synchronisation.read',
+    })
+    return resultat
   }
 
   /**

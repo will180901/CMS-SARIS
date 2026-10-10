@@ -192,6 +192,9 @@ export const PERMISSIONS = {
   SYNCHRONISATION_READ:    'synchronisation.read',
   SYNCHRONISATION_EXECUTE: 'synchronisation.execute',
   SYNCHRONISATION_RESTORE: 'synchronisation.restore',
+  // Effacer l'historique des échanges des postes est un acte de gouvernance, pas de
+  // consultation : droit distinct, comme `audit.purge` pour les journaux d'audit.
+  SYNCHRONISATION_PURGE:   'synchronisation.purge',
 
   // Notifications (CRUD)
   NOTIFICATION_READ:       'notification.read',
@@ -375,6 +378,7 @@ export const PERMISSION_META: Record<PermissionCode, { libelle: string; module: 
   'synchronisation.read':        { libelle: 'Consulter l\'état de synchronisation', module: 'synchronisation' },
   'synchronisation.execute':     { libelle: 'Lancer une sauvegarde système', module: 'synchronisation' },
   'synchronisation.restore':     { libelle: 'Restaurer une sauvegarde de configuration', module: 'synchronisation' },
+  'synchronisation.purge':       { libelle: 'Vider l’historique de synchronisation', module: 'synchronisation' },
 
   // Notifications
   'notification.read':           { libelle: 'Consulter ses notifications', module: 'notification' },
