@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { Sidebar, SIDEBAR_RAIL } from './Sidebar'
 import { TopHeader }        from './TopHeader'
+import { PositionConnexion } from '@/components/PositionConnexion'
 import { DesktopTitleBar }  from './DesktopTitleBar'
 import { BulleSynchro }     from './BulleSynchro'
 import { isDesktop }        from '@/lib/desktop'
@@ -122,6 +123,7 @@ export function AppShell() {
         style={{ backgroundColor: 'var(--fond-page)', marginLeft: isMobile ? 0 : SIDEBAR_RAIL }}
       >
         <TopHeader />
+        <PositionConnexion />
         <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: isMobile ? '0 var(--espace-2) var(--espace-2)' : '0 var(--espace-4) var(--espace-4)' }}>
         <Suspense fallback={<RouteLoader />}>
         <Routes>

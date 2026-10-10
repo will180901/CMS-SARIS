@@ -20,10 +20,14 @@ import sharp from 'sharp'
 import { generateSecret, generateURI, verifySync } from 'otplib'
 import { PrismaService } from '../../prisma/prisma.service'
 import { ParametresService } from '../parametres/parametres.service'
-import { UpdatePreferencesDto, UpdateMonProfilDto } from './dto/me.dto'
+import {
+  UpdatePreferencesDto,
+  UpdateMonProfilDto,
+  PositionAppareilDto,
+} from './dto/me.dto'
 import { encryptSecret, decryptSecret } from '../../common/crypto/totp-secret'
 import { resolveGeo } from '../../common/geo/geo.util'
-import { resumerConnexions } from './connexions.util'
+import { resumerConnexions, resumePosition } from './connexions.util'
 
 const PREF_DEFAULTS = {
   theme: 'auto',
@@ -299,6 +303,22 @@ export class MeService {
       this.prisma,
       sessions.map((s) => s.connexionId ?? s.id),
     )
+    // Position de l'APPAREIL relevée à la connexion (ligne de journal ouverte par elle).
+    const lignes = await this.prisma.journalAuthentification.findMany({
+      where: {
+        connexionId: { in: sessions.map((s) => s.connexionId ?? s.id) },
+      },
+      select: {
+        connexionId: true,
+        posteLocalId: true,
+        positionStatut: true,
+        latitude: true,
+        longitude: true,
+        precisionM: true,
+        positionLe: true,
+      },
+    })
+    const parConnexion = new Map(lignes.map((l) => [l.connexionId, l]))
     // Localisation (ville + coordonnées) dérivée de l'IP — ajoutée à la lecture.
     return Promise.all(
       sessions.map(async ({ connexionId, ...s }) => {
@@ -307,12 +327,74 @@ export class MeService {
           ...s,
           current: s.id === currentSid,
           localisation: await resolveGeo(s.ipAdresse),
+          position: resumePosition(parConnexion.get(connexionId ?? s.id)),
           connecteDepuis: c?.debut ?? s.createdAt,
           derniereActivite: c?.derniereActivite ?? s.createdAt,
           dureeMinutes: c?.dureeMinutes ?? null,
         }
       }),
     )
+  }
+
+  // ════════════════════════════════════════════════════════════════════════
+  //  POSITION DE L'APPAREIL (relevée par le navigateur à chaque connexion web)
+  // ════════════════════════════════════════════════════════════════════════
+
+  /** Ligne du journal des connexions ouverte par la connexion en cours (celle de `sid`). */
+  private async ligneDeConnexion(sid: string | null) {
+    if (!sid) return null
+    const session = await this.prisma.sessionUtilisateur.findUnique({
+      where: { id: sid },
+      select: { id: true, connexionId: true },
+    })
+    if (!session) return null
+    return this.prisma.journalAuthentification.findFirst({
+      where: { connexionId: session.connexionId ?? session.id },
+      orderBy: { createdAt: 'asc' },
+    })
+  }
+
+  /**
+   * Où en est la position de CETTE connexion, et le centre l'exige-t-il ?
+   * `suivie` faux = rien à faire (poste de bureau, ou session ouverte avant cette fonction
+   * et sans ligne de journal où la ranger). `bloquant` : l'administrateur système n'est
+   * jamais verrouillé hors de l'application — il reste tracé, mais il doit pouvoir
+   * retirer l'exigence si les navigateurs du centre ne fournissent pas de position.
+   */
+  async getPosition(sid: string | null, roles: string[]) {
+    const ligne = await this.ligneDeConnexion(sid)
+    const obligatoire = await this.params.getBool('auth.position_obligatoire')
+    return {
+      suivie: !!ligne && !ligne.posteLocalId,
+      statut: ligne?.positionStatut ?? null,
+      obligatoire,
+      bloquant: obligatoire && !roles.includes('ADMIN_SYSTEME'),
+    }
+  }
+
+  /**
+   * Enregistre la position annoncée par l'appareil pour la connexion en cours. Une position
+   * relevée n'est JAMAIS remplacée : le journal garde ce que l'appareil a dit à la
+   * connexion. Un refus ou une indisponibilité, eux, peuvent être corrigés (l'utilisateur
+   * autorise ensuite la position dans son navigateur).
+   */
+  async setPosition(sid: string | null, dto: PositionAppareilDto) {
+    const ligne = await this.ligneDeConnexion(sid)
+    if (!ligne || ligne.posteLocalId) return { ok: false, statut: null }
+    if (ligne.positionStatut === 'OK') return { ok: true, statut: 'OK' }
+    await this.prisma.journalAuthentification.update({
+      where: { id: ligne.id },
+      data: {
+        positionStatut: dto.statut,
+        positionLe: new Date(),
+        ...(dto.statut === 'OK' && {
+          latitude: dto.latitude,
+          longitude: dto.longitude,
+          precisionM: dto.precisionM,
+        }),
+      },
+    })
+    return { ok: true, statut: dto.statut }
   }
 
   async revokeSession(

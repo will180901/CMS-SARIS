@@ -22,7 +22,8 @@ import {
   ArrowRight, Plus, Minus, User, Clock, Globe, Layers, MapPin, Download, Trash2,
 } from 'lucide-react'
 import { parseUserAgent } from '@/lib/userAgent'
-import { formatCoords } from '@/lib/geo'
+import { formatCoords, textePosition } from '@/lib/geo'
+import { PositionAppareil } from '../components/PositionAppareil'
 import { formatDateTime } from '@/lib/intl'
 import { useIsCompact } from '@/hooks/useMediaQuery'
 import {
@@ -179,7 +180,8 @@ export function AuditPage() {
     { libelle: t('admin.colLogin'),     valeur: e => e.login ?? '—' },
     { libelle: t('admin.colResult'),    valeur: e => labelStatut('auth_result', e.resultat) },
     { libelle: t('admin.colIpAddress'), valeur: e => e.ipAdresse ?? '—' },
-    { libelle: t('admin.colLocation'),  valeur: e => (e.localisation && e.localisation.label !== 'Localisation inconnue' ? e.localisation.label : '—') },
+    { libelle: t('position.colPosition'), valeur: e => textePosition(e.position, t) },
+    { libelle: t('position.colLocalisationIp'), valeur: e => (e.localisation && e.localisation.label !== 'Localisation inconnue' ? e.localisation.label : '—') },
     { libelle: t('admin.colBrowser'),   valeur: e => (e.userAgent ? parseUserAgent(e.userAgent).label : '—') },
     { libelle: t('admin.colPoste'),     valeur: e => e.poste?.libelle ?? '—' },
     { libelle: t('admin.colDuration'),  valeur: e => libelleConnexion(e, t) ?? '—' },
@@ -750,7 +752,7 @@ function ActionsTable({ entries, loading, onOpen }: {
 
 // ── Grille colonnes auth ──────────────────────────────────────────────────────
 
-const AUTH_COLS = '170px 150px 160px 140px 170px 1fr'
+const AUTH_COLS = '170px 150px 160px 140px 250px 1fr'
 
 // ── Table auth ────────────────────────────────────────────────────────────────
 
@@ -761,7 +763,7 @@ function AuthTable({ entries, loading }: {
   const { t } = useTranslation()
   const isCompact = useIsCompact()
   const pagination = usePagination(entries, useRowsPerPage())
-  const rz = useColumnResize({ storageKey: 'audit-auth-v2', ready: !loading && entries.length > 0, cellsSelector: ':scope > *' })
+  const rz = useColumnResize({ storageKey: 'audit-auth-v3', ready: !loading && entries.length > 0, cellsSelector: ':scope > *' })
   const cols = rz.gridTemplate ?? AUTH_COLS
   const poserCartes = useCartesMobile()
 
@@ -782,7 +784,7 @@ function AuthTable({ entries, loading }: {
         {!loading && entries.length > 0 && (
           <div style={{ overflowX: isCompact ? 'auto' : undefined, flexShrink: 0, scrollbarWidth: 'none' }}>
             <div style={{ minWidth: isCompact ? 'max-content' : undefined }}>
-              <Row header resize={rz} cols={cols} columns={[t('admin.colDate'), t('admin.colLogin'), t('admin.colResult'), t('admin.colIpAddress'), t('admin.colLocation'), t('admin.colBrowser')]} />
+              <Row header resize={rz} cols={cols} columns={[t('admin.colDate'), t('admin.colLogin'), t('admin.colResult'), t('admin.colIpAddress'), t('position.colTable'), t('admin.colBrowser')]} />
             </div>
           </div>
         )}
@@ -841,17 +843,22 @@ function AuthTable({ entries, loading }: {
               )}
             </Cell>
             <Cell>
-              {e.localisation && e.localisation.label !== 'Localisation inconnue' && (
-                <span
-                  title={formatCoords(e.localisation) ? `${t('admin.coordinates')} ${formatCoords(e.localisation)}${e.localisation.timezone ? ' · ' + e.localisation.timezone : ''}` : undefined}
-                  style={{
-                    fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)',
-                    display: 'inline-flex', alignItems: 'center', gap: 4, minWidth: 0,
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  }}>
-                  <MapPin size={11} style={{ flexShrink: 0 }} /> {e.localisation.label}
-                </span>
-              )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+                {/* Position de l'APPAREIL (relevée à la connexion) puis, en second, la ville
+                    déduite de l'adresse IP — approximative, d'où la mention au survol. */}
+                <PositionAppareil position={e.position} />
+                {e.localisation && e.localisation.label !== 'Localisation inconnue' && (
+                  <span
+                    title={`${t('position.parAdresse')}${formatCoords(e.localisation) ? ` — ${t('admin.coordinates')} ${formatCoords(e.localisation)}` : ''}`}
+                    style={{
+                      fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)',
+                      display: 'inline-flex', alignItems: 'center', gap: 4, minWidth: 0,
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>
+                    <MapPin size={11} style={{ flexShrink: 0 }} /> {e.localisation.label}
+                  </span>
+                )}
+              </div>
             </Cell>
             <Cell>
               {e.userAgent && (

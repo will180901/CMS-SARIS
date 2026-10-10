@@ -9,7 +9,7 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
 import { resolveGeo } from '../../common/geo/geo.util'
-import { resumerConnexions } from '../security/connexions.util'
+import { resumerConnexions, resumePosition } from '../security/connexions.util'
 
 /** Ce que la purge doit effacer. */
 export type PortailPurge = 'actions' | 'authentifications' | 'tout'
@@ -141,8 +141,29 @@ export class AuditService {
     const data = await Promise.all(
       rows.map(async (r) => {
         const c = r.connexionId ? connexions.get(r.connexionId) : undefined
+        const {
+          positionStatut,
+          latitude,
+          longitude,
+          precisionM,
+          positionLe,
+          ...reste
+        } = r
+        // Position de l'APPAREIL, seulement sur la ligne qui ouvre une connexion (les
+        // échecs et les déconnexions n'en portent pas).
+        const position = r.connexionId
+          ? resumePosition({
+              posteLocalId: r.posteLocalId,
+              positionStatut,
+              latitude,
+              longitude,
+              precisionM,
+              positionLe,
+            })
+          : null
         return {
-          ...r,
+          ...reste,
+          position,
           localisation: await resolveGeo(r.ipAdresse),
           connexion: c
             ? {

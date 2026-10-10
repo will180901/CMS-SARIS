@@ -147,6 +147,42 @@ export interface GeoLocalisation {
   source:    'local' | 'externe' | 'inconnue'
 }
 
+/** Position de l'APPAREIL relevée par le navigateur à la connexion web (jamais déduite de l'IP). */
+export interface PositionConnexion {
+  etat:       'OK' | 'REFUSEE' | 'INDISPONIBLE' | 'NON_RECUE' | 'NON_APPLICABLE'
+  latitude:   number | null
+  longitude:  number | null
+  /** Marge d'erreur annoncée par l'appareil, en mètres. */
+  precisionM: number | null
+  releveeLe:  string | null
+}
+/** Où en est la position de CETTE connexion, et le centre l'exige-t-il. */
+export interface EtatPositionConnexion {
+  /** Faux : rien à faire (poste de bureau, session sans ligne de journal). */
+  suivie:      boolean
+  statut:      'OK' | 'REFUSEE' | 'INDISPONIBLE' | null
+  obligatoire: boolean
+  /** Exigée ET cette personne peut être verrouillée (l'administrateur système, jamais). */
+  bloquant:    boolean
+}
+export type PositionEnvoyee =
+  | { statut: 'OK'; latitude: number; longitude: number; precisionM: number }
+  | { statut: 'REFUSEE' | 'INDISPONIBLE' }
+/** Ce que le serveur voit de la requête : l'adresse retenue et d'où elle vient. */
+export interface DiagnosticReseau {
+  ip:              string | null
+  origine:         'ENTETE' | 'X_FORWARDED_FOR' | 'SOCKET'
+  verdict:         'OK' | 'LOCAL' | 'ADRESSE_INTERNE' | 'FALSIFIABLE'
+  adresseSocket:   string | null
+  enteteConfigure: string | null
+  valeurEntete:    string | null
+  xForwardedFor:   string | null
+  cfConnectingIp:  string | null
+  trueClientIp:    string | null
+  trustProxy:      string
+  localisation:    GeoLocalisation | null
+}
+
 export interface AuthLogEntry {
   id:            string
   utilisateurId: string | null
@@ -161,6 +197,8 @@ export interface AuthLogEntry {
   connexion?:    { etat: 'EN_COURS' | 'TERMINEE' | 'INTERROMPUE'; dureeMinutes: number; fin: string; derniereActivite: string } | null
   /** Poste desktop d'origine (session de synchronisation). */
   poste?:        { id: string; libelle: string | null } | null
+  /** Position de l'appareil relevée à la connexion (seulement sur la ligne qui l'a ouverte). */
+  position?:     PositionConnexion | null
 }
 
 export interface ParametreSysteme {
@@ -206,6 +244,8 @@ export interface SessionInfo {
   connecteDepuis?:   string
   derniereActivite?: string
   dureeMinutes?:     number | null
+  /** Position de l'appareil relevée à la connexion. */
+  position?:         PositionConnexion | null
 }
 export interface TotpStatus  { actif: boolean; enAttente: boolean }
 export interface TotpSetup   { secret: string; otpauthUrl: string; issuer: string }
@@ -330,6 +370,7 @@ export const adminApi = {
     list:   ()                                 => api.get<ParametreSysteme[]>('/admin/parametres'),
     update: (cle: string, valeur: string)      => api.patch<unknown>(`/admin/parametres/${encodeURIComponent(cle)}`, { valeur }),
     reset:  (cle: string)                      => api.post<{ success: boolean; valeur: string }>(`/admin/parametres/${encodeURIComponent(cle)}/reset`, {}),
+    diagnosticReseau: ()                       => api.get<DiagnosticReseau>('/admin/parametres/diagnostic-reseau'),
   },
 
   // « Mon compte » — utilisateur connecté
@@ -355,6 +396,9 @@ export const adminApi = {
     removePhoto: () => api.delete<{ photoUrl: null }>('/me/photo'),
 
     annuaire: () => api.get<AnnuaireEntry[]>('/me/annuaire'),
+
+    getPosition:  ()                             => api.get<EtatPositionConnexion>('/me/position'),
+    setPosition:  (p: PositionEnvoyee)           => api.post<{ ok: boolean; statut: string | null }>('/me/position', p),
 
     getProfil:    ()                             => api.get<MonProfil>('/me/profil'),
     updateProfil: (data: UpdateMonProfilPayload) => api.patch<MonProfil>('/me/profil', data),

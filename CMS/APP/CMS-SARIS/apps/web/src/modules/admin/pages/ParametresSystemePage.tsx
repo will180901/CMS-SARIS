@@ -8,12 +8,13 @@
  */
 
 import { useState } from 'react'
-import { SlidersHorizontal, ShieldCheck, Bell } from 'lucide-react'
+import { SlidersHorizontal, ShieldCheck, Bell, Network } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { PageHeader } from '@/components/saris'
 import { usePermissions } from '@/hooks/usePermissions'
 import { useIsCompact } from '@/hooks/useMediaQuery'
 import { GenerauxTab } from '../components/parametres/GenerauxTab'
+import { DiagnosticReseauCard } from '../components/parametres/DiagnosticReseauCard'
 import { SettingsSubNav, type SettingsSectionItem } from '../components/parametres/SettingsSubNav'
 
 /** Groupes système combinés sous UNE entrée de sous-nav « Sécurité & mot de passe »
@@ -31,6 +32,7 @@ export function ParametresSystemePage() {
   const sections: SettingsSectionItem[] = [
     { key: 'securite-mdp', label: t('settings.genSecurityPassword'), icon: <ShieldCheck size={15} />, hint: t('settings.genSecurityPasswordHint') },
     { key: 'Notifications', label: t('settings.genNotifications'), icon: <Bell size={15} />, hint: t('settings.genNotificationsHint') },
+    { key: 'reseau', label: t('position.reseau.nav'), icon: <Network size={15} />, hint: t('position.reseau.navHint') },
   ]
 
   const [sub, setSub] = useState<string>(sections[0]!.key)
@@ -46,7 +48,9 @@ export function ParametresSystemePage() {
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: isCompact ? 'column' : 'row', gap: 'var(--espace-5)', padding: 'var(--espace-4) var(--espace-6) var(--espace-6)' }}>
         <SettingsSubNav items={sections} value={sub} onChange={setSub} compact={isCompact} />
         <div style={{ flex: 1, minWidth: 0, minHeight: 0, overflowY: 'auto' }}>
-          <GenerauxTab canWrite={canWrite} section={sub === 'securite-mdp' ? SECURITY_GROUPS : sub} />
+          {sub === 'reseau'
+            ? <DiagnosticReseauCard />
+            : <GenerauxTab canWrite={canWrite} section={sub === 'securite-mdp' ? SECURITY_GROUPS : sub} />}
         </div>
       </div>
     </div>

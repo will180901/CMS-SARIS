@@ -72,6 +72,14 @@ export const PARAMETRES_CATALOGUE: ParametreDef[] = [
     description: "Durée de validité d'une session (token d'accès) en minutes",
     group: 'Sécurité & authentification',
   },
+  {
+    cle: 'auth.position_obligatoire',
+    type: 'boolean',
+    defaultVal: 'false',
+    description:
+      "Exiger la position de l'appareil à la connexion web : sans elle, l'application reste verrouillée (sauf pour l'administrateur système, qui reste tracé). À activer une fois les navigateurs du centre autorisés à la fournir. Désactivé, une position manquante est seulement signalée en rouge dans le journal des connexions",
+    group: 'Sécurité & authentification',
+  },
 
   // ── Politique de mot de passe (appliquée à la création / reset / changement) ──
   {

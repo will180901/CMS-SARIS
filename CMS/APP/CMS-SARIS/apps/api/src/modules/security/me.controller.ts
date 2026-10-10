@@ -4,6 +4,7 @@
  * Aucune permission requise (hors authentification) : self-service.
  *  - /me/preferences         GET / PUT
  *  - /me/profil              GET / PATCH (nom, prénom, e-mail)
+ *  - /me/position            GET / POST (position de l'appareil à la connexion web)
  *   - /me/sessions            GET ; /me/sessions/:id DELETE ; /me/sessions/revoke-others POST
  *   - /me/totp                GET (statut) ; setup / activate / disable POST
  */
@@ -32,6 +33,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard'
 import {
   UpdatePreferencesDto,
   UpdateMonProfilDto,
+  PositionAppareilDto,
   TotpCodeDto,
 } from './dto/me.dto'
 
@@ -60,6 +62,18 @@ export class MeController {
   @Patch('profil')
   updateProfil(@Body() dto: UpdateMonProfilDto, @Req() req: any) {
     return this.svc.updateProfil(req.user.id, dto)
+  }
+
+  // ── Position de l'appareil, relevée à chaque connexion web ───────────────
+  @Get('position')
+  getPosition(@Req() req: any) {
+    return this.svc.getPosition(req.user.sid ?? null, req.user.roles ?? [])
+  }
+
+  @Post('position')
+  @HttpCode(HttpStatus.OK)
+  setPosition(@Body() dto: PositionAppareilDto, @Req() req: any) {
+    return this.svc.setPosition(req.user.sid ?? null, dto)
   }
 
   // ── Photo de profil (avatar) ──────────────────────────────────────────────

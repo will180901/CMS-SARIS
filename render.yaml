@@ -81,8 +81,16 @@ services:
         sync: false
       - key: CORS_ORIGINS          # origine(s) du site web public autorisée(s)
         value: https://cms-saris-web.onrender.com
-      - key: TRUST_PROXY           # derrière le proxy Render → vraie IP client
-        value: "true"
+      # Adresse du client derrière Cloudflare + Render. `TRUST_PROXY=true` lisait le 1er élément
+      # de X-Forwarded-For, que n'importe quel appelant peut falsifier (Render ne le filtre pas) :
+      # le journal des connexions ET la limitation des tentatives étaient contournables.
+      # Cloudflare écrit lui-même CF-Connecting-IP et écrase ce que le client envoie : c'est
+      # la source fiable (CLIENT_IP_HEADER). TRUST_PROXY=1 ne sert plus que de repli.
+      # À vérifier ensuite : Paramètres système › Réseau (adresse vue par le serveur).
+      - key: TRUST_PROXY
+        value: "1"
+      - key: CLIENT_IP_HEADER
+        value: cf-connecting-ip
 
   # ── 2) Site web public (React/Vite, PWA) ───────────────────────────────────
   - type: web

@@ -10,10 +10,11 @@
 import { useState, useEffect, useRef } from 'react'
 import {
   Palette, ShieldCheck, MonitorSmartphone, KeyRound, Check, Copy, ShieldAlert,
-  LogOut, QrCode, Save, MapPin, Globe, Navigation, ImageUp, Trash2, UserRound,
+  LogOut, QrCode, Save, MapPin, Globe, ImageUp, Trash2, UserRound,
 } from 'lucide-react'
 import { parseUserAgent } from '@/lib/userAgent'
-import { geoLabel, formatCoords, mapsUrl } from '@/lib/geo'
+import { geoLabel } from '@/lib/geo'
+import { PositionAppareil } from '../PositionAppareil'
 import { QRCode } from '@workspace/ui/components/kibo-ui/qr-code'
 import { toast } from '@workspace/ui/components/sonner'
 import { Card, Button, SelectBox, TextInput, StatusPill, Skeleton, SegmentedTabs, TotpCountdown, UserAvatar, PhotoCropModal, Field, InfoRow } from '@/components/saris'
@@ -510,22 +511,16 @@ function SessionsCard() {
                   {s.current && <StatusPill tone="success" dot={false} size="sm">{t('settings.sessionsThis')}</StatusPill>}
                 </p>
                 <p style={{ margin: '2px 0 0', fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  {/* La ville se déduit de l'adresse IP : c'est celle de l'opérateur, approximative —
+                      d'où l'absence de coordonnées tirées de l'IP (elles désignaient un point précis
+                      qui n'était pas le bon). La vraie position est celle de l'appareil, ci-dessous. */}
+                  <span title={t('position.parAdresse')} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                     <MapPin size={11} /> {geoLabel(s.localisation)}
                   </span>
-                  {formatCoords(s.localisation) && (
-                    mapsUrl(s.localisation)
-                      ? <a href={mapsUrl(s.localisation)!} target="_blank" rel="noopener noreferrer"
-                           style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--ap-600)', textDecoration: 'none' }}>
-                          <Navigation size={11} /> {formatCoords(s.localisation)}
-                        </a>
-                      : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                          <Navigation size={11} /> {formatCoords(s.localisation)}
-                        </span>
-                  )}
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                     <Globe size={11} /> {s.ipAdresse ?? t('settings.sessionsUnknownIp')}
                   </span>
+                  <PositionAppareil position={s.position} />
                   {/* Depuis quand la personne est CONNECTÉE (et non le dernier renouvellement du
                       jeton, que montrait « ouverte le »), et sa dernière activité. */}
                   <span>{(s.dureeMinutes ?? 0) >= 1

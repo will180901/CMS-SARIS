@@ -4,6 +4,10 @@ import type { NestExpressApplication } from '@nestjs/platform-express'
 import helmet from 'helmet'
 import { AppModule } from './app.module'
 import { GlobalExceptionFilter } from './common/filters/http-exception.filter'
+import {
+  enteteAdresseClient,
+  installerAdresseClient,
+} from './common/reseau/adresse-client'
 
 /**
  * Configuration HTTP de l'application (parseurs, proxy, sécurité, CORS, validation,
@@ -31,6 +35,16 @@ export function configurerApp(app: NestExpressApplication): void {
           : trustProxyEnv
     : 1 // défaut : on fait confiance au 1er proxy en amont
   app.set('trust proxy', trustProxy)
+
+  // ── Adresse du client : en-tête écrit par le relais de confiance (cf. adresse-client.ts).
+  installerAdresseClient(app)
+  if (process.env['NODE_ENV'] === 'production' && !enteteAdresseClient()) {
+    const reseau = new Logger('Réseau')
+    if (trustProxy === true)
+      reseau.warn(
+        "TRUST_PROXY=true : l'adresse du client est lue dans X-Forwarded-For, que l'appelant peut falsifier (journal des connexions et limitation des tentatives contournables). Préférez CLIENT_IP_HEADER (ex. cf-connecting-ip) ou un nombre de relais.",
+      )
+  }
 
   // ── Sécurité : headers HTTP protégés ──────────────────────────────────────
   app.use(helmet())

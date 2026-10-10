@@ -1,6 +1,8 @@
 import {
   IsOptional,
   IsIn,
+  IsNumber,
+  ValidateIf,
   IsEmail,
   IsNotEmpty,
   IsString,
@@ -41,6 +43,36 @@ export class UpdatePreferencesDto {
   @IsOptional()
   @IsBoolean()
   notifEmail?: boolean
+}
+
+// ── Position de l'appareil (relevée par le navigateur à la connexion) ─────────
+
+export const STATUTS_POSITION = ['OK', 'REFUSEE', 'INDISPONIBLE'] as const
+export type StatutPosition = (typeof STATUTS_POSITION)[number]
+
+export class PositionAppareilDto {
+  @IsIn(STATUTS_POSITION)
+  statut!: StatutPosition
+
+  // Coordonnées exigées seulement quand la position a bien été relevée.
+  @ValidateIf((o: PositionAppareilDto) => o.statut === 'OK')
+  @IsNumber()
+  @Min(-90)
+  @Max(90)
+  latitude?: number
+
+  @ValidateIf((o: PositionAppareilDto) => o.statut === 'OK')
+  @IsNumber()
+  @Min(-180)
+  @Max(180)
+  longitude?: number
+
+  /** Marge d'erreur annoncée par le navigateur, en mètres. */
+  @ValidateIf((o: PositionAppareilDto) => o.statut === 'OK')
+  @IsNumber()
+  @Min(0)
+  @Max(1_000_000)
+  precisionM?: number
 }
 
 // ── Mon profil ────────────────────────────────────────────────────────────────

@@ -11,8 +11,10 @@ import type {
   CreateRolePayload, UpdateRolePayload,
   SetPermissionOverridesPayload, BulkPermissionPayload,
   UpdatePreferencesPayload, UpdateMonProfilPayload,
+  EtatPositionConnexion, PositionEnvoyee,
 } from '../api/admin.api'
 import { ApiError, isOfflineQueued } from '@/lib/api'
+import { releverPosition, etatPermissionPosition, ErreurPosition } from '@/lib/position'
 import { useSessionStore } from '@/stores/session.store'
 import { ME_KEY, performTokenRefresh } from '@/modules/auth/hooks/useRefreshSession'
 import i18n from '@/i18n/config'
@@ -470,6 +472,7 @@ export const ME_KEYS = {
   totp:        ['me', 'totp'] as const,
   annuaire:    ['me', 'annuaire'] as const,
   profil:      ['me', 'profil'] as const,
+  position:    ['me', 'position'] as const,
 }
 
 export function useMonProfil() {
@@ -515,6 +518,69 @@ export function useUpdateMyPreferences({ silencieux = false }: { silencieux?: bo
       if (!silencieux) toast.success(i18n.t('admin.toastPreferencesSaved'))
     },
     onError: toastErr,
+  })
+}
+
+/** Clé de l'état de position : propre à la personne connectée, pour qu'une autre connexion
+ *  (même onglet, autre compte) ne reprenne jamais l'état de la précédente. */
+export const cleEtatPosition = (userId?: string | null) => [...ME_KEYS.position, userId ?? ''] as const
+
+/** Position de l'appareil pour CETTE connexion web, et exigence du centre (cf. PositionConnexion). */
+export function useEtatPosition(enabled: boolean, userId?: string | null) {
+  return useQuery({
+    queryKey: cleEtatPosition(userId),
+    queryFn:  () => adminApi.me.getPosition(),
+    enabled,
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+  })
+}
+
+/**
+ * Relève la position de l'appareil et la signale au serveur (statut + coordonnées).
+ * L'invite d'autorisation est celle du navigateur — tant que la personne n'a pas répondu,
+ * la mutation reste en cours. Un délai dépassé déclenche un second essai sans GPS
+ * (réseau / Wi-Fi), plus rapide mais moins précis.
+ */
+export function useReleverPosition() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (): Promise<PositionEnvoyee['statut']> => {
+      const signaler = async (p: PositionEnvoyee) => { await adminApi.me.setPosition(p); return p.statut }
+      // Déjà refusée dans le navigateur : aucune invite n'est possible, on le consigne tout de suite.
+      if ((await etatPermissionPosition()) === 'denied') return signaler({ statut: 'REFUSEE' })
+      let echec: unknown
+      try {
+        return await signaler({ statut: 'OK', ...(await releverPosition(20_000)) })
+      } catch (e) {
+        echec = e
+      }
+      if (echec instanceof ErreurPosition && echec.code === 'delai_depasse') {
+        try {
+          return await signaler({ statut: 'OK', ...(await releverPosition(10_000, false)) })
+        } catch (e) {
+          echec = e
+        }
+      }
+      return signaler({ statut: echec instanceof ErreurPosition && echec.code === 'refuse' ? 'REFUSEE' : 'INDISPONIBLE' })
+    },
+    onSuccess: (statut) => {
+      const userId = useSessionStore.getState().user?.id
+      qc.setQueryData<EtatPositionConnexion>(cleEtatPosition(userId), (e) => (e ? { ...e, statut } : e))
+      // Le journal des connexions et les sessions portent désormais cette position.
+      qc.invalidateQueries({ queryKey: ME_KEYS.sessions })
+      qc.invalidateQueries({ queryKey: ADMIN_KEYS.auth })
+    },
+  })
+}
+
+/** Ce que le serveur voit de la requête (adresse retenue, relais) — Paramètres système › Réseau. */
+export function useDiagnosticReseau() {
+  return useQuery({
+    queryKey: ['admin', 'reseau'] as const,
+    queryFn:  () => adminApi.parametres.diagnosticReseau(),
+    staleTime: 0,
+    refetchOnWindowFocus: false,
   })
 }
 

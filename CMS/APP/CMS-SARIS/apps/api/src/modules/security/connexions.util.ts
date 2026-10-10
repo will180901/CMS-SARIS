@@ -96,3 +96,55 @@ export async function resumerConnexions(
   }
   return resultat
 }
+
+// ── Position de l'APPAREIL relevée à la connexion ────────────────────────────
+
+export type EtatPosition =
+  | 'OK'
+  | 'REFUSEE'
+  | 'INDISPONIBLE'
+  /** Connexion web dont l'appareil n'a rien répondu (invite ignorée, onglet fermé…). */
+  | 'NON_RECUE'
+  /** Poste de bureau : sa position est celle enregistrée à l'installation du poste. */
+  | 'NON_APPLICABLE'
+
+export interface ResumePosition {
+  etat: EtatPosition
+  latitude: number | null
+  longitude: number | null
+  /** Marge d'erreur annoncée par l'appareil, en mètres. */
+  precisionM: number | null
+  releveeLe: Date | null
+}
+
+/** Position d'une connexion d'après sa ligne de journal ; null si la connexion n'a pas de ligne. */
+export function resumePosition(
+  ligne:
+    | {
+        posteLocalId?: string | null
+        positionStatut?: string | null
+        latitude?: number | null
+        longitude?: number | null
+        precisionM?: number | null
+        positionLe?: Date | null
+      }
+    | null
+    | undefined,
+): ResumePosition | null {
+  if (!ligne) return null
+  const etat: EtatPosition = ligne.posteLocalId
+    ? 'NON_APPLICABLE'
+    : ligne.positionStatut === 'OK' ||
+        ligne.positionStatut === 'REFUSEE' ||
+        ligne.positionStatut === 'INDISPONIBLE'
+      ? ligne.positionStatut
+      : 'NON_RECUE'
+  const releve = etat === 'OK'
+  return {
+    etat,
+    latitude: releve ? (ligne.latitude ?? null) : null,
+    longitude: releve ? (ligne.longitude ?? null) : null,
+    precisionM: releve ? (ligne.precisionM ?? null) : null,
+    releveeLe: ligne.positionLe ?? null,
+  }
+}

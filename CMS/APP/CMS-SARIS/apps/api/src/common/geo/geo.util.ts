@@ -61,14 +61,14 @@ function countryName(code?: string | null): string | null {
   }
 }
 
-function normalizeIp(ip?: string | null): string | null {
+export function normalizeIp(ip?: string | null): string | null {
   if (!ip) return null
   let v = ip.trim()
   if (v.startsWith('::ffff:')) v = v.slice(7)
   return v || null
 }
 
-function isPrivate(ip: string): boolean {
+export function isPrivate(ip: string): boolean {
   return (
     ip === '::1' ||
     ip === '127.0.0.1' ||

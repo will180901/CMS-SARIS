@@ -263,6 +263,15 @@ model JournalAuthentification {
   connexionId   String?
   /// Poste desktop d'où vient la connexion (session de synchronisation) — vide en navigateur.
   posteLocalId  String?
+  /// Position de l'APPAREIL relevée par le navigateur à la connexion web — jamais déduite de
+  /// l'adresse IP (qui ne dit que la ville de l'opérateur). `positionStatut` : OK | REFUSEE |
+  /// INDISPONIBLE ; vide = rien reçu. Les coordonnées sont DÉCLARÉES par l'appareil : elles
+  /// tracent, elles ne prouvent pas (`precisionM` = la marge d'erreur annoncée, en mètres).
+  positionStatut String?
+  latitude       Float?
+  longitude      Float?
+  precisionM     Float?
+  positionLe     DateTime?
   utilisateur   Utilisateur? @relation(fields: [utilisateurId], references: [id])
 }
 

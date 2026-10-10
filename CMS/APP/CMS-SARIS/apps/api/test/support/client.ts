@@ -45,19 +45,31 @@ export interface Client {
     chemin: string,
     champs: Record<string, string>,
   ): Promise<Reponse<T>>
-  /** Appel avec une méthode HTTP quelconque (inventaire des routes). */
-  appel(methode: Methode, chemin: string): Promise<Reponse>
+  /** Appel avec une méthode HTTP quelconque (inventaire des routes), en-têtes et corps
+   *  facultatifs (ex. les en-têtes qu'ajouterait un relais réseau). */
+  appel(
+    methode: Methode,
+    chemin: string,
+    entetes?: Record<string, string>,
+    corps?: object,
+  ): Promise<Reponse>
 }
 
 export type Methode = 'get' | 'post' | 'put' | 'patch' | 'delete'
 
-/** Appel SANS jeton d'accès. */
+/** Appel SANS jeton d'accès (en-têtes et corps facultatifs). */
 export async function appelAnonyme(
   app: NestExpressApplication,
   methode: Methode,
   chemin: string,
+  entetes: Record<string, string> = {},
+  corps?: object,
 ): Promise<Reponse> {
-  const r = await serveur(app)[methode](chemin)
+  let req = serveur(app)[methode](chemin)
+  for (const [nom, valeur] of Object.entries(entetes))
+    req = req.set(nom, valeur)
+  if (corps) req = req.send(corps)
+  const r = await req
   return { status: r.status, body: r.body as unknown }
 }
 
@@ -145,7 +157,12 @@ function client(
         req = req.field(nom, valeur)
       return repondre(await req)
     },
-    appel: async (methode, c) =>
-      repondre(await serveur(app)[methode](c).set('Authorization', auth)),
+    appel: async (methode, c, entetes = {}, corps) => {
+      let req = serveur(app)[methode](c).set('Authorization', auth)
+      for (const [nom, valeur] of Object.entries(entetes))
+        req = req.set(nom, valeur)
+      if (corps) req = req.send(corps)
+      return repondre(await req)
+    },
   }
 }

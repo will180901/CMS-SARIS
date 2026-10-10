@@ -15,6 +15,7 @@ import { ParametresService } from '../parametres/parametres.service'
 import { JwtAuthGuard } from '../security/guards/jwt-auth.guard'
 import { PermissionsGuard } from '../security/guards/permissions.guard'
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator'
+import { diagnosticReseau } from '../../common/reseau/adresse-client'
 
 export class UpdateParametreDto {
   @IsString()
@@ -31,6 +32,16 @@ export class ParametresController {
   @RequirePermissions('parametre.read')
   findAll() {
     return this.svc.findAll()
+  }
+
+  /**
+   * Ce que le serveur voit de CETTE requête (adresse retenue, d'où elle vient, en-têtes
+   * de relais) : sert à vérifier qu'au déploiement, la vraie adresse des postes est lue.
+   */
+  @Get('diagnostic-reseau')
+  @RequirePermissions('parametre.read')
+  diagnosticReseau(@Req() req: any) {
+    return diagnosticReseau(req)
   }
 
   @Patch(':cle')
