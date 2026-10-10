@@ -367,11 +367,20 @@ export class SyncService {
     // `@updatedAt` vient de ré-horodater → on restaure l'updatedAt source (SQL brut).
     // `deletedAt` n'est restauré QUE pour les modèles tombstone-able. Clé simple OU composite.
     const p = (i: number) => (this.isSqlite ? '?' : `$${i}`)
-    const setParts = [`"updatedAt" = ${p(1)}`]
-    const params: unknown[] = [new Date(env.updatedAt)]
+    // PostgreSQL : l'heure passe en TEXTE ISO, convertie explicitement en UTC. Liée comme
+    // une Date, elle était lue dans le fuseau de la SESSION (ex. Europe/Paris) puis rangée
+    // dans une colonne sans fuseau : décalée d'une à deux heures — et « le plus récent
+    // gagne » comparait ensuite des heures fausses (une modification plus récente pouvait
+    // être ignorée). SQLite range l'instant tel quel : la Date y reste.
+    const heure = (i: number) =>
+      this.isSqlite ? '?' : `($${i}::text)::timestamptz AT TIME ZONE 'UTC'`
+    const valeur = (iso: string | null | undefined) =>
+      iso ? (this.isSqlite ? new Date(iso) : new Date(iso).toISOString()) : null
+    const setParts = [`"updatedAt" = ${heure(1)}`]
+    const params: unknown[] = [valeur(env.updatedAt)]
     if (SOFT_DELETE_MODELS.has(def.model)) {
-      setParts.push(`"deletedAt" = ${p(2)}`)
-      params.push(env.deletedAt ? new Date(env.deletedAt) : null)
+      setParts.push(`"deletedAt" = ${heure(2)}`)
+      params.push(valeur(env.deletedAt))
     }
     const whereParts = def.idFields.map(
       (f, i) => `"${f}" = ${p(params.length + 1 + i)}`,
