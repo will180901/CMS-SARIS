@@ -27,9 +27,11 @@ export function complementsValides(manquants: ChampOuverturePersonnel[], c: Comp
 /** N'envoie que les champs réellement demandés : le reste vient de la fiche. */
 export function complementsVersPayload(
   manquants: ChampOuverturePersonnel[], c: ComplementsPersonnel, siteCreationId: string,
+  dossierARelier: string | null = null,
 ): OuvrirDossierPersonnelPayload {
   return {
     siteCreationId,
+    ...(dossierARelier && { dossierExistantId: dossierARelier }),
     ...(manquants.includes('dateNaissance') && { dateNaissance: c.dateNaissance }),
     ...(manquants.includes('sexe') && c.sexe && { sexe: c.sexe }),
     ...(manquants.includes('sectionPaie') && { sectionPaie: c.sectionPaie.trim() }),

@@ -197,7 +197,8 @@ export function useOuvrirDossierPersonnel() {
       qc.invalidateQueries({ queryKey: PATIENTS_KEY })
       // La fiche du personnel a pu être complétée au passage.
       qc.invalidateQueries({ queryKey: ['personnel'] })
-      if (r.cree) toast.success(i18n.t('patients.toastPatientCreated'))
+      if (r.relie) toast.success(i18n.t('triage.dossierRelie'))
+      else if (r.cree) toast.success(i18n.t('patients.toastPatientCreated'))
     },
     onError: toastError,
   })

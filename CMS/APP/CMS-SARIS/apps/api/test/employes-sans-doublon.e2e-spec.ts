@@ -245,4 +245,101 @@ describe('Employés du centre : jamais de doublon, jamais de ressaisie', () => {
     expect((await dossierDu(`ED-G-${s}`)).status).toBe(404)
     expect(await sansDossier(`MAIN${s}`)).toHaveLength(1)
   })
+
+  describe('ancien dossier à son nom, créé sans matricule', () => {
+    const ancienDossier = (nom: string, prenom: string) =>
+      inf.post<{ id: string }>('/patients', {
+        nom,
+        prenom,
+        dateNaissance: '1979-02-02',
+        sexe: 'M',
+        siteCreationId: ref.siteId,
+        categoriePatientId: ref.categories['PATIENT_EXTERNE'],
+      })
+
+    it("l'accueil le voit (même nom, sans matricule) et le relie à la fiche au lieu d'en ouvrir un second", async () => {
+      const ancien = await ancienDossier(`OKEMBA${s}`, 'Jules')
+      expect(ancien.status).toBe(201)
+      // Fiche du personnel enregistrée plus tard, avec une petite variante d'écriture.
+      const id = await enregistrer({
+        matricule: `ED-R-${s}`,
+        nom: `OKEMBA${s}`,
+        prenom: 'Jule',
+        sexe: 'M',
+      })
+
+      const similaires = await inf.get<
+        { id: string; matricule: string | null }[]
+      >(`/patients/similar?nom=OKEMBA${s}&prenom=Jule`)
+      expect(similaires.body).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: ancien.body.id, matricule: null }),
+        ]),
+      )
+
+      const r = await inf.post<{ id: string; cree: boolean; relie?: boolean }>(
+        `/patients/depuis-personnel/${id}`,
+        { siteCreationId: ref.siteId, dossierExistantId: ancien.body.id },
+      )
+      expect(r.status).toBe(200)
+      expect(r.body).toEqual({ id: ancien.body.id, cree: false, relie: true })
+
+      const d = await admin.get<
+        Dossier & { historiquesCateg: { motif: string | null }[] }
+      >(`/patients/${ancien.body.id}`)
+      expect(d.body).toMatchObject({
+        matricule: `ED-R-${s}`,
+        categoriePatient: { code: 'ASSURE_CDI' },
+        donneesEmploi: { fonction: 'Infirmier', sectionPaie: 'S2' },
+      })
+      expect(d.body.historiquesCateg[0]?.motif).toContain('fiche du personnel')
+      expect(await sansDossier(`OKEMBA${s}`)).toEqual([])
+      const patients = await inf.get<{ id: string }[]>(
+        `/patients?search=OKEMBA${s}`,
+      )
+      expect(patients.body).toHaveLength(1)
+    })
+
+    it("un dossier qui n'est pas à son nom, ou qui porte un autre matricule, n'est pas relié", async () => {
+      const id = await enregistrer({
+        matricule: `ED-S-${s}`,
+        nom: `MOUKO${s}`,
+        prenom: 'Anne',
+      })
+      const autreNom = await ancienDossier(`TCHIBINDA${s}`, 'Paul')
+      const refus = await inf.post(`/patients/depuis-personnel/${id}`, {
+        siteCreationId: ref.siteId,
+        dossierExistantId: autreNom.body.id,
+      })
+      expect(refus.status).toBe(409)
+
+      const travailleur = await inf.post<{ id: string }>('/patients', {
+        nom: `MOUKO${s}`,
+        prenom: 'Anne',
+        dateNaissance: '1980-01-01',
+        sexe: 'F',
+        siteCreationId: ref.siteId,
+        categoriePatientId: ref.categories['ASSURE_CDI'],
+        matricule: `ED-T-${s}`,
+        fonction: 'Soudeuse',
+        sectionPaie: 'S9',
+        service: 'Atelier',
+        departement: 'Usine',
+      })
+      expect(travailleur.status).toBe(201)
+      const refus2 = await inf.post(`/patients/depuis-personnel/${id}`, {
+        siteCreationId: ref.siteId,
+        dossierExistantId: travailleur.body.id,
+      })
+      expect(refus2.status).toBe(409)
+      expect((await dossierDu(`ED-S-${s}`)).status).toBe(404)
+      expect(
+        (
+          await inf.get<{ categoriePatient: { code: string } }>(
+            `/patients/${autreNom.body.id}`,
+          )
+        ).body.categoriePatient.code,
+      ).toBe('PATIENT_EXTERNE')
+    })
+  })
 })

@@ -210,4 +210,7 @@ export class OuvrirDossierPersonnelDto {
   @IsOptional() @IsIn(['M', 'F']) sexe?: string
   @IsOptional() @IsString() @MaxLength(100) sectionPaie?: string
   @IsOptional() @IsString() @MaxLength(100) departement?: string
+  /** Ancien dossier de la personne (créé sans matricule) : relié à sa fiche au lieu
+   *  d'en ouvrir un second. */
+  @IsOptional() @IsUUID() dossierExistantId?: string
 }

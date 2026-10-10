@@ -154,6 +154,20 @@ function levenshtein(a: string, b: string): number {
   return prev[n]
 }
 
+/** Même personne d'après le nom (fautes de frappe et inversion nom/prénom tolérées),
+ *  avec la même règle que la détection de doublons de l'accueil (findSimilar). */
+function memeNom(
+  a: { nom: string; prenom: string },
+  b: { nom: string; prenom: string },
+): boolean {
+  const [an, ap, bn, bp] = [a.nom, a.prenom, b.nom, b.prenom].map(normaliser)
+  const dist = Math.min(
+    levenshtein(`${ap} ${an}`, `${bp} ${bn}`),
+    levenshtein(`${ap} ${an}`, `${bn} ${bp}`),
+  )
+  return dist <= 2 || ((an === bn || an === bp) && (ap === bp || ap === bn))
+}
+
 function isoDate(d: Date | string | null | undefined): string | null {
   if (!d) return null
   const dt = typeof d === 'string' ? new Date(d) : d
@@ -446,6 +460,7 @@ export class PatientService {
       numeroPatient: x.p.numeroPatient,
       identite: x.p.identite,
       categoriePatient: x.p.categoriePatient,
+      matricule: x.p.matricule,
       site: x.p.siteCreation,
       correspondanceDate: x.sameDob,
       correspondanceExacte: x.exact,
@@ -1972,13 +1987,14 @@ export class PatientService {
   /**
    * Ouvre (ou reprend) le dossier patient d'un membre du personnel, à partir de sa fiche.
    * Jamais de second dossier : si son matricule en a déjà un, c'est celui-là qui est
-   * renvoyé — y compris quand deux postes l'ouvrent au même instant.
+   * renvoyé — y compris quand deux postes l'ouvrent au même instant. Et s'il a un ANCIEN
+   * dossier créé sans matricule (`dossierExistantId`), celui-ci est relié à sa fiche.
    */
   async ouvrirDossierPersonnel(
     personnelId: string,
     dto: OuvrirDossierPersonnelDto,
     createdBy?: string,
-  ): Promise<{ id: string; cree: boolean }> {
+  ): Promise<{ id: string; cree: boolean; relie?: boolean }> {
     const agent = await this.prisma.personnelMedical.findUnique({
       where: { id: personnelId },
     })
@@ -2017,30 +2033,42 @@ export class PatientService {
         `Catégorie ${agent.typeContrat} introuvable dans les référentiels`,
       )
 
-    let dossier: { id: string }
-    try {
-      dossier = await this.create(
-        {
-          nom: agent.nom,
-          prenom: agent.prenom,
-          dateNaissance: fiche.dateNaissance!.toISOString(),
-          sexe: fiche.sexe!,
-          categoriePatientId: categorie.id,
-          siteCreationId: dto.siteCreationId,
-          matricule: agent.matricule,
-          fonction: libelleFonction(agent.role),
-          sectionPaie: fiche.sectionPaie!,
-          service: agent.service,
-          departement: fiche.departement!,
-        },
+    let resultat: { id: string; cree: boolean; relie?: boolean }
+    if (dto.dossierExistantId) {
+      const id = await this.relierDossierAFiche(
+        agent,
+        dto.dossierExistantId,
+        fiche,
+        categorie.id,
         createdBy,
-        { depuisFichePersonnel: true },
       )
-    } catch (e) {
-      // Ouvert entre-temps par un autre poste : on reprend celui-là.
-      const entreTemps = await this.dossierDuMatricule(agent.matricule)
-      if (entreTemps) return { id: entreTemps, cree: false }
-      throw e
+      resultat = { id, cree: false, relie: true }
+    } else {
+      try {
+        const dossier = await this.create(
+          {
+            nom: agent.nom,
+            prenom: agent.prenom,
+            dateNaissance: fiche.dateNaissance!.toISOString(),
+            sexe: fiche.sexe!,
+            categoriePatientId: categorie.id,
+            siteCreationId: dto.siteCreationId,
+            matricule: agent.matricule,
+            fonction: libelleFonction(agent.role),
+            sectionPaie: fiche.sectionPaie!,
+            service: agent.service,
+            departement: fiche.departement!,
+          },
+          createdBy,
+          { depuisFichePersonnel: true },
+        )
+        resultat = { id: dossier.id, cree: true }
+      } catch (e) {
+        // Ouvert entre-temps par un autre poste : on reprend celui-là.
+        const entreTemps = await this.dossierDuMatricule(agent.matricule)
+        if (entreTemps) return { id: entreTemps, cree: false }
+        throw e
+      }
     }
 
     // Ce que l'accueil a complété reste sur la fiche : on ne le redemandera pas.
@@ -2056,7 +2084,85 @@ export class PatientService {
         data: completes,
       })
 
-    return { id: dossier.id, cree: true }
+    return resultat
+  }
+
+  /**
+   * Relie l'ANCIEN dossier d'un membre du personnel (créé avant sa fiche, sans matricule)
+   * à cette fiche : il prend son matricule, ses données d'emploi et la catégorie de son
+   * contrat (avec trace dans l'historique de catégorie). Garde-fous : un dossier actif,
+   * sans autre matricule, et AU NOM de la personne — on ne fait pas d'un patient
+   * quelconque un employé.
+   */
+  private async relierDossierAFiche(
+    agent: {
+      nom: string
+      prenom: string
+      matricule: string
+      role: string
+      service: string
+    },
+    dossierId: string,
+    fiche: { sectionPaie: string | null; departement: string | null },
+    categorieId: string,
+    createdBy?: string,
+  ) {
+    const d = await this.prisma.patient.findUnique({
+      where: { id: dossierId },
+      select: {
+        id: true,
+        matricule: true,
+        statut: true,
+        categoriePatientId: true,
+        identite: { select: { nom: true, prenom: true } },
+      },
+    })
+    if (!d) throw new NotFoundException('Dossier introuvable')
+    const qui = `${agent.prenom} ${agent.nom}`
+    if (d.statut !== 'ACTIF')
+      throw new ConflictException(
+        "Ce dossier n'est plus actif : il ne peut pas être relié à une fiche du personnel.",
+      )
+    if (d.matricule)
+      throw new ConflictException(
+        `Ce dossier porte déjà le matricule ${d.matricule} : ce n'est pas celui de ${qui}.`,
+      )
+    if (!d.identite || !memeNom(d.identite, agent))
+      throw new ConflictException(
+        `Ce dossier n'est pas au nom de ${qui} : il ne peut pas être relié à sa fiche.`,
+      )
+
+    const emploi = {
+      fonction: libelleFonction(agent.role),
+      sectionPaie: fiche.sectionPaie!,
+      service: agent.service,
+      departement: fiche.departement!,
+    }
+    if (d.categoriePatientId !== categorieId) {
+      await this.changerCategorie(
+        d.id,
+        {
+          nouvelleCategId: categorieId,
+          motif: `Relié à sa fiche du personnel (matricule ${agent.matricule})`,
+          matricule: agent.matricule,
+          ...emploi,
+        },
+        createdBy,
+      )
+    } else {
+      await this.prisma.$transaction([
+        this.prisma.patient.update({
+          where: { id: d.id },
+          data: { matricule: agent.matricule },
+        }),
+        this.prisma.donneesEmploi.upsert({
+          where: { patientId: d.id },
+          update: emploi,
+          create: { patientId: d.id, ...emploi },
+        }),
+      ])
+    }
+    return d.id
   }
 
   /** Dossier vivant portant ce matricule ; refus net s'il appartient à un dossier supprimé. */

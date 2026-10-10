@@ -87,6 +87,8 @@ export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Pr
   // avec la visite, à partir de sa fiche — on ne complète que ce qui y manque.
   const [personnel,   setPersonnel]   = useState<PersonnelSansDossier | null>(null)
   const [complements, setComplements] = useState(COMPLEMENTS_VIDES)
+  // Son ANCIEN dossier (sans matricule) retenu pour être relié à sa fiche.
+  const [dossierARelier, setDossierARelier] = useState<string | null>(null)
   const [np, setNp]     = useState<NewPatient>(EMPTY_NP)
   // Patient EXISTANT à rattacher à un travailleur CDI (conjoint déjà venu, 2e parent CDI
   // d'un enfant…). Les champs du CDI réutilisent ceux de `np` : en mode recherche, ils
@@ -209,11 +211,11 @@ export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Pr
     setShowManualMotif(false); setManualMotifLib('')
     setError(null)
     setMode('search'); setNp(EMPTY_NP); setRattOpen(false)
-    setPersonnel(null); setComplements(COMPLEMENTS_VIDES)
+    setPersonnel(null); setComplements(COMPLEMENTS_VIDES); setDossierARelier(null)
   }
   function handleClose() { reset(); onClose() }
   function choisirPersonnel(p: PersonnelSansDossier) {
-    setPatient(''); setPersonnel(p); setComplements(COMPLEMENTS_VIDES)
+    setPatient(''); setPersonnel(p); setComplements(COMPLEMENTS_VIDES); setDossierARelier(null)
   }
   function fermerRattachement() {
     setRattOpen(false)
@@ -295,10 +297,10 @@ export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Pr
       if (mode === 'search' && personnel) {
         const r = await ouvrirDossier.mutateAsync({
           personnelId: personnel.id,
-          data: complementsVersPayload(personnel.manquants, complements, mySiteId),
+          data: complementsVersPayload(personnel.manquants, complements, mySiteId, dossierARelier),
         })
         pid = r.id
-        setPersonnel(null); setPatient(r.id)
+        setPersonnel(null); setDossierARelier(null); setPatient(r.id)
       }
       // Patient existant à rattacher : AVANT la visite, pour qu'elle s'ouvre déjà sur sa
       // nouvelle catégorie. Une fois fait, le bloc se referme : si la visite échoue
@@ -480,7 +482,9 @@ export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Pr
                 personne={personnel}
                 complements={complements}
                 onChange={setComplements}
-                onRetirer={() => { setPersonnel(null); setSearch('') }}
+                onRetirer={() => { setPersonnel(null); setDossierARelier(null); setSearch('') }}
+                dossierARelier={dossierARelier}
+                onRelier={setDossierARelier}
               />
             ) : selectedPatient ? (
               <>

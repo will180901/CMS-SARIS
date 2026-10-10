@@ -114,6 +114,8 @@ export interface SimilarPatient {
   numeroPatient: string
   identite:      { nom: string; prenom: string; dateNaissance: string | null; sexe: string | null } | null
   categoriePatient: { id: string; code: string; libelle: string } | null
+  /** Vide = dossier créé sans matricule (ex. un employé venu avant d'avoir sa fiche). */
+  matricule?:    string | null
   correspondanceDate:   boolean
   correspondanceExacte: boolean
 }
@@ -234,6 +236,8 @@ export interface OuvrirDossierPersonnelPayload {
   sexe?:          'M' | 'F'
   sectionPaie?:   string
   departement?:   string
+  /** Ancien dossier de la personne, sans matricule : relié à sa fiche au lieu d'en ouvrir un second. */
+  dossierExistantId?: string
 }
 
 // Suivi du dossier (traitement, évolution des pathologies chroniques, résultats d'examens).
@@ -350,7 +354,7 @@ export const patientsApi = {
   byMatricule:  (matricule: string)      => api.get<MatriculeLookup>(`/patients/by-matricule/${encodeURIComponent(matricule)}`),
   personnelSansDossier: (search: string)  => api.get<PersonnelSansDossier[]>('/patients/personnel-sans-dossier', { search }),
   ouvrirDossierPersonnel: (personnelId: string, data: OuvrirDossierPersonnelPayload) =>
-    api.post<{ id: string; cree: boolean }>(`/patients/depuis-personnel/${personnelId}`, data),
+    api.post<{ id: string; cree: boolean; relie?: boolean }>(`/patients/depuis-personnel/${personnelId}`, data),
 
   // Suivi chronique (définir / modifier / clôturer)
   createSuiviChronique: (id: string, data: CreateSuiviChroniquePayload)                => api.post<SuiviChroniqueItem['suivi']>(`/patients/${id}/suivi-chronique`, data),
