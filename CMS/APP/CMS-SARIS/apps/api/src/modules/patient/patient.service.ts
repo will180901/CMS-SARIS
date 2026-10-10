@@ -1638,7 +1638,15 @@ export class PatientService {
 
   // ── Création patient ──────────────────────────────────────────────────────
 
-  async create(dto: CreatePatientDto, createdBy?: string) {
+  /**
+   * `depuisFichePersonnel` : seul `ouvrirDossierPersonnel` le passe — l'unique chemin qui
+   * ouvre le dossier d'un membre du personnel, à partir de sa fiche.
+   */
+  async create(
+    dto: CreatePatientDto,
+    createdBy?: string,
+    options: { depuisFichePersonnel?: boolean } = {},
+  ) {
     const {
       nom,
       prenom,
@@ -1732,6 +1740,18 @@ export class PatientService {
         throw new ConflictException(
           `Le matricule ${matriculePropre} est déjà attribué à un patient`,
         )
+      // Le matricule d'un membre ACTIF du personnel : son dossier s'ouvre depuis SA FICHE
+      // (recherche de l'accueil), jamais depuis une identité retapée.
+      if (!options.depuisFichePersonnel) {
+        const agent = await this.prisma.personnelMedical.findFirst({
+          where: { matricule: matriculePropre, statut: 'ACTIF' },
+          select: { nom: true, prenom: true },
+        })
+        if (agent)
+          throw new ConflictException(
+            `Le matricule ${matriculePropre} est celui de ${agent.prenom} ${agent.nom}, membre du personnel du centre : retrouvez cette personne par la recherche de l'accueil, son dossier s'ouvrira depuis sa fiche.`,
+          )
+      }
     }
 
     // donneesEmploi : 4 champs pour CDI/CDD, fonction seule pour l'ayant droit (le reste vient du CDI).
@@ -2014,6 +2034,7 @@ export class PatientService {
           departement: fiche.departement!,
         },
         createdBy,
+        { depuisFichePersonnel: true },
       )
     } catch (e) {
       // Ouvert entre-temps par un autre poste : on reprend celui-là.
@@ -2517,7 +2538,36 @@ export class PatientService {
         },
       }
     }
-    // Travailleur CDI sans dossier → il sera créé avec l'identité fournie.
+    // Membre du personnel sans dossier : le sien s'ouvre depuis SA FICHE — l'identité
+    // éventuellement retapée à l'accueil est ignorée. Seul un CDI ACTIF a des ayants droit.
+    const agent = await this.prisma.personnelMedical.findUnique({
+      where: { matricule: mat },
+    })
+    if (agent) {
+      const nomAgent = `${agent.prenom} ${agent.nom}`
+      if (agent.statut !== 'ACTIF')
+        throw new ConflictException(
+          `Le matricule ${mat} est celui de ${nomAgent}, qui ne fait plus partie du personnel actif : aucun ayant droit ne peut lui être rattaché.`,
+        )
+      if (agent.typeContrat !== 'CDI')
+        throw new ConflictException(
+          `Le matricule ${mat} est celui de ${nomAgent}, en ${agent.typeContrat} : seul un travailleur CDI peut avoir des ayants droit.`,
+        )
+      return {
+        aCreer: {
+          matricule: mat,
+          nom: agent.nom,
+          prenom: agent.prenom,
+          dateNaissance: agent.dateNaissance?.toISOString(),
+          sexe: agent.sexe ?? undefined,
+          fonction: libelleFonction(agent.role),
+          sectionPaie: agent.sectionPaie ?? undefined,
+          service: agent.service,
+          departement: agent.departement ?? undefined,
+        },
+      }
+    }
+    // Travailleur CDI sans dossier ni fiche → il sera créé avec l'identité fournie.
     if (!nouveauTravailleur?.nom?.trim() || !nouveauTravailleur?.prenom?.trim()) {
       throw new BadRequestException(
         `Matricule CDI « ${mat} » inconnu — renseignez l'identité du travailleur CDI rattaché`,

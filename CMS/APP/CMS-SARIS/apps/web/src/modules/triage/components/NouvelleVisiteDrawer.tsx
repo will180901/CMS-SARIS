@@ -113,27 +113,45 @@ export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Pr
     return () => clearTimeout(id)
   }, [matRecherche])
   const { data: dossierTrouve, isFetching: lookupFetching } = useDossierParMatricule(lookupMat)
+  // Pas de dossier pour ce matricule : est-ce celui d'un membre du personnel ? Son dossier
+  // s'ouvrira alors depuis SA FICHE — rien à retaper (même règle que le serveur).
+  const matSansDossier = lookupMat.length >= 3 && !lookupFetching && !dossierTrouve
+  const { data: personnelMat = [], isFetching: personnelFetching } = usePersonnelSansDossier(matSansDossier ? lookupMat : '')
+  const personnelDuMatricule = matSansDossier ? (personnelMat.find(p => p.matricule === lookupMat) ?? null) : null
   // Les 400 ms d'attente comptent comme une recherche en cours : sinon un matricule CONNU
   // s'affichait « inconnu » et le formulaire d'enregistrement du CDI apparaissait puis
   // disparaissait (constat 108).
-  const lookupLoading = lookupFetching || (matRecherche.trim().length >= 3 && matRecherche.trim() !== lookupMat)
-  const cdiReconnu = !!dossierTrouve && dossierTrouve.matricule === matRecherche.trim() && matRecherche.trim().length >= 3
+  const lookupLoading = lookupFetching || personnelFetching || (matRecherche.trim().length >= 3 && matRecherche.trim() !== lookupMat)
+  // Travailleur reconnu : par son dossier, ou par sa fiche du personnel.
+  const cdiReconnu = matRecherche.trim().length >= 3 && (
+    (!!dossierTrouve && dossierTrouve.matricule === matRecherche.trim())
+    || personnelDuMatricule?.matricule === matRecherche.trim())
   const nomTrouve = dossierTrouve?.identite
     ? `${dossierTrouve.identite.prenom} ${dossierTrouve.identite.nom}`
-    : (dossierTrouve?.numeroPatient ?? null)
+    : personnelDuMatricule
+      ? `${personnelDuMatricule.prenom} ${personnelDuMatricule.nom}`
+      : (dossierTrouve?.numeroPatient ?? null)
   // Même refus que le serveur (planifierCdiRattachement) : un matricule reconnu ne suffit
   // pas, il doit être celui d'un travailleur CDI ACTIF. Dit AVANT la validation.
-  const cdiRefus: string | null = (npAyant || rattExistant) && cdiReconnu && dossierTrouve
-    ? dossierTrouve.categoriePatient.code !== 'ASSURE_CDI'
-      ? t('triage.cdiRefusCategorie', { nom: nomTrouve })
-      : dossierTrouve.statut !== 'ACTIF'
-        ? t('triage.cdiRefusInactif', { nom: nomTrouve })
+  const cdiRefus: string | null = (npAyant || rattExistant) && cdiReconnu
+    ? dossierTrouve
+      ? dossierTrouve.categoriePatient.code !== 'ASSURE_CDI'
+        ? t('triage.cdiRefusCategorie', { nom: nomTrouve })
+        : dossierTrouve.statut !== 'ACTIF'
+          ? t('triage.cdiRefusInactif', { nom: nomTrouve })
+          : null
+      : personnelDuMatricule && personnelDuMatricule.typeContrat !== 'CDI'
+        ? t('triage.cdiRefusContratPersonnel', { nom: nomTrouve, contrat: personnelDuMatricule.typeContrat })
         : null
     : null
-  // Nouveau CDI/CDD : son matricule déjà porté par un dossier = un doublon en vue.
-  const matriculePris: string | null = npIsCdiCdd && cdiReconnu && dossierTrouve
-    ? t('triage.matriculeDejaDossier', { nom: nomTrouve, numero: dossierTrouve.numeroPatient })
+  // Nouveau CDI/CDD : son matricule déjà porté par un dossier = un doublon en vue ; porté
+  // par une fiche du personnel = on le retrouve par la recherche, pas en le retapant.
+  const matriculePris: string | null = npIsCdiCdd && cdiReconnu
+    ? dossierTrouve
+      ? t('triage.matriculeDejaDossier', { nom: nomTrouve, numero: dossierTrouve.numeroPatient })
+      : t('triage.matriculePersonnel', { nom: nomTrouve })
     : null
+  const cdiParFiche = cdiReconnu && !dossierTrouve && !!personnelDuMatricule
 
   const categorieDonneesOk =
       npIsCdiCdd  ? !!(np.matricule.trim() && np.fonction.trim() && np.sectionPaie.trim() && np.service.trim() && np.departement.trim() && !matriculePris && !lookupLoading)
@@ -410,6 +428,7 @@ export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Pr
                   societes={societes.filter((s: { statut: string }) => s.statut === 'ACTIVE')}
                   cdiReconnu={cdiReconnu}
                   cdiNomTrouve={nomTrouve}
+                  cdiParFiche={cdiParFiche}
                   cdiRefus={cdiRefus}
                   matriculePris={matriculePris}
                   lookupLoading={lookupLoading}
@@ -539,6 +558,7 @@ export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Pr
                     setNp={setNp}
                     cdiReconnu={cdiReconnu}
                     cdiNomTrouve={nomTrouve}
+                    cdiParFiche={cdiParFiche}
                     cdiRefus={cdiRefus}
                     lookupLoading={lookupLoading}
                   />
@@ -887,13 +907,15 @@ export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Pr
 
 // ── Mini-formulaire « nouveau dossier » intégré au triage ──────────────────────
 
-function NewPatientForm({ np, setNp, categories, societes, cdiReconnu, cdiNomTrouve, cdiRefus, matriculePris, lookupLoading, onBack, alerteDoublons }: {
+function NewPatientForm({ np, setNp, categories, societes, cdiReconnu, cdiNomTrouve, cdiParFiche, cdiRefus, matriculePris, lookupLoading, onBack, alerteDoublons }: {
   np:         NewPatient
   setNp:      React.Dispatch<React.SetStateAction<NewPatient>>
   categories: { id: string; code: string; libelle: string }[]
   societes:   { id: string; nom: string }[]
   cdiReconnu:    boolean
   cdiNomTrouve:  string | null
+  /** Travailleur reconnu par sa fiche du personnel (pas encore de dossier). */
+  cdiParFiche:   boolean
   cdiRefus:      string | null
   /** Matricule du nouveau CDI/CDD déjà porté par un dossier (doublon). */
   matriculePris: string | null
@@ -1039,6 +1061,7 @@ function NewPatientForm({ np, setNp, categories, societes, cdiReconnu, cdiNomTro
             setNp={setNp}
             cdiReconnu={cdiReconnu}
             cdiNomTrouve={cdiNomTrouve}
+            cdiParFiche={cdiParFiche}
             cdiRefus={cdiRefus}
             lookupLoading={lookupLoading}
           />
@@ -1073,11 +1096,12 @@ function NewPatientForm({ np, setNp, categories, societes, cdiReconnu, cdiNomTro
 // Partagés par la création d'un dossier ayant droit ET le rattachement d'un patient
 // existant : une seule façon de désigner un CDI, donc un seul comportement à vérifier.
 
-function CdiRattacheFields({ np, setNp, cdiReconnu, cdiNomTrouve, cdiRefus, lookupLoading }: {
+function CdiRattacheFields({ np, setNp, cdiReconnu, cdiNomTrouve, cdiParFiche, cdiRefus, lookupLoading }: {
   np:             NewPatient
   setNp:          React.Dispatch<React.SetStateAction<NewPatient>>
   cdiReconnu:     boolean
   cdiNomTrouve:   string | null
+  cdiParFiche:    boolean
   cdiRefus:       string | null
   lookupLoading:  boolean
 }) {
@@ -1111,7 +1135,11 @@ function CdiRattacheFields({ np, setNp, cdiReconnu, cdiNomTrouve, cdiRefus, look
               : cdiRefus
                 ? <p style={{ fontSize: '10px', color: 'var(--erreur-texte)', fontWeight: 600, margin: '3px 0 0' }}>{cdiRefus}</p>
                 : cdiReconnu
-                  ? <p style={{ fontSize: '10px', color: 'var(--succes-texte)', fontWeight: 600, margin: '3px 0 0' }}>✓ {t('triage.cdiReconnu')}{cdiNomTrouve ? ` : ${cdiNomTrouve}` : ''}</p>
+                  ? <p style={{ fontSize: '10px', color: 'var(--succes-texte)', fontWeight: 600, margin: '3px 0 0' }}>
+                      ✓ {cdiParFiche
+                        ? t('triage.cdiPersonnelReconnu', { nom: cdiNomTrouve })
+                        : <>{t('triage.cdiReconnu')}{cdiNomTrouve ? ` : ${cdiNomTrouve}` : ''}</>}
+                    </p>
                   : <p style={{ fontSize: '10px', color: 'var(--avert-texte)', fontWeight: 600, margin: '3px 0 0' }}>{t('triage.matriculeSansDossier')}</p>
           )}
         </div>

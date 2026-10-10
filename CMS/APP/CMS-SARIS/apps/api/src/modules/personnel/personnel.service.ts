@@ -139,7 +139,7 @@ export class PersonnelService {
   }
 
   async update(id: string, dto: UpdatePersonnelDto) {
-    await this.findById(id)
+    const agent = await this.findById(id)
     if (dto.matricule) {
       // Client BRUT : voit les tombstones occupant le matricule, sans bloquer sur soi-même.
       const existing = await this.prisma.raw.personnelMedical.findUnique({
@@ -152,6 +152,36 @@ export class PersonnelService {
             : `Matricule "${dto.matricule}" déjà utilisé`,
         )
       }
+    }
+    // Son dossier patient porte son matricule : il suit la correction. Sinon la personne
+    // redeviendrait « sans dossier » à l'accueil, et un second dossier pourrait s'ouvrir.
+    if (dto.matricule && dto.matricule !== agent.matricule) {
+      const [dossier, autre] = await Promise.all([
+        this.prisma.raw.patient.findUnique({
+          where: { matricule: agent.matricule },
+          select: { id: true },
+        }),
+        this.prisma.raw.patient.findUnique({
+          where: { matricule: dto.matricule },
+          select: { identite: { select: { nom: true, prenom: true } } },
+        }),
+      ])
+      // Les deux matricules ont chacun leur dossier : on ne fond pas deux dossiers ici.
+      if (dossier && autre)
+        throw new ConflictException(
+          `Le matricule ${dto.matricule} est déjà porté par le dossier patient de ${[autre.identite?.prenom, autre.identite?.nom].filter(Boolean).join(' ')}, et cette personne a déjà le sien.`,
+        )
+      if (dossier)
+        return this.prisma.$transaction(async (tx) => {
+          await tx.patient.update({
+            where: { id: dossier.id },
+            data: { matricule: dto.matricule },
+          })
+          return tx.personnelMedical.update({
+            where: { id },
+            data: donneesFiche(dto),
+          })
+        })
     }
     return this.prisma.personnelMedical.update({
       where: { id },
