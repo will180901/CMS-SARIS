@@ -1,5 +1,6 @@
 /**
  * PersonnelTab — réglages de l'utilisateur connecté (self-service) :
+ *   - Mon profil : nom, prénom, e-mail, photo (le reste du compte est géré par l'admin)
  *   - Préférences d'affichage (thème, densité, langue, page d'accueil…)
  *   - Authentification à deux facteurs (TOTP individuel)
  *   - Sessions actives (révocation)
@@ -9,13 +10,16 @@
 import { useState, useEffect, useRef } from 'react'
 import {
   Palette, ShieldCheck, MonitorSmartphone, KeyRound, Check, Copy, ShieldAlert,
-  LogOut, QrCode, Save, MapPin, Globe, Navigation, ImageUp, Trash2,
+  LogOut, QrCode, Save, MapPin, Globe, Navigation, ImageUp, Trash2, UserRound,
 } from 'lucide-react'
 import { parseUserAgent } from '@/lib/userAgent'
 import { geoLabel, formatCoords, mapsUrl } from '@/lib/geo'
 import { QRCode } from '@workspace/ui/components/kibo-ui/qr-code'
 import { toast } from '@workspace/ui/components/sonner'
-import { Card, Button, SelectBox, TextInput, StatusPill, Skeleton, SegmentedTabs, TotpCountdown, UserAvatar, PhotoCropModal } from '@/components/saris'
+import { Card, Button, SelectBox, TextInput, StatusPill, Skeleton, SegmentedTabs, TotpCountdown, UserAvatar, PhotoCropModal, Field, InfoRow } from '@/components/saris'
+import { useIsCompact } from '@/hooks/useMediaQuery'
+import { email as emailSchema } from '@/lib/validation'
+import { labelFonction } from '@/config/fonctions'
 import { ChangePasswordDialog } from '@/modules/auth/components/ChangePasswordDialog'
 import { useTheme } from '@/components/theme-provider'
 import { THEME_MAP } from '@/components/PreferencesSync'
@@ -29,9 +33,9 @@ import {
   useMyPreferences, useUpdateMyPreferences,
   useMySessions, useRevokeSession, useRevokeOtherSessions,
   useTotpStatus, useTotpSetup, useTotpActivate, useTotpDisable,
-  useUploadMyPhoto, useRemoveMyPhoto,
+  useUploadMyPhoto, useRemoveMyPhoto, useMonProfil, useUpdateMonProfil,
 } from '../../hooks/useAdmin'
-import type { Preferences } from '../../api/admin.api'
+import type { Preferences, MonProfil } from '../../api/admin.api'
 import { formatDureeMinutes } from '@/lib/duree'
 
 const PHOTO_MAX_BYTES = 5 * 1024 * 1024
@@ -41,10 +45,100 @@ const PHOTO_MIME_RE = /^image\/(jpeg|png|webp|gif)$/
 export function PersonnelTab({ section }: { section: string }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--espace-4)' }}>
-      {section === 'preferences' && <><PhotoCard /><PreferencesCard /></>}
+      {section === 'profil' && <><ProfilCard /><PhotoCard /></>}
+      {section === 'preferences' && <PreferencesCard />}
       {section === 'securite' && <><TotpCard /><MotDePasseCard /></>}
       {section === 'sessions' && <SessionsCard />}
     </div>
+  )
+}
+
+// ── Mon profil ────────────────────────────────────────────────────────────────
+
+/**
+ * Ce que chacun change lui-même : son nom et son prénom (ceux de sa fiche du personnel,
+ * repris partout) et son e-mail. Le reste — identifiant, matricule, fonction, rôles,
+ * site — s'affiche ici mais reste du ressort de l'administrateur.
+ */
+function ProfilCard() {
+  const { data: profil, isLoading } = useMonProfil()
+  if (isLoading || !profil) {
+    return <Card><Card.Body padding="md"><Skeleton height={200} /></Card.Body></Card>
+  }
+  return <ProfilFormulaire profil={profil} />
+}
+
+function ProfilFormulaire({ profil }: { profil: MonProfil }) {
+  const { t } = useTranslation()
+  const isCompact = useIsCompact()
+  const cols2 = isCompact ? '1fr' : '1fr 1fr'
+  const update = useUpdateMonProfil()
+  const [prenom, setPrenom] = useState(profil.prenom ?? '')
+  const [nom,    setNom]    = useState(profil.nom ?? '')
+  const [email,  setEmail]  = useState(profil.email)
+
+  const emailVerifie = emailSchema.safeParse(email)
+  const emailErreur = email.trim() && !emailVerifie.success ? emailVerifie.error.issues[0]?.message : undefined
+  const nomErreur = (v: string) => v.trim().length < 2 ? t('settings.profilNomCourt') : undefined
+  const valide = !!email.trim() && emailVerifie.success
+    && (!profil.aUneFiche || (!nomErreur(prenom) && !nomErreur(nom)))
+  const modifie = email.trim().toLowerCase() !== profil.email
+    || (profil.aUneFiche && (prenom.trim() !== (profil.prenom ?? '') || nom.trim() !== (profil.nom ?? '')))
+
+  function enregistrer() {
+    if (!valide || !modifie) return
+    update.mutate({
+      ...(email.trim().toLowerCase() !== profil.email && { email: email.trim().toLowerCase() }),
+      ...(profil.aUneFiche && prenom.trim() !== profil.prenom && { prenom: prenom.trim() }),
+      ...(profil.aUneFiche && nom.trim() !== profil.nom && { nom: nom.trim() }),
+    })
+  }
+
+  return (
+    <Card>
+      <Card.Header icon={<UserRound size={15} />} title={t('settings.profilTitre')} subtitle={t('settings.profilSousTitre')}
+        actions={modifie
+          ? <Button size="sm" variant="primary" disabled={!valide} loading={update.isPending} leftIcon={<Save size={13} />} onClick={enregistrer}>{t('common.save')}</Button>
+          : undefined} />
+      <Card.Body padding="md">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--espace-4)' }}>
+          {/* Le nom vit sur la fiche du personnel : sans fiche, rien à modifier ici. */}
+          {profil.aUneFiche ? (
+            <div style={{ display: 'grid', gridTemplateColumns: cols2, gap: 'var(--espace-3)' }}>
+              <Field label={t('settings.profilPrenom')} required error={prenom ? nomErreur(prenom) : undefined}>
+                {(id) => <TextInput id={id} value={prenom} maxLength={100} onChange={e => setPrenom(e.target.value)} />}
+              </Field>
+              <Field label={t('settings.profilNom')} required error={nom ? nomErreur(nom) : undefined}>
+                {(id) => <TextInput id={id} value={nom} maxLength={100} onChange={e => setNom(e.target.value)} />}
+              </Field>
+            </div>
+          ) : (
+            <p style={{ margin: 0, fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)' }}>
+              {t('settings.profilSansFiche')}
+            </p>
+          )}
+          <Field label={t('settings.profilEmail')} required error={emailErreur}>
+            {(id) => <TextInput id={id} type="email" value={email} maxLength={120} onChange={e => setEmail(e.target.value)} />}
+          </Field>
+
+          {/* Ce que l'administrateur gère : montré, pas modifiable ici. */}
+          <div style={{ paddingTop: 'var(--espace-3)', borderTop: '1px solid var(--bordure-legere)' }}>
+            <p style={{
+              margin: '0 0 var(--espace-3)', fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)',
+            }}>
+              {t('settings.profilGereAdmin')}
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: isCompact ? '1fr 1fr' : 'repeat(3, minmax(0, 1fr))', gap: 'var(--espace-4) var(--espace-5)' }}>
+              <InfoRow label={t('settings.profilIdentifiant')} value={profil.login} />
+              <InfoRow label={t('settings.profilMatricule')} value={profil.matricule} />
+              <InfoRow label={t('settings.profilFonction')} value={profil.fonction ? labelFonction(profil.fonction) : null} />
+              <InfoRow label={t('settings.profilRoles')} value={profil.roles.join(', ')} />
+              <InfoRow label={t('settings.profilSite')} value={profil.site} />
+            </div>
+          </div>
+        </div>
+      </Card.Body>
+    </Card>
   )
 }
 

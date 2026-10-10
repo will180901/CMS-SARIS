@@ -2,7 +2,8 @@
  * MeController — /me : gestion de SON propre compte (utilisateur connecté).
  *
  * Aucune permission requise (hors authentification) : self-service.
- *   - /me/preferences         GET / PUT
+ *  - /me/preferences         GET / PUT
+ *  - /me/profil              GET / PATCH (nom, prénom, e-mail)
  *   - /me/sessions            GET ; /me/sessions/:id DELETE ; /me/sessions/revoke-others POST
  *   - /me/totp                GET (statut) ; setup / activate / disable POST
  */
@@ -11,6 +12,7 @@ import {
   Controller,
   Get,
   Put,
+  Patch,
   Post,
   Delete,
   Body,
@@ -27,7 +29,11 @@ import { FileInterceptor } from '@nestjs/platform-express'
 import { memoryStorage } from 'multer'
 import { MeService } from './me.service'
 import { JwtAuthGuard } from './guards/jwt-auth.guard'
-import { UpdatePreferencesDto, TotpCodeDto } from './dto/me.dto'
+import {
+  UpdatePreferencesDto,
+  UpdateMonProfilDto,
+  TotpCodeDto,
+} from './dto/me.dto'
 
 @Controller('me')
 @UseGuards(JwtAuthGuard)
@@ -43,6 +49,17 @@ export class MeController {
   @Put('preferences')
   updatePreferences(@Body() dto: UpdatePreferencesDto, @Req() req: any) {
     return this.svc.updatePreferences(req.user.id, dto)
+  }
+
+  // ── Mon profil ────────────────────────────────────────────────────────────
+  @Get('profil')
+  getProfil(@Req() req: any) {
+    return this.svc.getProfil(req.user.id)
+  }
+
+  @Patch('profil')
+  updateProfil(@Body() dto: UpdateMonProfilDto, @Req() req: any) {
+    return this.svc.updateProfil(req.user.id, dto)
   }
 
   // ── Photo de profil (avatar) ──────────────────────────────────────────────

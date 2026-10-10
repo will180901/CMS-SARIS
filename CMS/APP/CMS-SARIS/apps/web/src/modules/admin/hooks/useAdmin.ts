@@ -10,7 +10,7 @@ import type {
   SetRolesPayload, SetStatutPayload, ResetPasswordPayload,
   CreateRolePayload, UpdateRolePayload,
   SetPermissionOverridesPayload, BulkPermissionPayload,
-  UpdatePreferencesPayload,
+  UpdatePreferencesPayload, UpdateMonProfilPayload,
 } from '../api/admin.api'
 import { ApiError, isOfflineQueued } from '@/lib/api'
 import { useSessionStore } from '@/stores/session.store'
@@ -469,6 +469,32 @@ export const ME_KEYS = {
   sessions:    ['me', 'sessions'] as const,
   totp:        ['me', 'totp'] as const,
   annuaire:    ['me', 'annuaire'] as const,
+  profil:      ['me', 'profil'] as const,
+}
+
+export function useMonProfil() {
+  return useQuery({
+    queryKey: ME_KEYS.profil,
+    queryFn:  () => adminApi.me.getProfil(),
+    staleTime: 60_000,
+  })
+}
+
+/** Nom, prénom, e-mail de l'utilisateur connecté. Le nom vit sur sa fiche du personnel :
+ *  on rafraîchit donc aussi l'annuaire (avatars) et les listes du personnel et des comptes. */
+export function useUpdateMonProfil() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: UpdateMonProfilPayload) => adminApi.me.updateProfil(data),
+    onSuccess: (profil) => {
+      qc.setQueryData(ME_KEYS.profil, profil)
+      qc.invalidateQueries({ queryKey: ME_KEYS.annuaire })
+      qc.invalidateQueries({ queryKey: ['personnel'] })
+      qc.invalidateQueries({ queryKey: ADMIN_KEYS.utilisateurs })
+      toast.success(i18n.t('settings.profilEnregistre'))
+    },
+    onError: toastErr,
+  })
 }
 
 export function useMyPreferences() {

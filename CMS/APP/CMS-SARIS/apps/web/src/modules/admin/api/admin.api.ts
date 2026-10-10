@@ -211,6 +211,28 @@ export interface TotpStatus  { actif: boolean; enAttente: boolean }
 export interface TotpSetup   { secret: string; otpauthUrl: string; issuer: string }
 export interface TotpActivated { success: boolean; backupCodes: string[] }
 
+/**
+ * Mon profil (/me/profil). Nom et prénom = ceux de la fiche du personnel reliée au compte
+ * (`aUneFiche` faux : seul l'administrateur peut les donner). Identifiant, matricule,
+ * fonction, rôles et site sont affichés, mais gérés par l'administrateur.
+ */
+export interface MonProfil {
+  login:     string
+  email:     string
+  aUneFiche: boolean
+  nom:       string | null
+  prenom:    string | null
+  matricule: string | null
+  fonction:  string | null
+  roles:     string[]
+  site:      string | null
+}
+export interface UpdateMonProfilPayload {
+  nom?:    string
+  prenom?: string
+  email?:  string
+}
+
 /** Répertoire léger (identité + photo) de tous les comptes actifs du site — cf. /me/annuaire. */
 export interface AnnuaireEntry {
   id:       string
@@ -333,6 +355,9 @@ export const adminApi = {
     removePhoto: () => api.delete<{ photoUrl: null }>('/me/photo'),
 
     annuaire: () => api.get<AnnuaireEntry[]>('/me/annuaire'),
+
+    getProfil:    ()                             => api.get<MonProfil>('/me/profil'),
+    updateProfil: (data: UpdateMonProfilPayload) => api.patch<MonProfil>('/me/profil', data),
   },
 
   synchronisation: {

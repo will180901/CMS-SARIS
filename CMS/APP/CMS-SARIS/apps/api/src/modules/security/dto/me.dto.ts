@@ -1,6 +1,8 @@
 import {
   IsOptional,
   IsIn,
+  IsEmail,
+  IsNotEmpty,
   IsString,
   IsBoolean,
   IsInt,
@@ -39,6 +41,29 @@ export class UpdatePreferencesDto {
   @IsOptional()
   @IsBoolean()
   notifEmail?: boolean
+}
+
+// ── Mon profil ────────────────────────────────────────────────────────────────
+// Ce que chacun change lui-même. Identifiant, rôles, matricule et site restent du
+// ressort de l'administrateur.
+
+export class UpdateMonProfilDto {
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
+  nom?: string
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
+  prenom?: string
+
+  @IsOptional()
+  @IsEmail({}, { message: 'Adresse e-mail invalide' })
+  @MaxLength(200)
+  email?: string
 }
 
 // ── 2FA (TOTP) ────────────────────────────────────────────────────────────────

@@ -12,6 +12,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common'
 import { randomBytes } from 'crypto'
 import * as bcrypt from 'bcrypt'
@@ -19,7 +20,7 @@ import sharp from 'sharp'
 import { generateSecret, generateURI, verifySync } from 'otplib'
 import { PrismaService } from '../../prisma/prisma.service'
 import { ParametresService } from '../parametres/parametres.service'
-import { UpdatePreferencesDto } from './dto/me.dto'
+import { UpdatePreferencesDto, UpdateMonProfilDto } from './dto/me.dto'
 import { encryptSecret, decryptSecret } from '../../common/crypto/totp-secret'
 import { resolveGeo } from '../../common/geo/geo.util'
 import { resumerConnexions } from './connexions.util'
@@ -151,6 +152,92 @@ export class MeService {
       data: { photoUrl: null },
     })
     return { photoUrl: null }
+  }
+
+  // ════════════════════════════════════════════════════════════════════════
+  //  MON PROFIL (nom, prénom, e-mail — la photo a ses propres routes)
+  // ════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Employé = personnel = utilisateur : le nom et le prénom sont ceux de la FICHE du
+   * personnel reliée au compte (une seule vérité, reprise partout). Un compte sans fiche
+   * (ex. l'administrateur technique) n'a que son identifiant.
+   */
+  async getProfil(userId: string) {
+    const u = await this.prisma.utilisateur.findUnique({
+      where: { id: userId },
+      select: {
+        login: true,
+        email: true,
+        site: { select: { libelle: true } },
+        roles: { select: { role: { select: { libelle: true } } } },
+        personnelMedical: {
+          select: { nom: true, prenom: true, matricule: true, role: true },
+        },
+      },
+    })
+    if (!u) throw new NotFoundException('Compte introuvable')
+    return {
+      login: u.login,
+      email: u.email,
+      aUneFiche: !!u.personnelMedical,
+      nom: u.personnelMedical?.nom ?? null,
+      prenom: u.personnelMedical?.prenom ?? null,
+      matricule: u.personnelMedical?.matricule ?? null,
+      fonction: u.personnelMedical?.role ?? null,
+      roles: u.roles.map((r) => r.role.libelle),
+      site: u.site?.libelle ?? null,
+    }
+  }
+
+  async updateProfil(userId: string, dto: UpdateMonProfilDto) {
+    const u = await this.prisma.utilisateur.findUnique({
+      where: { id: userId },
+      select: { email: true, personnelMedicalId: true },
+    })
+    if (!u) throw new NotFoundException('Compte introuvable')
+
+    const nom = dto.nom?.trim()
+    const prenom = dto.prenom?.trim()
+    if ((nom !== undefined || prenom !== undefined) && !u.personnelMedicalId)
+      throw new BadRequestException(
+        "Votre compte n'est relié à aucune fiche du personnel : votre nom ne peut être changé que par l'administrateur.",
+      )
+    if (
+      (nom !== undefined && nom.length < 2) ||
+      (prenom !== undefined && prenom.length < 2)
+    )
+      throw new BadRequestException(
+        'Le nom et le prénom comptent au moins 2 caractères',
+      )
+
+    const email = dto.email?.trim().toLowerCase()
+    const changeEmail = !!email && email !== u.email
+    if (changeEmail) {
+      // Client BRUT : un compte supprimé garde son e-mail (@unique en base).
+      const pris = await this.prisma.raw.utilisateur.findUnique({
+        where: { email },
+        select: { id: true, deletedAt: true },
+      })
+      if (pris && pris.id !== userId)
+        throw new ConflictException(
+          pris.deletedAt
+            ? 'Cet e-mail appartient à un compte supprimé'
+            : 'Cet e-mail est déjà utilisé par un autre compte',
+        )
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      if (changeEmail)
+        await tx.utilisateur.update({ where: { id: userId }, data: { email } })
+      if (u.personnelMedicalId && (nom || prenom))
+        await tx.personnelMedical.update({
+          where: { id: u.personnelMedicalId },
+          data: { ...(nom && { nom }), ...(prenom && { prenom }) },
+        })
+    })
+    await this.audit(userId, 'UPDATE_PROFILE')
+    return this.getProfil(userId)
   }
 
   // ════════════════════════════════════════════════════════════════════════

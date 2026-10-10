@@ -10,7 +10,7 @@
 
 import { useState, type ReactNode } from 'react'
 import {
-  Settings, ShieldCheck,
+  Settings, ShieldCheck, UserRound,
   Palette, MonitorSmartphone, Languages, FileText, Lock, Info,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -27,6 +27,7 @@ export function ParametresPage() {
   const isCompact = useIsCompact()
 
   const sections: SettingsSectionItem[] = [
+    { key: 'profil', label: t('settings.secProfil'), icon: <UserRound size={15} />, hint: t('settings.secProfilHint') },
     { key: 'preferences', label: t('settings.secPreferences'), icon: <Palette size={15} />, hint: t('settings.secPreferencesHint') },
     { key: 'securite', label: t('settings.secAccountSecurity'), icon: <ShieldCheck size={15} />, hint: t('settings.secAccountSecurityHint') },
     { key: 'sessions', label: t('settings.secSessions'), icon: <MonitorSmartphone size={15} />, hint: t('settings.secSessionsHint') },

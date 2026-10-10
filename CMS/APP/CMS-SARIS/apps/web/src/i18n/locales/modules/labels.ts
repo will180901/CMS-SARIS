@@ -73,6 +73,7 @@ export const labels = {
       ARCHIVE: 'Archivage',
       ASSIGN: 'Affectation',
       CHANGE_CATEGORY: 'Changement de catégorie',
+      UPDATE_PROFILE: 'Modification de son profil',
     },
 
     // ── Statuts (par famille) ────────────────────────────────────────
@@ -486,6 +487,7 @@ export const labels = {
       ARCHIVE: 'Archiving',
       ASSIGN: 'Assignment',
       CHANGE_CATEGORY: 'Category change',
+      UPDATE_PROFILE: 'Profile update',
     },
 
     // ── Statuses (by family) ─────────────────────────────────────────
