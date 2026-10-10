@@ -40,6 +40,11 @@ export interface Client {
   post<T = unknown>(chemin: string, corps?: object): Promise<Reponse<T>>
   patch<T = unknown>(chemin: string, corps?: object): Promise<Reponse<T>>
   delete<T = unknown>(chemin: string): Promise<Reponse<T>>
+  /** POST en formulaire multipart (champs texte), comme l'envoi d'un message. */
+  formulaire<T = unknown>(
+    chemin: string,
+    champs: Record<string, string>,
+  ): Promise<Reponse<T>>
   /** Appel avec une méthode HTTP quelconque (inventaire des routes). */
   appel(methode: Methode, chemin: string): Promise<Reponse>
 }
@@ -134,6 +139,12 @@ function client(
       ),
     delete: async (c) =>
       repondre(await serveur(app).delete(c).set('Authorization', auth)),
+    formulaire: async (c, champs) => {
+      let req = serveur(app).post(c).set('Authorization', auth)
+      for (const [nom, valeur] of Object.entries(champs))
+        req = req.field(nom, valeur)
+      return repondre(await req)
+    },
     appel: async (methode, c) =>
       repondre(await serveur(app)[methode](c).set('Authorization', auth)),
   }
