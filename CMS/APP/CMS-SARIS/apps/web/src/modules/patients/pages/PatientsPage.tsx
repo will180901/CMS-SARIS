@@ -1,29 +1,26 @@
-import { useState, useMemo, useEffect, useRef }  from 'react'
+import { useState, useMemo, useRef }  from 'react'
 import { useNavigate }        from 'react-router-dom'
 import { useTranslation }     from 'react-i18next'
-import { Search, X, Users, AlertTriangle, ChevronRight, ChevronLeft, Camera, Trash2, Download, ListChecks } from 'lucide-react'
+import { Search, X, Users, AlertTriangle, ChevronRight, ChevronLeft, Download, ListChecks } from 'lucide-react'
 import { Input }              from '@workspace/ui/components/input'
 import { Button }             from '@workspace/ui/components/button'
-import { toast }              from '@workspace/ui/components/sonner'
-import { SelectBox, PaginationBar, EmptyState, PhotoCropModal, TILE_TONE_MAP, CheckBox, useSelectionLot, BarreSelectionLot } from '@/components/saris'
+import { SelectBox, PaginationBar, EmptyState, TILE_TONE_MAP, CheckBox, useSelectionLot, BarreSelectionLot } from '@/components/saris'
 import { usePagination }      from '@/hooks/usePagination'
 import { useRowsPerPage }     from '@/hooks/useRowsPerPage'
 import { useIsCompact }       from '@/hooks/useMediaQuery'
 import { usePermissions }     from '@/hooks/usePermissions'
 import { usePersistedState }  from '@/hooks/usePersistedState'
-import { usePatients, useUploadPatientPhoto, useRemovePatientPhoto, PATIENTS_KEY } from '../hooks/usePatients'
+import { usePatients, PATIENTS_KEY } from '../hooks/usePatients'
 import { patientsApi }        from '../api/patients.api'
 import { useCategoriesPatient } from '@/modules/referentiels/hooks/useReferentiels'
 import { CategorieBadge, PatientAvatar }  from '../components/CategorieBadge'
+import { PhotoPatient }       from '../components/PhotoPatient'
 import { StatutBadge }        from '@/modules/referentiels/components/badges/StatutBadge'
 import type { PatientListItem } from '@cms-saris/types'
 import { formatDate } from '@/lib/intl'
 import { calcAge } from '@/lib/age'
 import { PrivacyCurtain } from '@/components/PrivacyCurtain'
 import { ListePrintSheet, type ColonneExport } from '@/components/print/ListePrintSheet'
-
-const PHOTO_MAX_BYTES = 5 * 1024 * 1024
-const PHOTO_MIME_RE = /^image\/(jpeg|png|webp|gif)$/
 
 // ── Panneau aperçu rapide ─────────────────────────────────────────────────────
 
@@ -33,63 +30,8 @@ function PreviewPanel({ patient, onOpen, onBack }: { patient: PatientListItem; o
   const hasSevereAllergie = patient.allergies.some(a => a.gravite === 'SEVERE')
   const critiques = patient.alertesMedicales.filter(a => a.gravite === 'CRITIQUE')
 
-  // Photo patient — même système que Paramètres : validation client, recadrage
-  // (PhotoCropModal, façon WhatsApp) AVANT envoi, aperçu local instantané pendant
-  // la persistance serveur, retrait possible.
-  const [photo, setPhoto] = useState<string | null>(null)
-  const [cropSrc, setCropSrc] = useState<string | null>(null)
-  const fileRef = useRef<HTMLInputElement>(null)
-  const uploadPhoto = useUploadPatientPhoto(patient.id)
-  const removePhoto = useRemovePatientPhoto(patient.id)
-
-  // Réinitialise au changement de patient (et libère un recadrage resté ouvert).
-  useEffect(() => {
-    setPhoto(null)
-    setCropSrc(prev => { if (prev) URL.revokeObjectURL(prev); return null })
-  }, [patient.id])
-
-  // Filet de sécurité : libère l'URL objet au démontage même si le recadrage
-  // n'a pas été fermé explicitement (ex. l'utilisateur navigue ailleurs).
-  useEffect(() => {
-    return () => { if (cropSrc) URL.revokeObjectURL(cropSrc) }
-  }, [cropSrc])
-
-  // Photo affichée : aperçu local prioritaire, sinon photo persistée.
-  // photoUrl est une data URL Base64 (stockée en base) → utilisable directement.
-  const displayPhoto = photo ?? id?.photoUrl ?? null
-
-  function closeCrop() {
-    if (cropSrc) URL.revokeObjectURL(cropSrc)
-    setCropSrc(null)
-  }
-
-  function onPickPhoto(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    e.target.value = '' // permet de re-choisir le même fichier ensuite
-    if (!file) return
-    if (!PHOTO_MIME_RE.test(file.type)) {
-      toast.error(t('patients.photoInvalidFormat'))
-      return
-    }
-    if (file.size > PHOTO_MAX_BYTES) {
-      toast.error(t('patients.photoTooLarge'))
-      return
-    }
-    // Étape de recadrage AVANT l'envoi : le backend recadre de toute façon en
-    // carré centré, autant laisser l'utilisateur choisir la partie gardée.
-    setCropSrc(URL.createObjectURL(file))
-  }
-
-  function onCropConfirm(blob: Blob) {
-    const reader = new FileReader()
-    reader.onload = () => setPhoto(reader.result as string) // aperçu immédiat, le temps du refetch
-    reader.readAsDataURL(blob)
-    uploadPhoto.mutate(new File([blob], 'photo.jpg', { type: 'image/jpeg' }), { onSuccess: closeCrop })
-  }
-
-  function onRemovePhoto() {
-    removePhoto.mutate(undefined, { onSuccess: () => setPhoto(null) })
-  }
+  // Photo patient : composant commun avec le dossier (PhotoPatient).
+  const { has } = usePermissions()
 
   return (
     <div style={{ padding: onBack ? '14px 16px' : '24px', display: 'flex', flexDirection: onBack ? 'column' : 'row', gap: onBack ? '16px' : '24px', height: '100%', overflowY: 'auto', alignItems: onBack ? 'stretch' : 'flex-start' }}>
@@ -103,62 +45,7 @@ function PreviewPanel({ patient, onOpen, onBack }: { patient: PatientListItem; o
 
       {/* ── Colonne gauche : photo + action ──────────────────────────────── */}
       <div style={{ width: onBack ? '100%' : 210, maxWidth: onBack ? 200 : undefined, alignSelf: onBack ? 'center' : 'auto', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {/* Carte photo (carré) + bouton caméra en bas à droite */}
-        <div style={{ position: 'relative' }}>
-          <div style={{
-            width: '100%', aspectRatio: '1 / 1', borderRadius: 'var(--radius-xl)', overflow: 'hidden',
-            background: 'var(--fond-surface-2)', border: '1px solid var(--bordure-legere)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            {displayPhoto
-              ? <img src={displayPhoto} alt={t('patients.patientPhoto')} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              : <Users size={56} style={{ color: 'var(--texte-tertiaire)', opacity: 0.4 }} />}
-          </div>
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            disabled={uploadPhoto.isPending}
-            aria-label={displayPhoto ? t('patients.changePhoto') : t('patients.addPhoto')}
-            title={displayPhoto ? t('patients.changePhoto') : t('patients.addPhoto')}
-            style={{
-              position: 'absolute', right: -6, bottom: -6,
-              width: 34, height: 34, borderRadius: '50%',
-              background: 'var(--ap-400)', color: '#fff',
-              border: '2px solid var(--fond-surface)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: uploadPhoto.isPending ? 'wait' : 'pointer',
-              opacity: uploadPhoto.isPending ? 0.7 : 1,
-              boxShadow: '0 1px 4px rgba(15, 23, 42, 0.18)',
-            }}
-          >
-            <Camera size={16} />
-          </button>
-          {id?.photoUrl && (
-            <button
-              type="button"
-              onClick={onRemovePhoto}
-              disabled={removePhoto.isPending}
-              aria-label={t('patients.removePhoto')}
-              title={t('patients.removePhoto')}
-              style={{
-                position: 'absolute', left: -6, bottom: -6,
-                width: 34, height: 34, borderRadius: '50%',
-                background: 'var(--fond-surface)', color: 'var(--erreur-accent)',
-                border: '2px solid var(--erreur-bordure)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: removePhoto.isPending ? 'wait' : 'pointer',
-                opacity: removePhoto.isPending ? 0.7 : 1,
-                boxShadow: '0 1px 4px rgba(15, 23, 42, 0.18)',
-              }}
-            >
-              <Trash2 size={15} />
-            </button>
-          )}
-          <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden onChange={onPickPhoto} />
-        </div>
-        {cropSrc && (
-          <PhotoCropModal imageSrc={cropSrc} busy={uploadPhoto.isPending} onConfirm={onCropConfirm} onCancel={closeCrop} />
-        )}
+        <PhotoPatient key={patient.id} patientId={patient.id} photoUrl={id?.photoUrl} canEdit={has('patient.update')} />
         {/* Action principale — sous la photo */}
         <Button
           onClick={onOpen}

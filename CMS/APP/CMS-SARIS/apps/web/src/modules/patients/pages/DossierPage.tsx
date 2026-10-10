@@ -2,7 +2,7 @@ import { useEffect, useState }  from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation }       from 'react-i18next'
 import {
-  ArrowLeft, Users, AlertTriangle, MoreVertical, Archive, RotateCcw, Printer, Activity, Trash2, Lock, Unlock,
+  ArrowLeft, AlertTriangle, MoreVertical, Archive, RotateCcw, Printer, Activity, Trash2, Lock, Unlock,
   LayoutGrid, Stethoscope, GitCommitVertical, Building2, History, ShieldAlert, ChevronDown, ChevronUp, ChevronRight,
 } from 'lucide-react'
 import { Button }              from '@workspace/ui/components/button'
@@ -16,7 +16,8 @@ import { usePersistedState }   from '@/hooks/usePersistedState'
 import { usePatientDossier, useUpdateStatutPatient, usePatientAlertesCliniques, useDeletePatient, useSetVerrouPatient, usePatientCouverture, usePatientAyantsDroits, usePatientSuivi } from '../hooks/usePatients'
 import { useSessionStore } from '@/stores/session.store'
 import { ConfirmDeleteModal }  from '../components/dossier/ConfirmDeleteModal'
-import { CategorieBadge, PatientAvatar } from '../components/CategorieBadge'
+import { CategorieBadge } from '../components/CategorieBadge'
+import { PhotoPatient }        from '../components/PhotoPatient'
 import { IdentiteTab }         from '../components/dossier/IdentiteTab'
 import { AlertesTab }          from '../components/dossier/AlertesTab'
 import { AntecedentsTab }      from '../components/dossier/AntecedentsTab'
@@ -184,8 +185,10 @@ function ResumeLigne({ texte, etiquette }: { texte: string; etiquette?: { libell
   )
 }
 
-function DossierSidebar({ dossier, onChangerCategorie, canChangerCategorie, onOuvrir, canViewClinique, compact, locked }: {
+function DossierSidebar({ dossier, onChangerCategorie, canChangerCategorie, onOuvrir, canViewClinique, compact, locked, canEditPhoto }: {
   dossier: PatientDossier
+  /** `patient.update`, dossier non verrouillé pour moi : ajouter / changer / retirer la photo. */
+  canEditPhoto: boolean
   onChangerCategorie: () => void
   /** `patient.change_category` — le bouton était affiché à tous, même à qui le serveur refuse. */
   canChangerCategorie: boolean
@@ -216,13 +219,10 @@ function DossierSidebar({ dossier, onChangerCategorie, canChangerCategorie, onOu
     }}>
       {/* Avatar + identité */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', paddingBottom: '16px', borderBottom: '1px solid var(--bordure-legere)' }}>
-        {id ? (
-          <PatientAvatar nom={id.nom} prenom={id.prenom} code={dossier.categoriePatient.code} photoUrl={id.photoUrl} size={56} />
-        ) : (
-          <div style={{ width: 56, height: 56, borderRadius: 12, background: 'var(--fond-surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Users size={24} style={{ color: 'var(--texte-tertiaire)' }} />
-          </div>
-        )}
+        {/* Format photo d'identité, comme l'aperçu rapide de la liste des patients */}
+        <div style={{ width: '100%', maxWidth: 210, marginBottom: 6 }}>
+          <PhotoPatient key={dossier.id} patientId={dossier.id} photoUrl={id?.photoUrl} canEdit={canEditPhoto && !!id} />
+        </div>
         <div style={{ textAlign: 'center' }}>
           <p style={{ fontWeight: '700', fontSize: '14px', color: 'var(--texte-primaire)', margin: 0 }}>
             {id ? `${id.prenom} ${id.nom}` : '—'}
@@ -923,6 +923,7 @@ export function DossierPage() {
             canViewClinique={canViewClinique}
             compact={isCompact}
             locked={lockedForMe}
+            canEditPhoto={canWrite && !lockedForMe}
           />
 
           {/* Contenu principal — sur compact: hauteur naturelle, c'est le corps qui scrolle (un seul scroll) */}
