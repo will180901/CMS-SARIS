@@ -37,6 +37,8 @@ import {
   PatientQueryDto,
   FindSimilarPatientDto,
   VerrouPatientDto,
+  PersonnelAccueilQueryDto,
+  OuvrirDossierPersonnelDto,
 } from './dto/patient.dto'
 import { CreateAllergieDto, UpdateAllergieDto } from './dto/medical.dto'
 import { CreateAntecedentDto, UpdateAntecedentDto } from './dto/medical.dto'
@@ -55,6 +57,7 @@ import {
 
 interface AuthedRequest {
   user?: {
+    id?: string
     roles?: string[]
     /** Resolues en direct depuis la base par la strategie JWT (pas figees dans le jeton). */
     permissions?: string[]
@@ -124,6 +127,31 @@ export class PatientController {
   @RequirePermissions('patient.create', 'patient.read')
   findSimilar(@Query() query: FindSimilarPatientDto) {
     return this.patientService.findSimilar(query)
+  }
+
+  // ── Personnel du centre à l'accueil ───────────────────────────────────────
+  // Un membre du personnel n'a de dossier qu'à partir de son premier passage à
+  // l'accueil : la recherche le propose, le choisir ouvre son dossier depuis sa fiche.
+
+  @Get('personnel-sans-dossier')
+  @RequirePermissions('patient.create')
+  personnelSansDossier(@Query() query: PersonnelAccueilQueryDto) {
+    return this.patientService.personnelSansDossier(query.search)
+  }
+
+  @Post('depuis-personnel/:personnelId')
+  @RequirePermissions('patient.create')
+  @HttpCode(HttpStatus.OK)
+  ouvrirDossierPersonnel(
+    @Param('personnelId') personnelId: string,
+    @Body() dto: OuvrirDossierPersonnelDto,
+    @Req() req: AuthedRequest,
+  ) {
+    return this.patientService.ouvrirDossierPersonnel(
+      personnelId,
+      dto,
+      req.user?.id,
+    )
   }
 
   // ── Dossier ───────────────────────────────────────────────────────────────

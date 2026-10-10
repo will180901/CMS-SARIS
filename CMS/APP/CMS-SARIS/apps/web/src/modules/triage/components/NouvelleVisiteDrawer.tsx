@@ -13,7 +13,10 @@ import { useMotifs, useCreateMotif, useCategoriesPatient } from '@/modules/refer
 import { useSousTraitants } from '@/modules/referentiels/hooks/useSousTraitants'
 import { useDossierParMatricule } from '@/modules/patients/hooks/usePatients'
 import { useIsCompact } from '@/hooks/useMediaQuery'
-import { usePatients, useCreatePatient, useFindSimilarPatients, usePatientDossier, useRattacherAyantDroit } from '@/modules/patients/hooks/usePatients'
+import { usePatients, useCreatePatient, useFindSimilarPatients, usePatientDossier, useRattacherAyantDroit, usePersonnelSansDossier, useOuvrirDossierPersonnel } from '@/modules/patients/hooks/usePatients'
+import type { PersonnelSansDossier } from '@/modules/patients/api/patients.api'
+import { PersonnelChoisi } from './PersonnelChoisi'
+import { COMPLEMENTS_VIDES, complementsValides, complementsVersPayload } from './personnelAccueil'
 import { usePermissions }              from '@/hooks/usePermissions'
 import { useSessionStore }             from '@/stores/session.store'
 import { PatientAvatar, CategorieBadge } from '@/modules/patients/components/CategorieBadge'
@@ -64,6 +67,7 @@ export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Pr
   const createMotif   = useCreateMotif()
   const createPatient = useCreatePatient()
   const rattacher     = useRattacherAyantDroit()
+  const ouvrirDossier = useOuvrirDossierPersonnel()
   const { has }       = usePermissions()
   // Enrichissement à la volée du référentiel motifs = perm dédiée.
   const canCreateMotif   = has('referentiel.motif.create')
@@ -79,6 +83,10 @@ export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Pr
 
   // Patient — sous-mode : sélectionner un patient existant OU créer le dossier.
   const [mode, setMode] = useState<'search' | 'create'>('search')
+  // Membre du personnel SANS dossier, retrouvé par la recherche : son dossier s'ouvrira
+  // avec la visite, à partir de sa fiche — on ne complète que ce qui y manque.
+  const [personnel,   setPersonnel]   = useState<PersonnelSansDossier | null>(null)
+  const [complements, setComplements] = useState(COMPLEMENTS_VIDES)
   const [np, setNp]     = useState<NewPatient>(EMPTY_NP)
   // Patient EXISTANT à rattacher à un travailleur CDI (conjoint déjà venu, 2e parent CDI
   // d'un enfant…). Les champs du CDI réutilisent ceux de `np` : en mode recherche, ils
@@ -156,6 +164,10 @@ export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Pr
     search: search.length >= 2 ? search : undefined,
     statut: 'ACTIF',
   })
+  // Le personnel qui a déjà un dossier sort parmi les patients ; ici, ceux qui n'en ont pas.
+  const { data: personnelTrouve = [] } = usePersonnelSansDossier(
+    mode === 'search' && !patientId && !personnel ? search : '',
+  )
   const { data: motifs = [] } = useMotifs()
   const actifsMotifs = useMemo(() => motifs.filter(m => m.statut === 'ACTIF'), [motifs])
 
@@ -169,7 +181,9 @@ export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Pr
     np.cdiMatricule.trim() && np.typeLien && !cdiRefus && !lookupLoading &&
     (cdiReconnu || (np.cdiNom.trim() && np.cdiPrenom.trim()))
   )
-  const patientValid = mode === 'create' ? newPatientValid : (!!patientId && rattValid)
+  const patientValid = mode === 'create' ? newPatientValid
+    : personnel ? complementsValides(personnel.manquants, complements)
+    : (!!patientId && rattValid)
   const valid        = patientValid && !!motifId
 
   function reset() {
@@ -177,8 +191,12 @@ export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Pr
     setShowManualMotif(false); setManualMotifLib('')
     setError(null)
     setMode('search'); setNp(EMPTY_NP); setRattOpen(false)
+    setPersonnel(null); setComplements(COMPLEMENTS_VIDES)
   }
   function handleClose() { reset(); onClose() }
+  function choisirPersonnel(p: PersonnelSansDossier) {
+    setPatient(''); setPersonnel(p); setComplements(COMPLEMENTS_VIDES)
+  }
   function fermerRattachement() {
     setRattOpen(false)
     setNp(prev => ({ ...prev, cdiMatricule: '', typeLien: '', cdiNom: '', cdiPrenom: '', cdiFonction: '', cdiSectionPaie: '', cdiService: '', cdiDepartement: '' }))
@@ -253,6 +271,17 @@ export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Pr
         })
         pid = created.id
       }
+      // Membre du personnel : son dossier s'ouvre depuis sa fiche (ou est repris s'il a été
+      // ouvert entre-temps). Une fois fait, on bascule sur ce dossier : si la visite échoue
+      // ensuite, un nouvel essai ne repasse pas par l'ouverture.
+      if (mode === 'search' && personnel) {
+        const r = await ouvrirDossier.mutateAsync({
+          personnelId: personnel.id,
+          data: complementsVersPayload(personnel.manquants, complements, mySiteId),
+        })
+        pid = r.id
+        setPersonnel(null); setPatient(r.id)
+      }
       // Patient existant à rattacher : AVANT la visite, pour qu'elle s'ouvre déjà sur sa
       // nouvelle catégorie. Une fois fait, le bloc se referme : si la visite échoue
       // ensuite, un nouvel essai ne retente pas un rattachement déjà enregistré.
@@ -292,7 +321,7 @@ export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Pr
     }
   }
 
-  const submitting = create.isPending || createPatient.isPending || rattacher.isPending
+  const submitting = create.isPending || createPatient.isPending || rattacher.isPending || ouvrirDossier.isPending
 
   return (
     <div style={{
@@ -427,6 +456,13 @@ export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Pr
                   ) : null}
                 />
               </>
+            ) : personnel ? (
+              <PersonnelChoisi
+                personne={personnel}
+                complements={complements}
+                onChange={setComplements}
+                onRetirer={() => { setPersonnel(null); setSearch('') }}
+              />
             ) : selectedPatient ? (
               <>
               <div style={{
@@ -561,12 +597,13 @@ export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Pr
                       <div style={{ padding: '12px 14px', fontSize: '12px', color: 'var(--texte-tertiaire)', textAlign: 'center' }}>
                         {t('triage.recherche')}
                       </div>
-                    ) : allPatients.length === 0 ? (
+                    ) : allPatients.length === 0 && personnelTrouve.length === 0 ? (
                       <div style={{ padding: '12px 14px', fontSize: '12px', color: 'var(--texte-tertiaire)', textAlign: 'center' }}>
                         {t('triage.aucunPatientTrouve', { search })}
                       </div>
                     ) : (
-                      allPatients.slice(0, 12).map((p, i) => (
+                      <>
+                      {allPatients.slice(0, 12).map((p, i) => (
                         <button
                           key={p.id}
                           type="button"
@@ -603,7 +640,54 @@ export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Pr
                             libelle={p.categoriePatient.libelle}
                           />
                         </button>
-                      ))
+                      ))}
+                      {/* Personnel du centre qui n'a encore jamais été patient */}
+                      {personnelTrouve.length > 0 && (
+                        <>
+                          <div style={{
+                            padding: '6px 12px', fontSize: '10px', fontWeight: 700, letterSpacing: '0.05em',
+                            textTransform: 'uppercase', color: 'var(--texte-tertiaire)',
+                            background: 'var(--fond-surface-2)',
+                            borderTop: allPatients.length > 0 ? '1px solid var(--bordure-legere)' : 'none',
+                            borderBottom: '1px solid var(--bordure-legere)',
+                          }}>
+                            {t('triage.personnelSansDossier', { defaultValue: 'Personnel du centre — pas encore de dossier' })}
+                          </div>
+                          {personnelTrouve.slice(0, 8).map((p, i) => (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onClick={() => choisirPersonnel(p)}
+                              style={{
+                                width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                                padding: '8px 12px', background: 'transparent', cursor: 'pointer',
+                                border: 'none',
+                                borderBottom: i < Math.min(personnelTrouve.length, 8) - 1 ? '1px solid var(--bordure-legere)' : 'none',
+                                textAlign: 'left',
+                              }}
+                              onMouseEnter={e => (e.currentTarget.style.background = 'var(--fond-surface-2)')}
+                              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                            >
+                              <PatientAvatar
+                                nom={p.nom} prenom={p.prenom} size={32}
+                                code={p.typeContrat === 'CDD' ? 'ASSURE_CDD' : 'ASSURE_CDI'}
+                              />
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <p style={{ fontSize: '12px', fontWeight: '600', color: 'var(--texte-primaire)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {`${p.prenom} ${p.nom}`}
+                                </p>
+                                <p style={{ fontSize: '10px', color: 'var(--texte-tertiaire)', margin: '2px 0 0' }}>
+                                  <span style={{ fontFamily: 'monospace' }}>{p.matricule}</span> · {p.fonction}
+                                </p>
+                              </div>
+                              <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--ap-600)', flexShrink: 0 }}>
+                                {t('triage.ouvrirSonDossier', { defaultValue: 'Ouvrir son dossier' })}
+                              </span>
+                            </button>
+                          ))}
+                        </>
+                      )}
+                      </>
                     )}
                   </div>
                 )}

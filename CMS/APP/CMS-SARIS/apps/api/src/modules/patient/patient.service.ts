@@ -27,6 +27,7 @@ import {
   ChangerCategorieDto,
   ToggleStatutPatientDto,
   PatientQueryDto,
+  OuvrirDossierPersonnelDto,
 } from './dto/patient.dto'
 import { CreateAllergieDto, UpdateAllergieDto } from './dto/medical.dto'
 import { RattacherAyantDroitDto } from './dto/rattachement.dto'
@@ -245,6 +246,36 @@ const DOSSIER_INCLUDE = {
 } as const
 
 // ── Service ───────────────────────────────────────────────────────────────────
+
+// Fonction portée dans le dossier d'un membre du personnel : son métier au centre,
+// nommé comme dans le choix de la fonction de sa fiche (apps/web/src/config/fonctions.ts).
+const FONCTION_PERSONNEL: Record<string, string> = {
+  MEDECIN: 'Médecin Chef',
+  INFIRMIER: 'Infirmier',
+  ADMINISTRATIF: 'Administrateur Système',
+  SAGE_FEMME: 'Sage-femme',
+  TECHNICIEN_LAB: 'Technicien de laboratoire',
+}
+function libelleFonction(role: string) {
+  return FONCTION_PERSONNEL[role] ?? role
+}
+
+/** Ce qu'il faut sur la fiche du personnel pour lui ouvrir un dossier, en plus du reste. */
+type ChampOuverture = 'dateNaissance' | 'sexe' | 'sectionPaie' | 'departement'
+const LIBELLE_CHAMP: Record<ChampOuverture, string> = {
+  dateNaissance: 'date de naissance',
+  sexe: 'sexe',
+  sectionPaie: 'section de paie',
+  departement: 'département',
+}
+function champsManquants(
+  f: Partial<Record<ChampOuverture, Date | string | null>>,
+): ChampOuverture[] {
+  return (Object.keys(LIBELLE_CHAMP) as ChampOuverture[]).filter((c) => {
+    const v = f[c]
+    return v === null || v === undefined || (typeof v === 'string' && !v.trim())
+  })
+}
 
 @Injectable()
 export class PatientService {
@@ -1873,66 +1904,151 @@ export class PatientService {
     return { id: dossier.id, nom, prenom, matricule: saisie.matricule }
   }
 
-  /**
-   * Ouvre le dossier patient d'un membre du PERSONNEL du centre.
-   *
-   * Les soignants se soignent aussi ici : leur faire ressaisir nom, prénom et
-   * matricule le jour où ils consultent était une double saisie inutile, et une
-   * source de doublons (deux fiches pour la même personne, sous deux orthographes).
-   *
-   * Silencieux et sans effet de bord : renvoie null si un dossier existe déjà
-   * (même matricule) ou si la catégorie est absente. La création d'une personne
-   * ne doit jamais échouer à cause de son dossier.
-   */
-  async createFromPersonnel(
-    personnel: { id: string; matricule: string; nom: string; prenom: string },
-    siteId: string,
-    createdBy?: string,
-    floorNum = 0,
-  ) {
-    const existing = await this.prisma.raw.patient.findFirst({
-      where: { matricule: personnel.matricule },
-      select: { id: true },
-    })
-    if (existing) return null
+  // ── Personnel du centre à l'accueil ───────────────────────────────────────
+  //
+  // Employé = personnel = utilisateur. Il n'a PAS de dossier patient tant qu'il ne
+  // vient pas se soigner : la première fois qu'il passe à l'accueil, on le retrouve
+  // par son nom ou son matricule et son dossier s'ouvre à partir de sa fiche, sans
+  // rien ressaisir. Son matricule est la clé : un seul dossier par matricule.
 
-    // Le personnel du centre est du personnel SARIS sous contrat permanent.
-    const categorie = await this.prisma.categoriePatient.findFirst({
-      where: { code: 'ASSURE_CDI' },
-      select: { id: true },
-    })
-    if (!categorie) return null
-
-    const numeroPatient = await this.generateNumeroPatient(siteId, floorNum)
-
-    // Date de naissance et sexe restent vides : ils seront complétés par
-    // l'intéressé à sa première visite (IdentitePatient les accepte nuls).
-    const dossier = await this.prisma.patient.create({
-      data: {
-        numeroPatient,
-        matricule: personnel.matricule,
-        siteCreationId: siteId,
-        categoriePatientId: categorie.id,
-        createdBy: createdBy ?? null,
-        identite: { create: { nom: personnel.nom, prenom: personnel.prenom } },
+  /** Personnel ACTIF correspondant à la recherche et qui n'a pas encore de dossier. */
+  async personnelSansDossier(search: string) {
+    const q = search.trim()
+    if (q.length < 2) return []
+    const personnes = await this.prisma.personnelMedical.findMany({
+      where: {
+        statut: 'ACTIF',
+        OR: [
+          { nom: { contains: q, ...CI } },
+          { prenom: { contains: q, ...CI } },
+          { matricule: { contains: q, ...CI } },
+        ],
       },
+      orderBy: [{ nom: 'asc' }, { prenom: 'asc' }],
+      take: 20,
     })
-
-    await this.notif.emit({
-      type: 'PATIENT_CREE',
-      niveau: 'INFO',
-      category: 'clinique',
-      titre: 'Dossier patient créé automatiquement (personnel)',
-      message: `${personnel.prenom} ${personnel.nom} · ${numeroPatient}`,
-      siteId: null,
-      requiredPermission: 'patient.read',
-      entiteType: 'patient',
-      entiteId: dossier.id,
-      lien: `/patients/${dossier.id}`,
-      createdById: createdBy ?? null,
+    if (personnes.length === 0) return []
+    // Client BRUT : un dossier supprimé garde son matricule, la personne n'est donc pas
+    // « sans dossier » — l'ouverture l'expliquerait par un refus.
+    const pris = await this.prisma.raw.patient.findMany({
+      where: { matricule: { in: personnes.map((p) => p.matricule) } },
+      select: { matricule: true },
     })
+    const avecDossier = new Set(pris.map((p) => p.matricule))
+    return personnes
+      .filter((p) => !avecDossier.has(p.matricule))
+      .map((p) => ({
+        id: p.id,
+        nom: p.nom,
+        prenom: p.prenom,
+        matricule: p.matricule,
+        fonction: libelleFonction(p.role),
+        typeContrat: p.typeContrat,
+        // Seuls les MANQUES sont dits : l'accueil n'a pas à lire la fiche entière.
+        manquants: champsManquants(p),
+      }))
+  }
 
-    return dossier
+  /**
+   * Ouvre (ou reprend) le dossier patient d'un membre du personnel, à partir de sa fiche.
+   * Jamais de second dossier : si son matricule en a déjà un, c'est celui-là qui est
+   * renvoyé — y compris quand deux postes l'ouvrent au même instant.
+   */
+  async ouvrirDossierPersonnel(
+    personnelId: string,
+    dto: OuvrirDossierPersonnelDto,
+    createdBy?: string,
+  ): Promise<{ id: string; cree: boolean }> {
+    const agent = await this.prisma.personnelMedical.findUnique({
+      where: { id: personnelId },
+    })
+    if (!agent) throw new NotFoundException('Membre du personnel introuvable')
+
+    const dejaOuvert = await this.dossierDuMatricule(agent.matricule)
+    if (dejaOuvert) return { id: dejaOuvert, cree: false }
+
+    // Fiche + ce que l'accueil vient de compléter (seulement là où la fiche est vide).
+    const fiche = {
+      dateNaissance:
+        agent.dateNaissance ??
+        (dto.dateNaissance ? new Date(dto.dateNaissance) : null),
+      sexe: agent.sexe ?? dto.sexe ?? null,
+      sectionPaie: agent.sectionPaie ?? (dto.sectionPaie?.trim() || null),
+      departement: agent.departement ?? (dto.departement?.trim() || null),
+    }
+    const manquants = champsManquants(fiche).map((c) => LIBELLE_CHAMP[c])
+    if (manquants.length)
+      throw new BadRequestException(
+        `Pour ouvrir son dossier, il manque : ${manquants.join(', ')}`,
+      )
+    if (fiche.dateNaissance! > new Date())
+      throw new BadRequestException(
+        'La date de naissance ne peut pas être dans le futur',
+      )
+
+    const categorie = await this.prisma.categoriePatient.findFirst({
+      where: {
+        code: agent.typeContrat === 'CDD' ? 'ASSURE_CDD' : 'ASSURE_CDI',
+      },
+      select: { id: true },
+    })
+    if (!categorie)
+      throw new BadRequestException(
+        `Catégorie ${agent.typeContrat} introuvable dans les référentiels`,
+      )
+
+    let dossier: { id: string }
+    try {
+      dossier = await this.create(
+        {
+          nom: agent.nom,
+          prenom: agent.prenom,
+          dateNaissance: fiche.dateNaissance!.toISOString(),
+          sexe: fiche.sexe!,
+          categoriePatientId: categorie.id,
+          siteCreationId: dto.siteCreationId,
+          matricule: agent.matricule,
+          fonction: libelleFonction(agent.role),
+          sectionPaie: fiche.sectionPaie!,
+          service: agent.service,
+          departement: fiche.departement!,
+        },
+        createdBy,
+      )
+    } catch (e) {
+      // Ouvert entre-temps par un autre poste : on reprend celui-là.
+      const entreTemps = await this.dossierDuMatricule(agent.matricule)
+      if (entreTemps) return { id: entreTemps, cree: false }
+      throw e
+    }
+
+    // Ce que l'accueil a complété reste sur la fiche : on ne le redemandera pas.
+    const completes = {
+      ...(!agent.dateNaissance && { dateNaissance: fiche.dateNaissance }),
+      ...(!agent.sexe && { sexe: fiche.sexe }),
+      ...(!agent.sectionPaie && { sectionPaie: fiche.sectionPaie }),
+      ...(!agent.departement && { departement: fiche.departement }),
+    }
+    if (Object.keys(completes).length)
+      await this.prisma.personnelMedical.update({
+        where: { id: agent.id },
+        data: completes,
+      })
+
+    return { id: dossier.id, cree: true }
+  }
+
+  /** Dossier vivant portant ce matricule ; refus net s'il appartient à un dossier supprimé. */
+  private async dossierDuMatricule(matricule: string) {
+    const d = await this.prisma.raw.patient.findUnique({
+      where: { matricule },
+      select: { id: true, deletedAt: true },
+    })
+    if (d?.deletedAt)
+      throw new ConflictException(
+        `Le matricule ${matricule} appartient à un dossier supprimé`,
+      )
+    return d?.id ?? null
   }
 
   // ── Mise à jour identité ──────────────────────────────────────────────────

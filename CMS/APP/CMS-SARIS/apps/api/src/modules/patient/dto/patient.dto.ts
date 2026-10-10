@@ -193,3 +193,21 @@ export class FindSimilarPatientDto {
   @IsOptional() @IsDateString() dateNaissance?: string
   @IsOptional() @IsIn(['M', 'F']) sexe?: string
 }
+
+// ── Personnel du centre à l'accueil ───────────────────────────────────────────
+
+export class PersonnelAccueilQueryDto {
+  @IsString() @MaxLength(100) search: string
+}
+
+/**
+ * Ouverture du dossier d'un membre du personnel. Ce qui manque à sa fiche (naissance,
+ * sexe, section de paie, département) est donné ici une fois, et gardé sur sa fiche.
+ */
+export class OuvrirDossierPersonnelDto {
+  @IsUUID() siteCreationId: string
+  @IsOptional() @IsDateString() dateNaissance?: string
+  @IsOptional() @IsIn(['M', 'F']) sexe?: string
+  @IsOptional() @IsString() @MaxLength(100) sectionPaie?: string
+  @IsOptional() @IsString() @MaxLength(100) departement?: string
+}

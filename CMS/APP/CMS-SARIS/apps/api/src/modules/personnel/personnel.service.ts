@@ -3,10 +3,8 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
-  Logger,
 } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
-import { PatientService } from '../patient/patient.service'
 import { CI } from '../../common/prisma/search'
 import {
   SERVICE_PAR_DEFAUT,
@@ -64,12 +62,7 @@ function donneesFiche<T extends UpdatePersonnelDto>(dto: T) {
 
 @Injectable()
 export class PersonnelService {
-  private readonly logger = new Logger(PersonnelService.name)
-
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly patients: PatientService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   // ══════════════════════════════════════════════════════════════════════════
   //  PERSONNEL MÉDICAL
@@ -127,7 +120,7 @@ export class PersonnelService {
     })
   }
 
-  async create(dto: CreatePersonnelDto, siteId?: string, createdBy?: string) {
+  async create(dto: CreatePersonnelDto) {
     // Contrôle d'unicité sur le client BRUT : il voit aussi les tombstones (agents soft-supprimés)
     // qui occupent encore le matricule @unique en base.
     const existing = await this.prisma.raw.personnelMedical.findUnique({
@@ -140,25 +133,9 @@ export class PersonnelService {
           : `Matricule "${dto.matricule}" déjà utilisé`,
       )
     }
-    const agent = await this.prisma.personnelMedical.create({
-      data: donneesFiche(dto),
-    })
-
-    // Le dossier patient s'ouvre dans la foulée : les soignants se soignent ici
-    // aussi, et leur faire ressaisir leur identité le jour d'une consultation
-    // créait des doublons. Best-effort STRICT : l'enregistrement de la personne
-    // ne doit jamais échouer parce que son dossier n'a pas pu être créé.
-    if (siteId) {
-      try {
-        await this.patients.createFromPersonnel(agent, siteId, createdBy)
-      } catch (e) {
-        this.logger.warn(
-          `Dossier patient non créé pour ${agent.matricule} : ${(e as Error).message}`,
-        )
-      }
-    }
-
-    return agent
+    // Pas de dossier patient ici : il s'ouvre au PREMIER passage de la personne à
+    // l'accueil, à partir de cette fiche (PatientService.ouvrirDossierPersonnel).
+    return this.prisma.personnelMedical.create({ data: donneesFiche(dto) })
   }
 
   async update(id: string, dto: UpdatePersonnelDto) {

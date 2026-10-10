@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from '@workspace/ui/components/sonner'
 import { patientsApi } from '../api/patients.api'
 import type {
-  CreatePatientPayload, PatientQueryParams,
+  CreatePatientPayload, PatientQueryParams, OuvrirDossierPersonnelPayload,
   AllergiePayload, AntecedentPayload, AlertePayload,
   UpdateRattachementADPayload, RattacherAyantDroitPayload,
   UpdateIdentitePayload, ChangerCategoriePayload, ModeViePayload,
@@ -170,7 +170,38 @@ export function useDossierParMatricule(matricule: string) {
   })
 }
 
+/**
+ * Personnel du centre sans dossier patient, pour la recherche de l'accueil : la première
+ * fois qu'il vient se soigner, son dossier s'ouvre à partir de sa fiche.
+ */
+export function usePersonnelSansDossier(search: string) {
+  const { has } = usePermissions()
+  const q = search.trim()
+  return useQuery({
+    queryKey: ['patients', 'personnel-sans-dossier', q],
+    queryFn:  () => patientsApi.personnelSansDossier(q),
+    enabled:  has('patient.create') && q.length >= 2,
+    staleTime: 10_000,
+  })
+}
+
 // ── Mutations patient ─────────────────────────────────────────────────────────
+
+/** Ouvre (ou reprend, s'il existe déjà) le dossier d'un membre du personnel. */
+export function useOuvrirDossierPersonnel() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ personnelId, data }: { personnelId: string; data: OuvrirDossierPersonnelPayload }) =>
+      patientsApi.ouvrirDossierPersonnel(personnelId, data),
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: PATIENTS_KEY })
+      // La fiche du personnel a pu être complétée au passage.
+      qc.invalidateQueries({ queryKey: ['personnel'] })
+      if (r.cree) toast.success(i18n.t('patients.toastPatientCreated'))
+    },
+    onError: toastError,
+  })
+}
 
 export function useCreatePatient() {
   const qc = useQueryClient()

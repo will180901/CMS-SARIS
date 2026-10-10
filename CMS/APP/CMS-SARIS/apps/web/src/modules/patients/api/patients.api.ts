@@ -216,6 +216,26 @@ export interface MatriculeLookup {
   identite:         { nom: string; prenom: string; dateNaissance: string | null; sexe: string | null } | null
 }
 
+// Membre du personnel du centre sans dossier patient (accueil) : son dossier s'ouvre à
+// partir de sa fiche au premier passage. `manquants` = ce que sa fiche ne dit pas encore.
+export type ChampOuverturePersonnel = 'dateNaissance' | 'sexe' | 'sectionPaie' | 'departement'
+export interface PersonnelSansDossier {
+  id:          string
+  nom:         string
+  prenom:      string
+  matricule:   string
+  fonction:    string
+  typeContrat: 'CDI' | 'CDD'
+  manquants:   ChampOuverturePersonnel[]
+}
+export interface OuvrirDossierPersonnelPayload {
+  siteCreationId: string
+  dateNaissance?: string
+  sexe?:          'M' | 'F'
+  sectionPaie?:   string
+  departement?:   string
+}
+
 // Suivi du dossier (traitement, évolution des pathologies chroniques, résultats d'examens).
 export interface SuiviChroniqueItem {
   pathologieId:      string
@@ -328,6 +348,9 @@ export const patientsApi = {
   couverture:   (id: string)             => api.get<CouverturePatient>(`/patients/${id}/couverture`),
   suivi: (id: string)                    => api.get<PatientSuivi>(`/patients/${id}/suivi`),
   byMatricule:  (matricule: string)      => api.get<MatriculeLookup>(`/patients/by-matricule/${encodeURIComponent(matricule)}`),
+  personnelSansDossier: (search: string)  => api.get<PersonnelSansDossier[]>('/patients/personnel-sans-dossier', { search }),
+  ouvrirDossierPersonnel: (personnelId: string, data: OuvrirDossierPersonnelPayload) =>
+    api.post<{ id: string; cree: boolean }>(`/patients/depuis-personnel/${personnelId}`, data),
 
   // Suivi chronique (définir / modifier / clôturer)
   createSuiviChronique: (id: string, data: CreateSuiviChroniquePayload)                => api.post<SuiviChroniqueItem['suivi']>(`/patients/${id}/suivi-chronique`, data),

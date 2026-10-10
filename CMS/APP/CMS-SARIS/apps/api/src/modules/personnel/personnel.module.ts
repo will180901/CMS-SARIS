@@ -4,12 +4,11 @@ import { DelegationsController } from './delegations.controller'
 import { SousTraitantsController } from './sous-traitants.controller'
 import { PersonnelService } from './personnel.service'
 import { PrismaModule } from '../../prisma/prisma.module'
-import { PatientModule } from '../patient/patient.module'
 
 @Module({
-  // PatientService sert ici à ouvrir le dossier d'un membre du personnel.
-  // Dépendance simple : PatientModule ne dépend pas de ce module en retour.
-  imports: [PrismaModule, PatientModule],
+  // Le dossier patient d'un membre du personnel ne s'ouvre pas ici mais à l'accueil
+  // (PatientService.ouvrirDossierPersonnel), à son premier passage.
+  imports: [PrismaModule],
   controllers: [
     PersonnelController,
     DelegationsController,
