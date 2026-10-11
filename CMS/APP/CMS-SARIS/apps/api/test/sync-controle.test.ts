@@ -9,7 +9,11 @@ import {
   lireOrdres,
   resyncAEngager,
   refusDeSuspension,
+  refusDeVidage,
+  vidageAEngager,
+  vidageDejaFait,
   PosteSuspenduError,
+  VidageEnAttenteError,
   NIVEAU_CONTROLE,
   type OrdresServeur,
 } from '../src/modules/sync/sync-controle'
@@ -29,23 +33,52 @@ function test(name: string, fn: () => void): void {
 
 const D1 = '2026-10-11T08:00:00.000Z'
 const D2 = '2026-10-11T09:30:00.000Z'
-const libre: OrdresServeur = { suspendu: false, motif: null, resyncDemandeeAt: null }
+const libre: OrdresServeur = {
+  suspendu: false,
+  motif: null,
+  resyncDemandeeAt: null,
+  vidageDemandeAt: null,
+}
 
 console.log('lireOrdres')
 test('un battement qui porte des ordres', () => {
   assert.deepEqual(
     lireOrdres({
       ok: true,
-      controle: { suspendu: true, motif: 'Machine à vérifier', resyncDemandeeAt: D1 },
+      controle: {
+        suspendu: true,
+        motif: 'Machine à vérifier',
+        resyncDemandeeAt: D1,
+        vidageDemandeAt: D2,
+      },
     }),
-    { suspendu: true, motif: 'Machine à vérifier', resyncDemandeeAt: D1 },
+    {
+      suspendu: true,
+      motif: 'Machine à vérifier',
+      resyncDemandeeAt: D1,
+      vidageDemandeAt: D2,
+    },
   )
 })
 test('poste libre, rien à faire', () => {
   assert.deepEqual(
-    lireOrdres({ ok: true, controle: { suspendu: false, motif: null, resyncDemandeeAt: null } }),
+    lireOrdres({
+      ok: true,
+      controle: { suspendu: false, motif: null, resyncDemandeeAt: null, vidageDemandeAt: null },
+    }),
     libre,
   )
+})
+test('serveur d’avant le vidage : le champ manque, ce n’est pas un ordre', () => {
+  assert.equal(
+    lireOrdres({ controle: { suspendu: false, resyncDemandeeAt: D1 } })!.vidageDemandeAt,
+    null,
+  )
+})
+test('date de vidage invalide ignorée', () => {
+  assert.equal(lireOrdres({ controle: { vidageDemandeAt: 'hier' } })!.vidageDemandeAt, null)
+  assert.equal(lireOrdres({ controle: { vidageDemandeAt: 12345 } })!.vidageDemandeAt, null)
+  assert.equal(lireOrdres({ controle: { vidageDemandeAt: '' } })!.vidageDemandeAt, null)
 })
 test('serveur ancien (réponse « ok » seule) : AUCUNE information, pas « libéré »', () => {
   assert.equal(lireOrdres({ ok: true }), null)
@@ -92,9 +125,52 @@ test('une demande PLUS RÉCENTE que la dernière accomplie est engagée', () => 
 })
 test('un poste suspendu attend la levée : rien n’est engagé', () => {
   assert.equal(
-    resyncAEngager({ suspendu: true, motif: null, resyncDemandeeAt: D1 }, null),
+    resyncAEngager({ ...libre, suspendu: true, resyncDemandeeAt: D1 }, null),
     false,
   )
+})
+
+console.log('vidageAEngager')
+test('un vidage demandé est engagé', () => {
+  assert.equal(vidageAEngager({ ...libre, vidageDemandeAt: D1 }, null), true)
+})
+test('pas de vidage demandé, rien à engager', () => {
+  assert.equal(vidageAEngager(libre, null), false)
+  assert.equal(vidageAEngager(libre, D1), false)
+})
+test('le vidage déjà pris (en cours ou accompli) n’est jamais refait', () => {
+  assert.equal(vidageAEngager({ ...libre, vidageDemandeAt: D1 }, D1), false)
+})
+test('un vidage PLUS RÉCENT que le dernier accompli est engagé', () => {
+  assert.equal(vidageAEngager({ ...libre, vidageDemandeAt: D2 }, D1), true)
+})
+test('un poste suspendu attend la levée : aucun vidage n’est engagé', () => {
+  assert.equal(
+    vidageAEngager({ ...libre, suspendu: true, vidageDemandeAt: D1 }, null),
+    false,
+  )
+})
+test('le vidage et la resynchronisation sont deux ordres indépendants', () => {
+  assert.equal(vidageAEngager({ ...libre, resyncDemandeeAt: D1 }, null), false)
+  assert.equal(resyncAEngager({ ...libre, vidageDemandeAt: D1 }, null), false)
+})
+
+console.log('vidageDejaFait (vidage déjà accompli sur CE poste)')
+test('jamais fait : à faire', () => {
+  assert.equal(vidageDejaFait(D1, null), false)
+  assert.equal(vidageDejaFait(D1, undefined), false)
+  assert.equal(vidageDejaFait(D1, ''), false)
+})
+test('fait pour CETTE demande : à ne pas refaire (le travail saisi depuis serait perdu)', () => {
+  assert.equal(vidageDejaFait(D1, D1), true)
+})
+test('fait pour une demande plus récente ou plus ancienne', () => {
+  assert.equal(vidageDejaFait(D1, D2), true)
+  assert.equal(vidageDejaFait(D2, D1), false)
+})
+test('une date illisible ne vaut jamais « déjà fait »', () => {
+  assert.equal(vidageDejaFait(D1, 'hier'), false)
+  assert.equal(vidageDejaFait('hier', D1), false)
 })
 
 console.log('refusDeSuspension')
@@ -116,9 +192,28 @@ test('un autre statut n’est jamais une suspension', () => {
     assert.equal(refusDeSuspension(status, { code: 'POSTE_SUSPENDU' }), null)
 })
 
+console.log('refusDeVidage')
+test('423 + code VIDAGE_EN_ATTENTE : vidage en attente reconnu', () => {
+  assert.ok(refusDeVidage(423, { code: 'VIDAGE_EN_ATTENTE' }) instanceof VidageEnAttenteError)
+})
+test('une suspension n’est pas un vidage en attente, et inversement', () => {
+  assert.equal(refusDeVidage(423, { code: 'POSTE_SUSPENDU' }), null)
+  assert.equal(refusDeSuspension(423, { code: 'VIDAGE_EN_ATTENTE' }), null)
+})
+test('un 423 venu d’ailleurs, ou un autre statut, n’est jamais un vidage en attente', () => {
+  assert.equal(refusDeVidage(423, { message: 'Locked' }), null)
+  assert.equal(refusDeVidage(423, null), null)
+  assert.equal(refusDeVidage(423, 'VIDAGE_EN_ATTENTE'), null)
+  for (const status of [200, 401, 403, 409, 500])
+    assert.equal(refusDeVidage(status, { code: 'VIDAGE_EN_ATTENTE' }), null)
+})
+
 console.log('niveau')
 test('le niveau annoncé est un entier positif (0 = poste ancien)', () => {
   assert.ok(Number.isInteger(NIVEAU_CONTROLE) && NIVEAU_CONTROLE >= 1)
+})
+test('le niveau 2 est celui du vidage : un poste qui l’annonce sait vider sa copie', () => {
+  assert.ok(NIVEAU_CONTROLE >= 2)
 })
 
 console.log('\n' + passed + ' reussis, ' + failed + ' echoues')

@@ -182,6 +182,12 @@ export class DonneesTestService implements OnApplicationBootstrap {
   private get local(): boolean {
     return process.env['DATABASE_PROVIDER'] === 'sqlite'
   }
+
+  /** Une génération tourne-t-elle dans ce processus ? Le vidage des données ne doit pas la croiser. */
+  get generationEnCours(): boolean {
+    return this.execution !== null
+  }
+
   private limiteOctets(): number {
     const mo = Number(process.env['DONNEES_TEST_TAILLE_MAX_MO'])
     return (Number.isFinite(mo) && mo > 0 ? mo : 350) * 1024 * 1024

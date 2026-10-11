@@ -1280,6 +1280,12 @@ model PosteLocal {
    *  de vie, puis l'accuse (`resyncFaiteAt`), ce qui efface la demande. */
   resyncDemandeeAt     DateTime?
   resyncFaiteAt        DateTime?
+  /** VIDAGE des données métier ordonné par le serveur central (dossiers, visites, consultations…) :
+   *  tant que `vidageDemandeAt` est renseigné, le serveur REFUSE les échanges du poste (423
+   *  `VIDAGE_EN_ATTENTE`) — ses anciennes lignes ne doivent pas ressusciter ce qui vient d'être
+   *  vidé. Le poste vide sa copie locale puis l'accuse (`vidageFaitAt`), ce qui efface la demande. */
+  vidageDemandeAt      DateTime?
+  vidageFaitAt         DateTime?
   /** Version de l'application du poste, et niveau des ordres du serveur qu'il comprend
    *  (renseignés par son battement de vie). Absent ou 0 = poste ancien : il les ignore. */
   versionApp           String?

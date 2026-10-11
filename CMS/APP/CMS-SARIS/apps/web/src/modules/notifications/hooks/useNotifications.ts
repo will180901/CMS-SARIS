@@ -14,6 +14,7 @@ import { useSessionStore } from '@/stores/session.store'
 import { useConnectivityStore } from '@/stores/connectivity.store'
 import { playSound } from '@/lib/sounds'
 import { useTypingStore } from '@/stores/typing.store'
+import { useViewStateStore } from '@/stores/viewState.store'
 import { performTokenRefresh } from '@/modules/auth/hooks/useRefreshSession'
 import { notificationsApi, type NotificationItem } from '../api/notifications.api'
 
@@ -190,6 +191,14 @@ export function useNotificationStream() {
         // caches, pour que menus et boutons apparaissent/disparaissent sans rechargement.
         // Silencieux : ni cloche, ni son, ni toast.
         if (n.type === 'PERMISSIONS_CHANGED') { void performTokenRefresh(qc); return }
+        // Le centre vient d'être VIDÉ de ses données métier : tout ce qui est affiché (listes, dossiers
+        // ouverts, tableaux de bord) n'existe plus, et la sélection mémorisée par page pointe vers des
+        // dossiers disparus. On repart propre, silencieusement.
+        if (n.type === 'SYSTEME_VIDAGE') {
+          useViewStateStore.setState({ pages: {} })
+          qc.invalidateQueries()
+          return
+        }
         // Événements LIVE silencieux : rafraîchir les listes, sans cloche/son/toast.
         const live = LIVE_INVALIDATIONS[n.type]
         if (live) { for (const key of live) qc.invalidateQueries({ queryKey: key }); return }

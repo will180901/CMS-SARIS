@@ -6,6 +6,9 @@
  *    reprise : rien n'est perdu, seulement retardé. Réversible en un clic.
  *  - FORCER UNE RESYNCHRONISATION COMPLÈTE : le poste retélécharge toutes les données du
  *    serveur à son prochain contact (ce qu'il n'a pas encore envoyé est conservé).
+ *  - VIDAGE DES DONNÉES DU CENTRE (information, rien à commander ici) : quand le centre est vidé
+ *    depuis la page « Données de test », chaque poste reçoit l'ordre de vider sa copie ; tant qu'il
+ *    ne l'a pas fait, ses échanges sont refusés. Cette ligne dit où en est CE poste.
  *
  * Seuls les boutons qui ont un EFFET sont offerts. La resynchronisation n'est proposée que si
  * le poste dit comprendre l'ordre (version récente) : sans cela, la demande resterait « en
@@ -16,7 +19,7 @@
 
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Pause, Play, RefreshCw } from 'lucide-react'
+import { Eraser, Pause, Play, RefreshCw } from 'lucide-react'
 import { Button, Modal, Field, Textarea } from '@/components/saris'
 import { toast } from '@workspace/ui/components/sonner'
 import { formatDateTime } from '@/lib/intl'
@@ -58,6 +61,8 @@ export function ControleFluxPoste({ poste, peutAgir, onModale }: Props) {
 
   const compatible = (poste.niveauControle ?? 0) >= 1
   const enAttente = !!poste.resyncDemandeeAt
+  const vidageEnAttente = !!poste.vidageDemandeAt
+  const sait_vider = (poste.niveauControle ?? 0) >= 2
   const echec = () => toast.error(t('admin.supCtlErreur'))
   const ouvrir = (m: Modale) => { setModale(m); onModale(m !== null) }
 
@@ -147,6 +152,27 @@ export function ControleFluxPoste({ poste, peutAgir, onModale }: Props) {
             </Button>
           ))}
         </div>
+
+        {/* ── Le vidage des données du centre : où en est ce poste ───────── */}
+        {(vidageEnAttente || poste.vidageFaitAt) && (
+          <div style={{ ...rangee, borderTop: '1px solid var(--bordure-legere)' }}>
+            <Eraser
+              size={14}
+              style={{ color: vidageEnAttente ? 'var(--avert-accent)' : 'var(--texte-tertiaire)', flexShrink: 0 }}
+            />
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <p style={titre}>{t('admin.supCtlVidageTitre')}</p>
+              <p style={aide}>
+                {vidageEnAttente
+                  ? <>
+                      {t('admin.supCtlVidageAttente', { quand: relative(poste.vidageDemandeAt) })}
+                      {!sait_vider && <><br />{t('admin.supCtlVidageAncien')}</>}
+                    </>
+                  : t('admin.supCtlVidageFait', { date: formatDateTime(poste.vidageFaitAt ?? '') })}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       {modale === 'suspendre' && (

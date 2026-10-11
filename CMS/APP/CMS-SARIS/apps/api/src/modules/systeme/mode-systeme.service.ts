@@ -18,9 +18,9 @@ import {
   Injectable,
   Logger,
 } from '@nestjs/common'
-import * as bcrypt from 'bcrypt'
 import { PrismaService } from '../../prisma/prisma.service'
 import { NotificationService } from '../notification/notification.service'
+import { motDePasseCorrect } from './mot-de-passe-admin'
 import {
   CLE_MODE,
   modeEffectif,
@@ -162,13 +162,9 @@ export class ModeSystemeService {
     demande: ModeSysteme,
     ip: string | null,
   ): Promise<void> {
-    const u = await this.prisma.utilisateur.findUnique({
-      where: { id: auteurId },
-      select: { passwordHash: true },
-    })
     // 403 et non 401 : un 401 déclencherait, côté application web, un renouvellement de la
     // session — alors que la session est valide, et que c'est le MOT DE PASSE saisi qui est faux.
-    if (!u || !(await bcrypt.compare(motDePasse, u.passwordHash))) {
+    if (!(await motDePasseCorrect(this.prisma, auteurId, motDePasse))) {
       await this.tracer('MODE_ECHEC', auteurId, ip, 'ERREUR', null, {
         demande,
         raison: 'mot de passe incorrect',

@@ -34,6 +34,7 @@ interface Controle {
   suspendu: boolean
   motif: string | null
   resyncDemandeeAt: string | null
+  vidageDemandeAt: string | null
 }
 interface Battement {
   ok: boolean
@@ -178,6 +179,7 @@ describe('Contrôle du flux d’un poste', () => {
         suspendu: false,
         motif: null,
         resyncDemandeeAt: null,
+        vidageDemandeAt: null,
       })
     })
 
@@ -238,6 +240,7 @@ describe('Contrôle du flux d’un poste', () => {
         suspendu: true,
         motif: 'Poste à vérifier',
         resyncDemandeeAt: null,
+        vidageDemandeAt: null,
       })
     })
 

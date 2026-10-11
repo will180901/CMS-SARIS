@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpException,
   Param,
   Patch,
   Post,
@@ -34,7 +35,9 @@ import {
   PurgeActiviteQueryDto,
   SuspendrePosteDto,
   ResyncTermineeDto,
+  VidageTermineDto,
 } from './sync.dto'
+import { PortierVidage } from './portier-vidage'
 
 interface AuthedRequest {
   user?: { id?: string; siteId?: string }
@@ -67,6 +70,7 @@ export class SyncController {
     private readonly client: SyncClientService,
     private readonly supervision: SyncSupervisionService,
     private readonly modeSysteme: ModeSystemeService,
+    private readonly portier: PortierVidage,
   ) {}
 
   @Get('pull')
@@ -107,7 +111,24 @@ export class SyncController {
     const { userId, siteId } = requireUser(req)
     // Refus AVANT tout traitement : rien du lot d'un poste suspendu n'est appliqué.
     await this.supervision.assertPosteActif(body.posteLocalId)
-    return this.svc.push(siteId, userId, body.posteLocalId, body.changes)
+    // Un vidage des données métier est-il en cours ? Alors ce lot, même d'un poste en règle, ne doit
+    // pas s'écrire au milieu — ni juste après — de ce qui s'efface. Refusé comme un poste dont le
+    // vidage n'est pas accusé : le poste réessaiera, et son vidage lui sera ordonné.
+    if (!this.portier.entrer())
+      throw new HttpException(
+        {
+          statusCode: 423,
+          code: 'VIDAGE_EN_ATTENTE',
+          message:
+            'Un vidage des données du centre est en cours : réessayez dans un instant.',
+        },
+        423,
+      )
+    try {
+      return await this.svc.push(siteId, userId, body.posteLocalId, body.changes)
+    } finally {
+      this.portier.sortir()
+    }
   }
 
   /**
@@ -255,6 +276,22 @@ export class SyncController {
   ) {
     const { userId } = requireUser(req)
     return this.supervision.accuserResync(id, new Date(dto.demandeeAt), userId)
+  }
+
+  /**
+   * ACCUSÉ du poste : sa copie locale des données métier est vidée. Appelé par le client de
+   * synchronisation du poste lui-même, avec son compte de synchronisation. Cette route est la seule
+   * à rester ouverte à un poste dont le vidage est en attente (avec le battement de vie).
+   */
+  @Post('poste/:id/vidage-termine')
+  @RequirePermissions('synchronisation.execute')
+  accuserVidage(
+    @Req() req: AuthedRequest,
+    @Param('id') id: string,
+    @Body() dto: VidageTermineDto,
+  ) {
+    const { userId } = requireUser(req)
+    return this.supervision.accuserVidage(id, new Date(dto.demandeeAt), userId)
   }
 
   /** Activité regroupée par poste : UNE ligne par machine (cf. service). */

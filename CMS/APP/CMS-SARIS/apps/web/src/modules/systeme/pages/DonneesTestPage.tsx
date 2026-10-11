@@ -6,6 +6,9 @@
  * (elle se retire sans jamais toucher à une vraie donnée), et ni les comptes, ni le personnel, ni les
  * référentiels, ni la messagerie ne sont concernés.
  *
+ * En bas de page, pour qui a le droit `systeme.vidage` : le VIDAGE de toutes les données métier du
+ * centre (geste de la mise en service, irréversible, mot de passe redemandé) — cf. ViderDonneesMetier.
+ *
  * La génération tourne en arrière-plan sur le serveur : on peut quitter la page, y revenir, l'arrêter
  * après la journée en cours, la reprendre là où elle s'était arrêtée.
  */
@@ -29,6 +32,7 @@ import {
   useSupprimerDonneesTest,
 } from '../hooks/useDonneesTest'
 import type { BilanDonneesTest, LotDonneesTest, StatutLot } from '../api/donneesTest.api'
+import { ZoneVider } from '../components/ViderDonneesMetier'
 
 const DUREES = [3, 4, 6, 12] as const
 /** Visites par jour d'ouverture, tous sites confondus. */
@@ -93,6 +97,7 @@ export function DonneesTestPage() {
             <ZoneGenerer />
             {etat.lot && <ZoneProgression lot={etat.lot} maintenant={dataUpdatedAt} />}
             <ZoneExistantes />
+            <ZoneVider />
           </>
         )}
       </div>

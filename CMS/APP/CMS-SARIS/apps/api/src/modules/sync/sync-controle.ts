@@ -5,11 +5,13 @@
  * décisions pures — « cette réponse dit-elle de suspendre ? », « faut-il retélécharger ? ».
  * Le client (sync-client.service.ts) ne fait que les appliquer.
  *
- * Deux ordres existent :
+ * Trois ordres existent :
  *  - SUSPENSION : le serveur refuse les échanges du poste (HTTP 423, `POSTE_SUSPENDU`).
  *    Le poste cesse d'essayer, garde son travail en local, et reprend dès qu'un battement
  *    de vie lui dit qu'il est libéré ;
- *  - RESYNCHRONISATION COMPLÈTE : le poste retélécharge tout, puis l'accuse au serveur.
+ *  - RESYNCHRONISATION COMPLÈTE : le poste retélécharge tout, puis l'accuse au serveur ;
+ *  - VIDAGE : le serveur a vidé ses données métier ; le poste vide sa copie locale, puis l'accuse.
+ *    Tant que ce n'est pas accusé, le serveur refuse ses échanges (HTTP 423, `VIDAGE_EN_ATTENTE`).
  */
 
 /**
@@ -17,8 +19,17 @@
  * battement de vie : tant qu'un poste ne l'annonce pas (version ancienne), le serveur ne lui
  * demande rien qu'il ignorerait, et l'interface n'offre pas de bouton sans effet.
  *   1 = suspension affichée + resynchronisation complète + identification à la réception.
+ *   2 = vidage des données métier (vide sa copie locale puis l'accuse).
  */
-export const NIVEAU_CONTROLE = 1
+export const NIVEAU_CONTROLE = 2
+
+/**
+ * Ligne RÉSERVÉE de la table des paramètres LOCALE du poste : la date du dernier vidage que ce poste
+ * a effectué. C'est ce qui l'empêche de vider DEUX FOIS la même demande — après un redémarrage entre
+ * son vidage et son accusé, il ne doit ni revider (le travail fait depuis serait perdu) ni oublier
+ * d'accuser.
+ */
+export const CLE_VIDAGE_APPLIQUE = 'systeme.vidage_applique'
 
 /**
  * Curseur de réception d'une resynchronisation COMPLÈTE : l'origine des temps.
@@ -36,6 +47,15 @@ export interface OrdresServeur {
   motif: string | null
   /** Date (ISO) de la demande de resynchronisation complète, tant qu'elle n'est pas accomplie. */
   resyncDemandeeAt: string | null
+  /** Date (ISO) du vidage des données métier que le poste n'a pas encore fait et accusé. */
+  vidageDemandeAt: string | null
+}
+
+/** Une date ISO lisible, sinon `null` : une valeur illisible ne doit jamais déclencher un ordre. */
+function dateIso(valeur: unknown): string | null {
+  return typeof valeur === 'string' && !Number.isNaN(Date.parse(valeur))
+    ? valeur
+    : null
 }
 
 /**
@@ -50,14 +70,11 @@ export function lireOrdres(corps: unknown): OrdresServeur | null {
   const c = (corps as { controle?: unknown }).controle
   if (!c || typeof c !== 'object') return null
   const o = c as Record<string, unknown>
-  const demande = o['resyncDemandeeAt']
   return {
     suspendu: o['suspendu'] === true,
     motif: typeof o['motif'] === 'string' && o['motif'] ? o['motif'] : null,
-    resyncDemandeeAt:
-      typeof demande === 'string' && !Number.isNaN(Date.parse(demande))
-        ? demande
-        : null,
+    resyncDemandeeAt: dateIso(o['resyncDemandeeAt']),
+    vidageDemandeAt: dateIso(o['vidageDemandeAt']),
   }
 }
 
@@ -89,6 +106,60 @@ export function resyncAEngager(
     !!ordres.resyncDemandeeAt &&
     ordres.resyncDemandeeAt !== dejaPrise
   )
+}
+
+/**
+ * Faut-il vider la copie locale ?
+ *
+ * Oui si le serveur en demande un que ce poste n'a ni en cours ni déjà accompli, et qu'il n'est pas
+ * suspendu (il ne pourrait pas accuser : la demande attend la levée de la suspension). `dejaPris` =
+ * la demande en cours de traitement, ou la dernière accomplie : on ne refait jamais la MÊME demande,
+ * même si le serveur tarde à l'effacer.
+ */
+export function vidageAEngager(
+  ordres: OrdresServeur,
+  dejaPris: string | null,
+): boolean {
+  return (
+    !ordres.suspendu &&
+    !!ordres.vidageDemandeAt &&
+    ordres.vidageDemandeAt !== dejaPris
+  )
+}
+
+/**
+ * Le vidage a-t-il déjà eu lieu SUR CE POSTE pour cette demande ? `fait` = la date rangée dans la
+ * base locale à la fin du vidage. Une demande plus récente que celle-là n'est pas faite ; la même
+ * (ou une plus ancienne) l'est — il ne reste alors qu'à l'accuser.
+ */
+export function vidageDejaFait(
+  demande: string,
+  fait: string | null | undefined,
+): boolean {
+  if (!fait) return false
+  const f = Date.parse(fait)
+  const d = Date.parse(demande)
+  if (Number.isNaN(f) || Number.isNaN(d)) return false
+  return f >= d
+}
+
+/** Refus « vidage en attente » du serveur : ce poste doit d'abord vider sa copie et l'accuser. */
+export class VidageEnAttenteError extends Error {
+  constructor() {
+    super('Vidage des données métier en attente')
+    this.name = 'VidageEnAttenteError'
+  }
+}
+
+/** La réponse du serveur est-elle ce refus ? (HTTP 423 ET code `VIDAGE_EN_ATTENTE`.) */
+export function refusDeVidage(
+  status: number,
+  corps: unknown,
+): VidageEnAttenteError | null {
+  if (status !== 423 || !corps || typeof corps !== 'object') return null
+  return (corps as { code?: unknown }).code === 'VIDAGE_EN_ATTENTE'
+    ? new VidageEnAttenteError()
+    : null
 }
 
 /** Refus « poste suspendu » du serveur : le poste cesse d'essayer au lieu de s'acharner. */

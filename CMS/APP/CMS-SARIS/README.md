@@ -19,7 +19,7 @@ Deux façons de l'utiliser, **même code** :
 
 | Domaine | Contenu |
 |---|---|
-| **Sécurité** | Authentification JWT + bcrypt, **2FA (TOTP)** + codes de secours, rôles & permissions (3 rôles, 132 permissions), sessions, **journal d'audit** persistant |
+| **Sécurité** | Authentification JWT + bcrypt, **2FA (TOTP)** + codes de secours, rôles & permissions (3 rôles, 133 permissions), sessions, **journal d'audit** persistant |
 | **Référentiels** | Sites, catégories de patients, motifs, pathologies, médicaments, types d'examen, établissements |
 | **Acteurs / RH** | Personnel médical, habilitations, délégations de prescription, présences/absences, sous-traitants |
 | **Patients** | Dossier complet (identité, contacts, allergies, antécédents, alertes, constantes, suivis grossesse/chronique), rattachements |

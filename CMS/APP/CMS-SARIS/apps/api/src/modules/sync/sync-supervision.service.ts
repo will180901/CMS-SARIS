@@ -60,7 +60,7 @@ export interface SyncRecordInput {
 /** Un poste est considéré « en ligne » s'il a donné signe de vie (battement ou synchro) dans
  *  les 90 dernières secondes — aligné sur le battement du poste (~30 s, cf. sync-client.service),
  *  avec une marge de 2 battements manqués avant de basculer « hors ligne ». */
-const ONLINE_WINDOW_MS = 90_000
+export const ONLINE_WINDOW_MS = 90_000
 
 /** Ordre de priorité d'affichage quand un utilisateur porte plusieurs rôles (même ordre que
  *  `getPrimaryRole` côté web, apps/web/src/config/navigation.config.ts). */
@@ -69,6 +69,9 @@ const ROLE_PRIORITY = ['ADMIN_SYSTEME', 'MEDECIN_CHEF', 'INFIRMIER']
 /** Niveau des ordres du serveur à partir duquel un poste comprend la resynchronisation
  *  complète (et affiche sa suspension). Un poste plus ancien les ignore. */
 export const NIVEAU_CONTROLE_RESYNC = 1
+
+/** Niveau à partir duquel un poste sait vider sa copie locale quand le serveur a vidé la sienne. */
+export const NIVEAU_CONTROLE_VIDAGE = 2
 
 /** HTTP 423 « Locked » : la ressource existe mais est verrouillée — ici, un poste suspendu. */
 const HTTP_LOCKED = 423
@@ -79,6 +82,8 @@ export interface ControlePoste {
   motif: string | null
   /** Date (ISO) de la resynchronisation complète demandée, tant que le poste ne l'a pas faite. */
   resyncDemandeeAt: string | null
+  /** Date (ISO) du vidage des données métier que le poste doit encore faire (puis accuser). */
+  vidageDemandeAt: string | null
 }
 
 /** Bilan des échanges d'un poste, cumulé à partir des lignes groupées du journal. */
@@ -303,6 +308,7 @@ export class SyncSupervisionService {
         suspendu: !!poste.suspenduAt,
         motif: poste.suspensionMotif,
         resyncDemandeeAt: poste.resyncDemandeeAt?.toISOString() ?? null,
+        vidageDemandeAt: poste.vidageDemandeAt?.toISOString() ?? null,
       }
     } catch (e) {
       // Aucun ordre en cas d'erreur (et non « pas suspendu ») : une base occupée un instant ne
@@ -894,17 +900,40 @@ export class SyncSupervisionService {
     if (!posteLocalId) return
     const p = await this.prisma.posteLocal.findUnique({
       where: { id: posteLocalId },
-      select: { suspenduAt: true, suspensionMotif: true },
+      select: {
+        suspenduAt: true,
+        suspensionMotif: true,
+        vidageDemandeAt: true,
+      },
     })
-    if (!p?.suspenduAt) return
-    throw new HttpException(
+    if (p?.suspenduAt)
+      throw new HttpException(
+        {
+          statusCode: HTTP_LOCKED,
+          code: 'POSTE_SUSPENDU',
+          message:
+            'Ce poste est suspendu par un administrateur : ses échanges sont refusés.',
+          motif: p.suspensionMotif ?? null,
+          depuis: p.suspenduAt,
+        },
+        HTTP_LOCKED,
+      )
+    // Le serveur a été vidé et ce poste n'a pas encore vidé sa copie : tout ce qu'il enverrait
+    // ressusciterait ce qui vient d'être effacé, tout ce qu'il recevrait se mêlerait à des lignes
+    // périmées. Il vide d'abord (l'ordre lui parvient par son battement de vie, jamais refusé), puis
+    // il l'accuse.
+    if (p?.vidageDemandeAt) throw this.refusVidageEnAttente(p.vidageDemandeAt)
+  }
+
+  /** Le refus (423) d'un poste dont le vidage n'est pas accusé — même réponse pour tous ses échanges. */
+  private refusVidageEnAttente(depuis: Date): HttpException {
+    return new HttpException(
       {
         statusCode: HTTP_LOCKED,
-        code: 'POSTE_SUSPENDU',
+        code: 'VIDAGE_EN_ATTENTE',
         message:
-          'Ce poste est suspendu par un administrateur : ses échanges sont refusés.',
-        motif: p.suspensionMotif ?? null,
-        depuis: p.suspenduAt,
+          'Les données du centre ont été vidées : ce poste doit d’abord vider sa copie locale.',
+        depuis,
       },
       HTTP_LOCKED,
     )
@@ -916,6 +945,8 @@ export class SyncSupervisionService {
     suspensionMotif: string | null
     resyncDemandeeAt: Date | null
     resyncFaiteAt: Date | null
+    vidageDemandeAt: Date | null
+    vidageFaitAt: Date | null
   }) {
     return {
       suspendu: !!p.suspenduAt,
@@ -923,6 +954,8 @@ export class SyncSupervisionService {
       motif: p.suspensionMotif,
       resyncDemandeeAt: p.resyncDemandeeAt,
       resyncFaiteAt: p.resyncFaiteAt,
+      vidageDemandeAt: p.vidageDemandeAt,
+      vidageFaitAt: p.vidageFaitAt,
     }
   }
 
@@ -1102,6 +1135,33 @@ export class SyncSupervisionService {
     return { ok: true, demandeSoldee: correspond }
   }
 
+  /**
+   * ACCUSÉ du poste : il a vidé sa copie locale des données métier.
+   *
+   * On note toujours la date (le poste a bel et bien vidé), mais on n'efface la demande en cours que
+   * si l'accusé porte SA date : si le centre a été vidé une seconde fois entre-temps, ce nouveau
+   * vidage reste à accomplir — et les échanges du poste restent refusés d'ici là.
+   */
+  async accuserVidage(posteId: string, demandeeAt: Date, auteurId: string | null) {
+    const poste = await this.posteOuErreur(posteId)
+    const correspond =
+      !!poste.vidageDemandeAt && +poste.vidageDemandeAt === +demandeeAt
+
+    await this.prisma.posteLocal.update({
+      where: { id: posteId },
+      data: {
+        vidageFaitAt: new Date(),
+        ...(correspond ? { vidageDemandeAt: null } : {}),
+      },
+    })
+    await this.tracerControle('VIDAGE_DONE', poste, auteurId, null, {
+      demandeeAt: demandeeAt.toISOString(),
+      demandeSoldee: correspond,
+    })
+    this.signalerControle()
+    return { ok: true, demandeSoldee: correspond }
+  }
+
   /** Enrichit des postes avec le nom + rôle du DERNIER utilisateur connecté (nom lisible au lieu
    *  de l'identifiant machine) et le LIBELLÉ de leur site de rattachement.
    *
@@ -1124,6 +1184,8 @@ export class SyncSupervisionService {
       suspensionMotif: string | null
       resyncDemandeeAt: Date | null
       resyncFaiteAt: Date | null
+      vidageDemandeAt: Date | null
+      vidageFaitAt: Date | null
       versionApp: string | null
       niveauControle: number | null
     },
@@ -1202,6 +1264,8 @@ export class SyncSupervisionService {
         suspensionMotif: p.suspensionMotif,
         resyncDemandeeAt: p.resyncDemandeeAt,
         resyncFaiteAt: p.resyncFaiteAt,
+        vidageDemandeAt: p.vidageDemandeAt,
+        vidageFaitAt: p.vidageFaitAt,
         versionApp: p.versionApp,
         niveauControle: p.niveauControle,
       }

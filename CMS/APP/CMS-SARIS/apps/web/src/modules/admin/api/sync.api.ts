@@ -52,6 +52,10 @@ export interface SyncSupervisionPoste {
   /** Resynchronisation complète demandée (pas encore accomplie) / dernière accomplie. */
   resyncDemandeeAt: string | null
   resyncFaiteAt: string | null
+  /** Vidage des données du centre : ordonné au poste et pas encore accompli / dernier accompli.
+   *  Tant qu'il est en attente, le serveur refuse les échanges du poste. */
+  vidageDemandeAt: string | null
+  vidageFaitAt: string | null
   /** Version de l'application du poste, et niveau des ordres du serveur qu'il comprend.
    *  `null` = poste ancien : il ne sait ni afficher une suspension ni se resynchroniser. */
   versionApp: string | null
@@ -204,6 +208,8 @@ export interface EtatControlePoste {
   motif: string | null
   resyncDemandeeAt: string | null
   resyncFaiteAt: string | null
+  vidageDemandeAt: string | null
+  vidageFaitAt: string | null
 }
 
 export const syncApi = {

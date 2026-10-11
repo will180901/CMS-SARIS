@@ -201,6 +201,9 @@ export const PERMISSIONS = {
   SYSTEME_MODE:            'systeme.mode',
   // Les données de test (mode Test) : fabriquer des mois d'activité fictive, puis les supprimer.
   SYSTEME_DONNEES_TEST:    'systeme.donnees_test',
+  // Vider TOUTES les données métier du centre (mise en service) : irréversible, mode Test seulement,
+  // mot de passe redemandé — un droit à part de la génération de données de test.
+  SYSTEME_VIDAGE:          'systeme.vidage',
 
   // Notifications (CRUD)
   NOTIFICATION_READ:       'notification.read',
@@ -389,6 +392,7 @@ export const PERMISSION_META: Record<PermissionCode, { libelle: string; module: 
   // Système
   'systeme.mode':                { libelle: 'Basculer le système entre production et test', module: 'systeme' },
   'systeme.donnees_test':        { libelle: 'Générer et supprimer des données de test', module: 'systeme' },
+  'systeme.vidage':              { libelle: 'Vider toutes les données métier du centre', module: 'systeme' },
 
   // Notifications
   'notification.read':           { libelle: 'Consulter ses notifications', module: 'notification' },

@@ -13,19 +13,26 @@
  */
 import fs from 'node:fs'
 import { Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common'
+import type { PrismaClient } from '@prisma/client'
 import { PrismaService } from '../../prisma/prisma.service'
 import { SyncService } from './sync.service'
 import { raisonRejet, estRejetDefinitif } from './conflict'
 import {
+  CLE_VIDAGE_APPLIQUE,
   CURSEUR_ORIGINE,
   NIVEAU_CONTROLE,
   PosteSuspenduError,
+  VidageEnAttenteError,
   lireMode,
   lireOrdres,
   refusDeSuspension,
+  refusDeVidage,
   resyncAEngager,
+  vidageAEngager,
+  vidageDejaFait,
   type OrdresServeur,
 } from './sync-controle'
+import { viderDonneesMetier } from './vidage-metier'
 import { CLE_MODE, type ModeSysteme } from '../systeme/mode-systeme'
 import {
   NotificationService,
@@ -93,6 +100,12 @@ export class SyncClientService implements OnApplicationBootstrap {
   private resyncReinitPrevue = false
   /** Le cycle en cours (ou le prochain) repart de zéro : à son terme, la demande est accusée. */
   private resyncPullDepuisZero = false
+  /** Vidage des données métier demandé par le serveur (date ISO), pas encore accompli ET accusé.
+   *  Tant qu'il est là, le serveur refuse les échanges de ce poste : il vide d'abord sa copie, au
+   *  début du prochain cycle (sous le verrou, jamais au milieu d'une réception). */
+  private vidageDemande: string | null = null
+  /** Dernier vidage accompli ET accusé : on ne refait jamais le même. */
+  private vidageAccompli: string | null = null
   /** Mode du système (production / test) tel que le serveur central l'a annoncé. */
   private modeConnu: ModeSysteme | null = null
 
@@ -199,6 +212,80 @@ export class SyncClientService implements OnApplicationBootstrap {
       this.resyncReinitPrevue = true
       void this.triggerSync('resynchronisation complète')
     }
+    if (vidageAEngager(ordres, this.vidageDemande ?? this.vidageAccompli)) {
+      this.logger.warn(
+        `Le serveur a vidé ses données métier (${ordres.vidageDemandeAt}) : ce poste vide sa copie locale.`,
+      )
+      this.vidageDemande = ordres.vidageDemandeAt
+      void this.triggerSync('vidage des données')
+    }
+  }
+
+  /** Le client brut de la base locale : un vidage supprime pour de bon, il ne pose pas de tombstone. */
+  private get baseBrute(): PrismaClient {
+    return (
+      (this.prisma as unknown as { raw?: PrismaClient }).raw ??
+      (this.prisma as unknown as PrismaClient)
+    )
+  }
+
+  /**
+   * Accomplit le vidage ordonné par le serveur : vide la copie locale des données métier, remet le
+   * curseur de réception à l'origine (tout ce que le serveur a, maintenant, est à retélécharger), et
+   * l'accuse. Appelé SOUS le verrou des cycles, avant toute réception ou tout envoi.
+   *
+   * Vrai si c'est accompli et accusé. Un vidage déjà fait localement (poste redémarré entre son
+   * vidage et son accusé) n'est PAS refait : le travail saisi depuis serait perdu — il ne reste qu'à
+   * l'accuser.
+   */
+  private async accomplirVidage(): Promise<boolean> {
+    const demande = this.vidageDemande
+    if (!demande) return true
+    const ligne = await this.prisma.parametreSysteme.findUnique({
+      where: { cle: CLE_VIDAGE_APPLIQUE },
+    })
+    if (!vidageDejaFait(demande, ligne?.valeur)) {
+      const r = await viderDonneesMetier(this.baseBrute)
+      await this.prisma.parametreSysteme.upsert({
+        where: { cle: CLE_VIDAGE_APPLIQUE },
+        update: { valeur: demande },
+        create: { cle: CLE_VIDAGE_APPLIQUE, valeur: demande },
+      })
+      // Tout ce que le serveur détient désormais (référentiels, comptes, et le travail saisi
+      // depuis son vidage) est redemandé : mieux vaut une réception en trop qu'une ligne manquante.
+      await this.saveCursor({ lastPulledAt: CURSEUR_ORIGINE })
+      this.logger.warn(
+        `Copie locale vidée : ${r.total} ligne(s) de données métier supprimée(s).`,
+      )
+      // Les écrans ouverts sur ce poste affichaient ces données : ils se rechargent.
+      try {
+        this.notif.broadcastLive('SYSTEME_VIDAGE')
+      } catch {
+        // un confort d'affichage, jamais bloquant
+      }
+    }
+    if (!(await this.accuserVidage(demande))) return false
+    this.vidageAccompli = demande
+    this.vidageDemande = null
+    this.logger.log('Vidage accusé au serveur : les échanges reprennent')
+    return true
+  }
+
+  /** Dit au serveur que la copie locale est vidée. Vrai si c'est acquis. */
+  private async accuserVidage(demandeeAt: string): Promise<boolean> {
+    try {
+      const res = await fetch(
+        `${this.serverUrl}/sync/poste/${encodeURIComponent(this.posteLocalId)}/vidage-termine`,
+        {
+          method: 'POST',
+          headers: this.headers(),
+          body: JSON.stringify({ demandeeAt }),
+        },
+      )
+      return res.ok
+    } catch {
+      return false
+    }
   }
 
   /**
@@ -255,11 +342,12 @@ export class SyncClientService implements OnApplicationBootstrap {
   /** Erreur d'une réponse HTTP refusée : une SUSPENSION n'est pas une panne. */
   private async erreurHttp(nom: string, res: Response): Promise<Error> {
     if (res.status === 423) {
-      const suspension = refusDeSuspension(
-        res.status,
-        await res.json().catch(() => null),
-      )
+      const corps: unknown = await res.json().catch(() => null)
+      const suspension = refusDeSuspension(res.status, corps)
       if (suspension) return suspension
+      // Le serveur a été vidé et ce poste n'a pas encore vidé sa copie : ce n'est pas une panne.
+      const vidage = refusDeVidage(res.status, corps)
+      if (vidage) return vidage
     }
     return new Error(`${nom} HTTP ${res.status}`)
   }
@@ -719,6 +807,10 @@ export class SyncClientService implements OnApplicationBootstrap {
   } | null> {
     this.running = true
     try {
+      // Le serveur a été vidé : AVANT toute réception ou tout envoi, ce poste vide sa copie et
+      // l'accuse. Si l'accusé n'est pas acquis (réseau), on s'arrête là : le serveur refuserait la
+      // suite, et le prochain cycle reprendra par l'accusé.
+      if (this.vidageDemande && !(await this.accomplirVidage())) return null
       // Resynchronisation complète demandée : on repart de zéro. Le curseur d'ENVOI reste
       // intact — ce que le poste n'a pas encore envoyé part ensuite, rien n'est perdu — et la
       // réception ne supprime jamais rien de local : elle ne fait que combler ce qui manque.
@@ -749,6 +841,14 @@ export class SyncClientService implements OnApplicationBootstrap {
       // Une suspension n'est pas une panne : pas de trace d'erreur, et on cesse d'insister.
       if (e instanceof PosteSuspenduError) {
         this.marquerSuspendu(e.motif)
+        return null
+      }
+      // Vidage en attente : le serveur attend l'accusé de ce poste, qui le donnera dès que le
+      // battement de vie lui aura transmis l'ordre. Rien à signaler comme erreur.
+      if (e instanceof VidageEnAttenteError) {
+        this.logger.debug?.(
+          'Échange refusé : le vidage des données du centre n’est pas encore accompli sur ce poste',
+        )
         return null
       }
       const err = e as Error

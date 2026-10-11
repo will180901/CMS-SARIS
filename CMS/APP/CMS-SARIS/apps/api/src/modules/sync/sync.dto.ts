@@ -243,3 +243,10 @@ export class ResyncTermineeDto {
   @IsISO8601()
   demandeeAt!: string
 }
+
+/** Accusé d'un vidage des données métier, envoyé par le POSTE une fois sa copie locale vidée. */
+export class VidageTermineDto {
+  /** Date du vidage qu'il vient d'accomplir, telle que le serveur la lui a donnée. */
+  @IsISO8601()
+  demandeeAt!: string
+}

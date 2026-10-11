@@ -8,6 +8,7 @@ import { SyncService } from './sync.service'
 import { SyncClientService } from './sync-client.service'
 import { SyncSupervisionService } from './sync-supervision.service'
 import { TombstonePurgeCron } from './tombstone-purge.cron'
+import { PortierVidage } from './portier-vidage'
 
 /**
  * SyncModule — moteur de synchronisation offline-first (serveur central).
@@ -22,7 +23,8 @@ import { TombstonePurgeCron } from './tombstone-purge.cron'
     SyncClientService,
     SyncSupervisionService,
     TombstonePurgeCron,
+    PortierVidage,
   ],
-  exports: [SyncService, SyncClientService],
+  exports: [SyncService, SyncClientService, PortierVidage],
 })
 export class SyncModule {}

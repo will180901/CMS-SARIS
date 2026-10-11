@@ -71,7 +71,7 @@ temps réel, géolocalisation, filtre d'exceptions global) et `src/prisma/`
 - **JWT à deux jetons** : un jeton d'accès court et un jeton de rafraîchissement.
 - **Authentification à deux facteurs (2FA TOTP)** : secret chiffré au repos
   (AES-256-GCM), codes de secours, vérification au login.
-- **Contrôle d'accès** : **132 permissions** réparties sur **3 rôles** —
+- **Contrôle d'accès** : **133 permissions** réparties sur **3 rôles** —
   `ADMIN_SYSTEME`, `MEDECIN_CHEF`, `INFIRMIER`. Gardes `JwtAuthGuard` et
   `PermissionsGuard`.
 - **Journalisation d'audit persistante** : intercepteur global qui trace les
