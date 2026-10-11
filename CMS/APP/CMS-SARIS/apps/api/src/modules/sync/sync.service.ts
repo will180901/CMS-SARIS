@@ -180,7 +180,22 @@ export class SyncService {
   }
 
   // ── PULL ────────────────────────────────────────────────────────────────────
-  /** Deltas du site depuis `since` (tombstones inclus, scope par site, paginé). */
+  /**
+   * Deltas du site depuis `since` (tombstones inclus, scope par site, paginé).
+   *
+   * LE CURSEUR NE DOIT JAMAIS DOUBLER UNE LIGNE NON ENVOYÉE. La page est limitée PAR MODÈLE :
+   * un modèle qui dépasse la limite n'envoie que ses plus anciennes lignes, alors qu'un autre
+   * modèle peut envoyer des lignes bien plus récentes dans la même page. Un curseur placé sur la
+   * plus récente de toutes (comme avant) faisait sauter au poste tout ce que le premier modèle
+   * n'avait pas encore envoyé — perdu pour toujours, sans aucune erreur. Le curseur s'arrête
+   * donc à la limite du modèle TRONQUÉ le plus en retard : tout ce qui précède est garanti
+   * envoyé pour chacun, et ce qui est renvoyé en double d'une page à l'autre est sans effet
+   * (le poste applique « le plus récent gagne », une ligne identique ne change rien).
+   *
+   * Second piège, les lignes de MÊME instant (un lot inséré d'un coup) : la page les coupe
+   * n'importe où, et un curseur « strictement après » ferait perdre la suite du lot. On pousse
+   * donc la page du modèle tronqué jusqu'à la fin de son dernier instant.
+   */
   async pull(
     siteId: string,
     since: string | undefined,
@@ -189,25 +204,41 @@ export class SyncService {
     const sinceDate = since ? new Date(since) : new Date(0)
     const serverTime = new Date()
     const changes: SyncEntityEnvelope[] = []
-    let hasMore = false
+    /** Instant jusqu'auquel un modèle tronqué a TOUT envoyé ; le plus petit de tous les modèles. */
+    let borne: Date | null = null
 
     for (const def of SYNC_MODELS) {
       const delegate = this.delegate(def.delegate)
       if (!delegate?.findMany) continue
       // `deletedAt: undefined` neutralise l'auto-filtre soft-delete → tombstones inclus.
       try {
-        const rows = await delegate.findMany({
-          where: {
-            ...def.scopeWhere(siteId),
-            updatedAt: { gt: sinceDate },
-            deletedAt: undefined,
-          },
-          orderBy: { updatedAt: 'asc' },
+        const portee = { ...def.scopeWhere(siteId), deletedAt: undefined }
+        // Ordre total : l'instant, puis la clé — sans cela, deux lignes de même instant
+        // pourraient être servies dans un ordre différent d'une page à l'autre.
+        const ordre = [
+          { updatedAt: 'asc' },
+          ...def.idFields.map((f) => ({ [f]: 'asc' })),
+        ]
+        let rows = await delegate.findMany({
+          where: { ...portee, updatedAt: { gt: sinceDate } },
+          orderBy: ordre,
           take: limit + 1,
         })
         if (rows.length > limit) {
-          hasMore = true
           rows.length = limit
+          const dernierInstant = rows[limit - 1]['updatedAt'] as Date
+          // Les lignes de ce même instant qui n'ont pas tenu dans la page : on les ajoute
+          // (la page déborde alors de quelques lignes, au plus la taille d'un lot inséré).
+          const memeInstant = await delegate.findMany({
+            where: { ...portee, updatedAt: dernierInstant },
+            orderBy: ordre,
+          })
+          const deja = new Set(rows.map((r) => this.cle(def, r)))
+          rows = [
+            ...rows,
+            ...memeInstant.filter((r) => !deja.has(this.cle(def, r))),
+          ]
+          if (!borne || dernierInstant < borne) borne = dernierInstant
         }
         for (const r of rows) changes.push(this.toEnvelope(def, r))
       } catch (e) {
@@ -220,12 +251,21 @@ export class SyncService {
 
     // On NE trie PAS par updatedAt : on conserve l'ordre du registre (parents avant enfants)
     // pour que l'application côté client respecte les contraintes de clés étrangères.
-    // Le curseur = le plus grand updatedAt du lot (sinon l'heure serveur).
+    // Curseur : la limite du modèle tronqué le plus en retard s'il y en a un (il reste alors
+    // une suite) ; sinon le plus grand updatedAt du lot (sinon l'heure serveur).
     let maxUpdated = ''
     for (const c of changes)
       if (c.updatedAt > maxUpdated) maxUpdated = c.updatedAt
-    const nextSince = maxUpdated || serverTime.toISOString()
+    const hasMore = borne !== null
+    const nextSince = borne
+      ? this.toIso(borne)
+      : maxUpdated || serverTime.toISOString()
     return { changes, serverTime: serverTime.toISOString(), hasMore, nextSince }
+  }
+
+  /** Clé d'une ligne (simple ou composite), pour repérer les doublons d'une même page. */
+  private cle(def: SyncModelDef, row: Record<string, unknown>): string {
+    return def.idFields.map((f) => String(row[f])).join('::')
   }
 
   // ── INGEST (1 delta) — partagé push serveur / pull client ───────────────────
