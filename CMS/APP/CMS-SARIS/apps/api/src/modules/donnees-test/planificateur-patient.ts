@@ -375,6 +375,8 @@ export function creerPatient(
     derniereVisite: null,
     nbVisites: 0,
     allergies: [],
+    alertes: [],
+    suivisChroniques: [],
     morphologie: nouvelleMorphologie(alea, sexe, 0),
   }
   etat.population.ajouter(patient)
@@ -444,11 +446,13 @@ export function completerDossier(
     )
     decalage += 25
     if (alea.proba(0.4)) {
+      const message = `${LIBELLE_CHRONIQUE[p.code] ?? p.code} suivie — contrôler à chaque visite.`
+      patient.alertes.push(message)
       lignes.AlerteMedicale.push({
         id: nouvelIdTest(),
         patientId: patient.id,
         type: 'PATHOLOGIE_CHRONIQUE',
-        message: `${LIBELLE_CHRONIQUE[p.code] ?? p.code} suivie — contrôler à chaque visite.`,
+        message,
         gravite: 'IMPORTANT',
         statut: 'ACTIVE',
         createdAt: quand(decalage),
@@ -501,11 +505,13 @@ export function completerDossier(
       )
       decalage += 20
       if (gravite === 'SEVERE') {
+        const message = `Allergie sévère : ${substance} — à éviter absolument.`
+        patient.alertes.push(message)
         lignes.AlerteMedicale.push({
           id: nouvelIdTest(),
           patientId: patient.id,
           type: 'ALLERGIE',
-          message: `Allergie sévère : ${substance} — à éviter absolument.`,
+          message,
           gravite: 'CRITIQUE',
           statut: 'ACTIVE',
           createdAt: quand(decalage),

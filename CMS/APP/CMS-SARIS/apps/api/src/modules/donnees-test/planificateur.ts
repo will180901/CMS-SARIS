@@ -46,6 +46,7 @@ import {
   type Soignant,
 } from './contexte'
 import { nouvelIdTest } from './marque-test'
+import { avecJours, planifierDocuments } from './planificateur-documents'
 import { ageA, UN_JOUR_MS, type PatientSim } from './population'
 import {
   choisirCategorie,
@@ -424,7 +425,7 @@ function passage(
     triageAllege: boolean
   }
   const j = S(profil.jours[0], profil.jours[1])
-  const remplacer = (t: string) => t.replace('{j}', String(j))
+  const remplacer = (t: string) => avecJours(t, Math.max(1, j))
 
   // ── 4. Le triage : constantes vitales, puis le patient est prêt ───────────────
   const cst = motif.triageAllege
@@ -773,6 +774,26 @@ function passage(
         consultationId,
       )
 
+    // Ordonnances, bons, résultats, évacuation ou suivi, suivi chronique : tout ce que le médecin
+    // prescrit et décide avant de clôturer.
+    const { decision } = planifierDocuments({
+      ctx,
+      lignes,
+      equipe,
+      patient,
+      profil,
+      age,
+      cas,
+      cst,
+      jours: j,
+      certitude: diagnostics[0]?.certitude ?? 'CONFIRME',
+      consultationId,
+      medecin,
+      tOuv: t.tOuv,
+      tFin: t.fin,
+      nouvelleChronique,
+    })
+
     lignes.Consultation.push({
       id: consultationId,
       visiteId,
@@ -786,6 +807,7 @@ function passage(
       anamneseSymptomes: remplacer(cas.symptomes),
       examenClinique: cas.examen,
       conclusion: cas.conclusion,
+      decisionMedicale: decision,
       typeConsultationId: choisirType(ctx, patient, profil),
       reposJours: repos,
       reposInclutJour,

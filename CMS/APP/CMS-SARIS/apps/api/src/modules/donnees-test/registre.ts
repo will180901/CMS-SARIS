@@ -27,6 +27,9 @@ export interface ModeleTest {
 /** « porte la marque, ou appartient à un dossier qui la porte » */
 const ouPatient = (chemin: Lien): Lien => ({ OR: [{ id: M }, chemin] })
 
+/** Le filtre d'une consultation qui appartient à un dossier de test (via sa visite). */
+const DE_TEST: Lien = { visite: { patientId: M } }
+
 /**
  * Dans l'ordre d'INSERTION. L'ordre de suppression est l'inverse.
  * Les journaux (audit) et la notification n'ont pas de parent à respecter : en queue.
@@ -122,6 +125,83 @@ export const MODELES_TEST: readonly ModeleTest[] = [
     libelle: 'Diagnostics',
     perimetre: ouPatient({ consultation: { visite: { patientId: M } } }),
   },
+  // ── Ce qui se prescrit et se délivre à partir d'une consultation ───────────────
+  {
+    modele: 'Ordonnance',
+    libelle: 'Ordonnances',
+    perimetre: ouPatient({ consultation: DE_TEST }),
+  },
+  {
+    modele: 'LigneOrdonnance',
+    libelle: 'Lignes d’ordonnance',
+    perimetre: ouPatient({ ordonnance: { consultation: DE_TEST } }),
+  },
+  {
+    modele: 'BonExamen',
+    libelle: 'Bons d’examen',
+    perimetre: ouPatient({ consultation: DE_TEST }),
+  },
+  {
+    modele: 'LigneExamen',
+    libelle: 'Examens prescrits',
+    perimetre: ouPatient({ bon: { consultation: DE_TEST } }),
+  },
+  {
+    modele: 'ResultatExamen',
+    libelle: 'Résultats d’examen',
+    perimetre: ouPatient({ bon: { consultation: DE_TEST } }),
+  },
+  // Jamais fabriquées (comptes rendus joints, chiffrés) : une personne peut en joindre à un bon de
+  // test, elles partent avec lui.
+  {
+    modele: 'PieceJointeResultat',
+    libelle: 'Comptes rendus joints',
+    perimetre: ouPatient({ bon: { consultation: DE_TEST } }),
+  },
+  {
+    modele: 'BonPharmacie',
+    libelle: 'Bons de pharmacie',
+    perimetre: ouPatient({ consultation: DE_TEST }),
+  },
+  {
+    modele: 'LigneBonPharmacie',
+    libelle: 'Lignes de bon de pharmacie',
+    perimetre: ouPatient({ bon: { consultation: DE_TEST } }),
+  },
+  {
+    modele: 'SuiviChronique',
+    libelle: 'Suivis de maladie chronique',
+    perimetre: ouPatient({
+      OR: [{ patientId: M }, { consultation: DE_TEST }],
+    }),
+  },
+  {
+    modele: 'Evacuation',
+    libelle: 'Évacuations',
+    perimetre: ouPatient({ consultation: DE_TEST }),
+  },
+  {
+    modele: 'SuiviEvacuation',
+    libelle: 'Étapes d’évacuation',
+    perimetre: ouPatient({ evacuation: { consultation: DE_TEST } }),
+  },
+  {
+    modele: 'SuiviTraitement',
+    libelle: 'Suivis de traitement',
+    perimetre: ouPatient({ consultation: DE_TEST }),
+  },
+  {
+    modele: 'FicheSuiviTraitement',
+    libelle: 'Fiches de suivi de traitement',
+    perimetre: ouPatient({ suiviTraitement: { consultation: DE_TEST } }),
+  },
+  {
+    modele: 'AdministrationTraitement',
+    libelle: 'Administrations de traitement',
+    perimetre: ouPatient({
+      ligneOrdonnance: { ordonnance: { consultation: DE_TEST } },
+    }),
+  },
   // ── Journaux : rattachés à un dossier par `entiteId`, sans clé étrangère ──────
   {
     modele: 'JournalAudit',
@@ -162,6 +242,19 @@ export type LignesJour = {
   ConstanteVitale: Prisma.ConstanteVitaleCreateManyInput[]
   Consultation: Prisma.ConsultationCreateManyInput[]
   DiagnosticConsultation: Prisma.DiagnosticConsultationCreateManyInput[]
+  Ordonnance: Prisma.OrdonnanceCreateManyInput[]
+  LigneOrdonnance: Prisma.LigneOrdonnanceCreateManyInput[]
+  BonExamen: Prisma.BonExamenCreateManyInput[]
+  LigneExamen: Prisma.LigneExamenCreateManyInput[]
+  ResultatExamen: Prisma.ResultatExamenCreateManyInput[]
+  BonPharmacie: Prisma.BonPharmacieCreateManyInput[]
+  LigneBonPharmacie: Prisma.LigneBonPharmacieCreateManyInput[]
+  SuiviChronique: Prisma.SuiviChroniqueCreateManyInput[]
+  Evacuation: Prisma.EvacuationCreateManyInput[]
+  SuiviEvacuation: Prisma.SuiviEvacuationCreateManyInput[]
+  SuiviTraitement: Prisma.SuiviTraitementCreateManyInput[]
+  FicheSuiviTraitement: Prisma.FicheSuiviTraitementCreateManyInput[]
+  AdministrationTraitement: Prisma.AdministrationTraitementCreateManyInput[]
   JournalAudit: Prisma.JournalAuditCreateManyInput[]
 }
 
@@ -187,6 +280,19 @@ export function lignesVides(): LignesJour {
     ConstanteVitale: [],
     Consultation: [],
     DiagnosticConsultation: [],
+    Ordonnance: [],
+    LigneOrdonnance: [],
+    BonExamen: [],
+    LigneExamen: [],
+    ResultatExamen: [],
+    BonPharmacie: [],
+    LigneBonPharmacie: [],
+    SuiviChronique: [],
+    Evacuation: [],
+    SuiviEvacuation: [],
+    SuiviTraitement: [],
+    FicheSuiviTraitement: [],
+    AdministrationTraitement: [],
     JournalAudit: [],
   }
 }

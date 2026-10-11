@@ -24,6 +24,16 @@ export interface EquipeSite {
   infirmiers: Soignant[]
 }
 
+/** Un médicament du référentiel du centre (actif). */
+export interface MedicamentTest {
+  id: string
+  nomGenerique: string
+  nomCommercial: string | null
+  famille: string | null
+  /** Conditions de contre-indication déclarées (texte). */
+  contreIndications: readonly string[]
+}
+
 /** Ce que le générateur LIT dans les référentiels du centre (jamais ne modifie). */
 export interface ReferentielsTest {
   /** code de catégorie → id */
@@ -31,10 +41,20 @@ export interface ReferentielsTest {
   motifs: ReadonlyMap<string, { id: string; triageAllege: boolean }>
   /** code de pathologie → id */
   pathologies: ReadonlyMap<string, string>
+  /** Identifiants des pathologies que le centre déclare chroniques (seules à pouvoir porter un suivi chronique). */
+  pathologiesChroniques: ReadonlySet<string>
   /** code de type de consultation → id */
   typesConsultation: ReadonlyMap<string, string>
   /** Sociétés sous-traitantes ACTIVES. */
   societes: readonly string[]
+  /** Médicaments actifs, par nom générique « ramené à ses lettres » (cf. `cleMedicament`). */
+  medicaments: ReadonlyMap<string, MedicamentTest>
+  /** code de type d'examen → id et domaine (BIOLOGIE, IMAGERIE…). */
+  typesExamen: ReadonlyMap<string, { id: string; domaine: string }>
+  /** code de catégorie → prestations couvertes parmi MEDICAMENT et EXAMEN (la matrice du centre). */
+  droits: ReadonlyMap<string, ReadonlySet<string>>
+  /** Établissements de référence actifs (évacuations, examens extérieurs). */
+  etablissements: readonly string[]
 }
 
 /** Ce qui se transmet d'un jour de génération au suivant. */
@@ -50,6 +70,11 @@ export interface ParametresJour {
   /** Rang du jour dans la période (0 = le plus ancien), et nombre total de jours. */
   indexJour: number
   totalJours: number
+  /**
+   * Dernier jour de la période (« AAAA-MM-JJ »). Ce qui se passe APRÈS (un résultat qui arrive, un
+   * suivi qui se poursuit) n'est pas encore arrivé : on ne fabrique pas d'avenir.
+   */
+  finPeriode: string
 }
 
 export interface ContexteJour {

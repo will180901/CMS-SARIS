@@ -179,6 +179,51 @@ export function minutesArrivees(alea: Alea, n: number, h: Horaires): number[] {
   return arrivees.sort((x, y) => x - y)
 }
 
+/** Le premier jour d'ouverture strictement après `jour`. */
+export function jourOuvertSuivant(jour: string): string {
+  let j = ajouterJours(jour, 1)
+  for (let i = 0; i < 14 && !estOuvert(j); i++) j = ajouterJours(j, 1)
+  return j
+}
+
+/** Un instant du centre : un jour local et des secondes depuis minuit local. */
+export interface Moment {
+  jour: string
+  s: number
+}
+
+/**
+ * Le moment qui suit `depuis` de `delaiS` secondes D'OUVERTURE : la nuit, le dimanche et les jours
+ * fériés ne comptent pas (un résultat attendu « dans trois heures » à 15 h le vendredi arrive le
+ * samedi matin). Un point de départ hors des heures d'ouverture est d'abord ramené à l'ouverture.
+ */
+export function apresDelaiOuvre(depuis: Moment, delaiS: number): Moment {
+  let jour = depuis.jour
+  let s = depuis.s
+  let h = horairesDuJour(jour)
+  if (!h) {
+    jour = jourOuvertSuivant(jour)
+    h = horairesDuJour(jour) as Horaires
+    s = h.ouverture * 60
+  }
+  if (s < h.ouverture * 60) s = h.ouverture * 60
+  if (s > h.fermeture * 60) {
+    jour = jourOuvertSuivant(jour)
+    h = horairesDuJour(jour) as Horaires
+    s = h.ouverture * 60
+  }
+  let restant = Math.max(0, delaiS)
+  for (let garde = 0; garde < 60; garde++) {
+    const disponible = h.fermeture * 60 - s
+    if (restant <= disponible) return { jour, s: s + restant }
+    restant -= disponible
+    jour = jourOuvertSuivant(jour)
+    h = horairesDuJour(jour) as Horaires
+    s = h.ouverture * 60
+  }
+  return { jour, s }
+}
+
 /** « 14/07/2026 » → pour les messages. */
 export function jourFrancais(jour: string): string {
   const { a, m, j } = composantes(jour)

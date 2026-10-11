@@ -30,6 +30,10 @@ export interface PatientSim {
   nbVisites: number
   /** Substances auxquelles la personne est allergique (utile à la prescription). */
   allergies: string[]
+  /** Messages de ses alertes médicales actives (contre-indications déclarées d'un médicament). */
+  alertes: string[]
+  /** Codes des profils de maladies pour lesquels un suivi chronique est déjà défini. */
+  suivisChroniques: string[]
   /** Silhouette de la personne, tenue d'une visite à l'autre. */
   morphologie: Morphologie
 }

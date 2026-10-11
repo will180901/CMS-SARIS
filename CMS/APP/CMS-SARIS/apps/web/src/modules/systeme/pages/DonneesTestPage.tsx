@@ -356,6 +356,10 @@ function ZoneProgression({ lot, maintenant }: { lot: LotDonneesTest; maintenant:
           <Compteur label={t('donneesTest.cDossiers')} valeur={p.patients} />
           <Compteur label={t('donneesTest.cConsultations')} valeur={p.consultations} />
           <Compteur label={t('donneesTest.cAnnulees')} valeur={p.visitesAnnulees} />
+          <Compteur label={t('donneesTest.cOrdonnances')} valeur={p.lignes['Ordonnance'] ?? 0} />
+          <Compteur label={t('donneesTest.cBons')} valeur={(p.lignes['BonPharmacie'] ?? 0) + (p.lignes['BonExamen'] ?? 0)} />
+          <Compteur label={t('donneesTest.cEvacuations')} valeur={p.lignes['Evacuation'] ?? 0} />
+          <Compteur label={t('donneesTest.cSuivis')} valeur={p.lignes['SuiviTraitement'] ?? 0} />
           {p.nonRecus > 0 && <Compteur label={t('donneesTest.cNonRecus')} valeur={p.nonRecus} />}
         </div>
 

@@ -128,6 +128,20 @@ describe('Données de test (génération, lecture, suppression)', () => {
     patients: await base().patient.count(),
     visites: await base().visite.count(),
     consultations: await base().consultation.count(),
+    ordonnances: await base().ordonnance.count(),
+    lignesOrdonnance: await base().ligneOrdonnance.count(),
+    bonsExamen: await base().bonExamen.count(),
+    lignesExamen: await base().ligneExamen.count(),
+    resultats: await base().resultatExamen.count(),
+    piecesJointes: await base().pieceJointeResultat.count(),
+    bonsPharmacie: await base().bonPharmacie.count(),
+    lignesBonPharmacie: await base().ligneBonPharmacie.count(),
+    suivisChroniques: await base().suiviChronique.count(),
+    evacuations: await base().evacuation.count(),
+    etapesEvacuation: await base().suiviEvacuation.count(),
+    suivisTraitement: await base().suiviTraitement.count(),
+    fiches: await base().ficheSuiviTraitement.count(),
+    administrations: await base().administrationTraitement.count(),
     // l'audit des opérations sur les données de test est une trace légitime, pas une donnée de test
     audit: await base().journalAudit.count({
       where: { NOT: { entiteType: 'DonneesTest' } },
@@ -548,19 +562,41 @@ describe('Données de test (génération, lecture, suppression)', () => {
 
     it('la génération ne touche ni aux comptes, ni au personnel, ni aux référentiels, ni aux notifications', async () => {
       const apres = await instantane()
-      const { patients, visites, consultations, audit, ...intact } = apres
-      const {
-        patients: p0,
-        visites: v0,
-        consultations: c0,
-        audit: a0,
-        ...intactAvant
-      } = avant
-      expect(intact).toEqual(intactAvant)
-      expect(patients - p0).toBe(lot.progression.lignes['Patient'])
-      expect(visites - v0).toBe(lot.progression.lignes['Visite'])
-      expect(consultations - c0).toBe(lot.progression.lignes['Consultation'])
-      expect(audit - a0).toBe(lot.progression.lignes['JournalAudit'])
+      const fabriquees = {
+        patients: 'Patient',
+        visites: 'Visite',
+        consultations: 'Consultation',
+        audit: 'JournalAudit',
+        ordonnances: 'Ordonnance',
+        lignesOrdonnance: 'LigneOrdonnance',
+        bonsExamen: 'BonExamen',
+        lignesExamen: 'LigneExamen',
+        resultats: 'ResultatExamen',
+        bonsPharmacie: 'BonPharmacie',
+        lignesBonPharmacie: 'LigneBonPharmacie',
+        suivisChroniques: 'SuiviChronique',
+        evacuations: 'Evacuation',
+        etapesEvacuation: 'SuiviEvacuation',
+        suivisTraitement: 'SuiviTraitement',
+        fiches: 'FicheSuiviTraitement',
+        administrations: 'AdministrationTraitement',
+      } as const
+      const sauf = (x: Record<string, number>) =>
+        Object.fromEntries(
+          Object.entries(x).filter(([cle]) => !(cle in fabriquees)),
+        )
+      // Tout ce que la génération ne fabrique pas est strictement intact.
+      expect(sauf(apres)).toEqual(sauf(avant))
+      // Et ce qu'elle fabrique est exactement ce qu'elle annonce, table par table.
+      const ecarts = Object.fromEntries(
+        Object.entries(fabriquees).map(([cle, modele]) => [
+          cle,
+          apres[cle as keyof typeof fabriquees] -
+            avant[cle as keyof typeof fabriquees] -
+            (lot.progression.lignes[modele] ?? 0),
+        ]),
+      )
+      expect(Object.values(ecarts).every((e) => e === 0)).toBe(true)
     })
 
     it('les routes ORDINAIRES de l’application lisent ces données comme n’importe quelles autres', async () => {
@@ -624,6 +660,172 @@ describe('Données de test (génération, lecture, suppression)', () => {
       expect((await admin.get('/dashboard/statistiques')).status).toBeLessThan(
         500,
       )
+    })
+
+    it('ordonnances, bons, résultats, évacuations et suivis : fabriqués, et lisibles par les routes ordinaires', async () => {
+      const l = lot.progression.lignes
+      const absentes = [
+        'Ordonnance',
+        'LigneOrdonnance',
+        'BonPharmacie',
+        'LigneBonPharmacie',
+        'SuiviChronique',
+      ].filter((table) => !((l[table] ?? 0) > 0))
+      expect(absentes).toEqual([])
+      expect(l['LigneOrdonnance']).toBeGreaterThanOrEqual(l['Ordonnance'])
+      // une consultation clôturée qui a prescrit des médicaments et dont le bon est délivré
+      const ordonnance = await base().ordonnance.findFirstOrThrow({
+        where: {
+          id: { startsWith: MARQUE_ID },
+          typeOrdonnance: 'PHARMACEUTIQUE',
+          statut: 'VALIDEE',
+          bonsPharmacie: { some: { statut: 'DELIVRE' } },
+        },
+        select: {
+          id: true,
+          consultationId: true,
+          consultation: { select: { visite: { select: { patientId: true } } } },
+        },
+      })
+      const patientId = ordonnance.consultation.visite.patientId
+      const c = await medecin.get<{
+        ordonnances: {
+          id: string
+          statut: string
+          lignes: { posologie: string; medicament: { nomGenerique: string } }[]
+        }[]
+      }>(`/consultations/${ordonnance.consultationId}`)
+      expect(c.status).toBe(200)
+      const o = c.body.ordonnances.find((x) => x.id === ordonnance.id)
+      expect(o?.statut).toBe('VALIDEE')
+      expect(o?.lignes.length).toBeGreaterThan(0)
+      for (const ligne of o?.lignes ?? []) {
+        expect(ligne.posologie.length).toBeGreaterThan(3)
+        expect(ligne.medicament.nomGenerique.length).toBeGreaterThan(2)
+      }
+      const bonsDeLaConsultation = await medecin.get<{ statut: string }[]>(
+        `/bons-pharmacie?consultationId=${ordonnance.consultationId}`,
+      )
+      expect(bonsDeLaConsultation.status).toBe(200)
+      expect(bonsDeLaConsultation.body.map((b) => b.statut)).toContain(
+        'DELIVRE',
+      )
+      // l'onglet Documents du dossier : ordonnance, bon de pharmacie (et certificat de repos de la livraison 1)
+      const docs = await medecin.get<{ type: string }[]>(
+        `/consultations/patient/${patientId}/documents`,
+      )
+      expect(docs.status).toBe(200)
+      const types = docs.body.map((d) => d.type)
+      expect(types).toContain('BON_PHARMACIE')
+      expect(types.some((t) => t.includes('ORDONNANCE'))).toBe(true)
+      const bons = await medecin.get<{ id: string; statut: string }[]>(
+        `/bons-pharmacie?patientId=${patientId}`,
+      )
+      expect(bons.status).toBe(200)
+      expect(bons.body.length).toBeGreaterThan(0)
+      expect(bons.body.every((b) => estIdTest(b.id))).toBe(true)
+
+      // Résultats d'examen : un bon validé, ses examens, leurs résultats
+      const bonExamen = await base().bonExamen.findFirst({
+        where: {
+          id: { startsWith: MARQUE_ID },
+          resultats: { some: { statut: 'RECU' } },
+        },
+        select: {
+          id: true,
+          consultation: { select: { visite: { select: { patientId: true } } } },
+        },
+      })
+      expect(bonExamen).not.toBeNull()
+      const be = await medecin.get<
+        {
+          id: string
+          statut: string
+          lignes: unknown[]
+          resultats: { contenu: string; statut: string }[]
+        }[]
+      >(`/bons-examen?patientId=${bonExamen?.consultation.visite.patientId}`)
+      expect(be.status).toBe(200)
+      const bon = be.body.find((b) => b.id === bonExamen?.id)
+      expect(bon?.statut).toBe('VALIDE')
+      expect(bon?.lignes.length).toBeGreaterThan(0)
+      expect(bon?.resultats.some((r) => r.statut === 'RECU')).toBe(true)
+
+      // Suivi de traitement : l'épisode et ses fiches sont lus comme n'importe quel autre
+      const suivi = await base().suiviTraitement.findFirst({
+        where: {
+          id: { startsWith: MARQUE_ID },
+          fiches: { some: {} },
+        },
+        select: {
+          id: true,
+          consultation: { select: { visite: { select: { patientId: true } } } },
+        },
+      })
+      expect(suivi).not.toBeNull()
+      const sl = await medecin.get<{ id: string }[]>(
+        `/suivi-traitement?patientId=${suivi?.consultation.visite.patientId}`,
+      )
+      expect(sl.status).toBe(200)
+      expect(sl.body.map((x) => x.id)).toContain(suivi?.id)
+      const ep = await medecin.get<{ fiches?: unknown[] }>(
+        `/suivi-traitement/${suivi?.id}/episode`,
+      )
+      expect(ep.status).toBe(200)
+
+      // Évacuation : si la génération en a produit, la route des sorties critiques les lit
+      const evac = await base().evacuation.findFirst({
+        where: { id: { startsWith: MARQUE_ID } },
+        select: {
+          id: true,
+          consultation: { select: { visite: { select: { patientId: true } } } },
+        },
+      })
+      if (evac) {
+        const el = await medecin.get<{ id: string }[]>(
+          `/evacuations?patientId=${evac.consultation.visite.patientId}`,
+        )
+        expect(el.status).toBe(200)
+        expect(el.body.map((x) => x.id)).toContain(evac.id)
+      }
+      // Rien n'est daté après la fin de la période : on ne fabrique pas d'avenir
+      const finMs = new Date(lot.parametres.fin + 'T23:59:59Z').getTime()
+      const marque = { startsWith: MARQUE_ID }
+      const plusTard = [
+        (
+          await base().resultatExamen.aggregate({
+            where: { id: marque },
+            _max: { createdAt: true },
+          })
+        )._max.createdAt,
+        (
+          await base().ficheSuiviTraitement.aggregate({
+            where: { id: marque },
+            _max: { createdAt: true },
+          })
+        )._max.createdAt,
+        (
+          await base().suiviEvacuation.aggregate({
+            where: { id: marque },
+            _max: { createdAt: true },
+          })
+        )._max.createdAt,
+        (
+          await base().bonPharmacie.aggregate({
+            where: { id: marque },
+            _max: { delivreLe: true },
+          })
+        )._max.delivreLe,
+      ]
+      for (const d of plusTard) expect(+(d as Date)).toBeLessThanOrEqual(finMs)
+      // Le suivi chronique apparaît dans le dossier (onglet Suivi)
+      const sc = await base().suiviChronique.findFirstOrThrow({
+        where: { id: { startsWith: MARQUE_ID } },
+        select: { patientId: true },
+      })
+      expect(
+        (await medecin.get(`/patients/${sc.patientId}/suivi`)).status,
+      ).toBe(200)
     })
 
     it('le journal d’audit les montre, avec leur auteur et leur adresse', async () => {
@@ -771,6 +973,50 @@ describe('Données de test (génération, lecture, suppression)', () => {
         where: { id: { startsWith: MARQUE_ID }, pathologieId: { not: null } },
       })
       expect(suivis).toBeGreaterThan(0)
+    })
+
+    it('à la reprise, la patientèle est reconstruite avec ses allergies, ses alertes et ses suivis chroniques', async () => {
+      await admin.delete('/systeme/donnees-test')
+      expect((await generer(1, 12, 'population-e2e')).status).toBe(201)
+      await lotFini()
+      const service = app.get(DonneesTestService)
+      const interne = service as unknown as {
+        chargerReferentiels: () => Promise<unknown>
+        chargerPopulation: (
+          ref: unknown,
+          graine: string,
+        ) => Promise<{
+          tous: {
+            id: string
+            allergies: string[]
+            alertes: string[]
+            suivisChroniques: string[]
+          }[]
+        }>
+      }
+      const population = await interne.chargerPopulation(
+        await interne.chargerReferentiels(),
+        'population-e2e',
+      )
+      const marque = { startsWith: MARQUE_ID }
+      const allergies = await base().allergiePatient.count({
+        where: { patientId: marque, statut: 'ACTIVE' },
+      })
+      const alertes = await base().alerteMedicale.count({
+        where: { patientId: marque, statut: 'ACTIVE' },
+      })
+      const suivis = await base().suiviChronique.count({
+        where: { patientId: marque, statut: 'ACTIF' },
+      })
+      expect(allergies).toBeGreaterThan(0)
+      expect(alertes).toBeGreaterThan(0)
+      expect(suivis).toBeGreaterThan(0)
+      const somme = (cle: 'allergies' | 'alertes' | 'suivisChroniques') =>
+        population.tous.reduce((n, p) => n + p[cle].length, 0)
+      expect(somme('allergies')).toBe(allergies)
+      expect(somme('alertes')).toBe(alertes)
+      expect(somme('suivisChroniques')).toBe(suivis)
+      await admin.delete('/systeme/donnees-test')
     })
 
     it('quitter le mode Test arrête la génération d’elle-même, et le message le dit', async () => {
@@ -944,6 +1190,162 @@ describe('Données de test (génération, lecture, suppression)', () => {
       expect(metier).toEqual(metierAvant)
       expect(a1 - a0).toBeLessThanOrEqual(2)
       expect(n1 - n0).toBeLessThanOrEqual(1)
+    })
+
+    it('ce qu’on ajoute à la main sur un document de test (bon, résultat, fiche, étape, administration) part avec lui', async () => {
+      await admin.delete('/systeme/donnees-test')
+      const avantAjout = await instantane()
+      expect((await generer(1, 6, 'documents-e2e')).status).toBe(201)
+      await lotFini()
+      // Des consultations clôturées de test, sans évacuation ni suivi de traitement
+      const consultations = await base().consultation.findMany({
+        where: {
+          id: { startsWith: MARQUE_ID },
+          statut: 'CLOTUREE',
+          evacuation: null,
+          suiviTraitement: null,
+        },
+        select: {
+          id: true,
+          soignantId: true,
+          visite: { select: { patientId: true } },
+        },
+        take: 3,
+      })
+      expect(consultations.length).toBe(3)
+      const [c1, c2, c3] = consultations
+      const type = await base().typeExamen.findFirstOrThrow()
+      const medicament = await base().medicamentReference.findFirstOrThrow()
+      const pathologie = await base().pathologieReference.findFirstOrThrow({
+        where: { chronique: true },
+      })
+      const raw = base().raw
+      // Tout est créé avec des identifiants ORDINAIRES, rattachés à des lignes marquées.
+      const ordonnance = await raw.ordonnance.create({
+        data: {
+          consultationId: c1.id,
+          prescripteurId: c1.soignantId,
+          statut: 'VALIDEE',
+          typeOrdonnance: 'PHARMACEUTIQUE',
+        },
+      })
+      const ligne = await raw.ligneOrdonnance.create({
+        data: { ordonnanceId: ordonnance.id, medicamentId: medicament.id },
+      })
+      const bonExamen = await raw.bonExamen.create({
+        data: { consultationId: c1.id, indicationClinik: 'ajout à la main' },
+      })
+      const ligneExamen = await raw.ligneExamen.create({
+        data: { bonId: bonExamen.id, typeExamenId: type.id },
+      })
+      const resultat = await raw.resultatExamen.create({
+        data: {
+          bonId: bonExamen.id,
+          ligneExamenId: ligneExamen.id,
+          contenu: 'ajout à la main',
+          saisiePar: admin.user.id,
+        },
+      })
+      const piece = await raw.pieceJointeResultat.create({
+        data: {
+          bonId: bonExamen.id,
+          nomFichier: 'compte-rendu.pdf',
+          mimeType: 'application/pdf',
+          taille: 3,
+          contenuChiffre: 'xxx',
+        },
+      })
+      const bonPharmacie = await raw.bonPharmacie.create({
+        data: { consultationId: c1.id, prescripteurId: c1.soignantId },
+      })
+      const ligneBon = await raw.ligneBonPharmacie.create({
+        data: { bonId: bonPharmacie.id, libelle: 'ajout à la main' },
+      })
+      const evacuation = await raw.evacuation.create({
+        data: { consultationId: c2.id, niveauUrgence: 'BASSE' },
+      })
+      const etape = await raw.suiviEvacuation.create({
+        data: {
+          evacuationId: evacuation.id,
+          notes: 'ajout',
+          statut: 'EN_COURS',
+        },
+      })
+      const suivi = await raw.suiviTraitement.create({
+        data: { consultationId: c3.id, motif: 'ajout à la main' },
+      })
+      const fiche = await raw.ficheSuiviTraitement.create({
+        data: { suiviTraitementId: suivi.id, noteEvolution: 'ajout' },
+      })
+      const administration = await raw.administrationTraitement.create({
+        data: { ligneOrdonnanceId: ligne.id, suiviTraitementId: suivi.id },
+      })
+      const suiviChroniqueDossier = await raw.suiviChronique.create({
+        data: {
+          patientId: c1.visite.patientId,
+          pathologieId: pathologie.id,
+          frequenceSuivi: 'Mensuel',
+        },
+      })
+      const suiviChroniqueConsultation = await raw.suiviChronique.create({
+        data: { consultationId: c2.id, pathologieId: pathologie.id },
+      })
+      for (const x of [
+        ordonnance,
+        ligne,
+        bonExamen,
+        ligneExamen,
+        resultat,
+        piece,
+        bonPharmacie,
+        ligneBon,
+        evacuation,
+        etape,
+        suivi,
+        fiche,
+        administration,
+        suiviChroniqueDossier,
+        suiviChroniqueConsultation,
+      ])
+        expect(estIdTest(x.id)).toBe(false)
+
+      const r = await admin.delete<{ tables: Record<string, number> }>(
+        '/systeme/donnees-test',
+      )
+      expect(r.status).toBe(200)
+      const restantes: string[] = []
+      for (const [table, ligneCreee] of [
+        ['Ordonnance', ordonnance],
+        ['LigneOrdonnance', ligne],
+        ['BonExamen', bonExamen],
+        ['LigneExamen', ligneExamen],
+        ['ResultatExamen', resultat],
+        ['PieceJointeResultat', piece],
+        ['BonPharmacie', bonPharmacie],
+        ['LigneBonPharmacie', ligneBon],
+        ['Evacuation', evacuation],
+        ['SuiviEvacuation', etape],
+        ['SuiviTraitement', suivi],
+        ['FicheSuiviTraitement', fiche],
+        ['AdministrationTraitement', administration],
+        ['SuiviChronique', suiviChroniqueDossier],
+        ['SuiviChronique', suiviChroniqueConsultation],
+      ] as const) {
+        const d = (
+          raw as unknown as Record<
+            string,
+            { findUnique: (a: unknown) => Promise<unknown> }
+          >
+        )[table.charAt(0).toLowerCase() + table.slice(1)]
+        if (await d.findUnique({ where: { id: ligneCreee.id } }))
+          restantes.push(table)
+      }
+      expect(restantes).toEqual([])
+      const { audit: a1, notifications: n1, ...metier } = await instantane()
+      const { audit: a0, notifications: n0, ...metierAvant } = avantAjout
+      expect(metier).toEqual(metierAvant)
+      expect(a1).toBe(a0)
+      expect(n1).toBe(n0)
     })
 
     it('quand rien n’est à supprimer, la suppression réussit sans rien faire', async () => {

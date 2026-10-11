@@ -42,6 +42,7 @@ import {
 import { compterMarquees, ecrireLignes, supprimerMarquees } from './ecriture'
 import { FILTRE_MARQUE } from './marque-test'
 import { planifierJour, profilsDisponibles } from './planificateur'
+import { cleMedicament } from './planificateur-documents'
 import { Population, type PatientSim } from './population'
 import {
   calculerPrevisions,
@@ -557,37 +558,97 @@ export class DonneesTestService implements OnApplicationBootstrap {
   }
 
   private async chargerReferentiels(): Promise<ReferentielsTest> {
-    const [categories, motifs, pathologies, types, societes] =
-      await Promise.all([
-        this.prisma.categoriePatient.findMany({
-          where: { statut: 'ACTIVE' },
-          select: { id: true, code: true },
-        }),
-        this.prisma.motifConsultation.findMany({
-          where: { statut: 'ACTIF' },
-          select: { id: true, code: true, triageAllege: true },
-        }),
-        this.prisma.pathologieReference.findMany({
-          where: { statut: 'ACTIVE' },
-          select: { id: true, code: true },
-        }),
-        this.prisma.typeConsultation.findMany({
-          where: { statut: 'ACTIF' },
-          select: { id: true, code: true },
-        }),
-        this.prisma.societeSousTraitante.findMany({
-          where: { statut: 'ACTIVE' },
-          select: { id: true },
-        }),
-      ])
+    const [
+      categories,
+      motifs,
+      pathologies,
+      types,
+      societes,
+      medicaments,
+      examens,
+      droits,
+      etablissements,
+    ] = await Promise.all([
+      this.prisma.categoriePatient.findMany({
+        where: { statut: 'ACTIVE' },
+        select: { id: true, code: true },
+      }),
+      this.prisma.motifConsultation.findMany({
+        where: { statut: 'ACTIF' },
+        select: { id: true, code: true, triageAllege: true },
+      }),
+      this.prisma.pathologieReference.findMany({
+        where: { statut: 'ACTIVE' },
+        select: { id: true, code: true, chronique: true },
+      }),
+      this.prisma.typeConsultation.findMany({
+        where: { statut: 'ACTIF' },
+        select: { id: true, code: true },
+      }),
+      this.prisma.societeSousTraitante.findMany({
+        where: { statut: 'ACTIVE' },
+        select: { id: true },
+      }),
+      this.prisma.medicamentReference.findMany({
+        where: { statut: 'ACTIF' },
+        select: {
+          id: true,
+          nomGenerique: true,
+          nomCommercial: true,
+          familleThera: true,
+          contreIndications: { select: { condition: true } },
+        },
+      }),
+      this.prisma.typeExamen.findMany({
+        where: { statut: 'ACTIF' },
+        select: { id: true, code: true, domaine: true },
+      }),
+      this.prisma.droitCategoriePatient.findMany({
+        where: {
+          couvert: true,
+          typePrestation: { in: ['MEDICAMENT', 'EXAMEN'] },
+        },
+        select: { typePrestation: true, categorie: { select: { code: true } } },
+      }),
+      this.prisma.etablissementReference.findMany({
+        where: { statut: 'ACTIF' },
+        select: { id: true },
+      }),
+    ])
+    const droitsParCategorie = new Map<string, Set<string>>()
+    for (const d of droits) {
+      const l = droitsParCategorie.get(d.categorie.code) ?? new Set<string>()
+      l.add(d.typePrestation)
+      droitsParCategorie.set(d.categorie.code, l)
+    }
     return {
       categories: new Map(categories.map((c) => [c.code, c.id])),
       motifs: new Map(
         motifs.map((m) => [m.code, { id: m.id, triageAllege: m.triageAllege }]),
       ),
       pathologies: new Map(pathologies.map((p) => [p.code, p.id])),
+      pathologiesChroniques: new Set(
+        pathologies.filter((p) => p.chronique).map((p) => p.id),
+      ),
       typesConsultation: new Map(types.map((t) => [t.code, t.id])),
       societes: societes.map((s) => s.id),
+      medicaments: new Map(
+        medicaments.map((m) => [
+          cleMedicament(m.nomGenerique),
+          {
+            id: m.id,
+            nomGenerique: m.nomGenerique,
+            nomCommercial: m.nomCommercial,
+            famille: m.familleThera,
+            contreIndications: m.contreIndications.map((c) => c.condition),
+          },
+        ]),
+      ),
+      typesExamen: new Map(
+        examens.map((t) => [t.code, { id: t.id, domaine: t.domaine }]),
+      ),
+      droits: droitsParCategorie,
+      etablissements: etablissements.map((e) => e.id),
     }
   }
 
@@ -699,6 +760,52 @@ export class DonneesTestService implements OnApplicationBootstrap {
       if (!l.includes(code)) l.push(code)
       chroniques.set(a.patientId, l)
     }
+    // Ce que la prescription doit savoir de chaque personne : allergies, alertes, suivis déjà définis.
+    const parPatientListe = <T extends { patientId: string }>(
+      lignes: T[],
+      valeur: (l: T) => string | null,
+    ) => {
+      const m = new Map<string, string[]>()
+      for (const l of lignes) {
+        const v = valeur(l)
+        if (v === null) continue
+        const liste = m.get(l.patientId) ?? []
+        liste.push(v)
+        m.set(l.patientId, liste)
+      }
+      return m
+    }
+    const allergies = parPatientListe(
+      await this.prisma.raw.allergiePatient.findMany({
+        where: { patientId: FILTRE_MARQUE, statut: 'ACTIVE' },
+        select: { patientId: true, substance: true },
+      }),
+      (l) => l.substance,
+    )
+    const alertes = parPatientListe(
+      await this.prisma.raw.alerteMedicale.findMany({
+        where: { patientId: FILTRE_MARQUE, statut: 'ACTIVE' },
+        select: { patientId: true, message: true },
+      }),
+      (l) => l.message,
+    )
+    const suivis = parPatientListe(
+      (
+        await this.prisma.raw.suiviChronique.findMany({
+          where: {
+            patientId: FILTRE_MARQUE,
+            statut: 'ACTIF',
+            deletedAt: null,
+          },
+          select: { patientId: true, pathologieId: true },
+        })
+      ).flatMap((l) =>
+        l.patientId === null
+          ? []
+          : [{ patientId: l.patientId, pathologieId: l.pathologieId }],
+      ),
+      (l) => parPathologie.get(l.pathologieId) ?? null,
+    )
     for (const p of patients) {
       if (!p.identite?.dateNaissance || !p.identite.sexe) continue
       const v = parPatient.get(p.id)
@@ -720,7 +827,9 @@ export class DonneesTestService implements OnApplicationBootstrap {
         prochainSuivi: chroniques.has(p.id) ? new Date() : null,
         derniereVisite: v?._max.dateOuverture ?? null,
         nbVisites: v?._count._all ?? 0,
-        allergies: [],
+        allergies: allergies.get(p.id) ?? [],
+        alertes: alertes.get(p.id) ?? [],
+        suivisChroniques: suivis.get(p.id) ?? [],
         morphologie: nouvelleMorphologie(creerAlea(`${graine}|${p.id}`), sexe),
       }
       population.ajouter(sim)
@@ -793,6 +902,7 @@ export class DonneesTestService implements OnApplicationBootstrap {
             visitesParJour: lot.parametres.visitesParJour,
             indexJour: tousLesJours.indexOf(jour),
             totalJours: tousLesJours.length,
+            finPeriode: lot.parametres.fin,
           },
           ips,
         }
