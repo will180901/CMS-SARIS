@@ -83,6 +83,10 @@ export const labels = {
       MODE_TEST_ON: 'Passage en mode test',
       MODE_TEST_OFF: 'Retour en production',
       MODE_ECHEC: 'Changement de mode refusé',
+      DONNEES_TEST_DEMARRAGE: 'Génération de données de test lancée',
+      DONNEES_TEST_REPRISE: 'Génération de données de test reprise',
+      DONNEES_TEST_ARRET: 'Arrêt de la génération de données de test',
+      DONNEES_TEST_SUPPRESSION: 'Données de test supprimées',
     },
 
     // ── Statuts (par famille) ────────────────────────────────────────
@@ -366,6 +370,7 @@ export const labels = {
       'synchronisation.restore': 'Restaurer une sauvegarde de configuration',
       'synchronisation.purge': 'Vider l’historique de synchronisation',
       'systeme.mode': 'Basculer le système entre production et test',
+      'systeme.donnees_test': 'Générer et supprimer des données de test',
       'notification.read': 'Consulter ses notifications',
       'notification.create': 'Émettre une notification / annonce',
       'notification.update': 'Marquer ses notifications comme lues',
@@ -422,6 +427,7 @@ export const labels = {
       JournalSynchronisation: 'Historique de synchronisation',
       PosteLocal: 'Poste',
       ModeSysteme: 'Mode du système',
+      DonneesTest: 'Données de test',
       TypeConsultation: 'Type de consultation',
     },
 
@@ -533,6 +539,10 @@ export const labels = {
       MODE_TEST_ON: 'Switched to test mode',
       MODE_TEST_OFF: 'Back to production',
       MODE_ECHEC: 'Mode change refused',
+      DONNEES_TEST_DEMARRAGE: 'Test data generation started',
+      DONNEES_TEST_REPRISE: 'Test data generation resumed',
+      DONNEES_TEST_ARRET: 'Test data generation stopped',
+      DONNEES_TEST_SUPPRESSION: 'Test data deleted',
     },
 
     // ── Statuses (by family) ─────────────────────────────────────────
@@ -816,6 +826,7 @@ export const labels = {
       'synchronisation.restore': 'Restore a configuration backup',
       'synchronisation.purge': 'Clear the synchronization history',
       'systeme.mode': 'Switch the system between production and test',
+      'systeme.donnees_test': 'Generate and delete test data',
       'notification.read': 'View own notifications',
       'notification.create': 'Issue a notification / announcement',
       'notification.update': 'Mark own notifications as read',
@@ -872,6 +883,7 @@ export const labels = {
       JournalSynchronisation: 'Synchronization history',
       PosteLocal: 'Workstation',
       ModeSysteme: 'System mode',
+      DonneesTest: 'Test data',
       TypeConsultation: 'Consultation type',
     },
 

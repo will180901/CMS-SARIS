@@ -90,6 +90,7 @@ const ParametresPage      = lazy(() => import('@/modules/admin/pages/ParametresP
 const ParametresSystemePage = lazy(() => import('@/modules/admin/pages/ParametresSystemePage').then(m => ({ default: m.ParametresSystemePage })))
 const SynchronisationPage = lazy(() => import('@/modules/admin/pages/SynchronisationPage').then(m => ({ default: m.SynchronisationPage })))
 const BaseDonneesPage = lazy(() => import('@/modules/admin/pages/BaseDonneesPage').then(m => ({ default: m.BaseDonneesPage })))
+const DonneesTestPage = lazy(() => import('@/modules/systeme/pages/DonneesTestPage').then(m => ({ default: m.DonneesTestPage })))
 const MessageriePage      = lazy(() => import('@/modules/messagerie/pages/MessageriePage').then(m => ({ default: m.MessageriePage })))
 
 /** Fallback de route (Suspense) — même langage visuel que LoadingScreen, mais scopé à
@@ -266,6 +267,16 @@ export function AppShell() {
             element={
               <PermissionGate any={['synchronisation.read']}>
                 <BaseDonneesPage />
+              </PermissionGate>
+            }
+          />
+
+          {/* Mode Test : fabriquer plusieurs mois d'activité fictive, puis les supprimer. */}
+          <Route
+            path="/admin/donnees-test"
+            element={
+              <PermissionGate any={['systeme.donnees_test']}>
+                <DonneesTestPage />
               </PermissionGate>
             }
           />

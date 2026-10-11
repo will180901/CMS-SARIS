@@ -22,6 +22,7 @@ import { NotificationModule } from './modules/notification/notification.module'
 import { MessagerieModule } from './modules/messagerie/messagerie.module'
 import { SyncModule } from './modules/sync/sync.module'
 import { SystemeModule } from './modules/systeme/systeme.module'
+import { DonneesTestModule } from './modules/donnees-test/donnees-test.module'
 import { HealthController } from './health/health.controller'
 
 /**
@@ -75,6 +76,7 @@ import { HealthController } from './health/health.controller'
     MessagerieModule, // Messagerie interne chiffrée entre agents ✅
     SyncModule, // Module 9 — Synchronisation offline-first ✅
     SystemeModule, // Mode du système (production / test) ✅
+    DonneesTestModule, // Données de test : activité fictive marquée (mode Test) ✅
   ],
   controllers: [HealthController], // Sonde publique /health (liveness)
   providers: [

@@ -13,6 +13,7 @@
  */
 
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 import { FlaskConical } from 'lucide-react'
 import { usePermissions } from '@/hooks/usePermissions'
 import { isDesktop } from '@/lib/desktop'
@@ -27,6 +28,8 @@ export function BandeauModeTest() {
 
   if (data?.mode !== 'TEST') return null
   const peutRevenir = !isDesktop && data.modifiable && has('systeme.mode')
+  // Le serveur central seul fabrique des données de test (les postes les reçoivent par la synchronisation).
+  const peutGererDonnees = !isDesktop && has('systeme.donnees_test')
 
   return (
     <div
@@ -46,6 +49,18 @@ export function BandeauModeTest() {
       <span>{t('modeSysteme.banniereTexte')}</span>
       {data.parNom && (
         <span style={{ opacity: 0.8 }}>· {t('modeSysteme.activePar', { nom: data.parNom })}</span>
+      )}
+      {peutGererDonnees && (
+        <Link
+          to="/admin/donnees-test"
+          style={{
+            color: 'inherit', textDecoration: 'none',
+            border: '1px solid currentColor', borderRadius: 9999,
+            padding: '1px 10px', fontSize: 11, fontWeight: 700,
+          }}
+        >
+          {t('donneesTest.titre')}
+        </Link>
       )}
       {peutRevenir && (
         <button

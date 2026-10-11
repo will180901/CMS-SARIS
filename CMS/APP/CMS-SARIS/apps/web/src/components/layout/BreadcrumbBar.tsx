@@ -26,6 +26,7 @@ const SEG_TKEY: Record<string, string> = {
   'parametres-systeme': 'nav.parametresSysteme',
   synchronisation: 'nav.synchronisation',
   'base-donnees': 'nav.baseDonnees',
+  'donnees-test': 'nav.donneesTest',
 }
 
 // Chemins réellement routés : un crumb n'est cliquable que s'il pointe vers une page existante.
@@ -33,7 +34,7 @@ const SEG_TKEY: Record<string, string> = {
 const KNOWN_ROUTES = new Set([
   '/dashboard', '/rapports', '/patients', '/triage', '/consultations',
   '/messagerie', '/referentiels', '/synchronisation', '/base-donnees',
-  '/admin/acces', '/admin/audit', '/admin/parametres', '/admin/parametres-systeme',
+  '/admin/acces', '/admin/audit', '/admin/parametres', '/admin/parametres-systeme', '/admin/donnees-test',
 ])
 
 const ID_RE = /^[0-9a-f]{8,}$/i   // cuid/uuid → libellé contextuel plutôt que l'id brut

@@ -71,7 +71,7 @@ const LIVE_INVALIDATIONS: Record<string, readonly (readonly string[])[]> = {
   LIVE_MESSAGERIE:   [['messagerie'], ['notifications']],
   SYNC_ACTIVITY:     [['admin', 'sync']],
   // Le mode du système (production / test) vient de changer : le bandeau suit, chez tout le monde.
-  SYSTEME_MODE:      [['systeme', 'mode']],
+  SYSTEME_MODE:      [['systeme', 'mode'], ['systeme', 'donnees-test']],
 }
 
 export function useNotificationsFeed(enabled = true) {

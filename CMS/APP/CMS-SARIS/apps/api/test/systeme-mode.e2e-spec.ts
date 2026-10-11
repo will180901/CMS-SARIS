@@ -68,8 +68,12 @@ describe('Mode du système (production / test)', () => {
     admin = await connecter(app, COMPTES.admin)
     infirmier = await connecter(app, COMPTES.infirmier)
     medecin = await connecter(app, COMPTES.medecinChef)
-    // Départ propre, quoi que les autres fichiers aient laissé.
+    // Départ propre, quoi que les autres fichiers aient laissé — la ligne du mode, mais aussi les
+    // traces de bascule : ce fichier compte les siennes.
     await base().parametreSysteme.deleteMany({ where: { cle: 'systeme.mode' } })
+    await base().journalAudit.deleteMany({
+      where: { module: 'systeme', entiteType: 'ModeSysteme' },
+    })
     delete process.env['MODE_TEST_AUTORISE']
   })
   afterAll(async () => {

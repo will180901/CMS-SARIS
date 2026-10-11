@@ -31,6 +31,7 @@ import {
   History,
   RefreshCw,
   Database,
+  FlaskConical,
 } from 'lucide-react'
 import type { LucideIcon }     from 'lucide-react'
 import type { PermissionCode, Role } from '@cms-saris/types'
@@ -46,6 +47,8 @@ export interface NavItem {
   permissions: PermissionCode[]
   /** Description courte pour les tooltips et les écrans d'aide */
   description?: string
+  /** N'apparaît que lorsque le système est en mode Test (en plus des permissions). */
+  modeTestSeulement?: boolean
 }
 
 export interface NavGroup {
@@ -183,6 +186,16 @@ export const NAV_GROUPS: NavGroup[] = [
         href:        '/base-donnees',
         permissions: ['synchronisation.read'],
         description: 'Sauvegardes de configuration et volumétrie',
+      },
+      {
+        // Mode Test uniquement : fabriquer des mois d'activité fictive, puis les supprimer.
+        key:         'donneesTest',
+        label:       'Données de test',
+        icon:        FlaskConical,
+        href:        '/admin/donnees-test',
+        permissions: ['systeme.donnees_test'],
+        modeTestSeulement: true,
+        description: 'Générer et supprimer de l\'activité fictive (mode Test)',
       },
     ],
   },
