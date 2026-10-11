@@ -21,6 +21,7 @@ import { RequirePermissions } from '../../common/decorators/require-permissions.
 import { SyncService } from './sync.service'
 import { SyncClientService } from './sync-client.service'
 import { SyncSupervisionService } from './sync-supervision.service'
+import { ModeSystemeService } from '../systeme/mode-systeme.service'
 import {
   SyncPullQueryDto,
   SyncPushDto,
@@ -65,6 +66,7 @@ export class SyncController {
     private readonly svc: SyncService,
     private readonly client: SyncClientService,
     private readonly supervision: SyncSupervisionService,
+    private readonly modeSysteme: ModeSystemeService,
   ) {}
 
   @Get('pull')
@@ -125,7 +127,18 @@ export class SyncController {
       body.libelle,
       { versionApp: body.versionApp, niveauControle: body.niveauControle },
     )
-    return { ok: true, ...(controle ? { controle } : {}) }
+    // Le MODE du système (production / test) y voyage aussi : le poste le range dans sa base
+    // locale, et son interface affiche le même bandeau que le web. Absent si illisible — le poste
+    // garde alors le mode qu'il connaît.
+    const mode = await this.modeSysteme
+      .lire()
+      .then((e) => e.mode)
+      .catch(() => undefined)
+    return {
+      ok: true,
+      ...(controle ? { controle } : {}),
+      ...(mode ? { mode } : {}),
+    }
   }
 
   /**

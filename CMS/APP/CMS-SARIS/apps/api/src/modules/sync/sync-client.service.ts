@@ -20,11 +20,13 @@ import {
   CURSEUR_ORIGINE,
   NIVEAU_CONTROLE,
   PosteSuspenduError,
+  lireMode,
   lireOrdres,
   refusDeSuspension,
   resyncAEngager,
   type OrdresServeur,
 } from './sync-controle'
+import { CLE_MODE, type ModeSysteme } from '../systeme/mode-systeme'
 import {
   NotificationService,
   type NotifRow,
@@ -91,6 +93,8 @@ export class SyncClientService implements OnApplicationBootstrap {
   private resyncReinitPrevue = false
   /** Le cycle en cours (ou le prochain) repart de zéro : à son terme, la demande est accusée. */
   private resyncPullDepuisZero = false
+  /** Mode du système (production / test) tel que le serveur central l'a annoncé. */
+  private modeConnu: ModeSysteme | null = null
 
   constructor(
     private readonly prisma: PrismaService,
@@ -156,8 +160,11 @@ export class SyncClientService implements OnApplicationBootstrap {
           niveauControle: NIVEAU_CONTROLE,
         }),
       })
-      if (res.ok)
-        this.appliquerOrdres(lireOrdres(await res.json().catch(() => null)))
+      if (res.ok) {
+        const corps: unknown = await res.json().catch(() => null)
+        this.appliquerOrdres(lireOrdres(corps))
+        await this.memoriserMode(lireMode(corps))
+      }
     } catch {
       // best-effort — le prochain battement retentera
     }
@@ -191,6 +198,31 @@ export class SyncClientService implements OnApplicationBootstrap {
       this.resyncDemande = ordres.resyncDemandeeAt
       this.resyncReinitPrevue = true
       void this.triggerSync('resynchronisation complète')
+    }
+  }
+
+  /**
+   * Range le mode du système annoncé par le serveur dans la base LOCALE (ligne réservée de
+   * `ParametreSysteme`, non synchronisée) : l'interface du poste lit ainsi le même endpoint que le
+   * web, et affiche le même bandeau « MODE TEST ». Sans effet si rien ne change.
+   */
+  private async memoriserMode(mode: ModeSysteme | null): Promise<void> {
+    if (!mode || mode === this.modeConnu) return
+    try {
+      await this.prisma.parametreSysteme.upsert({
+        where: { cle: CLE_MODE },
+        update: { valeur: mode },
+        create: { cle: CLE_MODE, valeur: mode },
+      })
+      this.modeConnu = mode
+      this.logger.log(
+        `Mode du système : ${mode} (annoncé par le serveur central)`,
+      )
+    } catch (e) {
+      // Un mode non rangé n'empêche rien : le prochain battement réessaiera.
+      this.logger.warn(
+        `Mode du système non enregistré : ${(e as Error).message}`,
+      )
     }
   }
 

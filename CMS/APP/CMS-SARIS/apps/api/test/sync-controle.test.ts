@@ -5,6 +5,7 @@
  */
 import assert from 'node:assert/strict'
 import {
+  lireMode,
   lireOrdres,
   resyncAEngager,
   refusDeSuspension,
@@ -64,6 +65,16 @@ test('motif vide ou non textuel ignoré', () => {
 test('date de demande invalide ignorée', () => {
   assert.equal(lireOrdres({ controle: { resyncDemandeeAt: 'hier' } })!.resyncDemandeeAt, null)
   assert.equal(lireOrdres({ controle: { resyncDemandeeAt: 12345 } })!.resyncDemandeeAt, null)
+})
+
+console.log('lireMode (mode du système annoncé par le serveur)')
+test('« TEST » et « PRODUCTION » sont lus', () => {
+  assert.equal(lireMode({ ok: true, mode: 'TEST' }), 'TEST')
+  assert.equal(lireMode({ ok: true, mode: 'PRODUCTION' }), 'PRODUCTION')
+})
+test('absent (serveur ancien) ou illisible : AUCUNE information — le poste garde le mode qu’il connaît', () => {
+  for (const corps of [null, undefined, 'x', 7, [], {}, { ok: true }, { mode: null }, { mode: 'test' }, { mode: 'DEV' }, { mode: 1 }])
+    assert.equal(lireMode(corps), null)
 })
 
 console.log('resyncAEngager')

@@ -21,6 +21,7 @@ import { RapportsModule } from './modules/rapports/rapports.module'
 import { NotificationModule } from './modules/notification/notification.module'
 import { MessagerieModule } from './modules/messagerie/messagerie.module'
 import { SyncModule } from './modules/sync/sync.module'
+import { SystemeModule } from './modules/systeme/systeme.module'
 import { HealthController } from './health/health.controller'
 
 /**
@@ -73,6 +74,7 @@ import { HealthController } from './health/health.controller'
     NotificationModule, // Notifications temps réel (cloche + SSE) ✅
     MessagerieModule, // Messagerie interne chiffrée entre agents ✅
     SyncModule, // Module 9 — Synchronisation offline-first ✅
+    SystemeModule, // Mode du système (production / test) ✅
   ],
   controllers: [HealthController], // Sonde publique /health (liveness)
   providers: [

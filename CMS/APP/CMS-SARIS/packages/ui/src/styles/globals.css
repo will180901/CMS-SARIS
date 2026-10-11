@@ -125,6 +125,12 @@
   --info-texte:     #2A4F6B;
   --info-accent:    #3A6080;
   --info-bordure:   rgba(42, 79, 107, 0.2);
+  /* « MODE TEST » : orange franc, VOLONTAIREMENT hors de la palette sobre de l'application — le
+     bandeau et l'interrupteur doivent être impossibles à manquer. Texte foncé sur orange vif
+     (contraste ≈ 5,8:1) : le blanc sur ce même orange tombe à ≈ 2,8:1. */
+  --mode-test-fond:    #F97316;
+  --mode-test-texte:   #431407;
+  --mode-test-bordure: #C2410C;
 
   /* ── Tons décoratifs — personnalisation icônes/tuiles/avatars ──────────
      6 tons nommés, PAS des sémantiques d'état (succès/erreur/...) : servent à
@@ -324,6 +330,12 @@
   --info-texte:     #7EB5D6;
   --info-accent:    #5E9FC0;
   --info-bordure:   rgba(126, 181, 214, 0.15);
+  /* « MODE TEST » : orange franc, VOLONTAIREMENT hors de la palette sobre de l'application — le
+     bandeau et l'interrupteur doivent être impossibles à manquer. Texte foncé sur orange vif
+     (contraste ≈ 5,8:1) : le blanc sur ce même orange tombe à ≈ 2,8:1. */
+  --mode-test-fond:    #F97316;
+  --mode-test-texte:   #431407;
+  --mode-test-bordure: #C2410C;
 
   /* ── Tons décoratifs (sombre) — même principe que --erreur-* et --succes-*
      en mode sombre : fond quasi-noir teinté, icône éclaircie pour rester lisible. */

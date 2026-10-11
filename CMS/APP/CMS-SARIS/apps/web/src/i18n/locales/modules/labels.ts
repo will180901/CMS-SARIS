@@ -44,6 +44,7 @@ export const labels = {
       rapport: 'Rapports statistiques',
       parametre: 'Paramètre système',
       synchronisation: 'Synchronisation',
+      systeme: 'Système',
       audit: 'Audit',
       dashboard: 'Tableau de bord',
       auth: 'Authentification',
@@ -79,6 +80,9 @@ export const labels = {
       RESYNC_REQUEST: 'Resynchronisation demandée',
       RESYNC_CANCEL: 'Demande de resynchronisation annulée',
       RESYNC_DONE: 'Resynchronisation terminée',
+      MODE_TEST_ON: 'Passage en mode test',
+      MODE_TEST_OFF: 'Retour en production',
+      MODE_ECHEC: 'Changement de mode refusé',
     },
 
     // ── Statuts (par famille) ────────────────────────────────────────
@@ -361,6 +365,7 @@ export const labels = {
       'synchronisation.execute': 'Lancer une sauvegarde système',
       'synchronisation.restore': 'Restaurer une sauvegarde de configuration',
       'synchronisation.purge': 'Vider l’historique de synchronisation',
+      'systeme.mode': 'Basculer le système entre production et test',
       'notification.read': 'Consulter ses notifications',
       'notification.create': 'Émettre une notification / annonce',
       'notification.update': 'Marquer ses notifications comme lues',
@@ -416,6 +421,7 @@ export const labels = {
       VisiteEvenement: 'Événement de visite',
       JournalSynchronisation: 'Historique de synchronisation',
       PosteLocal: 'Poste',
+      ModeSysteme: 'Mode du système',
       TypeConsultation: 'Type de consultation',
     },
 
@@ -488,6 +494,7 @@ export const labels = {
       rapport: 'Statistical reports',
       parametre: 'System setting',
       synchronisation: 'Synchronization',
+      systeme: 'System',
       audit: 'Audit',
       dashboard: 'Dashboard',
       auth: 'Authentication',
@@ -523,6 +530,9 @@ export const labels = {
       RESYNC_REQUEST: 'Resynchronization requested',
       RESYNC_CANCEL: 'Resynchronization request cancelled',
       RESYNC_DONE: 'Resynchronization completed',
+      MODE_TEST_ON: 'Switched to test mode',
+      MODE_TEST_OFF: 'Back to production',
+      MODE_ECHEC: 'Mode change refused',
     },
 
     // ── Statuses (by family) ─────────────────────────────────────────
@@ -805,6 +815,7 @@ export const labels = {
       'synchronisation.execute': 'Run a system backup',
       'synchronisation.restore': 'Restore a configuration backup',
       'synchronisation.purge': 'Clear the synchronization history',
+      'systeme.mode': 'Switch the system between production and test',
       'notification.read': 'View own notifications',
       'notification.create': 'Issue a notification / announcement',
       'notification.update': 'Mark own notifications as read',
@@ -860,6 +871,7 @@ export const labels = {
       VisiteEvenement: 'Visit event',
       JournalSynchronisation: 'Synchronization history',
       PosteLocal: 'Workstation',
+      ModeSysteme: 'System mode',
       TypeConsultation: 'Consultation type',
     },
 

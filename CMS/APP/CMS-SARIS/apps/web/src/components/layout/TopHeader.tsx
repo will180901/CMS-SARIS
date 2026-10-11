@@ -17,6 +17,7 @@ import { isDesktop } from '@/lib/desktop'
 import { NotificationDrawer } from './NotificationDrawer'
 import { BreadcrumbBar } from './BreadcrumbBar'
 import { SiteActifSwitch } from './SiteActifSwitch'
+import { ModeSystemeSwitch } from '@/modules/systeme/components/ModeSystemeSwitch'
 
 export function TopHeader() {
   const { t } = useTranslation()
@@ -122,6 +123,9 @@ export function TopHeader() {
             fixé à l'installation et identifie la machine. Dans un navigateur il n'en a
             aucun, et l'afficher laissait croire à un cloisonnement qui n'existe pas. */}
         <SiteActifSwitch />
+
+        {/* Production / Test — administrateur système, version web uniquement. */}
+        <ModeSystemeSwitch />
 
         {/* Interrupteur du rideau de confidentialité (zones de détail) */}
         <Tooltip label={curtain ? t('privacy.disable') : t('privacy.enable')}>

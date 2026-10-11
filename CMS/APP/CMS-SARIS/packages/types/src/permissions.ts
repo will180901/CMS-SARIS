@@ -196,6 +196,10 @@ export const PERMISSIONS = {
   // consultation : droit distinct, comme `audit.purge` pour les journaux d'audit.
   SYNCHRONISATION_PURGE:   'synchronisation.purge',
 
+  // Système — le mode (production / test) change ce que TOUT LE MONDE voit à l'écran :
+  // réservé à l'administrateur système, et le mot de passe est redemandé à chaque bascule.
+  SYSTEME_MODE:            'systeme.mode',
+
   // Notifications (CRUD)
   NOTIFICATION_READ:       'notification.read',
   NOTIFICATION_CREATE:     'notification.create',
@@ -379,6 +383,9 @@ export const PERMISSION_META: Record<PermissionCode, { libelle: string; module: 
   'synchronisation.execute':     { libelle: 'Lancer une sauvegarde système', module: 'synchronisation' },
   'synchronisation.restore':     { libelle: 'Restaurer une sauvegarde de configuration', module: 'synchronisation' },
   'synchronisation.purge':       { libelle: 'Vider l’historique de synchronisation', module: 'synchronisation' },
+
+  // Système
+  'systeme.mode':                { libelle: 'Basculer le système entre production et test', module: 'systeme' },
 
   // Notifications
   'notification.read':           { libelle: 'Consulter ses notifications', module: 'notification' },

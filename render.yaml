@@ -91,6 +91,12 @@ services:
         value: "1"
       - key: CLIENT_IP_HEADER
         value: cf-connecting-ip
+      # Verrou de MISE EN SERVICE : « false » interdit le mode Test (l'interrupteur disparaît, le
+      # serveur refuse d'y entrer, et le mode appliqué est toujours « production » — même si la base
+      # disait « test »). Il se pose ICI, à l'hébergement : ni l'application ni une écriture en base
+      # ne peuvent le lever. « true » tant qu'on prépare les données de démonstration.
+      - key: MODE_TEST_AUTORISE
+        value: "true"
 
   # ── 2) Site web public (React/Vite, PWA) ───────────────────────────────────
   - type: web

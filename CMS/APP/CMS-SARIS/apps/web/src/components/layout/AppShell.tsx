@@ -3,6 +3,8 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { Sidebar, SIDEBAR_RAIL } from './Sidebar'
 import { TopHeader }        from './TopHeader'
 import { PositionConnexion } from '@/components/PositionConnexion'
+import { BandeauModeTest } from '@/modules/systeme/components/BandeauModeTest'
+import { ChangerModeModal } from '@/modules/systeme/components/ChangerModeModal'
 import { DesktopTitleBar }  from './DesktopTitleBar'
 import { BulleSynchro }     from './BulleSynchro'
 import { isDesktop }        from '@/lib/desktop'
@@ -122,8 +124,11 @@ export function AppShell() {
         className="flex-1 overflow-hidden flex flex-col saris-grain-strong"
         style={{ backgroundColor: 'var(--fond-page)', marginLeft: isMobile ? 0 : SIDEBAR_RAIL }}
       >
+        {/* Mode test : le bandeau orange passe AVANT tout — il doit être le premier signe. */}
+        <BandeauModeTest />
         <TopHeader />
         <PositionConnexion />
+        <ChangerModeModal />
         <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: isMobile ? '0 var(--espace-2) var(--espace-2)' : '0 var(--espace-4) var(--espace-4)' }}>
         <Suspense fallback={<RouteLoader />}>
         <Routes>

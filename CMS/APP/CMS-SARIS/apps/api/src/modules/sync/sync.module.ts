@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common'
 import { SecurityModule } from '../security/security.module'
+import { SystemeModule } from '../systeme/systeme.module'
 import { NotificationModule } from '../notification/notification.module'
 import { SyncController } from './sync.controller'
 import { SyncReadyController } from './sync-ready.controller'
@@ -14,7 +15,7 @@ import { TombstonePurgeCron } from './tombstone-purge.cron'
  * JwtAuthGuard + PermissionsGuard.
  */
 @Module({
-  imports: [SecurityModule, NotificationModule],
+  imports: [SecurityModule, NotificationModule, SystemeModule],
   controllers: [SyncController, SyncReadyController],
   providers: [
     SyncService,

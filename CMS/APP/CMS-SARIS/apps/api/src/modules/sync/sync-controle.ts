@@ -62,6 +62,17 @@ export function lireOrdres(corps: unknown): OrdresServeur | null {
 }
 
 /**
+ * Le MODE du système (production / test) annoncé par le serveur dans la réponse d'un battement de
+ * vie. `null` = aucune information (serveur ancien, réponse illisible) : le poste garde le mode
+ * qu'il connaît — il ne retombe pas en « production » parce qu'une réponse était vide.
+ */
+export function lireMode(corps: unknown): 'PRODUCTION' | 'TEST' | null {
+  if (!corps || typeof corps !== 'object') return null
+  const m = (corps as { mode?: unknown }).mode
+  return m === 'TEST' || m === 'PRODUCTION' ? m : null
+}
+
+/**
  * Faut-il engager une resynchronisation complète ?
  *
  * Oui si le serveur en demande une que ce poste n'a ni en cours ni déjà accomplie, et qu'il
