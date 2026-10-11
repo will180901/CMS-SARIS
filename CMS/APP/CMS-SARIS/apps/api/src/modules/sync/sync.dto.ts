@@ -25,6 +25,16 @@ export class SyncPullQueryDto {
   @Min(1)
   @Max(2000)
   limit?: number
+
+  /**
+   * Poste qui demande. Facultatif : les postes à jour le disent, pour que le serveur puisse
+   * refuser un poste SUSPENDU aussi à la réception (un poste ancien ne le dit pas : seul ce
+   * qu'il ENVOIE est alors refusé).
+   */
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  posteLocalId?: string
 }
 
 export class SyncPushDto {
@@ -49,6 +59,20 @@ export class SyncHeartbeatDto {
   @IsString()
   @MaxLength(80)
   libelle?: string
+
+  /** Version de l'application du poste (supervision du parc). Absente des postes anciens. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  versionApp?: string
+
+  /** Niveau des ordres du serveur que le poste comprend (suspension, resynchronisation).
+   *  Absent des postes anciens : le serveur ne leur demande alors rien qu'ils ignoreraient. */
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(100)
+  niveauControle?: number
 }
 
 /**
@@ -203,4 +227,19 @@ export class PurgeActiviteQueryDto {
   @IsOptional()
   @IsIn(['echanges', 'tout'])
   portee?: 'echanges' | 'tout'
+}
+
+/** Suspension des échanges d'un poste : le motif est facultatif, il reste dans le journal d'audit. */
+export class SuspendrePosteDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  motif?: string
+}
+
+/** Accusé d'une resynchronisation complète, envoyé par le POSTE une fois la reprise faite. */
+export class ResyncTermineeDto {
+  /** Date de la demande qu'il vient d'accomplir, telle que le serveur la lui a donnée. */
+  @IsISO8601()
+  demandeeAt!: string
 }

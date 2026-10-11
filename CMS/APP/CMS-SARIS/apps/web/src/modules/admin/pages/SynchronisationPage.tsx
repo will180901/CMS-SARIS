@@ -19,7 +19,7 @@ import {
   HardDrive, CheckCircle2, AlertTriangle, Loader2, CloudUpload, Trash2,
   RotateCcw, Users, Stethoscope, Pill, Ambulance, FlaskConical, HardHat, ClipboardList,
   CalendarClock, MonitorSmartphone, Activity, GitMerge, Radio, LayoutGrid, List, Search,
-  X, Clock, LogIn, Pencil, User, MessageSquare, Download, ChevronRight, ChevronDown, MapPin, Eye,
+  X, Clock, LogIn, Pencil, User, MessageSquare, Download, ChevronRight, ChevronDown, MapPin, Eye, Pause,
 } from 'lucide-react'
 import {
   PageHeader, Card, Button, StatusPill, Skeleton, EmptyState, Tooltip, Modal, SegmentedTabs,
@@ -40,7 +40,8 @@ import { isDesktop } from '@/lib/desktop'
 import { BandeauEtatSync, type EtatSync } from '../components/BandeauEtatSync'
 import { PosteActiviteDrawer } from '../components/PosteActiviteDrawer'
 import { ViderActiviteModal } from '../components/ViderActiviteModal'
-import { relative, etatDuPoste, PASTILLE_ETAT } from '../components/relatif'
+import { relative, etatDuPoste } from '../components/relatif'
+import { PastilleEtat } from '../components/PastilleEtat'
 import { CePosteCard } from '../components/CePosteCard'
 import { useSyncStore } from '@/stores/sync.store'
 import { syncCycle, listMutations, purgeMutations, retryRejected } from '@/lib/sync'
@@ -667,9 +668,7 @@ function PosteCard({ poste, onOpenDetail, masquerSite }: {
           {t('admin.supLastSync')} · {relative(poste.derniereSyncAt)}
         </p>
       </div>
-      <StatusPill tone={poste.enLigne ? 'success' : 'neutral'} size="sm">
-        {poste.enLigne ? t('admin.supOnline') : t('admin.supOffline')}
-      </StatusPill>
+      <PastilleEtat etat={poste.suspendu ? 'suspendu' : poste.enLigne ? 'ligne' : 'horsligne'} />
 
     </div>
   )
@@ -1008,7 +1007,7 @@ function ActiviteTable({
                     </div>
                   </td>
                   <td style={{ padding: DATA_TD_PADDING }}>
-                    <StatusPill tone={PASTILLE_ETAT[etat].tone} size="sm">{t(PASTILLE_ETAT[etat].cle)}</StatusPill>
+                    <PastilleEtat etat={etat} />
                   </td>
                   <td style={{ padding: DATA_TD_PADDING }}>
                     <span style={{ fontSize: 'var(--font-size-body-sm)', color: 'var(--texte-secondaire)' }}>{relative(l.dernierEchangeAt)}</span>
@@ -1138,6 +1137,23 @@ function DataSyncZone() {
             {!enabled ? t('sync.remoteMode') : online ? t('sync.serverReachable') : t('common.offline')}
           </span>
 
+          {enabled && client?.suspendu && (
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700,
+              padding: '5px 11px', borderRadius: 9999, background: 'var(--avert-fond)', color: 'var(--avert-texte)',
+            }}>
+              <Pause size={13} /> {t('sync.suspendedBadge')}
+            </span>
+          )}
+          {enabled && client?.resyncEnCours && !client?.suspendu && (
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700,
+              padding: '5px 11px', borderRadius: 9999, background: 'var(--info-fond)', color: 'var(--info-texte)',
+            }}>
+              <RefreshCw size={13} className="animate-spin" /> {t('sync.resyncBadge')}
+            </span>
+          )}
+
           {enabled && <Metric label={t('sync.lastPull')} value={relative(client?.lastPulledAt)} />}
           {enabled && <Metric label={t('sync.lastPush')} value={relative(client?.lastPushedAt)} />}
 
@@ -1147,7 +1163,7 @@ function DataSyncZone() {
                 size="sm"
                 variant="ghost"
                 leftIcon={run.isPending ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
-                disabled={!enabled || !online || !canExecute || run.isPending}
+                disabled={!enabled || !online || !canExecute || run.isPending || !!client?.suspendu}
                 onClick={() => run.mutate(undefined, {
                   onSuccess: (r) => toast.success(
                     r.skipped
@@ -1166,6 +1182,15 @@ function DataSyncZone() {
         {!enabled && (
           <p style={{ marginTop: 'var(--espace-3)', fontSize: 12, color: 'var(--texte-secondaire)' }}>
             {t('sync.remoteExplain')}
+          </p>
+        )}
+        {enabled && client?.suspendu && (
+          <p style={{
+            margin: 'var(--espace-3) 0 0', padding: 'var(--espace-2) var(--espace-3)', borderRadius: 'var(--radius-md)',
+            background: 'var(--avert-fond)', color: 'var(--avert-texte)', fontSize: 12, lineHeight: 1.5,
+          }}>
+            {t('sync.suspendedExplain')}
+            {client.motifSuspension && <> {t('sync.suspendedMotif', { motif: client.motifSuspension })}</>}
           </p>
         )}
       </Card.Body>

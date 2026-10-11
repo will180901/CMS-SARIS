@@ -17,6 +17,15 @@ import { PrismaService } from '../../prisma/prisma.service'
 import { SyncService } from './sync.service'
 import { raisonRejet, estRejetDefinitif } from './conflict'
 import {
+  CURSEUR_ORIGINE,
+  NIVEAU_CONTROLE,
+  PosteSuspenduError,
+  lireOrdres,
+  refusDeSuspension,
+  resyncAEngager,
+  type OrdresServeur,
+} from './sync-controle'
+import {
   NotificationService,
   type NotifRow,
 } from '../notification/notification.service'
@@ -49,10 +58,39 @@ const MODELES_MESSAGERIE = new Set([
 export class SyncClientService implements OnApplicationBootstrap {
   private readonly logger = new Logger('SyncClient')
   private running = false
+  /**
+   * Verrou d'exclusion des cycles, pris AVANT le moindre `await`. Distinct de `running`, que
+   * l'interface affiche (« synchronisation en cours ») : tant que le serveur n'est pas confirmé
+   * joignable, rien ne doit s'afficher « en cours ».
+   *
+   * Avant, l'exclusion reposait sur `running`, posé seulement APRÈS la vérification de
+   * joignabilité (un `await`) : deux déclencheurs simultanés — la sonnette temps réel et la
+   * réponse d'un battement de vie — passaient tous deux et poussaient le MÊME lot en parallèle
+   * (deux échanges inscrits au journal du central, à 2 ms d'écart).
+   */
+  private verrou = false
   private wasOnline = false
   private backoffMs = 0
   /** Passe à true après le 1er PULL réussi → le desktop peut ouvrir l'app (données prêtes). */
   private initialSyncDone = false
+
+  // ── Ordres du serveur (contrôle du flux) ────────────────────────────────────
+  /** Échanges SUSPENDUS par un administrateur — appris par un battement de vie, ou par un
+   *  refus du serveur. Le poste cesse alors d'essayer et garde son travail en local. */
+  private suspendu = false
+  private motifSuspension: string | null = null
+  /** Resynchronisation complète demandée par le serveur et pas encore accusée (date ISO de
+   *  la demande). Tant qu'elle est là, le poste dit à l'interface qu'il se resynchronise. */
+  private resyncDemande: string | null = null
+  /** Dernière demande accomplie ET accusée : on ne refait jamais la même, même si le serveur
+   *  tarde à l'effacer de son côté. */
+  private resyncAccomplie: string | null = null
+  /** Le curseur de réception sera remis à zéro au prochain cycle. Fait SOUS le verrou
+   *  `running` : une remise à zéro faite pendant un cycle en route serait écrasée par la fin
+   *  de ce cycle, et la resynchronisation n'aurait jamais lieu. */
+  private resyncReinitPrevue = false
+  /** Le cycle en cours (ou le prochain) repart de zéro : à son terme, la demande est accusée. */
+  private resyncPullDepuisZero = false
 
   constructor(
     private readonly prisma: PrismaService,
@@ -92,21 +130,106 @@ export class SyncClientService implements OnApplicationBootstrap {
     return process.env['POSTE_LIBELLE'] ?? ''
   }
 
-  /** Battement de vie best-effort (jamais bloquant, jamais d'erreur remontée). */
+  /** Version de l'application, annoncée au serveur (supervision du parc). Posée par le
+   *  process Electron ; vide en développement. */
+  private get versionApp(): string {
+    return process.env['APP_VERSION'] ?? ''
+  }
+
+  /**
+   * Battement de vie best-effort (jamais bloquant, jamais d'erreur remontée).
+   *
+   * Il porte aussi le NIVEAU des ordres que ce poste comprend, et sa VERSION : c'est ce qui
+   * permet à l'administrateur de ne se voir offrir que des boutons qui ont un effet sur ce
+   * poste. En retour, le serveur y glisse ses ordres (suspension, resynchronisation).
+   */
   private async heartbeat(): Promise<void> {
     if (!this.enabled) return
     try {
-      await fetch(`${this.serverUrl}/sync/heartbeat`, {
+      const res = await fetch(`${this.serverUrl}/sync/heartbeat`, {
         method: 'POST',
         headers: this.headers(),
         body: JSON.stringify({
           posteLocalId: this.posteLocalId,
           libelle: this.libelle || undefined,
+          versionApp: this.versionApp || undefined,
+          niveauControle: NIVEAU_CONTROLE,
         }),
       })
+      if (res.ok)
+        this.appliquerOrdres(lireOrdres(await res.json().catch(() => null)))
     } catch {
       // best-effort — le prochain battement retentera
     }
+  }
+
+  /**
+   * Applique les ordres du serveur. `null` = aucune information : on ne change rien.
+   *
+   * Suspension : on s'arrête sans bruit et on le dit à l'interface. À la LEVÉE, on
+   * rattrape tout de suite plutôt que d'attendre un cycle périodique.
+   * Resynchronisation : on la planifie — la remise à zéro du curseur se fera au prochain
+   * cycle, sous le verrou (cf. `resyncReinitPrevue`).
+   */
+  private appliquerOrdres(ordres: OrdresServeur | null): void {
+    if (!ordres) return
+    const etaitSuspendu = this.suspendu
+    this.suspendu = ordres.suspendu
+    this.motifSuspension = ordres.suspendu ? ordres.motif : null
+    if (ordres.suspendu && !etaitSuspendu)
+      this.logger.warn(
+        `Échanges suspendus par un administrateur${ordres.motif ? ` — ${ordres.motif}` : ''} : le poste garde son travail en local.`,
+      )
+    if (!ordres.suspendu && etaitSuspendu) {
+      this.logger.log('Échanges rétablis par le serveur → rattrapage immédiat')
+      void this.triggerSync('reprise après suspension')
+    }
+    if (resyncAEngager(ordres, this.resyncDemande ?? this.resyncAccomplie)) {
+      this.logger.log(
+        `Resynchronisation complète demandée par le serveur (${ordres.resyncDemandeeAt})`,
+      )
+      this.resyncDemande = ordres.resyncDemandeeAt
+      this.resyncReinitPrevue = true
+      void this.triggerSync('resynchronisation complète')
+    }
+  }
+
+  private marquerSuspendu(motif: string | null): void {
+    if (!this.suspendu)
+      this.logger.warn(
+        `Échanges suspendus par un administrateur${motif ? ` — ${motif}` : ''} : le poste garde son travail en local.`,
+      )
+    this.suspendu = true
+    this.motifSuspension = motif
+  }
+
+  /** Dit au serveur que la resynchronisation complète est faite. Vrai si c'est acquis. */
+  private async accuserResync(demandeeAt: string): Promise<boolean> {
+    try {
+      const res = await fetch(
+        `${this.serverUrl}/sync/poste/${encodeURIComponent(this.posteLocalId)}/resync-terminee`,
+        {
+          method: 'POST',
+          headers: this.headers(),
+          body: JSON.stringify({ demandeeAt }),
+        },
+      )
+      return res.ok
+    } catch {
+      return false
+    }
+  }
+
+  /** Erreur d'une réponse HTTP refusée : une SUSPENSION n'est pas une panne. */
+  private async erreurHttp(nom: string, res: Response): Promise<Error> {
+    if (res.status === 423) {
+      const suspension = refusDeSuspension(
+        res.status,
+        await res.json().catch(() => null),
+      )
+      if (suspension) return suspension
+    }
+    return new Error(`${nom} HTTP ${res.status}`)
   }
 
   /** Sonde la joignabilité du serveur ; sur la transition hors-ligne → EN LIGNE, lance une
@@ -126,7 +249,8 @@ export class SyncClientService implements OnApplicationBootstrap {
 
   /** Déclenche un cycle (anti-recouvrement + backoff exponentiel borné sur échec/injoignable). */
   async triggerSync(raison: string): Promise<void> {
-    if (this.running) return
+    // Suspendu : on n'insiste pas. Le battement de vie dira quand c'est levé.
+    if (this.verrou || this.suspendu) return
     const r = await this.runCycle()
     if (r) {
       this.backoffMs = 0
@@ -273,9 +397,11 @@ export class SyncClientService implements OnApplicationBootstrap {
     let serverTime: string | undefined
     for (let guard = 0; guard < 1000; guard++) {
       // Le site est résolu par le serveur depuis le JWT (jamais envoyé dans l'URL).
-      const url = `${this.serverUrl}/sync/pull${since ? `?since=${encodeURIComponent(since)}` : ''}`
+      // Le poste dit qui il est : c'est ce qui permet au serveur de refuser un poste suspendu
+      // aussi à la RÉCEPTION (pas seulement à l'envoi).
+      const url = `${this.serverUrl}/sync/pull?posteLocalId=${encodeURIComponent(this.posteLocalId)}${since ? `&since=${encodeURIComponent(since)}` : ''}`
       const res = await fetch(url, { headers: this.headers() })
-      if (!res.ok) throw new Error(`pull HTTP ${res.status}`)
+      if (!res.ok) throw await this.erreurHttp('pull', res)
       const body = (await res.json()) as SyncPullResponseV2
       for (const env of body.changes) {
         // UN changement inapplicable ne doit jamais figer la synchronisation. Avant, une
@@ -464,7 +590,7 @@ export class SyncClientService implements OnApplicationBootstrap {
         changes: collected,
       }),
     })
-    if (!res.ok) throw new Error(`push HTTP ${res.status}`)
+    if (!res.ok) throw await this.erreurHttp('push', res)
     const out = (await res.json()) as SyncPushResponseV2
     // Les refus sont en QUARANTAINE au central (supervision, avec la donnée du poste) : le
     // curseur peut avancer sans rien perdre, et le reste du lot n'attend plus.
@@ -507,6 +633,11 @@ export class SyncClientService implements OnApplicationBootstrap {
     lastPushedAt?: string
     /** Changements du central ignorés ici depuis le démarrage (cf. journal du poste). */
     rejetsPull: number
+    /** Échanges suspendus par un administrateur, et son motif éventuel. */
+    suspendu: boolean
+    motifSuspension: string | null
+    /** Une resynchronisation complète est en cours ou attendue. */
+    resyncEnCours: boolean
   }> {
     const c = await this.cursor()
     return {
@@ -515,6 +646,20 @@ export class SyncClientService implements OnApplicationBootstrap {
       ready: this.ready,
       ...c,
       rejetsPull: this.rejetsPull,
+      ...this.etatControle,
+    }
+  }
+
+  /** Ce que l'interface du poste doit savoir des ordres du serveur (bulle, carte de synchro). */
+  get etatControle(): {
+    suspendu: boolean
+    motifSuspension: string | null
+    resyncEnCours: boolean
+  } {
+    return {
+      suspendu: this.suspendu,
+      motifSuspension: this.motifSuspension,
+      resyncEnCours: this.resyncDemande !== null,
     }
   }
 
@@ -524,12 +669,44 @@ export class SyncClientService implements OnApplicationBootstrap {
     pushed: number
     conflicts: number
   } | null> {
-    if (!this.enabled || this.running) return null
-    if (!(await this.isOnline())) return null
+    if (!this.enabled || this.verrou || this.suspendu) return null
+    this.verrou = true
+    try {
+      if (!(await this.isOnline())) return null
+      return await this.cycle()
+    } finally {
+      this.verrou = false
+    }
+  }
+
+  /** Le cycle lui-même, serveur déjà reconnu joignable : `running` n'est vrai que pendant son travail. */
+  private async cycle(): Promise<{
+    pulled: number
+    pushed: number
+    conflicts: number
+  } | null> {
     this.running = true
     try {
+      // Resynchronisation complète demandée : on repart de zéro. Le curseur d'ENVOI reste
+      // intact — ce que le poste n'a pas encore envoyé part ensuite, rien n'est perdu — et la
+      // réception ne supprime jamais rien de local : elle ne fait que combler ce qui manque.
+      if (this.resyncReinitPrevue) {
+        await this.saveCursor({ lastPulledAt: CURSEUR_ORIGINE })
+        this.resyncReinitPrevue = false
+        this.resyncPullDepuisZero = true
+      }
       const pulled = await this.pull()
       this.initialSyncDone = true // 1er pull abouti → données initiales en place
+      // Réception complète terminée : on l'accuse. Si l'accusé n'est pas acquis (réseau), il
+      // est retenté au prochain cycle — la demande reste « en cours » côté poste.
+      if (this.resyncPullDepuisZero && this.resyncDemande) {
+        if (await this.accuserResync(this.resyncDemande)) {
+          this.logger.log('Resynchronisation complète terminée, accusée au serveur')
+          this.resyncAccomplie = this.resyncDemande
+          this.resyncDemande = null
+          this.resyncPullDepuisZero = false
+        }
+      }
       const out = await this.push()
       return {
         pulled,
@@ -537,6 +714,11 @@ export class SyncClientService implements OnApplicationBootstrap {
         conflicts: out?.conflicts.length ?? 0,
       }
     } catch (e) {
+      // Une suspension n'est pas une panne : pas de trace d'erreur, et on cesse d'insister.
+      if (e instanceof PosteSuspenduError) {
+        this.marquerSuspendu(e.motif)
+        return null
+      }
       const err = e as Error
       this.logger.error(
         'cycle de synchronisation échoué : ' + (err.message || String(e)),

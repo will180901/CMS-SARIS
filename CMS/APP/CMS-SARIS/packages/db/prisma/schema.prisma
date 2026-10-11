@@ -1292,6 +1292,26 @@ model PosteLocal {
   /** Retiré de la liste de supervision (dismiss admin) — n'affecte pas la synchro réelle : le
    *  poste redevient visible automatiquement dès son prochain cycle de synchro (record()). */
   masque               Boolean                  @default(false)
+  /**
+   * CONTRÔLE DU FLUX par un administrateur.
+   *
+   * `suspenduAt` renseigné = les échanges de ce poste sont SUSPENDUS : le serveur refuse ce
+   * qu'il envoie (et ce qu'il demande, pour un poste à jour). Le poste continue de travailler
+   * avec sa base locale et rattrape tout à la reprise — rien n'est perdu.
+   * `suspenduPar` : auteur de la suspension (traçabilité seule, pas de relation — comme
+   * `dernierUtilisateurId`).
+   */
+  suspenduAt           DateTime?
+  suspenduPar          String?
+  suspensionMotif      String?
+  /** Resynchronisation COMPLÈTE demandée : le poste retélécharge tout à son prochain battement
+   *  de vie, puis l'accuse (`resyncFaiteAt`), ce qui efface la demande. */
+  resyncDemandeeAt     DateTime?
+  resyncFaiteAt        DateTime?
+  /** Version de l'application du poste, et niveau des ordres du serveur qu'il comprend
+   *  (renseignés par son battement de vie). Absent ou 0 = poste ancien : il les ignore. */
+  versionApp           String?
+  niveauControle       Int?
   createdAt            DateTime                 @default(now())
   journauxSync         JournalSynchronisation[]
 }
@@ -1306,6 +1326,9 @@ model JournalSynchronisation {
   nbConflits   Int                      @default(0)
   posteLocal   PosteLocal               @relation(fields: [posteLocalId], references: [id])
   conflits     ConflitSynchronisation[]
+
+  // Fiche d'un poste : ses échanges, du plus récent au plus ancien, sans parcourir tout le journal.
+  @@index([posteLocalId, startedAt])
 }
 
 model ConflitSynchronisation {

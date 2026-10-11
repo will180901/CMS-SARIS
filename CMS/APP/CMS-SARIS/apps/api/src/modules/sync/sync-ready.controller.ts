@@ -47,7 +47,10 @@ export class SyncReadyController {
     pendingPush: boolean
     recus: number
     enCours: boolean
+    suspendu: boolean
+    resync: boolean
   }> {
+    const controle = this.client.etatControle
     return {
       ready: this.client.ready,
       enabled: this.client.enabled,
@@ -61,6 +64,11 @@ export class SyncReadyController {
       // Le processus Electron s'en sert pour ne rendre la main au serveur central
       // qu'une fois le travail de l'utilisateur réellement arrivé là-bas.
       pendingPush: await this.client.hasPendingPush(),
+      // Ordres du serveur : la bulle dit « synchronisation suspendue » plutôt que de laisser
+      // croire à une panne (ou à un travail qui n'avance pas), et « resynchronisation » pendant
+      // qu'un rattrapage complet a lieu.
+      suspendu: controle.suspendu,
+      resync: controle.resyncEnCours,
     }
   }
 }

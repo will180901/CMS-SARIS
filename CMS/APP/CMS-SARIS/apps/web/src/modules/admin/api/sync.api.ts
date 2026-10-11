@@ -13,6 +13,11 @@ export interface SyncStatusResponse extends SyncStatusV2 {
     online: boolean
     lastPulledAt?: string
     lastPushedAt?: string
+    /** Ordres du serveur : échanges suspendus par un administrateur (et son motif)… */
+    suspendu?: boolean
+    motifSuspension?: string | null
+    /** …et resynchronisation complète en cours. */
+    resyncEnCours?: boolean
   }
 }
 
@@ -39,6 +44,18 @@ export interface SyncSupervisionPoste {
   utilisateurRole: string | null
   derniereSyncAt: string | null
   enLigne: boolean
+  /** Contrôle du flux : échanges suspendus par un administrateur (par qui, depuis quand, pourquoi). */
+  suspendu: boolean
+  suspenduAt: string | null
+  suspenduParNom: string | null
+  suspensionMotif: string | null
+  /** Resynchronisation complète demandée (pas encore accomplie) / dernière accomplie. */
+  resyncDemandeeAt: string | null
+  resyncFaiteAt: string | null
+  /** Version de l'application du poste, et niveau des ordres du serveur qu'il comprend.
+   *  `null` = poste ancien : il ne sait ni afficher une suspension ni se resynchroniser. */
+  versionApp: string | null
+  niveauControle: number | null
 }
 export interface SyncSupervisionPosteDetail extends SyncSupervisionPoste {
   /** Début de la dernière session connectée (suite contiguë de cycles de synchro). */
@@ -180,6 +197,15 @@ function chaineRequete(p: object): string {
   return s ? `?${s}` : ''
 }
 
+/** État de contrôle d'un poste, renvoyé par chaque action de l'administrateur. */
+export interface EtatControlePoste {
+  suspendu: boolean
+  suspenduAt: string | null
+  motif: string | null
+  resyncDemandeeAt: string | null
+  resyncFaiteAt: string | null
+}
+
 export const syncApi = {
   status: () => api.get<SyncStatusResponse>('/sync/status'),
   run: () => api.post<SyncRunResult>('/sync/run', {}),
@@ -199,6 +225,16 @@ export const syncApi = {
   /** Vide l'historique des échanges (droit `synchronisation.purge`) — se trace elle-même. */
   purgerActivite: (portee: PorteePurgeActivite) =>
     api.delete<ResultatPurgeActivite>(`/sync/supervision/activite${chaineRequete({ portee })}`),
+  /** SUSPEND les échanges d'un poste (le motif reste au journal d'audit et s'affiche sur le poste). */
+  suspendrePoste: (id: string, motif?: string) =>
+    api.post<EtatControlePoste>(`/sync/supervision/postes/${id}/suspension`, motif ? { motif } : {}),
+  reprendrePoste: (id: string) =>
+    api.delete<EtatControlePoste>(`/sync/supervision/postes/${id}/suspension`),
+  /** Demande une resynchronisation COMPLÈTE : le poste retélécharge tout à son prochain contact. */
+  demanderResync: (id: string) =>
+    api.post<EtatControlePoste>(`/sync/supervision/postes/${id}/resynchronisation`, {}),
+  annulerResync: (id: string) =>
+    api.delete<EtatControlePoste>(`/sync/supervision/postes/${id}/resynchronisation`),
   posteDetail: (id: string) => api.get<SyncSupervisionPosteDetail>(`/sync/supervision/postes/${id}`),
   masquerPoste: (id: string) => api.delete<{ ok: boolean }>(`/sync/supervision/postes/${id}`),
   renamePoste: (id: string, libelle: string) =>

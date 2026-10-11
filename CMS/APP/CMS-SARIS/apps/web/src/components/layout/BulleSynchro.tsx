@@ -15,7 +15,7 @@
  */
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { RefreshCw, CloudUpload } from 'lucide-react'
+import { RefreshCw, CloudUpload, Pause } from 'lucide-react'
 import { desktopBridge } from '@/lib/desktop'
 import { DESKTOP_TITLEBAR_H } from './DesktopTitleBar'
 
@@ -23,6 +23,10 @@ interface EtatSynchro {
   enCours: boolean
   pendingPush: boolean
   recus: number
+  /** Un administrateur a suspendu les échanges de ce poste. */
+  suspendu: boolean
+  /** Resynchronisation complète demandée par le serveur, en cours. */
+  resync: boolean
 }
 
 /** Rythme d'interrogation : assez vif pour que la bulle paraisse vivante, assez lent pour
@@ -49,6 +53,8 @@ export function BulleSynchro() {
             enCours: b.enCours === true,
             pendingPush: b.pendingPush === true,
             recus: b.recus ?? 0,
+            suspendu: b.suspendu === true,
+            resync: b.resync === true,
           })
         }
       } catch {
@@ -63,11 +69,15 @@ export function BulleSynchro() {
   }, [url])
 
   if (!url || !etat) return null
-  const actif = etat.enCours || etat.pendingPush
+  // Une SUSPENSION reste affichée tant qu'elle dure : c'est elle qui explique pourquoi rien ne
+  // part ni n'arrive — sans elle, on croirait à une panne, ou on s'inquiéterait de ses saisies.
+  const actif = etat.suspendu || etat.resync || etat.enCours || etat.pendingPush
   if (!actif) return null
 
-  // Un cycle en cours prime sur l'attente : c'est l'information la plus fraîche.
-  const enCours = etat.enCours
+  // Ordre de priorité : suspension, puis resynchronisation complète, puis cycle en cours,
+  // puis attente — de ce qui change le plus la situation à ce qui la décrit le moins.
+  const suspendu = etat.suspendu
+  const enCours = !suspendu && (etat.enCours || etat.resync)
 
   return (
     <div
@@ -95,14 +105,20 @@ export function BulleSynchro() {
         pointerEvents: 'none', // purement informatif : ne doit jamais gêner un clic
       }}
     >
-      {enCours ? (
+      {suspendu ? (
+        <Pause size={13} style={{ flexShrink: 0 }} />
+      ) : enCours ? (
         <RefreshCw size={13} className="animate-spin" style={{ flexShrink: 0 }} />
       ) : (
         <CloudUpload size={13} style={{ flexShrink: 0 }} />
       )}
-      {enCours
-        ? t('shell.syncEnCours')
-        : t('shell.syncEnAttente')}
+      {suspendu
+        ? t('shell.syncSuspendue')
+        : etat.resync
+          ? t('shell.syncResync')
+          : enCours
+            ? t('shell.syncEnCours')
+            : t('shell.syncEnAttente')}
     </div>
   )
 }

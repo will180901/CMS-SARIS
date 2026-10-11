@@ -9,8 +9,8 @@
  * et le serveur ne les envoie pas) : la raison du refus suffit à superviser. La fiche
  * elle-même reste dans la base du poste.
  *
- * Les actions de contrôle du flux (suspendre un poste, forcer une resynchronisation)
- * viendront se loger dans cette même fiche.
+ * Les décisions sur le flux (suspendre le poste, forcer une resynchronisation complète)
+ * se prennent depuis cette même fiche : on y lit ce que le poste a fait, et on y décide.
  */
 
 import { useEffect, useState, type ReactNode } from 'react'
@@ -22,9 +22,12 @@ import { DESKTOP_TITLEBAR_H } from '@/components/layout/DesktopTitleBar'
 import { isDesktop } from '@/lib/desktop'
 import { formatDateTime, formatNumber } from '@/lib/intl'
 import { labelRole } from '@/config/labels'
+import { usePermissions } from '@/hooks/usePermissions'
 import { useBilanPoste, useConflitsPoste, useSyncActivite } from '../hooks/useSync'
 import type { TypeConflitPoste } from '../api/sync.api'
-import { etatDuPoste, libelleEntite, relative, PASTILLE_ETAT } from './relatif'
+import { etatDuPoste, libelleEntite, relative } from './relatif'
+import { PastilleEtat } from './PastilleEtat'
+import { ControleFluxPoste } from './ControleFluxPoste'
 
 const TAILLE_A_REVOIR = 5
 const TAILLE_CHRONO = 8
@@ -171,6 +174,11 @@ function Ligne({ label, children }: { label: string; children: ReactNode }) {
 export function PosteActiviteDrawer({ posteId, onClose }: { posteId: string; onClose: () => void }) {
   const { t } = useTranslation()
   const { data: fiche, isLoading, isError } = useBilanPoste(posteId)
+  const { has } = usePermissions()
+  const peutAgir = has('synchronisation.execute')
+  // Une fenêtre (suspendre, resynchroniser) est ouverte par-dessus : Échap doit la fermer, elle,
+  // et pas le tiroir qui est dessous.
+  const [modaleOuverte, setModaleOuverte] = useState(false)
   // Horloge figée à l'ouverture : la relire à chaque rendu rendrait le composant impur.
   const [maintenant] = useState(() => Date.now())
 
@@ -187,10 +195,10 @@ export function PosteActiviteDrawer({ posteId, onClose }: { posteId: string; onC
   })
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !modaleOuverte) onClose() }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [onClose, modaleOuverte])
 
   const poste = fiche?.poste
   const b = fiche?.bilan
@@ -203,14 +211,14 @@ export function PosteActiviteDrawer({ posteId, onClose }: { posteId: string; onC
       <div
         onClick={onClose}
         style={{
-          position: 'fixed', top: isDesktop ? DESKTOP_TITLEBAR_H : 0, right: 0, bottom: 0, left: 0, zIndex: 1000,
+          position: 'fixed', top: isDesktop ? DESKTOP_TITLEBAR_H : 0, right: 0, bottom: 0, left: 0, zIndex: 990,
           background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(2px)',
         }}
       />
       <div
         role="dialog" aria-modal="true" aria-label={poste?.libelle ?? t('admin.supPosteDetailTitle')}
         style={{
-          position: 'fixed', top: isDesktop ? DESKTOP_TITLEBAR_H : 0, right: 0, bottom: 0, zIndex: 1001,
+          position: 'fixed', top: isDesktop ? DESKTOP_TITLEBAR_H : 0, right: 0, bottom: 0, zIndex: 991,
           width: 600, maxWidth: '95vw', background: 'var(--fond-surface)', boxShadow: 'var(--ombre-4)',
           display: 'flex', flexDirection: 'column',
         }}
@@ -260,7 +268,7 @@ export function PosteActiviteDrawer({ posteId, onClose }: { posteId: string; onC
               {/* Identité : qui est ce poste, et où en est-il */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--espace-2)' }}>
                 <Ligne label={t('admin.supDetailStatus')}>
-                  <StatusPill tone={PASTILLE_ETAT[etat].tone} size="sm">{t(PASTILLE_ETAT[etat].cle)}</StatusPill>
+                  <PastilleEtat etat={etat} />
                 </Ligne>
                 <Ligne label={t('admin.supFicheSigneVie')}>{relative(poste.derniereSyncAt)}</Ligne>
                 {poste.utilisateurNom && (
@@ -269,7 +277,13 @@ export function PosteActiviteDrawer({ posteId, onClose }: { posteId: string; onC
                   </Ligne>
                 )}
                 <Ligne label={t('admin.supDetailSite')}>{poste.siteLibelle ?? t('admin.supSiteInconnu')}</Ligne>
+                <Ligne label={t('admin.supCtlVersion')}>{poste.versionApp ?? t('admin.supCtlVersionInconnue')}</Ligne>
               </div>
+
+              {/* Contrôle du flux : suspendre, resynchroniser */}
+              <Section titre={t('admin.supCtlTitre')}>
+                <ControleFluxPoste poste={poste} peutAgir={peutAgir} onModale={setModaleOuverte} />
+              </Section>
 
               {/* Bilan */}
               <Section titre={t('admin.supFicheBilan')}>

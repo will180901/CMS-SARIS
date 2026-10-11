@@ -659,6 +659,7 @@ async function startLocalBackend(): Promise<void> {
       siteId: readConfig().siteId,
       posteLocalId: getPosteLocalId(),
       posteLibelle: getPosteLibelle(),
+      appVersion: app.getVersion(),
       syncTokenFile: syncTokenFilePath(),
       ...bakedSecrets(), // JWT_SECRET (requis) + TOTP/MESSAGE keys (alignées au central)
       logFile: path.join(userData, 'backend.log'),

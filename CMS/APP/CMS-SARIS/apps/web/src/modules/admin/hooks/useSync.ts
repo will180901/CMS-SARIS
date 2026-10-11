@@ -110,6 +110,30 @@ export function usePosteDetail(id: string | null) {
   })
 }
 
+/**
+ * Contrôle du flux d'un poste. Chaque action rafraîchit toute la supervision : la fiche, les
+ * lignes d'activité et les cartes du parc portent toutes l'état de suspension.
+ */
+function useControle<V>(action: (v: V) => Promise<unknown>) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: action,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'sync'] }),
+  })
+}
+export function useSuspendrePoste() {
+  return useControle(({ id, motif }: { id: string; motif?: string }) => syncApi.suspendrePoste(id, motif))
+}
+export function useReprendrePoste() {
+  return useControle((id: string) => syncApi.reprendrePoste(id))
+}
+export function useDemanderResync() {
+  return useControle((id: string) => syncApi.demanderResync(id))
+}
+export function useAnnulerResync() {
+  return useControle((id: string) => syncApi.annulerResync(id))
+}
+
 /** Retire un poste de la liste de supervision (dismiss) — réapparaît à sa prochaine synchro. */
 export function useMasquerPoste() {
   const qc = useQueryClient()

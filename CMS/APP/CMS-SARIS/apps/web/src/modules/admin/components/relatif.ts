@@ -32,10 +32,12 @@ export function libelleEntite(type: string): string {
   return mots.charAt(0).toUpperCase() + mots.slice(1)
 }
 
-export type EtatPoste = 'ligne' | 'horsligne' | 'attention'
+export type EtatPoste = 'ligne' | 'horsligne' | 'attention' | 'suspendu'
 
 /**
  * État d'un poste, tel que la supervision le dit partout (cartes, tableau d'activité, fiche) :
+ *  - suspendu : un administrateur a coupé ses échanges. Cet état l'emporte sur les autres : un
+ *    poste suspendu qui se tait n'est pas « à surveiller », son silence est voulu ;
  *  - en ligne : il a donné signe de vie il y a moins de 90 secondes ;
  *  - à surveiller : son silence n'a pas d'explication normale — muet depuis des heures, ou
  *    enregistré mais jamais synchronisé ;
@@ -45,9 +47,10 @@ export type EtatPoste = 'ligne' | 'horsligne' | 'attention'
  * `maintenant` est passé par l'appelant : lire l'horloge ici rendrait le rendu impur.
  */
 export function etatDuPoste(
-  p: { enLigne: boolean; derniereSyncAt: string | null },
+  p: { enLigne: boolean; derniereSyncAt: string | null; suspendu?: boolean },
   maintenant: number,
 ): EtatPoste {
+  if (p.suspendu) return 'suspendu'
   if (p.enLigne) return 'ligne'
   if (!p.derniereSyncAt) return 'attention'
   return maintenant - new Date(p.derniereSyncAt).getTime() > SEUIL_MUET_MS ? 'attention' : 'horsligne'
@@ -58,4 +61,5 @@ export const PASTILLE_ETAT: Record<EtatPoste, { tone: 'success' | 'neutral' | 'w
   ligne:     { tone: 'success', cle: 'admin.supOnline' },
   horsligne: { tone: 'neutral', cle: 'admin.supOffline' },
   attention: { tone: 'warning', cle: 'admin.supFilterAttention' },
+  suspendu:  { tone: 'warning', cle: 'admin.supEtatSuspendu' },
 }

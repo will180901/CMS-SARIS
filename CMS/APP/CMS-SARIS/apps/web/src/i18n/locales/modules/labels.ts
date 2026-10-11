@@ -74,6 +74,11 @@ export const labels = {
       ASSIGN: 'Affectation',
       CHANGE_CATEGORY: 'Changement de catégorie',
       UPDATE_PROFILE: 'Modification de son profil',
+      SUSPEND: 'Suspension des échanges',
+      RESUME: 'Reprise des échanges',
+      RESYNC_REQUEST: 'Resynchronisation demandée',
+      RESYNC_CANCEL: 'Demande de resynchronisation annulée',
+      RESYNC_DONE: 'Resynchronisation terminée',
     },
 
     // ── Statuts (par famille) ────────────────────────────────────────
@@ -410,6 +415,7 @@ export const labels = {
       AdministrationTraitement: 'Administration de traitement',
       VisiteEvenement: 'Événement de visite',
       JournalSynchronisation: 'Historique de synchronisation',
+      PosteLocal: 'Poste',
       TypeConsultation: 'Type de consultation',
     },
 
@@ -512,6 +518,11 @@ export const labels = {
       ASSIGN: 'Assignment',
       CHANGE_CATEGORY: 'Category change',
       UPDATE_PROFILE: 'Profile update',
+      SUSPEND: 'Exchanges suspended',
+      RESUME: 'Exchanges resumed',
+      RESYNC_REQUEST: 'Resynchronization requested',
+      RESYNC_CANCEL: 'Resynchronization request cancelled',
+      RESYNC_DONE: 'Resynchronization completed',
     },
 
     // ── Statuses (by family) ─────────────────────────────────────────
@@ -848,6 +859,7 @@ export const labels = {
       AdministrationTraitement: 'Treatment administration',
       VisiteEvenement: 'Visit event',
       JournalSynchronisation: 'Synchronization history',
+      PosteLocal: 'Workstation',
       TypeConsultation: 'Consultation type',
     },
 

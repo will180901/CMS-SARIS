@@ -31,6 +31,8 @@ import {
   ActiviteParPosteQueryDto,
   ConflitsPosteQueryDto,
   PurgeActiviteQueryDto,
+  SuspendrePosteDto,
+  ResyncTermineeDto,
 } from './sync.dto'
 
 interface AuthedRequest {
@@ -67,8 +69,10 @@ export class SyncController {
 
   @Get('pull')
   @RequirePermissions('synchronisation.read')
-  pull(@Req() req: AuthedRequest, @Query() q: SyncPullQueryDto) {
+  async pull(@Req() req: AuthedRequest, @Query() q: SyncPullQueryDto) {
     const { siteId } = requireUser(req)
+    // Un poste suspendu ne reçoit plus rien — s'il dit qui il est (les postes à jour le font).
+    await this.supervision.assertPosteActif(q.posteLocalId)
     return this.svc.pull(siteId, q.since, q.limit)
   }
 
@@ -97,8 +101,10 @@ export class SyncController {
 
   @Post('push')
   @RequirePermissions('synchronisation.execute')
-  push(@Req() req: AuthedRequest, @Body() body: SyncPushDto) {
+  async push(@Req() req: AuthedRequest, @Body() body: SyncPushDto) {
     const { userId, siteId } = requireUser(req)
+    // Refus AVANT tout traitement : rien du lot d'un poste suspendu n'est appliqué.
+    await this.supervision.assertPosteActif(body.posteLocalId)
     return this.svc.push(siteId, userId, body.posteLocalId, body.changes)
   }
 
@@ -110,8 +116,16 @@ export class SyncController {
   @RequirePermissions('synchronisation.execute')
   async heartbeat(@Req() req: AuthedRequest, @Body() body: SyncHeartbeatDto) {
     const { siteId } = requireUser(req)
-    await this.supervision.heartbeat(siteId, body.posteLocalId, body.libelle)
-    return { ok: true }
+    // La réponse porte les ORDRES du serveur au poste (suspension, resynchronisation) : c'est
+    // ainsi qu'un poste à jour les apprend. Absents si le serveur n'a pas pu les lire — le
+    // poste garde alors son état plutôt que de croire qu'on l'a libéré.
+    const controle = await this.supervision.heartbeat(
+      siteId,
+      body.posteLocalId,
+      body.libelle,
+      { versionApp: body.versionApp, niveauControle: body.niveauControle },
+    )
+    return { ok: true, ...(controle ? { controle } : {}) }
   }
 
   /**
@@ -173,6 +187,61 @@ export class SyncController {
   @RequirePermissions('synchronisation.read')
   getActivite(@Query() q: ActiviteQueryDto) {
     return this.supervision.getActivite(q)
+  }
+
+  /**
+   * SUSPEND les échanges d'un poste. Sous `synchronisation.execute`, comme le renommage et le
+   * retrait du parc : c'est un geste de pilotage. Se trace dans le journal d'audit.
+   */
+  @Post('supervision/postes/:id/suspension')
+  @RequirePermissions('synchronisation.execute')
+  suspendre(
+    @Req() req: AuthedRequest,
+    @Param('id') id: string,
+    @Body() dto: SuspendrePosteDto,
+  ) {
+    const { userId } = requireUser(req)
+    return this.supervision.suspendrePoste(id, dto.motif, userId, req.ip ?? null)
+  }
+
+  /** LÈVE la suspension d'un poste. */
+  @Delete('supervision/postes/:id/suspension')
+  @RequirePermissions('synchronisation.execute')
+  reprendre(@Req() req: AuthedRequest, @Param('id') id: string) {
+    const { userId } = requireUser(req)
+    return this.supervision.reprendrePoste(id, userId, req.ip ?? null)
+  }
+
+  /** DEMANDE une resynchronisation complète (le poste la prend au prochain battement de vie). */
+  @Post('supervision/postes/:id/resynchronisation')
+  @RequirePermissions('synchronisation.execute')
+  demanderResync(@Req() req: AuthedRequest, @Param('id') id: string) {
+    const { userId } = requireUser(req)
+    return this.supervision.demanderResync(id, userId, req.ip ?? null)
+  }
+
+  /** Retire une demande de resynchronisation pas encore prise en compte. */
+  @Delete('supervision/postes/:id/resynchronisation')
+  @RequirePermissions('synchronisation.execute')
+  annulerResync(@Req() req: AuthedRequest, @Param('id') id: string) {
+    const { userId } = requireUser(req)
+    return this.supervision.annulerResync(id, userId, req.ip ?? null)
+  }
+
+  /**
+   * ACCUSÉ du poste : la resynchronisation complète est faite. Appelé par le client de
+   * synchronisation du poste lui-même, avec son compte de synchronisation (`execute`, comme
+   * pour pousser).
+   */
+  @Post('poste/:id/resync-terminee')
+  @RequirePermissions('synchronisation.execute')
+  accuserResync(
+    @Req() req: AuthedRequest,
+    @Param('id') id: string,
+    @Body() dto: ResyncTermineeDto,
+  ) {
+    const { userId } = requireUser(req)
+    return this.supervision.accuserResync(id, new Date(dto.demandeeAt), userId)
   }
 
   /** Activité regroupée par poste : UNE ligne par machine (cf. service). */
@@ -249,7 +318,9 @@ export class SyncController {
     return (
       result ?? {
         skipped: true,
-        reason: 'mode local inactif ou serveur injoignable',
+        reason: this.client.etatControle.suspendu
+          ? 'échanges suspendus par un administrateur'
+          : 'mode local inactif ou serveur injoignable',
       }
     )
   }

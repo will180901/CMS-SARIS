@@ -47,6 +47,8 @@ export interface BackendOptions {
   siteId?: string
   posteLocalId?: string
   posteLibelle?: string
+  /** Version de l'application, annoncée au serveur par le battement de vie (supervision du parc). */
+  appVersion?: string
   syncToken?: string
   /** Fichier contenant l'access token de synchro (relu à chaque cycle → refresh sans
    *  redémarrer le backend). Prioritaire sur `syncToken`. */
@@ -95,6 +97,7 @@ export async function startBackend(opts: BackendOptions): Promise<void> {
     SITE_ID: opts.siteId ?? '',
     POSTE_LOCAL_ID: opts.posteLocalId ?? '',
     POSTE_LIBELLE: opts.posteLibelle ?? '',
+    APP_VERSION: opts.appVersion ?? '',
     SERVER_SYNC_TOKEN: opts.syncToken ?? '',
     SERVER_SYNC_TOKEN_FILE: opts.syncTokenFile ?? '',
     // Secrets figés au build (sinon le backend crashe : JWT_SECRET introuvable).

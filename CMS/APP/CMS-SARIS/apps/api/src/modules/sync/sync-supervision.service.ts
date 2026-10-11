@@ -10,9 +10,18 @@
  *                      (journaux) et conflits en attente — pour l'écran de supervision.
  *  - getPosteDetail() : détail d'un poste (modale) — dernière session connectée (début/fin).
  *  - masquerPoste()   : retire un poste de la liste (dismiss) ; réapparaît à sa prochaine synchro.
+ *  - getActiviteParPoste / getBilanPoste / getConflitsPoste : l'activité regroupée PAR POSTE et
+ *                      la fiche d'un poste (réussites, refus, conflits) — jamais le contenu des fiches.
+ *  - purgerActivite() : vide l'historique des échanges (la quarantaine est conservée par défaut).
+ *  - CONTRÔLE DU FLUX : suspendrePoste / reprendrePoste (le serveur refuse alors les échanges du
+ *                      poste, cf. assertPosteActif), demanderResync / annulerResync / accuserResync
+ *                      (resynchronisation complète). Les ordres parviennent au poste dans la
+ *                      réponse de son battement de vie (heartbeat). Chaque décision est tracée.
  */
 import {
   BadRequestException,
+  ConflictException,
+  HttpException,
   Injectable,
   Logger,
   NotFoundException,
@@ -56,6 +65,21 @@ const ONLINE_WINDOW_MS = 90_000
 /** Ordre de priorité d'affichage quand un utilisateur porte plusieurs rôles (même ordre que
  *  `getPrimaryRole` côté web, apps/web/src/config/navigation.config.ts). */
 const ROLE_PRIORITY = ['ADMIN_SYSTEME', 'MEDECIN_CHEF', 'INFIRMIER']
+
+/** Niveau des ordres du serveur à partir duquel un poste comprend la resynchronisation
+ *  complète (et affiche sa suspension). Un poste plus ancien les ignore. */
+export const NIVEAU_CONTROLE_RESYNC = 1
+
+/** HTTP 423 « Locked » : la ressource existe mais est verrouillée — ici, un poste suspendu. */
+const HTTP_LOCKED = 423
+
+/** Ce que le serveur dit à un poste, en réponse à chacun de ses battements de vie. */
+export interface ControlePoste {
+  suspendu: boolean
+  motif: string | null
+  /** Date (ISO) de la resynchronisation complète demandée, tant que le poste ne l'a pas faite. */
+  resyncDemandeeAt: string | null
+}
 
 /** Bilan des échanges d'un poste, cumulé à partir des lignes groupées du journal. */
 interface BilanEchanges {
@@ -244,13 +268,24 @@ export class SyncSupervisionService {
     siteId: string,
     posteLocalId: string,
     libelle?: string,
-  ): Promise<void> {
-    if (this.isSqlite) return
+    info: { versionApp?: string; niveauControle?: number } = {},
+  ): Promise<ControlePoste | null> {
+    if (this.isSqlite) return null
     const now = new Date()
+    let controle: ControlePoste | null = null
     try {
-      await this.prisma.posteLocal.upsert({
+      const poste = await this.prisma.posteLocal.upsert({
         where: { id: posteLocalId },
-        update: { derniereSyncAt: now, masque: false },
+        update: {
+          derniereSyncAt: now,
+          masque: false,
+          // Renseignés seulement s'ils sont dits : un poste ancien n'en dit rien, et ne doit
+          // pas effacer ce qu'un battement plus récent aurait appris.
+          ...(info.versionApp ? { versionApp: info.versionApp } : {}),
+          ...(info.niveauControle !== undefined
+            ? { niveauControle: info.niveauControle }
+            : {}),
+        },
         // Repli pour un poste jamais déclaré (installation ancienne, ou configuration
         // perdue) : mieux vaut le site de l'appelant que pas de poste du tout.
         create: {
@@ -258,14 +293,26 @@ export class SyncSupervisionService {
           siteId,
           libelle: libelle?.trim() || this.defaultLibelle(posteLocalId),
           derniereSyncAt: now,
+          versionApp: info.versionApp ?? null,
+          niveauControle: info.niveauControle ?? null,
         },
       })
+      // Les ordres du serveur voyagent dans la réponse du battement : le poste les apprend
+      // en moins de 30 s, sans canal de plus, et sans que le serveur ait à le joindre.
+      controle = {
+        suspendu: !!poste.suspenduAt,
+        motif: poste.suspensionMotif,
+        resyncDemandeeAt: poste.resyncDemandeeAt?.toISOString() ?? null,
+      }
     } catch (e) {
+      // Aucun ordre en cas d'erreur (et non « pas suspendu ») : une base occupée un instant ne
+      // doit pas lever une suspension côté poste.
       this.logger.warn(`heartbeat() ignoré : ${(e as Error).message}`)
     }
     this.notifications.broadcastLive('SYNC_ACTIVITY', {
       requiredPermission: 'synchronisation.read',
     })
+    return controle
   }
 
   /**
@@ -830,6 +877,231 @@ export class SyncSupervisionService {
     if (!count) throw new NotFoundException('Poste introuvable')
   }
 
+  // ── Contrôle du flux : suspension et resynchronisation complète ─────────────
+
+  /**
+   * Refuse (HTTP 423) les échanges d'un poste SUSPENDU. Appelé avant tout envoi, et avant
+   * toute réception pour les postes qui se font connaître.
+   *
+   * Un poste inconnu n'est pas suspendu : il n'a encore jamais été vu, et sa première
+   * synchronisation ne doit pas dépendre d'une ligne qui n'existe pas. Sur la base locale
+   * d'un poste, la table est vide — rien n'est jamais refusé.
+   *
+   * La réponse porte `code: 'POSTE_SUSPENDU'` : un poste à jour y reconnaît une suspension
+   * (et l'affiche) au lieu d'une panne ; un poste ancien y voit une simple erreur et réessaie.
+   */
+  async assertPosteActif(posteLocalId: string | null | undefined): Promise<void> {
+    if (!posteLocalId) return
+    const p = await this.prisma.posteLocal.findUnique({
+      where: { id: posteLocalId },
+      select: { suspenduAt: true, suspensionMotif: true },
+    })
+    if (!p?.suspenduAt) return
+    throw new HttpException(
+      {
+        statusCode: HTTP_LOCKED,
+        code: 'POSTE_SUSPENDU',
+        message:
+          'Ce poste est suspendu par un administrateur : ses échanges sont refusés.',
+        motif: p.suspensionMotif ?? null,
+        depuis: p.suspenduAt,
+      },
+      HTTP_LOCKED,
+    )
+  }
+
+  /** Ce que la supervision a besoin de savoir de l'état de contrôle d'un poste. */
+  private etatControle(p: {
+    suspenduAt: Date | null
+    suspensionMotif: string | null
+    resyncDemandeeAt: Date | null
+    resyncFaiteAt: Date | null
+  }) {
+    return {
+      suspendu: !!p.suspenduAt,
+      suspenduAt: p.suspenduAt,
+      motif: p.suspensionMotif,
+      resyncDemandeeAt: p.resyncDemandeeAt,
+      resyncFaiteAt: p.resyncFaiteAt,
+    }
+  }
+
+  private async posteOuErreur(posteId: string) {
+    const poste = await this.prisma.posteLocal.findUnique({
+      where: { id: posteId },
+    })
+    if (!poste) throw new NotFoundException('Poste introuvable')
+    return poste
+  }
+
+  /**
+   * Trace une décision de contrôle dans le journal d'audit : qui a agi, sur quel poste,
+   * quand, d'où. Couper les échanges d'une machine est un geste qu'on doit pouvoir
+   * retrouver. Jamais bloquant : la trace ne fait pas échouer ce qu'elle raconte.
+   * (Le `@Audit` global ne couvre pas SyncController — trafic machine à machine.)
+   */
+  private async tracerControle(
+    action: string,
+    poste: { id: string; libelle: string },
+    auteurId: string | null,
+    ip: string | null,
+    apres: Record<string, string | number | boolean | null> = {},
+  ): Promise<void> {
+    try {
+      await this.prisma.journalAudit.create({
+        data: {
+          utilisateurId: auteurId,
+          action,
+          module: 'synchronisation',
+          entiteType: 'PosteLocal',
+          entiteId: poste.id,
+          ipAdresse: ip,
+          statut: 'SUCCES',
+          apresJson: { poste: poste.libelle, ...apres },
+        },
+      })
+    } catch (e) {
+      this.logger.error(`Contrôle non tracé : ${(e as Error).message}`)
+    }
+  }
+
+  private signalerControle(): void {
+    this.notifications.broadcastLive('SYNC_ACTIVITY', {
+      requiredPermission: 'synchronisation.read',
+    })
+  }
+
+  /**
+   * SUSPEND les échanges d'un poste. Le serveur refuse dès cet instant ce qu'il envoie (et
+   * ce qu'il demande, s'il se fait connaître) ; le poste, lui, continue de travailler avec sa
+   * base locale et rattrape tout à la reprise — rien n'est perdu, seulement retardé.
+   *
+   * Sans effet (et sans trace) si le poste est déjà suspendu : on ne réécrit ni la date, ni
+   * l'auteur, ni le motif d'une suspension en cours.
+   */
+  async suspendrePoste(
+    posteId: string,
+    motif: string | undefined,
+    auteurId: string | null,
+    ip: string | null = null,
+  ) {
+    const poste = await this.posteOuErreur(posteId)
+    if (poste.suspenduAt) return this.etatControle(poste)
+
+    const maj = await this.prisma.posteLocal.update({
+      where: { id: posteId },
+      data: {
+        suspenduAt: new Date(),
+        suspenduPar: auteurId,
+        suspensionMotif: motif?.trim() || null,
+      },
+    })
+    await this.tracerControle('SUSPEND', poste, auteurId, ip, {
+      motif: maj.suspensionMotif,
+    })
+    this.signalerControle()
+    return this.etatControle(maj)
+  }
+
+  /** LÈVE la suspension : le poste reprend ses échanges à son prochain battement de vie. */
+  async reprendrePoste(
+    posteId: string,
+    auteurId: string | null,
+    ip: string | null = null,
+  ) {
+    const poste = await this.posteOuErreur(posteId)
+    if (!poste.suspenduAt) return this.etatControle(poste)
+
+    const maj = await this.prisma.posteLocal.update({
+      where: { id: posteId },
+      data: { suspenduAt: null, suspenduPar: null, suspensionMotif: null },
+    })
+    await this.tracerControle('RESUME', poste, auteurId, ip, {
+      suspenduDepuis: poste.suspenduAt.toISOString(),
+    })
+    this.signalerControle()
+    return this.etatControle(maj)
+  }
+
+  /**
+   * DEMANDE une resynchronisation COMPLÈTE : le poste retéléchargera toutes les données du
+   * serveur à son prochain battement de vie, puis l'accusera. Ce qu'il n'a pas encore envoyé
+   * est conservé — le rattrapage de la réception ne supprime rien de local.
+   *
+   * Refusée (409) pour un poste qui ne comprend pas cet ordre : la demande resterait sans fin
+   * « en attente », et l'administrateur croirait la reprise lancée. Un poste qui n'a jamais
+   * dit son niveau (poste ancien) est dans ce cas.
+   */
+  async demanderResync(
+    posteId: string,
+    auteurId: string | null,
+    ip: string | null = null,
+  ) {
+    const poste = await this.posteOuErreur(posteId)
+    if ((poste.niveauControle ?? 0) < NIVEAU_CONTROLE_RESYNC)
+      throw new ConflictException({
+        code: 'POSTE_NON_COMPATIBLE',
+        message:
+          'Ce poste n’a pas encore la version qui comprend cette demande : mettez-le à jour.',
+      })
+    // Déjà demandée et pas encore prise en compte : rien à redemander.
+    if (poste.resyncDemandeeAt) return this.etatControle(poste)
+
+    const maj = await this.prisma.posteLocal.update({
+      where: { id: posteId },
+      data: { resyncDemandeeAt: new Date() },
+    })
+    await this.tracerControle('RESYNC_REQUEST', poste, auteurId, ip)
+    this.signalerControle()
+    return this.etatControle(maj)
+  }
+
+  /** Retire une demande de resynchronisation que le poste n'a pas encore prise en compte. */
+  async annulerResync(
+    posteId: string,
+    auteurId: string | null,
+    ip: string | null = null,
+  ) {
+    const poste = await this.posteOuErreur(posteId)
+    if (!poste.resyncDemandeeAt) return this.etatControle(poste)
+
+    const maj = await this.prisma.posteLocal.update({
+      where: { id: posteId },
+      data: { resyncDemandeeAt: null },
+    })
+    await this.tracerControle('RESYNC_CANCEL', poste, auteurId, ip)
+    this.signalerControle()
+    return this.etatControle(maj)
+  }
+
+  /**
+   * ACCUSÉ du poste : la resynchronisation complète est faite.
+   *
+   * On note toujours la date (le poste a bel et bien tout retéléchargé), mais on n'efface la
+   * demande en cours que si l'accusé porte SA date : si l'administrateur en a refait une
+   * entre-temps, celle-là reste à accomplir.
+   */
+  async accuserResync(posteId: string, demandeeAt: Date, auteurId: string | null) {
+    const poste = await this.posteOuErreur(posteId)
+    const correspond =
+      !!poste.resyncDemandeeAt &&
+      +poste.resyncDemandeeAt === +demandeeAt
+
+    await this.prisma.posteLocal.update({
+      where: { id: posteId },
+      data: {
+        resyncFaiteAt: new Date(),
+        ...(correspond ? { resyncDemandeeAt: null } : {}),
+      },
+    })
+    await this.tracerControle('RESYNC_DONE', poste, auteurId, null, {
+      demandeeAt: demandeeAt.toISOString(),
+      demandeSoldee: correspond,
+    })
+    this.signalerControle()
+    return { ok: true, demandeSoldee: correspond }
+  }
+
   /** Enrichit des postes avec le nom + rôle du DERNIER utilisateur connecté (nom lisible au lieu
    *  de l'identifiant machine) et le LIBELLÉ de leur site de rattachement.
    *
@@ -847,13 +1119,21 @@ export class SyncSupervisionService {
       siteId: string
       dernierUtilisateurId: string | null
       derniereSyncAt: Date | null
+      suspenduAt: Date | null
+      suspenduPar: string | null
+      suspensionMotif: string | null
+      resyncDemandeeAt: Date | null
+      resyncFaiteAt: Date | null
+      versionApp: string | null
+      niveauControle: number | null
     },
   >(postes: T[]) {
     const now = Date.now()
+    // Le dernier utilisateur ET l'auteur d'une suspension : une seule requête pour les deux.
     const utilisateurIds = [
       ...new Set(
         postes
-          .map((p) => p.dernierUtilisateurId)
+          .flatMap((p) => [p.dernierUtilisateurId, p.suspenduPar])
           .filter((id): id is string => !!id),
       ),
     ]
@@ -885,15 +1165,19 @@ export class SyncSupervisionService {
     const utilisateurById = new Map(utilisateurs.map((u) => [u.id, u] as const))
     const siteById = new Map(sites.map((s) => [s.id, s.libelle] as const))
 
+    const nomDe = (id: string | null) => {
+      const u = id ? utilisateurById.get(id) : undefined
+      if (!u) return null
+      return u.personnelMedical
+        ? `${u.personnelMedical.prenom} ${u.personnelMedical.nom}`
+        : u.login
+    }
+
     return postes.map((p) => {
       const u = p.dernierUtilisateurId
         ? utilisateurById.get(p.dernierUtilisateurId)
         : undefined
-      const utilisateurNom = u
-        ? u.personnelMedical
-          ? `${u.personnelMedical.prenom} ${u.personnelMedical.nom}`
-          : u.login
-        : null
+      const utilisateurNom = nomDe(p.dernierUtilisateurId)
       const codes = u?.roles.map((r) => r.role.code) ?? []
       const utilisateurRole =
         ROLE_PRIORITY.find((r) => codes.includes(r)) ?? codes[0] ?? null
@@ -909,6 +1193,17 @@ export class SyncSupervisionService {
         derniereSyncAt: p.derniereSyncAt,
         enLigne:
           !!p.derniereSyncAt && now - +p.derniereSyncAt < ONLINE_WINDOW_MS,
+        // Contrôle du flux : ce qu'un administrateur a décidé pour ce poste, et ce que le
+        // poste est capable de comprendre (version) — la fiche s'en sert pour n'offrir que
+        // des boutons qui ont un effet.
+        suspendu: !!p.suspenduAt,
+        suspenduAt: p.suspenduAt,
+        suspenduParNom: nomDe(p.suspenduPar),
+        suspensionMotif: p.suspensionMotif,
+        resyncDemandeeAt: p.resyncDemandeeAt,
+        resyncFaiteAt: p.resyncFaiteAt,
+        versionApp: p.versionApp,
+        niveauControle: p.niveauControle,
       }
     })
   }
