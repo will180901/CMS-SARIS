@@ -46,6 +46,31 @@ export interface NotifAudience {
   permissions: string[]
 }
 
+/**
+ * Événements du flux qui ne signalent AUCUNE écriture à synchroniser : ils ne doivent pas faire
+ * sonner les postes de bureau (cf. `activite$`).
+ *
+ *  - `SYNC_ACTIVITY`, `LIVE_SYNC` : rafraîchissement de l'écran de supervision de la synchronisation.
+ *    `SYNC_ACTIVITY` part à CHAQUE battement de vie de CHAQUE poste (toutes les 30 s) : le laisser
+ *    sonner, c'était réveiller tout le parc pour une synchronisation à vide à chaque battement de
+ *    n'importe quel poste — N postes = N cycles par battement — alors que la sonnette existe
+ *    justement pour ne PAS interroger à intervalle fixe ;
+ *  - `TYPING`, `TYPING_AUDIO` : « en train d'écrire », éphémère, rien n'est enregistré ;
+ *  - `SYSTEME_MODE`, `SYSTEME_VIDAGE` : le mode et l'ordre de vidage parviennent aux postes par leur
+ *    battement de vie, pas par une synchronisation.
+ *
+ * Tout le reste (notifications métier, messagerie, référentiels, droits…) sonne : un oubli ici
+ * coûte un cycle de plus, un excès coûte une donnée qui n'apparaît qu'au filet de sécurité (5 min).
+ */
+export const EVENEMENTS_SANS_DONNEES: ReadonlySet<string> = new Set([
+  'SYNC_ACTIVITY',
+  'LIVE_SYNC',
+  'TYPING',
+  'TYPING_AUDIO',
+  'SYSTEME_MODE',
+  'SYSTEME_VIDAGE',
+])
+
 export interface NotifRow {
   id: string
   createdAt: Date
@@ -446,9 +471,14 @@ export class NotificationService {
    * quelque chose, puis vont chercher les données par le canal de synchronisation normal,
    * qui applique déjà les règles de visibilité. Rien de confidentiel ne transite par la
    * sonnette, donc rien à filtrer — et aucune règle d'accès à réimplémenter ailleurs.
+   *
+   * Les événements qui ne signalent aucune écriture (`EVENEMENTS_SANS_DONNEES`) n'y passent pas.
    */
   get activite$(): Observable<void> {
-    return this.stream$.pipe(map(() => undefined))
+    return this.stream$.pipe(
+      filter((n) => !EVENEMENTS_SANS_DONNEES.has(n.type)),
+      map(() => undefined),
+    )
   }
 
   /** Flux SSE filtré : seules les notifications visibles par cet utilisateur. */
