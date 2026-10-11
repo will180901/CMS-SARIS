@@ -68,3 +68,19 @@ export function ipsDuSite(alea: Alea, codeSite: string): string[] {
   while (ips.size < n) ips.add(dans(alea, alea.choisir(candidates)))
   return [...ips]
 }
+
+/**
+ * Position approximative de chaque site (latitude, longitude) : celle que relève le navigateur d'un
+ * agent qui se connecte depuis le centre. Un site inconnu est placé à Brazzaville.
+ */
+const POSITIONS_SITES: Readonly<Record<string, readonly [number, number]>> = {
+  MOU: [-4.2509, 15.2347],
+  NKA: [-4.1833, 13.2833],
+  PNR: [-4.7692, 11.8664],
+}
+
+export function positionDuSite(codeSite: string): readonly [number, number] {
+  return (
+    POSITIONS_SITES[codeSite.slice(0, 3).toUpperCase()] ?? [-4.2634, 15.2429]
+  )
+}

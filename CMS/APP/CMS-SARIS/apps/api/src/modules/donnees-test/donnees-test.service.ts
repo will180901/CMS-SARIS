@@ -89,6 +89,30 @@ export interface ProgressionLot {
   lignes: Record<string, number>
 }
 
+/** Ce qui a été fabriqué, en une page : établi à la fin d'une génération menée à son terme. */
+export interface BilanLot {
+  /** Place prise dans la base par cette génération (octets) ; null si la base ne la mesure pas. */
+  tailleOctets: number | null
+  sites: { code: string; visites: number; patients: number }[]
+  categories: { code: string; patients: number }[]
+  connexions: {
+    reussies: number
+    echecs: number
+    deconnexions: number
+    questions: number
+    appareils: number
+  }
+  documents: {
+    ordonnances: number
+    bonsExamen: number
+    bonsPharmacie: number
+    resultats: number
+    evacuations: number
+    suivisTraitement: number
+    suivisChroniques: number
+  }
+}
+
 export interface Lot {
   id: string
   creePar: string
@@ -99,6 +123,7 @@ export interface Lot {
   message: string | null
   termineLe: string | null
   derniereMaj: string
+  bilan?: BilanLot | null
 }
 
 interface EtatPersiste {
@@ -183,6 +208,16 @@ export class DonneesTestService implements OnApplicationBootstrap {
   }
 
   // ── État persistant ─────────────────────────────────────────────────────────
+
+  /** `audit.retention_jours` (365 par défaut) ; null si la purge automatique n'a pas lieu ici (poste). */
+  private async dureeConservationJournaux(): Promise<number | null> {
+    if (this.local) return null
+    const ligne = await this.prisma.parametreSysteme.findUnique({
+      where: { cle: 'audit.retention_jours' },
+    })
+    const jours = ligne ? Number(ligne.valeur) : 365
+    return Number.isFinite(jours) && jours >= 1 ? jours : null
+  }
 
   private async lireEtat(): Promise<EtatPersiste> {
     const ligne = await this.prisma.parametreSysteme.findUnique({
@@ -317,6 +352,14 @@ export class DonneesTestService implements OnApplicationBootstrap {
       p.avertissements.push(
         `La base occupe déjà ${Math.round(taille / 1048576)} Mo : ajouter ~${Math.round(p.octets / 1048576)} Mo dépasserait la limite de ${Math.round(limite / 1048576)} Mo. Réduisez la durée ou le nombre de visites.`,
       )
+    // La purge de la nuit supprime les journaux plus vieux que leur durée de conservation : elle
+    // effacerait, sans distinction, ce que cette génération fabrique de plus ancien.
+    const conservation = await this.dureeConservationJournaux()
+    const age = joursEntre(debut, jourLocalDe(new Date())).length
+    if (conservation !== null && age > conservation)
+      p.avertissements.push(
+        `Les journaux d'audit sont conservés ${conservation} jours (Paramètres système) : la purge automatique de la nuit supprimera les lignes d'audit et de connexions de plus de ${conservation} jours fabriquées ici, soit les ${age - conservation} premiers jours de la période. Allongez la durée de conservation ou réduisez la durée.`,
+      )
     return {
       ...p,
       baseMo: taille === null ? null : Math.round(taille / 1048576),
@@ -386,6 +429,7 @@ export class DonneesTestService implements OnApplicationBootstrap {
       message: null,
       termineLe: null,
       derniereMaj: new Date().toISOString(),
+      bilan: null,
     }
     await this.modifierEtat((e) => {
       e.lots.push(lot)
@@ -518,6 +562,7 @@ export class DonneesTestService implements OnApplicationBootstrap {
         },
         select: {
           id: true,
+          login: true,
           siteId: true,
           personnelMedicalId: true,
           roles: { select: { role: { select: { code: true } } } },
@@ -538,6 +583,7 @@ export class DonneesTestService implements OnApplicationBootstrap {
       if (!fonction) continue
       const soignant: Soignant = {
         utilisateurId: c.id,
+        login: c.login,
         personnelId: c.personnelMedicalId,
         siteId: c.siteId,
       }
@@ -895,6 +941,7 @@ export class DonneesTestService implements OnApplicationBootstrap {
         const ctx: ContexteJour = {
           jour,
           alea: alea.sousFlux(jour),
+          racine: alea,
           equipes,
           ref,
           etat: { population, fabrique, numerotation },
@@ -923,10 +970,18 @@ export class DonneesTestService implements OnApplicationBootstrap {
         // On rend la main : les requêtes des utilisateurs passent entre deux journées.
         await new Promise<void>((r) => setImmediate(r))
       }
+      // Le lot lu au départ ne connaît pas la progression : on relit l'état d'aujourd'hui.
+      const courant =
+        (await this.lireEtat()).lots.find((x) => x.id === lotId) ?? lot
+      const bilan = await this.calculerBilan(courant).catch((e: unknown) => {
+        this.logger.warn(`Bilan non établi : ${(e as Error).message}`)
+        return null
+      })
       await miseAJour((l) => {
         l.statut = 'TERMINE'
         l.termineLe = new Date().toISOString()
         l.message = null
+        l.bilan = bilan
       })
       this.logger.log(`Génération ${lotId} terminée`)
     } catch (e) {
@@ -939,6 +994,133 @@ export class DonneesTestService implements OnApplicationBootstrap {
         l.statut = e instanceof ArretGeneration ? 'INTERROMPU' : 'ECHEC'
         l.message = message
       }).catch(() => undefined)
+    }
+  }
+
+  /**
+   * La place que les lignes fabriquées occupent : pour chaque table, sa taille (index compris) au
+   * prorata des lignes marquées qu'elle contient. Comparer la taille de la base avant et après
+   * sous-estimerait : une base qui réemploie l'espace libéré par des suppressions ne grossit pas.
+   * Nulle sur un poste (SQLite).
+   */
+  private async placePrise(
+    lignes: Record<string, number>,
+  ): Promise<number | null> {
+    if (this.local) return null
+    let total = 0
+    for (const m of MODELES_TEST) {
+      const marquees = lignes[m.modele] ?? 0
+      if (marquees === 0) continue
+      // Les noms viennent du registre (jamais d'une saisie) : la requête ne reçoit rien d'extérieur.
+      const r = await this.prisma.raw.$queryRawUnsafe<
+        { o: bigint | number; n: bigint | number }[]
+      >(
+        `SELECT pg_total_relation_size('"${m.modele}"') AS o, (SELECT count(*) FROM "${m.modele}") AS n`,
+      )
+      const n = Number(r[0]?.n ?? 0)
+      if (n > 0) total += (Number(r[0]?.o ?? 0) * marquees) / n
+    }
+    return Math.round(total)
+  }
+
+  /**
+   * Le bilan d'une génération terminée : où, qui, combien de documents, combien de connexions et la
+   * place prise. Lu dans la base d'après la marque (ce qui est écrit fait foi, pas le compteur).
+   */
+  private async calculerBilan(lot: Lot): Promise<BilanLot> {
+    const m = FILTRE_MARQUE
+    const raw = this.prisma.raw
+    const [
+      sites,
+      categories,
+      visites,
+      patients,
+      parCategorie,
+      journal,
+      appareils,
+    ] = await Promise.all([
+      this.prisma.site.findMany({ select: { id: true, code: true } }),
+      this.prisma.categoriePatient.findMany({
+        select: { id: true, code: true },
+      }),
+      raw.visite.groupBy({
+        by: ['siteId'],
+        where: { id: m },
+        _count: { _all: true },
+      }),
+      raw.patient.groupBy({
+        by: ['siteCreationId'],
+        where: { id: m },
+        _count: { _all: true },
+      }),
+      raw.patient.groupBy({
+        by: ['categoriePatientId'],
+        where: { id: m },
+        _count: { _all: true },
+      }),
+      raw.journalAuthentification.groupBy({
+        by: ['resultat'],
+        where: { id: m },
+        _count: { _all: true },
+      }),
+      raw.sessionUtilisateur.groupBy({
+        by: ['appareilId'],
+        where: { id: m },
+        _count: { _all: true },
+      }),
+    ])
+    const codeSite = new Map(sites.map((s) => [s.id, s.code]))
+    const codeCategorie = new Map(categories.map((c) => [c.id, c.code]))
+    const nb = (resultat: string) =>
+      journal.find((j) => j.resultat === resultat)?._count._all ?? 0
+    const total = (prefixe: string) =>
+      journal
+        .filter((j) => j.resultat.startsWith(prefixe))
+        .reduce((s, j) => s + j._count._all, 0)
+    const l = lot.progression.lignes
+    const lignes = (modele: string) => l[modele] ?? 0
+    const sitesLus = new Map<string, { visites: number; patients: number }>()
+    for (const v of visites) {
+      const code = codeSite.get(v.siteId) ?? '?'
+      sitesLus.set(code, {
+        patients: sitesLus.get(code)?.patients ?? 0,
+        visites: v._count._all,
+      })
+    }
+    for (const p of patients) {
+      const code = codeSite.get(p.siteCreationId) ?? '?'
+      sitesLus.set(code, {
+        visites: sitesLus.get(code)?.visites ?? 0,
+        patients: p._count._all,
+      })
+    }
+    return {
+      tailleOctets: await this.placePrise(l),
+      sites: [...sitesLus.entries()]
+        .map(([code, v]) => ({ code, ...v }))
+        .sort((a, b) => b.visites - a.visites),
+      categories: parCategorie
+        .map((c) => ({
+          code: codeCategorie.get(c.categoriePatientId) ?? '?',
+          patients: c._count._all,
+        }))
+        .sort((a, b) => b.patients - a.patients),
+      connexions: {
+        reussies: nb('SUCCES_LOGIN') + nb('SUCCES_LOGIN_SESSION_REMPLACEE'),
+        echecs: total('ECHEC_'),
+        deconnexions: nb('SUCCES_LOGOUT'),
+        questions: nb('SUCCES_LOGIN_SESSION_ACTIVE'),
+        appareils: appareils.length,
+      },
+      documents: {
+        ordonnances: lignes('Ordonnance'),
+        bonsExamen: lignes('BonExamen'),
+        bonsPharmacie: lignes('BonPharmacie'),
+        resultats: lignes('ResultatExamen'),
+        evacuations: lignes('Evacuation'),
+        suivisTraitement: lignes('SuiviTraitement'),
+        suivisChroniques: lignes('SuiviChronique'),
+      },
     }
   }
 

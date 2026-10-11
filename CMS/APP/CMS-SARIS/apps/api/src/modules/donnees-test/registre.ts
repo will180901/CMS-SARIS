@@ -202,6 +202,19 @@ export const MODELES_TEST: readonly ModeleTest[] = [
       ligneOrdonnance: { ordonnance: { consultation: DE_TEST } },
     }),
   },
+  // ── Connexions : sessions et journal d'authentification, sans lien avec un dossier ────
+  // Rien d'autre qu'un identifiant ne les rattache à ce que le générateur fabrique : seule la marque
+  // les désigne. Une vraie connexion (identifiant ordinaire) n'est jamais touchée.
+  {
+    modele: 'SessionUtilisateur',
+    libelle: 'Sessions de connexion',
+    perimetre: { id: M },
+  },
+  {
+    modele: 'JournalAuthentification',
+    libelle: 'Lignes du journal des connexions',
+    perimetre: { id: M },
+  },
   // ── Journaux : rattachés à un dossier par `entiteId`, sans clé étrangère ──────
   {
     modele: 'JournalAudit',
@@ -255,6 +268,8 @@ export type LignesJour = {
   SuiviTraitement: Prisma.SuiviTraitementCreateManyInput[]
   FicheSuiviTraitement: Prisma.FicheSuiviTraitementCreateManyInput[]
   AdministrationTraitement: Prisma.AdministrationTraitementCreateManyInput[]
+  SessionUtilisateur: Prisma.SessionUtilisateurCreateManyInput[]
+  JournalAuthentification: Prisma.JournalAuthentificationCreateManyInput[]
   JournalAudit: Prisma.JournalAuditCreateManyInput[]
 }
 
@@ -293,6 +308,8 @@ export function lignesVides(): LignesJour {
     SuiviTraitement: [],
     FicheSuiviTraitement: [],
     AdministrationTraitement: [],
+    SessionUtilisateur: [],
+    JournalAuthentification: [],
     JournalAudit: [],
   }
 }

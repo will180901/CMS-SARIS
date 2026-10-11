@@ -13,6 +13,7 @@ import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import { creerAlea } from '../src/modules/donnees-test/alea'
 import {
+  ajouterJours,
   apresDelaiOuvre,
   estFerie,
   estOuvert,
@@ -50,6 +51,10 @@ import {
   profilsDisponibles,
 } from '../src/modules/donnees-test/planificateur'
 import { Population } from '../src/modules/donnees-test/population'
+import {
+  jourOuvertPrecedent,
+  planDeJournee,
+} from '../src/modules/donnees-test/planificateur-connexions'
 import {
   avecJours,
   cleMedicament,
@@ -371,6 +376,7 @@ function uuid(): string {
 }
 
 interface Banc {
+  equipes: EquipeSite[]
   ctx: (jour: string, indexJour: number, totalJours: number) => ContexteJour
   medecins: Soignant[]
   infirmiers: Soignant[]
@@ -387,8 +393,10 @@ function bancDeTest(
   const alea = creerAlea(graine)
   const siteM = uuid()
   const siteN = uuid()
+  let numero = 0
   const faire = (siteId: string): Soignant => ({
     utilisateurId: uuid(),
+    login: `agent.${graine}.${++numero}`,
     personnelId: uuid(),
     siteId,
   })
@@ -536,6 +544,7 @@ function bancDeTest(
     [siteN, ['102.129.70.5']],
   ])
   return {
+    equipes,
     medecins: [...medecinsM, ...medecinsN],
     infirmiers: [...infirmiersM, ...infirmiersN],
     ref,
@@ -544,6 +553,7 @@ function bancDeTest(
     ctx: (jour, indexJour, totalJours) => ({
       jour,
       alea: alea.sousFlux(jour),
+      racine: alea,
       equipes,
       ref,
       etat: { population, fabrique, numerotation },
@@ -2146,6 +2156,487 @@ test('un traitement ne s’administre que pendant sa durée prescrite', () => {
     if (duree >= 30 && ecart >= 5) longues++
   }
   assert.ok(longues > 0 || C.AdministrationTraitement.length > 0)
+})
+
+// ── Livraison 3 : connexions du personnel ──────────────────────────────────────
+
+console.log('livraison 3 : sessions et journal des connexions')
+
+const PERSONNEL = [...SIM.banc.medecins, ...SIM.banc.infirmiers]
+const personnelParId = new Map(PERSONNEL.map((p) => [p.utilisateurId, p]))
+const SESSIONS = C.SessionUtilisateur
+const JOURNAL = C.JournalAuthentification
+const DIX_MIN = 10 * 60_000
+
+interface ChaineTest {
+  connexionId: string
+  utilisateurId: string
+  lignes: typeof SESSIONS
+  debut: number
+  /** Dernier instant où la connexion est tenue pour ouverte (cf. resumerConnexions). */
+  fin: number
+  revoquee: number | null
+}
+const chainesParConnexion = new Map<string, typeof SESSIONS>()
+for (const s of SESSIONS)
+  chainesParConnexion.set(s.connexionId as string, [
+    ...(chainesParConnexion.get(s.connexionId as string) ?? []),
+    s,
+  ])
+const CHAINES: ChaineTest[] = [...chainesParConnexion.entries()].map(
+  ([id, l]) => {
+    const lignes = [...l].sort(
+      (a, b) => +(a.createdAt as Date) - +(b.createdAt as Date),
+    )
+    const derniere = lignes[lignes.length - 1]
+    const activite = +(derniere.derniereActiviteAt as Date)
+    const revoquee = derniere.revokedAt ? +(derniere.revokedAt as Date) : null
+    return {
+      connexionId: id,
+      utilisateurId: derniere.utilisateurId,
+      lignes,
+      debut: +(lignes[0].createdAt as Date),
+      fin:
+        revoquee !== null && revoquee - activite <= DIX_MIN
+          ? revoquee
+          : activite,
+      revoquee,
+    }
+  },
+)
+const chainesParUtilisateur = new Map<string, ChaineTest[]>()
+for (const c of CHAINES)
+  chainesParUtilisateur.set(
+    c.utilisateurId,
+    [...(chainesParUtilisateur.get(c.utilisateurId) ?? []), c].sort(
+      (a, b) => a.debut - b.debut,
+    ),
+  )
+
+test('chaque membre du personnel se connecte chaque jour d’ouverture, au rythme d’une journée de travail', () => {
+  const joursOuverts = joursEntre('2026-06-11', '2026-10-10').filter(
+    estOuvert,
+  ).length
+  const parJour = new Map<string, Set<string>>()
+  for (const s of JOURNAL)
+    if (s.connexionId && s.utilisateurId)
+      parJour.set(
+        jourLocalDe(s.createdAt as Date),
+        (parJour.get(jourLocalDe(s.createdAt as Date)) ?? new Set()).add(
+          s.utilisateurId,
+        ),
+      )
+  for (const [jour, users] of parJour)
+    assert.equal(
+      users.size,
+      PERSONNEL.length,
+      `${jour} : tout le monde se connecte`,
+    )
+  assert.equal(parJour.size, joursOuverts)
+  const connexions = JOURNAL.filter((j) => j.connexionId).length
+  assert.ok(connexions >= PERSONNEL.length * joursOuverts)
+  assert.ok(
+    connexions < PERSONNEL.length * joursOuverts * 1.2,
+    `${connexions} connexions`,
+  )
+  assert.equal(CHAINES.length, connexions)
+})
+
+test('aucun geste du personnel hors d’une connexion ouverte', () => {
+  let controles = 0
+  for (const a of C.JournalAudit) {
+    const t = +(a.createdAt as Date)
+    const chaines = chainesParUtilisateur.get(a.utilisateurId as string) ?? []
+    const couvert = chaines.some((c) => c.debut <= t && t <= c.fin)
+    assert.ok(
+      couvert,
+      `${a.module}/${a.action} à ${(a.createdAt as Date).toISOString()} sans connexion ouverte`,
+    )
+    controles++
+  }
+  assert.ok(controles > 10_000)
+})
+
+test('une connexion est une chaîne de sessions : chaque renouvellement ferme la session et en ouvre une neuve', () => {
+  let renouvellements = 0
+  for (const c of CHAINES) {
+    assert.equal(
+      c.lignes[0].id,
+      c.connexionId,
+      'la première session porte l’identifiant de la connexion',
+    )
+    const uas = new Set(c.lignes.map((l) => l.userAgent))
+    const appareils = new Set(c.lignes.map((l) => l.appareilId))
+    const ips = new Set(c.lignes.map((l) => l.ipAdresse))
+    assert.equal(uas.size, 1)
+    assert.equal(appareils.size, 1)
+    assert.equal(ips.size, 1)
+    assert.equal(new Set(c.lignes.map((l) => l.utilisateurId)).size, 1)
+    c.lignes.forEach((l, i) => {
+      assert.equal(
+        +(l.expiresAt as Date) - +(l.createdAt as Date),
+        7 * 24 * 3600_000,
+      )
+      assert.ok(
+        typeof l.refreshTokenHash === 'string' &&
+          l.refreshTokenHash.startsWith('$2b$10$') &&
+          l.refreshTokenHash.length === 60,
+      )
+      assert.ok(
+        +(l.derniereActiviteAt as Date) >= +(l.createdAt as Date),
+        `activité avant l’ouverture : session ${i}/${c.lignes.length} créée ${(l.createdAt as Date).toISOString()}, activité ${(l.derniereActiviteAt as Date).toISOString()}, révoquée ${(l.revokedAt as Date | null)?.toISOString()}`,
+      )
+      const suivante = c.lignes[i + 1]
+      if (suivante) {
+        renouvellements++
+        assert.equal(
+          +(l.revokedAt as Date),
+          +(suivante.createdAt as Date),
+          'rotation : fermée à l’ouverture de la suivante',
+        )
+        assert.ok(+(l.derniereActiviteAt as Date) <= +(l.revokedAt as Date))
+      } else if (l.revokedAt)
+        assert.ok(+(l.revokedAt as Date) >= +(l.derniereActiviteAt as Date))
+    })
+    // un jeton d'accès vaut 8 h : une connexion plus longue est renouvelée, aucune session ne dure plus
+    c.lignes.forEach((l, i) => {
+      const suivante = c.lignes[i + 1]
+      const finRang = suivante ? +(suivante.createdAt as Date) : c.fin
+      assert.ok(
+        finRang - +(l.createdAt as Date) <= (8 * 3600 + 16 * 60) * 1000,
+        `une session reste ouverte ${Math.round((finRang - +(l.createdAt as Date)) / 60000)} minutes sans être renouvelée`,
+      )
+    })
+    assert.ok(
+      c.lignes.length <= 3,
+      `${c.lignes.length} sessions pour une connexion`,
+    )
+  }
+  assert.ok(renouvellements > 20, `renouvellements : ${renouvellements}`)
+})
+
+test('session unique : se connecter ferme la session précédente du compte, à l’instant même ; une seule reste ouverte, la dernière jour', () => {
+  for (const [utilisateurId, chaines] of chainesParUtilisateur) {
+    chaines.forEach((c, i) => {
+      const suivante = chaines[i + 1]
+      if (!suivante) {
+        assert.notEqual(
+          c.revoquee,
+          null,
+          `${utilisateurId} : dernière session laissée ouverte`,
+        )
+        return
+      }
+      assert.notEqual(
+        c.revoquee,
+        null,
+        'connexion jamais fermée alors qu’une autre a suivi',
+      )
+      const fermee = c.revoquee as number
+      assert.ok(
+        fermee <= suivante.debut,
+        'fermée après l’ouverture de la suivante',
+      )
+      // soit une déconnexion (peu avant), soit la connexion suivante qui la ferme (même instant)
+      const parLaSuivante = fermee === suivante.debut
+      const logout = JOURNAL.find(
+        (j) =>
+          j.resultat === 'SUCCES_LOGOUT' &&
+          j.utilisateurId === utilisateurId &&
+          +(j.createdAt as Date) === fermee,
+      )
+      assert.ok(
+        parLaSuivante || logout,
+        'fermeture sans déconnexion ni connexion suivante',
+      )
+    })
+  }
+})
+
+test('depuis un AUTRE appareil, le serveur pose la question avant d’ouvrir ; depuis le même, il ouvre sans rien demander', () => {
+  let questions = 0
+  const parUtilisateur = new Map<string, typeof JOURNAL>()
+  for (const j of JOURNAL)
+    if (j.utilisateurId)
+      parUtilisateur.set(j.utilisateurId, [
+        ...(parUtilisateur.get(j.utilisateurId) ?? []),
+        j,
+      ])
+  for (const [utilisateurId, chaines] of chainesParUtilisateur) {
+    const journal = (parUtilisateur.get(utilisateurId) ?? []).sort(
+      (a, b) => +(a.createdAt as Date) - +(b.createdAt as Date),
+    )
+    chaines.forEach((c, i) => {
+      const ouverture = journal.find((j) => j.connexionId === c.connexionId)
+      assert.ok(ouverture, 'connexion sans ligne de journal')
+      const precedente = chaines[i - 1]
+      const autreAppareil =
+        !!precedente &&
+        precedente.revoquee !== null &&
+        precedente.revoquee >= c.debut &&
+        precedente.lignes[0].appareilId !== c.lignes[0].appareilId
+      if (autreAppareil) {
+        assert.equal(
+          ouverture.resultat,
+          'SUCCES_LOGIN_SESSION_REMPLACEE',
+          'changement d’appareil sans la question',
+        )
+        const question = journal.filter(
+          (j) =>
+            j.resultat === 'SUCCES_LOGIN_SESSION_ACTIVE' &&
+            +(j.createdAt as Date) < +(ouverture.createdAt as Date) &&
+            +(ouverture.createdAt as Date) - +(j.createdAt as Date) <= 120_000,
+        )
+        assert.equal(question.length, 1, 'la question précède la réponse')
+        assert.equal(question[0].connexionId, null)
+        questions++
+      } else assert.equal(ouverture.resultat, 'SUCCES_LOGIN')
+    })
+  }
+  assert.equal(
+    JOURNAL.filter((j) => j.resultat === 'SUCCES_LOGIN_SESSION_ACTIVE').length,
+    questions,
+  )
+  assert.ok(questions > 5, `questions : ${questions}`)
+})
+
+test('le journal des connexions et les sessions se répondent : même compte, même appareil, même instant', () => {
+  const premieres = new Map(CHAINES.map((c) => [c.connexionId, c.lignes[0]]))
+  for (const j of JOURNAL) {
+    const p = personnelParId.get(j.utilisateurId as string)
+    if (
+      j.resultat.startsWith('SUCCES_LOGIN') &&
+      j.resultat !== 'SUCCES_LOGIN_SESSION_ACTIVE'
+    ) {
+      const s = premieres.get(j.connexionId as string)
+      assert.ok(s, 'ouverture sans session')
+      assert.equal(+(s.createdAt as Date), +(j.createdAt as Date))
+      assert.equal(s.userAgent, j.userAgent)
+      assert.equal(s.ipAdresse, j.ipAdresse)
+      assert.equal(s.utilisateurId, j.utilisateurId)
+      assert.equal(p?.login, j.login)
+      assert.equal(j.posteLocalId, null)
+    } else if (j.resultat === 'SUCCES_LOGOUT') {
+      assert.equal(j.connexionId, null)
+      const c = (
+        chainesParUtilisateur.get(j.utilisateurId as string) ?? []
+      ).find((x) => x.revoquee === +(j.createdAt as Date))
+      assert.ok(c, 'déconnexion sans session fermée')
+      assert.equal(c.lignes[c.lignes.length - 1].userAgent, j.userAgent)
+      assert.equal(p?.login, j.login)
+    } else {
+      // échecs et question : jamais de connexion ouverte
+      assert.equal(j.connexionId, null)
+    }
+  }
+  // chaque déconnexion ferme exactement une session
+  const logouts = JOURNAL.filter((j) => j.resultat === 'SUCCES_LOGOUT')
+  assert.ok(
+    logouts.length > CHAINES.length * 0.5 &&
+      logouts.length < CHAINES.length * 0.95,
+    `${logouts.length}/${CHAINES.length}`,
+  )
+})
+
+test('les échecs : mot de passe faux juste avant la connexion du même compte ; identifiant inconnu = faute de frappe', () => {
+  const logins = new Set(PERSONNEL.map((p) => p.login))
+  let faux = 0
+  let inconnus = 0
+  for (const j of JOURNAL) {
+    if (j.resultat === 'ECHEC_MOT_DE_PASSE') {
+      faux++
+      assert.ok(logins.has(j.login))
+      assert.equal(j.connexionId, null)
+      const suite = JOURNAL.find(
+        (x) =>
+          x.utilisateurId === j.utilisateurId &&
+          x.connexionId &&
+          +(x.createdAt as Date) > +(j.createdAt as Date) &&
+          +(x.createdAt as Date) - +(j.createdAt as Date) <= 5 * 60_000,
+      )
+      assert.ok(suite, 'échec sans connexion qui le suive')
+      assert.equal(suite.userAgent, j.userAgent)
+    } else if (j.resultat === 'ECHEC_LOGIN_INCONNU') {
+      inconnus++
+      assert.equal(j.utilisateurId, null)
+      assert.equal(logins.has(j.login), false, 'l’identifiant tapé existe')
+      assert.ok(
+        PERSONNEL.some((p) => j.login.startsWith(p.login.slice(0, 4))),
+        'faute sur un identifiant réel',
+      )
+    }
+  }
+  const succes = JOURNAL.filter((j) => j.connexionId).length
+  assert.ok(faux > 0 && inconnus > 0)
+  assert.ok(
+    (faux + inconnus) / succes > 0.01 && (faux + inconnus) / succes < 0.09,
+  )
+})
+
+test('la position de l’appareil : relevée près du site, avec sa marge d’erreur, ou refusée ; jamais sur une déconnexion ni un échec', () => {
+  const sitesCoord: Record<string, [number, number]> = {
+    MOUTELA: [-4.2509, 15.2347],
+    NKAYI: [-4.1833, 13.2833],
+  }
+  const equipeDe = (utilisateurId: string) =>
+    SIM.banc.equipes.find((e) =>
+      [...e.medecins, ...e.infirmiers].some(
+        (p) => p.utilisateurId === utilisateurId,
+      ),
+    )
+  const parAppareil = new Map<string, Map<string, number>>()
+  const statuts = new Map<string, number>()
+  for (const j of JOURNAL) {
+    const ouvre = !!j.connexionId
+    if (!ouvre) {
+      assert.equal(j.positionStatut ?? null, null)
+      assert.equal(j.latitude ?? null, null)
+      assert.equal(j.positionLe ?? null, null)
+      continue
+    }
+    const statut = j.positionStatut ?? 'AUCUNE'
+    statuts.set(statut, (statuts.get(statut) ?? 0) + 1)
+    const appareil = premieresParConnexion(j.connexionId as string)
+      .appareilId as string
+    const m = parAppareil.get(appareil) ?? new Map<string, number>()
+    m.set(statut, (m.get(statut) ?? 0) + 1)
+    parAppareil.set(appareil, m)
+    if (statut === 'OK') {
+      const eq = equipeDe(j.utilisateurId as string) as EquipeSite
+      const [lat, lon] = sitesCoord[eq.siteCode]
+      assert.ok(
+        Math.abs((j.latitude as number) - lat) < 0.02 &&
+          Math.abs((j.longitude as number) - lon) < 0.02,
+        'position loin du site',
+      )
+      assert.ok(
+        (j.precisionM as number) >= 3 && (j.precisionM as number) <= 4000,
+      )
+      assert.ok(
+        +(j.positionLe as Date) > +(j.createdAt as Date) &&
+          +(j.positionLe as Date) - +(j.createdAt as Date) <= 60_000,
+      )
+    } else {
+      assert.equal(j.latitude ?? null, null)
+      assert.equal(j.longitude ?? null, null)
+      assert.equal(j.precisionM ?? null, null)
+      assert.equal(
+        j.positionLe === null || j.positionLe === undefined,
+        statut === 'AUCUNE',
+      )
+    }
+  }
+  for (const s of ['OK', 'REFUSEE', 'INDISPONIBLE', 'AUCUNE'])
+    assert.ok((statuts.get(s) ?? 0) > 0, `aucune position « ${s} »`)
+  // un appareil répond presque toujours la même chose (l’autorisation est mémorisée)
+  for (const [, m] of parAppareil) {
+    const total = [...m.values()].reduce((a, b) => a + b, 0)
+    if (total >= 20)
+      assert.ok(
+        Math.max(...m.values()) / total >= 0.8,
+        'réponses de position incohérentes pour un même appareil',
+      )
+  }
+})
+function premieresParConnexion(connexionId: string) {
+  return (chainesParConnexion.get(connexionId) as typeof SESSIONS)[0]
+}
+
+test('chacun garde ses appareils : au plus un ordinateur et un téléphone, l’ordinateur toujours à la même adresse', () => {
+  for (const [utilisateurId, chaines] of chainesParUtilisateur) {
+    const appareils = new Map<string, Set<string | null | undefined>>()
+    for (const c of chaines) {
+      const l = c.lignes[0]
+      appareils.set(
+        l.appareilId as string,
+        (appareils.get(l.appareilId as string) ?? new Set()).add(l.userAgent),
+      )
+    }
+    assert.ok(
+      appareils.size <= 2,
+      `${utilisateurId} : ${appareils.size} appareils`,
+    )
+    for (const [, uas] of appareils)
+      assert.equal(uas.size, 1, 'un appareil, deux navigateurs')
+    const ordinateur = chaines.filter((c) =>
+      /Windows/.test(c.lignes[0].userAgent as string),
+    )
+    const telephone = chaines.filter((c) =>
+      /Android/.test(c.lignes[0].userAgent as string),
+    )
+    assert.equal(
+      new Set(ordinateur.map((c) => c.lignes[0].ipAdresse)).size,
+      1,
+      'l’ordinateur change d’adresse',
+    )
+    assert.equal(ordinateur.length + telephone.length, chaines.length)
+  }
+  assert.ok(
+    CHAINES.some((c) => /Android/.test(c.lignes[0].userAgent as string)),
+    'aucune connexion depuis un téléphone',
+  )
+})
+
+test('les heures de connexion sont celles d’un centre ouvert, et rien ne dépasse la fin de la période', () => {
+  const tout: [string, Date | null | undefined][] = []
+  for (const j of JOURNAL) tout.push(['journal', j.createdAt as Date])
+  for (const s of SESSIONS)
+    tout.push(
+      ['session', s.createdAt as Date],
+      ['révocation', s.revokedAt as Date | null | undefined],
+      ['activité', s.derniereActiviteAt as Date | null | undefined],
+    )
+  for (const [quoi, d] of tout) {
+    if (!d) continue
+    const jour = jourLocalDe(d)
+    assert.ok(estOuvert(jour), `${quoi} un jour de fermeture : ${jour}`)
+    const minutes = (+d - +instantLocal(jour, 0)) / 60_000
+    assert.ok(
+      minutes >= 5 * 60 + 30 && minutes <= 19 * 60 + 30,
+      `${quoi} à ${Math.round(minutes / 60)} h ${jour}`,
+    )
+    assert.ok(+d <= +FIN_PERIODE, `${quoi} après la fin de la période`)
+  }
+})
+
+test('le plan d’une journée ne dépend que de la personne et du jour : deux appels, même réponse', () => {
+  const racine = creerAlea('plan')
+  const p = SIM.banc.infirmiers[0]
+  const un = planDeJournee(racine, p, '2026-09-14', '2026-10-10')
+  racine.float()
+  racine.float()
+  assert.deepEqual(planDeJournee(racine, p, '2026-09-14', '2026-10-10'), un)
+  assert.notDeepEqual(planDeJournee(racine, p, '2026-09-15', '2026-10-10'), un)
+  assert.notDeepEqual(
+    planDeJournee(racine, SIM.banc.infirmiers[1], '2026-09-14', '2026-10-10'),
+    un,
+  )
+  // le dernier jour d’ouverture de la période, tout le monde se déconnecte
+  for (const personne of PERSONNEL)
+    assert.equal(
+      planDeJournee(racine, personne, '2026-10-10', '2026-10-10').deconnexion,
+      true,
+    )
+  // arrivée avant l’ouverture du centre (7 h 30 en semaine)
+  for (let i = 0; i < 200; i++) {
+    const plan = planDeJournee(
+      racine,
+      p,
+      ajouterJours('2026-06-15', i),
+      '2027-12-31',
+    )
+    const h = horairesDuJour(ajouterJours('2026-06-15', i))
+    if (h)
+      assert.ok(
+        plan.arriveeS < h.ouverture * 60 - 60,
+        'arrivée après l’ouverture',
+      )
+  }
+})
+test('jourOuvertPrecedent : saute le dimanche et les jours fériés', () => {
+  assert.equal(jourOuvertPrecedent('2026-10-12'), '2026-10-10') // lundi → samedi
+  assert.equal(jourOuvertPrecedent('2026-10-13'), '2026-10-12')
+  assert.equal(jourOuvertPrecedent('2026-08-17'), '2026-08-14') // lundi après le samedi férié
 })
 
 console.log('délais en heures d’ouverture')

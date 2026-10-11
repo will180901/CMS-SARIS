@@ -28,7 +28,7 @@ import {
   useReprendreDonneesTest,
   useSupprimerDonneesTest,
 } from '../hooks/useDonneesTest'
-import type { LotDonneesTest, StatutLot } from '../api/donneesTest.api'
+import type { BilanDonneesTest, LotDonneesTest, StatutLot } from '../api/donneesTest.api'
 
 const DUREES = [3, 4, 6, 12] as const
 /** Visites par jour d'ouverture, tous sites confondus. */
@@ -360,8 +360,11 @@ function ZoneProgression({ lot, maintenant }: { lot: LotDonneesTest; maintenant:
           <Compteur label={t('donneesTest.cBons')} valeur={(p.lignes['BonPharmacie'] ?? 0) + (p.lignes['BonExamen'] ?? 0)} />
           <Compteur label={t('donneesTest.cEvacuations')} valeur={p.lignes['Evacuation'] ?? 0} />
           <Compteur label={t('donneesTest.cSuivis')} valeur={p.lignes['SuiviTraitement'] ?? 0} />
+          <Compteur label={t('donneesTest.cSessions')} valeur={p.lignes['SessionUtilisateur'] ?? 0} />
           {p.nonRecus > 0 && <Compteur label={t('donneesTest.cNonRecus')} valeur={p.nonRecus} />}
         </div>
+
+        {lot.bilan && <Bilan bilan={lot.bilan} />}
 
         {lot.message && (
           <p style={{
@@ -403,6 +406,44 @@ function ZoneProgression({ lot, maintenant }: { lot: LotDonneesTest; maintenant:
         )}
       </Card.Body>
     </Card>
+  )
+}
+
+/** « ASSURE_CDI » → « Assure cdi » : un code technique lisible, faute de libellé sous la main. */
+function libelleCode(code: string): string {
+  const s = code.replace(/_/g, ' ').toLowerCase()
+  return s.charAt(0).toUpperCase() + s.slice(1)
+}
+
+/** Le bilan d'une génération menée à son terme : la place prise, les connexions, où et qui. */
+function Bilan({ bilan }: { bilan: BilanDonneesTest }) {
+  const { t } = useTranslation()
+  const mo = bilan.tailleOctets !== null ? Math.max(1, Math.round(bilan.tailleOctets / 1048576)) : null
+  const ligne: React.CSSProperties = {
+    margin: 'var(--espace-2) 0 0', fontSize: 'var(--font-size-body-sm)', color: 'var(--texte-secondaire)', lineHeight: 1.5,
+  }
+  return (
+    <div style={{ marginTop: 'var(--espace-4)', paddingTop: 'var(--espace-3)', borderTop: '1px solid var(--bordure-legere)' }}>
+      <p style={{ margin: 0, fontSize: 'var(--font-size-body)', fontWeight: 600, color: 'var(--texte-primaire)' }}>
+        {t('donneesTest.bilanTitre')}
+      </p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 'var(--espace-2)', marginTop: 'var(--espace-2)' }}>
+        {mo !== null && <Compteur label={t('donneesTest.bilanTaille')} valeur={mo} />}
+        <Compteur label={t('donneesTest.bilanConnexions')} valeur={bilan.connexions.reussies} />
+        <Compteur label={t('donneesTest.bilanEchecs')} valeur={bilan.connexions.echecs} />
+        <Compteur label={t('donneesTest.bilanAppareils')} valeur={bilan.connexions.appareils} />
+        <Compteur label={t('donneesTest.bilanResultats')} valeur={bilan.documents.resultats} />
+        <Compteur label={t('donneesTest.bilanChroniques')} valeur={bilan.documents.suivisChroniques} />
+      </div>
+      <p style={ligne}>
+        <strong>{t('donneesTest.bilanSites')}</strong>{' : '}
+        {bilan.sites.map((s) => t('donneesTest.bilanSiteLigne', { code: libelleCode(s.code), visites: formatNumber(s.visites), dossiers: formatNumber(s.patients) })).join(' · ')}
+      </p>
+      <p style={ligne}>
+        <strong>{t('donneesTest.bilanCategories')}</strong>{' : '}
+        {bilan.categories.map((c) => `${libelleCode(c.code)} ${formatNumber(c.patients)}`).join(' · ')}
+      </p>
+    </div>
   )
 }
 

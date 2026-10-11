@@ -46,6 +46,7 @@ import {
   type Soignant,
 } from './contexte'
 import { nouvelIdTest } from './marque-test'
+import { planifierConnexions } from './planificateur-connexions'
 import { avecJours, planifierDocuments } from './planificateur-documents'
 import { ageA, UN_JOUR_MS, type PatientSim } from './population'
 import {
@@ -282,6 +283,8 @@ export function planifierJour(ctx: ContexteJour): {
     planifierSite(ctx, equipe, h, cible, lignes, resume, vus)
   }
   numeroterDossiers(ctx, lignes)
+  // Les connexions du personnel, après ses gestes : on sait jusqu'à quand chacun est resté connecté.
+  planifierConnexions(ctx, lignes)
   return { lignes, resume }
 }
 

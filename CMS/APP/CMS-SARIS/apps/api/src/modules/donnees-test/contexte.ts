@@ -11,6 +11,8 @@ import type { LignesJour } from './registre'
 /** Un membre du personnel soignant AYANT UN COMPTE : c'est à lui que sont attribuées les actions. */
 export interface Soignant {
   utilisateurId: string
+  /** L'identifiant de connexion du compte (colonne « Login » du journal des connexions). */
+  login: string
   /** `PersonnelMedical.id` — celui que portent les visites, consultations et ordonnances. */
   personnelId: string
   siteId: string
@@ -81,6 +83,12 @@ export interface ContexteJour {
   /** « AAAA-MM-JJ », jour local. */
   jour: string
   alea: Alea
+  /**
+   * Le générateur de TOUTE la génération (celui de la graine), dont on tire ce qui doit être le
+   * même d'un jour à l'autre : l'appareil de chacun, l'heure à laquelle il arrive demain. `sousFlux`
+   * ne dépend pas de ce qui a déjà été tiré : le même nom rend toujours la même suite.
+   */
+  racine: Alea
   equipes: readonly EquipeSite[]
   ref: ReferentielsTest
   etat: EtatGeneration
@@ -116,16 +124,28 @@ export function resumeVide(): ResumeJour {
 
 export type ActionAudit = 'CREATE' | 'UPDATE' | 'DELETE'
 
+/**
+ * L'adresse IP du poste habituel de cette personne : fixée par son identifiant parmi celles de son
+ * site (un centre sort sur Internet par une ou deux adresses publiques).
+ */
+export function ipHabituelle(
+  ips: ReadonlyMap<string, readonly string[]>,
+  qui: Soignant,
+): string | null {
+  const pool = ips.get(qui.siteId)
+  if (!pool || pool.length === 0) return null
+  let h = 0
+  for (let i = 0; i < qui.utilisateurId.length; i++)
+    h = (h * 31 + qui.utilisateurId.charCodeAt(i)) >>> 0
+  return pool[h % pool.length]
+}
+
 /** Une adresse IP de ce site pour cette personne : en général la sienne, parfois une autre. */
 export function ipDe(ctx: ContexteJour, qui: Soignant): string | null {
   const pool = ctx.ips.get(qui.siteId)
   if (!pool || pool.length === 0) return null
-  // Chacun a « son » poste : l'adresse est fixée par son identifiant, avec quelques écarts.
-  let h = 0
-  for (let i = 0; i < qui.utilisateurId.length; i++)
-    h = (h * 31 + qui.utilisateurId.charCodeAt(i)) >>> 0
   if (ctx.alea.proba(0.12)) return ctx.alea.choisir(pool)
-  return pool[h % pool.length]
+  return ipHabituelle(ctx.ips, qui)
 }
 
 /**

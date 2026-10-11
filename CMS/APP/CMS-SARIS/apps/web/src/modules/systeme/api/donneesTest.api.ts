@@ -6,6 +6,23 @@ import { api } from '@/lib/api'
 
 export type StatutLot = 'EN_COURS' | 'TERMINE' | 'INTERROMPU' | 'ANNULE' | 'ECHEC'
 
+/** Ce qui a été fabriqué, établi à la fin d'une génération menée à son terme. */
+export interface BilanDonneesTest {
+  tailleOctets: number | null
+  sites: { code: string; visites: number; patients: number }[]
+  categories: { code: string; patients: number }[]
+  connexions: { reussies: number; echecs: number; deconnexions: number; questions: number; appareils: number }
+  documents: {
+    ordonnances: number
+    bonsExamen: number
+    bonsPharmacie: number
+    resultats: number
+    evacuations: number
+    suivisTraitement: number
+    suivisChroniques: number
+  }
+}
+
 export interface LotDonneesTest {
   id: string
   statut: StatutLot
@@ -33,6 +50,7 @@ export interface LotDonneesTest {
     nonRecus: number
     lignes: Record<string, number>
   }
+  bilan?: BilanDonneesTest | null
 }
 
 export interface EtatDonneesTest {

@@ -14,10 +14,11 @@ import {
 /**
  * Place moyenne occupée dans la base par une visite et tout ce qui l'accompagne (visite,
  * évènements, constantes, consultation, diagnostics, ordonnances, bons, résultats, suivis,
- * journal d'audit, part des dossiers neufs), index compris. Mesurée sur une génération réelle :
- * 3 558 visites, 1 532 dossiers, 100 000 lignes → 38,8 Mo, soit ~11 400 octets par visite.
+ * journal d'audit, connexions du personnel, part des dossiers neufs), index compris. Mesurée sur une
+ * génération réelle : 3 506 visites, 1 468 dossiers, 105 000 lignes → 42 Mo, soit ~12 100 octets par
+ * visite.
  */
-export const OCTETS_PAR_VISITE = 11_500
+export const OCTETS_PAR_VISITE = 12_500
 
 /** Temps moyen de triage et de consultation (minutes) : ils fixent ce que l'équipe peut absorber. */
 const MINUTES_TRIAGE = 11

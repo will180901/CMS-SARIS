@@ -42,6 +42,19 @@ interface Lot {
     nonRecus: number
     lignes: Record<string, number>
   }
+  bilan?: {
+    tailleOctets: number | null
+    sites: { code: string; visites: number; patients: number }[]
+    categories: { code: string; patients: number }[]
+    connexions: {
+      reussies: number
+      echecs: number
+      deconnexions: number
+      questions: number
+      appareils: number
+    }
+    documents: { ordonnances: number }
+  } | null
 }
 interface Etat {
   mode: 'PRODUCTION' | 'TEST'
@@ -142,6 +155,8 @@ describe('Données de test (génération, lecture, suppression)', () => {
     suivisTraitement: await base().suiviTraitement.count(),
     fiches: await base().ficheSuiviTraitement.count(),
     administrations: await base().administrationTraitement.count(),
+    sessions: await base().sessionUtilisateur.count(),
+    connexions: await base().journalAuthentification.count(),
     // l'audit des opérations sur les données de test est une trace légitime, pas une donnée de test
     audit: await base().journalAudit.count({
       where: { NOT: { entiteType: 'DonneesTest' } },
@@ -287,6 +302,40 @@ describe('Données de test (génération, lecture, suppression)', () => {
         '/systeme/donnees-test/previsions?mois=1&visitesParJour=250',
       )
       expect(trop.body.avertissements.join(' ')).toMatch(/absorbe/)
+    })
+
+    it('les prévisions avertissent quand la purge des journaux effacerait ce que la génération fabrique', async () => {
+      const cle = 'audit.retention_jours'
+      const avant = await base().parametreSysteme.findUnique({ where: { cle } })
+      try {
+        await base().parametreSysteme.upsert({
+          where: { cle },
+          update: { valeur: '30' },
+          create: { cle, valeur: '30' },
+        })
+        const court = await admin.get<Previsions>(
+          '/systeme/donnees-test/previsions?mois=4&visitesParJour=20',
+        )
+        expect(court.status).toBe(200)
+        expect(court.body.avertissements.join(' ')).toMatch(
+          /conservés 30 jours/,
+        )
+        await base().parametreSysteme.update({
+          where: { cle },
+          data: { valeur: '365' },
+        })
+        const long = await admin.get<Previsions>(
+          '/systeme/donnees-test/previsions?mois=4&visitesParJour=20',
+        )
+        expect(long.body.avertissements.join(' ')).not.toMatch(/conservés/)
+      } finally {
+        if (avant)
+          await base().parametreSysteme.update({
+            where: { cle },
+            data: { valeur: avant.valeur },
+          })
+        else await base().parametreSysteme.deleteMany({ where: { cle } })
+      }
     })
 
     it('arguments de génération invalides : 400, rien ne démarre', async () => {
@@ -580,6 +629,8 @@ describe('Données de test (génération, lecture, suppression)', () => {
         suivisTraitement: 'SuiviTraitement',
         fiches: 'FicheSuiviTraitement',
         administrations: 'AdministrationTraitement',
+        sessions: 'SessionUtilisateur',
+        connexions: 'JournalAuthentification',
       } as const
       const sauf = (x: Record<string, number>) =>
         Object.fromEntries(
@@ -826,6 +877,66 @@ describe('Données de test (génération, lecture, suppression)', () => {
       expect(
         (await medecin.get(`/patients/${sc.patientId}/suivi`)).status,
       ).toBe(200)
+    })
+
+    it('connexions : lisibles par le journal d’authentification, aucune session laissée ouverte, bilan établi', async () => {
+      const l = lot.progression.lignes
+      expect(l['SessionUtilisateur'] ?? 0).toBeGreaterThan(0)
+      expect(l['JournalAuthentification'] ?? 0).toBeGreaterThan(0)
+      // Aucune session fabriquée ne reste ouverte à la fin : une personne qui se connecterait pour de vrai
+      // depuis un autre appareil se verrait demander « une session est déjà ouverte ».
+      const ouvertes = await base().sessionUtilisateur.count({
+        where: { id: { startsWith: MARQUE_ID }, revokedAt: null },
+      })
+      expect(ouvertes).toBe(0)
+      // Le journal de l'administration les lit comme n'importe quelle connexion
+      const r = await admin.get<{
+        data: {
+          id: string
+          resultat: string
+          login: string
+          connexion: { etat: string; dureeMinutes: number } | null
+          position: { etat: string; latitude: number | null } | null
+          poste: unknown
+        }[]
+        total: number
+      }>('/admin/audit/authentifications?resultat=SUCCES_LOGIN&limit=500')
+      expect(r.status).toBe(200)
+      const fabriquees = r.body.data.filter((x) => estIdTest(x.id))
+      expect(fabriquees.length).toBeGreaterThan(50)
+      expect(fabriquees.every((x) => x.poste === null)).toBe(true)
+      // la colonne « Login » du journal affiche un identifiant de connexion, pas un identifiant technique
+      const logins = new Set(
+        (await base().utilisateur.findMany({ select: { login: true } })).map(
+          (u) => u.login,
+        ),
+      )
+      expect(fabriquees.every((x) => logins.has(x.login))).toBe(true)
+      expect(
+        fabriquees.some((x) => (x.connexion?.dureeMinutes ?? 0) > 360),
+      ).toBe(true)
+      expect(
+        fabriquees.every(
+          (x) =>
+            x.connexion?.etat === 'TERMINEE' ||
+            x.connexion?.etat === 'INTERROMPUE',
+        ),
+      ).toBe(true)
+      const etatsPosition = new Set(fabriquees.map((x) => x.position?.etat))
+      expect(etatsPosition.has('OK')).toBe(true)
+      // Le bilan de la génération
+      const bilan = (await etat()).body.lot?.bilan
+      expect(bilan).toBeTruthy()
+      expect(bilan?.sites.length).toBe(2)
+      expect(bilan?.sites.reduce((n, x) => n + x.visites, 0)).toBe(l['Visite'])
+      expect(bilan?.categories.reduce((n, x) => n + x.patients, 0)).toBe(
+        l['Patient'],
+      )
+      expect(bilan?.connexions.reussies).toBeGreaterThan(50)
+      expect(bilan?.connexions.deconnexions).toBeGreaterThan(20)
+      expect(bilan?.connexions.appareils).toBeGreaterThan(2)
+      expect(bilan?.documents.ordonnances).toBe(l['Ordonnance'])
+      expect(bilan?.tailleOctets ?? 0).toBeGreaterThan(100_000)
     })
 
     it('le journal d’audit les montre, avec leur auteur et leur adresse', async () => {
@@ -1346,6 +1457,57 @@ describe('Données de test (génération, lecture, suppression)', () => {
       expect(metier).toEqual(metierAvant)
       expect(a1).toBe(a0)
       expect(n1).toBe(n0)
+    })
+
+    it('une vraie connexion (identifiant ordinaire) survit à la suppression des connexions fabriquées', async () => {
+      await admin.delete('/systeme/donnees-test')
+      expect((await generer(1, 4, 'vraie-connexion-e2e')).status).toBe(201)
+      await lotFini()
+      const raw = base().raw
+      const vraie = await raw.journalAuthentification.create({
+        data: {
+          utilisateurId: admin.user.id,
+          login: 'vrai.login',
+          resultat: 'SUCCES_LOGIN',
+        },
+      })
+      const session = await raw.sessionUtilisateur.create({
+        data: {
+          utilisateurId: admin.user.id,
+          refreshTokenHash: 'x',
+          expiresAt: new Date(Date.now() + 1000),
+          revokedAt: new Date(),
+        },
+      })
+      try {
+        expect(estIdTest(vraie.id) || estIdTest(session.id)).toBe(false)
+        const r = await admin.delete<{ tables: Record<string, number> }>(
+          '/systeme/donnees-test',
+        )
+        expect(r.status).toBe(200)
+        expect(r.body.tables['SessionUtilisateur']).toBeGreaterThan(0)
+        expect(r.body.tables['JournalAuthentification']).toBeGreaterThan(0)
+        expect(
+          await raw.journalAuthentification.findUnique({
+            where: { id: vraie.id },
+          }),
+        ).not.toBeNull()
+        expect(
+          await raw.sessionUtilisateur.findUnique({
+            where: { id: session.id },
+          }),
+        ).not.toBeNull()
+        expect(
+          await raw.sessionUtilisateur.count({
+            where: { id: { startsWith: MARQUE_ID } },
+          }),
+        ).toBe(0)
+      } finally {
+        await raw.journalAuthentification.deleteMany({
+          where: { id: vraie.id },
+        })
+        await raw.sessionUtilisateur.deleteMany({ where: { id: session.id } })
+      }
     })
 
     it('quand rien n’est à supprimer, la suppression réussit sans rien faire', async () => {
