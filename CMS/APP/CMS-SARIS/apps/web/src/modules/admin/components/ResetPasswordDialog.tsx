@@ -1,43 +1,48 @@
 /**
- * ResetPasswordDialog — dialogue admin pour réinitialiser le mot de passe.
+ * ResetPasswordDialog — dialogue admin pour réinitialiser le mot de passe d'un compte.
+ *
+ * L'administrateur ne choisit RIEN : un clic fait fabriquer un mot de passe temporaire par le
+ * serveur, toutes les connexions de la personne sont fermées, et le mot de passe ne lui est montré
+ * qu'une fois (cf. MotDePasseTemporaireModal). La personne devra le remplacer à sa prochaine connexion.
  */
 
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { KeyRound, Eye, EyeOff, AlertTriangle } from 'lucide-react'
-import { Button, Field, TextInput, Modal, CheckBox } from '@/components/saris'
+import { KeyRound, AlertTriangle } from 'lucide-react'
+import { Button, Modal } from '@/components/saris'
 import { useResetPassword } from '../hooks/useAdmin'
 import type { UtilisateurAdmin } from '../api/admin.api'
+import { MotDePasseTemporaireModal } from './MotDePasseTemporaireModal'
 
 interface Props {
   utilisateur: UtilisateurAdmin
   onClose:     () => void
 }
 
-// Règle alignée avec le backend (cf utilisateur.dto.ts : PASSWORD_RULES).
-const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{10,}$/
-
 export function ResetPasswordDialog({ utilisateur, onClose }: Props) {
   const { t } = useTranslation()
   const reset = useResetPassword(utilisateur.id)
-  const [mdp,     setMdp]     = useState('')
-  const [show,    setShow]    = useState(false)
-  const [forcer,  setForcer]  = useState(true)
-
-  const valid = PASSWORD_REGEX.test(mdp)
-  const mdpError = mdp.length > 0 && !valid
-    ? t('admin.passwordRule')
-    : undefined
+  const [motDePasse, setMotDePasse] = useState<string | null>(null)
 
   async function handleConfirm() {
-    if (!valid) return
     try {
-      await reset.mutateAsync({ nouveauMotDePasse: mdp, forcerChangement: forcer })
-      onClose()
+      const r = await reset.mutateAsync()
+      setMotDePasse(r.motDePasseTemporaire)
     } catch {
-      // Erreur déjà notifiée par toast. On laisse le dialog ouvert pour correction.
+      // Erreur déjà notifiée par toast. On laisse le dialog ouvert pour réessayer.
     }
   }
+
+  // Le mot de passe est là : c'est la seule fois qu'il se lit. Fermée, la fenêtre l'oublie.
+  if (motDePasse)
+    return (
+      <MotDePasseTemporaireModal
+        login={utilisateur.login}
+        motDePasse={motDePasse}
+        titre={t('admin.resetDoneTitle')}
+        onClose={onClose}
+      />
+    )
 
   return (
     <Modal
@@ -53,67 +58,28 @@ export function ResetPasswordDialog({ utilisateur, onClose }: Props) {
             variant="primary"
             leftIcon={<KeyRound size={14} />}
             loading={reset.isPending}
-            disabled={!valid}
-            onClick={handleConfirm}
+            onClick={() => void handleConfirm()}
           >
-            {t('admin.reset')}
+            {t('admin.resetGenerate')}
           </Button>
         </>
       }
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--espace-3)' }}>
-          <Field
-            label={t('admin.newPassword')}
-            required
-            hint={t('admin.passwordRule')}
-            error={mdpError}
-          >
-            {(id) => (
-              <div style={{ position: 'relative' }}>
-                <TextInput
-                  id={id}
-                  type={show ? 'text' : 'password'}
-                  value={mdp}
-                  onChange={e => setMdp(e.target.value)}
-                  placeholder={t('admin.newPassword')}
-                  autoFocus
-                  style={{ paddingRight: 38 }}
-                />
-                <button
-                  type="button"
-                  aria-label={show ? t('admin.hide') : t('admin.show')}
-                  onClick={() => setShow(v => !v)}
-                  style={{
-                    position: 'absolute', right: 8, top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'transparent', border: 'none', cursor: 'pointer',
-                    color: 'var(--texte-tertiaire)', padding: 4,
-                  }}
-                >
-                  {show ? <EyeOff size={14} /> : <Eye size={14} />}
-                </button>
-              </div>
-            )}
-          </Field>
-
-          <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--espace-2)', cursor: 'pointer' }}>
-            <CheckBox size={14} checked={forcer} onChange={setForcer} />
-            <span style={{ fontSize: 'var(--font-size-body-sm)', color: 'var(--texte-secondaire)' }}>
-              {t('admin.forcePasswordChange')}
-            </span>
-          </label>
-
-          <p style={{
-            margin: 0, display: 'flex', alignItems: 'center', gap: 6,
-            padding: 'var(--espace-2) var(--espace-3)',
-            background: 'var(--avert-fond)',
-            border: '1px solid var(--avert-bordure)',
-            borderRadius: 'var(--radius-md)',
-            fontSize: 'var(--font-size-caption)',
-            color: 'var(--avert-texte)',
-          }}>
-            <AlertTriangle size={13} style={{ flexShrink: 0 }} /> {t('admin.resetSessionsWarning')}
-          </p>
+        <p style={{ margin: 0, fontSize: 13, color: 'var(--texte-secondaire)', lineHeight: 1.6 }}>
+          {t('admin.resetGenerateBody', { login: utilisateur.login })}
+        </p>
+        <p style={{
+          margin: 0, display: 'flex', alignItems: 'center', gap: 6,
+          padding: 'var(--espace-2) var(--espace-3)',
+          background: 'var(--avert-fond)',
+          border: '1px solid var(--avert-bordure)',
+          borderRadius: 'var(--radius-md)',
+          fontSize: 'var(--font-size-caption)',
+          color: 'var(--avert-texte)',
+        }}>
+          <AlertTriangle size={13} style={{ flexShrink: 0 }} /> {t('admin.resetSessionsWarning')}
+        </p>
       </div>
     </Modal>
   )

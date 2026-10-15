@@ -3,6 +3,7 @@ import {
   UnauthorizedException,
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Logger,
 } from '@nestjs/common'
 import { ModuleRef } from '@nestjs/core'
@@ -16,6 +17,7 @@ import { PrismaService } from '../../prisma/prisma.service'
 import { decryptSecret } from '../../common/crypto/totp-secret'
 import { resolveGeo } from '../../common/geo/geo.util'
 import { ParametresService } from '../parametres/parametres.service'
+import { MotDePasseTemporaireService } from './mot-de-passe-temporaire.service'
 import { ConfirmerSiteDto } from './dto/confirmer-site.dto'
 import type {
   Role,
@@ -143,6 +145,7 @@ export class SecurityService {
     private readonly params: ParametresService,
     // Résolu à l'exécution (évite la dépendance circulaire SecurityModule ⇄ NotificationModule).
     private readonly moduleRef: ModuleRef,
+    private readonly motDePasseTemporaire: MotDePasseTemporaireService,
   ) {}
 
   // ── POST /auth/login ──────────────────────────────────────────────────────
@@ -365,6 +368,7 @@ export class SecurityService {
         permissions,
         personnelMedicalId,
         photoUrl: user.photoUrl,
+        motDePasseTemp: user.motDePasseTemp,
       },
     }
   }
@@ -526,6 +530,7 @@ export class SecurityService {
         permissions,
         personnelMedicalId,
         photoUrl: user.photoUrl,
+        motDePasseTemp: user.motDePasseTemp,
       },
     }
   }
@@ -692,6 +697,7 @@ export class SecurityService {
         permissions,
         personnelMedicalId,
         photoUrl: user.photoUrl,
+        motDePasseTemp: user.motDePasseTemp,
       },
     }
   }
@@ -700,23 +706,55 @@ export class SecurityService {
 
   /**
    * Modifie le mot de passe d'un utilisateur authentifié.
-   * Vérifie le mot de passe actuel avant d'appliquer le changement.
+   *
+   * Vérifie le mot de passe actuel, applique la politique en vigueur, refuse de remettre le même.
+   * Une fois changé :
+   *  - le mot de passe n'est plus « temporaire » (la personne l'a choisi elle-même) ;
+   *  - TOUTES SES AUTRES connexions sont fermées — quelqu'un qui aurait laissé une session ouverte
+   *    ailleurs (ou qui se la serait fait prendre) perd l'accès à l'instant. La connexion en cours,
+   *    elle, continue ; les sessions de synchronisation d'un poste de bureau ne sont pas des
+   *    personnes et restent ;
+   *  - la personne est prévenue par une notification : si ce n'est pas elle, elle le sait.
+   *
+   * `sidCourant` : la session qui fait la demande (celle qu'on ne ferme pas). Inconnue, on ne ferme
+   * rien — mieux vaut laisser une session ouverte que fermer celle de la personne qui change.
    */
   async changePassword(
     utilisateurId: string,
     dto: ChangePasswordDto,
+    sidCourant: string | null = null,
+    ipAdresse?: string,
+    userAgent?: string,
   ): Promise<void> {
     const user = await this.prisma.utilisateur.findUniqueOrThrow({
       where: { id: utilisateurId },
     })
 
-    // Vérifier le mot de passe actuel
+    // Vérifier le mot de passe actuel. 403 et non 401 : un 401 ferait renouveler la session côté
+    // web alors que la session est valide et que c'est le MOT DE PASSE saisi qui est faux.
     const isValid = await bcrypt.compare(
       dto.motDePasseActuel,
       user.passwordHash,
     )
     if (!isValid) {
-      throw new UnauthorizedException('Mot de passe actuel incorrect')
+      await this.journaliser(
+        utilisateurId,
+        user.login,
+        'ECHEC_CHANGEMENT_MDP',
+        ipAdresse,
+        userAgent,
+      )
+      throw new ForbiddenException({
+        code: 'MOT_DE_PASSE_INCORRECT',
+        message: 'Mot de passe actuel incorrect',
+      })
+    }
+
+    // Remettre le même n'est pas un changement.
+    if (await bcrypt.compare(dto.nouveauMotDePasse, user.passwordHash)) {
+      throw new BadRequestException(
+        'Le nouveau mot de passe doit être différent de l’actuel',
+      )
     }
 
     // Appliquer la politique de mot de passe en vigueur (paramètres système live)
@@ -730,8 +768,63 @@ export class SecurityService {
       where: { id: utilisateurId },
       data: { passwordHash: newHash, motDePasseTemp: false },
     })
+    this.motDePasseTemporaire.invalider(utilisateurId)
 
-    await this.journaliser(utilisateurId, user.login, 'SUCCES_CHANGEMENT_MDP')
+    // Fermer les AUTRES connexions de la personne (jamais la courante, jamais celle d'un poste).
+    let fermees: string[] = []
+    if (sidCourant) {
+      const autres = await this.prisma.sessionUtilisateur.findMany({
+        where: {
+          utilisateurId,
+          revokedAt: null,
+          posteLocalId: null,
+          NOT: { id: sidCourant },
+        },
+        select: { id: true },
+      })
+      fermees = autres.map((s) => s.id)
+      if (fermees.length)
+        await this.prisma.sessionUtilisateur.updateMany({
+          where: { id: { in: fermees } },
+          data: { revokedAt: new Date() },
+        })
+    }
+
+    await this.journaliser(
+      utilisateurId,
+      user.login,
+      'SUCCES_CHANGEMENT_MDP',
+      ipAdresse,
+      userAgent,
+    )
+
+    // Prévenir — best-effort : une notification qui échoue n'annule jamais un changement fait.
+    try {
+      const notifications = this.moduleRef.get(NotificationService, {
+        strict: false,
+      })
+      if (fermees.length)
+        notifications.pushSessionRevoked(utilisateurId, fermees, {
+          titre: 'Mot de passe modifié',
+          message:
+            'Votre mot de passe a été modifié depuis un autre appareil : vous avez été déconnecté.',
+        })
+      await notifications.emit({
+        type: 'MOT_DE_PASSE_CHANGE',
+        niveau: 'AVERTISSEMENT',
+        category: 'systeme',
+        titre: 'Votre mot de passe a été modifié',
+        message: fermees.length
+          ? `Votre mot de passe vient d’être modifié et vos ${fermees.length} autre(s) connexion(s) ont été fermées. Si ce n’est pas vous, prévenez immédiatement votre administrateur.`
+          : 'Votre mot de passe vient d’être modifié. Si ce n’est pas vous, prévenez immédiatement votre administrateur.',
+        destinataireId: utilisateurId,
+        entiteType: 'utilisateur',
+        entiteId: utilisateurId,
+        lien: '/parametres',
+      })
+    } catch {
+      /* notification best-effort */
+    }
   }
 
   // ── Helpers privés ────────────────────────────────────────────────────────
@@ -1151,6 +1244,7 @@ export class SecurityService {
         permissions,
         personnelMedicalId: user.personnelMedicalId,
         photoUrl: user.photoUrl,
+        motDePasseTemp: user.motDePasseTemp,
       },
     }
   }
@@ -1230,6 +1324,7 @@ export class SecurityService {
       permissions,
       personnelMedicalId: user.personnelMedicalId,
       photoUrl: user.photoUrl,
+      motDePasseTemp: user.motDePasseTemp,
     }
   }
 

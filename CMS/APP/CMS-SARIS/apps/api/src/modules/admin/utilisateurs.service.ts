@@ -29,7 +29,6 @@ import {
   UpdateUtilisateurDto,
   SetRolesDto,
   SetStatutDto,
-  ResetPasswordDto,
   UtilisateurQueryDto,
 } from './dto/utilisateur.dto'
 import {
@@ -39,6 +38,8 @@ import {
 import { ParametresService } from '../parametres/parametres.service'
 import { NotificationService } from '../notification/notification.service'
 import { PermissionsResolverService } from '../security/permissions-resolver.service'
+import { MotDePasseTemporaireService } from '../security/mot-de-passe-temporaire.service'
+import { genererMotDePasseTemporaire } from '../security/mot-de-passe-temporaire'
 import { VITAL_GOVERNANCE_PERMISSIONS } from '../../common/governance'
 
 // ── Permissions vitales de gouvernance (source unique partagée) ───────────────
@@ -71,6 +72,7 @@ export class UtilisateursService {
     private readonly params: ParametresService,
     private readonly notif: NotificationService,
     private readonly permsResolver: PermissionsResolverService,
+    private readonly motDePasseTemporaire: MotDePasseTemporaireService,
   ) {}
 
   // ── Helpers ───────────────────────────────────────────────────────────────
@@ -301,10 +303,12 @@ export class UtilisateursService {
     const site = await this.prisma.site.findUnique({ where: { id: siteId } })
     if (!site) throw new NotFoundException('Site introuvable')
 
-    // Politique de mot de passe en vigueur (paramètres système live)
-    await this.params.assertPasswordValid(dto.motDePasseInitial)
-
-    const passwordHash = await bcrypt.hash(dto.motDePasseInitial, 12)
+    // L'administrateur ne choisit PAS le mot de passe : le serveur en fabrique un temporaire (qui
+    // respecte la politique en vigueur), rendu une seule fois, que la personne remplacera.
+    const motDePasseTemporaire = genererMotDePasseTemporaire(
+      await this.params.getPasswordPolicy(),
+    )
+    const passwordHash = await bcrypt.hash(motDePasseTemporaire, 12)
 
     const created = await this.prisma.$transaction(async (tx) => {
       // Fiche clinique créée AVEC le compte (soignant sans personnel existant).
@@ -358,7 +362,8 @@ export class UtilisateursService {
       createdById: acteurId ?? undefined,
     })
 
-    return this.sanitize(full)
+    // Le mot de passe temporaire n'est rendu QU'ICI, une fois : il n'est ni journalisé ni relisible.
+    return { ...this.sanitize(full), motDePasseTemporaire }
   }
 
   // ── Modifier ──────────────────────────────────────────────────────────────
@@ -591,25 +596,26 @@ export class UtilisateursService {
 
   // ── Réinitialiser le mot de passe (par un admin) ──────────────────────────
 
-  async resetPassword(
-    id: string,
-    dto: ResetPasswordDto,
-    acteurId: string | null,
-  ) {
+  async resetPassword(id: string, acteurId: string | null) {
     await this.getOrThrow(id)
-    await this.params.assertPasswordValid(dto.nouveauMotDePasse)
-    const hash = await bcrypt.hash(dto.nouveauMotDePasse, 12)
+    // Le serveur fabrique le mot de passe temporaire : l'administrateur ne le CHOISIT jamais, donc
+    // ne connaît que ce qu'il lit une fois à l'écran et transmet. Toujours à remplacer.
+    const motDePasseTemporaire = genererMotDePasseTemporaire(
+      await this.params.getPasswordPolicy(),
+    )
+    const hash = await bcrypt.hash(motDePasseTemporaire, 12)
 
     await this.prisma.utilisateur.update({
       where: { id },
       data: {
         passwordHash: hash,
-        motDePasseTemp: dto.forcerChangement ?? true,
+        motDePasseTemp: true,
         tentativesEchec: 0,
         blocageJusquA: null,
         updatedBy: acteurId ?? null,
       },
     })
+    this.motDePasseTemporaire.invalider(id)
 
     // Révoquer toutes les sessions (sécurité)
     await this.prisma.sessionUtilisateur.updateMany({
@@ -618,9 +624,10 @@ export class UtilisateursService {
     })
 
     await this.audit(acteurId, 'RESET_PASSWORD', id, null, {
-      forcerChangement: dto.forcerChangement ?? true,
+      forcerChangement: true,
     })
-    return { success: true }
+    // Rendu UNE seule fois ; jamais écrit dans le journal d'audit.
+    return { success: true, motDePasseTemporaire }
   }
 
   // ════════════════════════════════════════════════════════════════════════

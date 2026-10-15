@@ -137,16 +137,27 @@ export class SecurityController {
    *
    * Corps : { motDePasseActuel: string, nouveauMotDePasse: string }
    *
-   * Réponse : 204 No Content
+   * Réponse : 204 No Content. Cinq essais par minute : le mot de passe actuel ne se devine pas à la
+   * chaîne, même avec une session ouverte (c'est précisément ce que ferait quelqu'un qui aurait
+   * emprunté une session). Les autres connexions de la personne sont fermées.
    */
   @Post('change-password')
   @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @HttpCode(HttpStatus.NO_CONTENT)
   changePassword(
-    @CurrentUser() user: UserSession,
+    @CurrentUser() user: UserSession & { sid?: string | null },
     @Body() dto: ChangePasswordDto,
+    @Ip() ip: string,
+    @Headers('user-agent') userAgent?: string,
   ) {
-    return this.securityService.changePassword(user.id, dto)
+    return this.securityService.changePassword(
+      user.id,
+      dto,
+      user.sid ?? null,
+      ip,
+      userAgent,
+    )
   }
 
   /**

@@ -5,6 +5,7 @@ import { AppShell }   from '@/components/layout/AppShell'
 import { LoginPage }  from '@/modules/auth/pages/LoginPage'
 import { SessionBootstrap } from '@/modules/auth/components/SessionBootstrap'
 import { ConfirmationSiteModal } from '@/modules/auth/components/ConfirmationSiteModal'
+import { ChoixMotDePasse } from '@/modules/auth/components/ChoixMotDePasse'
 import { PreferencesSync } from '@/components/PreferencesSync'
 import { LoadingScreen } from '@/components/LoadingScreen'
 import { desktopBridge } from '@/lib/desktop'
@@ -12,6 +13,9 @@ import { desktopBridge } from '@/lib/desktop'
 export function App() {
   const isAuthenticated = useSessionStore(s => s.isAuthenticated)
   const hasHydrated     = useSessionStore(s => s._hasHydrated)
+  // Mot de passe TEMPORAIRE (posé par l'administrateur) : rien d'autre ne s'ouvre avant d'en avoir
+  // choisi un. Le serveur refuse de toute façon tout autre appel (403 MOT_DE_PASSE_TEMPORAIRE).
+  const motDePasseTemp  = useSessionStore(s => s.user?.motDePasseTemp === true)
 
   // Desktop (Electron) uniquement : la fenêtre suit l'état d'authentification — petite
   // sur /login (même gabarit que les écrans de config), pleine une fois connecté. Couvre
@@ -27,7 +31,10 @@ export function App() {
 
   return (
     <BrowserRouter>
-      {isAuthenticated ? (
+      {isAuthenticated && motDePasseTemp ? (
+        // ── Choix obligatoire du mot de passe (aucune requête de l'application ne part) ──
+        <ChoixMotDePasse />
+      ) : isAuthenticated ? (
         // ── Shell principal (modules) ──────────────────────────────────────
         <>
           {/* Re-synchronise les permissions au démarrage de l'app */}

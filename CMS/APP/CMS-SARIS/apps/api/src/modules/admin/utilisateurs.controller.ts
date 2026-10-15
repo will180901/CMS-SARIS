@@ -30,7 +30,6 @@ import {
   UpdateUtilisateurDto,
   SetRolesDto,
   SetStatutDto,
-  ResetPasswordDto,
   UtilisateurQueryDto,
 } from './dto/utilisateur.dto'
 import {
@@ -136,12 +135,8 @@ export class UtilisateursController {
   @Post(':id/reset-password')
   @RequirePermissions('utilisateur.reset_password')
   @HttpCode(HttpStatus.OK)
-  resetPassword(
-    @Param('id') id: string,
-    @Body() dto: ResetPasswordDto,
-    @Req() req: AuthedRequest,
-  ) {
-    return this.svc.resetPassword(id, dto, req.user?.id ?? null)
+  resetPassword(@Param('id') id: string, @Req() req: AuthedRequest) {
+    return this.svc.resetPassword(id, req.user?.id ?? null)
   }
 
   // ── Récupération de compte (admin) ────────────────────────────────────────

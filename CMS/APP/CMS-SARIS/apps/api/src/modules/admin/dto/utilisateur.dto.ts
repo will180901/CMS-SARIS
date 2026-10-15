@@ -28,9 +28,9 @@ export class CreateUtilisateurDto {
   @IsEmail()
   email!: string
 
-  @IsString()
-  @MaxLength(200)
-  motDePasseInitial!: string
+  // Pas de mot de passe ici, à dessein : l'administrateur ne choisit jamais le mot de passe de
+  // quelqu'un. Le serveur en fabrique un temporaire, rendu UNE seule fois dans la réponse, que la
+  // personne doit remplacer à sa première connexion.
 
   /**
    * Facultatif : une personne n'est pas affectée à un site, elle intervient là où
@@ -106,16 +106,8 @@ export class SetStatutDto {
   motif?: string
 }
 
-// ── Réinitialisation du mot de passe (admin) ─────────────────────────────────
-
-export class ResetPasswordDto {
-  @IsString()
-  @MaxLength(200)
-  nouveauMotDePasse!: string
-
-  @IsOptional()
-  forcerChangement?: boolean
-}
+// Réinitialisation du mot de passe (admin) : aucun corps. Le serveur fabrique un mot de passe
+// temporaire (cf. security/mot-de-passe-temporaire.ts) et le rend une seule fois.
 
 // ── Filtres de liste ─────────────────────────────────────────────────────────
 

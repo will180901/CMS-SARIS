@@ -7,7 +7,7 @@ import { toast } from '@workspace/ui/components/sonner'
 import { adminApi } from '../api/admin.api'
 import type {
   CreateUtilisateurPayload, UpdateUtilisateurPayload,
-  SetRolesPayload, SetStatutPayload, ResetPasswordPayload,
+  SetRolesPayload, SetStatutPayload,
   CreateRolePayload, UpdateRolePayload,
   SetPermissionOverridesPayload, BulkPermissionPayload,
   UpdatePreferencesPayload, UpdateMonProfilPayload,
@@ -163,7 +163,7 @@ export function useSetStatut(id: string) {
 
 export function useResetPassword(id: string) {
   return useMutation({
-    mutationFn: (data: ResetPasswordPayload) => adminApi.utilisateurs.resetPassword(id, data),
+    mutationFn: () => adminApi.utilisateurs.resetPassword(id),
     onSuccess: () => toast.success(i18n.t('admin.toastPasswordReset')),
     onError:   toastErr,
   })

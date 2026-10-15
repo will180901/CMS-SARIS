@@ -23,7 +23,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useIsCompact } from '@/hooks/useMediaQuery'
 import {
-  X, UserPlus, Eye, EyeOff, Stethoscope, ShieldCheck,
+  X, UserPlus, Stethoscope, ShieldCheck,
   Check, ChevronLeft, ChevronRight, KeyRound, Briefcase,
 } from 'lucide-react'
 import {
@@ -34,6 +34,7 @@ import { useCreateUtilisateur, useRoles } from '../hooks/useAdmin'
 import { useCreatePersonnel } from '@/modules/acteurs/hooks/usePersonnel'
 import { labelFonction, optionsFonction, roleParDefaut } from '@/config/fonctions'
 import { ChampsEmploye } from './ChampsEmploye'
+import { MotDePasseTemporaireModal } from './MotDePasseTemporaireModal'
 import { employeComplet, employeDepuisFiche, employeVersPayload } from './donneesEmploye'
 
 /** Personne déjà enregistrée à qui l'on vient donner un accès. */
@@ -56,7 +57,6 @@ interface Props {
 // Règles de validation alignées avec le backend (cf utilisateur.dto.ts).
 const LOGIN_REGEX    = /^[a-z][a-z0-9._-]*$/i
 const EMAIL_REGEX    = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{10,}$/
 
 export function CreerUtilisateurDrawer({ open, onClose, personnel = null }: Props) {
   const { t } = useTranslation()
@@ -71,8 +71,8 @@ export function CreerUtilisateurDrawer({ open, onClose, personnel = null }: Prop
   const [step, setStep] = useState<1 | 2>(modeAcces ? 2 : 1)
   const [login,    setLogin]    = useState('')
   const [email,    setEmail]    = useState('')
-  const [mdp,      setMdp]      = useState('')
-  const [showMdp,  setShowMdp]  = useState(false)
+  /** Le compte vient d'être créé : son mot de passe TEMPORAIRE, montré une seule fois. */
+  const [cree, setCree] = useState<{ login: string; motDePasse: string } | null>(null)
   const [roleIds,  setRoleIds]  = useState<string[]>([])
   const [nom,       setNom]       = useState(personnel?.nom ?? '')
   const [prenom,    setPrenom]    = useState(personnel?.prenom ?? '')
@@ -102,22 +102,18 @@ export function CreerUtilisateurDrawer({ open, onClose, personnel = null }: Prop
   const emailError = email.length > 0 && !EMAIL_REGEX.test(email)
     ? t('admin.emailError')
     : undefined
-  const mdpError = mdp.length > 0 && !PASSWORD_REGEX.test(mdp)
-    ? t('admin.passwordRule')
-    : undefined
 
   // Étape 1 = identité. Étape 2 = accès, dont les champs ne sont exigés que si
   // l'on a effectivement demandé un accès.
   const accesValid =
     LOGIN_REGEX.test(login) && login.length >= 3 && login.length <= 32
     && EMAIL_REGEX.test(email)
-    && PASSWORD_REGEX.test(mdp)
     && roleIds.length > 0
   const valid = identityValid && (!avecAcces || accesValid)
 
   function reset() {
     setStep(modeAcces ? 2 : 1)
-    setLogin(''); setEmail(''); setMdp(''); setShowMdp(false)
+    setLogin(''); setEmail('')
     setRoleIds([])
     setNom(personnel?.nom ?? ''); setPrenom(personnel?.prenom ?? '')
     setMatricule(personnel?.matricule ?? ''); setMetier(personnel?.role ?? 'INFIRMIER')
@@ -170,13 +166,14 @@ export function CreerUtilisateurDrawer({ open, onClose, personnel = null }: Prop
       if (avecAcces) {
         // `siteId` n'est volontairement PAS transmis : le serveur rattache le
         // compte au site de l'appelant. Une personne ne s'affecte pas à un site.
-        await create.mutateAsync({
+        const compte = await create.mutateAsync({
           login: login.trim(),
           email: email.trim().toLowerCase(),
-          motDePasseInitial: mdp,
           roleIds,
           personnelMedicalId: personnelId,
         })
+        // Le seul moment où le mot de passe temporaire se lit : la fenêtre s'ouvre dès la création.
+        setCree({ login: compte.login, motDePasse: compte.motDePasseTemporaire })
       }
       handleClose()
     } catch {
@@ -190,6 +187,7 @@ export function CreerUtilisateurDrawer({ open, onClose, personnel = null }: Prop
   ]
 
   return (
+    <>
     <Sheet open={open} onOpenChange={v => { if (!v) handleClose() }}>
       <SheetContent
         side="right"
@@ -424,38 +422,17 @@ export function CreerUtilisateurDrawer({ open, onClose, personnel = null }: Prop
                 </Field>
               </div>
 
-              <Field
-                label={t('admin.initialPassword')}
-                required
-                hint={t('admin.initialPasswordHint')}
-                error={mdpError}
-              >
-                {(id) => (
-                  <div style={{ position: 'relative' }}>
-                    <TextInput
-                      id={id}
-                      type={showMdp ? 'text' : 'password'}
-                      value={mdp}
-                      onChange={e => setMdp(e.target.value)}
-                      placeholder="Saris2026!"
-                      style={{ paddingRight: 38 }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowMdp(v => !v)}
-                      aria-label={showMdp ? t('admin.hidePassword') : t('admin.showPassword')}
-                      style={{
-                        position: 'absolute', right: 8, top: '50%',
-                        transform: 'translateY(-50%)',
-                        background: 'transparent', border: 'none', cursor: 'pointer',
-                        color: 'var(--texte-tertiaire)', padding: 4,
-                      }}
-                    >
-                      {showMdp ? <EyeOff size={14} /> : <Eye size={14} />}
-                    </button>
-                  </div>
-                )}
-              </Field>
+              {/* Aucun mot de passe à saisir : le serveur en fabrique un temporaire, montré une seule
+                  fois après la création. L'administrateur ne choisit jamais le mot de passe de quelqu'un. */}
+              <p style={{
+                margin: 0, display: 'flex', gap: 6, alignItems: 'flex-start',
+                padding: 'var(--espace-2) var(--espace-3)', borderRadius: 'var(--radius-md)',
+                background: 'var(--info-fond)', color: 'var(--info-texte)',
+                fontSize: 'var(--font-size-caption)', lineHeight: 1.5,
+              }}>
+                <KeyRound size={13} style={{ flexShrink: 0, marginTop: 2 }} />
+                <span>{t('admin.createTempNote')}</span>
+              </p>
 
               {/* Pas de site d'affectation : une personne n'appartient pas à un
                   site, elle travaille là où elle se trouve. C'est l'ACTE qui porte
@@ -552,6 +529,15 @@ export function CreerUtilisateurDrawer({ open, onClose, personnel = null }: Prop
         </div>
       </SheetContent>
     </Sheet>
+    {cree && (
+      <MotDePasseTemporaireModal
+        login={cree.login}
+        motDePasse={cree.motDePasse}
+        titre={t('admin.createDoneTitle')}
+        onClose={() => setCree(null)}
+      />
+    )}
+    </>
   )
 }
 

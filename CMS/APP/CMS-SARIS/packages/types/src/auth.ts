@@ -25,6 +25,9 @@ export interface UserSession {
   permissions:        PermissionCode[]
   personnelMedicalId: string | null
   photoUrl:           string | null
+  /** Le compte porte un mot de passe TEMPORAIRE (posé par l'administrateur) : l'écran impose
+   *  d'abord d'en choisir un, et le serveur refuse tout le reste tant que ce n'est pas fait. */
+  motDePasseTemp?:    boolean
   token:              string
 }
 

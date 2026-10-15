@@ -48,7 +48,8 @@ export interface PermissionDb {
 export interface CreateUtilisateurPayload {
   login:              string
   email:              string
-  motDePasseInitial:  string
+  // Pas de mot de passe : l'administrateur n'en choisit jamais. Le serveur en fabrique un temporaire,
+  // rendu une seule fois dans la réponse (`motDePasseTemporaire`).
   /**
    * Facultatif, comme le DTO backend : une personne n'est pas affectée à un site,
    * elle intervient là où elle travaille. Omis, le serveur rattache le compte au
@@ -70,7 +71,10 @@ export interface UpdateUtilisateurPayload {
 }
 export interface SetRolesPayload         { roleIds: string[] }
 export interface SetStatutPayload        { statut: 'ACTIF' | 'DESACTIVE' | 'BLOQUE'; motif?: string }
-export interface ResetPasswordPayload    { nouveauMotDePasse: string; forcerChangement?: boolean }
+/** Réponse de la création d'un compte : le mot de passe temporaire n'y figure qu'UNE fois. */
+export type UtilisateurCree = UtilisateurAdmin & { motDePasseTemporaire: string }
+/** Réponse de la réinitialisation : idem. */
+export interface ReinitialisationMotDePasse { success: boolean; motDePasseTemporaire: string }
 
 // ── Dérogations de permissions par utilisateur ────────────────────────────────
 export interface PermissionOverrideEntry {
@@ -311,7 +315,7 @@ export const adminApi = {
     findById: (id: string) =>
       api.get<UtilisateurAdmin>(`/admin/utilisateurs/${id}`),
     create: (data: CreateUtilisateurPayload) =>
-      api.post<UtilisateurAdmin>('/admin/utilisateurs', data),
+      api.post<UtilisateurCree>('/admin/utilisateurs', data),
     update: (id: string, data: UpdateUtilisateurPayload) =>
       api.patch<UtilisateurAdmin>(`/admin/utilisateurs/${id}`, data),
     setRoles: (id: string, data: SetRolesPayload) =>
@@ -320,8 +324,9 @@ export const adminApi = {
       api.patch<UtilisateurAdmin>(`/admin/utilisateurs/${id}/statut`, data),
     remove: (id: string) =>
       api.delete<{ id: string; deleted: true }>(`/admin/utilisateurs/${id}`),
-    resetPassword: (id: string, data: ResetPasswordPayload) =>
-      api.post<{ success: boolean }>(`/admin/utilisateurs/${id}/reset-password`, data),
+    // Aucun corps : le serveur fabrique le mot de passe temporaire et le rend une seule fois.
+    resetPassword: (id: string) =>
+      api.post<ReinitialisationMotDePasse>(`/admin/utilisateurs/${id}/reset-password`, {}),
     // Récupération de compte (admin reprend la main)
     resetTotp: (id: string) =>
       api.post<{ ok: boolean }>(`/admin/utilisateurs/${id}/totp/reset`, {}),
