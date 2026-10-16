@@ -32,7 +32,8 @@ export const dashboard = {
     kpiAvgWaitTime: 'Temps moyen d\'attente',
     kpiClosedVisitsHint: 'Visites clôturées du jour',
     kpiActiveConsultations: 'Consultations actives',
-    kpiClosedTodayHint: '{{count}} clôturées aujourd\'hui',
+    kpiClosedTodayHint_one: '{{count}} clôturée aujourd\'hui',
+    kpiClosedTodayHint_other: '{{count}} clôturées aujourd\'hui',
 
     // ── Vue clinique : graphiques ───────────────────────────────────
     chartTrendTitle: 'Tendance des visites',
@@ -190,7 +191,8 @@ export const dashboard = {
     kpiAvgWaitTime: 'Average wait time',
     kpiClosedVisitsHint: 'Today\'s closed visits',
     kpiActiveConsultations: 'Active consultations',
-    kpiClosedTodayHint: '{{count}} closed today',
+    kpiClosedTodayHint_one: '{{count}} closed today',
+    kpiClosedTodayHint_other: '{{count}} closed today',
 
     // ── Vue clinique : graphiques ───────────────────────────────────
     chartTrendTitle: 'Visit trend',

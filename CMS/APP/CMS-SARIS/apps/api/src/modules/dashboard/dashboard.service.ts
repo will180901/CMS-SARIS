@@ -58,6 +58,7 @@ export class DashboardService {
       bonsAttente,
       evacEnCours,
       visitesHier,
+      patientsEnSuivi,
     ] = await Promise.all([
       this.prisma.visite.count({ where: { statut: 'EN_ATTENTE' } }),
       this.prisma.visite.count({ where: { statut: 'EN_COURS' } }),
@@ -83,6 +84,13 @@ export class DashboardService {
 
       this.prisma.visite.count({
         where: { dateOuverture: { gte: startOfYesterday, lt: startOfDay } },
+      }),
+
+      // Patients en suivi chronique : un ÉTAT à ce jour (suivi ouvert), pas un flux du jour.
+      // Un patient suivi pour deux maladies compte une fois (la carte dit « Patients en suivi »).
+      this.prisma.suiviChronique.groupBy({
+        by: ['patientId'],
+        where: { statut: 'ACTIF', closedAt: null, patientId: { not: null } },
       }),
     ])
 
@@ -127,6 +135,7 @@ export class DashboardService {
       ordonnancesValideesJour: ordValidesJour,
       bonsExamenAttente: bonsAttente,
       evacuationsEnCours: evacEnCours,
+      suivisChroniquesActifs: patientsEnSuivi.length,
     }
   }
 

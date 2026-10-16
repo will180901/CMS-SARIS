@@ -361,15 +361,17 @@ function StatCardSpark({
   spark: Array<{ date: string; visites: number }>; sparkColor: string
 }) {
   const hasSpark = spark.length > 1 && spark.some(s => s.visites > 0)
+  // La courbe est DANS la carte, sous la tendance : posée par-dessus (position absolue), elle
+  // recouvrait « -98 % vs hier ».
   return (
-    <div style={{ position: 'relative' }}>
-      <StatCard {...props} />
-      {hasSpark && (
-        <div style={{ position: 'absolute', left: 'var(--espace-4)', right: 'var(--espace-4)', bottom: 8, height: 28, opacity: 0.55, pointerEvents: 'none' }}>
+    <StatCard
+      {...props}
+      footer={hasSpark ? (
+        <div style={{ height: 28, opacity: 0.55, pointerEvents: 'none' }}>
           <SparkLine data={spark} dataKey="visites" color={sparkColor} height={28} />
         </div>
-      )}
-    </div>
+      ) : undefined}
+    />
   )
 }
 

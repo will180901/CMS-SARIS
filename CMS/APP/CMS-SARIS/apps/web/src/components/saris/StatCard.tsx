@@ -19,9 +19,11 @@ interface Props {
   tone?:        Tone
   /** Action de clic optionnelle (rend la carte interactive) */
   onClick?:     () => void
+  /** Contenu sous la valeur (ex. mini-courbe), DANS le flux : il pousse la carte, ne recouvre rien. */
+  footer?:      ReactNode
 }
 
-export function StatCard({ icon, label, value, hint, trend, tone = 'accent', onClick }: Props) {
+export function StatCard({ icon, label, value, hint, trend, tone = 'accent', onClick, footer }: Props) {
   const t = TILE_TONE_MAP[tone]
   const Trend = trend?.direction === 'up' ? TrendingUp
               : trend?.direction === 'down' ? TrendingDown
@@ -109,6 +111,7 @@ export function StatCard({ icon, label, value, hint, trend, tone = 'accent', onC
           )}
         </div>
       </div>
+      {footer && <div style={{ marginTop: 'var(--espace-3)' }}>{footer}</div>}
     </div>
   )
 }

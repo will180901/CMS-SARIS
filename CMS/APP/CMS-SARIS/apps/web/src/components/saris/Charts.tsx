@@ -60,6 +60,10 @@ function SarisTooltip({ title, rows }: { title?: string; rows: TooltipRow[] }) {
 
 const AXIS_STYLE = { fontSize: 10, fill: 'var(--texte-tertiaire)' } as const
 
+// Largeur réservée à l'axe vertical : de quoi lire un nombre à 4-5 chiffres en entier. Un décalage
+// négatif de la marge gauche (ancien réglage) rognait les centaines : l'axe n'affichait que « 0 ».
+const Y_AXIS_WIDTH = 38
+
 // ════════════════════════════════════════════════════════════════════════════
 //  AreaTrend — courbe d'aire (tendance temporelle), 1 ou 2 séries
 // ════════════════════════════════════════════════════════════════════════════
@@ -77,13 +81,13 @@ export function AreaTrend({
 }) {
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <AreaChart data={data} margin={{ top: 6, right: 6, bottom: 0, left: -18 }}>
+      <AreaChart data={data} margin={{ top: 6, right: 6, bottom: 0, left: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="var(--bordure-legere)" vertical={false} />
         <XAxis
           dataKey={xKey} tick={AXIS_STYLE} tickLine={false} axisLine={false}
           tickFormatter={xTickFormatter} minTickGap={16}
         />
-        <YAxis tick={AXIS_STYLE} tickLine={false} axisLine={false} allowDecimals={false} width={32} />
+        <YAxis tick={AXIS_STYLE} tickLine={false} axisLine={false} allowDecimals={false} width={Y_AXIS_WIDTH} />
         <Tooltip
           cursor={{ stroke: 'var(--bordure-normale)', strokeWidth: 1 }}
           content={({ active, payload, label }) =>
@@ -128,10 +132,10 @@ export function MiniBars({
 }) {
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <BarChart data={data} margin={{ top: 6, right: 6, bottom: 0, left: -18 }}>
+      <BarChart data={data} margin={{ top: 6, right: 6, bottom: 0, left: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="var(--bordure-legere)" vertical={false} />
         <XAxis dataKey={xKey} tick={AXIS_STYLE} tickLine={false} axisLine={false} interval={1} />
-        <YAxis tick={AXIS_STYLE} tickLine={false} axisLine={false} allowDecimals={false} width={32} />
+        <YAxis tick={AXIS_STYLE} tickLine={false} axisLine={false} allowDecimals={false} width={Y_AXIS_WIDTH} />
         <Tooltip
           cursor={{ fill: 'var(--fond-surface-2)' }}
           content={({ active, payload, label }) =>
