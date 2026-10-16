@@ -31,8 +31,9 @@ services:
     # est déployée sans exister en base — et les rôles perdent silencieusement les
     # accès correspondants (constaté en production le 02/08/2026 : 12 permissions
     # ajoutées côté code, absentes de Neon → référentiels et rapports inaccessibles).
-    # Le script est additif et idempotent : il ne supprime jamais rien et ne touche
-    # ni aux mots de passe ni aux dérogations individuelles.
+    # Le script est idempotent : il crée les permissions manquantes, retire celles qui ne
+    # sont plus dans le code, réaligne EXACTEMENT les trois rôles système sur le code, et ne
+    # touche ni aux mots de passe ni aux rôles personnalisés (hors permissions disparues).
     # Volontairement NON bloquant (« ; » et non « && ») : un échec de synchronisation
     # ne doit pas empêcher l'API de démarrer — il est visible dans les logs de déploiement.
     #

@@ -374,7 +374,7 @@ export const PERMISSION_META: Record<PermissionCode, { libelle: string; module: 
   // Rapports
   'rapport.read':                { libelle: 'Consulter les rapports statistiques', module: 'rapport' },
   'rapport.export':              { libelle: 'Exporter un rapport (Excel/PDF)', module: 'rapport' },
-  'rapport.delete':              { libelle: 'Supprimer un rapport genere', module: 'rapport' },
+  'rapport.delete':              { libelle: 'Supprimer un rapport généré', module: 'rapport' },
 
   'audit.read':                  { libelle: 'Consulter les journaux d\'audit', module: 'audit' },
   'audit.purge':                 { libelle: 'Purger les journaux d\'audit', module: 'audit' },

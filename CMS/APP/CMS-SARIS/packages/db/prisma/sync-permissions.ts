@@ -3,16 +3,26 @@
  *
  * Contrairement au seed (qui réinitialise rôles + mot de passe admin), ce script :
  *   1. Upsert chaque permission du catalogue ALL_PERMISSIONS (création si absente).
+ *   1.c RETIRE les permissions OBSOLÈTES : en base mais plus déclarées dans le code (avec
+ *      leurs rattachements de rôle et leurs dérogations individuelles — sans objet).
  *   2. RÉALIGNE les rôles SYSTÈME sur DEFAULT_ROLE_PERMISSIONS — ajouts ET retraits.
  *   3. Complète les rôles PERSONNALISÉS quand une permission a été scindée en droits
- *      plus fins (jamais de retrait : ces rôles appartiennent à l'administrateur).
- *   4. Ne touche NI au mot de passe admin NI aux dérogations individuelles.
+ *      plus fins (jamais de retrait de droits valides : ces rôles appartiennent à
+ *      l'administrateur).
+ *   4. Ne touche NI au mot de passe admin NI aux dérogations individuelles valides.
  *
  * Pourquoi le retrait (étape 2) : longtemps le script fut purement additif. Résultat,
  * une permission retirée du code restait active en base pour toujours — constaté en
  * production le 07/08/2026 : Médecin Chef y portait 112 droits contre 107 au code, et
  * Infirmier 61 contre 57. Des droits explicitement révoqués côté code restaient donc
  * exerçables. Un rôle « système » n'a de sens que si le code en est la source unique.
+ *
+ * Pourquoi le retrait des permissions obsolètes (étape 1.c) : les gardes sont typées sur le catalogue
+ * du code, aucune route ne peut donc exiger une permission qui n'y figure plus — mais elle restait
+ * en base et s'affichait comme « ligne fantôme » dans la matrice des rôles. Constaté le 16/10/2026 :
+ * quatre `employe.*` (registre des employés, supprimé depuis) faisaient afficher « 137 permissions
+ * disponibles » et « 133 / 137 » au super-administrateur, qui possède pourtant tout le catalogue.
+ * `prune-permissions.ts` reste disponible en simulation manuelle.
  *
  * Idempotent. À lancer après ajout de permissions au catalogue :
  *   pnpm --filter @cms-saris/db exec tsx prisma/sync-permissions.ts
@@ -26,7 +36,7 @@ import {
 const prisma = new PrismaClient()
 
 async function main() {
-  console.log('🛡️  Synchronisation du catalogue de permissions (additif)...')
+  console.log('🛡️  Synchronisation du catalogue de permissions...')
 
   // 1. Catalogue : upsert (création des nouvelles, mise à jour du module)
   let created = 0
@@ -41,6 +51,20 @@ async function main() {
     if (!before) created++
   }
   console.log(`   ✓ ${ALL_PERMISSIONS.length} permissions présentes (${created} nouvelle(s))`)
+
+  // 1.c Permissions OBSOLÈTES : en base, plus dans le code → retirées avec leurs dépendances
+  //     (clés étrangères : rattachements de rôle et dérogations d'abord).
+  const declarees = new Set<string>(ALL_PERMISSIONS as readonly string[])
+  const obsoletes = (
+    await prisma.permission.findMany({ select: { id: true, code: true } })
+  ).filter((p) => !declarees.has(p.code))
+  for (const p of obsoletes) {
+    await prisma.rolePermission.deleteMany({ where: { permissionId: p.id } })
+    await prisma.utilisateurPermission.deleteMany({ where: { permissionId: p.id } })
+    await prisma.permission.delete({ where: { id: p.id } })
+    console.log(`   ✗ ${p.code} retirée (absente du code)`)
+  }
+  console.log(`   ✓ ${obsoletes.length} permission(s) obsolète(s) retirée(s)`)
 
   // 1.b Créer les rôles système manquants (ex. nouveau rôle MEDECIN) — non destructif.
   let rolesCreated = 0

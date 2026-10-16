@@ -35,8 +35,8 @@ export function AccesPage() {
   // désormais toutes les personnes, avec ou sans accès à l'application.
   const tabs = [
     ...(canUsers ? [{ key: 'users', label: t('admin.tabPersonnel', { defaultValue: 'Personnel' }) }] : []),
-    ...(canRoles ? [{ key: 'roles', label: 'Rôles & permissions' }] : []),
-    ...(canDeleg ? [{ key: 'delegations', label: 'Délégations' }] : []),
+    ...(canRoles ? [{ key: 'roles', label: t('admin.rolesTitle') }] : []),
+    ...(canDeleg ? [{ key: 'delegations', label: t('acteurs.tabDelegations') }] : []),
   ]
   const [tab, setTab] = usePersistedState<string>('acces', 'tab', tabs[0]?.key ?? 'users')
 
