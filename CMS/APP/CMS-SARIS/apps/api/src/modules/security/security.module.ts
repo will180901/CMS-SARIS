@@ -11,6 +11,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard'
 import { PermissionsGuard } from './guards/permissions.guard'
 import { PermissionsResolverService } from './permissions-resolver.service'
 import { MotDePasseTemporaireService } from './mot-de-passe-temporaire.service'
+import { IdentifiantService } from './identifiant.service'
 import { ParametresModule } from '../parametres/parametres.module'
 
 /**
@@ -42,6 +43,7 @@ import { ParametresModule } from '../parametres/parametres.module'
     PermissionsGuard,
     PermissionsResolverService,
     MotDePasseTemporaireService,
+    IdentifiantService,
   ],
   // PermissionsResolverService est exporté : les modules d'administration doivent
   // pouvoir INVALIDER le cache dès qu'ils modifient des droits (rôles, dérogations,
@@ -53,6 +55,8 @@ import { ParametresModule } from '../parametres/parametres.module'
     PermissionsResolverService,
     // Exporté : l'administration pose le drapeau (création, réinitialisation) et doit l'invalider.
     MotDePasseTemporaireService,
+    // Exporté : l'administration corrige l'identifiant d'un compte avec les mêmes règles que la personne.
+    IdentifiantService,
   ],
 })
 export class SecurityModule {}

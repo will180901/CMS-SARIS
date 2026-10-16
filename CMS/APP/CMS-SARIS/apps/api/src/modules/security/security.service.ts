@@ -18,6 +18,7 @@ import { decryptSecret } from '../../common/crypto/totp-secret'
 import { resolveGeo } from '../../common/geo/geo.util'
 import { ParametresService } from '../parametres/parametres.service'
 import { MotDePasseTemporaireService } from './mot-de-passe-temporaire.service'
+import { idParIdentifiant } from './identifiant'
 import { ConfirmerSiteDto } from './dto/confirmer-site.dto'
 import type {
   Role,
@@ -155,14 +156,27 @@ export class SecurityService {
     ipAdresse?: string,
     userAgent?: string,
   ): Promise<LoginResult> {
-    // 1. Chercher l'utilisateur (avec ses rôles et sa config TOTP)
-    const user = await this.prisma.utilisateur.findUnique({
-      where: { login: dto.login },
-      include: {
-        roles: { include: { role: true } },
-        configTotp: true,
-      },
+    // 1. Chercher l'utilisateur (avec ses rôles et sa config TOTP).
+    // Les identifiants sont stockés en minuscules et la casse ne distingue personne : on cherche
+    // d'abord tel que saisi (le cas courant, sur l'index), puis sans tenir compte de la casse (une
+    // saisie en majuscules, ou un compte ANCIEN dont l'identifiant en a).
+    const inclure = {
+      roles: { include: { role: true } },
+      configTotp: true,
+    } as const
+    const saisi = dto.login.trim()
+    let user = await this.prisma.utilisateur.findUnique({
+      where: { login: saisi },
+      include: inclure,
     })
+    if (!user) {
+      const id = await idParIdentifiant(this.prisma, saisi)
+      if (id)
+        user = await this.prisma.utilisateur.findUnique({
+          where: { id },
+          include: inclure,
+        })
+    }
 
     // Login inconnu OU compte soft-supprimé (tombstone) → réponse générique : un compte
     // supprimé ne doit plus pouvoir s'authentifier, et on évite l'énumération d'utilisateurs.
@@ -820,7 +834,7 @@ export class SecurityService {
         destinataireId: utilisateurId,
         entiteType: 'utilisateur',
         entiteId: utilisateurId,
-        lien: '/parametres',
+        lien: '/admin/parametres',
       })
     } catch {
       /* notification best-effort */

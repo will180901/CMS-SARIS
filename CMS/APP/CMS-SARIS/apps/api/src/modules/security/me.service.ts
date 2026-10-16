@@ -13,6 +13,7 @@ import {
   NotFoundException,
   BadRequestException,
   ConflictException,
+  ForbiddenException,
 } from '@nestjs/common'
 import { randomBytes } from 'crypto'
 import * as bcrypt from 'bcrypt'
@@ -20,10 +21,13 @@ import sharp from 'sharp'
 import { generateSecret, generateURI, verifySync } from 'otplib'
 import { PrismaService } from '../../prisma/prisma.service'
 import { ParametresService } from '../parametres/parametres.service'
+import { motDePasseCorrect } from '../systeme/mot-de-passe-admin'
+import { IdentifiantService } from './identifiant.service'
 import {
   UpdatePreferencesDto,
   UpdateMonProfilDto,
   PositionAppareilDto,
+  ChangerMonIdentifiantDto,
 } from './dto/me.dto'
 import { encryptSecret, decryptSecret } from '../../common/crypto/totp-secret'
 import { resolveGeo } from '../../common/geo/geo.util'
@@ -57,6 +61,7 @@ export class MeService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly params: ParametresService,
+    private readonly identifiant: IdentifiantService,
   ) {}
 
   // ════════════════════════════════════════════════════════════════════════
@@ -242,6 +247,51 @@ export class MeService {
     })
     await this.audit(userId, 'UPDATE_PROFILE')
     return this.getProfil(userId)
+  }
+
+  /**
+   * Change SON identifiant de connexion. Le mot de passe est redemandé (403 et non 401 s'il est faux :
+   * un 401 ferait renouveler la session côté web alors qu'elle est valide), le serveur central seul le
+   * permet, et la personne est prévenue. Rend le nouvel identifiant (normalisé en minuscules).
+   */
+  async changerIdentifiant(
+    userId: string,
+    dto: ChangerMonIdentifiantDto,
+    ip?: string | null,
+    userAgent?: string | null,
+  ): Promise<{ login: string }> {
+    this.identifiant.exigerCentral()
+    if (!(await motDePasseCorrect(this.prisma, userId, dto.motDePasse))) {
+      const u = await this.prisma.utilisateur.findUnique({
+        where: { id: userId },
+        select: { login: true },
+      })
+      try {
+        await this.prisma.journalAuthentification.create({
+          data: {
+            utilisateurId: userId,
+            login: u?.login ?? '',
+            resultat: 'ECHEC_CHANGEMENT_IDENTIFIANT',
+            ipAdresse: ip ?? null,
+            userAgent: userAgent ?? null,
+          },
+        })
+      } catch {
+        /* le journal ne bloque jamais */
+      }
+      throw new ForbiddenException({
+        code: 'MOT_DE_PASSE_INCORRECT',
+        message: 'Mot de passe incorrect',
+      })
+    }
+    const r = await this.identifiant.changer({
+      utilisateurId: userId,
+      nouveau: dto.login,
+      acteurId: userId,
+      ip,
+      userAgent,
+    })
+    return { login: r.login }
   }
 
   // ════════════════════════════════════════════════════════════════════════

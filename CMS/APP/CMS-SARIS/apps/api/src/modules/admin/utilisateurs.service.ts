@@ -29,6 +29,7 @@ import {
   UpdateUtilisateurDto,
   SetRolesDto,
   SetStatutDto,
+  ChangerIdentifiantUtilisateurDto,
   UtilisateurQueryDto,
 } from './dto/utilisateur.dto'
 import {
@@ -40,6 +41,13 @@ import { NotificationService } from '../notification/notification.service'
 import { PermissionsResolverService } from '../security/permissions-resolver.service'
 import { MotDePasseTemporaireService } from '../security/mot-de-passe-temporaire.service'
 import { genererMotDePasseTemporaire } from '../security/mot-de-passe-temporaire'
+import { IdentifiantService } from '../security/identifiant.service'
+import {
+  dateFrancaise,
+  identifiantPris,
+  identifiantReserve,
+  normaliserIdentifiant,
+} from '../security/identifiant'
 import { VITAL_GOVERNANCE_PERMISSIONS } from '../../common/governance'
 
 // ── Permissions vitales de gouvernance (source unique partagée) ───────────────
@@ -73,6 +81,7 @@ export class UtilisateursService {
     private readonly notif: NotificationService,
     private readonly permsResolver: PermissionsResolverService,
     private readonly motDePasseTemporaire: MotDePasseTemporaireService,
+    private readonly identifiant: IdentifiantService,
   ) {}
 
   // ── Helpers ───────────────────────────────────────────────────────────────
@@ -205,11 +214,14 @@ export class UtilisateursService {
     // Vérifications préalables — sur le client BRUT (`raw`) car les contraintes
     // @unique (login / email / personnelMedicalId) restent occupées par les
     // comptes SOFT-supprimés (tombstones), invisibles du client filtré.
+    // L'identifiant est normalisé en minuscules et comparé SANS tenir compte de la casse (« Alice » et
+    // « alice » ne sont pas deux personnes) ; un identifiant libéré depuis moins de 90 jours par un
+    // changement est mis de côté.
+    const login = normaliserIdentifiant(dto.login)
     const [loginTaken, emailTaken] = await Promise.all([
-      this.prisma.raw.utilisateur.findUnique({
-        where: { login: dto.login },
-        select: { id: true, deletedAt: true },
-      }),
+      identifiantPris(this.prisma, login).then((p) =>
+        p ? { id: p.id, deletedAt: p.supprime ? new Date() : null } : null,
+      ),
       this.prisma.raw.utilisateur.findUnique({
         where: { email: dto.email },
         select: { id: true, deletedAt: true },
@@ -220,6 +232,11 @@ export class UtilisateursService {
         loginTaken.deletedAt
           ? 'Ce login appartient à un compte supprimé'
           : 'Ce login est déjà utilisé',
+      )
+    const loginReserve = await identifiantReserve(this.prisma, login)
+    if (loginReserve)
+      throw new ConflictException(
+        `Ce login vient d’être libéré par son ancien titulaire : il est mis de côté jusqu’au ${dateFrancaise(loginReserve)}`,
       )
     if (emailTaken)
       throw new ConflictException(
@@ -329,7 +346,7 @@ export class UtilisateursService {
       }
       const u = await tx.utilisateur.create({
         data: {
-          login: dto.login,
+          login,
           email: dto.email,
           passwordHash,
           statut: 'ACTIF',
@@ -353,7 +370,7 @@ export class UtilisateursService {
       niveau: 'INFO',
       category: 'administratif',
       titre: 'Nouveau compte utilisateur',
-      message: `Le compte « ${dto.login} » a été créé.`,
+      message: `Le compte « ${login} » a été créé.`,
       siteId: null,
       requiredPermission: 'utilisateur.read',
       entiteType: 'utilisateur',
@@ -592,6 +609,30 @@ export class UtilisateursService {
     }
 
     return this.sanitize(after)
+  }
+
+  // ── Corriger l'identifiant (par un admin) ─────────────────────────────────
+
+  /**
+   * Change l'identifiant de connexion d'un compte, avec les MÊMES règles que quand la personne le fait
+   * elle-même (cf. IdentifiantService) — sauf le mot de passe, que l'administrateur ne connaît pas.
+   */
+  async changerIdentifiant(
+    id: string,
+    dto: ChangerIdentifiantUtilisateurDto,
+    acteurId: string | null,
+    ip?: string | null,
+    userAgent?: string | null,
+  ) {
+    await this.getOrThrow(id)
+    await this.identifiant.changer({
+      utilisateurId: id,
+      nouveau: dto.login,
+      acteurId: acteurId ?? id,
+      ip,
+      userAgent,
+    })
+    return this.sanitize(await this.getOrThrow(id))
   }
 
   // ── Réinitialiser le mot de passe (par un admin) ──────────────────────────

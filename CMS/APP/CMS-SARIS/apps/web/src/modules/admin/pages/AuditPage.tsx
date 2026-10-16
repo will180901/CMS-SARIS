@@ -50,6 +50,7 @@ import { formatDureeMinutes } from '@/lib/duree'
 // chargées — pour que le filtre reste complet après sélection).
 const AUTH_RESULTATS = [
   'SUCCES_LOGIN', 'SUCCES_LOGIN_TOTP', 'SUCCES_LOGIN_TOTP_REQUIS', 'SUCCES_LOGOUT', 'SUCCES_CHANGEMENT_MDP',
+  'SUCCES_CHANGEMENT_IDENTIFIANT', 'ECHEC_CHANGEMENT_MDP', 'ECHEC_CHANGEMENT_IDENTIFIANT',
   // Double connexion : session déjà ouverte ailleurs, puis décision de l'utilisateur.
   // `ALERTE_SESSION_NON_RECONNUE` est le signalement « ce n'est pas moi » — sans lui dans
   // cette liste, l'administrateur ne pourrait pas filtrer sur l'événement qui l'intéresse
@@ -1004,6 +1005,7 @@ function resumePhrase(entry: AuditEntry, t: TFunction): string {
     CREATE: t('admin.verbCreate'), UPDATE: t('admin.verbUpdate'), DELETE: t('admin.verbDelete'),
     SET_ROLES: t('admin.verbSetRoles'), SET_STATUT: t('admin.verbSetStatut'),
     RESET_PASSWORD: t('admin.verbResetPassword'),
+    CHANGE_LOGIN: t('admin.verbChangeLogin'),
     SET_PERMISSIONS: t('admin.verbSetPermissions'),
     BULK_PERMISSION: t('admin.verbBulkPermission'),
   }

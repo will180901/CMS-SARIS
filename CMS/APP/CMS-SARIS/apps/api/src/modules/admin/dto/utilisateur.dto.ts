@@ -86,6 +86,14 @@ export class UpdateUtilisateurDto {
   personnelMedicalId?: string | null
 }
 
+// ── Corriger l'identifiant d'un compte (administrateur) ──────────────────────
+
+export class ChangerIdentifiantUtilisateurDto {
+  @IsString()
+  @MaxLength(100)
+  login!: string
+}
+
 // ── Changer les rôles d'un utilisateur ───────────────────────────────────────
 
 export class SetRolesDto {

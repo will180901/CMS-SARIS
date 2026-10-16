@@ -28,8 +28,10 @@ import { toast } from '@workspace/ui/components/sonner'
 import { Button, UserAvatar, Skeleton, SegmentedTabs, Modal, CheckBox } from '@/components/saris'
 import {
   useUtilisateur, useRoles, useSetRoles, useSetStatut, useAuditAuth, useDeleteUtilisateur,
-  useResetTotp, useRegenerateBackupCodes, useRevokeSessions,
+  useResetTotp, useRegenerateBackupCodes, useRevokeSessions, useChangerIdentifiantUtilisateur,
 } from '../hooks/useAdmin'
+import { ChangerIdentifiantModal } from './ChangerIdentifiantModal'
+import { isDesktop } from '@/lib/desktop'
 import { usePermissions } from '@/hooks/usePermissions'
 import { useSessionStore } from '@/stores/session.store'
 import { labelMetier, labelStatut } from '@/config/labels'
@@ -96,6 +98,7 @@ export function UtilisateurDrawer({ utilisateurId, onClose, initialTab }: Props)
   const resetTotp = useResetTotp(utilisateurId)
   const regenBackupCodes = useRegenerateBackupCodes(utilisateurId)
   const revokeSessions = useRevokeSessions(utilisateurId)
+  const changerIdentifiant = useChangerIdentifiantUtilisateur(utilisateurId)
   const { data: authRes } = useAuditAuth({ utilisateurId, limit: '12' })
   const authLogs = authRes?.data ?? []
 
@@ -104,6 +107,7 @@ export function UtilisateurDrawer({ utilisateurId, onClose, initialTab }: Props)
   const [roleSel, setRoleSel] = useState<string[]>([])
   const [confirmDeactivate, setConfirmDeactivate] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [changeIdentifiant, setChangeIdentifiant] = useState(false)
 
   // Récupération de compte
   const [confirmResetTotp, setConfirmResetTotp] = useState(false)
@@ -274,6 +278,22 @@ export function UtilisateurDrawer({ utilisateurId, onClose, initialTab }: Props)
                 }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
                     <AtSign size={11} /> {u.login}
+                    {/* Corriger l'identifiant d'un compte : serveur central seulement (le poste de bureau n'est pas la référence). */}
+                    {canUpdate && !isDesktop && (
+                      <button
+                        type="button"
+                        onClick={() => setChangeIdentifiant(true)}
+                        title={t('admin.idChangeTitre')}
+                        aria-label={t('admin.idChangeTitre')}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                          marginLeft: 2, padding: 2, border: 'none', background: 'transparent',
+                          color: 'var(--texte-tertiaire)', cursor: 'pointer', borderRadius: 4,
+                        }}
+                      >
+                        <Pencil size={11} />
+                      </button>
+                    )}
                   </span>
                   <span style={{ color: 'var(--bordure-normale)' }}>·</span>
                   <span style={{
@@ -384,6 +404,16 @@ export function UtilisateurDrawer({ utilisateurId, onClose, initialTab }: Props)
           <Button variant="secondary" onClick={onClose} fullWidth>{t('admin.close')}</Button>
         </div>
       </SheetContent>
+
+      {/* ── Correction de l'identifiant (l'administrateur ne connaît jamais le mot de passe) ── */}
+      {changeIdentifiant && u && (
+        <ChangerIdentifiantModal
+          actuel={u.login}
+          mode="admin"
+          onValider={(login) => changerIdentifiant.mutateAsync(login)}
+          onClose={() => setChangeIdentifiant(false)}
+        />
+      )}
 
       {/* ── Confirmation de suppression définitive ──────────────────────────── */}
       {confirmDelete && u && (

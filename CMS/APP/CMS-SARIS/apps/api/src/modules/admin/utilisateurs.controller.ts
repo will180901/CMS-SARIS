@@ -16,6 +16,8 @@ import {
   Param,
   Query,
   Req,
+  Ip,
+  Headers,
   UseGuards,
   HttpCode,
   HttpStatus,
@@ -30,6 +32,7 @@ import {
   UpdateUtilisateurDto,
   SetRolesDto,
   SetStatutDto,
+  ChangerIdentifiantUtilisateurDto,
   UtilisateurQueryDto,
 } from './dto/utilisateur.dto'
 import {
@@ -130,6 +133,23 @@ export class UtilisateursController {
     @Req() req: AuthedRequest,
   ) {
     return this.svc.setStatut(id, dto, req.user?.id ?? null)
+  }
+
+  /**
+   * Corrige l'IDENTIFIANT de connexion d'un compte (faute de frappe, changement de nom…). Mêmes règles
+   * que quand la personne le change elle-même — sans son mot de passe, que l'administrateur ne connaît
+   * jamais ; la personne est prévenue et le changement est tracé « ancien → nouveau ».
+   */
+  @Patch(':id/identifiant')
+  @RequirePermissions('utilisateur.update')
+  changerIdentifiant(
+    @Param('id') id: string,
+    @Body() dto: ChangerIdentifiantUtilisateurDto,
+    @Req() req: AuthedRequest,
+    @Ip() ip: string,
+    @Headers('user-agent') userAgent?: string,
+  ) {
+    return this.svc.changerIdentifiant(id, dto, req.user?.id ?? null, ip, userAgent)
   }
 
   @Post(':id/reset-password')

@@ -10,7 +10,7 @@
 import { useState, useEffect, useRef } from 'react'
 import {
   Palette, ShieldCheck, MonitorSmartphone, KeyRound, Check, Copy, ShieldAlert,
-  LogOut, QrCode, Save, MapPin, Globe, ImageUp, Trash2, UserRound,
+  LogOut, QrCode, Save, MapPin, Globe, ImageUp, Trash2, UserRound, AtSign,
 } from 'lucide-react'
 import { parseUserAgent } from '@/lib/userAgent'
 import { geoLabel } from '@/lib/geo'
@@ -22,6 +22,8 @@ import { useIsCompact } from '@/hooks/useMediaQuery'
 import { email as emailSchema } from '@/lib/validation'
 import { labelFonction } from '@/config/fonctions'
 import { ChangePasswordDialog } from '@/modules/auth/components/ChangePasswordDialog'
+import { ChangerIdentifiantModal } from '../ChangerIdentifiantModal'
+import { isDesktop } from '@/lib/desktop'
 import { useTheme } from '@/components/theme-provider'
 import { THEME_MAP } from '@/components/PreferencesSync'
 import { soundsEnabled, setSoundsEnabled } from '@/lib/sounds'
@@ -34,7 +36,7 @@ import {
   useMyPreferences, useUpdateMyPreferences,
   useMySessions, useRevokeSession, useRevokeOtherSessions,
   useTotpStatus, useTotpSetup, useTotpActivate, useTotpDisable,
-  useUploadMyPhoto, useRemoveMyPhoto, useMonProfil, useUpdateMonProfil,
+  useUploadMyPhoto, useRemoveMyPhoto, useMonProfil, useUpdateMonProfil, useChangerMonIdentifiant,
 } from '../../hooks/useAdmin'
 import type { Preferences, MonProfil } from '../../api/admin.api'
 import { formatDureeMinutes } from '@/lib/duree'
@@ -58,8 +60,9 @@ export function PersonnelTab({ section }: { section: string }) {
 
 /**
  * Ce que chacun change lui-même : son nom et son prénom (ceux de sa fiche du personnel,
- * repris partout) et son e-mail. Le reste — identifiant, matricule, fonction, rôles,
- * site — s'affiche ici mais reste du ressort de l'administrateur.
+ * repris partout), son e-mail et son identifiant de connexion (mot de passe redemandé,
+ * serveur central seulement). Le reste — matricule, fonction, rôles, site — s'affiche
+ * ici mais reste du ressort de l'administrateur.
  */
 function ProfilCard() {
   const { data: profil, isLoading } = useMonProfil()
@@ -74,6 +77,8 @@ function ProfilFormulaire({ profil }: { profil: MonProfil }) {
   const isCompact = useIsCompact()
   const cols2 = isCompact ? '1fr' : '1fr 1fr'
   const update = useUpdateMonProfil()
+  const changerIdentifiant = useChangerMonIdentifiant()
+  const [idOuvert, setIdOuvert] = useState(false)
   const [prenom, setPrenom] = useState(profil.prenom ?? '')
   const [nom,    setNom]    = useState(profil.nom ?? '')
   const [email,  setEmail]  = useState(profil.email)
@@ -122,6 +127,17 @@ function ProfilFormulaire({ profil }: { profil: MonProfil }) {
             {(id) => <TextInput id={id} type="email" value={email} maxLength={120} onChange={e => setEmail(e.target.value)} />}
           </Field>
 
+          {/* Son identifiant de connexion : il se change ICI (mot de passe redemandé). Pas sur le
+              poste de bureau — la base locale n'est pas la référence. */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--espace-3)', flexWrap: 'wrap' }}>
+            <InfoRow label={t('settings.profilIdentifiant')} value={profil.login} />
+            {!isDesktop && (
+              <Button size="sm" variant="outline" leftIcon={<AtSign size={13} />} onClick={() => setIdOuvert(true)}>
+                {t('admin.idChangeLien')}
+              </Button>
+            )}
+          </div>
+
           {/* Ce que l'administrateur gère : montré, pas modifiable ici. */}
           <div style={{ paddingTop: 'var(--espace-3)', borderTop: '1px solid var(--bordure-legere)' }}>
             <p style={{
@@ -130,7 +146,6 @@ function ProfilFormulaire({ profil }: { profil: MonProfil }) {
               {t('settings.profilGereAdmin')}
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: isCompact ? '1fr 1fr' : 'repeat(3, minmax(0, 1fr))', gap: 'var(--espace-4) var(--espace-5)' }}>
-              <InfoRow label={t('settings.profilIdentifiant')} value={profil.login} />
               <InfoRow label={t('settings.profilMatricule')} value={profil.matricule} />
               <InfoRow label={t('settings.profilFonction')} value={profil.fonction ? labelFonction(profil.fonction) : null} />
               <InfoRow label={t('settings.profilRoles')} value={profil.roles.join(', ')} />
@@ -139,6 +154,14 @@ function ProfilFormulaire({ profil }: { profil: MonProfil }) {
           </div>
         </div>
       </Card.Body>
+      {idOuvert && (
+        <ChangerIdentifiantModal
+          actuel={profil.login}
+          mode="moi"
+          onValider={(login, motDePasse) => changerIdentifiant.mutateAsync({ login, motDePasse })}
+          onClose={() => setIdOuvert(false)}
+        />
+      )}
     </Card>
   )
 }

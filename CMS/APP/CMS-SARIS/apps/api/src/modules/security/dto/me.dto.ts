@@ -98,6 +98,23 @@ export class UpdateMonProfilDto {
   email?: string
 }
 
+// ── Mon identifiant de connexion ──────────────────────────────────────────────
+// Le mot de passe est REDEMANDÉ : changer ce qui sert à se connecter est un geste qu'on ne laisse pas
+// à une session restée ouverte sur un poste partagé. La forme et l'unicité sont jugées par le service
+// (message explicite), pas ici.
+
+export class ChangerMonIdentifiantDto {
+  @IsString()
+  @IsNotEmpty({ message: 'Le nouvel identifiant est requis' })
+  @MaxLength(100)
+  login!: string
+
+  @IsString()
+  @IsNotEmpty({ message: 'Le mot de passe est requis' })
+  @MaxLength(200)
+  motDePasse!: string
+}
+
 // ── 2FA (TOTP) ────────────────────────────────────────────────────────────────
 
 export class TotpCodeDto {

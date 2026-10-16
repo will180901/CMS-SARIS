@@ -324,6 +324,9 @@ export const adminApi = {
       api.patch<UtilisateurAdmin>(`/admin/utilisateurs/${id}/statut`, data),
     remove: (id: string) =>
       api.delete<{ id: string; deleted: true }>(`/admin/utilisateurs/${id}`),
+    // Corriger l'IDENTIFIANT d'un compte (faute de frappe, changement de nom) : sans mot de passe.
+    changerIdentifiant: (id: string, login: string) =>
+      api.patch<UtilisateurAdmin>(`/admin/utilisateurs/${id}/identifiant`, { login }),
     // Aucun corps : le serveur fabrique le mot de passe temporaire et le rend une seule fois.
     resetPassword: (id: string) =>
       api.post<ReinitialisationMotDePasse>(`/admin/utilisateurs/${id}/reset-password`, {}),
@@ -407,6 +410,9 @@ export const adminApi = {
 
     getProfil:    ()                             => api.get<MonProfil>('/me/profil'),
     updateProfil: (data: UpdateMonProfilPayload) => api.patch<MonProfil>('/me/profil', data),
+    // Son identifiant de connexion : mot de passe redemandé, serveur central seulement.
+    changerIdentifiant: (login: string, motDePasse: string) =>
+      api.patch<{ login: string }>('/me/identifiant', { login, motDePasse }),
   },
 
   synchronisation: {

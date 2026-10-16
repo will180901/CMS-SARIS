@@ -483,6 +483,43 @@ export function useMonProfil() {
   })
 }
 
+/**
+ * Changer SON identifiant : il figure partout (annuaire, listes du personnel et des comptes, en-tête),
+ * et la session en cours le garde en mémoire — on la met à jour tout de suite. Pas de toast d'erreur ici :
+ * la fenêtre montre elle-même l'erreur sous le champ (mot de passe faux, identifiant déjà pris…).
+ */
+export function useChangerMonIdentifiant() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (p: { login: string; motDePasse: string }) =>
+      adminApi.me.changerIdentifiant(p.login, p.motDePasse),
+    onSuccess: ({ login }) => {
+      const { user, setUser } = useSessionStore.getState()
+      if (user) setUser({ ...user, login })
+      qc.invalidateQueries({ queryKey: ME_KEYS.profil })
+      qc.invalidateQueries({ queryKey: ME_KEYS.annuaire })
+      qc.invalidateQueries({ queryKey: ['personnel'] })
+      qc.invalidateQueries({ queryKey: ADMIN_KEYS.utilisateurs })
+      toast.success(i18n.t('admin.idChangeFait', { login }))
+    },
+  })
+}
+
+/** Corriger l'identifiant d'un compte (administrateur) — même remarque : l'erreur se lit dans la fenêtre. */
+export function useChangerIdentifiantUtilisateur(id: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (login: string) => adminApi.utilisateurs.changerIdentifiant(id, login),
+    onSuccess: (u) => {
+      qc.invalidateQueries({ queryKey: ADMIN_KEYS.utilisateurs })
+      qc.invalidateQueries({ queryKey: ADMIN_KEYS.utilisateur(id) })
+      qc.invalidateQueries({ queryKey: ME_KEYS.annuaire })
+      qc.invalidateQueries({ queryKey: ['personnel'] })
+      toast.success(i18n.t('admin.idChangeFait', { login: u.login }))
+    },
+  })
+}
+
 /** Nom, prénom, e-mail de l'utilisateur connecté. Le nom vit sur sa fiche du personnel :
  *  on rafraîchit donc aussi l'annuaire (avatars) et les listes du personnel et des comptes. */
 export function useUpdateMonProfil() {

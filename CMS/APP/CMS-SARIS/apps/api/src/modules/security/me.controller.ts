@@ -14,6 +14,8 @@ import {
   Get,
   Put,
   Patch,
+  Ip,
+  Headers,
   Post,
   Delete,
   Body,
@@ -28,12 +30,14 @@ import {
 } from '@nestjs/common'
 import { FileInterceptor } from '@nestjs/platform-express'
 import { memoryStorage } from 'multer'
+import { Throttle } from '@nestjs/throttler'
 import { MeService } from './me.service'
 import { JwtAuthGuard } from './guards/jwt-auth.guard'
 import {
   UpdatePreferencesDto,
   UpdateMonProfilDto,
   PositionAppareilDto,
+  ChangerMonIdentifiantDto,
   TotpCodeDto,
 } from './dto/me.dto'
 
@@ -62,6 +66,21 @@ export class MeController {
   @Patch('profil')
   updateProfil(@Body() dto: UpdateMonProfilDto, @Req() req: any) {
     return this.svc.updateProfil(req.user.id, dto)
+  }
+
+  /**
+   * Change SON identifiant de connexion — mot de passe redemandé, serveur central seulement. Cinq
+   * essais par minute : le mot de passe ne se devine pas à la chaîne, même avec une session ouverte.
+   */
+  @Patch('identifiant')
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  changerIdentifiant(
+    @Body() dto: ChangerMonIdentifiantDto,
+    @Req() req: any,
+    @Ip() ip: string,
+    @Headers('user-agent') userAgent?: string,
+  ) {
+    return this.svc.changerIdentifiant(req.user.id, dto, ip, userAgent)
   }
 
   // ── Position de l'appareil, relevée à chaque connexion web ───────────────
