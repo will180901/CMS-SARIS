@@ -119,7 +119,9 @@ export function UtilisateursPage({ embedded = false }: { embedded?: boolean } = 
     () => (canCreate && siteF ? allUsers.filter(u => u.siteId === siteF) : allUsers),
     [allUsers, canCreate, siteF],
   )
-  const { data: roles = [] } = useRoles()
+  // Les rôles ne servent qu'au filtre de la liste des comptes : sans « utilisateur.read » (médecin
+  // chef) ni « role.read », la requête reviendrait en 403.
+  const { data: roles = [] } = useRoles(canVoirComptes && has('role.read'))
 
   // Répertoire des personnes. Celles qui n'ont pas de compte n'apparaissent que
   // via cette source — sans elle, un agent administratif ou un soignant pas

@@ -171,7 +171,7 @@ export function VisiteSidebar({ visite, width = 268, compact }: { visite: Visite
           </p>
           {id && (
             <p style={{ fontSize: '12px', color: 'var(--texte-secondaire)', margin: '2px 0 0' }}>
-              {id.dateNaissance && <>{t('triage.ageAns', { age: ageYears(id.dateNaissance) })} · </>}
+              {id.dateNaissance && <>{t('triage.ageAns', { count: ageYears(id.dateNaissance) })} · </>}
               {id.sexe === 'M' ? t('triage.sexeMasculin') : id.sexe === 'F' ? t('triage.sexeFeminin') : '—'}
             </p>
           )}

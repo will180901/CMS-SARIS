@@ -91,7 +91,7 @@ export function UtilisateurDrawer({ utilisateurId, onClose, initialTab }: Props)
   const meId            = useSessionStore(s => s.user?.id)
 
   const { data: u, isLoading } = useUtilisateur(utilisateurId)
-  const { data: roles = [] }   = useRoles()
+  const { data: roles = [] }   = useRoles(has('role.read'))
   const setRoles  = useSetRoles(utilisateurId)
   const setStatut = useSetStatut(utilisateurId)
   const deleteUser = useDeleteUtilisateur()

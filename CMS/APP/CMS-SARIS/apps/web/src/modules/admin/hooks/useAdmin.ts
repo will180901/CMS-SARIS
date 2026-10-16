@@ -258,11 +258,15 @@ export function useBulkPermission() {
 //  RÔLES & PERMISSIONS
 // ══════════════════════════════════════════════════════════════════════════════
 
-export function useRoles() {
+export function useRoles(
+  /** `false` quand l'appelant n'a pas `role.read` : la requête reviendrait en 403. */
+  enabled = true,
+) {
   return useQuery({
     queryKey: ADMIN_KEYS.roles,
     queryFn:  () => adminApi.roles.list(),
     staleTime: 30_000,
+    enabled,
   })
 }
 

@@ -36,8 +36,9 @@ import { usePagination } from '@/hooks/usePagination'
 import { useRowsPerPage } from '@/hooks/useRowsPerPage'
 import { usePermissions } from '@/hooks/usePermissions'
 import { toast } from '@workspace/ui/components/sonner'
+import { PERMISSION_META } from '@cms-saris/types'
 import {
-  useAuditActions, useAuditAuth, useUtilisateurs, usePermissions as useAdminPermissions,
+  useAuditActions, useAuditAuth, useUtilisateurs,
   usePurgerAudit,
 } from '../hooks/useAdmin'
 import type { AuditEntry, AuthLogEntry } from '../api/admin.api'
@@ -45,6 +46,9 @@ import { labelModule, labelAction, labelStatut, labelEntite, labelRole, labelPer
 import { buildPermissionTree, parsePermCode, labelPermAction } from '@/config/permission-tree'
 import { ListePrintSheet, type ColonneExport } from '@/components/print/ListePrintSheet'
 import { formatDureeMinutes } from '@/lib/duree'
+
+// Modules du catalogue de permissions (liste du code : stable, disponible hors ligne).
+const MODULES_CATALOGUE: string[] = [...new Set(Object.values(PERMISSION_META).map(m => m.module))]
 
 // Résultats d'authentification possibles (liste stable, indépendante des données
 // chargées — pour que le filtre reste complet après sélection).
@@ -102,8 +106,10 @@ export function AuditPage() {
   const canPurge = has('audit.purge')
   const purger = usePurgerAudit()
 
-  const { data: users = [] } = useUtilisateurs()
-  const { data: permsCatalog = [] } = useAdminPermissions()
+  // La liste des comptes n'est servie qu'avec « utilisateur.read » : sans lui (médecin chef) la
+  // requête reviendrait en 403 ; le filtre se contente alors des personnes présentes au journal.
+  const peutListerComptes = has('utilisateur.read')
+  const { data: users = [] } = useUtilisateurs(undefined, peutListerComptes)
 
   // Combinaison date + heure → borne datetime envoyée au backend.
   //   - Min : début de l'heure choisie (sinon le serveur prend le début de journée).
@@ -157,12 +163,32 @@ export function AuditPage() {
     )
   }, [auth, search])
 
-  // Modules pour le select : dérivés du CATALOGUE de permissions (liste stable),
-  // pas des résultats filtrés — sinon la liste rétrécit après sélection.
+  // Modules pour le select : dérivés du CATALOGUE de permissions (liste stable, celle du code —
+  // aucune requête, donc aucun refus pour qui n'a pas « role.read »), pas des résultats
+  // filtrés — sinon la liste rétrécit après sélection.
   const distinctModules = useMemo(
-    () => [...new Set(permsCatalog.map(p => p.module))].sort((a, b) => labelModule(a).localeCompare(labelModule(b))),
-    [permsCatalog],
+    () => [...MODULES_CATALOGUE].sort((a, b) => labelModule(a).localeCompare(labelModule(b))),
+    [],
   )
+
+  // Personnes du filtre « Utilisateur » : tous les comptes si on peut les lister, sinon celles qui
+  // figurent dans le journal chargé (le compte filtré y reste : ses lignes sont celles qui reviennent).
+  const optionsUtilisateurs = useMemo(() => {
+    if (peutListerComptes) {
+      return users.map(u => ({
+        value: u.id,
+        label: u.personnelMedical ? `${u.personnelMedical.prenom} ${u.personnelMedical.nom}` : u.login,
+        sublabel: u.login,
+      }))
+    }
+    const vus = new Map<string, string>()
+    for (const e of [...actions, ...auth]) {
+      const compte = e.utilisateur
+      if (compte && !vus.has(compte.id)) vus.set(compte.id, compte.login)
+    }
+    return [...vus].map(([value, login]) => ({ value, label: login, sublabel: undefined as string | undefined }))
+      .sort((a, b) => a.label.localeCompare(b.label))
+  }, [peutListerComptes, users, actions, auth])
   const distinctResultats = AUTH_RESULTATS
 
   // ── Extraction PDF ────────────────────────────────────────────────────────
@@ -232,11 +258,7 @@ export function AuditPage() {
                       aria-label={t('admin.filterByUser')}
                       options={[
                         { value: '', label: t('admin.allUsers') },
-                        ...users.map(u => ({
-                          value: u.id,
-                          label: u.personnelMedical ? `${u.personnelMedical.prenom} ${u.personnelMedical.nom}` : u.login,
-                          sublabel: u.login,
-                        })),
+                        ...optionsUtilisateurs,
                       ]}
                     />
                   </div>

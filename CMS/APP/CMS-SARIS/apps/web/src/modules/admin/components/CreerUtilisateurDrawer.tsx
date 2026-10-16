@@ -30,6 +30,7 @@ import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from '@workspace/ui/components/sheet'
 import { Button, Field, TextInput, StatusPill, SelectBox, CheckBox } from '@/components/saris'
+import { usePermissions } from '@/hooks/usePermissions'
 import { useCreateUtilisateur, useRoles } from '../hooks/useAdmin'
 import { useCreatePersonnel } from '@/modules/acteurs/hooks/usePersonnel'
 import { labelFonction, optionsFonction, roleParDefaut } from '@/config/fonctions'
@@ -82,7 +83,9 @@ export function CreerUtilisateurDrawer({ open, onClose, personnel = null }: Prop
   // En mode « donner un accès », la question ne se pose pas : c'est le but même.
   const [avecAcces, setAvecAcces] = useState(modeAcces)
 
-  const { data: roles = [] } = useRoles()
+  // Les rôles ne sont servis qu'avec « role.read » : sans lui, la requête reviendrait en 403.
+  const { has } = usePermissions()
+  const { data: roles = [] } = useRoles(has('role.read'))
 
   // En mode « donner un accès », la fiche existe déjà : l'emploi n'est pas redemandé.
   const identityValid =

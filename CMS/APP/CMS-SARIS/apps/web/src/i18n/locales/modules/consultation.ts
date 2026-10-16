@@ -22,7 +22,8 @@ export const consultation = {
     noSelectionDescription: 'Choisir une consultation dans la file ou en ouvrir une depuis le triage',
 
     // ── Carte file (queue) ──────────────────────────────────────────
-    ageYears: '{{age}} ans',
+    ageYears_one: '{{count}} an',
+    ageYears_other: '{{count}} ans',
     doctorPrefix: 'Dr. {{name}}',
     nursePrefix: 'Inf. {{name}}',
     midwifePrefix: 'SF {{name}}',
@@ -321,7 +322,8 @@ export const consultation = {
     noSelectionDescription: 'Select a consultation from the queue or open one from triage',
 
     // ── Queue card ──────────────────────────────────────────────────
-    ageYears: '{{age}} yrs',
+    ageYears_one: '{{count}} yr',
+    ageYears_other: '{{count}} yrs',
     doctorPrefix: 'Dr. {{name}}',
     nursePrefix: 'Nurse {{name}}',
     midwifePrefix: 'Midwife {{name}}',

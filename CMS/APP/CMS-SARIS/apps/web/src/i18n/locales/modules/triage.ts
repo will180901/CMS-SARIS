@@ -124,7 +124,8 @@ export const triage = {
 
     // ── QueueCard ───────────────────────────────────────────────────
     badgeEnCours: 'En cours',
-    ageAns: '{{age}} ans',
+    ageAns_one: '{{count}} an',
+    ageAns_other: '{{count}} ans',
 
     // ── ConstantesForm ──────────────────────────────────────────────
     constantesVitales: 'Constantes vitales',
@@ -477,7 +478,8 @@ export const triage = {
 
     // ── QueueCard ───────────────────────────────────────────────────
     badgeEnCours: 'In progress',
-    ageAns: '{{age}} yrs',
+    ageAns_one: '{{count}} yr',
+    ageAns_other: '{{count}} yrs',
 
     // ── ConstantesForm ──────────────────────────────────────────────
     constantesVitales: 'Vital signs',

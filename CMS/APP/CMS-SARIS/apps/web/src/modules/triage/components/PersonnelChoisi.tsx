@@ -144,7 +144,7 @@ export function PersonnelChoisi({ personne, complements, onChange, onRetirer, do
                   </span>
                   <div style={{ display: 'flex', gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '10px', fontFamily: 'monospace', color: 'var(--texte-tertiaire)' }}>{s.numeroPatient}</span>
-                    {s.identite?.dateNaissance && <span style={{ fontSize: '10px', color: 'var(--texte-tertiaire)' }}>· {t('triage.ageAns', { age: calcAge(s.identite.dateNaissance) })}</span>}
+                    {s.identite?.dateNaissance && <span style={{ fontSize: '10px', color: 'var(--texte-tertiaire)' }}>· {t('triage.ageAns', { count: calcAge(s.identite.dateNaissance) })}</span>}
                     {s.categoriePatient && <span style={{ fontSize: '10px', color: 'var(--texte-tertiaire)' }}>· {s.categoriePatient.libelle}</span>}
                   </div>
                 </div>

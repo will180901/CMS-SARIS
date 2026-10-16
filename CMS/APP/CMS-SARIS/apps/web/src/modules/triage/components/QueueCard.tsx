@@ -126,7 +126,7 @@ export function QueueCard({
           {id?.dateNaissance && (
             <>
               {' · '}
-              {t('triage.ageAns', { age: calcAge(id.dateNaissance) })}
+              {t('triage.ageAns', { count: calcAge(id.dateNaissance) })}
             </>
           )}
         </div>

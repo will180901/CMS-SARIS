@@ -104,7 +104,7 @@ export function ConsultationQueueCard({ consultation, selected, onClick }: Props
         <div style={{ fontSize: '11px', color: 'var(--texte-tertiaire)', marginTop: '2px',
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {visite.motifPrincipal?.libelle ?? '—'}
-          {id?.dateNaissance && <>{' · '}{t('consultation.ageYears', { age: calcAge(id.dateNaissance) })}</>}
+          {id?.dateNaissance && <>{' · '}{t('consultation.ageYears', { count: calcAge(id.dateNaissance) })}</>}
         </div>
 
         {consultation.soignant && (
