@@ -11,7 +11,7 @@
     "format": "prettier --write \"**/*.{ts,tsx}\"",
     "typecheck": "tsc -b",
     "preview": "vite preview",
-    "test": "tsx test/validation.test.ts && tsx test/libelles.test.ts"
+    "test": "tsx test/validation.test.ts && tsx test/libelles.test.ts && tsx test/rapports-periode.test.ts"
   },
   "dependencies": {
     "@cms-saris/types": "workspace:*",

@@ -21,6 +21,7 @@ import { useIsCompact } from '@/hooks/useMediaQuery'
 import { usePermissions } from '@/hooks/usePermissions'
 import { usePersistedState } from '@/hooks/usePersistedState'
 import { formatDate } from '@/lib/intl'
+import { dernierJourCouvert } from '../lib/periode'
 import { useRapports, useRapport, useGenererRapport, useSupprimerRapport } from '../hooks/useRapports'
 import { rapportsApi } from '../api/rapports.api'
 import { toast } from '@workspace/ui/components/sonner'
@@ -246,7 +247,7 @@ export function RapportsPage() {
                     </span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--texte-primaire)' }}>
-                        {formatDate(r.periodeDebut, { day: '2-digit', month: 'short', year: 'numeric' })} → {formatDate(r.periodeFin, { day: '2-digit', month: 'short', year: 'numeric' })}
+                        {formatDate(r.periodeDebut, { day: '2-digit', month: 'short', year: 'numeric' })} → {formatDate(dernierJourCouvert(r.periodeFin), { day: '2-digit', month: 'short', year: 'numeric' })}
                       </p>
                       <p style={{ margin: '3px 0 0', fontSize: 11, color: 'var(--texte-tertiaire)' }}>
                         {t('rapports.generatedOn', { date: formatDate(r.genereLe, { day: '2-digit', month: '2-digit', year: 'numeric' }) })}
@@ -322,7 +323,7 @@ export function RapportsPage() {
                 title={t('rapports.detailTitle', {
                   type:  typeLabel(t, detail.type),
                   debut: formatDate(detail.periodeDebut, { day: '2-digit', month: 'long', year: 'numeric' }),
-                  fin:   formatDate(detail.periodeFin,   { day: '2-digit', month: 'long', year: 'numeric' }),
+                  fin:   formatDate(dernierJourCouvert(detail.periodeFin),   { day: '2-digit', month: 'long', year: 'numeric' }),
                 })}
                 subtitle={t('rapports.detailSubtitle', {
                   count: detail.contenu.totalConsultations,
@@ -405,7 +406,7 @@ export function RapportsPage() {
           subtitle={t('rapports.detailTitle', {
             type:  typeLabel(t, detail!.type),
             debut: formatDate(detail!.periodeDebut, { day: '2-digit', month: 'long', year: 'numeric' }),
-            fin:   formatDate(detail!.periodeFin,   { day: '2-digit', month: 'long', year: 'numeric' }),
+            fin:   formatDate(dernierJourCouvert(detail!.periodeFin),   { day: '2-digit', month: 'long', year: 'numeric' }),
           })}
           onClose={() => setConfirmSuppr(false)}
           footer={

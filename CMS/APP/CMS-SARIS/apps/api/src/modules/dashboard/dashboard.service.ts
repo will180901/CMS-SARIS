@@ -12,6 +12,10 @@
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
 
+/** Libellé du « département » des patients qui n'en ont pas (ayants droit, externes…). Ce n'est pas un
+ *  service du centre : les constats par département (rapports) ne doivent pas le désigner. */
+export const DEPARTEMENT_NON_RENSEIGNE = 'Non renseigné'
+
 // ── Helpers de dates ──────────────────────────────────────────────────────────
 
 function startOfToday(): Date {
@@ -410,7 +414,7 @@ export class DashboardService {
       const lib = c.visite?.patient?.categoriePatient?.libelle ?? '—'
       catMap.set(lib, (catMap.get(lib) ?? 0) + 1)
       const dept =
-        c.visite?.patient?.donneesEmploi?.departement ?? 'Non renseigné'
+        c.visite?.patient?.donneesEmploi?.departement ?? DEPARTEMENT_NON_RENSEIGNE
       deptMap.set(dept, (deptMap.get(dept) ?? 0) + 1)
       if (c.reposJours && c.reposJours > 0) {
         totalReposJours += c.reposJours

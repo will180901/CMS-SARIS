@@ -50,6 +50,8 @@ export interface VoletsRapportData {
 
 export interface ContenuRapport extends StatistiquesActivite {
   precedent?: StatistiquesActivite | null
+  /** Période encore entamée / plus courte que la précédente : non comparable (absent des anciens rapports). */
+  partielle?: boolean
   volets?:    VoletsRapportData
   serie?:     PointSerie[]
   alertes?:   AlerteRapport[]

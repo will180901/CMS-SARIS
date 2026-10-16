@@ -24,6 +24,7 @@ import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { ListePrintSheet, type BlocImprimable, type BlocTableau } from '@/components/print/ListePrintSheet'
 import { formatDate } from '@/lib/intl'
+import { dernierJourCouvert } from '../lib/periode'
 import type { RapportDetail, Repartition } from '../api/rapports.api'
 
 const ROOT_ID = 'rapport-print-sheet'
@@ -85,7 +86,9 @@ function phrasesSynthese(rapport: RapportDetail, t: TFunction): string {
   const ecart = avant !== null && avant >= 3 ? Math.round(((total - avant) / avant) * 100) : null
 
   const phrases: string[] = [t('rapports.syntheseActes', { count: total })]
-  if (ecart !== null) {
+  if (c.partielle && avant !== null) {
+    phrases.push(t('rapports.syntheseEnCours', { avant }))
+  } else if (ecart !== null) {
     phrases.push(t('rapports.syntheseEvolution', {
       signe: ecart > 0 ? '+' : ecart < 0 ? '−' : '', pct: Math.abs(ecart), avant,
     }))
@@ -109,7 +112,7 @@ export function RapportPrintModal({ rapport, onClose }: { rapport: RapportDetail
   const c = rapport.contenu
   const v = c.volets
 
-  const periode = `${formatDate(rapport.periodeDebut, { day: '2-digit', month: 'long', year: 'numeric' })} → ${formatDate(rapport.periodeFin, { day: '2-digit', month: 'long', year: 'numeric' })}`
+  const periode = `${formatDate(rapport.periodeDebut, { day: '2-digit', month: 'long', year: 'numeric' })} → ${formatDate(dernierJourCouvert(rapport.periodeFin), { day: '2-digit', month: 'long', year: 'numeric' })}`
   const at = c.parType.find(x => /accident/i.test(x.libelle))?.count ?? 0
   const visites = v?.activite.visites ?? 0
   const tauxPassage = visites > 0 ? Math.round((c.totalConsultations / visites) * 100) : null

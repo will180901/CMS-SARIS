@@ -38,14 +38,18 @@ export function SyntheseRapport({ contenu }: { contenu: ContenuRapport }) {
   const serie = contenu.serie ?? []
 
   // Évolution : uniquement si la période précédente avait de quoi comparer. Un écart
-  // calculé sur un ou deux actes est un artefact, pas une tendance.
+  // calculé sur un ou deux actes est un artefact, pas une tendance. Et jamais sur une période
+  // partielle (mois entamé face au mois plein) : ni écart, ni flèche de baisse.
   const ecart =
-    avant !== null && avant >= 3 ? Math.round(((total - avant) / avant) * 100) : null
+    !contenu.partielle && avant !== null && avant >= 3 ? Math.round(((total - avant) / avant) * 100) : null
 
   // Phrases de synthèse, construites à partir des seules données.
   const phrases: string[] = []
   phrases.push(t('rapports.syntheseActes', { count: total }))
-  if (ecart !== null) {
+  if (contenu.partielle && avant !== null) {
+    // Un mois entamé ne se compare pas au mois plein : « -39 % » le 16 du mois serait faux.
+    phrases.push(t('rapports.syntheseEnCours', { avant }))
+  } else if (ecart !== null) {
     phrases.push(
       t('rapports.syntheseEvolution', {
         signe: ecart > 0 ? '+' : ecart < 0 ? '−' : '',

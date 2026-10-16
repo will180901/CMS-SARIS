@@ -20,7 +20,11 @@ import {
 } from '@nestjs/common'
 import { Cron, CronExpression } from '@nestjs/schedule'
 import { PrismaService } from '../../prisma/prisma.service'
-import { DashboardService } from '../dashboard/dashboard.service'
+import {
+  DashboardService,
+  DEPARTEMENT_NON_RENSEIGNE,
+} from '../dashboard/dashboard.service'
+import { periodeEstPartielle } from './rapports-periode'
 
 export type TypeRapport = 'HEBDOMADAIRE' | 'MENSUEL' | 'ANNUEL'
 
@@ -150,6 +154,7 @@ export class RapportsService {
   private calculerAlertes(
     stats: StatsPeriode,
     precedent: StatsPeriode | null,
+    partielle = false,
   ): AlerteRapport[] {
     const alertes: AlerteRapport[] = []
     const total = stats.totalConsultations
@@ -165,7 +170,9 @@ export class RapportsService {
           niveau: 'info',
           params: { pct: ecart, avant: totalAvant, apres: total },
         })
-      } else if (ecart <= -30) {
+      } else if (ecart <= -30 && !partielle) {
+        // Jamais sur une période partielle : un mois entamé « baisse » toujours face au mois plein.
+        // (Les hausses, elles, restent vraies : déjà plus haut malgré moins de jours.)
         alertes.push({
           code: 'ACTIVITE_BAISSE',
           niveau: 'info',
@@ -178,7 +185,10 @@ export class RapportsService {
     //    pour un centre d'entreprise, parce qu'il designe OU agir.
     const at = stats.parType.find((x) => /accident/i.test(x.libelle))
     if (at && at.count >= 2) {
-      const top = [...stats.parDepartement].sort((a, b) => b.count - a.count)[0]
+      // « Non renseigné » n'est pas un département : on ne désigne pas où agir avec lui.
+      const top = [...stats.parDepartement]
+        .filter((x) => x.libelle !== DEPARTEMENT_NON_RENSEIGNE)
+        .sort((a, b) => b.count - a.count)[0]
       if (top && top.count >= 2 && top.count / Math.max(total, 1) >= 0.5) {
         alertes.push({
           code: 'AT_CONCENTRATION',
@@ -400,12 +410,14 @@ export class RapportsService {
 
     const volets = await this.calculerVolets(periodeDebut, periodeFin)
 
+    const partielle = periodeEstPartielle(periodeDebut, periodeFin, pp)
     const contenu = {
       ...stats,
       precedent,
+      partielle,
       serie,
       volets,
-      alertes: this.calculerAlertes(stats, precedent),
+      alertes: this.calculerAlertes(stats, precedent, partielle),
     }
     const existant = await this.prisma.rapportGenere.findFirst({
       where: { type, periodeDebut, periodeFin },
