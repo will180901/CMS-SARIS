@@ -1,8 +1,8 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { toast } from '@workspace/ui/components/sonner'
 import { patientsApi } from '../api/patients.api'
 import type {
-  CreatePatientPayload, PatientQueryParams, OuvrirDossierPersonnelPayload,
+  CreatePatientPayload, PatientQueryParams, PatientListeParams, OuvrirDossierPersonnelPayload,
   AllergiePayload, AntecedentPayload, AlertePayload,
   UpdateRattachementADPayload, RattacherAyantDroitPayload,
   UpdateIdentitePayload, ChangerCategoriePayload, ModeViePayload,
@@ -28,13 +28,37 @@ function toastError(err: unknown) {
 
 // ── Liste ─────────────────────────────────────────────────────────────────────
 
-export function usePatients(params?: PatientQueryParams) {
+/**
+ * TOUS les dossiers correspondant aux filtres. À réserver à ce qui a vraiment besoin de la liste
+ * entière (l'extraction) et à ne demander qu'à ce moment-là (`enabled`) : l'écran passe par
+ * `usePatientsListe`, qui découpe en pages.
+ */
+export function usePatients(params?: PatientQueryParams, opts?: { enabled?: boolean }) {
   const { has } = usePermissions()
   return useQuery({
     queryKey: [...PATIENTS_KEY, params],
     queryFn:  () => patientsApi.list(params),
     staleTime: 30_000,
-    enabled:  has('patient.read'),
+    enabled:  has('patient.read') && (opts?.enabled ?? true),
+  })
+}
+
+/**
+ * La liste PAR PAGES (page Patients, recherche de l'accueil) : le serveur découpe et fait la recherche.
+ * `garderPrecedent` : pendant qu'une autre page ou une autre recherche charge, la liste précédente reste
+ * à l'écran au lieu de laisser place à un squelette qui clignote.
+ */
+export function usePatientsListe(
+  params: PatientListeParams,
+  opts?: { enabled?: boolean; garderPrecedent?: boolean },
+) {
+  const { has } = usePermissions()
+  return useQuery({
+    queryKey: [...PATIENTS_KEY, 'liste', params],
+    queryFn:  () => patientsApi.liste(params),
+    placeholderData: opts?.garderPrecedent ? keepPreviousData : undefined,
+    staleTime: 30_000,
+    enabled:  has('patient.read') && (opts?.enabled ?? true),
   })
 }
 

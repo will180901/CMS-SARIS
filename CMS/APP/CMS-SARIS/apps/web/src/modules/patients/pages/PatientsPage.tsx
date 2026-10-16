@@ -5,12 +5,13 @@ import { Search, X, Users, AlertTriangle, ChevronRight, ChevronLeft, Download, L
 import { Input }              from '@workspace/ui/components/input'
 import { Button }             from '@workspace/ui/components/button'
 import { SelectBox, PaginationBar, EmptyState, TILE_TONE_MAP, CheckBox, useSelectionLot, BarreSelectionLot } from '@/components/saris'
-import { usePagination }      from '@/hooks/usePagination'
+import { usePaginationServeur } from '@/hooks/usePagination'
+import { useDebouncedValue }   from '@/hooks/useDebouncedValue'
 import { useRowsPerPage }     from '@/hooks/useRowsPerPage'
 import { useIsCompact }       from '@/hooks/useMediaQuery'
 import { usePermissions }     from '@/hooks/usePermissions'
 import { usePersistedState }  from '@/hooks/usePersistedState'
-import { usePatients, PATIENTS_KEY } from '../hooks/usePatients'
+import { usePatients, usePatientsListe, PATIENTS_KEY } from '../hooks/usePatients'
 import { patientsApi }        from '../api/patients.api'
 import { useCategoriesPatient } from '@/modules/referentiels/hooks/useReferentiels'
 import { CategorieBadge, PatientAvatar }  from '../components/CategorieBadge'
@@ -279,26 +280,6 @@ export function PatientsPage() {
 
   const { data: categories = [] } = useCategoriesPatient()
 
-  const { data: patients = [], isLoading } = usePatients({
-    statut:      statut    !== 'all' ? statut    : undefined,
-    categorieId: categorie !== 'all' ? categorie : undefined,
-  })
-
-  const filtered = useMemo(() => {
-    return patients.filter(p => {
-      if (statut !== 'all' && p.statut !== statut) return false
-      if (search) {
-        const q    = search.toLowerCase()
-        const full = `${p.identite?.nom ?? ''} ${p.identite?.prenom ?? ''} ${p.numeroPatient} ${p.matricule ?? ''}`.toLowerCase()
-        if (!full.includes(q)) return false
-      }
-      return true
-    })
-  }, [patients, search, statut])
-
-  const pagination = usePagination(filtered, useRowsPerPage())
-  const selectedPatient = filtered.find(p => p.id === selected) ?? null
-
   // Suppression en lot des dossiers — même permission et même endpoint que la
   // suppression unitaire du dossier ; le serveur refuse (409) tout dossier qui
   // porte un historique clinique, et ces dossiers restent cochés.
@@ -310,13 +291,49 @@ export function PatientsPage() {
     invalider: [PATIENTS_KEY],
   })
 
+  // Liste PAR PAGES : le serveur découpe et fait la recherche (il y a des milliers de dossiers, on ne
+  // les charge plus tous). La saisie ne part au serveur qu'une fois la frappe terminée.
+  const rechercheServeur = useDebouncedValue(search.trim(), 300)
+  const filtresActifs = {
+    statut:      statut    !== 'all' ? statut    : undefined,
+    categorieId: categorie !== 'all' ? categorie : undefined,
+    search:      rechercheServeur || undefined,
+  }
+  // Une sélection en lot ne survit ni au changement de page ni à celui des filtres : elle ne porte que
+  // sur ce qu'on a sous les yeux.
+  const pg = usePaginationServeur(useRowsPerPage(), `${statut}|${categorie}|${rechercheServeur}`, sel.quitter)
+  const { data: liste, isLoading, isPlaceholderData } = usePatientsListe(
+    { ...filtresActifs, page: pg.page, limite: pg.pageSize },
+    { garderPrecedent: true },
+  )
+  const patients = liste?.data ?? []
+  const total = liste?.total ?? 0
+  const pagination = pg.controles(total)
+  // La dernière page a été vidée (suppression en lot…) : on revient à une page qui existe encore.
+  if (liste && !isPlaceholderData && liste.total > 0 && liste.data.length === 0 && pg.page > 1) {
+    pg.recaler(Math.ceil(liste.total / pg.pageSize))
+  }
+
+  // Le dossier ouvert à droite est mémorisé (d'un passage à l'autre) : il n'est pas forcément dans la
+  // page chargée — on le retrouve alors par son identifiant, selon les MÊMES filtres (un dossier qui
+  // ne correspond plus à la recherche n'est pas montré, comme avant).
+  const dansLaPage = patients.find(p => p.id === selected) ?? null
+  const { data: retrouve } = usePatientsListe(
+    { ...filtresActifs, id: selected ?? undefined, limite: 1 },
+    { enabled: !!selected && !dansLaPage && !isLoading },
+  )
+  const selectedPatient = dansLaPage ?? retrouve?.data[0] ?? null
+
   const [openExport, setOpenExport] = useState(false)
+  // L'extraction porte sur TOUS les dossiers correspondant aux filtres, pas sur la page à l'écran : on
+  // les charge seulement quand on exporte.
+  const { data: toutExport, isFetching: chargeExport } = usePatients(filtresActifs, { enabled: openExport })
 
   /**
    * Colonnes de l'extraction — les mêmes informations que la ligne de liste,
    * rendues en texte (le papier n'a ni avatar, ni pastille de catégorie).
-   * L'extraction porte sur la liste FILTRÉE, pas sur la page courante : on
-   * extrait ce que l'on a cherché, pas les vingt-cinq lignes sous les yeux.
+   * L'extraction porte sur la liste FILTRÉE (tous les dossiers trouvés), pas sur la page
+   * courante : on extrait ce que l'on a cherché, pas les vingt-cinq lignes sous les yeux.
    */
   const colonnesExport = useMemo<ColonneExport<PatientListItem>[]>(() => [
     { libelle: t('patients.colNumero', { defaultValue: 'N° dossier' }),
@@ -385,7 +402,7 @@ export function PatientsPage() {
             <div>
               <h1 style={{ fontSize: 'var(--font-size-h2)', fontWeight: '600', color: 'var(--texte-primaire)', margin: 0 }}>{t('patients.pageTitle')}</h1>
               <p style={{ fontSize: '13px', color: 'var(--texte-tertiaire)', margin: '2px 0 0' }}>
-                {isLoading ? '…' : t(filtered.length > 1 ? 'patients.patientCountPlural' : 'patients.patientCountSingular', { count: filtered.length })}
+                {isLoading ? '…' : t(total > 1 ? 'patients.patientCountPlural' : 'patients.patientCountSingular', { count: total })}
                 {statut !== 'all' ? ` · ${statut === 'ACTIF' ? t('patients.filterActifs') : statut}` : ''}
               </p>
             </div>
@@ -394,10 +411,12 @@ export function PatientsPage() {
           <Button
             variant="outline"
             onClick={() => setOpenExport(true)}
-            disabled={isLoading || filtered.length === 0}
+            disabled={isLoading || total === 0 || chargeExport}
             style={{ height: 34, fontSize: 13, gap: 6 }}
           >
-            <Download size={14} /> {t('common.exporter', { defaultValue: 'Exporter' })}
+            {chargeExport
+              ? t('common.loading')
+              : <><Download size={14} /> {t('common.exporter', { defaultValue: 'Exporter' })}</>}
           </Button>
         </div>
 
@@ -407,12 +426,12 @@ export function PatientsPage() {
             <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--texte-tertiaire)', pointerEvents: 'none' }} />
             <Input
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              onChange={e => { setSearch(e.target.value); sel.quitter() }}
               placeholder={t('patients.searchPlaceholder')}
               style={{ paddingLeft: 32, paddingRight: search ? 32 : 12, height: 34, fontSize: '13px', background: 'var(--fond-surface)', border: '1px solid var(--bordure-normale)', borderRadius: 6 }}
             />
             {search && (
-              <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--texte-tertiaire)', display: 'flex' }}>
+              <button onClick={() => { setSearch(''); sel.quitter() }} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--texte-tertiaire)', display: 'flex' }}>
                 <X size={12} />
               </button>
             )}
@@ -422,7 +441,7 @@ export function PatientsPage() {
             <SelectBox
               size="sm"
               value={categorie}
-              onChange={setCategorie}
+              onChange={v => { setCategorie(v); sel.quitter() }}
               aria-label={t('patients.filterByCategory')}
               options={[
                 { value: 'all', label: t('patients.allCategories') },
@@ -434,7 +453,7 @@ export function PatientsPage() {
             <SelectBox
               size="sm"
               value={statut}
-              onChange={setStatut}
+              onChange={v => { setStatut(v); sel.quitter() }}
               aria-label={t('patients.filterByStatus')}
               options={[
                 { value: 'ACTIF',   label: t('patients.statusActive')   },
@@ -460,7 +479,7 @@ export function PatientsPage() {
         }}>
           {sel.actif && (
             <div style={{ padding: 'var(--espace-2) var(--espace-2) 0' }}>
-              <BarreSelectionLot sel={sel} lignes={filtered} />
+              <BarreSelectionLot sel={sel} lignes={patients} />
             </div>
           )}
 
@@ -479,7 +498,7 @@ export function PatientsPage() {
                   </div>
                 ))}
               </div>
-            ) : filtered.length === 0 ? (
+            ) : total === 0 ? (
               <div style={{ padding: '32px' }}>
                 <EmptyState
                   icon={<Users size={20} />}
@@ -488,7 +507,7 @@ export function PatientsPage() {
                 />
               </div>
             ) : (
-              pagination.pageData.map(p => (
+              patients.map(p => (
                 <PatientRow
                   key={p.id}
                   patient={p}
@@ -503,7 +522,7 @@ export function PatientsPage() {
           </div>
 
           {/* Pagination en bas */}
-          {!isLoading && filtered.length > 0 && (
+          {!isLoading && total > 0 && (
             <div style={{ padding: 'var(--espace-2)', borderTop: '1px solid var(--bordure-legere)', flexShrink: 0 }}>
               <PaginationBar {...pagination} attached />
             </div>
@@ -569,12 +588,12 @@ export function PatientsPage() {
         )}
       </div>
 
-      {openExport && (
+      {openExport && toutExport && (
         <ListePrintSheet<PatientListItem>
           rootId="export-patients"
           titre={t('patients.pageTitle')}
-          sousTitre={t(filtered.length > 1 ? 'patients.patientCountPlural' : 'patients.patientCountSingular', { count: filtered.length })}
-          lignes={filtered}
+          sousTitre={t(toutExport.length > 1 ? 'patients.patientCountPlural' : 'patients.patientCountSingular', { count: toutExport.length })}
+          lignes={toutExport}
           cleDe={p => p.id}
           colonnes={colonnesExport}
           onClose={() => setOpenExport(false)}

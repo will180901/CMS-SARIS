@@ -102,6 +102,24 @@ export interface PatientQueryParams {
   statut?:     string
 }
 
+/** La liste PAR PAGES : mêmes filtres que la liste complète, plus la page et le nombre par page. */
+export interface PatientListeParams extends PatientQueryParams {
+  /** Retrouver UN dossier selon les mêmes filtres (ex. la sélection mémorisée de la page). */
+  id?:     string
+  /** À partir de 1 (1 par défaut). */
+  page?:   number
+  /** Dossiers par page (25 par défaut, 100 au plus). */
+  limite?: number
+}
+
+export interface PatientListePage {
+  data:   PatientListItem[]
+  /** Dossiers correspondant aux filtres (pas seulement ceux de la page) — numérote les pages. */
+  total:  number
+  page:   number
+  limite: number
+}
+
 export interface SimilarPatientQuery {
   nom:            string
   prenom:         string
@@ -342,7 +360,10 @@ export interface UpdateSuiviChroniquePayload {
 
 export const patientsApi = {
   // Liste + dossier
+  /** TOUS les dossiers correspondant aux filtres — réservé à l'extraction (papier/Excel). L'écran passe par `liste`. */
   list:    (params?: PatientQueryParams) => api.get<PatientListItem[]>('/patients', params as Record<string, string>),
+  /** La liste PAR PAGES : le serveur découpe et fait la recherche. */
+  liste:   (params: PatientListeParams)  => api.get<PatientListePage>('/patients/liste', params as Record<string, string | number | undefined>),
   findById: (id: string)                 => api.get<PatientDossier>(`/patients/${id}`),
   create:  (data: CreatePatientPayload)  => api.post<PatientDossier>('/patients', data),
   findSimilar: (q: SimilarPatientQuery)  => api.get<SimilarPatient[]>('/patients/similar', q as unknown as Record<string, string>),

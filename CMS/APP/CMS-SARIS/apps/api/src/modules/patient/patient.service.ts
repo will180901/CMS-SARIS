@@ -27,6 +27,8 @@ import {
   ChangerCategorieDto,
   ToggleStatutPatientDto,
   PatientQueryDto,
+  PatientListeQueryDto,
+  PATIENTS_LIMITE_DEFAUT,
   OuvrirDossierPersonnelDto,
 } from './dto/patient.dto'
 import { CreateAllergieDto, UpdateAllergieDto } from './dto/medical.dto'
@@ -347,23 +349,58 @@ export class PatientService {
 
   // ── Liste patients ────────────────────────────────────────────────────────
 
+  /** Les filtres de la liste (statut, catégorie, site, recherche par mots) — une seule définition. */
+  private filtresListe(
+    query: PatientQueryDto & { id?: string },
+  ): Prisma.PatientWhereInput {
+    const { search, categorieId, siteId, statut, id } = query
+    return {
+      ...(id && { id }),
+      ...(statut && { statut: statut as StatutPatient }),
+      ...(categorieId && { categoriePatientId: categorieId }),
+      ...(siteId && { siteCreationId: siteId }),
+      ...parMots(search, (mot) => [
+        { numeroPatient: { contains: mot, ...CI } },
+        { matricule: { contains: mot, ...CI } },
+        { identite: { nom: { contains: mot, ...CI } } },
+        { identite: { prenom: { contains: mot, ...CI } } },
+      ]),
+    }
+  }
+
+  /**
+   * TOUS les patients correspondant aux filtres. Réservé à ce qui a vraiment besoin de la liste
+   * entière (l'extraction papier/Excel) : l'écran, lui, passe par `liste` (par pages).
+   */
   async findAll(query: PatientQueryDto) {
-    const { search, categorieId, siteId, statut } = query
     return this.prisma.patient.findMany({
-      where: {
-        ...(statut && { statut: statut as StatutPatient }),
-        ...(categorieId && { categoriePatientId: categorieId }),
-        ...(siteId && { siteCreationId: siteId }),
-        ...parMots(search, (mot) => [
-          { numeroPatient: { contains: mot, ...CI } },
-          { matricule: { contains: mot, ...CI } },
-          { identite: { nom: { contains: mot, ...CI } } },
-          { identite: { prenom: { contains: mot, ...CI } } },
-        ]),
-      },
+      where: this.filtresListe(query),
       include: LISTE_INCLUDE,
       orderBy: { createdAt: 'desc' },
     })
+  }
+
+  /**
+   * La liste des patients PAR PAGES : mêmes lignes et mêmes filtres que `findAll`, `limite` dossiers
+   * à la fois, du plus récent au plus ancien (`id` départage deux dossiers du même instant : l'ordre
+   * est total, donc deux pages ne se chevauchent jamais). Le `total` correspond aux filtres, pas à la
+   * page — il sert à numéroter les pages. Une page au-delà de la dernière rend une liste vide.
+   */
+  async liste(query: PatientListeQueryDto) {
+    const limite = query.limite ?? PATIENTS_LIMITE_DEFAUT
+    const page = query.page ?? 1
+    const where = this.filtresListe(query)
+    const [data, total] = await Promise.all([
+      this.prisma.patient.findMany({
+        where,
+        include: LISTE_INCLUDE,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        skip: (page - 1) * limite,
+        take: limite,
+      }),
+      this.prisma.patient.count({ where }),
+    ])
+    return { data, total, page, limite }
   }
 
   // ── Détection de doublons (triage intelligent) ─────────────────────────────

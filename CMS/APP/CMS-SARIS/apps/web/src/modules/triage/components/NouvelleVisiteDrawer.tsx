@@ -13,7 +13,7 @@ import { useMotifs, useCreateMotif, useCategoriesPatient } from '@/modules/refer
 import { useSousTraitants } from '@/modules/referentiels/hooks/useSousTraitants'
 import { useDossierParMatricule } from '@/modules/patients/hooks/usePatients'
 import { useIsCompact } from '@/hooks/useMediaQuery'
-import { usePatients, useCreatePatient, useFindSimilarPatients, usePatientDossier, useRattacherAyantDroit, usePersonnelSansDossier, useOuvrirDossierPersonnel } from '@/modules/patients/hooks/usePatients'
+import { usePatientsListe, useCreatePatient, useFindSimilarPatients, usePatientDossier, useRattacherAyantDroit, usePersonnelSansDossier, useOuvrirDossierPersonnel } from '@/modules/patients/hooks/usePatients'
 import type { PersonnelSansDossier } from '@/modules/patients/api/patients.api'
 import { PersonnelChoisi } from './PersonnelChoisi'
 import { COMPLEMENTS_VIDES, complementsValides, complementsVersPayload } from './personnelAccueil'
@@ -77,9 +77,6 @@ export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Pr
   const [search,      setSearch]     = useState('')
   const [patientId,   setPatient]    = useState(initialPatientId ?? '')
   const [submitError, setError]      = useState<string | null>(null)
-  // Fiche du patient pré-sélectionné (arrivée depuis son dossier) — la liste de
-  // recherche `allPatients` ne le contiendrait pas tant qu'aucun terme n'est tapé.
-  const { data: prefillDossier } = usePatientDossier(patientId === initialPatientId ? (initialPatientId ?? '') : '')
 
   // Patient — sous-mode : sélectionner un patient existant OU créer le dossier.
   const [mode, setMode] = useState<'search' | 'create'>('search')
@@ -180,10 +177,17 @@ export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Pr
 
   const motifId = selectedMotif?.id ?? ''
 
-  const { data: allPatients = [], isLoading: searching } = usePatients({
-    search: search.length >= 2 ? search : undefined,
-    statut: 'ACTIF',
-  })
+  // Les résultats de la recherche (12 au plus, le serveur les limite) — rien n'est demandé tant qu'on
+  // n'a pas tapé deux lettres : on ne charge plus la liste entière des patients.
+  const { data: resultats, isLoading: searching } = usePatientsListe(
+    { search, statut: 'ACTIF', limite: 12 },
+    { enabled: search.length >= 2 },
+  )
+  const allPatients = resultats?.data ?? []
+  // Le patient choisi n'est pas toujours parmi les résultats affichés (arrivée depuis son dossier, ou
+  // recherche modifiée depuis) : on lit alors SA fiche, par son identifiant.
+  const dansResultats = allPatients.find(p => p.id === patientId)
+  const { data: dossierChoisi } = usePatientDossier(patientId && !dansResultats ? patientId : '')
   // Le personnel qui a déjà un dossier sort parmi les patients ; ici, ceux qui n'en ont pas.
   const { data: personnelTrouve = [] } = usePersonnelSansDossier(
     mode === 'search' && !patientId && !personnel ? search : '',
@@ -191,8 +195,7 @@ export function NouvelleVisitePanel({ onClose, onCreated, initialPatientId }: Pr
   const { data: motifs = [] } = useMotifs()
   const actifsMotifs = useMemo(() => motifs.filter(m => m.statut === 'ACTIF'), [motifs])
 
-  const selectedPatient = allPatients.find(p => p.id === patientId)
-    ?? (patientId === initialPatientId && prefillDossier ? prefillDossier : undefined)
+  const selectedPatient = dansResultats ?? (patientId && dossierChoisi ? dossierChoisi : undefined)
   // Rattachement d'un patient existant : un employé (CDI/CDD) n'est jamais l'ayant droit
   // d'un autre — le serveur le refuse, l'écran ne le propose pas.
   const peutEtreRattache = !!selectedPatient && has('patient.rattachement.manage')

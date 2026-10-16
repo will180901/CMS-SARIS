@@ -36,6 +36,7 @@ import {
   ChangerCategorieDto,
   ToggleStatutPatientDto,
   PatientQueryDto,
+  PatientListeQueryDto,
   FindSimilarPatientDto,
   VerrouPatientDto,
   PersonnelAccueilQueryDto,
@@ -110,6 +111,16 @@ export class PatientController {
   @RequirePermissions('patient.read')
   findAll(@Query() query: PatientQueryDto) {
     return this.patientService.findAll(query)
+  }
+
+  /**
+   * La liste PAR PAGES (page Patients, recherche de l'accueil) → `{ data, total, page, limite }`.
+   * Placée AVANT @Get(':id') pour que « liste » ne soit pas capturé comme :id.
+   */
+  @Get('liste')
+  @RequirePermissions('patient.read')
+  liste(@Query() query: PatientListeQueryDto) {
+    return this.patientService.liste(query)
   }
 
   @Post()

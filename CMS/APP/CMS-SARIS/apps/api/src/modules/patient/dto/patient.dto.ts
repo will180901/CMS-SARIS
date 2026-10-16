@@ -8,6 +8,9 @@ import {
   MaxLength,
   ValidateNested,
   IsBoolean,
+  IsInt,
+  Min,
+  Max,
   Matches,
 } from 'class-validator'
 import { Type } from 'class-transformer'
@@ -183,6 +186,34 @@ export class PatientQueryDto {
   @IsOptional()
   @IsIn(['ACTIF', 'ARCHIVE', 'DECEDE', 'FUSIONNE'])
   statut?: string
+}
+
+/**
+ * La liste des patients PAR PAGES (page Patients, recherche de l'accueil) : le serveur découpe et
+ * fait la recherche — il y a des milliers de dossiers, on ne les envoie plus tous.
+ */
+export const PATIENTS_LIMITE_DEFAUT = 25
+export const PATIENTS_LIMITE_MAX = 100
+
+export class PatientListeQueryDto extends PatientQueryDto {
+  /** Retrouver UN dossier selon les mêmes filtres (ex. la sélection mémorisée de la page). */
+  @IsOptional() @IsUUID() id?: string
+
+  /** Numéro de page, à partir de 1. */
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(1_000_000)
+  page?: number
+
+  /** Dossiers par page. */
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(PATIENTS_LIMITE_MAX)
+  limite?: number
 }
 
 // ── Détection de doublons (triage) ────────────────────────────────────────────
