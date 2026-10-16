@@ -15,6 +15,9 @@ export const consultation = {
     resizeHint: 'Glisser pour redimensionner · Double-clic pour réinitialiser',
     noSearchResult: 'Aucun résultat pour « {{search}} »',
     noOpenConsultation: 'Aucune consultation ouverte',
+    noHistory: 'Aucune consultation dans cet historique',
+    loadMore: 'Afficher plus',
+    loadedOf: '{{loaded}} affichées sur {{total}}',
     noSelectionTitle: 'Aucune consultation sélectionnée',
     noSelectionDescription: 'Choisir une consultation dans la file ou en ouvrir une depuis le triage',
 
@@ -311,6 +314,9 @@ export const consultation = {
     resizeHint: 'Drag to resize · Double-click to reset',
     noSearchResult: 'No result for “{{search}}”',
     noOpenConsultation: 'No open consultation',
+    noHistory: 'No consultation in this history',
+    loadMore: 'Show more',
+    loadedOf: '{{loaded}} shown of {{total}}',
     noSelectionTitle: 'No consultation selected',
     noSelectionDescription: 'Select a consultation from the queue or open one from triage',
 

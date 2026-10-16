@@ -199,6 +199,36 @@ export class ConsultationQueryDto {
   patientId?: string
 }
 
+/**
+ * Historique des consultations (onglets « Clôturées » et « Annulées ») : par PAGES, avec la
+ * recherche faite par le serveur — il y en a des milliers, on ne les envoie plus toutes.
+ */
+export const HISTORIQUE_LIMITE_DEFAUT = 40
+export const HISTORIQUE_LIMITE_MAX = 100
+
+export class ConsultationHistoriqueQueryDto {
+  @IsIn(['CLOTUREE', 'ANNULEE'])
+  statut!: string
+
+  /** Mots cherchés (dans n'importe quel ordre) : patient, numéro, motif, soignant. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  search?: string
+
+  /** Dernière consultation reçue : la page demandée commence juste après elle. */
+  @IsOptional()
+  @IsUUID()
+  curseur?: string
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(HISTORIQUE_LIMITE_MAX)
+  limite?: number
+}
+
 // ── Type de consultation ──────────────────────────────────────────────────────
 
 export class SetTypeConsultationDto {

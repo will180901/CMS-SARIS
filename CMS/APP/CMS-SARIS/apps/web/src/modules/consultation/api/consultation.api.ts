@@ -68,6 +68,24 @@ export interface ConsultationQueryParams {
   patientId?: string
 }
 
+/** Historique par pages (onglets « Clôturées » et « Annulées »). */
+export interface ConsultationHistoriqueParams {
+  statut:   'CLOTUREE' | 'ANNULEE'
+  /** Mots cherchés par le serveur, sur tout l'historique : patient, numéro, motif, soignant. */
+  search?:  string
+  /** Dernière consultation reçue : la page demandée commence juste après. */
+  curseur?: string
+  limite?:  number
+}
+
+export interface ConsultationHistoriquePage {
+  data:           ConsultationListItem[]
+  /** Consultations correspondant à la recherche — donné sur la 1re page seulement (`null` ensuite). */
+  total:          number | null
+  /** À passer en `curseur` pour la page suivante ; `null` à la fin. */
+  curseurSuivant: string | null
+}
+
 export interface PatientDocument {
   id:             string
   type:           'ORDONNANCE' | 'BON_EXAMEN' | 'BON_PHARMACIE' | 'EVACUATION' | 'CERTIFICAT_REPOS'
@@ -87,6 +105,10 @@ export const consultationApi = {
   // Liste
   list: (params?: ConsultationQueryParams) =>
     api.get<ConsultationListItem[]>('/consultations', params as Record<string, string>),
+
+  // Historique par pages (clôturées / annulées)
+  historique: (params: ConsultationHistoriqueParams) =>
+    api.get<ConsultationHistoriquePage>('/consultations/historique', params as unknown as Record<string, string>),
 
   // Détail
   findById: (id: string) =>

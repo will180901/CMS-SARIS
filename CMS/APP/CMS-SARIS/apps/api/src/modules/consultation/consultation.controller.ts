@@ -41,6 +41,7 @@ import {
   CreateOrdonnanceDto,
   AddLigneOrdonnanceDto,
   ConsultationQueryDto,
+  ConsultationHistoriqueQueryDto,
   SetTypeConsultationDto,
   UpdateReposDto,
   UpdateOrdonnanceDto,
@@ -100,6 +101,25 @@ export class ConsultationController {
       SUPERVISION_ROLES.includes(r),
     )
     return this.consultationService.findAll(query, {
+      canReadAll,
+      personnelMedicalId: req.user?.personnelMedicalId ?? null,
+      canViewLocked: canReadAll,
+      restreindreHistorique: isHistoriqueRestreint(req),
+      masquerConfidentiel: masquerConfidentiel(req),
+    })
+  }
+
+  // ── Historique par pages ──────────────────────────────────────────────────
+  // Placé AVANT @Get(':id') pour que « historique » ne soit pas capturé comme :id.
+
+  @Get('historique')
+  @RequirePermissions('consultation.read')
+  historique(@Query() query: ConsultationHistoriqueQueryDto, @Req() req: AuthedRequest) {
+    requireUser(req)
+    const canReadAll = (req.user?.roles ?? []).some((r) =>
+      SUPERVISION_ROLES.includes(r),
+    )
+    return this.consultationService.historique(query, {
       canReadAll,
       personnelMedicalId: req.user?.personnelMedicalId ?? null,
       canViewLocked: canReadAll,

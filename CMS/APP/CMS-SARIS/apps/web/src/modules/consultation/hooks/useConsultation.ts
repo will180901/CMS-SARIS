@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query'
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { toast } from '@workspace/ui/components/sonner'
 import { consultationApi } from '../api/consultation.api'
 import type { AnamnesePayload } from '../api/consultation.api'
@@ -45,6 +45,47 @@ export function useConsultations(params?: ConsultationQueryParams, opts?: { enab
     enabled:  has('consultation.read') && (opts?.enabled ?? true),
     refetchInterval: 30_000,           // ignoré tant que enabled=false (pas de polling inutile)
     staleTime:       15_000,
+  })
+}
+
+// ── Historique par pages (clôturées / annulées) ──────────────────────────────
+
+/** Combien de consultations par page : de quoi remplir l'écran sans en envoyer des milliers. */
+export const HISTORIQUE_PAGE = 40
+
+/**
+ * L'historique d'un statut, PAGE PAR PAGE (`fetchNextPage`), avec la recherche faite par le serveur.
+ * Clé sous `['consultations']` : l'actualisation en direct rafraîchit aussi les pages déjà chargées.
+ */
+export function useConsultationsHistorique(
+  params: { statut: 'CLOTUREE' | 'ANNULEE'; search?: string },
+  opts?: { enabled?: boolean },
+) {
+  const { has } = usePermissions()
+  const search = params.search?.trim() || undefined
+  return useInfiniteQuery({
+    queryKey: [...CONSULTATIONS_KEY, 'historique', params.statut, search ?? ''],
+    queryFn: ({ pageParam }) =>
+      consultationApi.historique({ statut: params.statut, search, limite: HISTORIQUE_PAGE, curseur: pageParam }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (derniere) => derniere.curseurSuivant ?? undefined,
+    // Pendant qu'une nouvelle recherche charge, on garde la liste précédente à l'écran — mais
+    // jamais celle d'un AUTRE statut (clôturées affichées sous « Annulées »).
+    placeholderData: (precedent, requeteAvant) =>
+      requeteAvant?.queryKey[2] === params.statut ? precedent : undefined,
+    enabled: has('consultation.read') && (opts?.enabled ?? true),
+    staleTime: 15_000,
+  })
+}
+
+/** Combien de consultations dans l'historique d'un statut (sans recherche) — compteurs du filtre. */
+export function useHistoriqueCompteur(statut: 'CLOTUREE' | 'ANNULEE', enabled: boolean) {
+  const { has } = usePermissions()
+  return useQuery({
+    queryKey: [...CONSULTATIONS_KEY, 'historique-compteur', statut],
+    queryFn: async () => (await consultationApi.historique({ statut, limite: 1 })).total ?? 0,
+    staleTime: 15_000,
+    enabled: has('consultation.read') && enabled,
   })
 }
 

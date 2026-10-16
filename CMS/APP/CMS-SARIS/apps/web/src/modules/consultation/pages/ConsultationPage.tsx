@@ -8,8 +8,9 @@ import { useTranslation } from 'react-i18next'
 import { useLocation } from 'react-router-dom'
 import { ClipboardList, Search, X, Stethoscope, ChevronLeft, SlidersHorizontal } from 'lucide-react'
 import { Popover, PopoverTrigger, PopoverContent } from '@workspace/ui/components/popover'
-import { TILE_TONE_MAP } from '@/components/saris'
-import { useConsultations }        from '../hooks/useConsultation'
+import { Button, TILE_TONE_MAP } from '@/components/saris'
+import { useConsultations, useConsultationsHistorique, useHistoriqueCompteur, useConsultation } from '../hooks/useConsultation'
+import { useDebouncedValue }   from '@/hooks/useDebouncedValue'
 import { consultationApi }         from '../api/consultation.api'
 import { ConsultationQueueCard }   from '../components/ConsultationQueueCard'
 import { GroupesParPatient }       from '@/components/file/GroupesParPatient'
@@ -100,27 +101,48 @@ export function ConsultationPage() {
   }
 
   // ── Queries ──────────────────────────────────────────────────────────────
-  const { data: actives  = [], isLoading: loadActives  } = useConsultations({ statut: 'ACTIVES'   })
-  const { data: cloturees = [], isLoading: loadCloturees } = useConsultations({ statut: 'CLOTUREE'  }, { enabled: filter === 'CLOTUREE' || filtersOpen })
-  const { data: annulees  = [], isLoading: loadAnnulees  } = useConsultations({ statut: 'ANNULEE'   }, { enabled: filter === 'ANNULEE'  || filtersOpen })
+  const { data: actives  = [], isLoading: loadActives  } = useConsultations({ statut: 'ACTIVES' })
 
-  const allConsultations = filter === 'ACTIVES' ? actives : filter === 'CLOTUREE' ? cloturees : annulees
+  // Historique (clôturées / annulées) : il y en a des milliers → le serveur les livre PAR PAGES et fait
+  // la recherche lui-même (sur tout l'historique, pas seulement sur ce qui est affiché).
+  const enHistorique = filter !== 'ACTIVES'
+  const rechercheServeur = useDebouncedValue(search.trim(), 300)
+  const histo = useConsultationsHistorique(
+    { statut: filter === 'ANNULEE' ? 'ANNULEE' : 'CLOTUREE', search: rechercheServeur },
+    { enabled: enHistorique },
+  )
+  const historique = useMemo(() => histo.data?.pages.flatMap(p => p.data) ?? [], [histo.data])
+  const totalHistorique = histo.data?.pages[0]?.total ?? null
+  const nbCloturees = useHistoriqueCompteur('CLOTUREE', filtersOpen || filter === 'CLOTUREE')
+  const nbAnnulees  = useHistoriqueCompteur('ANNULEE',  filtersOpen || filter === 'ANNULEE')
 
-  // Si la consultation sélectionnée n'appartient pas (plus) à la liste du filtre actif
-  // (ex. on bascule sur « En cours » vide alors qu'une clôturée était ouverte), vider la
-  // zone de droite. On attend la fin du chargement pour ne pas effacer une sélection en
-  // cours de fetch (ouverture depuis le triage).
-  const currentLoading = filter === 'ACTIVES' ? loadActives : filter === 'CLOTUREE' ? loadCloturees : loadAnnulees
+  const allConsultations = enHistorique ? historique : actives
+
+  // Si la consultation sélectionnée n'appartient pas (plus) à l'onglet actif (ex. on bascule sur
+  // « En cours » alors qu'une clôturée était ouverte), vider la zone de droite. On attend la fin du
+  // chargement pour ne pas effacer une sélection en cours de fetch (ouverture depuis le triage).
+  // Dans l'historique, la liste est découpée en pages : la consultation choisie peut être plus bas que
+  // ce qui est chargé — on compare donc SON statut à l'onglet, au lieu de la chercher dans la liste.
+  const { data: selDetail, isError: selErreur } = useConsultation(selectedId ?? '')
+  const currentLoading = enHistorique ? histo.isLoading : loadActives
   useEffect(() => {
-    if (currentLoading) return
-    if (selectedId && !allConsultations.some(c => c.id === selectedId)) setSelected(null)
-  }, [selectedId, allConsultations, currentLoading])
+    if (!selectedId) return
+    if (!enHistorique) {
+      if (currentLoading) return
+      if (!actives.some(c => c.id === selectedId)) setSelected(null)
+      return
+    }
+    if (selErreur) { setSelected(null); return }
+    if (selDetail && selDetail.statut !== (filter === 'ANNULEE' ? 'ANNULEE' : 'CLOTUREE')) setSelected(null)
+  }, [selectedId, enHistorique, actives, currentLoading, selDetail, selErreur, filter])
 
-  // ── Recherche client-side ─────────────────────────────────────────────────
+  // ── Recherche ─────────────────────────────────────────────────────────────
+  // « En cours » (quelques lignes) : filtrée ici. Historique : déjà cherchée par le serveur.
   const filtered = useMemo(() => {
+    if (enHistorique) return historique
     const q = search.trim().toLowerCase()
-    if (!q) return allConsultations
-    return allConsultations.filter(c => {
+    if (!q) return actives
+    return actives.filter(c => {
       const p = c.visite.patient
       const id = p.identite
       return (
@@ -131,7 +153,7 @@ export function ConsultationPage() {
         (c.soignant?.nom.toLowerCase().includes(q))
       )
     })
-  }, [allConsultations, search])
+  }, [enHistorique, historique, actives, search])
 
   return (
     <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
@@ -227,14 +249,14 @@ export function ConsultationPage() {
               <PopoverContent align="end" sideOffset={6} style={{ width: 280, padding: 0, background: 'var(--fond-surface)', border: '1px solid var(--bordure-legere)', borderRadius: 10, boxShadow: '0 10px 30px rgba(0,0,0,0.12)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderBottom: '1px solid var(--bordure-legere)', background: 'var(--fond-surface-2)' }}>
                   <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--texte-primaire)' }}>{t('consultation.filtersTitle', { defaultValue: 'Filtres' })}</span>
-                  <span style={{ fontSize: '11px', color: 'var(--texte-tertiaire)' }}>{filtered.length}/{allConsultations.length}</span>
+                  <span style={{ fontSize: '11px', color: 'var(--texte-tertiaire)' }}>{filtered.length}/{enHistorique ? (totalHistorique ?? filtered.length) : allConsultations.length}</span>
                 </div>
                 <div style={{ padding: '14px' }}>
                   <p style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--texte-tertiaire)', margin: '0 0 6px' }}>{t('consultation.statutLabel', { defaultValue: 'Statut' })}</p>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
                     {(['ACTIVES', 'CLOTUREE', 'ANNULEE'] as Filter[]).map(f => {
                       const isActive = filter === f
-                      const count = f === 'ACTIVES' ? actives.length : f === 'CLOTUREE' ? cloturees.length : annulees.length
+                      const count = f === 'ACTIVES' ? actives.length : f === 'CLOTUREE' ? (nbCloturees.data ?? '–') : (nbAnnulees.data ?? '–')
                       return (
                         <button key={f} type="button" onClick={() => setFilter(f)}
                           style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, height: 32, padding: '0 10px', borderRadius: 6, cursor: 'pointer', fontSize: '12px', fontWeight: isActive ? 600 : 500, background: isActive ? 'var(--ap-50)' : 'var(--fond-surface)', color: isActive ? 'var(--ap-700)' : 'var(--texte-secondaire)', border: `1px solid ${isActive ? 'var(--ap-200)' : 'var(--bordure-normale)'}` }}>
@@ -252,17 +274,17 @@ export function ConsultationPage() {
 
         {/* Liste */}
         <div style={{ flex: 1, overflowY: 'auto' }}>
-          {loadActives && filter === 'ACTIVES' && (
+          {currentLoading && (
             <p style={{ fontSize: '12px', color: 'var(--texte-tertiaire)', textAlign: 'center', padding: '20px 0' }}>
               {t('consultation.loading')}
             </p>
           )}
 
-          {!loadActives && filtered.length === 0 && (
+          {!currentLoading && filtered.length === 0 && (
             <div style={{ textAlign: 'center', padding: '32px 16px' }}>
               <ClipboardList size={28} style={{ color: 'var(--texte-quaternaire)', marginBottom: 8 }} />
               <p style={{ fontSize: '12px', color: 'var(--texte-tertiaire)', margin: 0 }}>
-                {search ? t('consultation.noSearchResult', { search }) : t('consultation.noOpenConsultation')}
+                {search ? t('consultation.noSearchResult', { search }) : t(enHistorique ? 'consultation.noHistory' : 'consultation.noOpenConsultation')}
               </p>
             </div>
           )}
@@ -299,6 +321,18 @@ export function ConsultationPage() {
               onSelect={c => setSelected(c.id)}
               toutOuvrir={!!search.trim()}
             />
+          )}
+
+          {/* Historique : la suite se charge à la demande (le serveur livre par pages). */}
+          {enHistorique && histo.hasNextPage && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px 16px 16px' }}>
+              <span style={{ fontSize: '11px', color: 'var(--texte-tertiaire)' }}>
+                {t('consultation.loadedOf', { loaded: historique.length, total: totalHistorique ?? historique.length })}
+              </span>
+              <Button size="sm" variant="secondary" loading={histo.isFetchingNextPage} onClick={() => void histo.fetchNextPage()}>
+                {t('consultation.loadMore')}
+              </Button>
+            </div>
           )}
         </div>
       </div>

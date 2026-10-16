@@ -21,6 +21,7 @@ import {
 } from '../../common/prescription'
 import { assertPatientCouvert } from '../../common/droits-categorie'
 import { calculerDateReprise } from '../../common/repos'
+import { CI, parMots } from '../../common/prisma/search'
 import { consultationCascadeDeleteOps } from './consultation-cascade.util'
 import {
   CreateConsultationDto,
@@ -33,9 +34,21 @@ import {
   CreateOrdonnanceDto,
   AddLigneOrdonnanceDto,
   ConsultationQueryDto,
+  ConsultationHistoriqueQueryDto,
+  HISTORIQUE_LIMITE_DEFAUT,
   UpdateReposDto,
   UpdateOrdonnanceDto,
 } from './dto/consultation.dto'
+
+/** Ce que l'appelant a le droit de voir dans les listes de consultations. */
+export interface PorteeConsultations {
+  canReadAll: boolean
+  personnelMedicalId: string | null
+  canViewLocked?: boolean
+  restreindreHistorique?: boolean
+  /** Sans `patient.confidentiel.read` : un diagnostic confidentiel n'est pas nommé. */
+  masquerConfidentiel?: boolean
+}
 
 // ── Statuts ───────────────────────────────────────────────────────────────────
 
@@ -258,17 +271,7 @@ export class ConsultationService {
 
   // ── Liste consultations ──────────────────────────────────────────────────
 
-  async findAll(
-    query: ConsultationQueryDto,
-    scope?: {
-      canReadAll: boolean
-      personnelMedicalId: string | null
-      canViewLocked?: boolean
-      restreindreHistorique?: boolean
-      /** Sans `patient.confidentiel.read` : un diagnostic confidentiel n'est pas nommé. */
-      masquerConfidentiel?: boolean
-    },
-  ) {
+  async findAll(query: ConsultationQueryDto, scope?: PorteeConsultations) {
     // Multi-site sans restriction : la file de consultation est partagée entre les deux
     // sites (comme le dossier patient centralisé) — seules les permissions/la confidentialité
     // médecin gouvernent l'accès (cf. bloc `scope` ci-dessous).
@@ -312,8 +315,79 @@ export class ConsultationService {
       include: CONSULTATION_LIST_INCLUDE,
       orderBy: { createdAt: 'desc' },
     })
-    // Un seul libellé, et jamais celui d'une pathologie à confidentialité renforcée pour
-    // qui n'a pas le droit de la voir — même règle que les antécédents et les alertes.
+    return this.presenterListe(lignes, scope)
+  }
+
+  /**
+   * Historique par PAGES (onglets « Clôturées » / « Annulées »). Mêmes lignes, mêmes règles de
+   * confidentialité que `findAll` — seule la façon de les livrer change : `limite` consultations à
+   * la fois, de la plus récente à la plus ancienne, la page suivante commençant juste après
+   * `curseur` (la dernière reçue). Une consultation clôturée pendant la lecture ne décale donc
+   * rien : on ne perd ni ne revoit aucune ligne. La recherche se fait ICI, sur tout l'historique.
+   * `total` (consultations correspondant à la recherche) n'est calculé que pour la 1re page.
+   */
+  async historique(
+    query: ConsultationHistoriqueQueryDto,
+    scope?: PorteeConsultations,
+  ) {
+    const limite = query.limite ?? HISTORIQUE_LIMITE_DEFAUT
+    const where: Prisma.ConsultationWhereInput = {
+      visite: {},
+      statut: query.statut as StatutConsultation,
+      // Confidentialité : un médecin ne voit QUE les consultations qui LUI sont assignées.
+      ...(scope && !scope.canReadAll
+        ? { soignantId: scope.personnelMedicalId ?? '__aucun_soignant__' }
+        : {}),
+      ...parMots(query.search, (mot) => [
+        { visite: { patient: { numeroPatient: { contains: mot, ...CI } } } },
+        { visite: { patient: { identite: { nom: { contains: mot, ...CI } } } } },
+        { visite: { patient: { identite: { prenom: { contains: mot, ...CI } } } } },
+        { visite: { motifPrincipal: { libelle: { contains: mot, ...CI } } } },
+        { soignant: { nom: { contains: mot, ...CI } } },
+      ]),
+    }
+
+    if (query.curseur) {
+      const existe = await this.prisma.consultation.findUnique({
+        where: { id: query.curseur },
+        select: { id: true },
+      })
+      if (!existe)
+        throw new BadRequestException({
+          code: 'CURSEUR_INVALIDE',
+          message: 'La page demandée n’existe plus : rechargez la liste.',
+        })
+    }
+
+    const [lignes, total] = await Promise.all([
+      this.prisma.consultation.findMany({
+        where,
+        include: CONSULTATION_LIST_INCLUDE,
+        // `id` départage deux consultations du même instant : l'ordre est total, donc le curseur sûr.
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: limite + 1,
+        ...(query.curseur ? { cursor: { id: query.curseur }, skip: 1 } : {}),
+      }),
+      query.curseur ? Promise.resolve(null) : this.prisma.consultation.count({ where }),
+    ])
+    const suite = lignes.length > limite
+    const page = suite ? lignes.slice(0, limite) : lignes
+    return {
+      data: await this.presenterListe(page, scope),
+      total,
+      curseurSuivant: suite ? page[page.length - 1]!.id : null,
+    }
+  }
+
+  /**
+   * Ce que la liste montre d'une consultation : un seul libellé de diagnostic — jamais celui d'une
+   * pathologie à confidentialité renforcée pour qui n'a pas le droit de la voir (même règle que les
+   * antécédents et les alertes) —, l'épisode de suivi et le soignant.
+   */
+  private async presenterListe(
+    lignes: Prisma.ConsultationGetPayload<{ include: typeof CONSULTATION_LIST_INCLUDE }>[],
+    scope?: PorteeConsultations,
+  ) {
     const consultations = lignes.map(({ diagnostics, ...c }) => {
       const visibles = diagnostics.filter(
         (d) => !(scope?.masquerConfidentiel && d.pathologie.confidentialiteRenforcee),
