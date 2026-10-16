@@ -34,6 +34,7 @@ import {
   UpdateNotesVisiteDto,
   CreateConstanteVitaleDto,
   VisiteQueryDto,
+  VisiteHistoriqueQueryDto,
 } from './dto/visite.dto'
 
 interface AuthedRequest {
@@ -79,6 +80,19 @@ export class TriageController {
     // Multi-site sans restriction : file de triage partagée entre les deux sites.
     // Phase C : l'historique (clôturées/annulées) est scopé à l'initiateur, sauf supervision.
     return this.triageService.findAll(query, {
+      canReadAll: (req.user?.roles ?? []).some((r) =>
+        SUPERVISION_ROLES.includes(r),
+      ),
+      personnelMedicalId: req.user?.personnelMedicalId ?? null,
+    })
+  }
+
+  // Historique par pages — placé AVANT @Get(':id') pour que « historique » ne soit pas capturé comme :id.
+  @Get('historique')
+  @RequirePermissions('visite.read')
+  historique(@Query() query: VisiteHistoriqueQueryDto, @Req() req: AuthedRequest) {
+    requireUser(req)
+    return this.triageService.historique(query, {
       canReadAll: (req.user?.roles ?? []).some((r) =>
         SUPERVISION_ROLES.includes(r),
       ),

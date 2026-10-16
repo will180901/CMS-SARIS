@@ -11,9 +11,11 @@ import {
   ConflictException,
   BadRequestException,
 } from '@nestjs/common'
+import { Prisma } from '@prisma/client'
 import { PrismaService } from '../../prisma/prisma.service'
 import { NotificationService } from '../notification/notification.service'
 import { computeImc, PARCOURS_EN_COURS } from '../../common/clinical'
+import { CI, parMots } from '../../common/prisma/search'
 import {
   CreateVisiteDto,
   UpdateStatutVisiteDto,
@@ -21,6 +23,8 @@ import {
   UpdateNotesVisiteDto,
   CreateConstanteVitaleDto,
   VisiteQueryDto,
+  VisiteHistoriqueQueryDto,
+  VISITES_HISTORIQUE_LIMITE_DEFAUT,
 } from './dto/visite.dto'
 
 // ── Machine d'états ───────────────────────────────────────────────────────────
@@ -247,6 +251,70 @@ export class TriageService {
     })
 
     return this.attachSoignants(sorted)
+  }
+
+  /**
+   * Historique par PAGES (onglets « Clôturées » / « Annulées »). Mêmes lignes et même règle de
+   * confidentialité que `findAll` (l'historique n'est visible que de son initiateur, sauf
+   * supervision) — seule la façon de les livrer change : `limite` visites à la fois, de la plus
+   * récente à la plus ancienne (c'est ainsi que l'écran range les patients), la page suivante
+   * commençant juste après `curseur` (la dernière reçue). Une visite clôturée pendant la lecture ne
+   * décale donc rien. La recherche et les filtres soignant/motif se font ICI, sur tout l'historique.
+   * `total` (visites correspondant aux filtres) n'est calculé que pour la 1re page.
+   */
+  async historique(
+    query: VisiteHistoriqueQueryDto,
+    scope?: { canReadAll: boolean; personnelMedicalId: string | null },
+  ) {
+    const limite = query.limite ?? VISITES_HISTORIQUE_LIMITE_DEFAUT
+    const et: Prisma.VisiteWhereInput[] = []
+    if (scope && !scope.canReadAll)
+      et.push({ soignantId: scope.personnelMedicalId ?? '__aucun_soignant__' })
+    if (query.soignantId) et.push({ soignantId: query.soignantId })
+    if (query.motifId) et.push({ motifPrincipalId: query.motifId })
+    et.push(
+      ...(parMots(query.search, (mot) => [
+        { patient: { numeroPatient: { contains: mot, ...CI } } },
+        { patient: { identite: { nom: { contains: mot, ...CI } } } },
+        { patient: { identite: { prenom: { contains: mot, ...CI } } } },
+        { motifPrincipal: { libelle: { contains: mot, ...CI } } },
+      ]).AND ?? []),
+    )
+    const where: Prisma.VisiteWhereInput = {
+      statut: query.statut as 'CLOTUREE' | 'ANNULEE',
+      AND: et,
+    }
+
+    if (query.curseur) {
+      const existe = await this.prisma.visite.findUnique({
+        where: { id: query.curseur },
+        select: { id: true },
+      })
+      if (!existe)
+        throw new BadRequestException({
+          code: 'CURSEUR_INVALIDE',
+          message: 'La page demandée n’existe plus : rechargez la liste.',
+        })
+    }
+
+    const [lignes, total] = await Promise.all([
+      this.prisma.visite.findMany({
+        where,
+        include: VISITE_LIST_INCLUDE,
+        // `id` départage deux visites du même instant : l'ordre est total, donc le curseur sûr.
+        orderBy: [{ dateOuverture: 'desc' }, { id: 'desc' }],
+        take: limite + 1,
+        ...(query.curseur ? { cursor: { id: query.curseur }, skip: 1 } : {}),
+      }),
+      query.curseur ? Promise.resolve(null) : this.prisma.visite.count({ where }),
+    ])
+    const suite = lignes.length > limite
+    const page = suite ? lignes.slice(0, limite) : lignes
+    return {
+      data: await this.attachSoignants(page),
+      total,
+      curseurSuivant: suite ? page[page.length - 1]!.id : null,
+    }
   }
 
   // ── Visites d'un patient (dossier) ────────────────────────────────────────

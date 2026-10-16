@@ -173,3 +173,34 @@ export class UpdateSoignantVisiteDto {
 export class VisiteQueryDto {
   @IsOptional() @IsIn([...STATUTS_VISITE, 'ACTIVES']) statut?: string
 }
+
+/**
+ * Historique des visites (onglets « Clôturées » et « Annulées » du triage) : par PAGES, avec la
+ * recherche et les filtres faits par le serveur — il y en a des milliers, on ne les envoie plus
+ * toutes. La file ACTIVE, elle, reste une liste complète (quelques lignes) : `VisiteQueryDto`.
+ */
+export const VISITES_HISTORIQUE_LIMITE_DEFAUT = 40
+export const VISITES_HISTORIQUE_LIMITE_MAX = 100
+
+export class VisiteHistoriqueQueryDto {
+  @IsIn(['CLOTUREE', 'ANNULEE']) statut!: string
+
+  /** Mots cherchés (dans n'importe quel ordre) : patient, numéro, motif. */
+  @IsOptional() @IsString() @MaxLength(100) search?: string
+
+  /** Visites ouvertes par ce soignant (le filtre « soignant » du triage). */
+  @IsOptional() @IsUUID() soignantId?: string
+
+  /** Visites pour ce motif principal. */
+  @IsOptional() @IsUUID() motifId?: string
+
+  /** Dernière visite reçue : la page demandée commence juste après elle. */
+  @IsOptional() @IsUUID() curseur?: string
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(VISITES_HISTORIQUE_LIMITE_MAX)
+  limite?: number
+}

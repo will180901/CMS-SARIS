@@ -40,6 +40,26 @@ export interface VisiteQueryParams {
   statut?: string
 }
 
+/** Historique par pages (onglets « Clôturées » et « Annulées »). */
+export interface VisiteHistoriqueParams {
+  statut:      'CLOTUREE' | 'ANNULEE'
+  /** Mots cherchés par le serveur, sur tout l'historique : patient, numéro, motif. */
+  search?:     string
+  soignantId?: string
+  motifId?:    string
+  /** Dernière visite reçue : la page demandée commence juste après. */
+  curseur?:    string
+  limite?:     number
+}
+
+export interface VisiteHistoriquePage {
+  data:           VisiteListItem[]
+  /** Visites correspondant aux filtres — donné sur la 1re page seulement (`null` ensuite). */
+  total:          number | null
+  /** À passer en `curseur` pour la page suivante ; `null` à la fin. */
+  curseurSuivant: string | null
+}
+
 export interface VisitePatientItem {
   id:             string
   dateOuverture:  string
@@ -62,6 +82,10 @@ export const triageApi = {
   // Liste
   list: (params?: VisiteQueryParams) =>
     api.get<VisiteListItem[]>('/triage/visites', params as Record<string, string>),
+
+  // Historique par pages (clôturées / annulées)
+  historique: (params: VisiteHistoriqueParams) =>
+    api.get<VisiteHistoriquePage>('/triage/visites/historique', params as unknown as Record<string, string>),
 
   // Détail
   findById: (id: string) =>

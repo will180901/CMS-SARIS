@@ -11,7 +11,8 @@ import {
 import { usePermissions }      from '@/hooks/usePermissions'
 import { useIsCompact }        from '@/hooks/useMediaQuery'
 import { usePersistedState }   from '@/hooks/usePersistedState'
-import { useVisites }          from '../hooks/useTriage'
+import { useVisites, useVisite, useVisitesHistorique, useVisitesCompteur } from '../hooks/useTriage'
+import { useDebouncedValue }   from '@/hooks/useDebouncedValue'
 import { useMotifs }           from '@/modules/referentiels/hooks/useReferentiels'
 import { useSoignants }        from '../hooks/useSoignants'
 import { QueueCard }           from '../components/QueueCard'
@@ -126,32 +127,49 @@ export function TriagePage() {
     }
   }, [isResizing])
 
-  const { data: visites = [], isLoading } = useVisites({
+  // File ACTIVE (en attente / en cours) : liste complète, quelques lignes. HISTORIQUE (clôturées /
+  // annulées) : des milliers — le serveur les livre PAR PAGES et fait lui-même la recherche et les
+  // filtres soignant / motif, sur tout l'historique et non sur ce qui est affiché.
+  const enHistorique = filter === 'CLOTUREE' || filter === 'ANNULEE'
+  const { data: visitesFile = [], isLoading: chargeFile } = useVisites({
     statut: filter,
-  })
+  }, { enabled: !enHistorique })
+  const rechercheServeur = useDebouncedValue(search.trim(), 300)
+  const histo = useVisitesHistorique(
+    {
+      statut: filter === 'ANNULEE' ? 'ANNULEE' : 'CLOTUREE',
+      search: rechercheServeur,
+      soignantId: soignantFilter ?? undefined,
+      motifId: motifFilter ?? undefined,
+    },
+    { enabled: enHistorique },
+  )
+  const historique = useMemo(() => histo.data?.pages.flatMap(p => p.data) ?? [], [histo.data])
+  const totalHistorique = histo.data?.pages[0]?.total ?? null
+  const visites = enHistorique ? historique : visitesFile
+  const isLoading = enHistorique ? histo.isLoading : chargeFile
 
-  /* Compteurs live — toujours chargés en parallèle, indépendamment du filtre courant */
+  /* Compteurs live — toujours à jour, indépendamment de l'onglet courant. Les onglets d'historique ne
+     chargent PLUS toutes leurs visites pour les compter : un simple décompte côté serveur. */
   const { data: allActives = [] } = useVisites({
     statut: 'ACTIVES',
   })
-  const { data: allCloturees = [] } = useVisites({
-    statut: 'CLOTUREE',
-  })
-  const { data: allAnnulees = [] } = useVisites({
-    statut: 'ANNULEE',
-  })
+  const { data: nbCloturees = 0 } = useVisitesCompteur('CLOTUREE')
+  const { data: nbAnnulees  = 0 } = useVisitesCompteur('ANNULEE')
 
   const stats = useMemo(() => ({
     actives:   allActives.length,
     attente:   allActives.filter(v => v.statut === 'EN_ATTENTE').length,
     enCours:   allActives.filter(v => v.statut === 'EN_COURS').length,
-    cloturees: allCloturees.length,
-    annulees:  allAnnulees.length,
-  }), [allActives, allCloturees, allAnnulees])
+    cloturees: nbCloturees,
+    annulees:  nbAnnulees,
+  }), [allActives, nbCloturees, nbAnnulees])
 
   /* Liste visible = visites de l'onglet courant, croisées avec recherche + filtres */
   const filteredVisites = useMemo(() => {
-    let list = visites
+    // Historique : déjà cherché, filtré et ordonné (du plus récent au plus ancien) par le serveur.
+    if (enHistorique) return historique
+    let list = visitesFile
 
     const q = search.trim().toLowerCase()
     if (q) {
@@ -178,7 +196,7 @@ export function TriagePage() {
       const tb = new Date(b.dateOuverture).getTime()
       return sortOrder === 'asc' ? ta - tb : tb - ta
     })
-  }, [visites, search, soignantFilter, motifFilter, sortOrder])
+  }, [enHistorique, historique, visitesFile, search, soignantFilter, motifFilter, sortOrder])
 
   /* Auto-sélection de la première EN_COURS sinon première de la liste (parmi celles visibles) */
   useEffect(() => {
@@ -191,12 +209,19 @@ export function TriagePage() {
     }
   }, [filteredVisites, creating, selectedId, isCompact])
 
-  /* Désélection automatique si l'item disparaît de la liste visible */
+  /* Désélection automatique si l'item disparaît de la liste visible. Dans l'historique, la liste est
+     découpée en pages : la visite choisie peut être plus bas que ce qui est chargé — on compare donc
+     SON statut à l'onglet, au lieu de la chercher dans la liste. */
+  const { data: selDetail, isError: selErreur } = useVisite(enHistorique ? (selectedId ?? '') : '')
   useEffect(() => {
-    if (selectedId && !filteredVisites.some(v => v.id === selectedId)) {
-      setSelected(null)
+    if (!selectedId) return
+    if (!enHistorique) {
+      if (!filteredVisites.some(v => v.id === selectedId)) setSelected(null)
+      return
     }
-  }, [filteredVisites, selectedId])
+    if (selErreur) { setSelected(null); return }
+    if (selDetail && selDetail.statut !== filter) setSelected(null)
+  }, [filteredVisites, selectedId, enHistorique, selDetail, selErreur, filter])
 
   return (
     <>
@@ -227,7 +252,7 @@ export function TriagePage() {
                 </h1>
                 <p style={{ fontSize: '13px', color: 'var(--texte-tertiaire)', margin: '2px 0 0' }}>
                   <LiveClock />
-                  {isLoading ? '…' : t('triage.visitesAffichees', { count: visites.length })}
+                  {isLoading ? '…' : t('triage.visitesAffichees', { count: enHistorique ? (totalHistorique ?? visites.length) : visites.length })}
                 </p>
               </div>
             </div>
@@ -359,7 +384,7 @@ export function TriagePage() {
                         {t('triage.filtresAvances')}
                       </span>
                       <span style={{ fontSize: '11px', color: 'var(--texte-tertiaire)' }}>
-                        {t('triage.countSurTotal', { shown: filteredVisites.length, total: visites.length })}
+                        {t('triage.countSurTotal', { shown: filteredVisites.length, total: enHistorique ? (totalHistorique ?? visites.length) : visites.length })}
                       </span>
                     </div>
 
@@ -540,7 +565,7 @@ export function TriagePage() {
                         {t('triage.aucunResultat')}
                       </p>
                       <p style={{ fontSize: '11px', color: 'var(--texte-tertiaire)', margin: '0 0 12px' }}>
-                        {t('triage.surVisitesOnglet', { count: visites.length })}
+                        {t('triage.surVisitesOnglet', { count: enHistorique ? (filter === 'CLOTUREE' ? stats.cloturees : stats.annulees) : visites.length })}
                       </p>
                       <button
                         onClick={resetFilters}
@@ -615,6 +640,24 @@ export function TriagePage() {
                     toutOuvrir={!!search.trim()}
                   />
                 )
+              )}
+
+              {/* Historique : la suite se charge à la demande (le serveur livre par pages). */}
+              {enHistorique && histo.hasNextPage && (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px 16px 16px' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--texte-tertiaire)' }}>
+                    {t('triage.loadedOf', { loaded: historique.length, total: totalHistorique ?? historique.length })}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={histo.isFetchingNextPage}
+                    onClick={() => void histo.fetchNextPage()}
+                    style={{ fontSize: '12px', height: 30 }}
+                  >
+                    {histo.isFetchingNextPage ? t('triage.chargement') : t('triage.loadMore')}
+                  </Button>
+                </div>
               )}
             </div>
           </div>

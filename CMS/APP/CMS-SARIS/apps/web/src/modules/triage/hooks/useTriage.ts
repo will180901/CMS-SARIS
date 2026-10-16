@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from '@workspace/ui/components/sonner'
 import { triageApi } from '../api/triage.api'
 import type {
@@ -23,14 +23,60 @@ function toastError(err: unknown) {
 
 // ── Liste ─────────────────────────────────────────────────────────────────────
 
-export function useVisites(params?: VisiteQueryParams) {
+export function useVisites(params?: VisiteQueryParams, opts?: { enabled?: boolean }) {
   const { has } = usePermissions()
   return useQuery({
     queryKey: [...VISITES_KEY, params],
     queryFn:  () => triageApi.list(params),
     refetchInterval: 30_000,   // Refresh auto toutes les 30s
     staleTime:       15_000,
-    enabled:  has('visite.read'),
+    enabled:  has('visite.read') && (opts?.enabled ?? true),
+  })
+}
+
+// ── Historique par pages (clôturées / annulées) ──────────────────────────────
+
+/** Combien de visites par page : de quoi remplir l'écran sans en envoyer des milliers. */
+export const HISTORIQUE_PAGE = 40
+
+/**
+ * L'historique d'un statut, PAGE PAR PAGE (`fetchNextPage`), avec la recherche et les filtres
+ * soignant / motif faits par le serveur. Clé sous `['visites']` : l'actualisation en direct rafraîchit
+ * aussi les pages déjà chargées.
+ */
+export function useVisitesHistorique(
+  params: { statut: 'CLOTUREE' | 'ANNULEE'; search?: string; soignantId?: string; motifId?: string },
+  opts?: { enabled?: boolean },
+) {
+  const { has } = usePermissions()
+  const search = params.search?.trim() || undefined
+  return useInfiniteQuery({
+    queryKey: [...VISITES_KEY, 'historique', params.statut, search ?? '', params.soignantId ?? '', params.motifId ?? ''],
+    queryFn: ({ pageParam }) =>
+      triageApi.historique({
+        statut: params.statut, search, soignantId: params.soignantId, motifId: params.motifId,
+        limite: HISTORIQUE_PAGE, curseur: pageParam,
+      }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (derniere) => derniere.curseurSuivant ?? undefined,
+    // Pendant qu'une nouvelle recherche charge, on garde la liste précédente à l'écran — mais
+    // jamais celle d'un AUTRE statut (clôturées affichées sous « Annulées »).
+    placeholderData: (precedent, requeteAvant) =>
+      requeteAvant?.queryKey[2] === params.statut ? precedent : undefined,
+    enabled: has('visite.read') && (opts?.enabled ?? true),
+    staleTime: 15_000,
+  })
+}
+
+/** Combien de visites dans l'historique d'un statut (sans filtre) — compteurs des onglets, toujours à jour. */
+export function useVisitesCompteur(statut: 'CLOTUREE' | 'ANNULEE') {
+  const { has } = usePermissions()
+  return useQuery({
+    queryKey: [...VISITES_KEY, 'historique-compteur', statut],
+    queryFn: async () => (await triageApi.historique({ statut, limite: 1 })).total ?? 0,
+    refetchInterval: 30_000,
+    staleTime: 15_000,
+    enabled: has('visite.read'),
   })
 }
 

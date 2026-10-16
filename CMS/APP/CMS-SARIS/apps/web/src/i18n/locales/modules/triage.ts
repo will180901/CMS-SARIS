@@ -57,6 +57,8 @@ export const triage = {
     aucunSoignantAssigne: 'Aucun soignant assigné',
     retirerAffectation: 'Retirer l\'affectation actuelle',
     chargement: 'Chargement…',
+    loadMore: 'Afficher plus',
+    loadedOf: '{{loaded}} affichées sur {{total}}',
     aucunResultatPour: 'Aucun résultat pour « {{search}} »',
     aucunPersonnelActif: 'Aucun personnel actif',
 
@@ -408,6 +410,8 @@ export const triage = {
     aucunSoignantAssigne: 'No caregiver assigned',
     retirerAffectation: 'Remove current assignment',
     chargement: 'Loading…',
+    loadMore: 'Show more',
+    loadedOf: '{{loaded}} shown of {{total}}',
     aucunResultatPour: 'No results for « {{search}} »',
     aucunPersonnelActif: 'No active staff',
 
