@@ -116,12 +116,22 @@ export interface CreateRolePayload  { code: string; libelle: string; permissions
 export interface UpdateRolePayload  { libelle: string; permissions: PermissionCode[] }
 
 /**
- * Résultat paginé des journaux : `data` = lot renvoyé (plafonné à `limit`),
- * `total` = nombre RÉEL d'entrées correspondant aux filtres (pour les compteurs).
+ * Une page des journaux : `data` = les `limit` lignes de la page `page` (de la plus récente à la plus
+ * ancienne), `total` = nombre RÉEL d'entrées correspondant aux filtres et à la recherche (il numérote
+ * les pages et alimente les compteurs).
  */
 export interface AuditPageResult<T> {
   data:  T[]
   total: number
+  page:  number
+  limit: number
+}
+
+/** Un compte qui figure à l'un ou l'autre journal (filtre « Utilisateur »). */
+export interface AuditCompte {
+  id:    string
+  login: string
+  personnelMedical: { nom: string; prenom: string } | null
 }
 
 export interface AuditEntry {
@@ -367,6 +377,8 @@ export const adminApi = {
       api.get<AuditPageResult<AuditEntry>>('/admin/audit/actions', params as Record<string, string>),
     authentifications: (params?: Record<string, string | undefined>) =>
       api.get<AuditPageResult<AuthLogEntry>>('/admin/audit/authentifications', params as Record<string, string>),
+    /** Les comptes qui figurent au journal (`audit.read` suffit : pas besoin de `utilisateur.read`). */
+    comptes: () => api.get<AuditCompte[]>('/admin/audit/utilisateurs'),
     /** Vide les journaux (permission `audit.purge`). La purge se journalise elle-même. */
     purger: (portee: 'actions' | 'authentifications' | 'tout' = 'tout') =>
       api.delete<{ actions: number; authentifications: number }>(

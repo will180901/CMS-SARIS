@@ -32,13 +32,14 @@ import {
   useColumnResize, useCartesMobile, CLASSE_CARTES,
 } from '@/components/saris'
 import type { ColumnResize } from '@/components/saris'
-import { usePagination } from '@/hooks/usePagination'
+import { usePaginationServeur, type PaginationServeur } from '@/hooks/usePagination'
+import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { useRowsPerPage } from '@/hooks/useRowsPerPage'
 import { usePermissions } from '@/hooks/usePermissions'
 import { toast } from '@workspace/ui/components/sonner'
 import { PERMISSION_META } from '@cms-saris/types'
 import {
-  useAuditActions, useAuditAuth, useUtilisateurs,
+  useAuditActions, useAuditAuth, useAuditComptes,
   usePurgerAudit,
 } from '../hooks/useAdmin'
 import type { AuditEntry, AuthLogEntry } from '../api/admin.api'
@@ -46,6 +47,9 @@ import { labelModule, labelAction, labelStatut, labelEntite, labelRole, labelPer
 import { buildPermissionTree, parsePermCode, labelPermAction } from '@/config/permission-tree'
 import { ListePrintSheet, type ColonneExport } from '@/components/print/ListePrintSheet'
 import { formatDureeMinutes } from '@/lib/duree'
+
+/** Au plus ce nombre d'entrées (les plus récentes) à l'extraction : un journal de dizaines de milliers de lignes ne tient pas sur du papier. */
+const EXPORT_MAX = 500
 
 // Modules du catalogue de permissions (liste du code : stable, disponible hors ligne).
 const MODULES_CATALOGUE: string[] = [...new Set(Object.values(PERMISSION_META).map(m => m.module))]
@@ -106,10 +110,9 @@ export function AuditPage() {
   const canPurge = has('audit.purge')
   const purger = usePurgerAudit()
 
-  // La liste des comptes n'est servie qu'avec « utilisateur.read » : sans lui (médecin chef) la
-  // requête reviendrait en 403 ; le filtre se contente alors des personnes présentes au journal.
-  const peutListerComptes = has('utilisateur.read')
-  const { data: users = [] } = useUtilisateurs(undefined, peutListerComptes)
+  // Les comptes qui figurent au journal : servis à qui détient « audit.read » (le médecin chef n'a pas
+  // « utilisateur.read »), sans charger les journaux.
+  const { data: comptes = [] } = useAuditComptes()
 
   // Combinaison date + heure → borne datetime envoyée au backend.
   //   - Min : début de l'heure choisie (sinon le serveur prend le début de journée).
@@ -117,51 +120,56 @@ export function AuditPage() {
   const dateMinParam = dateMin ? (heureMin ? `${dateMin}T${heureMin}:00`     : dateMin) : ''
   const dateMaxParam = dateMax ? (heureMax ? `${dateMax}T${heureMax}:59.999` : dateMax) : ''
 
-  // Query audit actions — `total` = nombre réel d'entrées (≠ taille du lot
-  // renvoyé, plafonné à `limit`) → compteur d'onglet juste et évolutif.
-  const { data: actionsRes, isLoading: la } = useAuditActions({
-    utilisateurId: filtreUserId || undefined,
-    module:        filtreModule || undefined,
-    dateMin:       dateMinParam || undefined,
-    dateMax:       dateMaxParam || undefined,
-    limit:         '200',
-  })
-  const actions      = actionsRes?.data  ?? []
-  const actionsTotal = actionsRes?.total ?? 0
+  // La recherche porte sur TOUT le journal (il compte des dizaines de milliers de lignes) : elle part au
+  // serveur, une fois la frappe terminée.
+  const rechercheServeur = useDebouncedValue(search.trim(), 300)
+  const filtresCommuns = {
+    utilisateurId: filtreUserId      || undefined,
+    dateMin:       dateMinParam      || undefined,
+    dateMax:       dateMaxParam      || undefined,
+    search:        rechercheServeur  || undefined,
+  }
+  const filtresActions = { ...filtresCommuns, module:   filtreModule   || undefined }
+  const filtresAuth    = { ...filtresCommuns, resultat: filtreResultat || undefined }
 
-  // Query auth
-  const { data: authRes, isLoading: lh } = useAuditAuth({
-    utilisateurId: filtreUserId   || undefined,
-    resultat:      filtreResultat || undefined,
-    dateMin:       dateMinParam   || undefined,
-    dateMax:       dateMaxParam   || undefined,
-    limit:         '200',
-  })
-  const auth      = authRes?.data  ?? []
-  const authTotal = authRes?.total ?? 0
+  // Pages découpées par le SERVEUR : on ne garde que la page courante. Changer d'onglet, de filtre ou de
+  // recherche ramène à la page 1.
+  const pg = usePaginationServeur(
+    useRowsPerPage(),
+    `${tab}|${filtreUserId}|${filtreModule}|${filtreResultat}|${dateMinParam}|${dateMaxParam}|${rechercheServeur}`,
+  )
+  const surActions = tab === 'actions'
+  const pageDemandee = { limit: String(pg.pageSize), page: String(pg.page) }
 
-  // Filtrage local par recherche libre
-  const actionsFiltered = useMemo(() => {
-    if (!search.trim()) return actions
-    const q = search.toLowerCase()
-    return actions.filter(e =>
-      e.action.toLowerCase().includes(q) ||
-      e.module.toLowerCase().includes(q) ||
-      (e.entiteType ?? '').toLowerCase().includes(q) ||
-      (e.entiteId ?? '').toLowerCase().includes(q) ||
-      (e.utilisateur?.login ?? '').toLowerCase().includes(q),
-    )
-  }, [actions, search])
+  // Seul l'onglet affiché charge sa page.
+  const { data: actionsRes, isLoading: la, isPlaceholderData: placeholderActions } = useAuditActions(
+    { ...filtresActions, ...pageDemandee }, surActions, { garderPrecedent: true },
+  )
+  const { data: authRes, isLoading: lh, isPlaceholderData: placeholderAuth } = useAuditAuth(
+    { ...filtresAuth, ...pageDemandee }, !surActions, { garderPrecedent: true },
+  )
+  const actions = actionsRes?.data ?? []
+  const auth    = authRes?.data    ?? []
 
-  const authFiltered = useMemo(() => {
-    if (!search.trim()) return auth
-    const q = search.toLowerCase()
-    return auth.filter(e =>
-      e.resultat.toLowerCase().includes(q) ||
-      (e.login ?? '').toLowerCase().includes(q) ||
-      (e.ipAdresse ?? '').toLowerCase().includes(q),
-    )
-  }, [auth, search])
+  // Compteurs des deux onglets : le total de chaque journal selon les filtres — une seule ligne suffit à
+  // le connaître, on ne charge pas la page de l'onglet caché.
+  const { data: compteurActions } = useAuditActions({ ...filtresActions, limit: '1' })
+  const { data: compteurAuth }    = useAuditAuth({ ...filtresAuth, limit: '1' })
+  const actionsTotal = compteurActions?.total ?? 0
+  const authTotal    = compteurAuth?.total    ?? 0
+
+  // La purge vide les DEUX journaux EN ENTIER : les nombres annoncés à la confirmation ne tiennent compte
+  // d'aucun filtre ni d'aucune recherche.
+  const { data: toutActions } = useAuditActions({ limit: '1' }, openPurge)
+  const { data: toutAuth }    = useAuditAuth({ limit: '1' }, openPurge)
+
+  const liste = surActions ? actionsRes : authRes
+  const pagination = pg.controles(liste?.total ?? 0)
+  // La page demandée n'existe plus (journal purgé, filtre resserré…) : retour à une page qui existe.
+  if (liste && !(surActions ? placeholderActions : placeholderAuth)
+      && liste.total > 0 && liste.data.length === 0 && pg.page > 1) {
+    pg.recaler(Math.ceil(liste.total / pg.pageSize))
+  }
 
   // Modules pour le select : dérivés du CATALOGUE de permissions (liste stable, celle du code —
   // aucune requête, donc aucun refus pour qui n'a pas « role.read »), pas des résultats
@@ -171,29 +179,32 @@ export function AuditPage() {
     [],
   )
 
-  // Personnes du filtre « Utilisateur » : tous les comptes si on peut les lister, sinon celles qui
-  // figurent dans le journal chargé (le compte filtré y reste : ses lignes sont celles qui reviennent).
-  const optionsUtilisateurs = useMemo(() => {
-    if (peutListerComptes) {
-      return users.map(u => ({
-        value: u.id,
-        label: u.personnelMedical ? `${u.personnelMedical.prenom} ${u.personnelMedical.nom}` : u.login,
-        sublabel: u.login,
-      }))
-    }
-    const vus = new Map<string, string>()
-    for (const e of [...actions, ...auth]) {
-      const compte = e.utilisateur
-      if (compte && !vus.has(compte.id)) vus.set(compte.id, compte.login)
-    }
-    return [...vus].map(([value, login]) => ({ value, label: login, sublabel: undefined as string | undefined }))
-      .sort((a, b) => a.label.localeCompare(b.label))
-  }, [peutListerComptes, users, actions, auth])
+  const optionsUtilisateurs = useMemo(
+    () => comptes.map(u => ({
+      value: u.id,
+      label: u.personnelMedical ? `${u.personnelMedical.prenom} ${u.personnelMedical.nom}` : u.login,
+      sublabel: u.login,
+    })),
+    [comptes],
+  )
   const distinctResultats = AUTH_RESULTATS
 
   // ── Extraction PDF ────────────────────────────────────────────────────────
   // Deux jeux de colonnes : l'onglet actif décide de ce qui part à l'impression.
   const [openExport, setOpenExport] = useState(false)
+  // L'extraction porte sur ce que les filtres et la recherche désignent — pas sur la page à l'écran —,
+  // au plus EXPORT_MAX entrées (les plus récentes). On ne les charge qu'au moment d'exporter.
+  const { data: exportActions, isFetching: chargeExportActions } = useAuditActions(
+    { ...filtresActions, limit: String(EXPORT_MAX), page: '1' }, openExport && surActions,
+  )
+  const { data: exportAuth, isFetching: chargeExportAuth } = useAuditAuth(
+    { ...filtresAuth, limit: String(EXPORT_MAX), page: '1' }, openExport && !surActions,
+  )
+  const chargeExport = openExport && (surActions ? chargeExportActions : chargeExportAuth)
+  const sousTitreExport = (r: { data: unknown[]; total: number }) =>
+    r.total > r.data.length
+      ? t('admin.exportEntriesOf', { shown: r.data.length, total: r.total })
+      : t('admin.exportEntries', { count: r.data.length })
   const colonnesActions = useMemo<ColonneExport<AuditEntry>[]>(() => [
     { libelle: t('admin.colDate'),   valeur: e => formatAuditDateTime(e.createdAt) },
     { libelle: t('admin.colUser'),   valeur: e => e.utilisateur?.login ?? t('admin.systemLower') },
@@ -300,7 +311,7 @@ export function AuditPage() {
               }
               actions={
                 <>
-                  <Button size="sm" variant="outline" onClick={() => setOpenExport(true)}>
+                  <Button size="sm" variant="outline" loading={chargeExport} onClick={() => setOpenExport(true)}>
                     <Download size={14} /> {t('common.exporter', { defaultValue: 'Exporter' })}
                   </Button>
                   {/* Purge : à droite de l'export, et jamais avant lui — l'ordre des
@@ -320,12 +331,13 @@ export function AuditPage() {
         {/* Tableau */}
         {tab === 'actions' ? (
           <ActionsTable
-            entries={actionsFiltered}
+            entries={actions}
             loading={la}
+            pagination={pagination}
             onOpen={setOpenEntry}
           />
         ) : (
-          <AuthTable entries={authFiltered} loading={lh} />
+          <AuthTable entries={auth} loading={lh} pagination={pagination} />
         )}
       </div>
 
@@ -340,7 +352,7 @@ export function AuditPage() {
           icon={<Trash2 size={18} />}
           tone="error"
           title={t('admin.auditPurgeTitle')}
-          subtitle={t('admin.auditPurgeSubtitle', { actions: actionsTotal, auth: authTotal })}
+          subtitle={t('admin.auditPurgeSubtitle', { actions: toutActions?.total ?? '…', auth: toutAuth?.total ?? '…' })}
           width={480}
           onClose={() => setOpenPurge(false)}
           footer={
@@ -370,26 +382,30 @@ export function AuditPage() {
         </Modal>
       )}
 
-      {openExport && (tab === 'actions' ? (
-        <ListePrintSheet<AuditEntry>
-          rootId="export-audit-actions"
-          titre={t('admin.businessActions')}
-          sousTitre={`${actionsFiltered.length} entrée${actionsFiltered.length > 1 ? 's' : ''}`}
-          lignes={actionsFiltered}
-          cleDe={e => e.id}
-          colonnes={colonnesActions}
-          onClose={() => setOpenExport(false)}
-        />
+      {openExport && (surActions ? (
+        exportActions && (
+          <ListePrintSheet<AuditEntry>
+            rootId="export-audit-actions"
+            titre={t('admin.businessActions')}
+            sousTitre={sousTitreExport(exportActions)}
+            lignes={exportActions.data}
+            cleDe={e => e.id}
+            colonnes={colonnesActions}
+            onClose={() => setOpenExport(false)}
+          />
+        )
       ) : (
-        <ListePrintSheet<AuthLogEntry>
-          rootId="export-audit-auth"
-          titre={t('admin.authentications')}
-          sousTitre={`${authFiltered.length} entrée${authFiltered.length > 1 ? 's' : ''}`}
-          lignes={authFiltered}
-          cleDe={e => e.id}
-          colonnes={colonnesAuth}
-          onClose={() => setOpenExport(false)}
-        />
+        exportAuth && (
+          <ListePrintSheet<AuthLogEntry>
+            rootId="export-audit-auth"
+            titre={t('admin.authentications')}
+            sousTitre={sousTitreExport(exportAuth)}
+            lignes={exportAuth.data}
+            cleDe={e => e.id}
+            colonnes={colonnesAuth}
+            onClose={() => setOpenExport(false)}
+          />
+        )
       ))}
     </>
   )
@@ -660,14 +676,15 @@ const ACTIONS_COLS = '180px 180px 100px 1fr 1.2fr 110px 30px'
 
 // ── Table actions ─────────────────────────────────────────────────────────────
 
-function ActionsTable({ entries, loading, onOpen }: {
+function ActionsTable({ entries, loading, pagination, onOpen }: {
+  /** Les lignes de la page affichée (la page est découpée par le serveur). */
   entries: AuditEntry[]
   loading: boolean
+  pagination: PaginationServeur
   onOpen:  (e: AuditEntry) => void
 }) {
   const { t } = useTranslation()
   const isCompact = useIsCompact()
-  const pagination = usePagination(entries, useRowsPerPage())
   const rz = useColumnResize({ storageKey: 'audit-actions', ready: !loading && entries.length > 0, cellsSelector: ':scope > *' })
   const cols = rz.gridTemplate ?? ACTIONS_COLS
   // Sur téléphone, chaque entrée devient une carte (cartesMobile.ts).
@@ -707,7 +724,7 @@ function ActionsTable({ entries, loading, onOpen }: {
               variant="subtle"
             />
           ) : (
-            pagination.pageData.map((e, i) => (
+            entries.map((e, i) => (
         <button
           key={e.id}
           onClick={() => onOpen(e)}
@@ -779,13 +796,14 @@ const AUTH_COLS = '170px 150px 160px 140px 250px 1fr'
 
 // ── Table auth ────────────────────────────────────────────────────────────────
 
-function AuthTable({ entries, loading }: {
+function AuthTable({ entries, loading, pagination }: {
+  /** Les lignes de la page affichée (la page est découpée par le serveur). */
   entries: AuthLogEntry[]
   loading: boolean
+  pagination: PaginationServeur
 }) {
   const { t } = useTranslation()
   const isCompact = useIsCompact()
-  const pagination = usePagination(entries, useRowsPerPage())
   const rz = useColumnResize({ storageKey: 'audit-auth-v3', ready: !loading && entries.length > 0, cellsSelector: ':scope > *' })
   const cols = rz.gridTemplate ?? AUTH_COLS
   const poserCartes = useCartesMobile()
@@ -822,7 +840,7 @@ function AuthTable({ entries, loading }: {
               variant="subtle"
             />
           ) : (
-            pagination.pageData.map((e, i) => {
+            entries.map((e, i) => {
               const isSuccess = e.resultat.startsWith('SUCCES')
               const isWarn    = e.resultat.includes('BLOCAGE') || e.resultat.includes('TOTP_REQUIS')
               const tone      = isSuccess ? 'success' : isWarn ? 'warning' : 'error'

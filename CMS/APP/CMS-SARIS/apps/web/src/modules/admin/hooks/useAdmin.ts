@@ -2,7 +2,7 @@
  * Hooks TanStack Query — Administration système (/admin/*).
  */
 
-import { useQuery, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, keepPreviousData, type QueryClient } from '@tanstack/react-query'
 import { toast } from '@workspace/ui/components/sonner'
 import { adminApi } from '../api/admin.api'
 import type {
@@ -338,20 +338,46 @@ export function useDeleteRole() {
 //  AUDIT
 // ══════════════════════════════════════════════════════════════════════════════
 
-export function useAuditActions(params?: Record<string, string | undefined>, enabled = true) {
+/**
+ * Une page du journal des actions (`page`, `limit`, et les filtres / la recherche faits par le serveur).
+ * `garderPrecedent` : pendant qu'une autre page ou une autre recherche charge, la page précédente reste à
+ * l'écran au lieu de laisser place à un squelette qui clignote.
+ */
+export function useAuditActions(
+  params?: Record<string, string | undefined>,
+  enabled = true,
+  opts?: { garderPrecedent?: boolean },
+) {
   return useQuery({
     queryKey: [...ADMIN_KEYS.audit, 'actions', params],
     queryFn:  () => adminApi.audit.actions(params),
+    placeholderData: opts?.garderPrecedent ? keepPreviousData : undefined,
     staleTime: 10_000,
     enabled,
   })
 }
 
-export function useAuditAuth(params?: Record<string, string | undefined>) {
+/** Une page du journal des connexions — mêmes règles que `useAuditActions`. */
+export function useAuditAuth(
+  params?: Record<string, string | undefined>,
+  enabled = true,
+  opts?: { garderPrecedent?: boolean },
+) {
   return useQuery({
     queryKey: [...ADMIN_KEYS.auth, params],
     queryFn:  () => adminApi.audit.authentifications(params),
+    placeholderData: opts?.garderPrecedent ? keepPreviousData : undefined,
     staleTime: 10_000,
+    enabled,
+  })
+}
+
+/** Les comptes qui figurent au journal : le filtre « Utilisateur » de l'écran d'audit. */
+export function useAuditComptes() {
+  return useQuery({
+    queryKey: [...ADMIN_KEYS.audit, 'comptes'],
+    queryFn:  () => adminApi.audit.comptes(),
+    staleTime: 60_000,
   })
 }
 

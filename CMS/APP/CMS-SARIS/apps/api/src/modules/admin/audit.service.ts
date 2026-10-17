@@ -8,6 +8,7 @@
 
 import { Injectable, Logger } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
+import { CI, parMots } from '../../common/prisma/search'
 import { resolveGeo } from '../../common/geo/geo.util'
 import { resumerConnexions, resumePosition } from '../security/connexions.util'
 
@@ -27,8 +28,29 @@ interface AuditQuery {
   entiteId?: string
   dateMin?: string
   dateMax?: string
+  /** Taille de page (1 à 500, 100 par défaut). */
   limit?: number
+  /** Numéro de page, à partir de 1 (1 par défaut : sans lui, la requête rend les `limit` plus récentes). */
+  page?: number
+  /** Recherche par mots, insensible à la casse, faite par le SERVEUR sur tout le journal. */
+  search?: string
 }
+
+const LIMITE_DEFAUT = 100
+const LIMITE_MAX = 500
+
+/** Taille de page demandée, ramenée entre 1 et 500 (entière). */
+function borneLimite(limit?: number): number {
+  const brute = Number.isFinite(limit) ? Math.floor(Number(limit)) : LIMITE_DEFAUT
+  return Math.min(Math.max(brute, 1), LIMITE_MAX)
+}
+
+/**
+ * Les plus récentes d'abord, et à instant égal l'identifiant : sans ce départage, deux lignes écrites
+ * à la même milliseconde pourraient tomber de part et d'autre d'une coupure de page dans un ordre
+ * que la base ne garantit pas — l'une serait vue deux fois, l'autre jamais.
+ */
+const PLUS_RECENTS_D_ABORD = [{ createdAt: 'desc' as const }, { id: 'desc' as const }]
 
 // ── Bornes de dates inclusives ────────────────────────────────────────────────
 // Un filtre "Date max = 30/05" doit inclure TOUTE la journée du 30 (jusqu'à
@@ -47,6 +69,8 @@ interface AuthQuery {
   dateMin?: string
   dateMax?: string
   limit?: number
+  page?: number
+  search?: string
 }
 
 @Injectable()
@@ -70,26 +94,36 @@ export class AuditService {
       if (q.dateMax) where.createdAt.lte = dayEnd(q.dateMax)
     }
 
-    const limit = Math.min(
-      Math.max(Number.isFinite(q.limit) ? Number(q.limit) : 100, 1),
-      500,
+    // Recherche par mots, côté serveur : tout le journal est cherché, pas seulement la page à l'écran.
+    Object.assign(
+      where,
+      parMots(q.search, (mot) => [
+        { action: { contains: mot, ...CI } },
+        { module: { contains: mot, ...CI } },
+        { entiteType: { contains: mot, ...CI } },
+        { entiteId: { contains: mot, ...CI } },
+        { utilisateur: { login: { contains: mot, ...CI } } },
+      ]),
     )
 
-    // `total` = nombre RÉEL d'entrées correspondant aux filtres (≠ taille du
-    // lot renvoyé, plafonné à `limit`). Permet aux compteurs UI d'afficher la
-    // vérité et d'évoluer au lieu de rester figés sur le plafond.
+    const limit = borneLimite(q.limit)
+    const page = q.page ?? 1
+
+    // `total` = nombre RÉEL d'entrées correspondant aux filtres (≠ taille de la page
+    // rendue) : il numérote les pages et alimente les compteurs de l'écran.
     const [data, total] = await Promise.all([
       this.prisma.journalAudit.findMany({
         where,
         include: {
           utilisateur: { select: { id: true, login: true, email: true } },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: PLUS_RECENTS_D_ABORD,
+        skip: (page - 1) * limit,
         take: limit,
       }),
       this.prisma.journalAudit.count({ where }),
     ])
-    return { data, total }
+    return { data, total, page, limit }
   }
 
   // ── Journal d'authentification ────────────────────────────────────────────
@@ -104,10 +138,17 @@ export class AuditService {
       if (q.dateMax) where.createdAt.lte = dayEnd(q.dateMax)
     }
 
-    const limit = Math.min(
-      Math.max(Number.isFinite(q.limit) ? Number(q.limit) : 100, 1),
-      500,
+    Object.assign(
+      where,
+      parMots(q.search, (mot) => [
+        { resultat: { contains: mot, ...CI } },
+        { login: { contains: mot, ...CI } },
+        { ipAdresse: { contains: mot, ...CI } },
+      ]),
     )
+
+    const limit = borneLimite(q.limit)
+    const page = q.page ?? 1
 
     const [rows, total] = await Promise.all([
       this.prisma.journalAuthentification.findMany({
@@ -115,7 +156,8 @@ export class AuditService {
         include: {
           utilisateur: { select: { id: true, login: true, email: true } },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: PLUS_RECENTS_D_ABORD,
+        skip: (page - 1) * limit,
         take: limit,
       }),
       this.prisma.journalAuthentification.count({ where }),
@@ -182,7 +224,44 @@ export class AuditService {
         }
       }),
     )
-    return { data, total }
+    return { data, total, page, limit }
+  }
+
+  // ── Comptes présents au journal ───────────────────────────────────────────
+
+  /**
+   * Les comptes qui figurent à l'un OU l'autre journal : de quoi remplir le filtre « Utilisateur »
+   * sans charger les journaux et sans détenir `utilisateur.read` (le médecin chef lit l'audit sans
+   * lister les comptes). Un compte qui n'a jamais rien fait n'a rien à filtrer.
+   */
+  async utilisateursDuJournal() {
+    const [actions, auths] = await Promise.all([
+      this.prisma.journalAudit.groupBy({
+        by: ['utilisateurId'],
+        where: { utilisateurId: { not: null } },
+      }),
+      this.prisma.journalAuthentification.groupBy({
+        by: ['utilisateurId'],
+        where: { utilisateurId: { not: null } },
+      }),
+    ])
+    const ids = [
+      ...new Set(
+        [...actions, ...auths]
+          .map((x) => x.utilisateurId)
+          .filter((x): x is string => !!x),
+      ),
+    ]
+    if (ids.length === 0) return []
+    return this.prisma.utilisateur.findMany({
+      where: { id: { in: ids } },
+      select: {
+        id: true,
+        login: true,
+        personnelMedical: { select: { nom: true, prenom: true } },
+      },
+      orderBy: { login: 'asc' },
+    })
   }
 
   // ── Purge ─────────────────────────────────────────────────────────────────
