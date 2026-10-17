@@ -11,8 +11,10 @@
  *    (apps/api/src/modules/triage/dto/visite.dto.ts) — preuve anti-désynchro.
  */
 import assert from 'node:assert/strict'
+import i18n from '../src/i18n/config.ts'
 import {
   nomPersonne,
+  telephone,
   isTelephone,
   digitsOnly,
   sanitizeTelephoneInput,
@@ -151,5 +153,58 @@ test('toutes les clés vitales du front sont couvertes par le garde-fou (9)', ()
   assert.equal(Object.keys(DTO_RANGES).length, 9)
 })
 
-console.log('\n' + passed + ' reussis, ' + failed + ' echoues')
-if (failed > 0) process.exit(1)
+// ── Messages d'erreur : dans la langue de l'écran AU MOMENT de l'erreur ──────────
+// Les schémas sont créés une seule fois, au chargement du module : un message écrit à la création
+// resterait dans la langue d'alors. Les messages sont donc composés quand la règle échoue.
+console.log('messages d’erreur suivant la langue')
+const premierMessage = (schema: { safeParse: (v: unknown) => { success: boolean; error?: { issues: { message: string }[] } } }, v: unknown) =>
+  schema.safeParse(v).error?.issues[0]?.message
+const messages = async () => {
+  await i18n.changeLanguage('fr')
+  const fr = {
+    tel: premierMessage(telephone, ''),
+    mail: premierMessage(email, 'pas-un-mail'),
+    nom: premierMessage(nomPersonne('Nom'), 'A'),
+    nomDefaut: premierMessage(nomPersonne(), 'A'),
+    mdp: premierMessage(motDePasse, 'court'),
+    code: premierMessage(codeReferentiel(2, 30), 'a'),
+    vital: validateVital('temperature', '99').error,
+  }
+  await i18n.changeLanguage('en')
+  const en = {
+    tel: premierMessage(telephone, ''),
+    mail: premierMessage(email, 'pas-un-mail'),
+    nom: premierMessage(nomPersonne('Last name'), 'A'),
+    nomDefaut: premierMessage(nomPersonne(), 'A'),
+    mdp: premierMessage(motDePasse, 'court'),
+    code: premierMessage(codeReferentiel(2, 30), 'a'),
+    vital: validateVital('temperature', '99').error,
+  }
+  await i18n.changeLanguage('fr')
+  return { fr, en }
+}
+const attente = messages().then(({ fr, en }) => {
+  test('français : les messages d’origine, inchangés', () => {
+    assert.equal(fr.tel, 'Numéro de téléphone requis')
+    assert.equal(fr.mail, 'Format d’e-mail invalide')
+    assert.equal(fr.nom, 'Nom : 2 caractères minimum')
+    assert.equal(fr.nomDefaut, 'Ce champ : 2 caractères minimum')
+    assert.equal(fr.mdp, '10 caractères minimum')
+    assert.equal(fr.code, 'Code : 2 caractères minimum')
+    assert.equal(fr.vital, 'Hors plage (30–45 °C)')
+  })
+  test('anglais : le MÊME schéma répond en anglais, sans être recréé', () => {
+    assert.equal(en.tel, 'Phone number required')
+    assert.equal(en.mail, 'Invalid e-mail format')
+    assert.equal(en.nom, 'Last name: at least 2 characters')
+    assert.equal(en.nomDefaut, 'This field: at least 2 characters')
+    assert.equal(en.mdp, 'At least 10 characters')
+    assert.equal(en.code, 'Code: at least 2 characters')
+    assert.equal(en.vital, 'Out of range (30–45 °C)')
+  })
+})
+
+void attente.then(() => {
+  console.log('\n' + passed + ' reussis, ' + failed + ' echoues')
+  if (failed > 0) process.exit(1)
+})

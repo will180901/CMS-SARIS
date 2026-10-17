@@ -171,7 +171,9 @@ function Fenetre({ etat, onClose }: { etat: EtatVidage; onClose: () => void }) {
           }}>
             {[...tables, ...etat.lignes.autres].map((x) => (
               <div key={'modele' in x ? x.modele : x.cle} style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--espace-3)', fontSize: 'var(--font-size-body-sm)' }}>
-                <span style={{ color: 'var(--texte-secondaire)' }}>{x.libelle}</span>
+                <span style={{ color: 'var(--texte-secondaire)' }}>
+                  {'modele' in x ? t(`donneesTest.modeles.${x.modele}`, { defaultValue: x.libelle }) : t(`donneesTest.autres.${x.cle}`, { defaultValue: x.libelle })}
+                </span>
                 <strong style={{ color: 'var(--texte-primaire)', fontVariantNumeric: 'tabular-nums' }}>{formatNumber(x.n)}</strong>
               </div>
             ))}

@@ -24,6 +24,7 @@ import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { ListePrintSheet, type BlocImprimable, type BlocTableau } from '@/components/print/ListePrintSheet'
 import { formatDate } from '@/lib/intl'
+import { libelleStat } from '@/lib/libellesStat'
 import { dernierJourCouvert } from '../lib/periode'
 import type { RapportDetail, Repartition } from '../api/rapports.api'
 
@@ -48,7 +49,7 @@ function tableauRepartition(
       { libelle: '%', align: 'right', largeur: 54 },
     ],
     lignes: rows.map(r => [
-      r.libelle,
+      libelleStat(r.libelle),
       r.count,
       total > 0 ? `${Math.round((r.count / total) * 100)} %` : '—',
     ]),

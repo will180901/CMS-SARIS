@@ -8,6 +8,8 @@
  */
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { enUS, fr } from 'react-day-picker/locale'
 import { CalendarDays, X } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@workspace/ui/components/popover'
 import { Calendar } from '@workspace/ui/components/calendar'
@@ -71,7 +73,7 @@ function formatHumanDate(d: Date): string {
 
 export function DatePicker({
   value, onChange,
-  placeholder = 'Choisir une date…',
+  placeholder: placeholderProp,
   disabled, invalid,
   min, max,
   size = 'md', fullWidth = true,
@@ -79,6 +81,8 @@ export function DatePicker({
   captionLayout = 'dropdown',
   id, 'aria-label': ariaLabel,
 }: Props) {
+  const { t, i18n } = useTranslation()
+  const placeholder = placeholderProp ?? t('common.chooseDate')
   const [open, setOpen] = useState(false)
   const s = SIZE_MAP[size]
   const selected = parseISO(value ?? null)
@@ -162,7 +166,7 @@ export function DatePicker({
           {clearable && selected && !disabled && (
             <span
               role="button"
-              aria-label="Effacer"
+              aria-label={t('common.clear')}
               tabIndex={0}
               onClick={handleClear}
               onKeyDown={e => { if (e.key === 'Enter') handleClear(e as any) }}
@@ -202,7 +206,7 @@ export function DatePicker({
             <div style={{ flex: 1.4, minWidth: 0 }}>
               <SelectBox
                 size="sm"
-                aria-label="Mois"
+                aria-label={t('common.month')}
                 value={String(moisAffiche.getMonth())}
                 onChange={(v) => setMoisAffiche(new Date(moisAffiche.getFullYear(), Number(v), 1))}
                 options={optionsMois}
@@ -211,7 +215,7 @@ export function DatePicker({
             <div style={{ flex: 1, minWidth: 0 }}>
               <SelectBox
                 size="sm"
-                aria-label="Année"
+                aria-label={t('common.year')}
                 value={String(moisAffiche.getFullYear())}
                 onChange={(v) => setMoisAffiche(new Date(Number(v), moisAffiche.getMonth(), 1))}
                 options={optionsAnnees}
@@ -225,7 +229,7 @@ export function DatePicker({
           selected={selected}
           onSelect={handleSelect}
           disabled={dayMatchers.length ? dayMatchers : undefined}
-          locale={undefined}
+          locale={i18n.language === 'en' ? enUS : fr}
           weekStartsOn={1}    // lundi
           month={moisAffiche}
           onMonthChange={setMoisAffiche}

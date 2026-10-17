@@ -18,6 +18,7 @@
  * Impression : CSS @media print → PDF natif du navigateur, aucune dépendance.
  */
 import { useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { createPortal } from 'react-dom'
 import { X, Printer, ZoomIn, ZoomOut } from 'lucide-react'
 import { isDesktop } from '@/lib/desktop'
@@ -130,10 +131,12 @@ interface Props<T> {
 
 export function ListePrintSheet<T>({
   rootId, titre, sousTitre, colonnes, lignes, cleDe, blocs,
-  libelleSuite = '(suite)', piedGauche,
+  libelleSuite: libelleSuiteProp, piedGauche,
   etablissement = 'Centre Médico-Sanitaire de la SARIS CONGO',
   onClose,
 }: Props<T>) {
+  const { t } = useTranslation()
+  const libelleSuite = libelleSuiteProp ?? t('print.suite')
   const styleRef = useRef<HTMLStyleElement | null>(null)
   // Échelle initiale : la feuille A4 PAYSAGE fait ~1122 px de large et déborde de
   // la plupart des écrans. Sans ajustement, la partie droite — donc le titre et la
@@ -207,15 +210,15 @@ export function ListePrintSheet<T>({
       background: 'var(--fond-surface)', flexShrink: 0,
     }}>
       <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'var(--texte-primaire)' }}>
-        Aperçu — {titre.toLowerCase()}
+        {t('print.apercu', { titre: titre.toLowerCase() })}
       </p>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <button
-          aria-label="Réduire l'aperçu" onClick={() => setZoom(z => Math.max(0.5, z - 0.1))}
+          aria-label={t('print.reduire')} onClick={() => setZoom(z => Math.max(0.5, z - 0.1))}
           style={boutonIcone}
         ><ZoomOut size={14} /></button>
         <button
-          aria-label="Agrandir l'aperçu" onClick={() => setZoom(z => Math.min(2, z + 0.1))}
+          aria-label={t('print.agrandir')} onClick={() => setZoom(z => Math.min(2, z + 0.1))}
           style={boutonIcone}
         ><ZoomIn size={14} /></button>
         <button onClick={handlePrint} style={{
@@ -223,9 +226,9 @@ export function ListePrintSheet<T>({
           borderRadius: 7, fontSize: 12, fontWeight: 600,
           background: 'var(--ap-500)', color: '#fff', border: 'none', cursor: 'pointer',
         }}>
-          <Printer size={13} /> Imprimer / PDF
+          <Printer size={13} /> {t('print.imprimerPdf')}
         </button>
-        <button aria-label="Fermer l'aperçu" onClick={onClose} style={boutonIcone}><X size={14} /></button>
+        <button aria-label={t('print.fermer')} onClick={onClose} style={boutonIcone}><X size={14} /></button>
       </div>
     </div>
   )
@@ -306,10 +309,10 @@ export function ListePrintSheet<T>({
         {corps}
         <div style={{ borderTop: `2px solid ${ACCENT}`, padding: '8px 34px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
           <p style={{ margin: 0, fontSize: 8, color: MUTED }}>
-            {piedGauche ?? 'CMS SARIS · Document confidentiel'}
+            {piedGauche ?? t('print.confidentiel')}
           </p>
           <p style={{ margin: 0, fontSize: 8, color: MUTED, fontFamily: 'monospace' }}>
-            {mentionDroite} · page {iPage + 1}/{nbPages}
+            {mentionDroite} · {t('print.page', { page: iPage + 1, total: nbPages })}
           </p>
         </div>
       </div>
@@ -353,7 +356,7 @@ export function ListePrintSheet<T>({
               {lignesPage.length === 0 ? (
                 <tr>
                   <td colSpan={(colonnes ?? []).length} style={{ padding: '18px 8px', textAlign: 'center', color: MUTED, fontStyle: 'italic' }}>
-                    Aucune donnée à extraire
+                    {t('print.aucuneDonnee')}
                   </td>
                 </tr>
               ) : lignesPage.map((l, i) => {
@@ -377,7 +380,7 @@ export function ListePrintSheet<T>({
             </tbody>
           </table>
         </div>,
-        `${lignesListe.length} ligne${lignesListe.length > 1 ? 's' : ''}`,
+        t('print.lignes', { count: lignesListe.length }),
       ))}
     </div>
   )
@@ -587,6 +590,7 @@ function TableauBloc({ bloc }: { bloc: BlocTableau }) {
 }
 
 function RenduBloc({ bloc }: { bloc: BlocImprimable }) {
+  const { t } = useTranslation()
   switch (bloc.type) {
     case 'couverture':
       return (
@@ -637,14 +641,14 @@ function RenduBloc({ bloc }: { bloc: BlocImprimable }) {
             {bloc.destinataire && (
               <div>
                 <p style={{ margin: 0, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8fa3ab' }}>
-                  Destinataire
+                  {t('print.destinataire')}
                 </p>
                 <p style={{ margin: '3px 0 0', fontSize: 11, color: INK }}>{bloc.destinataire}</p>
               </div>
             )}
             <div>
               <p style={{ margin: 0, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8fa3ab' }}>
-                Édité le
+                {t('print.edite')}
               </p>
               <p style={{ margin: '3px 0 0', fontSize: 11, color: INK }}>{bloc.edite}</p>
             </div>

@@ -34,10 +34,10 @@ import { ChangerIdentifiantModal } from './ChangerIdentifiantModal'
 import { isDesktop } from '@/lib/desktop'
 import { usePermissions } from '@/hooks/usePermissions'
 import { useSessionStore } from '@/stores/session.store'
-import { labelMetier, labelStatut } from '@/config/labels'
+import { labelMetier, labelRole, labelStatut } from '@/config/labels'
 import { PermissionOverridesSection } from './PermissionOverridesSection'
 import { formatDate as intlFormatDate, formatTime as intlFormatTime } from '@/lib/intl'
-import { getPrimaryRole, ROLE_META } from '@/config/navigation.config'
+import { getPrimaryRole } from '@/config/navigation.config'
 import type { Role } from '@cms-saris/types'
 
 type TabKey = 'profil' | 'roles' | 'permissions' | 'activite' | 'securite'
@@ -181,7 +181,7 @@ export function UtilisateurDrawer({ utilisateurId, onClose, initialTab }: Props)
   }
 
   const primaryRole = u ? getPrimaryRole(u.roles.map(r => r.code) as Role[]) : null
-  const primaryLabel = primaryRole ? ROLE_META[primaryRole]?.label : null
+  const primaryLabel = primaryRole ? labelRole(primaryRole) : null
 
   // Permissions cumulées (dédupliquées) sur les rôles attribués
   const permsCumulees = useMemo(() => {

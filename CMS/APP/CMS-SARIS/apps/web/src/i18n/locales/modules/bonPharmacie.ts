@@ -64,6 +64,9 @@ export const bonPharmacie = {
     printColQuantite: 'Quantité',
     printObservations: 'Observations',
     printCallout: 'Médicaments pris en charge gratuitement — réservé au personnel CDI et à leurs ayants droit.',
+
+    // ── Textes qui n'existaient qu'en « defaultValue » dans le code (2026-10-17) ──
+    emptyDescriptionGenerated: 'Aucun bon pour l\'instant — générez-en un depuis une ordonnance pharmaceutique validée (onglet Ordonnance).',
   },
   en: {
     cardTitle: 'Pharmacy voucher',
@@ -120,5 +123,8 @@ export const bonPharmacie = {
     printColQuantite: 'Quantity',
     printObservations: 'Notes',
     printCallout: 'Medication covered free of charge — reserved for permanent staff and their dependents.',
+
+    // ── Textes qui n'existaient qu'en « defaultValue » dans le code (2026-10-17) ──
+    emptyDescriptionGenerated: 'No voucher yet — generate one from a validated pharmacy prescription (Prescription tab).',
   },
 }

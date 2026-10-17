@@ -25,13 +25,14 @@ import { ConfirmDialog }   from '../components/ConfirmDialog'
 import { DrawerShell }     from '../components/DrawerShell'
 import { PaginationBar }   from '../components/PaginationBar'
 import { DataTableHead, dataRowStyle, DATA_TABLE_CARD, useColumnResize, useSelectionLot, BarreSelectionLot, CaseSelectionLigne, ActionSelectionner, proprietesLigne, type SelectionLot } from '@/components/saris'
+import i18n from '@/i18n/config'
 import { codeReferentiel, libelle as libelleSchema } from '@/lib/validation'
 import { ListePrintSheet, type ColonneExport } from '@/components/print/ListePrintSheet'
 
 const examenSchema = z.object({
   code:    codeReferentiel(2, 30),
   libelle: libelleSchema('Libellé', 2, 100),
-  domaine: z.enum(['BIOLOGIE', 'IMAGERIE', 'SPECIALISE'], { required_error: 'Domaine requis' }),
+  domaine: z.enum(['BIOLOGIE', 'IMAGERIE', 'SPECIALISE'], { errorMap: () => ({ message: i18n.t('validation.domaineRequis') }) }),
 })
 type ExamenForm = z.infer<typeof examenSchema>
 

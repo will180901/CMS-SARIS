@@ -10,6 +10,7 @@
  */
 
 import type { ReactNode } from 'react'
+import { libelleStat } from '@/lib/libellesStat'
 import { formatNumber } from '@/lib/intl'
 import {
   ResponsiveContainer,
@@ -188,7 +189,7 @@ export function DonutChart({
               content={({ active, payload }) =>
                 active && payload?.length ? (
                   <SarisTooltip rows={[{
-                    name: payload[0]!.name as string,
+                    name: libelleStat(payload[0]!.name as string),
                     value: `${formatNumber(Number(payload[0]!.value))} (${total ? Math.round((payload[0]!.value as number) / total * 100) : 0}%)`,
                     color: (payload[0]!.payload as DonutSlice).color,
                   }]} />
@@ -218,7 +219,7 @@ export function DonutChart({
           {colored.map((d, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 'var(--font-size-body-sm)' }}>
               <span style={{ width: 10, height: 10, borderRadius: 3, background: d.color, flexShrink: 0 }} />
-              <span style={{ flex: 1, color: 'var(--texte-secondaire)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</span>
+              <span style={{ flex: 1, color: 'var(--texte-secondaire)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{libelleStat(d.name)}</span>
               <span style={{ fontWeight: 700, color: 'var(--texte-primaire)', fontVariantNumeric: 'tabular-nums' }}>{formatNumber(d.value)}</span>
             </div>
           ))}
@@ -240,7 +241,7 @@ export function RankedBars({ data }: { data: RankedBarRow[] }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {data.map((d, i) => (
         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--font-size-body-sm)', color: 'var(--texte-primaire)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.libelle}</span>
+          <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--font-size-body-sm)', color: 'var(--texte-primaire)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{libelleStat(d.libelle)}</span>
           <div style={{ width: 160, height: 8, borderRadius: 9999, background: 'var(--fond-surface-2)', overflow: 'hidden', flexShrink: 0 }}>
             <div style={{ width: `${(d.count / max) * 100}%`, height: '100%', background: 'var(--ap-400)', borderRadius: 9999 }} />
           </div>

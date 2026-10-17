@@ -121,6 +121,11 @@ export const bonExamen = {
     toastCancelledStatus: 'Bon annulé',
     toastBonCancelled: 'Bon d\'examen annulé',
     toastResultSaved: 'Résultat enregistré',
+
+    // ── Textes qui n'existaient qu'en « defaultValue » dans le code (2026-10-17) ──
+    notEligibleTitle: 'Bons d\'examens non couverts',
+    emptyDescriptionGenerated: 'Aucun bon pour l\'instant — générez-en un depuis une ordonnance de prescription d\'examen validée (onglet Ordonnance).',
+    notEligibleDesc: 'Cette catégorie de patient n\'ouvre pas droit aux bons d\'examens (réservé au personnel CDI et à leurs ayants droit).',
   },
   en: {
     // ── Card / list ─────────────────────────────────────────────────
@@ -240,5 +245,10 @@ export const bonExamen = {
     toastCancelledStatus: 'Order cancelled',
     toastBonCancelled: 'Examination order cancelled',
     toastResultSaved: 'Result saved',
+
+    // ── Textes qui n'existaient qu'en « defaultValue » dans le code (2026-10-17) ──
+    notEligibleTitle: 'Exam vouchers not covered',
+    emptyDescriptionGenerated: 'No voucher yet — generate one from a validated exam prescription (Prescription tab).',
+    notEligibleDesc: 'This patient category is not entitled to exam vouchers (reserved for permanent (CDI) staff and their dependants).',
   },
 }

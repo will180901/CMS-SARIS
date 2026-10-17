@@ -498,7 +498,7 @@ function ZoneExistantes() {
       {total > 0 && (
         <Card.Body padding="md">
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 'var(--espace-2)' }}>
-            {tables.map((x) => <Compteur key={x.modele} label={x.libelle} valeur={x.n} />)}
+            {tables.map((x) => <Compteur key={x.modele} label={t(`donneesTest.modeles.${x.modele}`, { defaultValue: x.libelle })} valeur={x.n} />)}
           </div>
           <div style={{ marginTop: 'var(--espace-4)' }}>
             <Button variant="danger" leftIcon={<Trash2 size={15} />} disabled={etat.enCours} onClick={() => setConfirmer(true)}>

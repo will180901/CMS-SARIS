@@ -16,21 +16,23 @@ import { Button } from '@workspace/ui/components/button'
 import { Input }  from '@workspace/ui/components/input'
 import { Label }  from '@workspace/ui/components/label'
 import { useChangePassword } from '../hooks/useChangePassword'
-import { motDePasse } from '@/lib/validation'
+import { useTranslation } from 'react-i18next'
+import i18n from '@/i18n/config'
+import { motDePasse, msgValidation } from '@/lib/validation'
 
 // ── Schéma ────────────────────────────────────────────────────────────────────
 
 const schema = z.object({
-  motDePasseActuel:    z.string().min(1,  'Mot de passe actuel requis'),
+  motDePasseActuel:    z.string().refine(v => v.length >= 1, msgValidation('validation.mdpActuelRequis')),
   nouveauMotDePasse:   motDePasse,
-  confirmation:        z.string().min(1,  'Confirmation requise'),
-}).refine(d => d.nouveauMotDePasse === d.confirmation, {
-  message: 'Les mots de passe ne correspondent pas',
+  confirmation:        z.string().refine(v => v.length >= 1, msgValidation('validation.confirmationRequise')),
+}).refine(d => d.nouveauMotDePasse === d.confirmation, () => ({
+  message: i18n.t('validation.mdpDifferents'),
   path:    ['confirmation'],
-}).refine(d => d.nouveauMotDePasse !== d.motDePasseActuel, {
-  message: 'Le nouveau mot de passe doit être différent de l’actuel',
+})).refine(d => d.nouveauMotDePasse !== d.motDePasseActuel, () => ({
+  message: i18n.t('validation.mdpIdentique'),
   path:    ['nouveauMotDePasse'],
-})
+}))
 
 type FormValues = z.infer<typeof schema>
 
@@ -42,6 +44,7 @@ interface ChangePasswordDialogProps {
 }
 
 export function ChangePasswordDialog({ open, onClose }: ChangePasswordDialogProps) {
+  const { t } = useTranslation()
   const mutation = useChangePassword()
 
   const [showActuel,    setShowActuel]    = useState(false)
@@ -90,11 +93,11 @@ export function ChangePasswordDialog({ open, onClose }: ChangePasswordDialogProp
               <KeyRound size={15} style={{ color: 'var(--ap-600)' }} />
             </div>
             <DialogTitle style={{ fontSize: '15px', fontWeight: '600', color: 'var(--texte-primaire)', margin: 0 }}>
-              Changer le mot de passe
+              {t('settings.passwordChange')}
             </DialogTitle>
           </div>
           <DialogDescription style={{ fontSize: '13px', color: 'var(--texte-tertiaire)', marginTop: '2px' }}>
-            Choisissez un mot de passe sécurisé d'au moins 8 caractères.
+            {t('settings.passwordDialogDescription')}
           </DialogDescription>
         </DialogHeader>
 
@@ -105,7 +108,7 @@ export function ChangePasswordDialog({ open, onClose }: ChangePasswordDialogProp
             {/* Mot de passe actuel */}
             <div>
               <Label style={{ fontSize: '13px', fontWeight: '500', color: 'var(--texte-primaire)', marginBottom: '6px', display: 'block' }}>
-                Mot de passe actuel <span style={{ color: 'var(--erreur-texte)' }}>*</span>
+                {t('settings.passwordCurrent')} <span style={{ color: 'var(--erreur-texte)' }}>*</span>
               </Label>
               <div style={{ position: 'relative' }}>
                 <Input
@@ -136,13 +139,13 @@ export function ChangePasswordDialog({ open, onClose }: ChangePasswordDialogProp
             {/* Nouveau mot de passe */}
             <div>
               <Label style={{ fontSize: '13px', fontWeight: '500', color: 'var(--texte-primaire)', marginBottom: '6px', display: 'block' }}>
-                Nouveau mot de passe <span style={{ color: 'var(--erreur-texte)' }}>*</span>
+                {t('settings.passwordNew')} <span style={{ color: 'var(--erreur-texte)' }}>*</span>
               </Label>
               <div style={{ position: 'relative' }}>
                 <Input
                   {...register('nouveauMotDePasse')}
                   type={showNouveau ? 'text' : 'password'}
-                  placeholder="Min. 8 caractères"
+                  placeholder={t('settings.passwordNewPlaceholder')}
                   autoComplete="new-password"
                   className="[&::-ms-reveal]:hidden [&::-ms-clear]:hidden [&::-webkit-contacts-auto-fill-button]:hidden [&::-webkit-credentials-auto-fill-button]:hidden"
                   style={{
@@ -164,13 +167,13 @@ export function ChangePasswordDialog({ open, onClose }: ChangePasswordDialogProp
             {/* Confirmation */}
             <div>
               <Label style={{ fontSize: '13px', fontWeight: '500', color: 'var(--texte-primaire)', marginBottom: '6px', display: 'block' }}>
-                Confirmer le nouveau mot de passe <span style={{ color: 'var(--erreur-texte)' }}>*</span>
+                {t('settings.passwordConfirm')} <span style={{ color: 'var(--erreur-texte)' }}>*</span>
               </Label>
               <div style={{ position: 'relative' }}>
                 <Input
                   {...register('confirmation')}
                   type={showConfirm ? 'text' : 'password'}
-                  placeholder="Répéter le nouveau mot de passe"
+                  placeholder={t('settings.passwordConfirmPlaceholder')}
                   autoComplete="new-password"
                   className="[&::-ms-reveal]:hidden [&::-ms-clear]:hidden [&::-webkit-contacts-auto-fill-button]:hidden [&::-webkit-credentials-auto-fill-button]:hidden"
                   style={{
@@ -202,13 +205,13 @@ export function ChangePasswordDialog({ open, onClose }: ChangePasswordDialogProp
             <Button type="button" variant="outline" size="sm" onClick={handleClose}
               disabled={mutation.isPending}
               style={{ fontSize: '13px', height: '34px' }}>
-              Annuler
+              {t('common.cancel')}
             </Button>
             <Button type="submit" size="sm"
               disabled={!isDirty || mutation.isPending}
               style={{ fontSize: '13px', height: '34px', background: 'var(--ap-500)', color: '#fff', gap: '6px' }}>
               <ShieldCheck size={13} />
-              {mutation.isPending ? 'Enregistrement…' : 'Changer le mot de passe'}
+              {mutation.isPending ? t('settings.passwordSaving') : t('settings.passwordChange')}
             </Button>
           </div>
         </form>

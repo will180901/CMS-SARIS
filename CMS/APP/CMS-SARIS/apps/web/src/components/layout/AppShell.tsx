@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { Sidebar, SIDEBAR_RAIL } from './Sidebar'
 import { TopHeader }        from './TopHeader'
@@ -96,12 +97,13 @@ const MessageriePage      = lazy(() => import('@/modules/messagerie/pages/Messag
 /** Fallback de route (Suspense) — même langage visuel que LoadingScreen, mais scopé à
  *  la zone de contenu (pas un overlay plein écran par-dessus sidebar/header déjà montés). */
 function RouteLoader() {
+  const { t } = useTranslation()
   return (
     <div className="flex flex-1 items-center justify-center">
       <div
         className="h-9 w-9 animate-spin rounded-full border-[3px] border-muted border-t-primary"
         role="status"
-        aria-label="Chargement"
+        aria-label={t('common.loading')}
       />
     </div>
   )

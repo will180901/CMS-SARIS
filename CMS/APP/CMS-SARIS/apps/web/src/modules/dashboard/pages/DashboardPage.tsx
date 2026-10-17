@@ -26,6 +26,7 @@ import {
 } from '@/components/saris'
 import { formatDuree, formatDureeMinutes, elapsedMinutes } from '@/lib/duree'
 import { formatDate, formatNumber, formatTime } from '@/lib/intl'
+import { libelleStat } from '@/lib/libellesStat'
 import { usePermissions } from '@/hooks/usePermissions'
 import { useSessionStore } from '@/stores/session.store'
 import {
@@ -456,6 +457,7 @@ function StatBlock({ title, children }: { title: string; children: React.ReactNo
 }
 
 function StatistiquesSection() {
+  const { t } = useTranslation()
   const { has } = usePermissions()
   const canExport = has('rapport.export')
   const [days, setDays] = useState(30)
@@ -467,19 +469,24 @@ function StatistiquesSection() {
   }, [days])
   const { data: stats, isLoading } = useStatistiques(true, { from, to })
   const empty = !stats || stats.totalConsultations === 0
-  const PRESETS = [{ d: 7, l: '7 j' }, { d: 30, l: '30 j' }, { d: 90, l: '90 j' }, { d: 365, l: '1 an' }]
+  const PRESETS = [
+    { d: 7, l: t('dashboard.statsPresetJours', { jours: 7 }) },
+    { d: 30, l: t('dashboard.statsPresetJours', { jours: 30 }) },
+    { d: 90, l: t('dashboard.statsPresetJours', { jours: 90 }) },
+    { d: 365, l: t('dashboard.statsPresetAn') },
+  ]
 
   return (
     <Card>
       <Card.Header
         icon={<BarChart3 size={15} />}
-        title="Statistiques d'activité"
-        subtitle={`${days} derniers jours — type × pathologie × catégorie`}
+        title={t('dashboard.statsTitle')}
+        subtitle={t('dashboard.statsSubtitle', { jours: days })}
       />
       <Card.Body>
         {/* Période + exports (remplace le comptage Excel « Jeannette ») */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 'var(--espace-4)' }}>
-          <div style={{ display: 'flex', gap: 4 }} role="group" aria-label="Période">
+          <div style={{ display: 'flex', gap: 4 }} role="group" aria-label={t('dashboard.statsPeriod')}>
             {PRESETS.map(p => {
               const active = days === p.d
               return (
@@ -497,10 +504,10 @@ function StatistiquesSection() {
               `rapport.export` s'applique, comme sur la page Rapports. */}
           {canExport && (
             <>
-              <button type="button" onClick={() => stats && void exportStatsXlsx(stats)} disabled={empty} style={statExportBtn(empty)} title="Exporter en Excel (.xlsx)">
+              <button type="button" onClick={() => stats && void exportStatsXlsx(stats)} disabled={empty} style={statExportBtn(empty)} title={t('dashboard.statsExportXlsx')}>
                 <Download size={13} /> Excel
               </button>
-              <button type="button" onClick={() => stats && exportStatsPdf(stats)} disabled={empty} style={statExportBtn(empty)} title="Exporter / imprimer en PDF">
+              <button type="button" onClick={() => stats && exportStatsPdf(stats)} disabled={empty} style={statExportBtn(empty)} title={t('dashboard.statsExportPdf')}>
                 <Printer size={13} /> PDF
               </button>
             </>
@@ -512,35 +519,35 @@ function StatistiquesSection() {
         ) : empty || !stats ? (
           <div style={{ minHeight: 180, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <p style={{ margin: 0, fontSize: 'var(--font-size-body-sm)', color: 'var(--texte-tertiaire)', fontStyle: 'italic' }}>
-              Aucune consultation clôturée sur la période.
+              {t('dashboard.statsEmpty')}
             </p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--espace-5)' }}>
             <div style={GRID_AUTO}>
-              <StatCard icon={<Stethoscope size={18} />} label={`Consultations (${days} j)`} value={stats.totalConsultations} tone="accent" />
-              <StatCard icon={<Activity size={18} />} label="Jours de repos prescrits" value={stats.repos.totalJours} tone="gold" hint={`${formatNumber(stats.repos.consultationsAvecRepos)} consultation(s) avec repos`} />
+              <StatCard icon={<Stethoscope size={18} />} label={t('dashboard.statsConsultations', { jours: days })} value={stats.totalConsultations} tone="accent" />
+              <StatCard icon={<Activity size={18} />} label={t('dashboard.statsReposJours')} value={stats.repos.totalJours} tone="gold" hint={t('dashboard.statsAvecRepos', { count: stats.repos.consultationsAvecRepos })} />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: 'var(--espace-5)' }}>
-              <StatBlock title="Par type de consultation">
+              <StatBlock title={t('rapports.byType')}>
                 {stats.parType.length ? (
-                  <DonutChart height={170} centerLabel="actes" data={stats.parType.slice(0, 6).map((s): DonutSlice => ({ name: s.libelle, value: s.count }))} />
+                  <DonutChart height={170} centerLabel={t('rapports.donutCenter')} data={stats.parType.slice(0, 6).map((s): DonutSlice => ({ name: s.libelle, value: s.count }))} />
                 ) : <EmptyMini />}
               </StatBlock>
-              <StatBlock title="Par catégorie de patient">
+              <StatBlock title={t('rapports.byCategory')}>
                 {stats.parCategorie.length ? (
-                  <DonutChart height={170} centerLabel="actes" data={stats.parCategorie.slice(0, 6).map((s): DonutSlice => ({ name: s.libelle, value: s.count }))} />
+                  <DonutChart height={170} centerLabel={t('rapports.donutCenter')} data={stats.parCategorie.slice(0, 6).map((s): DonutSlice => ({ name: s.libelle, value: s.count }))} />
                 ) : <EmptyMini />}
               </StatBlock>
-              <StatBlock title="Par département / direction">
+              <StatBlock title={t('rapports.byDepartment')}>
                 {stats.parDepartement.length ? (
-                  <DonutChart height={170} centerLabel="actes" data={stats.parDepartement.slice(0, 6).map((s): DonutSlice => ({ name: s.libelle, value: s.count }))} />
+                  <DonutChart height={170} centerLabel={t('rapports.donutCenter')} data={stats.parDepartement.slice(0, 6).map((s): DonutSlice => ({ name: s.libelle, value: s.count }))} />
                 ) : <EmptyMini />}
               </StatBlock>
             </div>
 
-            <StatBlock title="Top pathologies (diagnostic principal)">
+            <StatBlock title={t('rapports.topPathologies')}>
               {stats.parPathologie.length ? <RankedBars data={stats.parPathologie.slice(0, 8)} /> : <EmptyMini />}
             </StatBlock>
 
@@ -555,17 +562,18 @@ function StatistiquesSection() {
 // ── Croisement pathologie × catégorie × département ──────────────────────────
 
 function CroisementBlock({ from, to }: { from: string; to: string }) {
+  const { t } = useTranslation()
   const { data: rows = [], isLoading } = useCroisementStats(true, { from, to })
   if (isLoading) return <Skeleton height={140} />
   if (rows.length === 0) return null
   const top = rows.slice(0, 12)
   return (
-    <StatBlock title="Croisement pathologie × catégorie × département">
+    <StatBlock title={t('dashboard.croisementTitle')}>
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--font-size-body-sm)' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--bordure-legere)' }}>
-              {['Pathologie', 'Catégorie', 'Département', 'Cas'].map((h, i) => (
+              {[t('dashboard.croisementPathologie'), t('dashboard.croisementCategorie'), t('dashboard.croisementDepartement'), t('dashboard.croisementCas')].map((h, i) => (
                 <th key={h} style={{ textAlign: i === 3 ? 'right' : 'left', padding: '6px 8px', color: 'var(--texte-tertiaire)', fontWeight: 600, fontSize: 'var(--font-size-caption)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
               ))}
             </tr>
@@ -573,10 +581,10 @@ function CroisementBlock({ from, to }: { from: string; to: string }) {
           <tbody>
             {top.map((r, i) => (
               <tr key={i} style={{ borderBottom: '1px solid var(--bordure-legere)' }}>
-                <td style={{ padding: '7px 8px', color: 'var(--texte-primaire)' }}>{r.pathologie}</td>
-                <td style={{ padding: '7px 8px', color: 'var(--texte-secondaire)' }}>{r.categorie}</td>
-                <td style={{ padding: '7px 8px', color: 'var(--texte-secondaire)' }}>{r.departement}</td>
-                <td style={{ padding: '7px 8px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 700, color: 'var(--texte-primaire)' }}>{r.count}</td>
+                <td style={{ padding: '7px 8px', color: 'var(--texte-primaire)' }}>{libelleStat(r.pathologie)}</td>
+                <td style={{ padding: '7px 8px', color: 'var(--texte-secondaire)' }}>{libelleStat(r.categorie)}</td>
+                <td style={{ padding: '7px 8px', color: 'var(--texte-secondaire)' }}>{libelleStat(r.departement)}</td>
+                <td style={{ padding: '7px 8px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 700, color: 'var(--texte-primaire)' }}>{formatNumber(r.count)}</td>
               </tr>
             ))}
           </tbody>
@@ -653,9 +661,10 @@ function statExportBtn(disabled: boolean): React.CSSProperties {
 }
 
 function EmptyMini() {
+  const { t } = useTranslation()
   return (
     <p style={{ margin: '8px 0', fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)', fontStyle: 'italic' }}>
-      Aucune donnée.
+      {t('dashboard.aucuneDonnee')}
     </p>
   )
 }

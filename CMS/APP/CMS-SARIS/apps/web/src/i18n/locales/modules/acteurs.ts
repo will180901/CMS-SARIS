@@ -202,6 +202,10 @@ export const acteurs = {
     toastHabilitationDeleted: 'Habilitation supprimée',
     toastAbsenceSaved: 'Absence enregistrée',
     toastAbsenceDeleted: 'Absence supprimée',
+
+    // ── Textes qui n'existaient qu'en « defaultValue » dans le code (2026-10-17) ──
+    statutActif: 'Actif',
+    statutInactif: 'Inactif',
   },
   en: {
     // ── Main page ───────────────────────────────────────────────────
@@ -402,5 +406,9 @@ export const acteurs = {
     toastHabilitationDeleted: 'Qualification deleted',
     toastAbsenceSaved: 'Absence saved',
     toastAbsenceDeleted: 'Absence deleted',
+
+    // ── Textes qui n'existaient qu'en « defaultValue » dans le code (2026-10-17) ──
+    statutActif: 'Active',
+    statutInactif: 'Inactive',
   },
 }

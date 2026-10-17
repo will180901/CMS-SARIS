@@ -66,10 +66,10 @@ export function AccesPage() {
           </div>
           <div style={{ minWidth: 0 }}>
             <h1 style={{ margin: 0, fontSize: 'var(--font-size-h2)', fontWeight: 700, color: 'var(--texte-primaire)', lineHeight: 1.15 }}>
-              Accès &amp; habilitations
+              {t('nav.acces')}
             </h1>
             <p style={{ margin: '2px 0 0', fontSize: 'var(--font-size-body-sm)', color: 'var(--texte-tertiaire)' }}>
-              Comptes, rôles et permissions — gérés au même endroit
+              {t('admin.accesSousTitre')}
             </p>
           </div>
         </div>

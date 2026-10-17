@@ -27,14 +27,14 @@ import { formatDate } from '@/lib/intl'
 // DÉJÀ enregistré reste complet (pas de suppression silencieuse par champs vidés).
 function makeSchema(t: (k: string) => string, contactExiste: boolean) {
   const contact: [keyof Form, z.ZodTypeAny][] = [
-    ['contactNom', nomPersonne('Nom')],
-    ['contactPrenom', nomPersonne('Prénom')],
+    ['contactNom', nomPersonne(t('patients.labelLastName'))],
+    ['contactPrenom', nomPersonne(t('patients.labelFirstName'))],
     ['contactTel', telephone],
     ['contactLien', z.string().min(1, t('patients.validationRequired')).max(50)],
   ]
   return z.object({
-    nom:           nomPersonne('Nom'),
-    prenom:        nomPersonne('Prénom'),
+    nom:           nomPersonne(t('patients.labelLastName')),
+    prenom:        nomPersonne(t('patients.labelFirstName')),
     dateNaissance: dateNaissanceSchema,
     // Aucun sexe présélectionné : un sexe inconnu restait affiché « M » et s'enregistrait
     // tel quel au premier « Modifier » (dossier CDI auto-créé, sexe vide).

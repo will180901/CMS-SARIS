@@ -12,6 +12,7 @@ import { createPortal } from 'react-dom'
 import { FocusScope as FocusScopePrimitive } from 'radix-ui/internal'
 import type { ReactNode } from 'react'
 import { X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { IconButton } from './IconButton'
 import { TILE_TONE_MAP, type Tone } from './tones'
 import { useIsMobile } from '@/hooks/useMediaQuery'
@@ -35,6 +36,7 @@ interface ModalProps {
 }
 
 export function Modal({ icon, title, subtitle, onClose, width = 560, footer, bodyPadding = 'var(--espace-5)', tone = 'accent', children }: ModalProps) {
+  const { t: tr } = useTranslation()
   const isMobile = useIsMobile()
   const t = TILE_TONE_MAP[tone]
   const carteRef = useRef<HTMLDivElement>(null)
@@ -108,7 +110,7 @@ export function Modal({ icon, title, subtitle, onClose, width = 560, footer, bod
             <p style={{ margin: 0, fontSize: 'var(--font-size-h4)', fontWeight: 700, color: 'var(--texte-primaire)' }}>{title}</p>
             {subtitle && <p style={{ margin: '2px 0 0', fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)' }}>{subtitle}</p>}
           </div>
-          <IconButton aria-label="Fermer" icon={<X size={15} />} onClick={onClose} />
+          <IconButton aria-label={tr('common.close')} icon={<X size={15} />} onClick={onClose} />
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto', padding: isMobile && bodyPadding === 'var(--espace-5)' ? 'var(--espace-4)' : bodyPadding, display: 'flex', flexDirection: 'column', gap: 'var(--espace-3)' }}>

@@ -169,6 +169,9 @@ export const suiviTraitement = {
     releveAdministresListe: 'Administrés : {{liste}}',
     administrationDe: 'Administration — {{medicament}}',
     arretDe: 'Traitement arrêté — {{medicament}}',
+
+    // ── Textes qui n'existaient qu'en « defaultValue » dans le code (2026-10-17) ──
+    emptyDescGenerated: 'Aucun suivi pour l\'instant — générez-le depuis l\'étape Décision (« Suivi de traitement »).',
   },
   en: {
     // ── Sub-tabs (dossier tab "Treatment follow-up") ─────────────────
@@ -334,5 +337,8 @@ export const suiviTraitement = {
     releveAdministresListe: 'Administered: {{liste}}',
     administrationDe: 'Administration — {{medicament}}',
     arretDe: 'Treatment stopped — {{medicament}}',
+
+    // ── Textes qui n'existaient qu'en « defaultValue » dans le code (2026-10-17) ──
+    emptyDescGenerated: 'No follow-up yet — generate it from the Decision step (“Treatment follow-up”).',
   },
 }

@@ -291,6 +291,9 @@ export const sorties = {
     toastSuiviSupprime: 'Suivi chronique supprimé',
     toastDeclarationAnnulee: 'Déclaration annulée',
     toastDeclarationCloturee: 'Déclaration clôturée',
+
+    // ── Textes qui n'existaient qu'en « defaultValue » dans le code (2026-10-17) ──
+    evacEmptyDescGenerated: 'Aucune fiche pour l\'instant — générez-la depuis l\'étape Décision (« Évacuation médicale »).',
   },
   en: {
     // ── Page : en-tête & KPI ────────────────────────────────────────
@@ -580,5 +583,8 @@ export const sorties = {
     toastSuiviSupprime: 'Chronic follow-up deleted',
     toastDeclarationAnnulee: 'Report cancelled',
     toastDeclarationCloturee: 'Report closed',
+
+    // ── Textes qui n'existaient qu'en « defaultValue » dans le code (2026-10-17) ──
+    evacEmptyDescGenerated: 'No record yet — generate it from the Decision step (“Medical evacuation”).',
   },
 }

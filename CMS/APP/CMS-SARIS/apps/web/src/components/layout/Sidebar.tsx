@@ -26,6 +26,7 @@ import { useSessionStore } from '@/stores/session.store'
 import { useServerHealth } from '@/hooks/useServerHealth'
 import { useSyncEngine }   from '@/hooks/useSyncEngine'
 import { ROLE_META, getPrimaryRole } from '@/config/navigation.config'
+import { labelRole } from '@/config/labels'
 import { useSites }        from '@/modules/referentiels/hooks/useReferentiels'
 import { useMessagerieUnread } from '@/modules/messagerie/hooks/useMessagerie'
 import { useIsMobile } from '@/hooks/useMediaQuery'
@@ -355,7 +356,7 @@ export function Sidebar() {
                         fontWeight: 600,
                         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                       }}>
-                        {roleMeta.label}
+                        {labelRole(primaryRole)}
                       </span>
                     </div>
                   </div>
@@ -421,7 +422,7 @@ export function Sidebar() {
                           background: m.bg, color: m.text,
                         }}
                       >
-                        {m.label}
+                        {labelRole(r)}
                       </span>
                     )
                   })}
@@ -446,7 +447,7 @@ export function Sidebar() {
                 <div style={{ height: 1, background: 'var(--bordure-legere)', margin: '4px 0' }} />
                 <MenuItem
                   icon={<LogOut size={13} />}
-                  label="Se déconnecter"
+                  label={t('header.logout')}
                   tone="danger"
                   disabled={logoutMutation.isPending}
                   onClick={handleLogout}

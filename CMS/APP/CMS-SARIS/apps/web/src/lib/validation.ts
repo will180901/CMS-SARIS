@@ -11,17 +11,30 @@
  * 400 inutile.
  */
 import { z } from 'zod'
+import i18n from '../i18n/config'
+
+/**
+ * Message de validation PARESSEUX : le texte est composé au moment où la règle échoue (et non au chargement
+ * du module), dans la langue active à cet instant. Les schémas de ce fichier sont créés une fois pour
+ * toutes ; un texte figé à la création resterait dans la langue de l'ouverture de l'application.
+ */
+export const msgValidation = (cle: string, opts?: Record<string, unknown>) => () => ({ message: i18n.t(cle, opts) })
+const msg = msgValidation
+/** Libellé de champ passé par l'appelant : texte déjà traduit, ou fonction évaluée à l'échec. */
+type Etiquette = string | (() => string)
+const nomChamp = (e: Etiquette) => (typeof e === 'function' ? e() : e)
 
 // ── Noms propres ────────────────────────────────────────────────────────────
 // Lettres (accents inclus), espaces, tiret, apostrophe, point. Pas de chiffres.
 const NOM_REGEX = /^[A-Za-zÀ-ÿ'’.\- ]+$/
 
-export function nomPersonne(label = 'Ce champ', min = 2, max = 100) {
+export function nomPersonne(label: Etiquette = () => i18n.t('validation.ceChamp'), min = 2, max = 100) {
+  const l = () => nomChamp(label)
   return z.string()
     .trim()
-    .min(min, `${label} : ${min} caractères minimum`)
-    .max(max, `${label} : ${max} caractères maximum`)
-    .regex(NOM_REGEX, `${label} : lettres uniquement (ni chiffres ni symboles)`)
+    .refine(v => v.length >= min, () => ({ message: i18n.t('validation.min', { label: l(), n: min }) }))
+    .refine(v => v.length <= max, () => ({ message: i18n.t('validation.max', { label: l(), n: max }) }))
+    .refine(v => NOM_REGEX.test(v), () => ({ message: i18n.t('validation.lettresSeulement', { label: l() }) }))
 }
 
 // ── Téléphone (Congo / international) ────────────────────────────────────────
@@ -40,15 +53,15 @@ export function isTelephone(v: string): boolean {
 /** Téléphone obligatoire. */
 export const telephone = z.string()
   .trim()
-  .min(1, 'Numéro de téléphone requis')
-  .max(20, 'Numéro trop long')
-  .refine(isTelephone, 'Numéro invalide (9 à 12 chiffres, ex. +242 06 123 45 67)')
+  .refine(v => v.length >= 1, msg('validation.telRequis'))
+  .refine(v => v.length <= 20, msg('validation.telTropLong'))
+  .refine(isTelephone, msg('validation.telInvalide'))
 
 /** Téléphone optionnel : vide accepté, sinon validé. */
 export const telephoneOpt = z.string()
   .trim()
-  .max(20, 'Numéro trop long')
-  .refine(v => v === '' || isTelephone(v), 'Numéro invalide (9 à 12 chiffres, ex. +242 06 123 45 67)')
+  .refine(v => v.length <= 20, msg('validation.telTropLong'))
+  .refine(v => v === '' || isTelephone(v), msg('validation.telInvalide'))
   .optional()
 
 /** Formatage doux à la frappe : conserve « + » en tête, chiffres et espaces. */
@@ -59,31 +72,32 @@ export function sanitizeTelephoneInput(v: string): string {
 }
 
 // ── E-mail ──────────────────────────────────────────────────────────────────
+const EMAIL_OK = z.string().email()
 export const email = z.string()
   .trim()
   .toLowerCase()
-  .min(1, 'E-mail requis')
-  .max(120, 'E-mail trop long')
-  .email('Format d’e-mail invalide')
+  .refine(v => v.length >= 1, msg('validation.emailRequis'))
+  .refine(v => v.length <= 120, msg('validation.emailTropLong'))
+  .refine(v => EMAIL_OK.safeParse(v).success, msg('validation.emailInvalide'))
 
 export const emailOpt = z.string()
   .trim()
   .toLowerCase()
-  .max(120, 'E-mail trop long')
-  .refine(v => v === '' || z.string().email().safeParse(v).success, 'Format d’e-mail invalide')
+  .refine(v => v.length <= 120, msg('validation.emailTropLong'))
+  .refine(v => v === '' || EMAIL_OK.safeParse(v).success, msg('validation.emailInvalide'))
   .optional()
 
 // ── Date de naissance ───────────────────────────────────────────────────────
 const MAX_AGE_ANS = 120
 export const dateNaissance = z.string()
-  .min(1, 'Date de naissance requise')
-  .refine(v => !Number.isNaN(Date.parse(v)), 'Date invalide')
-  .refine(v => new Date(v) <= new Date(), 'La date ne peut pas être dans le futur')
+  .refine(v => v.length >= 1, msg('validation.naissanceRequise'))
+  .refine(v => !Number.isNaN(Date.parse(v)), msg('validation.dateInvalide'))
+  .refine(v => new Date(v) <= new Date(), msg('validation.dateFutur'))
   .refine(v => {
     const min = new Date()
     min.setFullYear(min.getFullYear() - MAX_AGE_ANS)
     return new Date(v) >= min
-  }, `Âge supérieur à ${MAX_AGE_ANS} ans : vérifiez la date`)
+  }, msg('validation.ageMax', { n: MAX_AGE_ANS }))
 
 /** Borne `max` pour <input type="date"> de naissance : aujourd'hui (inclus). */
 export function todayISO(): string {
@@ -111,9 +125,9 @@ export function codeReferentiel(min = 2, max = 30) {
   return z.string()
     .trim()
     .toUpperCase()
-    .min(min, `Code : ${min} caractères minimum`)
-    .max(max, `Code : ${max} caractères maximum`)
-    .regex(CODE_REGEX, 'Code : majuscules, chiffres, « _ » et « - » uniquement')
+    .refine(v => v.length >= min, () => ({ message: i18n.t('validation.min', { label: i18n.t('validation.code'), n: min }) }))
+    .refine(v => v.length <= max, () => ({ message: i18n.t('validation.max', { label: i18n.t('validation.code'), n: max }) }))
+    .refine(v => CODE_REGEX.test(v), msg('validation.codeFormat'))
 }
 /** Nettoyage à la frappe d'un champ code (majuscule, sans espaces ni symboles). */
 export function sanitizeCodeInput(v: string): string {
@@ -125,9 +139,9 @@ export function sanitizeCodeInput(v: string): string {
 // 10 caractères, 1 majuscule, 1 minuscule, 1 chiffre.
 export const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{10,}$/
 export const motDePasse = z.string()
-  .min(10, '10 caractères minimum')
-  .max(200, 'Mot de passe trop long')
-  .regex(PASSWORD_REGEX, '10 caractères min., 1 majuscule, 1 minuscule et 1 chiffre')
+  .refine(v => v.length >= 10, msg('validation.mdpMin'))
+  .refine(v => v.length <= 200, msg('validation.mdpTropLong'))
+  .refine(v => PASSWORD_REGEX.test(v), msg('validation.mdpPolitique'))
 
 // ── Matricule (identifiant agent) ───────────────────────────────────────────
 const MATRICULE_REGEX = /^[A-Z0-9-]+$/
@@ -135,23 +149,24 @@ export function matricule(min = 2, max = 20) {
   return z.string()
     .trim()
     .toUpperCase()
-    .min(min, `Matricule : ${min} caractères minimum`)
-    .max(max, `Matricule : ${max} caractères maximum`)
-    .regex(MATRICULE_REGEX, 'Matricule : majuscules, chiffres et « - » uniquement')
+    .refine(v => v.length >= min, () => ({ message: i18n.t('validation.min', { label: i18n.t('validation.matricule'), n: min }) }))
+    .refine(v => v.length <= max, () => ({ message: i18n.t('validation.max', { label: i18n.t('validation.matricule'), n: max }) }))
+    .refine(v => MATRICULE_REGEX.test(v), msg('validation.matriculeFormat'))
 }
 export function sanitizeMatriculeInput(v: string): string {
   return v.toUpperCase().replace(/[^A-Z0-9-]/g, '')
 }
 
 // ── Libellé / texte court obligatoire ───────────────────────────────────────
-export function libelle(label = 'Libellé', min = 2, max = 100) {
+export function libelle(label: Etiquette = () => i18n.t('validation.libelle'), min = 2, max = 100) {
+  const l = () => nomChamp(label)
   return z.string()
     .trim()
-    .min(min, `${label} : ${min} caractères minimum`)
-    .max(max, `${label} : ${max} caractères maximum`)
+    .refine(v => v.length >= min, () => ({ message: i18n.t('validation.min', { label: l(), n: min }) }))
+    .refine(v => v.length <= max, () => ({ message: i18n.t('validation.max', { label: l(), n: max }) }))
 }
 export function texteOpt(max = 200) {
-  return z.string().trim().max(max, `${max} caractères maximum`).optional()
+  return z.string().trim().refine(v => v.length <= max, msg('validation.maxCaracteres', { n: max })).optional()
 }
 
 // ── Constantes vitales (plages physiologiques = DTO backend) ────────────────
@@ -181,10 +196,10 @@ export function validateVital(key: VitalKey, raw: string): { ok: boolean; value?
   const s = raw.trim()
   if (s === '') return { ok: true }
   const n = Number(s.replace(',', '.'))
-  if (Number.isNaN(n)) return { ok: false, error: 'Valeur numérique attendue' }
+  if (Number.isNaN(n)) return { ok: false, error: i18n.t('validation.valeurNumerique') }
   const r = VITAL_RANGES[key]
   if (n < r.min || n > r.max) {
-    return { ok: false, error: `Hors plage (${r.min}–${r.max} ${r.unit})` }
+    return { ok: false, error: i18n.t('validation.horsPlage', { min: r.min, max: r.max, unit: r.unit }) }
   }
   return { ok: true, value: n }
 }

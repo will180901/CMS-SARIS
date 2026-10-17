@@ -45,16 +45,19 @@ type ModeVieKey = (typeof FIELDS)[number]['key'] | 'observations'
  * n'aurait rien à sélectionner, afficherait « non renseigné », et le premier
  * enregistrement effacerait silencieusement une donnée clinique existante.
  */
-function optionsPour(choix: readonly string[], actuelle: string | null | undefined, labelVide: string) {
+function optionsPour(choix: readonly string[], actuelle: string | null | undefined, labelVide: string, etiquette: (valeur: string) => string) {
   const options = [
     { value: '', label: labelVide },
-    ...choix.map(c => ({ value: c, label: c })),
+    ...choix.map(c => ({ value: c, label: etiquette(c) })),
   ]
   if (actuelle && !choix.includes(actuelle)) {
-    options.push({ value: actuelle, label: actuelle })
+    options.push({ value: actuelle, label: etiquette(actuelle) })
   }
   return options
 }
+
+/** « Régime particulier » → « regimeParticulier » : la clé de traduction d'une valeur enregistrée en français. */
+const cleValeur = (v: string) => v.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+(\S)/g, (_, c: string) => c.toUpperCase())
 
 export function ModeVieCard({ dossier, canWrite }: { dossier: PatientDossier; canWrite: boolean }) {
   const { t } = useTranslation()
@@ -89,6 +92,8 @@ export function ModeVieCard({ dossier, canWrite }: { dossier: PatientDossier; ca
   }
 
   const tr = (key: string, label: string) => t(`patients.modeVie.${key}`, { defaultValue: label })
+  // Les valeurs restent enregistrées en français (« Sevré ») : seul l'affichage suit la langue.
+  const valeur = (v: string) => t(`patients.modeVie.val.${cleValeur(v)}`, { defaultValue: v })
   const lbl  = { fontSize: '11px', fontWeight: 500 as const, color: 'var(--texte-secondaire)' }
   const fld  = { display: 'flex', flexDirection: 'column' as const, gap: '5px' }
 
@@ -132,7 +137,7 @@ export function ModeVieCard({ dossier, canWrite }: { dossier: PatientDossier; ca
               <div key={f.key}>
                 <p style={{ fontSize: '10px', fontWeight: 600, color: 'var(--texte-tertiaire)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 3px' }}>{tr(f.key, f.label)}</p>
                 <p style={{ fontSize: '13px', color: mv?.[f.key] ? 'var(--texte-primaire)' : 'var(--texte-tertiaire)', margin: 0, fontStyle: mv?.[f.key] ? 'normal' : 'italic' }}>
-                  {mv?.[f.key] || t('patients.notProvided')}
+                  {mv?.[f.key] ? valeur(mv[f.key] as string) : t('patients.notProvided')}
                 </p>
               </div>
             ))}
@@ -155,7 +160,7 @@ export function ModeVieCard({ dossier, canWrite }: { dossier: PatientDossier; ca
                     onChange={val => setVals(v => ({ ...v, [f.key]: val }))}
                     placeholder={t('patients.notProvided')}
                     aria-label={tr(f.key, f.label)}
-                    options={optionsPour(f.choix, mv?.[f.key], t('patients.notProvided'))}
+                    options={optionsPour(f.choix, mv?.[f.key], t('patients.notProvided'), valeur)}
                   />
                 </div>
               ))}

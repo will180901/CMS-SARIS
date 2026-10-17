@@ -18,14 +18,15 @@ import {
 import type { SessionConcurrente } from '@cms-saris/types'
 import { SessionConcurrenteStep } from '../components/SessionConcurrenteStep'
 import { useTranslation } from 'react-i18next'
+import { msgValidation } from '@/lib/validation'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 import { DesktopDragStrip } from '@/components/layout/DesktopTitleBar'
 
 // ── Schémas Zod ───────────────────────────────────────────────────────────────
 
 const loginSchema = z.object({
-  login:    z.string().min(1, "L'identifiant est requis").max(100),
-  password: z.string().min(1, 'Le mot de passe est requis').max(200),
+  login:    z.string().max(100).refine(v => v.length >= 1, msgValidation('validation.identifiantRequis')),
+  password: z.string().max(200).refine(v => v.length >= 1, msgValidation('validation.mdpRequis')),
 })
 
 const totpSchema = z.object({

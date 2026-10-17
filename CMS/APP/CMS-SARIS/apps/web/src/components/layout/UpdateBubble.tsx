@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react'
 import { ArrowUpCircle, Download, RefreshCw, Loader2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useAppUpdates } from '@/hooks/useAppUpdates'
 
 /**
@@ -9,13 +10,14 @@ import { useAppUpdates } from '@/hooks/useAppUpdates'
  * En navigateur web, le statut reste null → la bulle ne s'affiche jamais.
  */
 export function UpdateBubble({ collapsed = false }: { collapsed?: boolean }) {
+  const { t } = useTranslation()
   const { status, download, install } = useAppUpdates()
   if (!status) return null
 
   const s = status.state
   if (s !== 'available' && s !== 'downloading' && s !== 'downloaded') return null
 
-  const version = 'version' in status && status.version ? `v${status.version}` : 'Nouvelle version'
+  const version = 'version' in status && status.version ? `v${status.version}` : t('update.nouvelleVersion')
   const Icon = s === 'downloading' ? Loader2 : s === 'downloaded' ? RefreshCw : ArrowUpCircle
   const spinning = s === 'downloading'
 
@@ -26,7 +28,7 @@ export function UpdateBubble({ collapsed = false }: { collapsed?: boolean }) {
       <button
         type="button"
         onClick={onClick}
-        title={s === 'downloaded' ? 'Redémarrer pour installer la mise à jour' : `Mise à jour ${version} disponible`}
+        title={s === 'downloaded' ? t('update.redemarrerPourInstaller') : t('update.disponibleAvec', { version })}
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           width: 36, height: 36, margin: '0 auto 6px',
@@ -41,9 +43,9 @@ export function UpdateBubble({ collapsed = false }: { collapsed?: boolean }) {
   }
 
   const title =
-    s === 'downloaded' ? 'Mise à jour prête'
-    : s === 'downloading' ? `Téléchargement… ${status.percent}%`
-    : 'Mise à jour disponible'
+    s === 'downloaded' ? t('update.prete')
+    : s === 'downloading' ? t('update.telechargement', { percent: status.percent })
+    : t('update.disponible')
 
   return (
     <div
@@ -74,12 +76,12 @@ export function UpdateBubble({ collapsed = false }: { collapsed?: boolean }) {
       </div>
       {s === 'available' && (
         <button type="button" onClick={download} style={bubbleBtn}>
-          <Download size={12} /> Mettre à jour
+          <Download size={12} /> {t('update.mettreAJour')}
         </button>
       )}
       {s === 'downloaded' && (
         <button type="button" onClick={install} style={bubbleBtn}>
-          <RefreshCw size={12} /> Redémarrer
+          <RefreshCw size={12} /> {t('update.redemarrer')}
         </button>
       )}
     </div>

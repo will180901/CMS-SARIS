@@ -7,6 +7,7 @@
  */
 
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { ReactNode } from 'react'
 import { Modal } from './Modal'
 import { Field, Textarea } from './Field'
@@ -29,10 +30,12 @@ interface MotifDialogProps {
 }
 
 export function MotifDialog({
-  icon, title, subtitle, label = 'Motif', placeholder,
+  icon, title, subtitle, label: labelProp, placeholder,
   confirmLabel, confirmIcon, danger, loading, minLength = 3,
   onConfirm, onClose,
 }: MotifDialogProps) {
+  const { t } = useTranslation()
+  const label = labelProp ?? t('common.reason')
   const [motif, setMotif] = useState('')
   const ok = motif.trim().length >= minLength
 
@@ -44,7 +47,7 @@ export function MotifDialog({
       width={480}
       onClose={onClose}
       footer={<>
-        <Button variant="secondary" onClick={onClose}>Annuler</Button>
+        <Button variant="secondary" onClick={onClose}>{t('common.cancel')}</Button>
         <Button
           variant={danger ? 'danger' : 'primary'}
           disabled={!ok}
