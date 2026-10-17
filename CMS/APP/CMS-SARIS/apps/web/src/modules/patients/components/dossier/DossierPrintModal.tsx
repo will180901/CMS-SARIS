@@ -11,7 +11,7 @@ import { usePatientConstantes } from '../../hooks/usePatients'
 import { usePatientConsultations, usePatientDocuments } from '@/modules/consultation/hooks/useConsultation'
 import { useAnnuaire } from '@/modules/admin/hooks/useAdmin'
 import { useSessionStore } from '@/stores/session.store'
-import { formatDate as intlFormatDate } from '@/lib/intl'
+import { formatDate as intlFormatDate, formatDecimal } from '@/lib/intl'
 import type { PatientDossier } from '@cms-saris/types'
 import type { PatientDocument } from '@/modules/consultation/api/consultation.api'
 
@@ -130,12 +130,12 @@ export function DossierPrintModal({ dossier, onClose }: { dossier: PatientDossie
               <th style={TH}>{t('patients.printColImc')}</th><th style={TH}>{t('patients.printColGlycemie')}</th>
             </tr></thead>
             <tbody><tr>
-              <td style={TD}>{last.temperature != null ? `${last.temperature}°C` : '—'}</td>
+              <td style={TD}>{last.temperature != null ? `${formatDecimal(last.temperature)}°C` : '—'}</td>
               <td style={TD}>{last.tensionSystolique != null ? `${last.tensionSystolique}/${last.tensionDiastolique ?? '—'}` : '—'}</td>
               <td style={TD}>{last.frequenceCardiaque ?? '—'}</td>
               <td style={TD}>{last.saturationO2 != null ? `${last.saturationO2}%` : '—'}</td>
-              <td style={TD}>{last.poids != null ? `${last.poids} kg` : '—'}</td>
-              <td style={TD}>{last.taille != null ? `${last.taille} cm` : '—'}</td>
+              <td style={TD}>{last.poids != null ? `${formatDecimal(last.poids)} kg` : '—'}</td>
+              <td style={TD}>{last.taille != null ? `${formatDecimal(last.taille)} cm` : '—'}</td>
               <td style={TD}>{last.imc ?? '—'}</td>
               <td style={TD}>{last.glycemie ?? '—'}</td>
             </tr></tbody>

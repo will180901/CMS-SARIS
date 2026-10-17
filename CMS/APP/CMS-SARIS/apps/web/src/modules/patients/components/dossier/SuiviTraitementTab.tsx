@@ -25,7 +25,7 @@ import {
 import { StatusPill, Modal, Button, SelectBox, Textarea } from '@/components/saris'
 import { DrawerShell } from '@/modules/referentiels/components/DrawerShell'
 import { usePermissions } from '@/hooks/usePermissions'
-import { formatDate, formatTime } from '@/lib/intl'
+import { formatDate, formatTime, formatDecimal } from '@/lib/intl'
 import { labelStatut } from '@/config/labels'
 import { usePatientSuivi, useCreateSuiviChronique, useUpdateSuiviChronique, usePatientConstantes } from '../../hooks/usePatients'
 import { useSuivisTraitement } from '@/modules/suivi-traitement/hooks/useSuiviTraitement'
@@ -245,12 +245,12 @@ function VitalCard({ icon, label, unit, points, sevOf }: {
       </div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
         <span style={{ fontSize: 22, fontWeight: 700, color: latest == null ? 'var(--texte-tertiaire)' : SEV_COLOR[sev], lineHeight: 1 }}>
-          {latest == null ? '—' : latest}
+          {latest == null ? '—' : formatDecimal(latest)}
         </span>
         {latest != null && <span style={{ fontSize: 11, color: 'var(--texte-tertiaire)' }}>{unit}</span>}
         {delta != null && (
           <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 2, fontSize: 11, fontWeight: 600, color: delta === 0 ? 'var(--texte-tertiaire)' : 'var(--texte-secondaire)' }}>
-            <Trend size={12} /> {delta === 0 ? '' : `${delta > 0 ? '+' : ''}${Math.round(delta * 10) / 10}`}
+            <Trend size={12} /> {delta === 0 ? '' : `${delta > 0 ? '+' : ''}${formatDecimal(Math.round(delta * 10) / 10, 1)}`}
           </span>
         )}
       </div>
@@ -368,15 +368,15 @@ function ConstantesSection({ patientId, historiqueRestreint }: { patientId: stri
                       {formatDate(c.createdAt, { day: '2-digit', month: '2-digit', year: '2-digit' })}{' '}
                       <span style={{ color: 'var(--texte-tertiaire)' }}>{formatTime(c.createdAt, { hour: '2-digit', minute: '2-digit' })}</span>
                     </Cell>
-                    <Cell sev={tempSev(c.temperature)}>{c.temperature != null ? `${c.temperature}°` : null}</Cell>
+                    <Cell sev={tempSev(c.temperature)}>{c.temperature != null ? `${formatDecimal(c.temperature)}°` : null}</Cell>
                     <Cell sev={taSev(c.tensionSystolique)}>{c.tensionSystolique != null ? `${c.tensionSystolique}/${c.tensionDiastolique ?? '—'}` : null}</Cell>
                     <Cell sev={fcSev(c.frequenceCardiaque)}>{c.frequenceCardiaque ?? null}</Cell>
                     <Cell>{c.frequenceRespiratoire ?? null}</Cell>
                     <Cell sev={spo2Sev(c.saturationO2)}>{c.saturationO2 != null ? `${c.saturationO2}%` : null}</Cell>
-                    <Cell>{c.poids != null ? `${c.poids} kg` : null}</Cell>
+                    <Cell>{c.poids != null ? `${formatDecimal(c.poids)} kg` : null}</Cell>
                     <Cell>{c.imc != null ? c.imc : null}</Cell>
-                    {aGlycemie && <Cell>{c.glycemie != null ? `${c.glycemie} g/L` : null}</Cell>}
-                    {aTaille && <Cell>{c.taille != null ? `${c.taille} cm` : null}</Cell>}
+                    {aGlycemie && <Cell>{c.glycemie != null ? `${formatDecimal(c.glycemie)} g/L` : null}</Cell>}
+                    {aTaille && <Cell>{c.taille != null ? `${formatDecimal(c.taille)} cm` : null}</Cell>}
                     {aGlasgow && <Cell sev={c.scoreGlasgow != null && c.scoreGlasgow <= 8 ? 'danger' : c.scoreGlasgow != null && c.scoreGlasgow < 15 ? 'warning' : 'normal'}>{c.scoreGlasgow ?? null}</Cell>}
                     {aConscience && <Cell>{c.etatConscience ? humanizeCode(c.etatConscience) : null}</Cell>}
                     {aSuivi && <Cell>{c.origine === 'SUIVI' ? t('patients.origineSuivi') : t('patients.origineTriage')}</Cell>}

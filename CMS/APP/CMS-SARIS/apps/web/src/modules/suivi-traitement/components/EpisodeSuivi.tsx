@@ -16,7 +16,7 @@ import { useSessionStore } from '@/stores/session.store'
 import { useMyActiveDelegation } from '@/modules/acteurs/hooks/useDelegations'
 import { usePermissions } from '@/hooks/usePermissions'
 import { usePersistedState } from '@/hooks/usePersistedState'
-import { formatDate, formatDateTime } from '@/lib/intl'
+import { formatDate, formatDateTime, formatDecimal } from '@/lib/intl'
 import { todayISO } from '@/lib/validation'
 import { nomSoignant } from '@/lib/soignant'
 import { etatTraitement } from '@/lib/traitement'
@@ -175,12 +175,12 @@ function Chronologie({ data, onOuvrir }: { data: Episode; onOuvrir: (consultatio
   }))
   data.suivi.fiches.forEach(f => {
     const morceaux = [
-      f.temperature != null ? `T° ${f.temperature}` : null,
+      f.temperature != null ? `T° ${formatDecimal(f.temperature)}` : null,
       f.tensionSystolique != null ? `TA ${f.tensionSystolique}/${f.tensionDiastolique ?? '—'}` : null,
       f.frequenceCardiaque != null ? `FC ${f.frequenceCardiaque}` : null,
       f.frequenceRespiratoire != null ? `FR ${f.frequenceRespiratoire}` : null,
       f.saturationO2 != null ? `SpO₂ ${f.saturationO2} %` : null,
-      f.poids != null ? `${f.poids} kg` : null,
+      f.poids != null ? `${formatDecimal(f.poids)} kg` : null,
     ].filter(Boolean)
     const administres = lignesMed.flatMap(l => l.administrations.filter(a => a.ficheId === f.id).map(a => `${l.medicament!.nomGenerique}${a.dose ? ` (${a.dose})` : ''}`))
     evts.push({ genre: 'releve', date: f.createdAt, resume: morceaux.join(' · '), note: f.noteEvolution, auteur: f.auteurNom ?? null, administres })

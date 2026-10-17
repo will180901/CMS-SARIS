@@ -4,7 +4,7 @@ import { Users, Activity, AlertTriangle, ExternalLink, Clock, MapPin } from 'luc
 import { PatientAvatar, CategorieBadge } from '@/modules/patients/components/CategorieBadge'
 import { LiveDuration } from '@/components/saris'
 import { humanizeCode } from '@/config/labels'
-import { formatTime } from '@/lib/intl'
+import { formatTime, formatDecimal } from '@/lib/intl'
 import type { VisiteDetail, ConstanteVitale } from '@cms-saris/types'
 import { calcAge as ageYears } from '@/lib/age'
 
@@ -209,7 +209,7 @@ export function VisiteSidebar({ visite, width = 268, compact }: { visite: Visite
         {lastConst ? (
           <>
             {lastConst.temperature != null && (
-              <ConstanteRow label={t('triage.sidebarTemperature')} value={String(lastConst.temperature)} unit="°C" sev={tempSev(lastConst.temperature)} />
+              <ConstanteRow label={t('triage.sidebarTemperature')} value={formatDecimal(lastConst.temperature)} unit="°C" sev={tempSev(lastConst.temperature)} />
             )}
             {lastConst.tensionSystolique != null && (
               <ConstanteRow
@@ -226,7 +226,7 @@ export function VisiteSidebar({ visite, width = 268, compact }: { visite: Visite
               <ConstanteRow label={t('triage.sidebarSpo2')} value={String(lastConst.saturationO2)} unit="%" sev={spo2Sev(lastConst.saturationO2)} />
             )}
             {lastConst.imc != null && (
-              <ConstanteRow label={t('triage.sidebarImc')} value={String(lastConst.imc)} unit="kg/m²" />
+              <ConstanteRow label={t('triage.sidebarImc')} value={formatDecimal(lastConst.imc)} unit="kg/m²" />
             )}
           </>
         ) : (

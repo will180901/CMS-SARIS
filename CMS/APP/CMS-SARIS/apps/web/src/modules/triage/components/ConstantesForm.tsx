@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Activity, RotateCcw, Check } from 'lucide-react'
 import { useCreateConstantes } from '../hooks/useTriage'
 import { VITAL_RANGES, validateVital } from '@/lib/validation'
-import { formatDateTime } from '@/lib/intl'
+import { formatDateTime, formatDecimal } from '@/lib/intl'
 
 // ── Helpers sévérité ──────────────────────────────────────────────────────────
 
@@ -335,7 +335,7 @@ interface LastValues {
 }
 
 function fmt(n: number | null | undefined): string | null {
-  return n != null ? String(n) : null
+  return n != null ? formatDecimal(n) : null
 }
 
 export function ConstantesForm({

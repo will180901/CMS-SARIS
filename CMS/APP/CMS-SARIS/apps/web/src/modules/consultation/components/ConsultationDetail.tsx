@@ -40,7 +40,7 @@ import { EpisodeSuivi } from '@/modules/suivi-traitement/components/EpisodeSuivi
 import { FlaskConical, Ambulance, Activity, Loader2 } from 'lucide-react'
 import { usePermissions } from '@/hooks/usePermissions'
 import { formatDuree, elapsedMinutes } from '@/lib/duree'
-import { formatTime as intlFormatTime, formatDateTime } from '@/lib/intl'
+import { formatTime as intlFormatTime, formatDateTime, formatDecimal } from '@/lib/intl'
 
 // ── Décisions médicales ───────────────────────────────────────────────────────
 // Réduites à EVACUATION/SUIVI_TRAITEMENT (refonte) : la voie normale d'une consultation
@@ -1366,12 +1366,12 @@ function PatientContextRail({ consultation, isActive, width }: {
       {latest && (
         <RailSection title={t('consultation.railConstantes')}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {latest.temperature != null && <RailVital label={t('consultation.vitalTemperature')} value={`${latest.temperature} °C`} warn={latest.temperature > 38.5} />}
+            {latest.temperature != null && <RailVital label={t('consultation.vitalTemperature')} value={`${formatDecimal(latest.temperature)} °C`} warn={latest.temperature > 38.5} />}
             {latest.tensionSystolique != null && <RailVital label={t('consultation.vitalTension')} value={`${latest.tensionSystolique}/${latest.tensionDiastolique ?? '—'} mmHg`} warn={(latest.tensionSystolique ?? 0) > 140} />}
             {latest.frequenceCardiaque != null && <RailVital label={t('consultation.vitalFreqCard')} value={`${latest.frequenceCardiaque} bpm`} warn={latest.frequenceCardiaque > 100} />}
             {latest.saturationO2 != null && <RailVital label={t('consultation.vitalSpo2')} value={`${latest.saturationO2} %`} warn={latest.saturationO2 < 95} />}
-            {latest.imc != null && <RailVital label={t('consultation.vitalImc')} value={`${latest.imc}`} />}
-            {latest.glycemie != null && <RailVital label={t('consultation.vitalGlycemie')} value={`${latest.glycemie} g/L`} />}
+            {latest.imc != null && <RailVital label={t('consultation.vitalImc')} value={`${formatDecimal(latest.imc)}`} />}
+            {latest.glycemie != null && <RailVital label={t('consultation.vitalGlycemie')} value={`${formatDecimal(latest.glycemie)} g/L`} />}
             {latest.scoreGlasgow != null && <RailVital label={t('consultation.vitalGlasgow')} value={`${latest.scoreGlasgow}/15`} />}
             {latest.etatConscience && <RailVital label={t('consultation.vitalConscience')} value={latest.etatConscience} />}
             {latest.etatGeneral && <RailVital label={t('consultation.vitalEtatGeneral')} value={latest.etatGeneral} />}

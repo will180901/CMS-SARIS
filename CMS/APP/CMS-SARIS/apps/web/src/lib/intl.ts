@@ -66,3 +66,12 @@ export function formatDateTime(
 export function formatNumber(n: number, opts?: Intl.NumberFormatOptions): string {
   return formaterNombre(n, i18n.language === 'en' ? 'en' : 'fr', opts)
 }
+
+/**
+ * Une mesure décimale (température, poids, glycémie…) : « 39,2 » en français, « 39.2 » en anglais — jamais
+ * plus de `max` décimales, et pas de zéros inutiles (24 reste « 24 »). Un nombre écrit par un gabarit
+ * (`${t}`) sortirait toujours avec le POINT de JavaScript.
+ */
+export function formatDecimal(n: number, max = 2): string {
+  return formatNumber(n, { maximumFractionDigits: max })
+}

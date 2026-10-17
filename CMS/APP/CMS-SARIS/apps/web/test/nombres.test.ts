@@ -6,32 +6,27 @@
  */
 import assert from 'node:assert/strict'
 import i18n from '../src/i18n/config'
-import { formatNumber } from '../src/lib/intl'
+import { formatDecimal, formatNumber } from '../src/lib/intl'
 import { CLES_NOMBRE, formaterNombre } from '../src/i18n/formatNombres'
 
 let passed = 0
 let failed = 0
-const attente: Promise<void>[] = []
+// Les tests s'exécutent UN PAR UN, dans l'ordre : certains changent la langue de l'application.
+let chaine: Promise<void> = Promise.resolve()
 function test(name: string, fn: () => void | Promise<void>): void {
-  const fin = (e?: unknown) => {
-    if (e) {
-      failed++
-      console.error('  ✗ ' + name + '\n     ' + (e as Error).message)
-    } else {
+  chaine = chaine.then(async () => {
+    try {
+      await fn()
       passed++
       console.log('  ✓ ' + name)
+    } catch (e) {
+      failed++
+      console.error('  ✗ ' + name + '\n     ' + (e as Error).message)
     }
-  }
-  try {
-    const r = fn()
-    if (r) attente.push(r.then(() => fin(), fin))
-    else fin()
-  } catch (e) {
-    fin(e)
-  }
+  })
 }
 
-const NBSP = ' '
+const NBSP = '\u00a0'
 const t = (cle: string, opts: Record<string, unknown>, lng = 'fr') => i18n.t(cle, { ...opts, lng }) as string
 
 console.log('formaterNombre')
@@ -61,6 +56,24 @@ test('suit la langue active : « 54 502 » en français, « 54,502 » en anglais
   await i18n.changeLanguage('en')
   assert.equal(formatNumber(54502), '54,502')
   assert.equal(formatNumber(21.7, une), '21.7')
+  await i18n.changeLanguage('fr')
+})
+
+console.log('formatDecimal (mesures cliniques : « 39,2 °C », « 0,95 g/L »)')
+test('français : virgule décimale, pas de zéros inutiles, deux décimales au plus', async () => {
+  await i18n.changeLanguage('fr')
+  assert.equal(formatDecimal(39.2), '39,2')
+  assert.equal(formatDecimal(24), '24')
+  assert.equal(formatDecimal(0.95), '0,95')
+  assert.equal(formatDecimal(24.3333), '24,33')
+  assert.equal(formatDecimal(1234.567), `1${NBSP}234,57`)
+  assert.equal(formatDecimal(-0.5), '-0,5')
+  assert.equal(formatDecimal(38.55, 1), '38,6') // au plus la précision demandée
+})
+test('anglais : point décimal', async () => {
+  await i18n.changeLanguage('en')
+  assert.equal(formatDecimal(39.2), '39.2')
+  assert.equal(formatDecimal(0.95), '0.95')
   await i18n.changeLanguage('fr')
 })
 
@@ -127,7 +140,7 @@ test('les autres traductions (pluriels d’âge) ne sont pas abîmées', () => {
 })
 
 // Les tests asynchrones (changement de langue) se terminent avant le bilan.
-void Promise.all(attente).then(() => {
+void chaine.then(() => {
   console.log('\n' + passed + ' reussis, ' + failed + ' echoues')
   if (failed > 0) process.exit(1)
 })

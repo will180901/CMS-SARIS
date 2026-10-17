@@ -37,7 +37,7 @@ import { EvacuationCard } from '@/modules/sorties-critiques/components/Evacuatio
 import { SuiviTraitementCard } from '@/modules/suivi-traitement/components/SuiviTraitementCard'
 import { EpisodeSuivi } from '@/modules/suivi-traitement/components/EpisodeSuivi'
 import { useSuivisTraitement } from '@/modules/suivi-traitement/hooks/useSuiviTraitement'
-import { formatDate, formatTime } from '@/lib/intl'
+import { formatDate, formatTime, formatDecimal } from '@/lib/intl'
 import { labelStatut } from '@/config/labels'
 import type { SuiviResultatExamenItem } from '../../api/patients.api'
 import { usePatientDossier } from '../../hooks/usePatients'
@@ -208,15 +208,15 @@ const CONSULT_STATUT_LABEL_KEY: Record<string, string> = {
 /** Les constantes d'une prise, une par case (mêmes libellés qu'au triage, unités incluses). */
 function casesConstante(c: ConstanteVitale, t: TFunction): { label: string; valeur: string }[] {
   const out: { label: string; valeur: string }[] = []
-  if (c.temperature != null) out.push({ label: t('triage.labelTemperature'), valeur: `${c.temperature} °C` })
+  if (c.temperature != null) out.push({ label: t('triage.labelTemperature'), valeur: `${formatDecimal(c.temperature)} °C` })
   if (c.tensionSystolique != null) out.push({ label: t('triage.labelTensionArterielle'), valeur: `${c.tensionSystolique}/${c.tensionDiastolique ?? '—'} mmHg` })
   if (c.frequenceCardiaque != null) out.push({ label: t('triage.labelFreqCardiaque'), valeur: `${c.frequenceCardiaque} bpm` })
   if (c.frequenceRespiratoire != null) out.push({ label: t('triage.labelFreqRespiratoire'), valeur: `${c.frequenceRespiratoire} cpm` })
   if (c.saturationO2 != null) out.push({ label: t('triage.labelSpo2'), valeur: `${c.saturationO2} %` })
-  if (c.poids != null) out.push({ label: t('triage.labelPoids'), valeur: `${c.poids} kg` })
-  if (c.taille != null) out.push({ label: t('triage.labelTaille'), valeur: `${c.taille} cm` })
-  if (c.imc != null) out.push({ label: t('consultation.vitalImc'), valeur: `${c.imc} kg/m²` })
-  if (c.glycemie != null) out.push({ label: t('triage.labelGlycemie'), valeur: `${c.glycemie} g/L` })
+  if (c.poids != null) out.push({ label: t('triage.labelPoids'), valeur: `${formatDecimal(c.poids)} kg` })
+  if (c.taille != null) out.push({ label: t('triage.labelTaille'), valeur: `${formatDecimal(c.taille)} cm` })
+  if (c.imc != null) out.push({ label: t('consultation.vitalImc'), valeur: `${formatDecimal(c.imc)} kg/m²` })
+  if (c.glycemie != null) out.push({ label: t('triage.labelGlycemie'), valeur: `${formatDecimal(c.glycemie)} g/L` })
   if (c.scoreGlasgow != null) out.push({ label: t('consultation.vitalGlasgow'), valeur: `${c.scoreGlasgow}/15` })
   if (c.etatConscience) out.push({ label: t('consultation.vitalConscience'), valeur: humanizeCode(c.etatConscience) })
   return out

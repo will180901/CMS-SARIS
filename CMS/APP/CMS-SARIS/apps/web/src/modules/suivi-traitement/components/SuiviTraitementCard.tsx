@@ -27,7 +27,7 @@ import {
   useEpisodeSuivi,
 } from '../hooks/useSuiviTraitement'
 import { etatTraitement } from '@/lib/traitement'
-import { formatDateTime } from '@/lib/intl'
+import { formatDateTime, formatDecimal } from '@/lib/intl'
 import type { SuiviTraitement, FicheSuiviTraitement } from '../api/suivi-traitement.api'
 
 interface Props {
@@ -260,12 +260,12 @@ function SuiviDetail({ suivi, canUpdate, canClose, canCancel, canDelete }: {
                     )}
                   </div>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    {f.temperature != null && <FicheChip label={t('suiviTraitement.fieldTemperature')} value={`${f.temperature}°C`} />}
+                    {f.temperature != null && <FicheChip label={t('suiviTraitement.fieldTemperature')} value={`${formatDecimal(f.temperature)}°C`} />}
                     {f.tensionSystolique != null && <FicheChip label={t('suiviTraitement.fieldTensionSys')} value={`${f.tensionSystolique}/${f.tensionDiastolique ?? '—'}`} />}
                     {f.frequenceCardiaque != null && <FicheChip label={t('suiviTraitement.fieldFc')} value={`${f.frequenceCardiaque} bpm`} />}
                     {f.frequenceRespiratoire != null && <FicheChip label={t('suiviTraitement.fieldFr')} value={`${f.frequenceRespiratoire} cpm`} />}
                     {f.saturationO2 != null && <FicheChip label={t('suiviTraitement.fieldSpo2')} value={`${f.saturationO2}%`} />}
-                    {f.poids != null && <FicheChip label={t('suiviTraitement.fieldPoids')} value={`${f.poids} kg`} />}
+                    {f.poids != null && <FicheChip label={t('suiviTraitement.fieldPoids')} value={`${formatDecimal(f.poids)} kg`} />}
                   </div>
                   {f.noteEvolution && <p style={{ margin: 0, fontSize: 'var(--font-size-body-sm)', color: 'var(--texte-primaire)', whiteSpace: 'pre-wrap' }}>{f.noteEvolution}</p>}
                   {administresDe(f.id).length > 0 && (
