@@ -37,6 +37,8 @@ export interface LotDonneesTest {
     graine: string
     debut: string
     fin: string
+    /** « Maintenant » au lancement, quand la période va jusqu'à aujourd'hui. */
+    limite?: { jour: string; s: number } | null
   }
   progression: {
     joursTotal: number
@@ -75,6 +77,11 @@ export interface PrevisionsDonneesTest {
   lignes: number
   octets: number
   depassementParJour: number
+  /**
+   * La période va-t-elle jusqu'à AUJOURD'HUI ? Alors la journée est fabriquée jusqu'à deux heures avant
+   * maintenant : `jusqua` (« HH:MM ») est l'heure de la dernière arrivée, `null` si la journée est entière.
+   */
+  aujourdhui: { inclus: boolean; jusqua: string | null }
   avertissements: string[]
   baseMo: number | null
   limiteMo: number

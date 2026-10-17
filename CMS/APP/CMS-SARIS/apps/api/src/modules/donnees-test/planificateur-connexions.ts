@@ -103,6 +103,29 @@ export function planDeJournee(
   }
 }
 
+/**
+ * Le départ d'AUJOURD'HUI : ce qui tomberait après « maintenant » (le soir, après la fermeture) n'a pas
+ * encore eu lieu. Le départ est ramené `tirageS` secondes avant maintenant — mais jamais avant le début
+ * de la dernière connexion du jour (+ 2 minutes) ni avant le dernier geste (+ 2 minutes) : on ne part
+ * pas avant d'être arrivé, ni avant d'avoir fini. Et jamais après maintenant : si le dernier geste est à
+ * quelques secondes de maintenant, on part à maintenant.
+ */
+export function departAvantMaintenant(
+  departS: number,
+  limiteS: number,
+  debutDerniereConnexionS: number,
+  dernierGesteS: number,
+  tirageS: number,
+): number {
+  if (departS <= limiteS - 60) return departS
+  const voulu = Math.max(
+    limiteS - tirageS,
+    debutDerniereConnexionS + 120,
+    dernierGesteS + 120,
+  )
+  return Math.min(limiteS, voulu)
+}
+
 /** Sur quel appareil la personne reste-t-elle connectée en partant ? */
 export function appareilFinal(plan: PlanJour): Appareil {
   return plan.evenement?.type === 'BASCULE' ? 'MOBILE' : 'PC'
@@ -211,6 +234,7 @@ export function planifierConnexions(
   if (!h) return
   const { racine, jour } = ctx
   const finPeriode = ctx.params.finPeriode
+  const limite = ctx.params.limite ?? null
   const debutPeriode = ajouterJours(finPeriode, -(ctx.params.totalJours - 1))
   const precedent = jourOuvertPrecedent(jour)
   const suivant = jourOuvertSuivant(jour)
@@ -235,7 +259,13 @@ export function planifierConnexions(
   for (const qui of personnel.values()) {
     const a = ctx.alea.sousFlux(`session|${qui.utilisateurId}`)
     const equipement = equipementDe(racine, qui)
-    const plan = planDeJournee(racine, qui, jour, finPeriode)
+    const planBrut = planDeJournee(racine, qui, jour, finPeriode)
+    // Aujourd'hui : le navigateur relancé ou le passage sur le téléphone qui tomberait APRÈS maintenant
+    // n'a pas encore eu lieu.
+    const plan =
+      limite && jour === limite.jour && planBrut.evenement && planBrut.evenement.s > limite.s - 300
+        ? { ...planBrut, evenement: null }
+        : planBrut
     const veille =
       precedent >= debutPeriode
         ? planDeJournee(racine, qui, precedent, finPeriode)
@@ -294,8 +324,17 @@ export function planifierConnexions(
     // ── Le départ : dernier geste, fermeture du centre, un peu de retard ────────
     const derniere = chaines[chaines.length - 1]
     const geste = dernierGeste.get(qui.utilisateurId) ?? 0
-    const departS =
+    let departS =
       Math.max(geste + 120, h.fermeture * 60 + 900) + a.entier(0, 2400)
+    // Aujourd'hui : on ne part pas dans le futur.
+    if (limite && jour === limite.jour)
+      departS = departAvantMaintenant(
+        departS,
+        limite.s,
+        derniere.debutS,
+        geste,
+        a.entier(60, 600),
+      )
     derniere.finActiviteS = departS
     if (plan.deconnexion) {
       derniere.revocation = instant(jour, departS)

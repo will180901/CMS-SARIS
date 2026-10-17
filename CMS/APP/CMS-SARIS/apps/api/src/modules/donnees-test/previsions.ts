@@ -8,7 +8,12 @@ import {
   estOuvert,
   facteurFrequentation,
   horairesDuJour,
+  horairesEffectifs,
+  jourLocalDe,
   joursEntre,
+  momentLocalDe,
+  partDesArrivees,
+  type Moment,
 } from './calendrier'
 
 /**
@@ -44,6 +49,12 @@ export interface Previsions {
   octets: number
   /** Ce que la demande dépasse de la capacité de l'équipe, par jour (0 si tout passe). */
   depassementParJour: number
+  /**
+   * AUJOURD'HUI est le dernier jour de la période ? Alors la journée est fabriquée jusqu'à deux heures
+   * avant maintenant : `jusqua` est l'heure (« HH:MM », locale) de la dernière arrivée, ou `null` si le
+   * centre est déjà fermé depuis assez longtemps pour que la journée soit entière.
+   */
+  aujourdhui: { inclus: boolean; jusqua: string | null }
   avertissements: string[]
 }
 
@@ -52,7 +63,14 @@ export function periode(
   aujourdhui: string,
   mois: number,
 ): { debut: string; fin: string } {
-  const fin = ajouterJours(aujourdhui, -1)
+  return periodeJusqua(ajouterJours(aujourdhui, -1), mois)
+}
+
+/** `mois` mois jusqu'au jour `fin` INCLUS. */
+export function periodeJusqua(
+  fin: string,
+  mois: number,
+): { debut: string; fin: string } {
   const [a, m, j] = fin.split('-').map(Number) as [number, number, number]
   // `mois` mois avant `fin`, le lendemain de ce jour (4 mois avant le 10 oct. → du 11 juin au 10 oct.)
   const d = new Date(Date.UTC(a, m - 1 - mois, j))
@@ -60,6 +78,38 @@ export function periode(
   if (d.getUTCDate() !== j) d.setUTCDate(0)
   const debut = ajouterJours(d.toISOString().slice(0, 10), 1)
   return { debut, fin }
+}
+
+/** La période d'une génération lancée à `maintenant`, et la coupure d'aujourd'hui s'il en est. */
+export interface PeriodeGeneration {
+  debut: string
+  fin: string
+  /** « Maintenant », quand la période va jusqu'à aujourd'hui ; `null` quand elle s'arrête à hier. */
+  limite: Moment | null
+}
+
+/**
+ * La période d'une génération lancée à `maintenant` : `mois` mois jusqu'à AUJOURD'HUI — la journée en
+ * cours étant fabriquée jusqu'à deux heures avant maintenant — ou, quand aujourd'hui n'a rien à donner
+ * (centre fermé : dimanche, jour férié ; ou trop tôt dans la matinée pour qu'un passage ait pu se
+ * terminer), jusqu'à la veille, comme avant.
+ */
+export function periodeJusquaMaintenant(
+  maintenant: Date,
+  mois: number,
+): PeriodeGeneration {
+  const aujourdhui = jourLocalDe(maintenant)
+  const limite = momentLocalDe(maintenant)
+  if (horairesEffectifs(aujourdhui, limite))
+    return { ...periodeJusqua(aujourdhui, mois), limite }
+  return { ...periode(aujourdhui, mois), limite: null }
+}
+
+/** « 11:30 » pour 690 minutes depuis minuit. */
+function heureDeMinutes(minutes: number): string {
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
 }
 
 /** Visites que peut absorber un site un jour donné : le goulot est l'infirmier d'accueil ou le médecin. */
@@ -81,20 +131,43 @@ export function calculerPrevisions(p: {
   visitesParJour: number
   /** Une entrée par site de l'équipe. */
   equipes: readonly EquipeEffectifs[]
+  /** « Maintenant », quand la période va jusqu'à aujourd'hui (cf. `periodeJusquaMaintenant`). */
+  limite?: Moment | null
 }): Previsions {
   const jours = joursEntre(p.debut, p.fin).filter(estOuvert)
   const poidsTotal =
     p.equipes.reduce((s, e) => s + Math.max(1, e.medecins), 0) || 1
+  const limite = p.limite ?? null
   let visites = 0
   let demande = 0
+  let aujourdhui: Previsions['aujourdhui'] = { inclus: false, jusqua: null }
   for (const jour of jours) {
+    // Aujourd'hui n'a reçu qu'une part des arrivées (et des heures de l'équipe) d'une journée entière.
+    let part = 1
+    let partHeures = 1
+    if (limite && jour === limite.jour) {
+      const plein = horairesDuJour(jour)
+      const h = horairesEffectifs(jour, limite)
+      if (plein && h) {
+        part = h.tronque ? partDesArrivees(plein, h) : 1
+        partHeures = (h.fermeture - h.ouverture) / (plein.fermeture - plein.ouverture)
+        aujourdhui = {
+          inclus: true,
+          jusqua: h.tronque ? heureDeMinutes(h.fermeture - 30) : null,
+        }
+      } else {
+        part = 0
+        partHeures = 0
+      }
+    }
     for (const e of p.equipes) {
       const cible =
         p.visitesParJour *
         (Math.max(1, e.medecins) / poidsTotal) *
-        facteurFrequentation(jour)
+        facteurFrequentation(jour) *
+        part
       demande += cible
-      visites += Math.min(cible, capaciteSite(e, jour))
+      visites += Math.min(cible, capaciteSite(e, jour) * partHeures)
     }
   }
   visites = Math.round(visites)
@@ -128,6 +201,7 @@ export function calculerPrevisions(p: {
     lignes: visites * 11 + patients * 5,
     octets: visites * OCTETS_PAR_VISITE,
     depassementParJour: depassement,
+    aujourdhui,
     avertissements,
   }
 }

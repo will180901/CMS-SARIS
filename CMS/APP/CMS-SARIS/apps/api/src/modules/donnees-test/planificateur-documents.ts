@@ -20,6 +20,7 @@ import type { Alea } from './alea'
 import {
   ajouterJours,
   apresDelaiOuvre,
+  auDela,
   estOuvert,
   horairesDuJour,
   instantSecondes,
@@ -582,7 +583,7 @@ function annulerOrdonnance(
     { jour: ctx.jour, s: e.tFin },
     alea.entier(15 * 60, 5 * 3600),
   )
-  if (m.jour > ctx.params.finPeriode) return null
+  if (auDela(ctx.params, m)) return null
   const quand = instantSecondes(m.jour, m.s)
   ord.row.statut = 'ANNULEE'
   ord.row.updatedAt = quand
@@ -618,7 +619,7 @@ function ecrireBonPharmacie(
   const at = (s: number) => instantSecondes(ctx.jour, s)
   // Hors de la période, ou un autre jour pour qui vient d'être évacué : cela n'arrive pas.
   const possible = (m: Moment) =>
-    m.jour <= ctx.params.finPeriode && (!evacue || m.jour === ctx.jour)
+    !auDela(ctx.params, m) && (!evacue || m.jour === ctx.jour)
   const bonId = nouvelIdTest()
   const bon: Ligne<'BonPharmacie'> = {
     id: bonId,
@@ -729,7 +730,7 @@ function ecrireBonExamen(
   const { alea } = ctx
   const at = (s: number) => instantSecondes(ctx.jour, s)
   const possible = (m: Moment) =>
-    m.jour <= ctx.params.finPeriode && (!evacue || m.jour === ctx.jour)
+    !auDela(ctx.params, m) && (!evacue || m.jour === ctx.jour)
   const bonId = nouvelIdTest()
   lignes.BonExamen.push({
     id: bonId,
@@ -959,7 +960,7 @@ function ecrireEvacuation(
   for (const etape of etapes) {
     const delai = alea.entier(etape.delai[0], etape.delai[1])
     courant = suite(courant, delai, etape.statut === 'CLOTURE')
-    if (courant.jour > ctx.params.finPeriode) return
+    if (auDela(ctx.params, courant)) return
     lignes.SuiviEvacuation.push({
       id: nouvelIdTest(),
       evacuationId,
@@ -984,7 +985,7 @@ function ecrireEvacuation(
   }
   if (issue === 'ANNULE') {
     courant = suite(courant, alea.entier(10 * 60, 90 * 60), false)
-    if (courant.jour > ctx.params.finPeriode) return
+    if (auDela(ctx.params, courant)) return
     row.statut = 'ANNULE'
     row.motifAnnulation = alea.choisir(MOTIFS_ANNULATION_EVACUATION)
     row.updatedAt = at(courant)
@@ -1095,7 +1096,7 @@ function ecrireSuiviTraitement(
   // Annulé d'emblée : ouvert par erreur ou devenu sans objet, aucune fiche.
   if (issue === 'ANNULE') {
     const ma = apresDelaiOuvre(creation, alea.entier(10 * 60, 60 * 60))
-    if (ma.jour > ctx.params.finPeriode) return
+    if (auDela(ctx.params, ma)) return
     row.statut = 'ANNULE'
     row.motifAnnulation = alea.choisir(MOTIFS_ANNULATION_SUIVI)
     row.prochainControle = null
@@ -1123,7 +1124,7 @@ function ecrireSuiviTraitement(
       : rendezVous.length
   for (let i = 0; i < limite; i++) {
     const r = rendezVous[i]
-    if (r.jour > ctx.params.finPeriode) break
+    if (auDela(ctx.params, r)) break
     const quand = at(r)
     const auteur = alea.proba(0.85) ? alea.choisir(infirmiers) : medecin
     const avancement = rendezVous.length > 1 ? i / (rendezVous.length - 1) : 1
@@ -1226,7 +1227,7 @@ function ecrireSuiviTraitement(
   const toutFait = faites === rendezVous.length
   if (issue === 'CLOTURE' && toutFait) {
     const mc = apresDelaiOuvre(dernier, alea.entier(0, 4 * 3600))
-    if (mc.jour <= ctx.params.finPeriode) {
+    if (!auDela(ctx.params, mc)) {
       const quand = at(mc)
       const qui = alea.proba(0.6) ? alea.choisir(infirmiers) : medecin
       row.statut = 'CLOTURE'

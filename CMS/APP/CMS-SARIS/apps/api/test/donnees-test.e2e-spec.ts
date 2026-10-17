@@ -16,6 +16,7 @@ import { MARQUE_ID, estIdTest } from '../src/modules/donnees-test/marque-test'
 import { MODELES_TEST } from '../src/modules/donnees-test/registre'
 import { supprimerMarquees } from '../src/modules/donnees-test/ecriture'
 import { DonneesTestService } from '../src/modules/donnees-test/donnees-test.service'
+import { jourLocalDe } from '../src/modules/donnees-test/calendrier'
 import { baseDe, demarrerApp } from './support/app-test'
 import { COMPTES, connecter, type Client } from './support/client'
 import { creerPatientCdi, referentiels } from './support/donnees'
@@ -30,6 +31,8 @@ interface Lot {
     graine: string
     debut: string
     fin: string
+    /** « Maintenant » au lancement, quand la période va jusqu'à aujourd'hui. */
+    limite?: { jour: string; s: number } | null
   }
   progression: {
     joursTotal: number
@@ -70,11 +73,14 @@ interface Etat {
   equipe: { sites: number; medecins: number; infirmiers: number }
 }
 interface Previsions {
+  debut: string
+  fin: string
   joursOuverts: number
   visites: number
   patients: number
   capaciteParJour: number
   octets: number
+  aujourdhui: { inclus: boolean; jusqua: string | null }
   avertissements: string[]
 }
 interface Refus {
@@ -286,6 +292,16 @@ describe('Données de test (génération, lecture, suppression)', () => {
       expect(r.body.patients).toBeGreaterThan(500)
       expect(r.body.capaciteParJour).toBeGreaterThan(20)
       expect(r.body.octets).toBeGreaterThan(5_000_000)
+      // La période va jusqu'à AUJOURD'HUI quand il y a eu assez de matinée pour qu'un passage se termine,
+      // sinon jusqu'à la veille — quelle que soit l'heure à laquelle ce test passe.
+      const auj = jourLocalDe(new Date())
+      if (r.body.aujourdhui.inclus) {
+        expect(r.body.fin).toBe(auj)
+        expect(r.body.aujourdhui.jusqua === null || /^\d{2}:\d{2}$/.test(r.body.aujourdhui.jusqua)).toBe(true)
+      } else {
+        expect(r.body.fin < auj).toBe(true)
+        expect(r.body.aujourdhui.jusqua).toBeNull()
+      }
       for (const q of [
         'mois=0&visitesParJour=10',
         'mois=13&visitesParJour=10',
@@ -839,9 +855,40 @@ describe('Données de test (génération, lecture, suppression)', () => {
         expect(el.status).toBe(200)
         expect(el.body.map((x) => x.id)).toContain(evac.id)
       }
-      // Rien n'est daté après la fin de la période : on ne fabrique pas d'avenir
-      const finMs = new Date(lot.parametres.fin + 'T23:59:59Z').getTime()
+      // Rien n'est daté après la fin de la période : on ne fabrique pas d'avenir. Quand la période va jusqu'à
+      // aujourd'hui, la fin est « maintenant » (heure locale = UTC + 1), pas la fin de la journée.
+      const finMs = lot.parametres.limite
+        ? new Date(lot.parametres.limite.jour + 'T00:00:00Z').getTime() +
+          (lot.parametres.limite.s - 3600) * 1000
+        : new Date(lot.parametres.fin + 'T23:59:59Z').getTime()
       const marque = { startsWith: MARQUE_ID }
+      if (lot.parametres.limite) {
+        // aujourd'hui est le dernier jour : rien de fabriqué ne dépasse le moment du lancement
+        expect(lot.parametres.fin).toBe(lot.parametres.limite.jour)
+        const lim = lot.parametres.limite
+        expect(lim.s).toBeGreaterThanOrEqual(11 * 3600)
+        const maxVisite = await base().visite.aggregate({
+          where: { id: marque },
+          _max: { dateOuverture: true, dateCloture: true },
+        })
+        expect(+(maxVisite._max.dateCloture as Date)).toBeLessThanOrEqual(finMs)
+        const maxAuth = await base().journalAuthentification.aggregate({
+          where: { id: marque },
+          _max: { createdAt: true },
+        })
+        expect(+(maxAuth._max.createdAt as Date)).toBeLessThanOrEqual(finMs)
+        const maxAudit = await base().journalAudit.aggregate({
+          where: { id: marque },
+          _max: { createdAt: true },
+        })
+        expect(+(maxAudit._max.createdAt as Date)).toBeLessThanOrEqual(finMs)
+        const maxSession = await base().sessionUtilisateur.aggregate({
+          where: { id: marque },
+          _max: { createdAt: true, revokedAt: true, derniereActiviteAt: true },
+        })
+        for (const d of Object.values(maxSession._max))
+          expect(+(d as Date)).toBeLessThanOrEqual(finMs)
+      }
       const plusTard = [
         (
           await base().resultatExamen.aggregate({
@@ -1514,6 +1561,117 @@ describe('Données de test (génération, lecture, suppression)', () => {
       const r = await admin.delete<{ lignes: number }>('/systeme/donnees-test')
       expect(r.status).toBe(200)
       expect(r.body.lignes).toBe(0)
+    })
+  })
+
+  describe('Aujourd’hui comme dernier jour (horloge simulée : lundi 12 octobre 2026)', () => {
+    const service = () => app.get(DonneesTestService)
+    /** « Il est hh:mm à Brazzaville (UTC+1) ce lundi 12 octobre ». */
+    const lundiA = (hh: number, mm = 0) =>
+      new Date(Date.UTC(2026, 9, 12, hh - 1, mm))
+    let horloge: jest.SpyInstance | null = null
+    const il_est = (d: Date) => {
+      horloge?.mockRestore()
+      horloge = jest.spyOn(service(), 'maintenant').mockReturnValue(d)
+    }
+
+    beforeAll(async () => {
+      await supprimerMarquees(base())
+      expect((await changerMode('TEST')).status).toBe(200)
+    })
+    afterAll(async () => {
+      horloge?.mockRestore()
+      await supprimerMarquees(base())
+    })
+
+    it('14 h : la période va jusqu’à aujourd’hui, annoncée jusqu’à 11 h 30 (deux heures de marge)', async () => {
+      il_est(lundiA(14))
+      const r = await admin.get<Previsions>(
+        '/systeme/donnees-test/previsions?mois=4&visitesParJour=40',
+      )
+      expect(r.status).toBe(200)
+      expect(r.body.fin).toBe('2026-10-12')
+      expect(r.body.debut).toBe('2026-06-13')
+      expect(r.body.aujourdhui).toEqual({ inclus: true, jusqua: '11:30' })
+    })
+
+    it('18 h 45 : la journée est entière, sans heure d’arrêt', async () => {
+      il_est(lundiA(18, 45))
+      const r = await admin.get<Previsions>(
+        '/systeme/donnees-test/previsions?mois=4&visitesParJour=40',
+      )
+      expect(r.body.fin).toBe('2026-10-12')
+      expect(r.body.aujourdhui).toEqual({ inclus: true, jusqua: null })
+    })
+
+    it('trop tôt (10 h 30), ou centre fermé (dimanche) : jusqu’à la veille, comme avant', async () => {
+      il_est(lundiA(10, 30))
+      const tot = await admin.get<Previsions>(
+        '/systeme/donnees-test/previsions?mois=4&visitesParJour=40',
+      )
+      expect(tot.body.fin).toBe('2026-10-11')
+      expect(tot.body.aujourdhui).toEqual({ inclus: false, jusqua: null })
+      il_est(new Date(Date.UTC(2026, 9, 11, 14, 0)))
+      const dimanche = await admin.get<Previsions>(
+        '/systeme/donnees-test/previsions?mois=4&visitesParJour=40',
+      )
+      expect(dimanche.body.fin).toBe('2026-10-10')
+      expect(dimanche.body.aujourdhui.inclus).toBe(false)
+    })
+
+    it('une génération lancée à 14 h : aujourd’hui est le dernier jour, la coupure est mémorisée, rien n’est daté après', async () => {
+      il_est(lundiA(14))
+      const g = await generer(1, 8, 'aujourdhui-14h')
+      expect(g.status).toBe(201)
+      expect(g.body.parametres.fin).toBe('2026-10-12')
+      expect(g.body.parametres.limite).toEqual({ jour: '2026-10-12', s: 14 * 3600 })
+      const lot = (await lotFini()) as Lot
+      expect(lot.statut).toBe('TERMINE')
+      expect(lot.progression.visites).toBeGreaterThan(50)
+      // le dernier jour est bien fabriqué (visites de ce lundi), mais seulement jusqu'à la coupure
+      const limiteMs = Date.UTC(2026, 9, 12, 13, 0) // 14 h locale
+      const marque = { startsWith: MARQUE_ID }
+      const lundi = await base().visite.findMany({
+        where: { id: marque, dateOuverture: { gte: new Date(Date.UTC(2026, 9, 11, 23, 0)) } },
+        select: { dateOuverture: true, dateCloture: true },
+      })
+      expect(lundi.length).toBeGreaterThan(2)
+      for (const v of lundi) {
+        expect(+v.dateOuverture).toBeLessThanOrEqual(limiteMs - 2 * 3600_000)
+        expect(+(v.dateCloture as Date)).toBeLessThanOrEqual(limiteMs)
+      }
+      for (const [table, champ] of [
+        ['visite', 'dateCloture'],
+        ['ordonnance', 'updatedAt'],
+        ['resultatExamen', 'createdAt'],
+        ['ficheSuiviTraitement', 'createdAt'],
+        ['suiviEvacuation', 'createdAt'],
+        ['journalAudit', 'createdAt'],
+        ['journalAuthentification', 'createdAt'],
+        ['sessionUtilisateur', 'createdAt'],
+        ['sessionUtilisateur', 'revokedAt'],
+        ['sessionUtilisateur', 'derniereActiviteAt'],
+      ] as const) {
+        const agg = await (
+          base() as unknown as Record<
+            string,
+            { aggregate: (a: object) => Promise<{ _max: Record<string, Date | null> }> }
+          >
+        )[table]!.aggregate({ where: { id: marque }, _max: { [champ]: true } })
+        const d = agg._max[champ]
+        if (d) expect(+d).toBeLessThanOrEqual(limiteMs)
+      }
+      // aucune session laissée ouverte (comme les autres générations)
+      expect(
+        await base().sessionUtilisateur.count({ where: { id: marque, revokedAt: null } }),
+      ).toBe(0)
+    })
+
+    it('la reprise garde la coupure du lancement (la journée n’est pas refaite plus loin)', async () => {
+      // l'état du lot porte `limite` : une reprise relue lui obéit — l'horloge peut avoir avancé
+      il_est(lundiA(18, 45))
+      const lot = (await etat()).body.lot as Lot
+      expect(lot.parametres.limite).toEqual({ jour: '2026-10-12', s: 14 * 3600 })
     })
   })
 

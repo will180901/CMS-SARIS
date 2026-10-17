@@ -15,15 +15,22 @@ import { creerAlea } from '../src/modules/donnees-test/alea'
 import {
   ajouterJours,
   apresDelaiOuvre,
+  auDela,
+  DELAI_AVANT_MAINTENANT_S,
   estFerie,
   estOuvert,
   horairesDuJour,
+  horairesEffectifs,
   instantLocal,
   instantSecondes,
   jourLocalDe,
   joursEntre,
   jourOuvertSuivant,
   minutesArrivees,
+  momentLocalDe,
+  partDesArrivees,
+  type Horaires,
+  type Moment,
 } from '../src/modules/donnees-test/calendrier'
 import {
   genererConstantes,
@@ -52,6 +59,7 @@ import {
 } from '../src/modules/donnees-test/planificateur'
 import { Population } from '../src/modules/donnees-test/population'
 import {
+  departAvantMaintenant,
   jourOuvertPrecedent,
   planDeJournee,
 } from '../src/modules/donnees-test/planificateur-connexions'
@@ -69,6 +77,8 @@ import {
   calculerPrevisions,
   capaciteSite,
   periode,
+  periodeJusqua,
+  periodeJusquaMaintenant,
 } from '../src/modules/donnees-test/previsions'
 import {
   MODELES_TEST,
@@ -377,7 +387,12 @@ function uuid(): string {
 
 interface Banc {
   equipes: EquipeSite[]
-  ctx: (jour: string, indexJour: number, totalJours: number) => ContexteJour
+  ctx: (
+    jour: string,
+    indexJour: number,
+    totalJours: number,
+    limite?: Moment | null,
+  ) => ContexteJour
   medecins: Soignant[]
   infirmiers: Soignant[]
   ref: ReferentielsTest
@@ -550,14 +565,14 @@ function bancDeTest(
     ref,
     population,
     deja: new Set(),
-    ctx: (jour, indexJour, totalJours) => ({
+    ctx: (jour, indexJour, totalJours, limite = null) => ({
       jour,
       alea: alea.sousFlux(jour),
       racine: alea,
       equipes,
       ref,
       etat: { population, fabrique, numerotation },
-      params: { visitesParJour, indexJour, totalJours, finPeriode },
+      params: { visitesParJour, indexJour, totalJours, finPeriode, limite },
       ips,
     }),
   }
@@ -2786,6 +2801,427 @@ test('adresses IP : valides, congolaises, stables par site, villes connues de la
     nka.join(' '),
   ) // Dolisie
   assert.deepEqual(ipsDuSite(creerAlea('m'), 'MOUTELA'), mou, 'reproductible')
+})
+
+console.log('aujourd’hui : la période va jusqu’à maintenant, sans fabriquer d’avenir')
+
+/** Un instant par son jour et son heure LOCALES (Brazzaville, UTC+1). */
+const maintenantA = (jour: string, hh: number, mm = 0): Date =>
+  instantLocal(jour, hh * 60 + mm)
+const heures = (hh: number, mm = 0) => (hh * 60 + mm) * 60
+
+test('periodeJusqua : n’exclut pas le dernier jour ; periode (« jusqu’à la veille ») en découle', () => {
+  assert.deepEqual(periodeJusqua('2026-10-12', 4), {
+    debut: '2026-06-13',
+    fin: '2026-10-12',
+  })
+  assert.deepEqual(periodeJusqua('2026-10-10', 4), periode('2026-10-11', 4))
+})
+
+test('periodeJusquaMaintenant : aujourd’hui est le dernier jour dès qu’un passage a pu s’y terminer', () => {
+  // lundi 12 octobre, 14 h
+  const lundi14 = periodeJusquaMaintenant(maintenantA('2026-10-12', 14), 4)
+  assert.deepEqual(lundi14, {
+    debut: '2026-06-13',
+    fin: '2026-10-12',
+    limite: { jour: '2026-10-12', s: heures(14) },
+  })
+  // avant 11 h : trop tôt (ouverture 7 h 30 + 90 minutes d’arrivées + 2 h de marge) → la veille, comme avant
+  const lundi1059 = periodeJusquaMaintenant(maintenantA('2026-10-12', 10, 59), 4)
+  assert.deepEqual(lundi1059, { ...periode('2026-10-12', 4), limite: null })
+  assert.equal(lundi1059.fin, '2026-10-11')
+  // 11 h pile : la limite
+  assert.equal(periodeJusquaMaintenant(maintenantA('2026-10-12', 11), 4).fin, '2026-10-12')
+  // le soir, centre fermé depuis plus de deux heures : la journée entière
+  const soir = periodeJusquaMaintenant(maintenantA('2026-10-12', 18, 45), 4)
+  assert.equal(soir.fin, '2026-10-12')
+  assert.deepEqual(soir.limite, { jour: '2026-10-12', s: heures(18, 45) })
+})
+
+test('periodeJusquaMaintenant : centre fermé ou demi-journée trop courte → jusqu’à la veille', () => {
+  // dimanche : fermé
+  const dimanche = periodeJusquaMaintenant(maintenantA('2026-10-11', 15), 4)
+  assert.equal(dimanche.fin, '2026-10-10')
+  assert.equal(dimanche.limite, null)
+  // jour férié (25 décembre, un vendredi)
+  assert.equal(periodeJusquaMaintenant(maintenantA('2026-12-25', 15), 4).fin, '2026-12-24')
+  // samedi (8 h → 12 h 30) : à 11 h, 60 minutes seulement ; à 12 h, 120
+  assert.equal(periodeJusquaMaintenant(maintenantA('2026-10-17', 11), 4).fin, '2026-10-16')
+  assert.equal(periodeJusquaMaintenant(maintenantA('2026-10-17', 12), 4).fin, '2026-10-17')
+})
+
+test('periodeJusquaMaintenant : le jour est celui de Brazzaville, pas celui d’UTC', () => {
+  // 23 h 30 UTC le dimanche = 0 h 30 le LUNDI à Brazzaville : trop tôt pour le lundi → jusqu’à dimanche
+  const t = new Date('2026-10-11T23:30:00.000Z')
+  assert.equal(jourLocalDe(t), '2026-10-12')
+  assert.equal(periodeJusquaMaintenant(t, 4).fin, '2026-10-11')
+  assert.deepEqual(momentLocalDe(t), { jour: '2026-10-12', s: 30 * 60 })
+})
+
+test('momentLocalDe : le jour local et les secondes depuis minuit local', () => {
+  assert.deepEqual(momentLocalDe(maintenantA('2026-10-12', 14, 5)), {
+    jour: '2026-10-12',
+    s: heures(14, 5),
+  })
+})
+
+test('horairesEffectifs : ses horaires un autre jour, coupés deux heures avant maintenant aujourd’hui', () => {
+  const plein = horairesDuJour('2026-10-12') as Horaires
+  const lim = (hh: number, mm = 0): Moment => ({ jour: '2026-10-12', s: heures(hh, mm) })
+  // pas de coupure, ou un autre jour que celui de la coupure : horaires entiers
+  assert.deepEqual(horairesEffectifs('2026-10-12', null), plein)
+  assert.deepEqual(horairesEffectifs('2026-10-09', lim(14)), horairesDuJour('2026-10-09'))
+  // fermé : rien
+  assert.equal(horairesEffectifs('2026-10-11', null), null)
+  // aujourd'hui, 14 h → fermeture fabriquée à 12 h, marquée coupée
+  assert.deepEqual(horairesEffectifs('2026-10-12', lim(14)), {
+    ...plein,
+    fermeture: 12 * 60,
+    tronque: true,
+  })
+  // 14 h 05 → 12 h 05 (les minutes sont gardées)
+  assert.equal(horairesEffectifs('2026-10-12', lim(14, 5))?.fermeture, 12 * 60 + 5)
+  // fermeture + 2 h dépassée : la journée est entière, non coupée
+  assert.deepEqual(horairesEffectifs('2026-10-12', lim(18, 31)), plein)
+  assert.equal(horairesEffectifs('2026-10-12', lim(18, 31))?.tronque, undefined)
+  // pile à la fermeture du centre + 2 h : la journée est entière (pas coupée d'une minute)
+  assert.equal(horairesEffectifs('2026-10-12', lim(18, 30))?.tronque, undefined)
+  assert.equal(horairesEffectifs('2026-10-12', lim(18, 29))?.tronque, true)
+  // trop tôt : 10 h 59 → rien
+  assert.equal(horairesEffectifs('2026-10-12', lim(10, 59)), null)
+  assert.equal(horairesEffectifs('2026-10-12', lim(11))?.tronque, true)
+})
+
+test('partDesArrivees : 1 pour une journée entière, 0 sans fenêtre, croissante, et juste par rapport au tirage réel', () => {
+  for (const jour of ['2026-10-12', '2026-10-17']) {
+    // lundi (deux pics) puis samedi (un pic)
+    const plein = horairesDuJour(jour) as Horaires
+    assert.equal(partDesArrivees(plein, plein), 1)
+    assert.equal(partDesArrivees(plein, { ...plein, fermeture: plein.ouverture + 30 }), 0)
+    let avant = 0
+    for (let f = plein.ouverture + 120; f <= plein.fermeture; f += 20) {
+      const p = partDesArrivees(plein, { ...plein, fermeture: f, tronque: true })
+      assert.ok(p >= avant - 1e-9 && p >= 0 && p <= 1, `${jour} ${f} : ${p}`)
+      avant = p
+    }
+    // la formule décrit ce que le tirage fait vraiment (tirage de la journée entière : combien avant la coupure ?)
+    const alea = creerAlea(`part|${jour}`)
+    const arrivees = minutesArrivees(alea, 20000, plein)
+    for (const f of [plein.ouverture + 150, plein.ouverture + 240, plein.ouverture + 330]) {
+      const coupure = { ...plein, fermeture: f, tronque: true }
+      const mesuree = arrivees.filter((m) => m <= f - 30).length / arrivees.length
+      const calculee = partDesArrivees(plein, coupure)
+      assert.ok(
+        Math.abs(mesuree - calculee) < 0.015,
+        `${jour} coupure ${f} : mesuré ${mesuree.toFixed(3)}, calculé ${calculee.toFixed(3)}`,
+      )
+    }
+  }
+})
+
+test('minutesArrivees d’une journée coupée : toutes avant la coupure, le même nombre, sans empilement à la coupure', () => {
+  const plein = horairesDuJour('2026-10-12') as Horaires
+  const coupee: Horaires = { ...plein, fermeture: 12 * 60, tronque: true } // dernière arrivée à 11 h 30
+  const arrivees = minutesArrivees(creerAlea('coupure'), 3000, coupee)
+  assert.equal(arrivees.length, 3000)
+  assert.ok(arrivees.every((m) => m >= coupee.ouverture && m <= coupee.fermeture - 30))
+  const parMinute = new Map<number, number>()
+  for (const m of arrivees) parMinute.set(m, (parMinute.get(m) ?? 0) + 1)
+  // ramenées à la coupure, ~40 % des arrivées (le second pic, tombé au-delà) s'empileraient sur UNE minute
+  const aLaCoupure = parMinute.get(coupee.fermeture - 30) ?? 0
+  assert.ok(aLaCoupure < 3000 * 0.01, `${aLaCoupure} arrivées à la minute de coupure`)
+  // (l'ouverture a toujours son petit paquet : les arrivées d'avant l'ouverture y sont ramenées)
+  assert.ok((parMinute.get(coupee.ouverture) ?? 0) < 3000 * 0.12)
+  // le premier pic (ouverture + 90 min = 9 h) reste le plus fourni
+  const matin = arrivees.filter((m) => m >= 8 * 60 + 30 && m <= 9 * 60 + 30).length
+  const fin = arrivees.filter((m) => m >= 10 * 60 + 30).length
+  assert.ok(matin > fin, `matin ${matin}, fin ${fin}`)
+  // reproductible
+  assert.deepEqual(minutesArrivees(creerAlea('coupure'), 3000, coupee), arrivees)
+})
+
+test('minutesArrivees d’une journée ordinaire : inchangée (aucun tirage de plus)', () => {
+  const plein = horairesDuJour('2026-10-12') as Horaires
+  assert.deepEqual(
+    minutesArrivees(creerAlea('ordinaire'), 500, plein),
+    minutesArrivees(creerAlea('ordinaire'), 500, { ...plein }),
+  )
+})
+
+test('auDela : après le dernier jour, ou plus tard que maintenant ce jour-là', () => {
+  const sans = { finPeriode: '2026-10-12' }
+  const avec = { finPeriode: '2026-10-12', limite: { jour: '2026-10-12', s: heures(14) } }
+  // sans coupure : on s'arrête à la fin de la journée du dernier jour
+  assert.equal(auDela(sans, { jour: '2026-10-12', s: heures(23) }), false)
+  assert.equal(auDela(sans, { jour: '2026-10-13', s: 0 }), true)
+  // avec coupure : le jour de la coupure, rien après maintenant
+  assert.equal(auDela(avec, { jour: '2026-10-12', s: heures(14) }), false)
+  assert.equal(auDela(avec, { jour: '2026-10-12', s: heures(14) + 1 }), true)
+  assert.equal(auDela(avec, { jour: '2026-10-12', s: heures(9) }), false)
+  assert.equal(auDela(avec, { jour: '2026-10-09', s: heures(23) }), false)
+  assert.equal(auDela(avec, { jour: '2026-10-13', s: 0 }), true)
+  assert.equal(auDela({ ...avec, limite: null }, { jour: '2026-10-12', s: heures(20) }), false)
+})
+
+test('calculerPrevisions : aujourd’hui est compté pour la part déjà écoulée, et annoncé', () => {
+  const equipes = [
+    { medecins: 3, infirmiers: 4 },
+    { medecins: 2, infirmiers: 3 },
+  ]
+  const base = { debut: '2026-10-05', fin: '2026-10-12', visitesParJour: 40, equipes }
+  const hier = calculerPrevisions({ ...base, fin: '2026-10-10' })
+  assert.deepEqual(hier.aujourdhui, { inclus: false, jusqua: null })
+  // fin = aujourd'hui, mais sans coupure fournie : un jour entier
+  const entier = calculerPrevisions(base)
+  assert.deepEqual(entier.aujourdhui, { inclus: false, jusqua: null })
+  // 14 h : la journée de lundi est fabriquée jusqu'à 12 h → dernière arrivée à 11 h 30
+  const partiel = calculerPrevisions({ ...base, limite: { jour: '2026-10-12', s: heures(14) } })
+  assert.deepEqual(partiel.aujourdhui, { inclus: true, jusqua: '11:30' })
+  assert.ok(partiel.visites > hier.visites, 'aujourd’hui ajoute des visites')
+  assert.ok(partiel.visites < entier.visites, 'mais moins qu’une journée entière')
+  // la part écoulée croît avec l'heure
+  const tard = calculerPrevisions({ ...base, limite: { jour: '2026-10-12', s: heures(17) } })
+  assert.ok(tard.visites > partiel.visites)
+  // le soir, la journée est entière : annoncée, sans heure d'arrêt
+  const soir = calculerPrevisions({ ...base, limite: { jour: '2026-10-12', s: heures(19) } })
+  assert.deepEqual(soir.aujourdhui, { inclus: true, jusqua: null })
+  assert.equal(soir.visites, entier.visites)
+  // un jour de fermeture n'est pas un jour : rien de plus
+  const dimanche = calculerPrevisions({
+    ...base,
+    debut: '2026-10-05',
+    fin: '2026-10-11',
+    limite: { jour: '2026-10-11', s: heures(15) },
+  })
+  assert.deepEqual(dimanche.aujourdhui, { inclus: false, jusqua: null })
+})
+
+// ── Une semaine qui s'arrête aujourd'hui, 14 h ───────────────────────────────
+
+const AUJOURDHUI = '2026-10-12'
+const MAINTENANT: Moment = { jour: AUJOURDHUI, s: heures(14) }
+const INSTANT_MAINTENANT = instantSecondes(AUJOURDHUI, MAINTENANT.s)
+
+function simulerJusquaMaintenant(graine: string, visitesParJour: number) {
+  const banc = bancDeTest(graine, visitesParJour, AUJOURDHUI)
+  const jours = joursEntre('2026-10-05', AUJOURDHUI)
+  const parJour = new Map<string, LignesJour>()
+  const resumes = new Map<string, { visites: number }>()
+  jours.forEach((jour, i) => {
+    if (!estOuvert(jour)) return
+    // « Maintenant » est un paramètre de TOUTE la génération (comme dans le service) : un résultat attendu
+    // d'un vendredi tombe lundi, et c'est lundi qu'il doit s'arrêter à maintenant.
+    const r = planifierJour(banc.ctx(jour, i, jours.length, MAINTENANT))
+    parJour.set(jour, r.lignes)
+    resumes.set(jour, { visites: r.resume.visites })
+  })
+  return { banc, parJour, resumes }
+}
+
+/** Champs de dates qui désignent l'AVENIR par nature (une échéance, une validité), pas un geste daté. */
+const DATES_D_AVENIR = new Set([
+  'expiresAt', // un jeton valable sept jours
+  'prochainControle',
+  'prochainSuivi',
+  'dateReprise', // fin d'un repos prescrit : une date d'avenir
+])
+
+function datesDesGestes(
+  lignes: LignesJour,
+): { table: string; champ: string; date: Date }[] {
+  const trouvees: { table: string; champ: string; date: Date }[] = []
+  for (const [table, rows] of Object.entries(lignes)) {
+    for (const row of rows as Record<string, unknown>[]) {
+      for (const [champ, v] of Object.entries(row)) {
+        if (v instanceof Date && !DATES_D_AVENIR.has(champ))
+          trouvees.push({ table, champ, date: v })
+      }
+    }
+  }
+  return trouvees
+}
+
+const AUJ = simulerJusquaMaintenant('aujourd-hui-1', 40)
+// Huit autres semaines (d'autres graines) : certains gestes ne tombent qu'une fois sur des centaines de visites
+// (la clôture d'un suivi d'une seule fiche, un résultat attendu d'un vendredi et daté de lundi après-midi…).
+const AUJ_AUTRES = Array.from({ length: 8 }, (_, k) =>
+  simulerJusquaMaintenant(`aujourd-hui-part-${k}`, 40),
+)
+
+test('aujourd’hui à 14 h : AUCUN geste n’est daté après maintenant (visites, documents, suivis, connexions, audit…)', () => {
+  let verifiees = 0
+  for (const sim of [AUJ, ...AUJ_AUTRES]) {
+    for (const [jour, lignes] of sim.parJour) {
+      for (const { table, champ, date } of datesDesGestes(lignes)) {
+        verifiees++
+        assert.ok(
+          +date <= +INSTANT_MAINTENANT,
+          `${jour} ${table}.${champ} après maintenant : ${date.toISOString()}`,
+        )
+      }
+    }
+  }
+  assert.ok(verifiees > 40_000, `${verifiees} dates vérifiées`)
+})
+
+test('aujourd’hui à 14 h : des passages ont bien eu lieu, mais pas dans les deux dernières heures', () => {
+  const lignes = AUJ.parJour.get(AUJOURDHUI) as LignesJour
+  assert.ok(lignes.Visite.length > 5, `${lignes.Visite.length} visites`)
+  const limiteArrivee = instantSecondes(AUJOURDHUI, MAINTENANT.s - DELAI_AVANT_MAINTENANT_S)
+  for (const v of lignes.Visite)
+    assert.ok(+(v.dateOuverture as Date) <= +limiteArrivee, `visite ouverte à ${(v.dateOuverture as Date).toISOString()}`)
+  // le matin est bien là : la première visite est à l'heure d'ouverture
+  const premiere = Math.min(...lignes.Visite.map((v) => +(v.dateOuverture as Date)))
+  assert.ok(premiere >= +instantLocal(AUJOURDHUI, 7 * 60 + 30))
+  assert.ok(premiere < +instantLocal(AUJOURDHUI, 9 * 60), 'le matin est fabriqué')
+})
+
+test('aujourd’hui à 14 h : le nombre de visites suit la part de la journée écoulée', () => {
+  const plein = horairesDuJour(AUJOURDHUI) as Horaires
+  const coupe = horairesEffectifs(AUJOURDHUI, MAINTENANT) as Horaires
+  const part = partDesArrivees(plein, coupe)
+  assert.ok(part > 0.3 && part < 0.8, `part ${part}`)
+  let aujourdhui = 0
+  let normaux = 0
+  let nbNormaux = 0
+  for (const sim of AUJ_AUTRES) {
+    aujourdhui += sim.resumes.get(AUJOURDHUI)?.visites ?? 0
+    // un lundi ordinaire de la même semaine
+    for (const j of ['2026-10-05']) {
+      normaux += sim.resumes.get(j)?.visites ?? 0
+      nbNormaux++
+    }
+  }
+  const rapport = aujourdhui / 8 / (normaux / nbNormaux)
+  assert.ok(
+    rapport > part * 0.7 && rapport < part * 1.3,
+    `aujourd’hui = ${(rapport * 100).toFixed(0)} % d’un lundi ordinaire, attendu ~${(part * 100).toFixed(0)} %`,
+  )
+})
+
+test('aujourd’hui à 14 h : chacun est connecté ce matin, déconnecté avant maintenant, après son dernier geste', () => {
+  const lignes = AUJ.parJour.get(AUJOURDHUI) as LignesJour
+  const personnel = [...AUJ.banc.medecins, ...AUJ.banc.infirmiers]
+  const sorties = lignes.JournalAuthentification.filter((l) => l.resultat === 'SUCCES_LOGOUT')
+  assert.equal(sorties.length, personnel.length, 'tout le monde se déconnecte, le dernier jour')
+  for (const qui of personnel) {
+    const sortie = sorties.find((l) => l.utilisateurId === qui.utilisateurId)
+    assert.ok(sortie, `${qui.login} ne se déconnecte pas`)
+    const t = +(sortie.createdAt as Date)
+    assert.ok(t <= +INSTANT_MAINTENANT, `${qui.login} part dans le futur`)
+    const gestes = lignes.JournalAudit.filter((l) => l.utilisateurId === qui.utilisateurId).map((l) => +(l.createdAt as Date))
+    if (gestes.length) assert.ok(t > Math.max(...gestes), `${qui.login} part avant son dernier geste`)
+    // il s'est connecté ce matin
+    const entrees = lignes.JournalAuthentification.filter(
+      (l) => l.utilisateurId === qui.utilisateurId && /^SUCCES_LOGIN/.test(l.resultat as string),
+    )
+    assert.ok(entrees.length >= 1)
+    assert.ok(entrees.every((l) => +(l.createdAt as Date) < t))
+  }
+  // aucune session ne reste ouverte : l'une se ferme à la déconnexion, l'autre a été fermée avant maintenant
+  for (const s of lignes.SessionUtilisateur) {
+    assert.ok(s.revokedAt, 'session encore ouverte ce soir')
+    assert.ok(+(s.revokedAt as Date) <= +INSTANT_MAINTENANT)
+  }
+})
+
+test('aujourd’hui : la session laissée ouverte hier est fermée par la connexion de ce matin', () => {
+  const hier = jourOuvertPrecedent(AUJOURDHUI)
+  const sessionsHier = (AUJ.parJour.get(hier) as LignesJour).SessionUtilisateur
+  assert.ok(sessionsHier.length > 0)
+  for (const s of sessionsHier) {
+    assert.ok(s.revokedAt, 'session d’hier jamais fermée')
+    assert.ok(+(s.revokedAt as Date) <= +INSTANT_MAINTENANT)
+  }
+})
+
+test('departAvantMaintenant : avant maintenant, jamais avant d’être arrivé ni d’avoir fini, jamais dans le futur', () => {
+  const maintenant = heures(14)
+  // un départ déjà passé (une journée entière, le soir d'avant) : inchangé
+  assert.equal(departAvantMaintenant(heures(13, 30), maintenant, heures(7), heures(12), 300), heures(13, 30))
+  assert.equal(departAvantMaintenant(maintenant - 60, maintenant, heures(7), heures(12), 300), maintenant - 60)
+  // un départ du soir est ramené juste avant maintenant : tirage de 5 minutes
+  assert.equal(departAvantMaintenant(heures(17), maintenant, heures(7), heures(12), 300), maintenant - 300)
+  // pas avant le début de la dernière connexion + 2 minutes (le navigateur relancé il y a 5 minutes)
+  assert.equal(
+    departAvantMaintenant(heures(17), maintenant, maintenant - 300, heures(12), 600),
+    maintenant - 300 + 120,
+  )
+  // pas avant le dernier geste + 2 minutes
+  assert.equal(
+    departAvantMaintenant(heures(17), maintenant, heures(7), maintenant - 400, 600),
+    maintenant - 400 + 120,
+  )
+  // jamais après maintenant : le dernier geste est à une minute de maintenant → on part à maintenant
+  assert.equal(departAvantMaintenant(heures(17), maintenant, heures(7), maintenant - 60, 60), maintenant)
+  assert.equal(departAvantMaintenant(heures(17), maintenant, heures(7), maintenant, 60), maintenant)
+})
+
+test('calculerPrevisions : une petite équipe plafonne aussi la part d’aujourd’hui (ses heures écoulées seulement)', () => {
+  // un médecin et un infirmier : ~35 visites par jour ; la demande (200) dépasse de loin
+  const equipes = [{ medecins: 1, infirmiers: 1 }]
+  const base = { debut: '2026-10-05', fin: '2026-10-12', visitesParJour: 200, equipes }
+  const hier = calculerPrevisions({ ...base, fin: '2026-10-10' })
+  const aujourdhui = calculerPrevisions({
+    ...base,
+    limite: { jour: '2026-10-12', s: heures(14) },
+  })
+  const plein = capaciteSite(equipes[0]!, '2026-10-12')
+  const ajout = aujourdhui.visites - hier.visites
+  // fermeture fabriquée à 12 h : 270 minutes des 540 de la journée → la moitié de la capacité du jour
+  assert.ok(ajout > plein * 0.35 && ajout < plein * 0.65, `ajout ${ajout}, capacité du jour ${plein}`)
+})
+
+test('aujourd’hui : sur des centaines de journées simulées, jamais un geste après maintenant (évacuations, suivis, annulations comprises)', () => {
+  const coupures: Moment[] = [
+    { jour: AUJOURDHUI, s: heures(11) },
+    { jour: AUJOURDHUI, s: heures(13, 20) },
+    { jour: AUJOURDHUI, s: heures(15) },
+  ]
+  const futurs: string[] = []
+  let gestes = 0
+  for (const limite of coupures) {
+    const instantLimite = +instantSecondes(AUJOURDHUI, limite.s)
+    for (let k = 0; k < 150; k++) {
+      const banc = bancDeTest(`futur-${limite.s}-${k}`, 120, AUJOURDHUI)
+      const r = planifierJour(banc.ctx(AUJOURDHUI, 0, 1, limite))
+      for (const { table, champ, date } of datesDesGestes(r.lignes)) {
+        gestes++
+        if (+date > instantLimite)
+          futurs.push(`${table}.${champ} ${date.toISOString()} (coupure ${limite.s / 3600} h)`)
+      }
+      // et la déconnexion de chacun suit son dernier geste
+      for (const sortie of r.lignes.JournalAuthentification.filter((l) => l.resultat === 'SUCCES_LOGOUT')) {
+        const t = +(sortie.createdAt as Date)
+        const dernierGeste = Math.max(
+          0,
+          ...r.lignes.JournalAudit.filter((l) => l.utilisateurId === sortie.utilisateurId).map((l) => +(l.createdAt as Date)),
+        )
+        if (t < dernierGeste) futurs.push(`déconnexion de ${sortie.login} avant son dernier geste`)
+        const connexions = r.lignes.JournalAuthentification.filter(
+          (l) => l.utilisateurId === sortie.utilisateurId && /^SUCCES_LOGIN/.test(l.resultat as string),
+        ).map((l) => +(l.createdAt as Date))
+        if (t < Math.max(...connexions)) futurs.push(`déconnexion de ${sortie.login} avant sa dernière connexion`)
+      }
+    }
+  }
+  assert.deepEqual(futurs.slice(0, 5), [])
+  assert.ok(gestes > 500_000, `${gestes} gestes vérifiés`)
+})
+
+test('aujourd’hui trop tôt ou en fin de journée : le même planificateur, sans surprise', () => {
+  // coupure trop proche de l'ouverture : aucune visite, mais les connexions du personnel existent
+  const banc = bancDeTest('trop-tot', 40, AUJOURDHUI)
+  const tot = planifierJour(banc.ctx(AUJOURDHUI, 0, 1, { jour: AUJOURDHUI, s: heures(10, 30) }))
+  assert.equal(tot.lignes.Visite.length, 0)
+  assert.equal(tot.resume.visites, 0)
+  // le soir (19 h) : la journée est entière — mêmes lignes qu'une génération arrêtée hier, mais datée aujourd'hui
+  const soir = planifierJour(
+    bancDeTest('soir', 40, AUJOURDHUI).ctx(AUJOURDHUI, 0, 1, { jour: AUJOURDHUI, s: heures(19) }),
+  )
+  const sansLimite = planifierJour(bancDeTest('soir', 40, AUJOURDHUI).ctx(AUJOURDHUI, 0, 1, null))
+  assert.equal(soir.lignes.Visite.length, sansLimite.lignes.Visite.length)
+  assert.equal(soir.lignes.Consultation.length, sansLimite.lignes.Consultation.length)
 })
 
 console.log(`\n${passed} réussis, ${failed} échoués`)

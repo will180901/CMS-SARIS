@@ -460,6 +460,8 @@ export const fr = {
     previsionsTitre: 'Ce que cela va produire',
     periode: 'Période',
     periodeValeur: 'du {{debut}} au {{fin}}',
+    aujourdhuiJusqua: 'Aujourd’hui est inclus, jusqu’à environ {{heure}} : rien n’est fabriqué dans les deux dernières heures, pour qu’aucun geste ne soit daté du futur.',
+    aujourdhuiEntier: 'Aujourd’hui est inclus, journée entière (le centre est fermé depuis plus de deux heures).',
     joursOuverts: 'Jours d’ouverture',
     visitesPrevues: 'Visites',
     dossiersPrevus: 'Dossiers patients',

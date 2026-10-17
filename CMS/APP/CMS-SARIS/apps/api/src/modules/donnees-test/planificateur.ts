@@ -25,9 +25,11 @@ import {
   ajouterJours,
   facteurFrequentation,
   horairesDuJour,
+  horairesEffectifs,
   instantSecondes,
   jourLocalDe,
   minutesArrivees,
+  partDesArrivees,
   saisonDesPluies,
   type Horaires,
 } from './calendrier'
@@ -258,8 +260,11 @@ export function planifierJour(ctx: ContexteJour): {
 } {
   const lignes = lignesVides()
   const resume = resumeVide()
-  const h = horairesDuJour(ctx.jour)
-  if (!h || ctx.equipes.length === 0) return { lignes, resume }
+  const plein = horairesDuJour(ctx.jour)
+  if (!plein || ctx.equipes.length === 0) return { lignes, resume }
+  // Aujourd'hui, la journée n'est fabriquée que jusqu'à deux heures avant « maintenant » (`null` : trop
+  // tôt pour qu'un passage ait pu se terminer) ; tout autre jour, ses horaires entiers.
+  const h = horairesEffectifs(ctx.jour, ctx.params.limite ?? null)
 
   // Les dossiers ouverts ce jour-là sont suivis ici pour être numérotés dans l'ordre exact des ouvertures.
   ctx = { ...ctx, nouveaux: [] }
@@ -268,8 +273,11 @@ export function planifierJour(ctx: ContexteJour): {
     (s, e) => s + Math.max(1, e.medecins.length),
     0,
   )
+  // Une journée coupée n'a reçu qu'une part des arrivées de la journée entière.
+  const partDeLaJournee = h ? (h.tronque ? partDesArrivees(plein, h) : 1) : 0
   const vus = new Set<string>()
   for (const equipe of ctx.equipes) {
+    if (!h) break
     const part = Math.max(1, equipe.medecins.length) / poidsTotal
     const cible = Math.max(
       0,
@@ -277,7 +285,8 @@ export function planifierJour(ctx: ContexteJour): {
         ctx.params.visitesParJour *
           part *
           facteur *
-          ctx.alea.normaleBornee(1, 0.12, 0.7, 1.3),
+          ctx.alea.normaleBornee(1, 0.12, 0.7, 1.3) *
+          partDeLaJournee,
       ),
     )
     planifierSite(ctx, equipe, h, cible, lignes, resume, vus)

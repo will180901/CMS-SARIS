@@ -71,6 +71,12 @@ export interface Horaires {
   fermeture: number
   /** Samedi : demi-journée. */
   demiJournee: boolean
+  /**
+   * La journée d'AUJOURD'HUI, coupée à « maintenant » : `fermeture` n'est plus celle du centre mais le
+   * dernier moment où l'on fabrique encore des passages. Les arrivées qui tomberaient plus tard sont
+   * tirées de nouveau (au lieu d'être ramenées à la coupure, où elles s'empileraient).
+   */
+  tronque?: boolean
 }
 
 /** Les horaires du centre ce jour-là ; `null` si fermé (dimanche, jour férié). */
@@ -157,26 +163,130 @@ export function saisonDesPluies(jour: string): boolean {
  */
 export function minutesArrivees(alea: Alea, n: number, h: Horaires): number[] {
   const dernier = h.fermeture - 30
-  const pics: (readonly [number, number])[] = h.demiJournee
+  const pics = picsDArrivee(h)
+  const tirer = (): number => {
+    if (alea.proba(0.12)) return alea.entier(h.ouverture, dernier)
+    const [centre, dispersion] = alea.pondere(
+      pics.map((p, k) => [p, k === 0 ? 58 : 42] as const),
+    )
+    return Math.round(alea.normale(centre, dispersion))
+  }
+  const arrivees: number[] = []
+  for (let i = 0; i < n; i++) {
+    let m = tirer()
+    if (h.tronque) {
+      // Journée coupée : une arrivée au-delà de la coupure n'a pas encore eu lieu. On tire de nouveau
+      // (la loi est celle de la journée entière, limitée à ce qui s'est déjà passé) ; ramenée à la
+      // coupure, la moitié des arrivées s'y empilerait.
+      for (let essai = 0; m > dernier && essai < 60; essai++) m = tirer()
+      if (m > dernier) m = alea.entier(h.ouverture, dernier)
+    }
+    arrivees.push(Math.min(dernier, Math.max(h.ouverture, m)))
+  }
+  return arrivees.sort((x, y) => x - y)
+}
+
+/** Les pics d'affluence d'une journée : [minute du pic, dispersion]. */
+function picsDArrivee(h: Horaires): (readonly [number, number])[] {
+  return h.demiJournee
     ? [[h.ouverture + 75, 55]]
     : [
         [h.ouverture + 90, 70],
         [h.ouverture + 375, 65],
       ]
-  const arrivees: number[] = []
-  for (let i = 0; i < n; i++) {
-    let m: number
-    if (alea.proba(0.12)) {
-      m = alea.entier(h.ouverture, dernier)
-    } else {
-      const [centre, dispersion] = alea.pondere(
-        pics.map((p, k) => [p, k === 0 ? 58 : 42] as const),
-      )
-      m = Math.round(alea.normale(centre, dispersion))
-    }
-    arrivees.push(Math.min(dernier, Math.max(h.ouverture, m)))
+}
+
+/** Fonction d'erreur (Abramowitz et Stegun 7.1.26, erreur < 1,5 × 10⁻⁷). */
+function erf(x: number): number {
+  const signe = x < 0 ? -1 : 1
+  const t = 1 / (1 + 0.3275911 * Math.abs(x))
+  const y =
+    1 -
+    ((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t +
+      0.254829592) *
+      t *
+      Math.exp(-x * x)
+  return signe * y
+}
+
+/**
+ * La part des arrivées d'une journée entière qui tombent avant la coupure d'une journée coupée
+ * (`partielle.fermeture`). Les arrivées suivent un mélange de deux pics et d'un fond régulier, bornés
+ * à l'ouverture : tout ce qui précède l'ouverture compte AVANT la coupure. C'est le facteur par lequel
+ * on réduit le nombre de visites de la journée, pour qu'une journée coupée à midi n'en reçoive pas
+ * autant qu'une journée entière.
+ */
+export function partDesArrivees(plein: Horaires, partielle: Horaires): number {
+  const dernierPlein = plein.fermeture - 30
+  const dernier = Math.min(partielle.fermeture - 30, dernierPlein)
+  if (dernier >= dernierPlein) return 1
+  if (dernier <= plein.ouverture) return 0
+  const pics = picsDArrivee(plein)
+  const poids = pics.map((_, k) => (k === 0 ? 58 : 42))
+  const total = poids.reduce((a, b) => a + b, 0)
+  const loiNormale = (x: number, centre: number, dispersion: number) =>
+    0.5 * (1 + erf((x - centre) / (dispersion * Math.SQRT2)))
+  const massePics = pics.reduce(
+    (somme, [centre, dispersion], k) =>
+      somme + ((poids[k] as number) / total) * loiNormale(dernier + 0.5, centre, dispersion),
+    0,
+  )
+  const fond = (dernier - plein.ouverture + 1) / (dernierPlein - plein.ouverture + 1)
+  return 0.12 * Math.min(1, fond) + 0.88 * massePics
+}
+
+/**
+ * Rien n'est fabriqué dans les dernières heures avant « maintenant » : un passage dure jusqu'à une
+ * heure et demie (accueil, attente du médecin, consultation), et ses suites (résultats, suivis) sont
+ * datées après. Sans cette marge, des gestes tomberaient dans le futur.
+ */
+export const DELAI_AVANT_MAINTENANT_S = 2 * 3600
+
+/** Une journée coupée doit pouvoir accueillir au moins ce que valent 90 minutes d'arrivées. */
+const FENETRE_MIN_MINUTES = 90
+
+/**
+ * Les horaires d'un jour pour la génération, selon « maintenant » :
+ *  - jour ordinaire (ou pas celui de maintenant) : ses horaires ;
+ *  - aujourd'hui, centre déjà fermé depuis plus de deux heures : ses horaires (journée entière) ;
+ *  - aujourd'hui, en cours : coupés (`tronque`) deux heures avant maintenant ;
+ *  - fermé, ou trop tôt pour qu'un passage ait pu se terminer : `null` (rien à fabriquer).
+ */
+export function horairesEffectifs(
+  jour: string,
+  limite: Moment | null,
+): Horaires | null {
+  const h = horairesDuJour(jour)
+  if (!h) return null
+  if (!limite || limite.jour !== jour) return h
+  const fermeture = Math.floor((limite.s - DELAI_AVANT_MAINTENANT_S) / 60)
+  if (fermeture >= h.fermeture) return h
+  if (fermeture - h.ouverture < FENETRE_MIN_MINUTES) return null
+  return { ...h, fermeture, tronque: true }
+}
+
+/** « Maintenant » comme moment du centre : le jour local et les secondes depuis minuit local. */
+export function momentLocalDe(instant: Date): Moment {
+  const jour = jourLocalDe(instant)
+  return {
+    jour,
+    s: Math.floor((instant.getTime() - instantSecondes(jour, 0).getTime()) / 1000),
   }
-  return arrivees.sort((x, y) => x - y)
+}
+
+/**
+ * Ce moment est-il AU-DELÀ de la fin de la génération ? Oui après le dernier jour de la période ; et,
+ * si ce dernier jour est aujourd'hui, plus tard que « maintenant » ce jour-là. Ce qui se passe après
+ * (un résultat qui arrive, un suivi qui se poursuit) n'est pas encore arrivé : on ne fabrique pas
+ * d'avenir.
+ */
+export function auDela(
+  params: { finPeriode: string; limite?: Moment | null },
+  m: Moment,
+): boolean {
+  if (m.jour > params.finPeriode) return true
+  const l = params.limite
+  return !!l && m.jour === l.jour && m.s > l.s
 }
 
 /** Le premier jour d'ouverture strictement après `jour`. */

@@ -462,6 +462,8 @@ export const en: Resources = {
     previsionsTitre: 'What this will produce',
     periode: 'Period',
     periodeValeur: 'from {{debut}} to {{fin}}',
+    aujourdhuiJusqua: 'Today is included, up to about {{heure}}: nothing is generated in the last two hours, so that no action is dated in the future.',
+    aujourdhuiEntier: 'Today is included, as a full day (the centre has been closed for over two hours).',
     joursOuverts: 'Opening days',
     visitesPrevues: 'Visits',
     dossiersPrevus: 'Patient records',

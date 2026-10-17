@@ -31,7 +31,10 @@ interface RequeteAuthentifiee {
 }
 
 export class DemarrerGenerationDto {
-  /** Durée de la période d'activité, en mois (la veille est le dernier jour). */
+  /**
+   * Durée de la période d'activité, en mois. Le dernier jour est AUJOURD'HUI (fabriqué jusqu'à deux heures
+   * avant maintenant) dès que la matinée est assez avancée et que le centre est ouvert, sinon la veille.
+   */
   @IsInt()
   @Min(1)
   @Max(12)

@@ -191,6 +191,13 @@ function ZoneGenerer() {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--espace-2)' }}>
                 <Ligne label={t('donneesTest.periode')} valeur={t('donneesTest.periodeValeur', { debut: jourCourt(prev.debut), fin: jourCourt(prev.fin) })} />
+                {prev.aujourdhui.inclus && (
+                  <p style={{ margin: 0, fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)' }}>
+                    {prev.aujourdhui.jusqua
+                      ? t('donneesTest.aujourdhuiJusqua', { heure: prev.aujourdhui.jusqua })
+                      : t('donneesTest.aujourdhuiEntier')}
+                  </p>
+                )}
                 <Ligne label={t('donneesTest.joursOuverts')} valeur={formatNumber(prev.joursOuverts)} />
                 <Ligne label={t('donneesTest.visitesPrevues')} valeur={`≈ ${formatNumber(prev.visites)}`} />
                 <Ligne label={t('donneesTest.dossiersPrevus')} valeur={`≈ ${formatNumber(prev.patients)}`} />

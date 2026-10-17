@@ -25,7 +25,7 @@ import { PrismaService } from '../../prisma/prisma.service'
 import { ModeSystemeService } from '../systeme/mode-systeme.service'
 import { creerAlea } from './alea'
 import { ipsDuSite } from './catalogue-reseau'
-import { estOuvert, jourLocalDe, joursEntre } from './calendrier'
+import { estOuvert, jourLocalDe, joursEntre, type Moment } from './calendrier'
 import { nouvelleMorphologie } from './constantes-vitales'
 import type {
   ContexteJour,
@@ -46,7 +46,7 @@ import { cleMedicament } from './planificateur-documents'
 import { Population, type PatientSim } from './population'
 import {
   calculerPrevisions,
-  periode,
+  periodeJusquaMaintenant,
   type EquipeEffectifs,
   type Previsions,
 } from './previsions'
@@ -72,6 +72,12 @@ export interface ParametresLot {
   /** Premier et dernier jour de la période (« AAAA-MM-JJ »). */
   debut: string
   fin: string
+  /**
+   * « Maintenant » au lancement, quand le dernier jour est AUJOURD'HUI : ce jour-là n'est fabriqué que
+   * jusqu'à deux heures avant, et rien n'est daté après. Fixé au lancement : une reprise le lendemain
+   * refait la même journée. Absent des générations qui s'arrêtent à hier.
+   */
+  limite?: Moment | null
 }
 
 export interface ProgressionLot {
@@ -340,17 +346,26 @@ export class DonneesTestService implements OnApplicationBootstrap {
     }
   }
 
+  /**
+   * L'heure du serveur. Un point d'entrée À PART pour que les tests rejouent « il est 14 h un lundi » :
+   * la période d'une génération en dépend (aujourd'hui y est inclus, ou pas, selon l'heure).
+   */
+  maintenant(): Date {
+    return new Date()
+  }
+
   async previsions(
     mois: number,
     visitesParJour: number,
   ): Promise<Previsions & { baseMo: number | null; limiteMo: number }> {
     const equipes = await this.chargerEquipes()
-    const { debut, fin } = periode(jourLocalDe(new Date()), mois)
+    const { debut, fin, limite: coupure } = periodeJusquaMaintenant(this.maintenant(), mois)
     const p = calculerPrevisions({
       debut,
       fin,
       visitesParJour,
       equipes: effectifs(equipes),
+      limite: coupure,
     })
     const taille = await this.tailleBase()
     const limite = this.limiteOctets()
@@ -361,7 +376,7 @@ export class DonneesTestService implements OnApplicationBootstrap {
     // La purge de la nuit supprime les journaux plus vieux que leur durée de conservation : elle
     // effacerait, sans distinction, ce que cette génération fabrique de plus ancien.
     const conservation = await this.dureeConservationJournaux()
-    const age = joursEntre(debut, jourLocalDe(new Date())).length
+    const age = joursEntre(debut, jourLocalDe(this.maintenant())).length
     if (conservation !== null && age > conservation)
       p.avertissements.push(
         `Les journaux d'audit sont conservés ${conservation} jours (Paramètres système) : la purge automatique de la nuit supprimera les lignes d'audit et de connexions de plus de ${conservation} jours fabriquées ici, soit les ${age - conservation} premiers jours de la période. Allongez la durée de conservation ou réduisez la durée.`,
@@ -394,12 +409,13 @@ export class DonneesTestService implements OnApplicationBootstrap {
     this.exigerEquipe(equipes)
     await this.exigerReferentiels()
 
-    const { debut, fin } = periode(jourLocalDe(new Date()), params.mois)
+    const { debut, fin, limite } = periodeJusquaMaintenant(this.maintenant(), params.mois)
     const prev = calculerPrevisions({
       debut,
       fin,
       visitesParJour: params.visitesParJour,
       equipes: effectifs(equipes),
+      limite,
     })
     const taille = await this.tailleBase()
     if (taille !== null && taille + prev.octets > this.limiteOctets())
@@ -419,6 +435,7 @@ export class DonneesTestService implements OnApplicationBootstrap {
         graine: params.graine?.trim() || `${Date.now()}`,
         debut,
         fin,
+        ...(limite ? { limite } : {}),
       },
       progression: {
         joursTotal: joursEntre(debut, fin).filter(estOuvert).length,
@@ -956,6 +973,7 @@ export class DonneesTestService implements OnApplicationBootstrap {
             indexJour: tousLesJours.indexOf(jour),
             totalJours: tousLesJours.length,
             finPeriode: lot.parametres.fin,
+            limite: lot.parametres.limite ?? null,
           },
           ips,
         }

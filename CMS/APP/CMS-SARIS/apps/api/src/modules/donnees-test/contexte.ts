@@ -3,6 +3,7 @@
  * d'un jour au suivant, et les petits outils communs (journal d'audit, adresses IP).
  */
 import type { Alea } from './alea'
+import type { Moment } from './calendrier'
 import type { FabriqueIdentites, Numerotation } from './fabrique-identites'
 import { nouvelIdTest } from './marque-test'
 import type { PatientSim, Population } from './population'
@@ -77,6 +78,12 @@ export interface ParametresJour {
    * suivi qui se poursuit) n'est pas encore arrivé : on ne fabrique pas d'avenir.
    */
   finPeriode: string
+  /**
+   * « Maintenant », quand le dernier jour de la période est AUJOURD'HUI : ce jour-là n'est fabriqué que
+   * jusqu'à deux heures avant, et rien n'est daté après. Absent (ou nul) quand la période s'arrête à
+   * hier ou avant.
+   */
+  limite?: Moment | null
 }
 
 export interface ContexteJour {
