@@ -6,7 +6,7 @@
 import writeXlsxFile from 'write-excel-file/browser'
 import type { Sheet } from 'write-excel-file/browser'
 import type { StatistiquesActivite } from '../api/dashboard.api'
-import { formatDateTime } from '@/lib/intl'
+import { formatDateTime, formatNumber } from '@/lib/intl'
 
 const ACCENT = '#2f6f86'   // teal profond SARIS
 const SOFT   = '#eef4f7'   // teal très clair (lignes alternées)
@@ -87,7 +87,7 @@ function statsPrintBody(stats: StatistiquesActivite) {
   const table = (titre: string, rows: Row[]) => rows.length ? `
     <h2>${escapeHtml(titre)}</h2>
     <table><thead><tr><th>Libellé</th><th class="n">Nombre</th></tr></thead><tbody>
-    ${rows.map(r => `<tr><td>${escapeHtml(r.libelle)}</td><td class="n">${r.count}</td></tr>`).join('')}
+    ${rows.map(r => `<tr><td>${escapeHtml(r.libelle)}</td><td class="n">${formatNumber(r.count)}</td></tr>`).join('')}
     </tbody></table>` : ''
   return `
     <h1>Statistiques d'activité</h1>
@@ -100,8 +100,8 @@ function statsPrintBody(stats: StatistiquesActivite) {
       day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
     }))}</p>
     <div class="ps-kpis">
-      <div class="ps-kpi"><div class="v">${stats.totalConsultations}</div><div class="l">Consultations</div></div>
-      <div class="ps-kpi"><div class="v">${stats.repos.totalJours}</div><div class="l">Jours de repos prescrits</div></div>
+      <div class="ps-kpi"><div class="v">${formatNumber(stats.totalConsultations)}</div><div class="l">Consultations</div></div>
+      <div class="ps-kpi"><div class="v">${formatNumber(stats.repos.totalJours)}</div><div class="l">Jours de repos prescrits</div></div>
     </div>
     ${table('Par type de consultation', stats.parType)}
     ${table('Par pathologie (diagnostic principal)', stats.parPathologie)}

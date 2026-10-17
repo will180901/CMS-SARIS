@@ -14,7 +14,7 @@ import { useDebouncedValue }   from '@/hooks/useDebouncedValue'
 import { consultationApi }         from '../api/consultation.api'
 import { ConsultationQueueCard }   from '../components/ConsultationQueueCard'
 import { GroupesParPatient }       from '@/components/file/GroupesParPatient'
-import { formatDate }              from '@/lib/intl'
+import { formatDate, formatNumber } from '@/lib/intl'
 import { nomSoignant }             from '@/lib/soignant'
 import { ConsultationDetail }      from '../components/ConsultationDetail'
 import { PrivacyCurtain }          from '@/components/PrivacyCurtain'
@@ -249,7 +249,7 @@ export function ConsultationPage() {
               <PopoverContent align="end" sideOffset={6} style={{ width: 280, padding: 0, background: 'var(--fond-surface)', border: '1px solid var(--bordure-legere)', borderRadius: 10, boxShadow: '0 10px 30px rgba(0,0,0,0.12)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderBottom: '1px solid var(--bordure-legere)', background: 'var(--fond-surface-2)' }}>
                   <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--texte-primaire)' }}>{t('consultation.filtersTitle', { defaultValue: 'Filtres' })}</span>
-                  <span style={{ fontSize: '11px', color: 'var(--texte-tertiaire)' }}>{filtered.length}/{enHistorique ? (totalHistorique ?? filtered.length) : allConsultations.length}</span>
+                  <span style={{ fontSize: '11px', color: 'var(--texte-tertiaire)' }}>{formatNumber(filtered.length)}/{formatNumber(enHistorique ? (totalHistorique ?? filtered.length) : allConsultations.length)}</span>
                 </div>
                 <div style={{ padding: '14px' }}>
                   <p style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--texte-tertiaire)', margin: '0 0 6px' }}>{t('consultation.statutLabel', { defaultValue: 'Statut' })}</p>
@@ -261,7 +261,7 @@ export function ConsultationPage() {
                         <button key={f} type="button" onClick={() => setFilter(f)}
                           style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, height: 32, padding: '0 10px', borderRadius: 6, cursor: 'pointer', fontSize: '12px', fontWeight: isActive ? 600 : 500, background: isActive ? 'var(--ap-50)' : 'var(--fond-surface)', color: isActive ? 'var(--ap-700)' : 'var(--texte-secondaire)', border: `1px solid ${isActive ? 'var(--ap-200)' : 'var(--bordure-normale)'}` }}>
                           <span>{FILTER_LABEL[f]}</span>
-                          <span style={{ minWidth: 18, height: 16, borderRadius: 8, padding: '0 5px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700, background: isActive ? 'var(--ap-400)' : 'var(--fond-surface-2)', color: isActive ? '#fff' : 'var(--texte-tertiaire)' }}>{count}</span>
+                          <span style={{ minWidth: 18, height: 16, borderRadius: 8, padding: '0 5px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700, background: isActive ? 'var(--ap-400)' : 'var(--fond-surface-2)', color: isActive ? '#fff' : 'var(--texte-tertiaire)' }}>{typeof count === 'number' ? formatNumber(count) : count}</span>
                         </button>
                       )
                     })}

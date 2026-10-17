@@ -1556,8 +1556,8 @@ function declTypeLabel(type: string): string {
 function formatTaille(o?: number | null): string {
   if (!o) return ''
   if (o < 1024)        return `${o} ${i18n.t('admin.unitBytes')}`
-  if (o < 1024 * 1024) return `${(o / 1024).toFixed(1)} ${i18n.t('admin.unitKilobytes')}`
-  return `${(o / 1024 / 1024).toFixed(1)} ${i18n.t('admin.unitMegabytes')}`
+  if (o < 1024 * 1024) return `${formatNumber(o / 1024, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ${i18n.t('admin.unitKilobytes')}`
+  return `${formatNumber(o / 1024 / 1024, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ${i18n.t('admin.unitMegabytes')}`
 }
 
 function SauvegardeRow({ s, striped, canRestore, onRestore, canDelete, onDelete, derniereRestante }: {

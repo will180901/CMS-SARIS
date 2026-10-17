@@ -5,6 +5,7 @@
 
 import type { ReactNode } from 'react'
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { formatNumber } from '@/lib/intl'
 import { TILE_TONE_MAP, type Tone } from './tones'
 
 interface Props {
@@ -86,7 +87,7 @@ export function StatCard({ icon, label, value, hint, trend, tone = 'accent', onC
             lineHeight: 1.1,
             letterSpacing: '-0.02em',
           }}>
-            {value}
+            {typeof value === 'number' ? formatNumber(value) : value}
           </p>
           {hint && (
             <p style={{

@@ -19,6 +19,7 @@
 import { useTranslation } from 'react-i18next'
 import type { ContenuRapport, Repartition } from '../api/rapports.api'
 import { RankedBars } from '@/components/saris'
+import { formatNumber } from '@/lib/intl'
 
 interface Indicateur {
   label: string
@@ -58,7 +59,7 @@ function Volet({ titre, items }: { titre: string; items: Indicateur[] }) {
               margin: '4px 0 0', fontSize: 'var(--font-size-h3)', fontWeight: 700,
               color: 'var(--texte-primaire)', lineHeight: 1.15,
             }}>
-              {it.valeur}
+              {typeof it.valeur === 'number' ? formatNumber(it.valeur) : it.valeur}
             </p>
             {it.hint && (
               <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--texte-tertiaire)' }}>

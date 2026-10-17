@@ -25,7 +25,7 @@ import {
   type DonutSlice,
 } from '@/components/saris'
 import { formatDuree, formatDureeMinutes, elapsedMinutes } from '@/lib/duree'
-import { formatDate, formatTime } from '@/lib/intl'
+import { formatDate, formatNumber, formatTime } from '@/lib/intl'
 import { usePermissions } from '@/hooks/usePermissions'
 import { useSessionStore } from '@/stores/session.store'
 import {
@@ -519,7 +519,7 @@ function StatistiquesSection() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--espace-5)' }}>
             <div style={GRID_AUTO}>
               <StatCard icon={<Stethoscope size={18} />} label={`Consultations (${days} j)`} value={stats.totalConsultations} tone="accent" />
-              <StatCard icon={<Activity size={18} />} label="Jours de repos prescrits" value={stats.repos.totalJours} tone="gold" hint={`${stats.repos.consultationsAvecRepos} consultation(s) avec repos`} />
+              <StatCard icon={<Activity size={18} />} label="Jours de repos prescrits" value={stats.repos.totalJours} tone="gold" hint={`${formatNumber(stats.repos.consultationsAvecRepos)} consultation(s) avec repos`} />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: 'var(--espace-5)' }}>
@@ -589,6 +589,7 @@ function CroisementBlock({ from, to }: { from: string; to: string }) {
 // ── Évolution annuelle (série mensuelle) ──────────────────────────────────────
 
 function EvolutionAnnuelleSection() {
+  const { t } = useTranslation()
   const anneeCourante = new Date().getFullYear()
   const [annee, setAnnee] = useState(anneeCourante)
   const { data: points = [], isLoading } = useEvolutionAnnuelle(true, annee)
@@ -599,8 +600,8 @@ function EvolutionAnnuelleSection() {
     <Card>
       <Card.Header
         icon={<TrendingUp size={15} />}
-        title="Évolution annuelle"
-        subtitle={`${annee} — consultations et repos maladie, mois par mois`}
+        title={t('dashboard.evolutionTitle')}
+        subtitle={t('dashboard.evolutionSubtitle', { annee })}
         actions={
           <div style={{ display: 'flex', gap: 4 }}>
             {[anneeCourante - 1, anneeCourante].map(a => (
@@ -620,7 +621,7 @@ function EvolutionAnnuelleSection() {
         ) : empty ? (
           <div style={{ minHeight: 160, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <p style={{ margin: 0, fontSize: 'var(--font-size-body-sm)', color: 'var(--texte-tertiaire)', fontStyle: 'italic' }}>
-              Aucune consultation sur {annee}.
+              {t('dashboard.evolutionEmpty', { annee })}
             </p>
           </div>
         ) : (
@@ -628,12 +629,12 @@ function EvolutionAnnuelleSection() {
             <AreaTrend
               data={points} xKey="mois" xTickFormatter={(m: string) => m.slice(5)}
               series={[
-                { key: 'consultations', label: 'Consultations', color: 'var(--ap-500)' },
-                { key: 'reposJours',    label: 'Jours de repos', color: 'var(--as-600)' },
+                { key: 'consultations', label: t('dashboard.evolutionSerieConsultations'), color: 'var(--ap-500)' },
+                { key: 'reposJours',    label: t('dashboard.evolutionSerieRepos'), color: 'var(--as-600)' },
               ]}
             />
             <p style={{ margin: '10px 0 0', fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)' }}>
-              {totalConsult} consultation{totalConsult > 1 ? 's' : ''} sur {annee}.
+              {t('dashboard.evolutionTotal', { count: totalConsult, annee })}
             </p>
           </>
         )}

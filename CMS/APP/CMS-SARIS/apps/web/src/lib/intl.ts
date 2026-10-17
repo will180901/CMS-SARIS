@@ -7,6 +7,7 @@
  * des appels `toLocaleDateString('fr-FR', …)` codés en dur.
  */
 import i18n from '@/i18n/config'
+import { formaterNombre } from '@/i18n/formatNombres'
 
 /** Locale BCP-47 courante, dérivée de la langue i18next. */
 export function currentLocale(): string {
@@ -58,9 +59,10 @@ export function formatDateTime(
 }
 
 /**
- * Formate un nombre selon le locale (séparateurs de milliers/décimales).
+ * Formate un nombre selon le locale (séparateurs de milliers/décimales). En français, les milliers sont
+ * séparés par l'espace insécable ordinaire (l'espace fine d'Intl est presque invisible à l'écran).
  * @example formatNumber(1234.5) → '1 234,5' (fr) · '1,234.5' (en-GB)
  */
 export function formatNumber(n: number, opts?: Intl.NumberFormatOptions): string {
-  return n.toLocaleString(currentLocale(), opts)
+  return formaterNombre(n, i18n.language === 'en' ? 'en' : 'fr', opts)
 }

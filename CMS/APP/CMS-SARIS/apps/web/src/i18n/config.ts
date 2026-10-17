@@ -4,6 +4,7 @@
  */
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
+import { formateurNombres } from './formatNombres'
 import { fr } from './locales/fr'
 import { en } from './locales/en'
 import { acteurs } from './locales/modules/acteurs'
@@ -51,14 +52,16 @@ function initialLang(): Lang {
   return 'fr'
 }
 
-void i18n.use(initReactI18next).init({
+void i18n.use(initReactI18next).use(formateurNombres).init({
   resources: {
     fr: { translation: { ...fr, ...MODULES_FR } },
     en: { translation: { ...en, ...MODULES_EN } },
   },
   lng: initialLang(),
   fallbackLng: 'fr',
-  interpolation: { escapeValue: false },
+  // `alwaysFormat` : le formateur voit TOUTES les variables, pas seulement celles qui portent un format
+  // (`{{count}}` comme `{{count, nombre}}`) — cf. formatNombres.ts.
+  interpolation: { escapeValue: false, alwaysFormat: true },
   returnNull: false,
 })
 

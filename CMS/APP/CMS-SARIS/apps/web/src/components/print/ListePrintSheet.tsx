@@ -22,7 +22,10 @@ import { createPortal } from 'react-dom'
 import { X, Printer, ZoomIn, ZoomOut } from 'lucide-react'
 import { isDesktop } from '@/lib/desktop'
 import { DESKTOP_TITLEBAR_H } from '@/components/layout/DesktopTitleBar'
-import { formatDateTime as intlFormatDateTime } from '@/lib/intl'
+import { formatDateTime as intlFormatDateTime, formatNumber } from '@/lib/intl'
+
+/** Un nombre s'écrit avec ses séparateurs de milliers (« 3 475 »), un texte reste tel quel. */
+const nb = (v: string | number): string | number => (typeof v === 'number' ? formatNumber(v) : v)
 
 const LOGO_URL = `${import.meta.env.BASE_URL}logo_cms_saris.png`
 
@@ -573,7 +576,7 @@ function TableauBloc({ bloc }: { bloc: BlocTableau }) {
                   textAlign: bloc.colonnes[j]?.align ?? 'left',
                   padding: '4px 8px', borderBottom: `1px solid ${LINE}`,
                   fontSize: 9, color: INK, verticalAlign: 'top',
-                }}>{v}</td>
+                }}>{nb(v)}</td>
               ))}
             </tr>
           ))}
@@ -617,7 +620,7 @@ function RenduBloc({ bloc }: { bloc: BlocImprimable }) {
               {bloc.faits.map(f => (
                 <div key={f.label}>
                   <p style={{ margin: 0, fontSize: 30, fontWeight: 800, color: ACCENT, lineHeight: 1 }}>
-                    {f.valeur}
+                    {nb(f.valeur)}
                   </p>
                   <p style={{
                     margin: '5px 0 0', fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
@@ -683,7 +686,7 @@ function RenduBloc({ bloc }: { bloc: BlocImprimable }) {
             {bloc.items.map((it, i) => (
               <div key={i} style={{ border: `1px solid ${LINE}`, borderTop: `2px solid ${ACCENT}`, padding: '6px 9px' }}>
                 <p style={{ margin: 0, fontSize: 7.5, fontWeight: 700, color: MUTED, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{it.label}</p>
-                <p style={{ margin: '2px 0 0', fontSize: 17, fontWeight: 800, color: INK, lineHeight: 1.1 }}>{it.valeur}</p>
+                <p style={{ margin: '2px 0 0', fontSize: 17, fontWeight: 800, color: INK, lineHeight: 1.1 }}>{nb(it.valeur)}</p>
                 {it.hint && <p style={{ margin: '1px 0 0', fontSize: 7.5, color: MUTED, lineHeight: 1.3 }}>{it.hint}</p>}
               </div>
             ))}
@@ -711,7 +714,7 @@ function RenduBloc({ bloc }: { bloc: BlocImprimable }) {
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, height: 74, marginTop: 6 }}>
             {bloc.points.map((p, i) => (
               <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, minWidth: 0 }}>
-                <span style={{ fontSize: 8.5, fontWeight: p.courant ? 800 : 500, color: p.courant ? INK : MUTED }}>{p.valeur}</span>
+                <span style={{ fontSize: 8.5, fontWeight: p.courant ? 800 : 500, color: p.courant ? INK : MUTED }}>{nb(p.valeur)}</span>
                 <div style={{
                   width: '100%', height: Math.max(2, Math.round((p.valeur / max) * 46)),
                   background: p.courant ? ACCENT : '#c8dbe4',

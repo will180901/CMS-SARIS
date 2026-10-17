@@ -20,7 +20,7 @@ import { GroupesParPatient }   from '@/components/file/GroupesParPatient'
 import { VisiteDetail }        from '../components/VisiteDetail'
 import { PrivacyCurtain }      from '@/components/PrivacyCurtain'
 import { NouvelleVisitePanel } from '../components/NouvelleVisiteDrawer'
-import { formatDate, formatTime } from '@/lib/intl'
+import { formatDate, formatNumber, formatTime } from '@/lib/intl'
 import { SiteAutreBadge } from '@/components/layout/SiteAutreBadge'
 
 // ── Horloge live ──────────────────────────────────────────────────────────────
@@ -533,7 +533,7 @@ export function TriagePage() {
                         background: active ? 'var(--ap-400)' : 'var(--fond-surface-2)',
                         color:      active ? '#fff' : 'var(--texte-tertiaire)',
                       }}>
-                        {s.count}
+                        {formatNumber(s.count)}
                       </span>
                     </button>
                   )

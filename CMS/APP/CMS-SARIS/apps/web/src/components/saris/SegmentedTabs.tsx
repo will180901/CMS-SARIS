@@ -14,6 +14,7 @@
  */
 
 import { useRef } from 'react'
+import { formatNumber } from '@/lib/intl'
 
 export interface SegmentedTab {
   key:    string
@@ -123,7 +124,7 @@ export function SegmentedTabs({
                 color: active ? 'var(--ap-700)' : 'var(--texte-tertiaire)',
                 border: '1px solid var(--bordure-legere)',
               }}>
-                {t.badge}
+                {typeof t.badge === 'number' ? formatNumber(t.badge) : t.badge}
               </span>
             )}
           </button>

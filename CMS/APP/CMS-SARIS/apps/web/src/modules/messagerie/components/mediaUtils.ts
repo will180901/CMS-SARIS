@@ -4,6 +4,7 @@
  * - Compression d'image (canvas) pour rester sous la limite.
  * - Lecture de la durée vidéo/audio (métadonnées).
  */
+import { formatNumber } from '@/lib/intl'
 
 export type MediaKind = 'image' | 'video' | 'audio' | 'document'
 
@@ -37,8 +38,8 @@ export function mimeKind(mime: string): MediaKind {
 
 export function formatBytes(n: number): string {
   if (n < 1024) return `${n} o`
-  if (n < 1024 * 1024) return `${Math.round(n / 1024)} Ko`
-  return `${(n / (1024 * 1024)).toFixed(1)} Mo`
+  if (n < 1024 * 1024) return `${formatNumber(Math.round(n / 1024))} Ko`
+  return `${formatNumber(n / (1024 * 1024), { minimumFractionDigits: 1, maximumFractionDigits: 1 })} Mo`
 }
 
 export function formatDuration(sec: number): string {

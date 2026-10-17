@@ -10,6 +10,7 @@
  */
 
 import type { ReactNode } from 'react'
+import { formatNumber } from '@/lib/intl'
 import {
   ResponsiveContainer,
   AreaChart, Area,
@@ -50,7 +51,7 @@ function SarisTooltip({ title, rows }: { title?: string; rows: TooltipRow[] }) {
               {r.color && <span style={{ width: 8, height: 8, borderRadius: 2, background: r.color, flexShrink: 0 }} />}
               {r.name}
             </span>
-            <span style={{ fontWeight: 700, color: 'var(--texte-primaire)', fontVariantNumeric: 'tabular-nums' }}>{r.value}</span>
+            <span style={{ fontWeight: 700, color: 'var(--texte-primaire)', fontVariantNumeric: 'tabular-nums' }}>{typeof r.value === 'number' ? formatNumber(r.value) : r.value}</span>
           </div>
         ))}
       </div>
@@ -87,7 +88,7 @@ export function AreaTrend({
           dataKey={xKey} tick={AXIS_STYLE} tickLine={false} axisLine={false}
           tickFormatter={xTickFormatter} minTickGap={16}
         />
-        <YAxis tick={AXIS_STYLE} tickLine={false} axisLine={false} allowDecimals={false} width={Y_AXIS_WIDTH} />
+        <YAxis tick={AXIS_STYLE} tickLine={false} axisLine={false} allowDecimals={false} width={Y_AXIS_WIDTH} tickFormatter={(v: number) => formatNumber(v)} />
         <Tooltip
           cursor={{ stroke: 'var(--bordure-normale)', strokeWidth: 1 }}
           content={({ active, payload, label }) =>
@@ -135,7 +136,7 @@ export function MiniBars({
       <BarChart data={data} margin={{ top: 6, right: 6, bottom: 0, left: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="var(--bordure-legere)" vertical={false} />
         <XAxis dataKey={xKey} tick={AXIS_STYLE} tickLine={false} axisLine={false} interval={1} />
-        <YAxis tick={AXIS_STYLE} tickLine={false} axisLine={false} allowDecimals={false} width={Y_AXIS_WIDTH} />
+        <YAxis tick={AXIS_STYLE} tickLine={false} axisLine={false} allowDecimals={false} width={Y_AXIS_WIDTH} tickFormatter={(v: number) => formatNumber(v)} />
         <Tooltip
           cursor={{ fill: 'var(--fond-surface-2)' }}
           content={({ active, payload, label }) =>
@@ -188,7 +189,7 @@ export function DonutChart({
                 active && payload?.length ? (
                   <SarisTooltip rows={[{
                     name: payload[0]!.name as string,
-                    value: `${payload[0]!.value} (${total ? Math.round((payload[0]!.value as number) / total * 100) : 0}%)`,
+                    value: `${formatNumber(Number(payload[0]!.value))} (${total ? Math.round((payload[0]!.value as number) / total * 100) : 0}%)`,
                     color: (payload[0]!.payload as DonutSlice).color,
                   }]} />
                 ) : null
@@ -202,7 +203,7 @@ export function DonutChart({
           alignItems: 'center', justifyContent: 'center', pointerEvents: 'none',
         }}>
           <span style={{ fontSize: 'var(--font-size-h2)', fontWeight: 700, color: 'var(--texte-primaire)', lineHeight: 1 }}>
-            {centerValue ?? total}
+            {centerValue ?? formatNumber(total)}
           </span>
           {centerLabel && (
             <span style={{ fontSize: 'var(--font-size-overline)', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--texte-tertiaire)', marginTop: 2 }}>
@@ -218,7 +219,7 @@ export function DonutChart({
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 'var(--font-size-body-sm)' }}>
               <span style={{ width: 10, height: 10, borderRadius: 3, background: d.color, flexShrink: 0 }} />
               <span style={{ flex: 1, color: 'var(--texte-secondaire)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</span>
-              <span style={{ fontWeight: 700, color: 'var(--texte-primaire)', fontVariantNumeric: 'tabular-nums' }}>{d.value}</span>
+              <span style={{ fontWeight: 700, color: 'var(--texte-primaire)', fontVariantNumeric: 'tabular-nums' }}>{formatNumber(d.value)}</span>
             </div>
           ))}
         </div>
@@ -243,7 +244,7 @@ export function RankedBars({ data }: { data: RankedBarRow[] }) {
           <div style={{ width: 160, height: 8, borderRadius: 9999, background: 'var(--fond-surface-2)', overflow: 'hidden', flexShrink: 0 }}>
             <div style={{ width: `${(d.count / max) * 100}%`, height: '100%', background: 'var(--ap-400)', borderRadius: 9999 }} />
           </div>
-          <span style={{ minWidth: 28, textAlign: 'right', fontSize: 'var(--font-size-body-sm)', fontVariantNumeric: 'tabular-nums', color: 'var(--texte-secondaire)', flexShrink: 0, fontWeight: 700 }}>{d.count}</span>
+          <span style={{ minWidth: 28, textAlign: 'right', fontSize: 'var(--font-size-body-sm)', fontVariantNumeric: 'tabular-nums', color: 'var(--texte-secondaire)', flexShrink: 0, fontWeight: 700 }}>{formatNumber(d.count)}</span>
         </div>
       ))}
     </div>
