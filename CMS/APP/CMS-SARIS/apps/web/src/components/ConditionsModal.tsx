@@ -14,7 +14,7 @@ import { useTranslation } from 'react-i18next'
 import { isDesktop } from '@/lib/desktop'
 import { DESKTOP_TITLEBAR_H } from './layout/DesktopTitleBar'
 
-const SECTION_COUNT = { cgu: 6, privacy: 7 } as const
+const SECTION_COUNT = { cgu: 9, privacy: 8 } as const
 
 export function ConditionsModal({
   open,

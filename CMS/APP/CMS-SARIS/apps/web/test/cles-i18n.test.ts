@@ -183,5 +183,24 @@ test('chaque libellé donné à @Audit(…) par un contrôleur est traduit en fr
   assert.deepEqual({ sansFr, sansEn }, { sansFr: [], sansEn: [] })
 })
 
+console.log('\nConditions d’utilisation et politique de confidentialité')
+test('la fenêtre affiche TOUTES les sections écrites, en français et en anglais (aucune section oubliée ni vide)', () => {
+  const modale = readFileSync(join(SRC, 'components', 'ConditionsModal.tsx'), 'utf8')
+  const m = /SECTION_COUNT\s*=\s*\{\s*cgu:\s*(\d+),\s*privacy:\s*(\d+)\s*\}/.exec(modale)
+  assert.ok(m, 'SECTION_COUNT introuvable dans ConditionsModal.tsx')
+  for (const [nom, attendu] of [['cgu', Number(m![1])], ['privacy', Number(m![2])]] as const) {
+    for (const [langue, cles] of [['fr', fr], ['en', en]] as const) {
+      const titres = [...cles].filter(c => new RegExp(`^legal\\.${nom}\\.s\\d+Title$`).test(c))
+      const corps = [...cles].filter(c => new RegExp(`^legal\\.${nom}\\.s\\d+$`).test(c))
+      assert.equal(titres.length, attendu, `${nom} (${langue}) : ${titres.length} titres écrits, ${attendu} affichés`)
+      assert.equal(corps.length, attendu, `${nom} (${langue}) : ${corps.length} textes écrits, ${attendu} affichés`)
+      for (let i = 1; i <= attendu; i++) {
+        assert.ok(cles.has(`legal.${nom}.s${i}Title`) && cles.has(`legal.${nom}.s${i}`), `${nom} (${langue}) : section ${i} incomplète`)
+        assert.ok(String(i18n.t(`legal.${nom}.s${i}`, { lng: langue })).length > 30, `${nom} (${langue}) : section ${i} vide`)
+      }
+    }
+  }
+})
+
 console.log('\n' + passed + ' reussis, ' + failed + ' echoues')
 if (failed > 0) process.exit(1)
