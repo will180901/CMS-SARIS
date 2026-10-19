@@ -6,6 +6,8 @@
 import { useTranslation } from 'react-i18next'
 
 // ── Config des catégories ─────────────────────────────────────────────────────
+// Couleurs = variables du thème (tons décoratifs) : des teintes claires écrites en dur
+// ressortaient comme des pastilles éclatantes sur le fond sombre.
 // `labelKey` = clé i18n (résolue dans le composant, jamais au niveau module).
 
 export const CATEGORIE_CONFIG: Record<string, {
@@ -16,10 +18,10 @@ export const CATEGORIE_CONFIG: Record<string, {
   avatar:  string  // fond avatar dans la liste
 }> = {
   ASSURE_CDI:        { labelKey: 'patients.categCdi',          bg: 'var(--ap-50)',    text: 'var(--ap-700)',    border: 'var(--ap-200)',    avatar: 'var(--ap-100)'    },
-  AYANT_DROIT_CDI:   { labelKey: 'patients.categBeneficiary',  bg: '#f0fdfa',        text: '#0f766e',          border: '#99f6e4',          avatar: '#ccfbf1'          },
-  SOUS_TRAITANT:     { labelKey: 'patients.categSubcontractor', bg: '#fff7ed',       text: '#c2410c',          border: '#fed7aa',          avatar: '#ffedd5'          },
-  RETRAITE:          { labelKey: 'patients.categRetired',      bg: '#faf5ff',        text: '#7c3aed',          border: '#e9d5ff',          avatar: '#ede9fe'          },
-  AGENT_FONCTIONNAIRE: { labelKey: 'patients.categCivilServant', bg: '#eff6ff',     text: '#1d4ed8',          border: '#bfdbfe',          avatar: '#dbeafe'          },
+  AYANT_DROIT_CDI:   { labelKey: 'patients.categBeneficiary',  bg: 'var(--ton-emeraude-fond)', text: 'var(--ton-emeraude-icone)', border: 'var(--ton-emeraude-bordure)', avatar: 'var(--ton-emeraude-fond)' },
+  SOUS_TRAITANT:     { labelKey: 'patients.categSubcontractor', bg: 'var(--ton-ambre-fond)', text: 'var(--ton-ambre-icone)', border: 'var(--ton-ambre-bordure)', avatar: 'var(--ton-ambre-fond)' },
+  RETRAITE:          { labelKey: 'patients.categRetired',      bg: 'var(--ton-violet-fond)', text: 'var(--ton-violet-icone)', border: 'var(--ton-violet-bordure)', avatar: 'var(--ton-violet-fond)' },
+  AGENT_FONCTIONNAIRE: { labelKey: 'patients.categCivilServant', bg: 'var(--ton-bleu-fond)', text: 'var(--ton-bleu-icone)', border: 'var(--ton-bleu-bordure)', avatar: 'var(--ton-bleu-fond)' },
   PATIENT_EXTERNE:   { labelKey: 'patients.categExternal',     bg: 'var(--fond-surface-2)', text: 'var(--texte-secondaire)', border: 'var(--bordure-normale)', avatar: 'var(--fond-surface-2)' },
 }
 
