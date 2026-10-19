@@ -90,7 +90,7 @@ export function NotificationDrawer({ open, onClose }: { open: boolean; onClose: 
 
   function clearSel() { setSelected(new Set()); setSelecting(false) }
   function toggleSel(id: string) {
-    setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+    setSelected(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n })
   }
   function deleteSelected() {
     if (selected.size) { dismissMany.mutate([...selected]); playSound('tap') }
@@ -158,7 +158,7 @@ export function NotificationDrawer({ open, onClose }: { open: boolean; onClose: 
             <span style={{ fontSize: 13, fontWeight: n.lu ? 600 : 700, color: 'var(--texte-primaire)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.titre}</span>
             <span style={{ fontSize: 10, color: 'var(--texte-tertiaire)', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{tempsRelatif(n.createdAt)}</span>
           </div>
-          <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--texte-secondaire)', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as 'vertical' }}>{n.message}</p>
+          <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--texte-secondaire)', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const }}>{n.message}</p>
           {n.entiteType === 'MISE_A_JOUR' && n.lien && (
             <button onClick={(e) => installUpdate(n, e)}
               style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, border: 'none', background: 'var(--ap-600)', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>

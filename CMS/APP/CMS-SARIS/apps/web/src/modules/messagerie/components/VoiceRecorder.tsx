@@ -114,7 +114,7 @@ export function VoiceRecorder({ onCancel, onSend }: { onCancel: () => void; onSe
         setTimeout(() => onCancelRef.current(), 1600)
       }
     })()
-    return () => { cancelled = true; sendingRef.current = false; try { recRef.current?.state !== 'inactive' && (modeRef.current = 'cancel', recRef.current?.stop()) } catch { /* noop */ } stopMicro() }
+    return () => { cancelled = true; sendingRef.current = false; try { if (recRef.current?.state !== 'inactive') { modeRef.current = 'cancel'; recRef.current?.stop() } } catch { /* noop */ } stopMicro() }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

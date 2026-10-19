@@ -483,7 +483,7 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
   // ── Sélection multiple (suppression en lot) ─────────────────────────────────
   function enterSelect(id: string) { setSelectMode(true); setSelectedIds(new Set([id])) }
   function toggleSelect(id: string) {
-    setSelectedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+    setSelectedIds(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n })
   }
   function exitSelect() { setSelectMode(false); setSelectedIds(new Set()); setMultiDel(false) }
   // Au moins un des messages sélectionnés est-il à moi & ≤ 15 min (→ « pour tout le monde » possible) ?

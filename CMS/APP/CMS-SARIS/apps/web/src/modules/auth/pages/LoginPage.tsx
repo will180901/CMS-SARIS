@@ -262,7 +262,6 @@ export function LoginPage() {
                         id="login"
                         type="text"
                         autoComplete="username"
-                        // eslint-disable-next-line jsx-a11y/no-autofocus
                         autoFocus
                         placeholder={t('auth.usernamePlaceholder')}
                         className="h-9 text-sm"
@@ -375,7 +374,6 @@ export function LoginPage() {
                           onChange={(val) =>
                             totpForm.setValue('code', val, { shouldValidate: totpForm.formState.isSubmitted })
                           }
-                          // eslint-disable-next-line jsx-a11y/no-autofocus
                           autoFocus
                         >
                           <InputOTPGroup>
@@ -399,7 +397,6 @@ export function LoginPage() {
                       /* ── Code de secours ── */
                       <div className="flex flex-col items-center gap-1.5">
                         <Input
-                          // eslint-disable-next-line jsx-a11y/no-autofocus
                           autoFocus
                           autoComplete="one-time-code"
                           placeholder="XXXX-XXXX"
