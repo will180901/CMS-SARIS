@@ -13,6 +13,7 @@
  *    qui détient `audit.read` sans `utilisateur.read`.
  */
 import { randomUUID } from 'node:crypto'
+import { variantes } from '../src/common/prisma/search'
 import type { NestExpressApplication } from '@nestjs/platform-express'
 import { baseDe, demarrerApp } from './support/app-test'
 import { appelAnonyme, COMPTES, connecter, type Client } from './support/client'
@@ -354,14 +355,64 @@ describe('Journaux d’audit par pages', () => {
       expect(r.body.total).toBe(0) // les CREATE sont tous de l'admin
     })
 
-    it('la saisie est bornée à 100 caractères (ce qui dépasse est ignoré, comme une saisie qu’on aurait coupée)', async () => {
-      // Le premier mot trouve une ligne ; le second, au-delà du 100e caractère, ne trouverait rien.
-      const longue = `eid-${lettres}-7${' '.repeat(120)}zzzabsent`
+    it('la saisie est bornée à 400 caractères (ce qui dépasse est ignoré, comme une saisie qu’on aurait coupée)', async () => {
+      // Le premier mot trouve une ligne ; le second, au-delà du 400e caractère, ne trouverait rien.
+      const longue = `eid-${lettres}-7${' '.repeat(420)}zzzabsent`
       const r = await cherche(longue)
       expect(r.status).toBe(200)
       expect(r.body.total).toBe(1)
-      // Le même second mot, placé dans les 100 premiers caractères, élimine bien la ligne.
+      // Le même second mot, placé dans les 400 premiers caractères, élimine bien la ligne.
       expect((await cherche(`eid-${lettres}-7 zzzabsent`)).body.total).toBe(0)
+    })
+
+    it('variantes d’un mot : « création|=CREATE » trouve ce que trouve l’un OU l’autre (le client y met les codes du libellé tapé)', async () => {
+      // « création » n'est dans aucun code : seul le code ajouté par le client trouve les lignes.
+      expect((await cherche('création')).body.total).toBe(0)
+      const r = await cherche('création|=CREATE')
+      expect(r.body.total).toBe(6)
+      expect(r.body.data.every((l) => l.action === 'CREATE')).toBe(true)
+      expect((await cherche('zzzabsent|creat')).body.total).toBe(6)
+      expect((await cherche('création|=CREATE|update')).body.total).toBe(12)
+      expect((await cherche('création|=CREATE|=UPDATE')).body.total).toBe(12)
+      // un code EXACT : « creat » n'est pas le code CREATE, « CREATE » l'est (casse comprise)
+      expect((await cherche('zzzabsent|=creat')).body.total).toBe(0)
+      expect((await cherche('=CREATE')).body.total).toBe(0) // le premier mot est toujours « contient »
+      expect((await cherche('zzzabsent|yyyabsent')).body.total).toBe(0)
+    })
+
+    it('les variantes d’un mot restent liées par ET avec les autres mots, et se paginent comme le reste', async () => {
+      // une ligne ne peut pas être à la fois CREATE et UPDATE
+      expect((await cherche('création|=CREATE modification|=UPDATE')).body.total).toBe(0)
+      expect((await cherche(`création|=CREATE ${COMPTES.admin.login}`)).body.total).toBe(6)
+      const p = await actions(`module=${moduleTest}&search=${encodeURIComponent('création|=CREATE|=UPDATE')}&limit=5&page=3`)
+      expect(p.body.total).toBe(12)
+      expect(p.body.data).toHaveLength(2)
+    })
+
+    it('une saisie élargie par le client dépasse 100 caractères et reste entière (jusqu’à 400)', async () => {
+      const remplissage = Array.from({ length: 12 }, (_, i) => `absent${i}xxxx`).join('|') // ≈ 150 caractères
+      expect(remplissage.length).toBeGreaterThan(100)
+      const r = await cherche(`${remplissage}|=CREATE`)
+      expect(r.body.total).toBe(6) // la variante utile est après le 100e caractère
+    })
+
+    it('« | » seule se cherche comme un caractère (aucune variante vide : pas de filtre qui exclut tout par erreur)', async () => {
+      const r = await cherche('|')
+      expect(r.status).toBe(200)
+      expect(r.body.total).toBe(0)
+      expect((await cherche('||creat|')).body.total).toBe(6)
+    })
+
+    it('variantes : le premier mot contient, « = » donne un code exact, espace insécable = espace du code, au plus 25, vides ignorées', () => {
+      expect(variantes('création|=CREATE')).toEqual({ contient: ['création'], exacts: ['CREATE'] })
+      expect(variantes('a|b|=C|=D e')).toEqual({ contient: ['a', 'b'], exacts: ['C', 'D e'] })
+      expect(variantes('Bon\u00a0d\'examen')).toEqual({ contient: ["Bon d'examen"], exacts: [] })
+      expect(variantes('bon|=Bon\u00a0d\'examen')).toEqual({ contient: ['bon'], exacts: ["Bon d'examen"] })
+      expect(variantes('=X')).toEqual({ contient: ['=X'], exacts: [] }) // le mot tapé n'est jamais « exact »
+      expect(variantes('a|b|c|')).toEqual({ contient: ['a', 'b', 'c'], exacts: [] })
+      expect(variantes('|=|')).toEqual({ contient: ['|=|'], exacts: [] })
+      const tout = variantes(Array.from({ length: 40 }, (_, i) => 'v' + i).join('|'))
+      expect(tout.contient).toHaveLength(25)
     })
 
     it('un caractère spécial de la recherche est un caractère, pas un motif', async () => {
@@ -414,6 +465,12 @@ describe('Journaux d’audit par pages', () => {
       const echec = await auths(`search=${loginAuth}%20echec_mot&limit=10`)
       expect(echec.body.total).toBe(3)
       expect((await auths(`search=${loginAuth}%20zzzabsent`)).body.total).toBe(0)
+    })
+
+    it('recherche : variantes d’un mot (« échec|=ECHEC_MOT_DE_PASSE ») sur les authentifications', async () => {
+      const echec = await auths(`search=${encodeURIComponent(`${loginAuth} échec|=ECHEC_MOT_DE_PASSE`)}&limit=10`)
+      expect(echec.body.total).toBe(3)
+      expect((await auths(`search=${encodeURIComponent(`${loginAuth} échec`)}&limit=10`)).body.total).toBe(0)
     })
 
     it('chaque ligne garde la localisation, la durée de connexion et le poste (en lecture)', async () => {

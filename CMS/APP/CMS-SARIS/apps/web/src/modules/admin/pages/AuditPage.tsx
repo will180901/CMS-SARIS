@@ -43,6 +43,7 @@ import {
   usePurgerAudit,
 } from '../hooks/useAdmin'
 import type { AuditEntry, AuthLogEntry } from '../api/admin.api'
+import { rechercheAudit } from '@/lib/rechercheAudit'
 import { labelModule, labelAction, labelStatut, labelEntite, labelRole, labelPermission } from '@/config/labels'
 import { buildPermissionTree, parsePermCode, labelPermAction } from '@/config/permission-tree'
 import { ListePrintSheet, type ColonneExport } from '@/components/print/ListePrintSheet'
@@ -127,10 +128,13 @@ export function AuditPage() {
     utilisateurId: filtreUserId      || undefined,
     dateMin:       dateMinParam      || undefined,
     dateMax:       dateMaxParam      || undefined,
-    search:        rechercheServeur  || undefined,
   }
-  const filtresActions = { ...filtresCommuns, module:   filtreModule   || undefined }
-  const filtresAuth    = { ...filtresCommuns, resultat: filtreResultat || undefined }
+  // Chaque mot tapé est élargi aux codes dont le libellé AFFICHÉ le contient : « création » trouve CREATE.
+  // La langue est lue ici pour que la recherche suive un changement de langue.
+  const rechercheActions = rechercheAudit(rechercheServeur, 'actions')
+  const rechercheAuth    = rechercheAudit(rechercheServeur, 'authentifications')
+  const filtresActions = { ...filtresCommuns, search: rechercheActions || undefined, module:   filtreModule   || undefined }
+  const filtresAuth    = { ...filtresCommuns, search: rechercheAuth    || undefined, resultat: filtreResultat || undefined }
 
   // Pages découpées par le SERVEUR : on ne garde que la page courante. Changer d'onglet, de filtre ou de
   // recherche ramène à la page 1.

@@ -8,7 +8,7 @@
 
 import { Injectable, Logger } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
-import { CI, parMots } from '../../common/prisma/search'
+import { CI, parMots, variantes } from '../../common/prisma/search'
 import { resolveGeo } from '../../common/geo/geo.util'
 import { resumerConnexions, resumePosition } from '../security/connexions.util'
 
@@ -97,13 +97,26 @@ export class AuditService {
     // Recherche par mots, côté serveur : tout le journal est cherché, pas seulement la page à l'écran.
     Object.assign(
       where,
-      parMots(q.search, (mot) => [
-        { action: { contains: mot, ...CI } },
-        { module: { contains: mot, ...CI } },
-        { entiteType: { contains: mot, ...CI } },
-        { entiteId: { contains: mot, ...CI } },
-        { utilisateur: { login: { contains: mot, ...CI } } },
-      ]),
+      parMots(q.search, (mot) => {
+        const { contient, exacts } = variantes(mot)
+        return [
+          ...contient.flatMap((v) => [
+            { action: { contains: v, ...CI } },
+            { module: { contains: v, ...CI } },
+            { entiteType: { contains: v, ...CI } },
+            { entiteId: { contains: v, ...CI } },
+            { utilisateur: { login: { contains: v, ...CI } } },
+          ]),
+          // les codes d'actions, de modules et d'entités que porte le libellé tapé : une condition chacun
+          ...(exacts.length
+            ? [
+                { action: { in: exacts } },
+                { module: { in: exacts } },
+                { entiteType: { in: exacts } },
+              ]
+            : []),
+        ]
+      }),
     )
 
     const limit = borneLimite(q.limit)
@@ -140,11 +153,17 @@ export class AuditService {
 
     Object.assign(
       where,
-      parMots(q.search, (mot) => [
-        { resultat: { contains: mot, ...CI } },
-        { login: { contains: mot, ...CI } },
-        { ipAdresse: { contains: mot, ...CI } },
-      ]),
+      parMots(q.search, (mot) => {
+        const { contient, exacts } = variantes(mot)
+        return [
+          ...contient.flatMap((v) => [
+            { resultat: { contains: v, ...CI } },
+            { login: { contains: v, ...CI } },
+            { ipAdresse: { contains: v, ...CI } },
+          ]),
+          ...(exacts.length ? [{ resultat: { in: exacts } }] : []),
+        ]
+      }),
     )
 
     const limit = borneLimite(q.limit)

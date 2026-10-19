@@ -19,9 +19,12 @@ function pageDemandee(page?: string): number | undefined {
   return n
 }
 
-/** `search` : borné, et vide = absent. */
+/**
+ * `search` : borné, et vide = absent. 400 caractères : le client y ajoute, à chaque mot, les codes qui portent
+ * le libellé tapé (« création|CREATE »), ce qui dépasse largement une saisie à la main.
+ */
 function rechercheDemandee(search?: string): string | undefined {
-  const s = (search ?? '').trim().slice(0, 100)
+  const s = (search ?? '').trim().slice(0, 400)
   return s || undefined
 }
 
