@@ -16,6 +16,9 @@ import { PrismaService } from '../../prisma/prisma.service'
  *  service du centre : les constats par département (rapports) ne doivent pas le désigner. */
 export const DEPARTEMENT_NON_RENSEIGNE = 'Non renseigné'
 
+/** Le type de consultation « accident du travail » se reconnaît à son libellé. */
+export const TYPE_ACCIDENT = /accident/i
+
 // ── Helpers de dates ──────────────────────────────────────────────────────────
 
 function startOfToday(): Date {
@@ -394,6 +397,7 @@ export class DashboardService {
       where: { createdAt: period },
       select: {
         reposJours: true,
+        typeConsultation: { select: { libelle: true } },
         visite: {
           select: {
             patient: {
@@ -408,6 +412,9 @@ export class DashboardService {
     })
     const catMap = new Map<string, number>()
     const deptMap = new Map<string, number>()
+    // Les accidents du travail, par département : c'est EUX qui se répartissent (ou se concentrent), pas
+    // l'ensemble des consultations. Même repérage du type que celui des rapports (« accident »).
+    const accidentsMap = new Map<string, number>()
     let totalReposJours = 0,
       consultAvecRepos = 0
     for (const c of consults) {
@@ -416,6 +423,8 @@ export class DashboardService {
       const dept =
         c.visite?.patient?.donneesEmploi?.departement ?? DEPARTEMENT_NON_RENSEIGNE
       deptMap.set(dept, (deptMap.get(dept) ?? 0) + 1)
+      if (c.typeConsultation && TYPE_ACCIDENT.test(c.typeConsultation.libelle))
+        accidentsMap.set(dept, (accidentsMap.get(dept) ?? 0) + 1)
       if (c.reposJours && c.reposJours > 0) {
         totalReposJours += c.reposJours
         consultAvecRepos++
@@ -430,6 +439,10 @@ export class DashboardService {
       .map(([libelle, count]) => ({ libelle, count }))
       .sort((a, b) => b.count - a.count)
 
+    const accidentsParDepartement = [...accidentsMap.entries()]
+      .map(([libelle, count]) => ({ libelle, count }))
+      .sort((a, b) => b.count - a.count)
+
     return {
       periode: { from: dayKey(from), to: dayKey(toEnd) },
       totalConsultations: consults.length,
@@ -441,6 +454,7 @@ export class DashboardService {
       parPathologie,
       parCategorie,
       parDepartement,
+      accidentsParDepartement,
     }
   }
 

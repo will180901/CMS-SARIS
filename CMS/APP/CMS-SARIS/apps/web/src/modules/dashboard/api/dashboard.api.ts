@@ -68,6 +68,8 @@ export interface StatistiquesActivite {
   parPathologie:      { libelle: string; count: number }[]
   parCategorie:       { libelle: string; count: number }[]
   parDepartement:     { libelle: string; count: number }[]
+  /** Les accidents du travail par département (absent des anciens rapports). */
+  accidentsParDepartement?: { libelle: string; count: number }[]
 }
 
 export interface CroisementStat {

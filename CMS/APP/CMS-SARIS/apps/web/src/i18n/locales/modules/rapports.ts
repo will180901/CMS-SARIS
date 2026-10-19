@@ -123,7 +123,7 @@ export const rapports = {
     alerte: {
       ACTIVITE_HAUSSE: 'Activité en hausse de {{pct}} % : {{apres}} consultations contre {{avant}} sur la période précédente.',
       ACTIVITE_BAISSE: 'Activité en baisse de {{pct}} % : {{apres}} consultations contre {{avant}} sur la période précédente.',
-      AT_CONCENTRATION: 'Accidents du travail concentrés : {{cas}} actes au département {{departement}}, pour {{accidents}} accident(s) déclaré(s).',
+      AT_CONCENTRATION: 'Accidents du travail concentrés : {{cas}} sur {{accidents}} au département {{departement}}.',
       PATHOLOGIE_HAUSSE: '{{libelle}} en forte hausse : {{apres}} cas contre {{avant}} sur la période précédente.',
       REPOS_HAUSSE: 'Absentéisme prescrit en hausse : {{apres}} jours contre {{avant}} sur la période précédente.',
     },
@@ -253,7 +253,7 @@ export const rapports = {
     alerte: {
       ACTIVITE_HAUSSE: 'Activity up {{pct}}%: {{apres}} consultations versus {{avant}} in the previous period.',
       ACTIVITE_BAISSE: 'Activity down {{pct}}%: {{apres}} consultations versus {{avant}} in the previous period.',
-      AT_CONCENTRATION: 'Work accidents concentrated: {{cas}} visits in the {{departement}} department, for {{accidents}} reported accident(s).',
+      AT_CONCENTRATION: 'Work accidents concentrated: {{cas}} of {{accidents}} in the {{departement}} department.',
       PATHOLOGIE_HAUSSE: '{{libelle}} rising sharply: {{apres}} cases versus {{avant}} in the previous period.',
       REPOS_HAUSSE: 'Prescribed absence up: {{apres}} days versus {{avant}} in the previous period.',
     },

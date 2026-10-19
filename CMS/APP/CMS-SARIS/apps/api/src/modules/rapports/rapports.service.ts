@@ -23,6 +23,7 @@ import { PrismaService } from '../../prisma/prisma.service'
 import {
   DashboardService,
   DEPARTEMENT_NON_RENSEIGNE,
+  TYPE_ACCIDENT,
 } from '../dashboard/dashboard.service'
 import { periodeEstPartielle } from './rapports-periode'
 
@@ -183,13 +184,17 @@ export class RapportsService {
 
     // 2. Accidents du travail concentres sur un departement : le constat le plus utile
     //    pour un centre d'entreprise, parce qu'il designe OU agir.
-    const at = stats.parType.find((x) => /accident/i.test(x.libelle))
+    const at = stats.parType.find((x) => TYPE_ACCIDENT.test(x.libelle))
     if (at && at.count >= 2) {
       // « Non renseigné » n'est pas un département : on ne désigne pas où agir avec lui.
-      const top = [...stats.parDepartement]
+      // La concentration se mesure ENTRE LES ACCIDENTS (la moitié d'entre eux dans un même département), et non
+      // sur l'ensemble des consultations : un grand département porte à lui seul plus de la moitié des consultations
+      // sans que ses quelques accidents soient « concentrés » — et inversement, tous les accidents d'un petit
+      // département n'atteignent jamais la moitié des consultations.
+      const top = [...(stats.accidentsParDepartement ?? [])]
         .filter((x) => x.libelle !== DEPARTEMENT_NON_RENSEIGNE)
         .sort((a, b) => b.count - a.count)[0]
-      if (top && top.count >= 2 && top.count / Math.max(total, 1) >= 0.5) {
+      if (top && top.count >= 2 && top.count / at.count >= 0.5) {
         alertes.push({
           code: 'AT_CONCENTRATION',
           niveau: 'critique',

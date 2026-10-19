@@ -41,9 +41,12 @@ describe('Constats des rapports', () => {
   const consultationIds: string[] = []
   let pSansDepartement: string
   let pUsine: string
+  let pAtelier: string
   let typeAccidentId: string
+  let typeOrdinaireId: string
   let soignantId: string
   const departement = `Usine-${Date.now() % 100_000}`
+  const atelier = `Atelier-${Date.now() % 100_000}`
 
   /** Midnight du serveur (le même processus : même fuseau). */
   const jour = (m: number, j: number) => new Date(2001, m - 1, j)
@@ -109,9 +112,17 @@ describe('Constats des rapports', () => {
       })
     ).id
 
+    // un type de consultation qui n'est PAS un accident : ses consultations ne comptent pas parmi les accidents
+    typeOrdinaireId = (
+      await raw.typeConsultation.findFirstOrThrow({
+        where: { NOT: { libelle: { contains: 'ccident', mode: 'insensitive' } } },
+      })
+    ).id
+
     for (const [nom, emploi] of [
-      ['A', false],
-      ['B', true],
+      ['A', null],
+      ['B', departement],
+      ['C', atelier],
     ] as const) {
       const id = randomUUID()
       patientIds.push(id)
@@ -122,11 +133,12 @@ describe('Constats des rapports', () => {
           siteCreationId: ref.siteId,
           categoriePatientId: ref.categories['ASSURE_CDI']!,
           identite: { create: { nom: `Rapport${nom}`, prenom: 'Constat' } },
-          ...(emploi ? { donneesEmploi: { create: { departement } } } : {}),
+          ...(emploi ? { donneesEmploi: { create: { departement: emploi } } } : {}),
         },
       })
       if (nom === 'A') pSansDepartement = id
-      else pUsine = id
+      else if (nom === 'B') pUsine = id
+      else pAtelier = id
     }
 
     // Janvier 2001 : 8 consultations (la période « d'avant » de février)
@@ -138,6 +150,21 @@ describe('Constats des rapports', () => {
     for (let i = 0; i < 3; i++) await ecrire(pSansDepartement, jour(4, 2 + i), typeAccidentId)
     // Juin 2001 : 3 accidents du travail, tous dans le même département
     for (let i = 0; i < 3; i++) await ecrire(pUsine, jour(6, 2 + i), typeAccidentId)
+    // Août 2001 : l'Usine porte l'essentiel des consultations (6 ordinaires) mais UN seul accident, comme l'Atelier
+    // et les sans-département : les accidents sont éparpillés, rien n'est « concentré »
+    for (let i = 0; i < 6; i++) await ecrire(pUsine, jour(8, 2 + i), typeOrdinaireId)
+    await ecrire(pUsine, jour(8, 10), typeAccidentId)
+    await ecrire(pAtelier, jour(8, 11), typeAccidentId)
+    await ecrire(pSansDepartement, jour(8, 12), typeAccidentId)
+    // Septembre 2001 : tous les accidents (4) sont à l'Atelier, noyés dans 10 consultations ordinaires ailleurs
+    for (let i = 0; i < 10; i++) await ecrire(pSansDepartement, jour(9, 2 + i))
+    for (let i = 0; i < 4; i++) await ecrire(pAtelier, jour(9, 15 + i), typeAccidentId)
+    // Octobre 2001 : 3 accidents dans chacun des trois ensembles (Usine, Atelier, sans département) : diffus
+    for (const p of [pUsine, pAtelier, pSansDepartement])
+      for (let i = 0; i < 3; i++) await ecrire(p, jour(10, 2 + i), typeAccidentId)
+    // Novembre 2001 : 3 accidents à l'Atelier sur 5 (les 2 autres, sans département) : la majorité, donc concentré
+    for (let i = 0; i < 3; i++) await ecrire(pAtelier, jour(11, 2 + i), typeAccidentId)
+    for (let i = 0; i < 2; i++) await ecrire(pSansDepartement, jour(11, 6 + i), typeAccidentId)
   })
 
   afterAll(async () => {
@@ -189,6 +216,33 @@ describe('Constats des rapports', () => {
       expect(at).toBeDefined()
       expect(at!.niveau).toBe('critique')
       expect(at!.params).toMatchObject({ departement, cas: 3, accidents: 3 })
+    })
+
+    it('la concentration se mesure ENTRE LES ACCIDENTS : l\'Usine a la moitié des consultations mais un accident sur trois — pas de constat', async () => {
+      const r = await generer('MENSUEL', jour(8, 1), jour(9, 1))
+      expect(r.contenu.totalConsultations).toBe(9) // 6 ordinaires + 3 accidents
+      expect(codes(r)).not.toContain('AT_CONCENTRATION')
+    })
+
+    it('tous les accidents dans un petit département, noyés dans de nombreuses consultations ailleurs : constaté (avant, jamais)', async () => {
+      const r = await generer('MENSUEL', jour(9, 1), jour(10, 1))
+      expect(r.contenu.totalConsultations).toBe(14) // 10 ordinaires + 4 accidents : l'Atelier = 29 % des consultations
+      const at = r.contenu.alertes.find((a) => a.code === 'AT_CONCENTRATION')
+      expect(at).toBeDefined()
+      expect(at!.params).toMatchObject({ departement: atelier, cas: 4, accidents: 4 })
+    })
+
+    it('des accidents répartis à parts égales entre trois ensembles : diffus, pas de constat', async () => {
+      const r = await generer('MENSUEL', jour(10, 1), jour(11, 1))
+      expect(r.contenu.totalConsultations).toBe(9)
+      expect(codes(r)).not.toContain('AT_CONCENTRATION')
+    })
+
+    it('la majorité des accidents dans un département (3 sur 5) : constaté, avec les deux nombres', async () => {
+      const r = await generer('MENSUEL', jour(11, 1), jour(12, 1))
+      const at = r.contenu.alertes.find((a) => a.code === 'AT_CONCENTRATION')
+      expect(at).toBeDefined()
+      expect(at!.params).toMatchObject({ departement: atelier, cas: 3, accidents: 5 })
     })
   })
 })
