@@ -105,7 +105,7 @@ export type BlocImprimable =
    *  de toute la largeur d'un A4 paysage. Insécable. */
   | { type: 'paire'; gauche: BlocTableau; droite?: BlocTableau }
   /** Histogramme de périodes — dessiné en CSS, donc imprimable sans image. */
-  | { type: 'barres'; titre: string; hint?: string; points: { label: string; valeur: number; courant?: boolean }[] }
+  | { type: 'barres'; titre: string; hint?: string; points: { label: string; valeur: number; courant?: boolean; enCours?: boolean }[] }
 
 export type BlocTableau = Extract<BlocImprimable, { type: 'tableau' }>
 
@@ -720,8 +720,9 @@ function RenduBloc({ bloc }: { bloc: BlocImprimable }) {
               <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, minWidth: 0 }}>
                 <span style={{ fontSize: 8.5, fontWeight: p.courant ? 800 : 500, color: p.courant ? INK : MUTED }}>{nb(p.valeur)}</span>
                 <div style={{
-                  width: '100%', height: Math.max(2, Math.round((p.valeur / max) * 46)),
-                  background: p.courant ? ACCENT : '#c8dbe4',
+                  width: '100%', height: Math.max(2, Math.round((p.valeur / max) * 46)), boxSizing: 'border-box',
+                  background: p.enCours ? '#eef4f7' : p.courant ? ACCENT : '#c8dbe4',
+                  border: p.enCours ? `1.5px dashed ${ACCENT}` : 'none',
                 }} />
                 <span style={{ fontSize: 7.5, color: MUTED, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>{p.label}</span>
               </div>

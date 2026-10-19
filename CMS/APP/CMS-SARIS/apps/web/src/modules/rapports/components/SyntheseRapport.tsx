@@ -156,7 +156,7 @@ export function SyntheseRapport({ contenu }: { contenu: ContenuRapport }) {
       </div>
 
       {/* ── Tendance ────────────────────────────────────────────────────────── */}
-      {serie.length >= 2 && <Tendance serie={serie} t={t} />}
+      {serie.length >= 2 && <Tendance serie={serie} partielle={!!contenu.partielle} t={t} />}
     </div>
   )
 }
@@ -170,9 +170,11 @@ export function SyntheseRapport({ contenu }: { contenu: ContenuRapport }) {
  * continuum. Une courbe suggérerait des valeurs intermédiaires qui n'existent pas.
  */
 function Tendance({
-  serie, t,
+  serie, partielle, t,
 }: {
   serie: { debut: string; consultations: number }[]
+  /** La dernière période est entamée : sa barre est en pointillés (elle n'est pas comparable aux autres). */
+  partielle: boolean
   t: (k: string, o?: Record<string, unknown>) => string
 }) {
   const max = Math.max(...serie.map(p => p.consultations), 1)
@@ -187,6 +189,7 @@ function Tendance({
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 90 }}>
         {serie.map((p, i) => {
           const courant = i === serie.length - 1
+          const enCours = courant && partielle
           const h = Math.max(3, Math.round((p.consultations / max) * 68))
           return (
             <div key={p.debut} style={{
@@ -199,10 +202,14 @@ function Tendance({
               }}>
                 {p.consultations}
               </span>
-              <div style={{
-                width: '100%', height: h, borderRadius: 4,
-                background: courant ? 'var(--ap-400)' : 'var(--ap-100)',
-              }} />
+              <div
+                title={enCours ? t('rapports.tendancePartielle') : undefined}
+                style={{
+                  width: '100%', height: h, borderRadius: 4, boxSizing: 'border-box',
+                  background: enCours ? 'var(--ap-50)' : courant ? 'var(--ap-400)' : 'var(--ap-100)',
+                  border: enCours ? '2px dashed var(--ap-400)' : 'none',
+                }}
+              />
               <span style={{
                 fontSize: 10, color: 'var(--texte-tertiaire)',
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%',
@@ -213,6 +220,11 @@ function Tendance({
           )
         })}
       </div>
+      {partielle && (
+        <p style={{ margin: '8px 0 0', fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)' }}>
+          {t('rapports.tendancePartielle')}
+        </p>
+      )}
     </div>
   )
 }

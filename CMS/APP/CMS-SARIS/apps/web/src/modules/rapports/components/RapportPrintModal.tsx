@@ -161,10 +161,13 @@ export function RapportPrintModal({ rapport, onClose }: { rapport: RapportDetail
       blocs.push({
         type: 'barres',
         titre: t('rapports.tendanceTitle'),
+        // période entamée : sa barre est en pointillés, et le dit (elle ne se compare pas aux précédentes)
+        hint: c.partielle ? t('rapports.tendancePartielle') : undefined,
         points: serie.map((p, i) => ({
           label: formatDate(p.debut, { day: '2-digit', month: 'short' }),
           valeur: p.consultations,
           courant: i === serie.length - 1,
+          enCours: !!c.partielle && i === serie.length - 1,
         })),
       })
     }
