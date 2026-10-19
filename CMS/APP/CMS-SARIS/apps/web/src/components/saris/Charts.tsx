@@ -29,6 +29,12 @@ export const CHART_PALETTE = [
 
 // ── Tooltip commun (style carte SARIS) ────────────────────────────────────────
 
+/**
+ * Dimension supposée avant la première mesure : sans elle recharts mesure d'abord -1 × -1 (conteneur pas encore
+ * posé) et le dit dans la console (« The width(-1) and height(-1) of chart should be greater than 0 »).
+ */
+const LARGEUR_INITIALE = 320
+
 interface TooltipRow { name: string; value: number | string; color?: string }
 
 function SarisTooltip({ title, rows }: { title?: string; rows: TooltipRow[] }) {
@@ -82,7 +88,7 @@ export function AreaTrend({
   xTickFormatter?: (v: string) => string
 }) {
   return (
-    <ResponsiveContainer width="100%" height={height}>
+    <ResponsiveContainer width="100%" height={height} minWidth={0} initialDimension={{ width: LARGEUR_INITIALE, height }}>
       <AreaChart data={data} margin={{ top: 6, right: 6, bottom: 0, left: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="var(--bordure-legere)" vertical={false} />
         <XAxis
@@ -133,7 +139,7 @@ export function MiniBars({
   unit?: string
 }) {
   return (
-    <ResponsiveContainer width="100%" height={height}>
+    <ResponsiveContainer width="100%" height={height} minWidth={0} initialDimension={{ width: LARGEUR_INITIALE, height }}>
       <BarChart data={data} margin={{ top: 6, right: 6, bottom: 0, left: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="var(--bordure-legere)" vertical={false} />
         <XAxis dataKey={xKey} tick={AXIS_STYLE} tickLine={false} axisLine={false} interval={1} />
@@ -176,7 +182,7 @@ export function DonutChart({
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--espace-4)', flexWrap: 'wrap' }}>
       <div style={{ position: 'relative', width: height, height, flexShrink: 0 }}>
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} initialDimension={{ width: height, height }}>
           <PieChart>
             <Pie
               data={colored} dataKey="value" nameKey="name"
@@ -265,7 +271,7 @@ export function SparkLine({
   height?: number
 }) {
   return (
-    <ResponsiveContainer width="100%" height={height}>
+    <ResponsiveContainer width="100%" height={height} minWidth={0} initialDimension={{ width: LARGEUR_INITIALE, height }}>
       <LineChart data={data} margin={{ top: 2, right: 2, bottom: 2, left: 2 }}>
         <Line type="monotone" dataKey={dataKey} stroke={color} strokeWidth={2} dot={false} isAnimationActive={false} />
       </LineChart>
