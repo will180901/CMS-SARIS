@@ -13,6 +13,7 @@
  * ligne cliquable ouvre son détail dans un TIROIR qui glisse de la droite,
  * la liste reste visible derrière (jamais de redirection hors du dossier).
  */
+import { dernierJourDeTraitement } from '@/lib/traitement'
 import { useMemo, useState } from 'react'
 import { humanizeCode } from '@/config/labels'
 import { useTranslation } from 'react-i18next'
@@ -701,8 +702,8 @@ export function TraitementsTab({ patientId, historiqueRestreint = false }: Ongle
                     badge={tr.arreteLe
                       ? t(tr.remplace ? 'suiviTraitement.etatRemplace' : 'suiviTraitement.etatArrete', { date: formatDate(tr.arreteLe) })
                       : fin == null ? undefined : enCours
-                      ? t('patients.traitementEnCoursJusquau', { date: formatDate(tr.finEstimee!) })
-                      : t('patients.traitementTermine', { date: formatDate(tr.finEstimee!) })}
+                      ? t('patients.traitementEnCoursJusquau', { date: formatDate(dernierJourDeTraitement(tr.finEstimee!)) })
+                      : t('patients.traitementTermine', { date: formatDate(dernierJourDeTraitement(tr.finEstimee!)) })}
                     badgeTone={tr.arreteLe ? (tr.remplace ? 'neutral' : 'warning') : enCours ? 'success' : 'neutral'}
                     date={tr.date}
                     onClick={() => setDetail({ kind: 'ORDONNANCE', consultationId: tr.consultationId, ordonnanceId: tr.ordonnanceId })}

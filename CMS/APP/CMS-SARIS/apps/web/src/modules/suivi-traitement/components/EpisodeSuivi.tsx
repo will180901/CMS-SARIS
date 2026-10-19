@@ -19,7 +19,7 @@ import { usePersistedState } from '@/hooks/usePersistedState'
 import { formatDate, formatDateTime, formatDecimal } from '@/lib/intl'
 import { todayISO } from '@/lib/validation'
 import { nomSoignant } from '@/lib/soignant'
-import { etatTraitement } from '@/lib/traitement'
+import { etatTraitement, dernierJourDeTraitement } from '@/lib/traitement'
 import { useEpisodeSuivi, useSetProchainControle, useCreerSeanceSuivi, useArreterTraitement, useAdministrer, useRetirerAdministration } from '../hooks/useSuiviTraitement'
 import { SuiviTraitementCard } from './SuiviTraitementCard'
 import { useBonExamen } from '@/modules/bon-examen/hooks/useBonExamen'
@@ -345,8 +345,8 @@ function Traitements({ data, maintenant, suiviId, onSeance }: {
               <span style={{ marginLeft: 'auto' }}>
                 {etat === 'REMPLACE' ? <StatusPill tone="neutral">{t('suiviTraitement.etatRemplace', { date: formatDate(fin!) })}</StatusPill>
                   : etat === 'ARRETE' ? <StatusPill tone="warning">{t('suiviTraitement.etatArrete', { date: formatDate(fin!) })}</StatusPill>
-                  : etat === 'TERMINE' ? <StatusPill tone="success">{t('suiviTraitement.etatTermine', { date: formatDate(fin!) })}</StatusPill>
-                  : etat === 'EN_COURS' ? <StatusPill tone="info">{t('suiviTraitement.etatEnCours', { date: formatDate(fin!) })}</StatusPill>
+                  : etat === 'TERMINE' ? <StatusPill tone="success">{t('suiviTraitement.etatTermine', { date: formatDate(dernierJourDeTraitement(fin!)) })}</StatusPill>
+                  : etat === 'EN_COURS' ? <StatusPill tone="info">{t('suiviTraitement.etatEnCours', { date: formatDate(dernierJourDeTraitement(fin!)) })}</StatusPill>
                   : <StatusPill tone="info">{t('suiviTraitement.etatEnCoursSansFin')}</StatusPill>}
               </span>
             </span>
