@@ -42,6 +42,7 @@ import {
 import { compterMarquees, ecrireLignes, supprimerMarquees } from './ecriture'
 import { FILTRE_MARQUE } from './marque-test'
 import { planifierJour, profilsDisponibles } from './planificateur'
+import { nombreFr } from '../../common/nombre'
 import { cleMedicament } from './planificateur-documents'
 import { Population, type PatientSim } from './population'
 import {
@@ -371,7 +372,7 @@ export class DonneesTestService implements OnApplicationBootstrap {
     const limite = this.limiteOctets()
     if (taille !== null && taille + p.octets > limite)
       p.avertissements.push(
-        `La base occupe déjà ${Math.round(taille / 1048576)} Mo : ajouter ~${Math.round(p.octets / 1048576)} Mo dépasserait la limite de ${Math.round(limite / 1048576)} Mo. Réduisez la durée ou le nombre de visites.`,
+        `La base occupe déjà ${nombreFr(taille / 1048576)} Mo : ajouter ~${nombreFr(p.octets / 1048576)} Mo dépasserait la limite de ${nombreFr(limite / 1048576)} Mo. Réduisez la durée ou le nombre de visites.`,
       )
     // La purge de la nuit supprime les journaux plus vieux que leur durée de conservation : elle
     // effacerait, sans distinction, ce que cette génération fabrique de plus ancien.
@@ -379,7 +380,7 @@ export class DonneesTestService implements OnApplicationBootstrap {
     const age = joursEntre(debut, jourLocalDe(this.maintenant())).length
     if (conservation !== null && age > conservation)
       p.avertissements.push(
-        `Les journaux d'audit sont conservés ${conservation} jours (Paramètres système) : la purge automatique de la nuit supprimera les lignes d'audit et de connexions de plus de ${conservation} jours fabriquées ici, soit les ${age - conservation} premiers jours de la période. Allongez la durée de conservation ou réduisez la durée.`,
+        `Les journaux d'audit sont conservés ${nombreFr(conservation)} jours (Paramètres système) : la purge automatique de la nuit supprimera les lignes d'audit et de connexions de plus de ${nombreFr(conservation)} jours fabriquées ici, soit les ${nombreFr(age - conservation)} premiers jours de la période. Allongez la durée de conservation ou réduisez la durée.`,
       )
     return {
       ...p,
@@ -421,7 +422,7 @@ export class DonneesTestService implements OnApplicationBootstrap {
     if (taille !== null && taille + prev.octets > this.limiteOctets())
       throw new ConflictException({
         code: 'TAILLE_TROP_GRANDE',
-        message: `La base occupe déjà ${Math.round(taille / 1048576)} Mo : ajouter environ ${Math.round(prev.octets / 1048576)} Mo dépasserait la limite de ${Math.round(this.limiteOctets() / 1048576)} Mo. Réduisez la durée ou le nombre de visites.`,
+        message: `La base occupe déjà ${nombreFr(taille / 1048576)} Mo : ajouter environ ${nombreFr(prev.octets / 1048576)} Mo dépasserait la limite de ${nombreFr(this.limiteOctets() / 1048576)} Mo. Réduisez la durée ou le nombre de visites.`,
       })
 
     const lot: Lot = {
@@ -1158,7 +1159,7 @@ export class DonneesTestService implements OnApplicationBootstrap {
     const taille = await this.tailleBase()
     if (taille !== null && taille > this.limiteOctets())
       throw new ArretGeneration(
-        `La base atteint ${Math.round(taille / 1048576)} Mo, la limite fixée à ${Math.round(this.limiteOctets() / 1048576)} Mo : la génération est arrêtée.`,
+        `La base atteint ${nombreFr(taille / 1048576)} Mo, la limite fixée à ${nombreFr(this.limiteOctets() / 1048576)} Mo : la génération est arrêtée.`,
       )
   }
 
