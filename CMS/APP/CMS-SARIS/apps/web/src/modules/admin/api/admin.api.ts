@@ -125,6 +125,8 @@ export interface AuditPageResult<T> {
   total: number
   page:  number
   limit: number
+  /** Instant auquel le serveur a lu le journal : renvoyé en `jusqua` pour lire les pages suivantes du même journal figé. */
+  instant: string
 }
 
 /** Un compte qui figure à l'un ou l'autre journal (filtre « Utilisateur »). */

@@ -19,6 +19,14 @@ function pageDemandee(page?: string): number | undefined {
   return n
 }
 
+/** `jusqua` : un instant lisible (ISO), sinon 400 ; vide = absent. */
+function instantDemande(jusqua?: string): string | undefined {
+  if (jusqua === undefined || jusqua === '') return undefined
+  if (Number.isNaN(Date.parse(jusqua)))
+    throw new BadRequestException('Instant de lecture invalide')
+  return new Date(jusqua).toISOString()
+}
+
 /**
  * `search` : borné, et vide = absent. 400 caractères : le client y ajoute, à chaque mot, les codes qui portent
  * le libellé tapé (« création|CREATE »), ce qui dépasse largement une saisie à la main.
@@ -53,6 +61,7 @@ export class AuditController {
     @Query('limit') limit?: string,
     @Query('page') page?: string,
     @Query('search') search?: string,
+    @Query('jusqua') jusqua?: string,
   ) {
     return this.svc.findAudit({
       module,
@@ -66,6 +75,7 @@ export class AuditController {
         limit && Number.isFinite(Number(limit)) ? Number(limit) : undefined,
       page: pageDemandee(page),
       search: rechercheDemandee(search),
+      jusqua: instantDemande(jusqua),
     })
   }
 
@@ -79,6 +89,7 @@ export class AuditController {
     @Query('limit') limit?: string,
     @Query('page') page?: string,
     @Query('search') search?: string,
+    @Query('jusqua') jusqua?: string,
   ) {
     return this.svc.findAuth({
       utilisateurId,
@@ -89,6 +100,7 @@ export class AuditController {
         limit && Number.isFinite(Number(limit)) ? Number(limit) : undefined,
       page: pageDemandee(page),
       search: rechercheDemandee(search),
+      jusqua: instantDemande(jusqua),
     })
   }
 

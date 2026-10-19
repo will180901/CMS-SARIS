@@ -143,7 +143,15 @@ export function AuditPage() {
     `${tab}|${filtreUserId}|${filtreModule}|${filtreResultat}|${dateMinParam}|${dateMaxParam}|${rechercheServeur}`,
   )
   const surActions = tab === 'actions'
-  const pageDemandee = { limit: String(pg.pageSize), page: String(pg.page) }
+  // Le journal s'écrit pendant qu'on le lit : une ligne écrite entre la page 1 et la page 2 décalait tout d'un cran
+  // (une ligne vue deux fois, une autre jamais). Les pages suivantes reçoivent donc l'instant où la page 1 a été
+  // lue par le serveur, et restent celles du même journal : les lignes écrites depuis n'apparaissent qu'au retour
+  // à la page 1.
+  const [instantLu, setInstantLu] = useState<string | undefined>()
+  const pageDemandee = {
+    limit: String(pg.pageSize), page: String(pg.page),
+    jusqua: pg.page > 1 ? instantLu : undefined,
+  }
 
   // Seul l'onglet affiché charge sa page.
   const { data: actionsRes, isLoading: la, isPlaceholderData: placeholderActions } = useAuditActions(
@@ -152,6 +160,10 @@ export function AuditPage() {
   const { data: authRes, isLoading: lh, isPlaceholderData: placeholderAuth } = useAuditAuth(
     { ...filtresAuth, ...pageDemandee }, !surActions, { garderPrecedent: true },
   )
+  // On retient l'instant de la dernière page 1 reçue (réglage d'état pendant le rendu : la forme que React prévoit).
+  const instantPage1 = pg.page === 1 && !(surActions ? placeholderActions : placeholderAuth)
+    ? (surActions ? actionsRes?.instant : authRes?.instant) : undefined
+  if (instantPage1 && instantPage1 !== instantLu) setInstantLu(instantPage1)
   const actions = actionsRes?.data ?? []
   const auth    = authRes?.data    ?? []
 

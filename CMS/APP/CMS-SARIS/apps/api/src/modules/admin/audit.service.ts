@@ -34,6 +34,12 @@ interface AuditQuery {
   page?: number
   /** Recherche par mots, insensible à la casse, faite par le SERVEUR sur tout le journal. */
   search?: string
+  /**
+   * Instant de lecture (ISO) : ne rend que les lignes écrites jusque-là. La page 1 rend l'instant auquel elle a lu
+   * le journal ; les pages suivantes le renvoient, et restent ainsi celles du même journal figé — sans lui, une
+   * ligne écrite entre deux pages décalait tout d'un cran (une ligne vue deux fois, ou jamais).
+   */
+  jusqua?: string
 }
 
 const LIMITE_DEFAUT = 100
@@ -71,6 +77,16 @@ interface AuthQuery {
   limit?: number
   page?: number
   search?: string
+  jusqua?: string
+}
+
+/** Pose la borne « jusqu'à cet instant » sur `where.createdAt`, sans élargir une borne de date déjà demandée. */
+function borneInstant(where: any, jusqua?: string): void {
+  if (!jusqua) return
+  const instant = new Date(jusqua)
+  where.createdAt ??= {}
+  const deja: Date | undefined = where.createdAt.lte
+  where.createdAt.lte = deja && deja < instant ? deja : instant
 }
 
 @Injectable()
@@ -93,6 +109,11 @@ export class AuditService {
       if (q.dateMin) where.createdAt.gte = dayStart(q.dateMin)
       if (q.dateMax) where.createdAt.lte = dayEnd(q.dateMax)
     }
+
+    // L'instant de LECTURE est pris avant de lire : une ligne écrite pendant la lecture est exclue des pages
+    // suivantes (qui la bornent à cet instant) comme elle l'est de celle-ci.
+    const instant = new Date()
+    borneInstant(where, q.jusqua)
 
     // Recherche par mots, côté serveur : tout le journal est cherché, pas seulement la page à l'écran.
     Object.assign(
@@ -136,7 +157,7 @@ export class AuditService {
       }),
       this.prisma.journalAudit.count({ where }),
     ])
-    return { data, total, page, limit }
+    return { data, total, page, limit, instant: instant.toISOString() }
   }
 
   // ── Journal d'authentification ────────────────────────────────────────────
@@ -150,6 +171,9 @@ export class AuditService {
       if (q.dateMin) where.createdAt.gte = dayStart(q.dateMin)
       if (q.dateMax) where.createdAt.lte = dayEnd(q.dateMax)
     }
+
+    const instant = new Date()
+    borneInstant(where, q.jusqua)
 
     Object.assign(
       where,
@@ -243,7 +267,7 @@ export class AuditService {
         }
       }),
     )
-    return { data, total, page, limit }
+    return { data, total, page, limit, instant: instant.toISOString() }
   }
 
   // ── Comptes présents au journal ───────────────────────────────────────────

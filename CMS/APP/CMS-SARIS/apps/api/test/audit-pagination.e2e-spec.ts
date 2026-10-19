@@ -484,6 +484,110 @@ describe('Journaux d’audit par pages', () => {
     })
   })
 
+  describe('Le journal est figé à l’instant de lecture (une ligne écrite entre deux pages ne décale rien)', () => {
+    const neuf = `${lettres}z01`
+
+    /** Une ligne ÉCRITE MAINTENANT : la plus récente du journal de test, donc en tête de toute liste. */
+    const ecrireAction = async (id: string) => {
+      idsActions.push(id)
+      await base().raw.journalAudit.create({
+        data: {
+          id, utilisateurId: idAdmin, action: 'CREATE', module: moduleTest, entiteType: entiteTest,
+          entiteId: `neuf-${lettres}`, statut: 'SUCCES', createdAt: new Date(),
+        },
+      })
+    }
+    const retirerAction = (id: string) => base().raw.journalAudit.deleteMany({ where: { id } })
+
+    it('chaque réponse rend l’instant auquel le serveur a lu le journal (ISO, pris à l’instant)', async () => {
+      const avant = Date.now()
+      const r = await actions(`module=${moduleTest}&limit=4`)
+      const apres = Date.now()
+      const instant = new Date((r.body as unknown as { instant: string }).instant).getTime()
+      expect(Number.isNaN(instant)).toBe(false)
+      expect(instant).toBeGreaterThanOrEqual(avant - 1000)
+      expect(instant).toBeLessThanOrEqual(apres + 1000)
+      const a = await auths(`search=${loginAuth}&limit=4`)
+      expect(Number.isNaN(new Date((a.body as unknown as { instant: string }).instant).getTime())).toBe(false)
+    })
+
+    it('SANS instant, une ligne écrite entre la page 1 et la page 2 décale tout : la dernière ligne de la page 1 revient en tête de la page 2 (le défaut qu’on corrige)', async () => {
+      const p1 = await actions(`module=${moduleTest}&page=1&limit=4`)
+      await ecrireAction(neuf)
+      try {
+        const p2 = await actions(`module=${moduleTest}&page=2&limit=4`)
+        expect(ids(p2.body)[0]).toBe(ids(p1.body)[3]) // vue deux fois
+      } finally {
+        await retirerAction(neuf)
+      }
+    })
+
+    it('AVEC l’instant de la page 1, la page 2 est celle du même journal : ni doublon, ni trou, et le total ne bouge pas', async () => {
+      const p1 = await actions(`module=${moduleTest}&page=1&limit=4`)
+      const instant = (p1.body as unknown as { instant: string }).instant
+      const attendu = attenduActions()
+      await ecrireAction(neuf)
+      try {
+        const qs = (page: number) => `module=${moduleTest}&page=${page}&limit=4&jusqua=${encodeURIComponent(instant)}`
+        const p2 = await actions(qs(2))
+        const p3 = await actions(qs(3))
+        expect([...ids(p1.body), ...ids(p2.body), ...ids(p3.body)]).toEqual(attendu)
+        expect(p2.body.total).toBe(12)
+        expect(p3.body.total).toBe(12)
+        // la ligne écrite depuis n'apparaît qu'à la relecture de la page 1 (nouvel instant)
+        const relue = await actions(`module=${moduleTest}&page=1&limit=4`)
+        expect(ids(relue.body)[0]).toBe(neuf)
+        expect(relue.body.total).toBe(13)
+      } finally {
+        await retirerAction(neuf)
+      }
+    })
+
+    it('l’instant ne rend jamais plus que la borne de date demandée, et se combine à la recherche', async () => {
+      const futur = encodeURIComponent(new Date(Date.now() + 3_600_000).toISOString())
+      // un instant PLUS TARDIF que la borne « jusqu'au 11 janvier » ne l'élargit pas
+      const r = await actions(`module=${moduleTest}&dateMax=2026-01-11&jusqua=${futur}&limit=20`)
+      expect(r.body.total).toBe(8)
+      // un instant plus ancien que la borne la resserre : tout ce qui est écrit après le 10 janvier 12:00:00 sort
+      const tot = await actions(`module=${moduleTest}&jusqua=${encodeURIComponent(new Date(2026, 0, 10, 12, 0, 0).toISOString())}&limit=20`)
+      expect(tot.body.total).toBe(2)
+      // …et resserre aussi une borne de date plus TARDIVE que lui (c'est la plus proche qui compte)
+      const resserre = await actions(`module=${moduleTest}&dateMax=2026-01-12&jusqua=${encodeURIComponent(new Date(2026, 0, 10, 12, 0, 0).toISOString())}&limit=20`)
+      expect(resserre.body.total).toBe(2)
+      const cherche = await actions(`module=${moduleTest}&search=creat&jusqua=${futur}&limit=20`)
+      expect(cherche.body.total).toBe(6)
+    })
+
+    it('un instant illisible est refusé (400) ; un instant vide est ignoré', async () => {
+      const mauvais = await actions(`module=${moduleTest}&jusqua=hier`)
+      expect(mauvais.status).toBe(400)
+      expect(mauvais.body.message).toMatch(/Instant/)
+      expect((await actions(`module=${moduleTest}&jusqua=`)).body.total).toBe(12)
+      expect((await auths(`search=${loginAuth}&jusqua=n-importe-quoi`)).status).toBe(400)
+    })
+
+    it('mêmes règles pour les authentifications : l’instant fige le journal des connexions', async () => {
+      const p1 = await auths(`search=${loginAuth}&page=1&limit=4`)
+      const instant = (p1.body as unknown as { instant: string }).instant
+      const attendu = attenduAuth()
+      const idNeuf = `${lettres}h99`
+      idsAuth.push(idNeuf)
+      await base().raw.journalAuthentification.create({
+        data: { id: idNeuf, utilisateurId: null, login: loginAuth, resultat: 'SUCCES_LOGIN', ipAdresse: '10.99.0.1', createdAt: new Date() },
+      })
+      try {
+        const qs = (page: number) => `search=${loginAuth}&page=${page}&limit=4&jusqua=${encodeURIComponent(instant)}`
+        const p2 = await auths(qs(2))
+        const p3 = await auths(qs(3))
+        expect([...ids(p1.body), ...ids(p2.body), ...ids(p3.body)]).toEqual(attendu)
+        expect(p3.body.total).toBe(9)
+        expect((await auths(`search=${loginAuth}&page=1&limit=4`)).body.total).toBe(10)
+      } finally {
+        await base().raw.journalAuthentification.deleteMany({ where: { id: idNeuf } })
+      }
+    })
+  })
+
   describe('Les comptes qui figurent au journal', () => {
     it('rend les comptes qui ont une ligne à l’un OU l’autre journal, triés par login, avec la fiche du personnel', async () => {
       const raw = base().raw
