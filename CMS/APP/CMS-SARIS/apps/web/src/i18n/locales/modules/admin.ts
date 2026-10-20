@@ -469,12 +469,6 @@ export const admin = {
     syncPageSubtitle: 'État des postes du terrain, en temps réel',
     bddPageTitle: 'Base de données',
     bddPageSubtitle: 'Sauvegardes de configuration et volumétrie des données',
-    // ── Bandeau d'état du parc (BandeauEtatSync) ──
-    syncEtatChargement: 'Relevé de l’état du parc…',
-    syncEtatAucunPoste: 'Aucun poste déclaré pour l’instant.',
-    syncEtatConflits: '{{n}} conflit(s) à trancher — des données divergent entre un poste et le serveur.',
-    syncEtatMuets: '{{n}} poste(s) ne donnent pas signe de vie.',
-    syncEtatOk: 'Tout est à jour — {{n}} poste(s) synchronisé(s).',
     // ── Carte « Ce poste » (desktop) ──
     cePoste: 'Ce poste',
     cePosteSite: 'Site : {{site}}',
@@ -753,8 +747,6 @@ export const admin = {
 
     // ── Textes qui n'existaient qu'en « defaultValue » dans le code (2026-10-17) ──
     accesSousTitre: 'Comptes, rôles et permissions — gérés au même endroit',
-    syncEnLigne: 'en ligne',
-    syncPostesTotal: 'postes',
     naissanceLabel: 'Date de naissance',
     naissancePlaceholder: 'jj/mm/aaaa',
     sexeLabel: 'Sexe',
@@ -1269,12 +1261,6 @@ export const admin = {
     syncPageSubtitle: 'Field workstation status, in real time',
     bddPageTitle: 'Database',
     bddPageSubtitle: 'Configuration backups and data volumetry',
-    // ── Fleet status banner (BandeauEtatSync) ──
-    syncEtatChargement: 'Reading fleet status…',
-    syncEtatAucunPoste: 'No workstation declared yet.',
-    syncEtatConflits: '{{n}} conflict(s) to settle — data differs between a workstation and the server.',
-    syncEtatMuets: '{{n}} workstation(s) are not reporting.',
-    syncEtatOk: 'Everything is up to date — {{n}} workstation(s) synchronized.',
     // ── "This workstation" card (desktop) ──
     cePoste: 'This workstation',
     cePosteSite: 'Site: {{site}}',
@@ -1553,8 +1539,6 @@ export const admin = {
 
     // ── Textes qui n'existaient qu'en « defaultValue » dans le code (2026-10-17) ──
     accesSousTitre: 'Accounts, roles and permissions — managed in one place',
-    syncEnLigne: 'online',
-    syncPostesTotal: 'workstations',
     naissanceLabel: 'Date of birth',
     naissancePlaceholder: 'dd/mm/yyyy',
     sexeLabel: 'Sex',

@@ -37,7 +37,6 @@ import { formatDuree } from '@/lib/duree'
 import { labelModule, labelStatut, labelAction, labelRole } from '@/config/labels'
 import { useConnectivityStore } from '@/stores/connectivity.store'
 import { isDesktop } from '@/lib/desktop'
-import { BandeauEtatSync, type EtatSync } from '../components/BandeauEtatSync'
 import { PosteActiviteDrawer } from '../components/PosteActiviteDrawer'
 import { ViderActiviteModal } from '../components/ViderActiviteModal'
 import { relative, etatDuPoste } from '../components/relatif'
@@ -107,26 +106,6 @@ function mutationStatutLabel(t: TFn, statut: string): string {
 
 export function SynchronisationPage() {
   const { t } = useTranslation()
-  const { data: sup, isLoading: lsup } = useSyncSupervision()
-
-  // État du parc, calculé une fois ici et passé au bandeau : la page entière raisonne
-  // sur les mêmes chiffres que sa phrase d'accroche.
-  //
-  // `maintenant` est figé au montage plutôt que relu à chaque rendu : lire l'horloge
-  // pendant le rendu le rend impur (react-hooks/purity). Les données se rafraîchissent
-  // de toute façon par le flux temps réel, qui remonte un nouvel objet — le calcul se
-  // refait alors avec une horloge fraîche.
-  const [maintenant] = useState(() => Date.now())
-  const postes = useMemo(() => sup?.postes ?? [], [sup?.postes])
-  const conflits = useMemo(() => sup?.conflits ?? [], [sup?.conflits])
-  const etat = useMemo<EtatSync>(() => ({
-    total:       postes.length,
-    enLigne:     postes.filter(p => p.enLigne).length,
-    // Même prédicat que la pastille « À surveiller » de la liste, à dessein : le bandeau
-    // annonce un nombre, la liste doit contenir exactement ces postes-là.
-    aSurveiller: postes.filter(p => aBesoinAttention(p, maintenant)).length,
-    conflits:    conflits.length,
-  }), [postes, conflits, maintenant])
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'auto' }}>
@@ -144,20 +123,17 @@ export function SynchronisationPage() {
           ce sont des sujets de stockage, pas de synchronisation. */}
       <div style={{ padding: 'var(--espace-4) var(--espace-6) var(--espace-6)', display: 'flex', flexDirection: 'column', gap: 'var(--espace-4)' }}>
 
-        {/* 1. L'état, en une phrase */}
-        <BandeauEtatSync etat={etat} loading={lsup} />
-
-        {/* 2. Ce poste-ci — DESKTOP uniquement : l'application y est elle-même une
+        {/* 1. Ce poste-ci — DESKTOP uniquement : l'application y est elle-même une
                machine du parc, et sa propre situation prime sur celle des autres.
                Son IDENTITÉ d'abord (nom donné à l'installation, site, réseau), puis
                l'état de sa synchronisation. */}
         {isDesktop && <CePosteCard />}
         {isDesktop && <DataSyncZone />}
 
-        {/* 3. Le parc : postes, activité, conflits */}
+        {/* 2. Le parc : postes, activité, conflits */}
         <SupervisionZone />
 
-        {/* 4. Le terrain hors-ligne (file d'attente locale) */}
+        {/* 3. Le terrain hors-ligne (file d'attente locale) */}
         {isDesktop && <SyncTerrainZone />}
 
         {/* Sauvegardes et volumétrie sont parties vers « Base de données » : restaurer

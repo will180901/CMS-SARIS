@@ -4,7 +4,14 @@
 
 import i18n from '@/i18n/config'
 import { labelEntite } from '@/config/labels'
-import { SEUIL_MUET_MS } from './BandeauEtatSync'
+
+/**
+ * Au-delà, un poste qui ne donne plus signe de vie est signalé « à surveiller ».
+ * « À surveiller » n'est pas « hors ligne » : un poste éteint la nuit est normal. C'est le
+ * silence PROLONGÉ d'une machine qui devrait travailler qui mérite l'alerte — d'où un seuil
+ * en heures plutôt qu'en minutes.
+ */
+export const SEUIL_MUET_MS = 2 * 60 * 60 * 1000
 
 /** « il y a 5 min » — texte relatif d'une date, dans la langue active. */
 export function relative(d: Date | string | null | undefined): string {
