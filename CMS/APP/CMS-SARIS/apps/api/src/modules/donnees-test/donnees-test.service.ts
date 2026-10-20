@@ -91,6 +91,10 @@ export interface ProgressionLot {
   consultations: number
   visitesAnnulees: number
   consultationsAnnulees: number
+  /** La file d'attente du moment (absents des lots lancés avant elle) : visites en attente… */
+  visitesEnAttente?: number
+  /** … et consultations ouvertes, pas encore clôturées. */
+  consultationsOuvertes?: number
   nonRecus: number
   /** Lignes écrites, par table. */
   lignes: Record<string, number>
@@ -447,6 +451,8 @@ export class DonneesTestService implements OnApplicationBootstrap {
         consultations: 0,
         visitesAnnulees: 0,
         consultationsAnnulees: 0,
+        visitesEnAttente: 0,
+        consultationsOuvertes: 0,
         nonRecus: 0,
         lignes: {},
       },
@@ -989,6 +995,9 @@ export class DonneesTestService implements OnApplicationBootstrap {
           p.consultations += resume.consultations
           p.visitesAnnulees += resume.visitesAnnulees
           p.consultationsAnnulees += resume.consultationsAnnulees
+          p.visitesEnAttente = (p.visitesEnAttente ?? 0) + resume.visitesEnAttente
+          p.consultationsOuvertes =
+            (p.consultationsOuvertes ?? 0) + resume.consultationsOuvertes
           p.nonRecus += resume.nonRecus
           cumuler(p.lignes, lignes)
         })

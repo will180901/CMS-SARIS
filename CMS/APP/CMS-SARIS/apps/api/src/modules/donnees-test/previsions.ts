@@ -7,6 +7,7 @@ import {
   ajouterJours,
   estOuvert,
   facteurFrequentation,
+  fenetreFileAttente,
   horairesDuJour,
   horairesEffectifs,
   jourLocalDe,
@@ -149,11 +150,20 @@ export function calculerPrevisions(p: {
       const plein = horairesDuJour(jour)
       const h = horairesEffectifs(jour, limite)
       if (plein && h) {
-        part = h.tronque ? partDesArrivees(plein, h) : 1
-        partHeures = (h.fermeture - h.ouverture) / (plein.fermeture - plein.ouverture)
+        // La journée coupée, prolongée par la file d'attente du moment (jusqu'à la dernière arrivée possible).
+        const file = fenetreFileAttente(plein, h, limite)
+        const derniere = file ? file.fin : h.fermeture - 30
+        part = h.tronque
+          ? partDesArrivees(plein, { ...plein, fermeture: derniere + 30 })
+          : 1
+        partHeures = Math.min(
+          1,
+          ((file ? derniere + 30 : h.fermeture) - h.ouverture) /
+            (plein.fermeture - plein.ouverture),
+        )
         aujourdhui = {
           inclus: true,
-          jusqua: h.tronque ? heureDeMinutes(h.fermeture - 30) : null,
+          jusqua: h.tronque ? heureDeMinutes(derniere) : null,
         }
       } else {
         part = 0

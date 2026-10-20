@@ -242,6 +242,14 @@ export function partDesArrivees(plein: Horaires, partielle: Horaires): number {
  */
 export const DELAI_AVANT_MAINTENANT_S = 2 * 3600
 
+/**
+ * La FILE D'ATTENTE du moment : entre la coupure de la journée (deux heures avant maintenant) et maintenant,
+ * les passages ne sont pas fabriqués finis mais tels qu'ils sont À CET INSTANT — en attente à l'accueil, en
+ * attente du médecin, en consultation. La dernière arrivée précède maintenant de cette marge : le temps que
+ * la personne soit reçue et que sa visite soit ouverte.
+ */
+export const MARGE_FILE_ATTENTE_S = 3 * 60
+
 /** Une journée coupée doit pouvoir accueillir au moins ce que valent 90 minutes d'arrivées. */
 const FENETRE_MIN_MINUTES = 90
 
@@ -263,6 +271,56 @@ export function horairesEffectifs(
   if (fermeture >= h.fermeture) return h
   if (fermeture - h.ouverture < FENETRE_MIN_MINUTES) return null
   return { ...h, fermeture, tronque: true }
+}
+
+/**
+ * Les minutes d'arrivée de la file d'attente du moment : de la coupure de la journée jusqu'à maintenant moins
+ * une marge, SANS ressortir de l'horaire d'ouverture ni arriver moins d'une demi-heure avant la fermeture du
+ * centre. `null` quand il n'y a pas de file à fabriquer : la journée n'est pas coupée (jour ordinaire, ou centre
+ * fermé depuis plus de deux heures) ou maintenant n'est pas assez loin de la coupure.
+ */
+export function fenetreFileAttente(
+  plein: Horaires,
+  h: Horaires | null,
+  limite: Moment | null,
+): { debut: number; fin: number } | null {
+  if (!h || !h.tronque || !limite) return null
+  const debut = h.fermeture - 30 // les arrivées de la journée coupée s'arrêtent là
+  const fin = Math.min(
+    Math.floor((limite.s - MARGE_FILE_ATTENTE_S) / 60),
+    plein.fermeture - 30,
+  )
+  return fin > debut ? { debut, fin } : null
+}
+
+/**
+ * `n` minutes d'arrivée tirées sur la même loi que la journée (deux pics et un fond régulier), mais
+ * seulement dans ]`debut`, `fin`] : on tire de nouveau ce qui tombe à côté, puis on complète au hasard dans la
+ * fenêtre (la file d'attente est courte : elle ne couvre qu'une ou deux heures).
+ */
+export function minutesArriveesEntre(
+  alea: Alea,
+  n: number,
+  plein: Horaires,
+  debut: number,
+  fin: number,
+): number[] {
+  const pics = picsDArrivee(plein)
+  const tirer = (): number => {
+    if (alea.proba(0.12)) return alea.entier(debut + 1, fin)
+    const [centre, dispersion] = alea.pondere(
+      pics.map((p, k) => [p, k === 0 ? 58 : 42] as const),
+    )
+    return Math.round(alea.normale(centre, dispersion))
+  }
+  const arrivees: number[] = []
+  for (let i = 0; i < n; i++) {
+    let m = tirer()
+    for (let essai = 0; (m <= debut || m > fin) && essai < 60; essai++) m = tirer()
+    if (m <= debut || m > fin) m = alea.entier(debut + 1, fin)
+    arrivees.push(m)
+  }
+  return arrivees.sort((x, y) => x - y)
 }
 
 /** « Maintenant » comme moment du centre : le jour local et les secondes depuis minuit local. */

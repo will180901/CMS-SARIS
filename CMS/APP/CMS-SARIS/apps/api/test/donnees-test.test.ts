@@ -31,6 +31,9 @@ import {
   partDesArrivees,
   type Horaires,
   type Moment,
+  fenetreFileAttente,
+  minutesArriveesEntre,
+  MARGE_FILE_ATTENTE_S,
 } from '../src/modules/donnees-test/calendrier'
 import {
   genererConstantes,
@@ -56,6 +59,7 @@ import {
 import {
   planifierJour,
   profilsDisponibles,
+  etatAMaintenant,
 } from '../src/modules/donnees-test/planificateur'
 import { Population } from '../src/modules/donnees-test/population'
 import {
@@ -2974,9 +2978,9 @@ test('calculerPrevisions : aujourd’hui est compté pour la part déjà écoul�
   // fin = aujourd'hui, mais sans coupure fournie : un jour entier
   const entier = calculerPrevisions(base)
   assert.deepEqual(entier.aujourdhui, { inclus: false, jusqua: null })
-  // 14 h : la journée de lundi est fabriquée jusqu'à 12 h → dernière arrivée à 11 h 30
+  // 14 h : la journée de lundi est fabriquée jusqu'à la dernière arrivée de la file d'attente, trois minutes avant
   const partiel = calculerPrevisions({ ...base, limite: { jour: '2026-10-12', s: heures(14) } })
-  assert.deepEqual(partiel.aujourdhui, { inclus: true, jusqua: '11:30' })
+  assert.deepEqual(partiel.aujourdhui, { inclus: true, jusqua: '13:57' })
   assert.ok(partiel.visites > hier.visites, 'aujourd’hui ajoute des visites')
   assert.ok(partiel.visites < entier.visites, 'mais moins qu’une journée entière')
   // la part écoulée croît avec l'heure
@@ -3064,12 +3068,18 @@ test('aujourd’hui à 14 h : AUCUN geste n’est daté après maintenant (visit
   assert.ok(verifiees > 40_000, `${verifiees} dates vérifiées`)
 })
 
-test('aujourd’hui à 14 h : des passages ont bien eu lieu, mais pas dans les deux dernières heures', () => {
+test('aujourd’hui à 14 h : des passages ont eu lieu jusqu’à maintenant, la file d’attente comprise', () => {
   const lignes = AUJ.parJour.get(AUJOURDHUI) as LignesJour
   assert.ok(lignes.Visite.length > 5, `${lignes.Visite.length} visites`)
-  const limiteArrivee = instantSecondes(AUJOURDHUI, MAINTENANT.s - DELAI_AVANT_MAINTENANT_S)
+  // aucune visite n'est ouverte après maintenant ; la dernière arrivée précède maintenant d'au moins la marge
   for (const v of lignes.Visite)
-    assert.ok(+(v.dateOuverture as Date) <= +limiteArrivee, `visite ouverte à ${(v.dateOuverture as Date).toISOString()}`)
+    assert.ok(+(v.dateOuverture as Date) <= +INSTANT_MAINTENANT, `visite ouverte à ${(v.dateOuverture as Date).toISOString()}`)
+  // et il y en a dans les deux dernières heures (ce que la journée coupée à elle seule ne fabriquait pas)
+  const coupure = instantSecondes(AUJOURDHUI, MAINTENANT.s - DELAI_AVANT_MAINTENANT_S)
+  let recentes = 0
+  for (const sim of [AUJ, ...AUJ_AUTRES])
+    recentes += (sim.parJour.get(AUJOURDHUI) as LignesJour).Visite.filter((v) => +(v.dateOuverture as Date) > +coupure).length
+  assert.ok(recentes >= 20, `${recentes} visites dans les deux dernières heures, sur 9 semaines`)
   // le matin est bien là : la première visite est à l'heure d'ouverture
   const premiere = Math.min(...lignes.Visite.map((v) => +(v.dateOuverture as Date)))
   assert.ok(premiere >= +instantLocal(AUJOURDHUI, 7 * 60 + 30))
@@ -3079,8 +3089,11 @@ test('aujourd’hui à 14 h : des passages ont bien eu lieu, mais pas dans les d
 test('aujourd’hui à 14 h : le nombre de visites suit la part de la journée écoulée', () => {
   const plein = horairesDuJour(AUJOURDHUI) as Horaires
   const coupe = horairesEffectifs(AUJOURDHUI, MAINTENANT) as Horaires
-  const part = partDesArrivees(plein, coupe)
-  assert.ok(part > 0.3 && part < 0.8, `part ${part}`)
+  // la journée coupée, prolongée par la file d'attente : les arrivées vont jusqu'à maintenant moins la marge
+  const file = fenetreFileAttente(plein, coupe, MAINTENANT) as { debut: number; fin: number }
+  const part = partDesArrivees(plein, { ...plein, fermeture: file.fin + 30 })
+  assert.ok(part > partDesArrivees(plein, coupe), 'la file ajoute des arrivées')
+  assert.ok(part > 0.3 && part < 0.9, `part ${part}`)
   let aujourdhui = 0
   let normaux = 0
   let nbNormaux = 0
@@ -3099,29 +3112,26 @@ test('aujourd’hui à 14 h : le nombre de visites suit la part de la journée �
   )
 })
 
-test('aujourd’hui à 14 h : chacun est connecté ce matin, déconnecté avant maintenant, après son dernier geste', () => {
+test('aujourd’hui à 14 h : chacun s’est connecté ce matin et l’est encore (le centre est ouvert), après son dernier geste', () => {
   const lignes = AUJ.parJour.get(AUJOURDHUI) as LignesJour
   const personnel = [...AUJ.banc.medecins, ...AUJ.banc.infirmiers]
-  const sorties = lignes.JournalAuthentification.filter((l) => l.resultat === 'SUCCES_LOGOUT')
-  assert.equal(sorties.length, personnel.length, 'tout le monde se déconnecte, le dernier jour')
   for (const qui of personnel) {
-    const sortie = sorties.find((l) => l.utilisateurId === qui.utilisateurId)
-    assert.ok(sortie, `${qui.login} ne se déconnecte pas`)
-    const t = +(sortie.createdAt as Date)
-    assert.ok(t <= +INSTANT_MAINTENANT, `${qui.login} part dans le futur`)
-    const gestes = lignes.JournalAudit.filter((l) => l.utilisateurId === qui.utilisateurId).map((l) => +(l.createdAt as Date))
-    if (gestes.length) assert.ok(t > Math.max(...gestes), `${qui.login} part avant son dernier geste`)
-    // il s'est connecté ce matin
+    // il s'est connecté ce matin, et n'est pas parti
     const entrees = lignes.JournalAuthentification.filter(
       (l) => l.utilisateurId === qui.utilisateurId && /^SUCCES_LOGIN/.test(l.resultat as string),
     )
-    assert.ok(entrees.length >= 1)
-    assert.ok(entrees.every((l) => +(l.createdAt as Date) < t))
+    assert.ok(entrees.length >= 1, `${qui.login} ne s’est pas connecté`)
+    assert.ok(entrees.every((l) => +(l.createdAt as Date) < +INSTANT_MAINTENANT))
+    assert.ok(
+      !lignes.JournalAuthentification.some((l) => l.utilisateurId === qui.utilisateurId && l.resultat === 'SUCCES_LOGOUT'),
+      `${qui.login} s’est déconnecté alors que le centre est ouvert`,
+    )
   }
-  // aucune session ne reste ouverte : l'une se ferme à la déconnexion, l'autre a été fermée avant maintenant
-  for (const s of lignes.SessionUtilisateur) {
-    assert.ok(s.revokedAt, 'session encore ouverte ce soir')
-    assert.ok(+(s.revokedAt as Date) <= +INSTANT_MAINTENANT)
+  // une session ouverte par personne : celle de maintenant ; les autres ont été fermées avant maintenant
+  for (const qui of personnel) {
+    const sessions = lignes.SessionUtilisateur.filter((s) => s.utilisateurId === qui.utilisateurId)
+    assert.equal(sessions.filter((s) => !s.revokedAt).length, 1, qui.login)
+    for (const s of sessions) if (s.revokedAt) assert.ok(+(s.revokedAt as Date) <= +INSTANT_MAINTENANT)
   }
 })
 
@@ -3168,8 +3178,9 @@ test('calculerPrevisions : une petite équipe plafonne aussi la part d’aujourd
   })
   const plein = capaciteSite(equipes[0]!, '2026-10-12')
   const ajout = aujourdhui.visites - hier.visites
-  // fermeture fabriquée à 12 h : 270 minutes des 540 de la journée → la moitié de la capacité du jour
-  assert.ok(ajout > plein * 0.35 && ajout < plein * 0.65, `ajout ${ajout}, capacité du jour ${plein}`)
+  // arrivées jusqu'à 13 h 57 (la file d'attente comprise) : 447 minutes des 540 de la journée → environ les
+  // trois quarts de la capacité du jour
+  assert.ok(ajout > plein * 0.65 && ajout < plein * 0.9, `ajout ${ajout}, capacité du jour ${plein}`)
 })
 
 test('aujourd’hui : sur des centaines de journées simulées, jamais un geste après maintenant (évacuations, suivis, annulations comprises)', () => {
@@ -3222,6 +3233,245 @@ test('aujourd’hui trop tôt ou en fin de journée : le même planificateur, sa
   const sansLimite = planifierJour(bancDeTest('soir', 40, AUJOURDHUI).ctx(AUJOURDHUI, 0, 1, null))
   assert.equal(soir.lignes.Visite.length, sansLimite.lignes.Visite.length)
   assert.equal(soir.lignes.Consultation.length, sansLimite.lignes.Consultation.length)
+})
+
+
+// ── La file d'attente du moment ───────────────────────────────────────────────
+
+console.log('la file d’attente du moment : les passages pas finis à maintenant sont fabriqués tels qu’ils sont')
+
+test('etatAMaintenant : fini, en attente, en consultation — selon l’instant', () => {
+  const reussie = { tEnvoi: 1000, fin: 2000 }
+  // hors file d'attente (fabrication d'un passage fini) : toujours fini
+  assert.equal(etatAMaintenant(null, { annulee: false, tAnnulation: 0, reussie }), 'FINIE')
+  // avant l'envoi au médecin : en attente
+  assert.equal(etatAMaintenant(999, { annulee: false, tAnnulation: 0, reussie }), 'ATTENTE')
+  // dès l'envoi et jusqu'à la clôture (exclue) : en consultation
+  assert.equal(etatAMaintenant(1000, { annulee: false, tAnnulation: 0, reussie }), 'EN_COURS')
+  assert.equal(etatAMaintenant(1999, { annulee: false, tAnnulation: 0, reussie }), 'EN_COURS')
+  // à la seconde de la clôture, c'est fini
+  assert.equal(etatAMaintenant(2000, { annulee: false, tAnnulation: 0, reussie }), 'FINIE')
+  // une annulation encore à venir : la personne attend toujours
+  assert.equal(etatAMaintenant(500, { annulee: true, tAnnulation: 600, reussie: null }), 'ATTENTE')
+  assert.equal(etatAMaintenant(600, { annulee: true, tAnnulation: 600, reussie: null }), 'FINIE')
+})
+
+test('fenetreFileAttente : de la coupure à maintenant moins la marge, jamais au-delà des dernières arrivées du centre', () => {
+  const plein = horairesDuJour(AUJOURDHUI) as Horaires // 7 h 30 – 16 h 30
+  const h14 = horairesEffectifs(AUJOURDHUI, { jour: AUJOURDHUI, s: heures(14) }) as Horaires
+  assert.deepEqual(fenetreFileAttente(plein, h14, { jour: AUJOURDHUI, s: heures(14) }), {
+    debut: 12 * 60 - 30, // la journée coupée s'arrête aux arrivées de 11 h 30
+    fin: 14 * 60 - MARGE_FILE_ATTENTE_S / 60, // 13 h 57
+  })
+  // centre ouvert tard : la dernière arrivée reste celle de la fermeture moins une demi-heure
+  const h16 = horairesEffectifs(AUJOURDHUI, { jour: AUJOURDHUI, s: heures(18, 20) }) as Horaires
+  assert.equal(fenetreFileAttente(plein, h16, { jour: AUJOURDHUI, s: heures(18, 20) })?.fin, plein.fermeture - 30)
+  // journée entière (centre fermé depuis plus de deux heures), autre jour, ou pas de coupure : pas de file
+  const h19 = horairesEffectifs(AUJOURDHUI, { jour: AUJOURDHUI, s: heures(19) }) as Horaires
+  assert.equal(fenetreFileAttente(plein, h19, { jour: AUJOURDHUI, s: heures(19) }), null)
+  assert.equal(fenetreFileAttente(plein, plein, null), null)
+  assert.equal(fenetreFileAttente(plein, null, { jour: AUJOURDHUI, s: heures(14) }), null)
+})
+
+test('minutesArriveesEntre : triées, toutes dans la fenêtre, déterministes, sans empilement à la borne', () => {
+  const plein = horairesDuJour(AUJOURDHUI) as Horaires
+  const debut = 11 * 60 + 30
+  const fin = 13 * 60 + 57
+  const arrivees = minutesArriveesEntre(creerAlea('file'), 3000, plein, debut, fin)
+  assert.equal(arrivees.length, 3000)
+  assert.ok(arrivees.every((m, i) => m > debut && m <= fin && (i === 0 || m >= arrivees[i - 1]!)))
+  assert.deepEqual(minutesArriveesEntre(creerAlea('file'), 3000, plein, debut, fin), arrivees)
+  const parMinute = new Map<number, number>()
+  for (const m of arrivees) parMinute.set(m, (parMinute.get(m) ?? 0) + 1)
+  assert.ok((parMinute.get(fin) ?? 0) < 3000 * 0.03, 'arrivées empilées à la dernière minute')
+  assert.ok((parMinute.get(debut + 1) ?? 0) < 3000 * 0.03, 'arrivées empilées à la première minute')
+})
+
+/** Les visites de la file d'attente d'une simulation d'aujourd'hui à 14 h, avec leurs consultations. */
+function laFile(sim: { parJour: Map<string, LignesJour> }) {
+  const lignes = sim.parJour.get(AUJOURDHUI) as LignesJour
+  const ouvertes = lignes.Visite.filter((v) => v.statut === 'EN_ATTENTE' || v.statut === 'EN_COURS')
+  return { lignes, ouvertes }
+}
+
+test('file d’attente à 14 h : il y en a une, de taille plausible, et seulement dans les dernières heures', () => {
+  let enAttente = 0
+  let enCours = 0
+  let semainesAvecFile = 0
+  for (const sim of [AUJ, ...AUJ_AUTRES]) {
+    const { lignes, ouvertes } = laFile(sim)
+    if (ouvertes.length > 0) semainesAvecFile++
+    for (const v of ouvertes) {
+      if (v.statut === 'EN_ATTENTE') enAttente++
+      else enCours++
+      // une visite pas finie est une visite RÉCENTE : jamais celle du matin
+      assert.ok(
+        +(v.dateOuverture as Date) > +INSTANT_MAINTENANT - 4 * 3600 * 1000,
+        `visite ouverte à ${(v.dateOuverture as Date).toISOString()} et toujours ${v.statut}`,
+      )
+      assert.ok(+(v.dateOuverture as Date) <= +INSTANT_MAINTENANT)
+    }
+    // aucune file les autres jours
+    for (const [jour, l] of sim.parJour)
+      if (jour !== AUJOURDHUI)
+        assert.equal(l.Visite.filter((v) => v.statut === 'EN_ATTENTE' || v.statut === 'EN_COURS').length, 0, jour)
+  }
+  const moyenne = (enAttente + enCours) / 9
+  assert.ok(semainesAvecFile >= 8, `${semainesAvecFile} semaines sur 9 avec une file`)
+  assert.ok(moyenne >= 0.8 && moyenne <= 6, `${moyenne.toFixed(1)} visites pas finies en moyenne`)
+  assert.ok(enCours > 0, 'aucune consultation en cours')
+})
+
+test('file d’attente : chaque visite pas finie est cohérente (statut, médecin, consultation OUVERTE, évènements, constantes)', () => {
+  let verifiees = 0
+  for (const sim of [AUJ, ...AUJ_AUTRES]) {
+    const { lignes, ouvertes } = laFile(sim)
+    const ouvertesParVisite = new Map<string, Record<string, unknown>[]>()
+    for (const c of lignes.Consultation.filter((c) => c.statut === 'OUVERTE'))
+      ouvertesParVisite.set(c.visiteId as string, [...(ouvertesParVisite.get(c.visiteId as string) ?? []), c])
+    for (const v of ouvertes) {
+      verifiees++
+      const id = v.id as string
+      assert.equal(v.dateCloture, null, 'une visite pas finie n’est pas clôturée')
+      assert.equal(v.typeCloture, null)
+      assert.equal(v.motifAnnulation, null)
+      const consultations = lignes.Consultation.filter((c) => c.visiteId === id)
+      const evenements = lignes.VisiteEvenement.filter((e) => e.visiteId === id)
+      const envoyee = evenements.some((e) => e.type === 'STATUT_CHANGE' && e.nouvelleVal === 'EN_COURS')
+      if (v.statut === 'EN_ATTENTE') {
+        assert.equal(consultations.length, 0, 'en attente : pas de consultation')
+        assert.equal(envoyee, false, 'en attente : pas encore envoyée au médecin')
+      } else {
+        assert.ok(v.soignantId, 'en consultation : un médecin est désigné')
+        assert.equal(envoyee, true, 'en consultation : l’envoi au médecin est consigné')
+        // une consultation OUVERTE au plus, de ce médecin — ou aucune encore (le médecin ne l'a pas ouverte)
+        assert.ok(consultations.length <= 1)
+        for (const c of consultations) {
+          assert.equal(c.statut, 'OUVERTE')
+          assert.equal(c.closedAt ?? null, null, 'une consultation ouverte n’est pas clôturée')
+          assert.equal(c.soignantId, v.soignantId)
+          assert.ok(c.pickedUpById, 'le médecin a la consultation en main')
+          assert.equal(c.conclusion ?? null, null)
+          assert.equal(c.decisionMedicale ?? null, null)
+          assert.ok(+(c.createdAt as Date) <= +INSTANT_MAINTENANT)
+          assert.ok(+(c.createdAt as Date) >= +(v.dateOuverture as Date))
+        }
+      }
+      // les constantes (si prises) précèdent maintenant et suivent l'ouverture de la visite
+      for (const k of lignes.ConstanteVitale.filter((k) => k.visiteId === id)) {
+        assert.ok(+(k.createdAt as Date) <= +INSTANT_MAINTENANT)
+      }
+      assert.ok(+(v.updatedAt as Date) <= +INSTANT_MAINTENANT)
+      assert.ok(+(v.updatedAt as Date) >= +(v.dateOuverture as Date))
+      // aucun document : ni diagnostic, ni ordonnance, ni bon — le médecin n'a rien décidé
+      for (const c of consultations) {
+        assert.equal(lignes.DiagnosticConsultation.filter((d) => d.consultationId === c.id).length, 0)
+        assert.equal(lignes.Ordonnance.filter((o) => o.consultationId === c.id).length, 0)
+      }
+    }
+    // jamais de consultation OUVERTE sans visite en consultation, ni deux ouvertes pour le même médecin
+    const parMedecin = new Map<string, number>()
+    for (const c of lignes.Consultation.filter((c) => c.statut === 'OUVERTE')) {
+      const visite = lignes.Visite.find((v) => v.id === c.visiteId)
+      assert.ok(visite && visite.statut === 'EN_COURS', 'consultation ouverte sans visite en consultation')
+      parMedecin.set(c.soignantId as string, (parMedecin.get(c.soignantId as string) ?? 0) + 1)
+    }
+    for (const [medecin, n] of parMedecin) assert.equal(n, 1, `le médecin ${medecin} tient ${n} consultations ouvertes`)
+    // et toute consultation dont la visite est finie est elle-même finie
+    for (const c of lignes.Consultation) {
+      const visite = lignes.Visite.find((v) => v.id === c.visiteId)
+      if (visite && (visite.statut === 'CLOTUREE' || visite.statut === 'ANNULEE'))
+        assert.notEqual(c.statut, 'OUVERTE', 'consultation ouverte sur une visite finie')
+    }
+  }
+  assert.ok(verifiees >= 9, `${verifiees} visites pas finies vérifiées`)
+})
+
+test('file d’attente : ni visite ni consultation annulée dans les deux dernières heures (la file est celle de gens qui attendent ou qui sont reçus)', () => {
+  const coupure = +instantSecondes(AUJOURDHUI, MAINTENANT.s - DELAI_AVANT_MAINTENANT_S)
+  let recentes = 0
+  for (const sim of [AUJ, ...AUJ_AUTRES, ...AUJ_AUTRES]) {
+    const lignes = sim.parJour.get(AUJOURDHUI) as LignesJour
+    for (const v of lignes.Visite.filter((v) => +(v.dateOuverture as Date) > coupure)) {
+      recentes++
+      assert.notEqual(v.statut, 'ANNULEE', 'visite annulée dans la file')
+    }
+    for (const c of lignes.Consultation.filter((c) => +(c.createdAt as Date) > coupure))
+      assert.notEqual(c.statut, 'ANNULEE', 'consultation annulée dans la file')
+  }
+  assert.ok(recentes > 20, `${recentes} visites dans la file`)
+})
+
+test('file d’attente : le résumé du jour compte exactement ce qui est écrit', () => {
+  for (const graine of ['file-resume-1', 'file-resume-2', 'file-resume-3', 'file-resume-4']) {
+    const banc = bancDeTest(graine, 80, AUJOURDHUI)
+    const r = planifierJour(banc.ctx(AUJOURDHUI, 0, 1, MAINTENANT))
+    assert.equal(
+      r.resume.visitesEnAttente,
+      r.lignes.Visite.filter((v) => v.statut === 'EN_ATTENTE').length,
+      graine,
+    )
+    assert.equal(
+      r.resume.consultationsOuvertes,
+      r.lignes.Consultation.filter((c) => c.statut === 'OUVERTE').length,
+      graine,
+    )
+    assert.equal(r.resume.visites, r.lignes.Visite.length, graine)
+  }
+})
+
+test('file d’attente : plus la fréquentation est forte, plus la file est longue', () => {
+  const moyenne = (parJour: number) => {
+    let total = 0
+    for (let k = 0; k < 30; k++) {
+      const banc = bancDeTest(`file-charge-${parJour}-${k}`, parJour, AUJOURDHUI)
+      const r = planifierJour(banc.ctx(AUJOURDHUI, 0, 1, MAINTENANT))
+      total += r.resume.visitesEnAttente + r.resume.consultationsOuvertes
+    }
+    return total / 30
+  }
+  const calme = moyenne(15)
+  const dense = moyenne(80)
+  assert.ok(dense > calme, `calme ${calme.toFixed(2)}, dense ${dense.toFixed(2)}`)
+})
+
+test('file d’attente : le personnel est connecté à maintenant — pas de déconnexion, session ouverte, activité de l’instant', () => {
+  const lignes = AUJ.parJour.get(AUJOURDHUI) as LignesJour
+  const personnel = [...AUJ.banc.medecins, ...AUJ.banc.infirmiers]
+  assert.equal(
+    lignes.JournalAuthentification.filter((l) => l.resultat === 'SUCCES_LOGOUT').length,
+    0,
+    'le centre est ouvert : personne ne s’est déconnecté',
+  )
+  for (const qui of personnel) {
+    const gestes = lignes.JournalAudit.filter((l) => l.utilisateurId === qui.utilisateurId).map((l) => +(l.createdAt as Date))
+    const sessions = lignes.SessionUtilisateur.filter((s) => s.utilisateurId === qui.utilisateurId)
+    const ouverte = sessions.filter((s) => !s.revokedAt)
+    assert.equal(ouverte.length, 1, `${qui.login} : ${ouverte.length} session(s) ouverte(s)`)
+    const activite = +(ouverte[0]!.derniereActiviteAt as Date)
+    assert.ok(activite <= +INSTANT_MAINTENANT, `${qui.login} : activité dans le futur`)
+    assert.ok(activite >= +INSTANT_MAINTENANT - 130_000, `${qui.login} : dernière activité trop ancienne pour quelqu’un qui travaille`)
+    if (gestes.length) assert.ok(activite >= Math.max(...gestes), `${qui.login} : activité avant son dernier geste`)
+  }
+  // celui qui tient une consultation ouverte est connecté
+  for (const c of lignes.Consultation.filter((c) => c.statut === 'OUVERTE')) {
+    const medecin = AUJ.banc.medecins.find((m) => m.personnelId === c.soignantId)
+    assert.ok(medecin)
+    assert.ok(lignes.SessionUtilisateur.some((s) => s.utilisateurId === medecin.utilisateurId && !s.revokedAt))
+  }
+})
+
+test('file d’attente : après la fermeture du centre, chacun s’est déconnecté (rien ne reste ouvert à 17 h)', () => {
+  const banc = bancDeTest('file-soir', 40, AUJOURDHUI)
+  const r = planifierJour(banc.ctx(AUJOURDHUI, 0, 1, { jour: AUJOURDHUI, s: heures(17, 40) }))
+  // 17 h 40 : le centre a fermé à 16 h 30, la dernière arrivée possible est à 16 h : tout est fini depuis longtemps
+  // et plus personne n'est au travail
+  assert.equal(
+    r.lignes.Visite.filter((v) => v.statut === 'EN_ATTENTE' || v.statut === 'EN_COURS').length,
+    0,
+    'le centre est fermé : plus de file',
+  )
+  assert.ok(r.lignes.JournalAuthentification.some((l) => l.resultat === 'SUCCES_LOGOUT'))
 })
 
 console.log(`\n${passed} réussis, ${failed} échoués`)

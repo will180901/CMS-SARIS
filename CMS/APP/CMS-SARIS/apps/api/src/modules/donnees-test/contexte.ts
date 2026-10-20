@@ -112,6 +112,10 @@ export interface ResumeJour {
   consultations: number
   visitesAnnulees: number
   consultationsAnnulees: number
+  /** La file d'attente du moment (aujourd'hui seulement) : visites encore en attente à l'accueil ou du médecin… */
+  visitesEnAttente: number
+  /** … et consultations OUVERTES, que le médecin n'a pas encore clôturées. */
+  consultationsOuvertes: number
   /** Patients qu'aucun infirmier n'a pu recevoir avant la fermeture (volume au-delà de la capacité). */
   nonRecus: number
 }
@@ -123,6 +127,8 @@ export function resumeVide(): ResumeJour {
     consultations: 0,
     visitesAnnulees: 0,
     consultationsAnnulees: 0,
+    visitesEnAttente: 0,
+    consultationsOuvertes: 0,
     nonRecus: 0,
   }
 }

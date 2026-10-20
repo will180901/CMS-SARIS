@@ -326,8 +326,16 @@ export function planifierConnexions(
     const geste = dernierGeste.get(qui.utilisateurId) ?? 0
     let departS =
       Math.max(geste + 120, h.fermeture * 60 + 900) + a.entier(0, 2400)
-    // Aujourd'hui : on ne part pas dans le futur.
-    if (limite && jour === limite.jour)
+    // Aujourd'hui, centre OUVERT : le personnel travaille encore (la file d'attente du moment est entre ses mains).
+    // Il est connecté, sa dernière activité date de quelques secondes ; il ne s'est pas déconnecté.
+    const centreOuvert = !!limite && jour === limite.jour && limite.s < h.fermeture * 60
+    // Aujourd'hui, centre fermé : on ne part pas dans le futur.
+    if (limite && centreOuvert)
+      departS = Math.min(
+        limite.s,
+        Math.max(limite.s - a.entier(5, 90), derniere.debutS + 120, geste + 120),
+      )
+    else if (limite && jour === limite.jour)
       departS = departAvantMaintenant(
         departS,
         limite.s,
@@ -336,7 +344,8 @@ export function planifierConnexions(
         a.entier(60, 600),
       )
     derniere.finActiviteS = departS
-    if (plan.deconnexion) {
+    const seDeconnecte = plan.deconnexion && !centreOuvert
+    if (seDeconnecte) {
       derniere.revocation = instant(jour, departS)
       derniere.derniereActivite = instant(jour, departS - a.entier(0, 120))
     } else {
@@ -454,7 +463,7 @@ export function planifierConnexions(
         posteLocalId: null,
         ...positionDe(a, eq, latSite, lonSite, instant(jour, c.debutS)),
       })
-      if (k === chaines.length - 1 && plan.deconnexion)
+      if (k === chaines.length - 1 && seDeconnecte)
         lignes.JournalAuthentification.push({
           id: nouvelIdTest(),
           utilisateurId: qui.utilisateurId,

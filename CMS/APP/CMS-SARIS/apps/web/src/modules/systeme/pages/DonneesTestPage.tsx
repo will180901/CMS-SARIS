@@ -373,6 +373,8 @@ function ZoneProgression({ lot, maintenant }: { lot: LotDonneesTest; maintenant:
           <Compteur label={t('donneesTest.cEvacuations')} valeur={p.lignes['Evacuation'] ?? 0} />
           <Compteur label={t('donneesTest.cSuivis')} valeur={p.lignes['SuiviTraitement'] ?? 0} />
           <Compteur label={t('donneesTest.cSessions')} valeur={p.lignes['SessionUtilisateur'] ?? 0} />
+          {(p.visitesEnAttente ?? 0) > 0 && <Compteur label={t('donneesTest.cEnAttente')} valeur={p.visitesEnAttente ?? 0} />}
+          {(p.consultationsOuvertes ?? 0) > 0 && <Compteur label={t('donneesTest.cOuvertes')} valeur={p.consultationsOuvertes ?? 0} />}
           {p.nonRecus > 0 && <Compteur label={t('donneesTest.cNonRecus')} valeur={p.nonRecus} />}
         </div>
 

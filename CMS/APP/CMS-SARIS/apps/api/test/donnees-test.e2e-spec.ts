@@ -1584,7 +1584,7 @@ describe('Données de test (génération, lecture, suppression)', () => {
       await supprimerMarquees(base())
     })
 
-    it('14 h : la période va jusqu’à aujourd’hui, annoncée jusqu’à 11 h 30 (deux heures de marge)', async () => {
+    it('14 h : la période va jusqu’à aujourd’hui, annoncée jusqu’à 13 h 57 (la file d’attente du moment comprise)', async () => {
       il_est(lundiA(14))
       const r = await admin.get<Previsions>(
         '/systeme/donnees-test/previsions?mois=4&visitesParJour=40',
@@ -1592,7 +1592,7 @@ describe('Données de test (génération, lecture, suppression)', () => {
       expect(r.status).toBe(200)
       expect(r.body.fin).toBe('2026-10-12')
       expect(r.body.debut).toBe('2026-06-13')
-      expect(r.body.aujourdhui).toEqual({ inclus: true, jusqua: '11:30' })
+      expect(r.body.aujourdhui).toEqual({ inclus: true, jusqua: '13:57' })
     })
 
     it('18 h 45 : la journée est entière, sans heure d’arrêt', async () => {
@@ -1621,7 +1621,7 @@ describe('Données de test (génération, lecture, suppression)', () => {
 
     it('une génération lancée à 14 h : aujourd’hui est le dernier jour, la coupure est mémorisée, rien n’est daté après', async () => {
       il_est(lundiA(14))
-      const g = await generer(1, 8, 'aujourdhui-14h')
+      const g = await generer(1, 40, 'aujourdhui-14h')
       expect(g.status).toBe(201)
       expect(g.body.parametres.fin).toBe('2026-10-12')
       expect(g.body.parametres.limite).toEqual({ jour: '2026-10-12', s: 14 * 3600 })
@@ -1637,9 +1637,34 @@ describe('Données de test (génération, lecture, suppression)', () => {
       })
       expect(lundi.length).toBeGreaterThan(2)
       for (const v of lundi) {
-        expect(+v.dateOuverture).toBeLessThanOrEqual(limiteMs - 2 * 3600_000)
-        expect(+(v.dateCloture as Date)).toBeLessThanOrEqual(limiteMs)
+        expect(+v.dateOuverture).toBeLessThanOrEqual(limiteMs)
+        // une visite de la file d'attente n'est pas clôturée (elle l'est dans quelques minutes, pas encore)
+        if (v.dateCloture) expect(+v.dateCloture).toBeLessThanOrEqual(limiteMs)
       }
+      // la file d'attente du moment : des visites ouvertes dans les deux dernières heures, comptées par le lot
+      const recentes = lundi.filter((v) => +v.dateOuverture > limiteMs - 2 * 3600_000)
+      expect(recentes.length).toBeGreaterThan(0)
+      const enAttente = await base().visite.count({ where: { id: marque, statut: 'EN_ATTENTE' } })
+      const enCours = await base().visite.count({ where: { id: marque, statut: 'EN_COURS' } })
+      expect(enAttente).toBe(lot.progression.visitesEnAttente ?? 0)
+      expect(enAttente + enCours).toBeGreaterThan(0) // à 40 visites par jour, il y a une file à 14 h
+      // ses consultations ouvertes sont celles du lot, et chacune est rattachée à une visite en consultation
+      const ouvertes = await base().consultation.findMany({
+        where: { id: marque, statut: 'OUVERTE' },
+        select: { visite: { select: { statut: true } } },
+      })
+      expect(ouvertes.length).toBe(lot.progression.consultationsOuvertes ?? 0)
+      expect(ouvertes.length).toBeLessThanOrEqual(enCours)
+      for (const c of ouvertes) expect(c.visite.statut).toBe('EN_COURS')
+      // et l'application la LIT comme une file ordinaire : le tableau de bord et la file d'attente du triage
+      const apercu = await admin.get<{ visitesAttente: number; consultationsActives: number }>('/dashboard/overview')
+      expect(apercu.status).toBe(200)
+      expect(apercu.body.visitesAttente).toBeGreaterThanOrEqual(enAttente)
+      expect(apercu.body.consultationsActives).toBeGreaterThanOrEqual(ouvertes.length)
+      const file = await admin.get<{ id: string; motifPrincipal: { libelle: string } }[]>('/dashboard/urgences')
+      expect(file.status).toBe(200)
+      const attendues = await base().visite.findMany({ where: { id: marque, statut: 'EN_ATTENTE' }, select: { id: true } })
+      for (const v of attendues) expect(file.body.map((x) => x.id)).toContain(v.id)
       for (const [table, champ] of [
         ['visite', 'dateCloture'],
         ['ordonnance', 'updatedAt'],
@@ -1661,9 +1686,20 @@ describe('Données de test (génération, lecture, suppression)', () => {
         const d = agg._max[champ]
         if (d) expect(+d).toBeLessThanOrEqual(limiteMs)
       }
-      // aucune session laissée ouverte (comme les autres générations)
+      // le centre est ouvert à 14 h : le personnel est connecté — une session ouverte par personne, active à l'instant
+      const ouvertesSessions = await base().sessionUtilisateur.findMany({
+        where: { id: marque, revokedAt: null },
+        select: { utilisateurId: true, derniereActiviteAt: true },
+      })
+      expect(ouvertesSessions.length).toBeGreaterThan(0)
+      expect(new Set(ouvertesSessions.map((x) => x.utilisateurId)).size).toBe(ouvertesSessions.length)
+      for (const x of ouvertesSessions) {
+        expect(+(x.derniereActiviteAt as Date)).toBeLessThanOrEqual(limiteMs)
+        expect(+(x.derniereActiviteAt as Date)).toBeGreaterThanOrEqual(limiteMs - 130_000)
+      }
+      // et personne ne s'est déconnecté à l'instant
       expect(
-        await base().sessionUtilisateur.count({ where: { id: marque, revokedAt: null } }),
+        await base().journalAuthentification.count({ where: { id: marque, resultat: 'SUCCES_LOGOUT', createdAt: { gte: new Date(limiteMs - 3600_000) } } }),
       ).toBe(0)
     })
 

@@ -49,6 +49,9 @@ export interface LotDonneesTest {
     consultations: number
     visitesAnnulees: number
     consultationsAnnulees: number
+    /** La file d'attente du moment (lots lancés avant elle : absents). */
+    visitesEnAttente?: number
+    consultationsOuvertes?: number
     nonRecus: number
     lignes: Record<string, number>
   }

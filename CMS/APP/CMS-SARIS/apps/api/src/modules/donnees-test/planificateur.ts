@@ -27,8 +27,10 @@ import {
   horairesDuJour,
   horairesEffectifs,
   instantSecondes,
+  fenetreFileAttente,
   jourLocalDe,
   minutesArrivees,
+  minutesArriveesEntre,
   partDesArrivees,
   saisonDesPluies,
   type Horaires,
@@ -275,21 +277,42 @@ export function planifierJour(ctx: ContexteJour): {
   )
   // Une journée coupée n'a reçu qu'une part des arrivées de la journée entière.
   const partDeLaJournee = h ? (h.tronque ? partDesArrivees(plein, h) : 1) : 0
+  // Entre la coupure et maintenant : la file d'attente du moment (aujourd'hui seulement).
+  const fenetre = fenetreFileAttente(plein, h, ctx.params.limite ?? null)
+  const partFile = fenetre
+    ? Math.max(
+        0,
+        partDesArrivees(plein, { ...plein, fermeture: fenetre.fin + 30 }) -
+          partDeLaJournee,
+      )
+    : 0
   const vus = new Set<string>()
   for (const equipe of ctx.equipes) {
     if (!h) break
     const part = Math.max(1, equipe.medecins.length) / poidsTotal
+    const bruit = ctx.alea.normaleBornee(1, 0.12, 0.7, 1.3)
     const cible = Math.max(
       0,
       Math.round(
-        ctx.params.visitesParJour *
-          part *
-          facteur *
-          ctx.alea.normaleBornee(1, 0.12, 0.7, 1.3) *
-          partDeLaJournee,
+        ctx.params.visitesParJour * part * facteur * bruit * partDeLaJournee,
       ),
     )
-    planifierSite(ctx, equipe, h, cible, lignes, resume, vus)
+    const cibleFile = Math.max(
+      0,
+      Math.round(ctx.params.visitesParJour * part * facteur * bruit * partFile),
+    )
+    planifierSite(
+      ctx,
+      equipe,
+      h,
+      cible,
+      lignes,
+      resume,
+      vus,
+      fenetre && cibleFile > 0 && ctx.params.limite
+        ? { plein, fenetre, nombre: cibleFile, maintenantS: ctx.params.limite.s }
+        : null,
+    )
   }
   numeroterDossiers(ctx, lignes)
   // Les connexions du personnel, après ses gestes : on sait jusqu'à quand chacun est resté connecté.
@@ -331,6 +354,12 @@ function planifierSite(
   lignes: LignesJour,
   resume: ResumeJour,
   vus: Set<string>,
+  file: {
+    plein: Horaires
+    fenetre: { debut: number; fin: number }
+    nombre: number
+    maintenantS: number
+  } | null = null,
 ): void {
   const { alea, ref } = ctx
   // Un site sans médecin (ou sans infirmier) emprunte ceux des autres : le dossier est commun.
@@ -367,6 +396,48 @@ function planifierSite(
       vus,
     )
   }
+  // La file d'attente du moment : mêmes infirmiers et mêmes médecins (donc leur disponibilité du moment),
+  // les passages ne sont pas fabriqués finis mais tels qu'ils sont à « maintenant ».
+  if (file)
+    for (const arrivee of minutesArriveesEntre(
+      alea,
+      file.nombre,
+      file.plein,
+      file.fenetre.debut,
+      file.fenetre.fin,
+    ))
+      passage(
+        ctx,
+        equipe,
+        file.plein,
+        arrivee * 60 + alea.entier(0, 59),
+        inf,
+        med,
+        profils,
+        lignes,
+        resume,
+        vus,
+        file.maintenantS,
+      )
+}
+
+/**
+ * Où en est un passage à « maintenant » ? Fini (rien à changer : le passage est fabriqué tel quel), en attente
+ * (à l'accueil, ou du médecin) ou en consultation (envoyé au médecin, pas encore clôturé).
+ */
+export function etatAMaintenant(
+  maintenantS: number | null,
+  p: {
+    annulee: boolean
+    tAnnulation: number
+    reussie?: { tEnvoi: number; fin: number } | null
+  },
+): 'FINIE' | 'ATTENTE' | 'EN_COURS' {
+  if (maintenantS === null) return 'FINIE'
+  if (p.annulee) return p.tAnnulation > maintenantS ? 'ATTENTE' : 'FINIE'
+  if (p.reussie && p.reussie.fin > maintenantS)
+    return p.reussie.tEnvoi > maintenantS ? 'ATTENTE' : 'EN_COURS'
+  return 'FINIE'
 }
 
 function passage(
@@ -380,6 +451,8 @@ function passage(
   lignes: LignesJour,
   resume: ResumeJour,
   vus: Set<string>,
+  /** Les secondes de « maintenant » (file d'attente du moment) ; `null` : un passage fabriqué fini. */
+  maintenantS: number | null = null,
 ): void {
   const { alea, etat, ref, jour, params } = ctx
   const at = (s: number) => instantSecondes(jour, s)
@@ -392,6 +465,8 @@ function passage(
     resume.nonRecus++
     return
   }
+  // File d'attente : une personne encore à l'accueil à « maintenant » n'a pas de dossier ni de visite à écrire.
+  if (maintenantS !== null && dTri + 540 > maintenantS) return
   const accueil = infirmier.s
 
   // ── 2. Qui : un habitué qui revient, ou un nouveau dossier ──────────────────────
@@ -463,7 +538,7 @@ function passage(
   let tAnnulation = 0
   let motifAnnulation = ''
 
-  if (alea.proba(P_ANNULATION_TRIAGE)) {
+  if (maintenantS === null && alea.proba(P_ANNULATION_TRIAGE)) {
     annulee = true
     tAnnulation = tPret + S(120, 1500)
     motifAnnulation = alea.choisir(MOTIFS_ANNULATION_VISITE)
@@ -486,7 +561,7 @@ function passage(
         motifAnnulation = 'Patient parti sans attendre la consultation.'
         break
       }
-      if (essai === 0 && alea.proba(P_CONSULTATION_ANNULEE)) {
+      if (essai === 0 && maintenantS === null && alea.proba(P_CONSULTATION_ANNULEE)) {
         const fin = tOuv + S(60, 420)
         m.libreA = fin + S(30, 120)
         tentatives.push({
@@ -523,6 +598,130 @@ function passage(
   }
   const reussie = tentatives.find((t) => !t.annulee)
   const consultee = !annulee && !!reussie
+
+  // ── 5 bis. La file d'attente du moment : ce passage n'est pas fini à « maintenant » ─────────────────
+  const situation = etatAMaintenant(maintenantS, { annulee, tAnnulation, reussie })
+  if (situation !== 'FINIE' && maintenantS !== null) {
+    const enCours = situation === 'EN_COURS' && !!reussie
+    const visiteId = nouvelIdTest()
+    const evenement = (
+      t: number,
+      type: 'STATUT_CHANGE' | 'SOIGNANT_CHANGE' | 'NOTES_UPDATE',
+      ancienne: string | null,
+      nouvelle: string | null,
+    ) => {
+      lignes.VisiteEvenement.push({
+        id: nouvelIdTest(),
+        visiteId,
+        type,
+        ancienneVal: ancienne,
+        nouvelleVal: nouvelle,
+        acteurId: accueil.utilisateurId,
+        commentaire: null,
+        createdAt: at(t),
+        updatedAt: at(t),
+      })
+      tracer(ctx, lignes, accueil, at(t), 'UPDATE', 'visite', 'Visite', visiteId)
+      derniereMaj = Math.max(derniereMaj, t)
+    }
+    let derniereMaj = tVisite
+
+    // Le médecin pressenti : celui à qui le patient sera (ou est) envoyé. En attente, il est parfois déjà désigné.
+    const medecinPrevu = reussie?.medecin.s
+    const tardive = !!medecinPrevu && alea.proba(P_AFFECTATION_TARDIVE)
+    const tAffectation = tardive
+      ? Math.max(tVisite + 1, tPret - S(5, 60))
+      : tVisite
+    const designe =
+      medecinPrevu &&
+      (enCours || (tAffectation <= maintenantS && alea.proba(0.7)))
+        ? medecinPrevu
+        : undefined
+
+    lignes.Visite.push({
+      id: visiteId,
+      patientId: patient.id,
+      siteId: equipe.siteId,
+      motifPrincipalId: motif.id,
+      statut: enCours ? 'EN_COURS' : 'EN_ATTENTE',
+      soignantId: designe?.personnelId ?? null,
+      notesAccueil,
+      motifAnnulation: null,
+      typeCloture: null,
+      dateOuverture: at(tVisite),
+      dateCloture: null,
+      creerHorsLigne: false,
+      version: 1,
+      createdAt: at(tVisite),
+      // (mise à jour plus bas, une fois les évènements écrits)
+      updatedAt: at(tVisite),
+    })
+    const ligneVisite = lignes.Visite[lignes.Visite.length - 1]
+    tracer(ctx, lignes, accueil, at(tVisite), 'CREATE', 'visite', 'Visite', null)
+
+    if (cst && tConst <= maintenantS) {
+      lignes.ConstanteVitale.push({
+        id: nouvelIdTest(),
+        visiteId,
+        patientId: patient.id,
+        ...cst,
+        imc: computeImc(cst.poids, cst.taille),
+        saisiePar: accueil.utilisateurId,
+        createdAt: at(tConst),
+        updatedAt: at(tConst),
+      })
+      if (!constantesAvecLaVisite)
+        tracer(ctx, lignes, accueil, at(tConst), 'CREATE', 'visite', 'Visite', visiteId)
+      derniereMaj = Math.max(derniereMaj, tConst)
+    }
+    const tNotes = tVisite + S(60, 240)
+    if (notesAccueil && alea.proba(P_NOTES_MODIFIEES) && tNotes <= maintenantS)
+      evenement(tNotes, 'NOTES_UPDATE', '(modifiées)', '(saisies)')
+    if (designe && tardive && tAffectation <= maintenantS)
+      evenement(tAffectation, 'SOIGNANT_CHANGE', null, designe.personnelId)
+    if (enCours && reussie) evenement(reussie.tEnvoi, 'STATUT_CHANGE', 'EN_ATTENTE', 'EN_COURS')
+
+    // La consultation OUVERTE : le médecin l'a prise en main, il ne l'a pas encore clôturée.
+    if (enCours && reussie && reussie.tOuv <= maintenantS) {
+      const medecin = reussie.medecin.s
+      const consultationId = nouvelIdTest()
+      const tPrise = Math.min(maintenantS, reussie.tOuv + S(3, 25))
+      // L'anamnèse est notée dans les premières minutes ; avant, la consultation vient de s'ouvrir.
+      const anamneseFaite = maintenantS - reussie.tOuv > 150
+      const debutAnamnese = profil.jours[1] > 0
+      tracer(ctx, lignes, medecin, at(reussie.tOuv), 'CREATE', 'consultation', 'Consultation', null)
+      lignes.Consultation.push({
+        id: consultationId,
+        visiteId,
+        soignantId: medecin.personnelId,
+        statut: 'OUVERTE',
+        anamneseDateDebut:
+          anamneseFaite && debutAnamnese
+            ? new Date(at(reussie.tOuv).getTime() - j * UN_JOUR_MS)
+            : null,
+        anamneseDuree: anamneseFaite && debutAnamnese ? dureeAnamnese(j) : null,
+        anamneseModeDebut:
+          anamneseFaite && debutAnamnese ? (cas.modeDebut ?? 'Progressif') : null,
+        anamneseSymptomes: anamneseFaite ? remplacer(cas.symptomes) : null,
+        version: 1,
+        createdAt: at(reussie.tOuv),
+        pickedUpById: medecin.utilisateurId,
+        pickedUpAt: at(tPrise),
+        updatedAt: at(tPrise),
+      })
+      if (anamneseFaite)
+        tracer(ctx, lignes, medecin, at(reussie.tOuv + 150), 'UPDATE', 'consultation', 'Consultation', consultationId)
+      derniereMaj = Math.max(derniereMaj, tPrise)
+      resume.consultationsOuvertes++
+    }
+    if (ligneVisite) ligneVisite.updatedAt = at(derniereMaj)
+
+    resume.visites++
+    if (!enCours) resume.visitesEnAttente++
+    patient.nbVisites++
+    patient.derniereVisite = at(tVisite)
+    return
+  }
 
   // ── 6. La visite ──────────────────────────────────────────────────────────────
   const visiteId = nouvelIdTest()
