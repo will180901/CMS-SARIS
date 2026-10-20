@@ -58,6 +58,15 @@ export function roleParDefaut(fonction: string): string | undefined {
 }
 
 /**
+ * Fonction que l'on propose pour la fiche d'un compte qui n'en a pas, d'après ses rôles
+ * d'accès — l'inverse de `roleParDefaut`. À défaut de rôle connu, la plus courante.
+ */
+export function fonctionParDefaut(codesRoles: string[]): Fonction {
+  const trouvee = FONCTIONS.find(f => codesRoles.includes(ROLE_POUR_FONCTION[f]))
+  return trouvee ?? 'INFIRMIER'
+}
+
+/**
  * Options du sélecteur de fonction.
  *
  * `actuelle` : la valeur déjà portée par la fiche. Si elle sort de la liste

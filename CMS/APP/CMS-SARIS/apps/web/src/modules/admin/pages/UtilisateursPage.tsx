@@ -24,7 +24,7 @@ import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Users, Plus, Shield, KeyRound, UserCheck, UserX, LogIn,
-  Stethoscope, Loader2, ChevronRight, Trash2, AlertTriangle, Pencil, Download, ListChecks,
+  Stethoscope, Loader2, ChevronRight, Trash2, AlertTriangle, Pencil, Download, ListChecks, IdCard,
 } from 'lucide-react'
 import { PageHeader, Toolbar, Card, Button, StatCard,
   StatusPill, UserAvatar, EmptyState, Skeleton, IconButton, SelectBox, PaginationBar, useColumnResize, Modal,
@@ -43,6 +43,7 @@ import { CreerUtilisateurDrawer } from '../components/CreerUtilisateurDrawer'
 import { UtilisateurDrawer }      from '../components/UtilisateurDrawer'
 import { ResetPasswordDialog }    from '../components/ResetPasswordDialog'
 import { FichePersonnelModal }    from '../components/FichePersonnelModal'
+import { CreerFicheCompteModal }  from '../components/CreerFicheCompteModal'
 import { ListePrintSheet, type ColonneExport } from '@/components/print/ListePrintSheet'
 import { adminApi, type UtilisateurAdmin } from '../api/admin.api'
 import { ADMIN_KEYS } from '../hooks/useAdmin'
@@ -76,6 +77,8 @@ export function UtilisateursPage({ embedded = false }: { embedded?: boolean } = 
   const canUpdate        = has('utilisateur.update')          // toggle statut + édition compte
   const canResetPassword = has('utilisateur.reset_password')
   const canDelete        = has('utilisateur.delete')
+  // Donner une fiche du personnel à un compte qui n'en a pas : créer la fiche ET la relier au compte.
+  const canCreerFiche    = has('personnel.create') && canUpdate
   const meId             = useSessionStore(s => s.user?.id)
   const [search,    setSearch]    = useState('')
   const [statutF,   setStatutF]   = useState<'' | 'ACTIF' | 'DESACTIVE' | 'BLOQUE'>('')
@@ -94,6 +97,8 @@ export function UtilisateursPage({ embedded = false }: { embedded?: boolean } = 
   const [openAcces,  setOpenAcces]  = useState<Personne | null>(null)
   /** Fiche (identité) en cours de modification. */
   const [openFiche,  setOpenFiche]  = useState<Personne | null>(null)
+  /** Compte sans fiche du personnel à qui l'on en crée une. */
+  const [openCreerFiche, setOpenCreerFiche] = useState<UtilisateurAdmin | null>(null)
   const [openExport, setOpenExport] = useState(false)
 
   const deleteUser = useDeleteUtilisateur()
@@ -387,6 +392,7 @@ export function UtilisateursPage({ embedded = false }: { embedded?: boolean } = 
           canUpdate={canUpdate}
           canResetPassword={canResetPassword}
           canDelete={canDelete}
+          canCreerFiche={canCreerFiche}
           meId={meId}
           onOpenCreer={() => setOpenCreer(true)}
           onOpenDetail={setOpenDetail}
@@ -394,6 +400,7 @@ export function UtilisateursPage({ embedded = false }: { embedded?: boolean } = 
           onDelete={setOpenDelete}
           onDonnerAcces={setOpenAcces}
           onOpenFiche={setOpenFiche}
+          onCreerFiche={setOpenCreerFiche}
           canVoirComptes={canVoirComptes}
         />
       </div>
@@ -433,6 +440,14 @@ export function UtilisateursPage({ embedded = false }: { embedded?: boolean } = 
           cleDe={p => p.cle}
           colonnes={colonnesExport}
           onClose={() => setOpenExport(false)}
+        />
+      )}
+
+      {openCreerFiche && (
+        <CreerFicheCompteModal
+          key={openCreerFiche.id}
+          compte={openCreerFiche}
+          onClose={() => setOpenCreerFiche(null)}
         />
       )}
 
@@ -518,8 +533,8 @@ const USER_COLS = '2.2fr 1.4fr 1.8fr 1fr 140px'
 
 function UserTableSection({
   personnes, isLoading, hasFilters,
-  canCreate, canUpdate, canResetPassword, canDelete, meId,
-  onOpenCreer, onOpenDetail, onResetPassword, onDelete, onDonnerAcces, onOpenFiche, canVoirComptes,
+  canCreate, canUpdate, canResetPassword, canDelete, canCreerFiche, meId,
+  onOpenCreer, onOpenDetail, onResetPassword, onDelete, onDonnerAcces, onOpenFiche, onCreerFiche, canVoirComptes,
 }: {
   personnes:        Personne[]
   isLoading:        boolean
@@ -528,6 +543,7 @@ function UserTableSection({
   canUpdate:        boolean
   canResetPassword: boolean
   canDelete:        boolean
+  canCreerFiche:    boolean
   meId:             string | undefined
   onOpenCreer:      () => void
   onOpenDetail:     (id: string) => void
@@ -535,6 +551,7 @@ function UserTableSection({
   onDelete:         (u: UtilisateurAdmin) => void
   onDonnerAcces:    (p: Personne) => void
   onOpenFiche:      (p: Personne) => void
+  onCreerFiche:     (u: UtilisateurAdmin) => void
   canVoirComptes:   boolean
 }) {
   const { t } = useTranslation()
@@ -686,6 +703,8 @@ function UserTableSection({
                   canUpdate={canUpdate}
                   canResetPassword={canResetPassword}
                   canDelete={canDelete && p.compte.id !== meId}
+                  canCreerFiche={canCreerFiche}
+                  onCreerFiche={onCreerFiche}
                   onOpenDetail={onOpenDetail}
                   onResetPassword={onResetPassword}
                   onDelete={onDelete}
@@ -844,7 +863,7 @@ function PersonneSansAccesRow({
 
 function UserRow({
   u, metier, cols, striped, selected, caseSelection, enSelection, onBasculer,
-  canUpdate, canResetPassword, canDelete, onOpenDetail, onResetPassword, onDelete, onOpenFiche, onSelectionner,
+  canUpdate, canResetPassword, canDelete, canCreerFiche, onOpenDetail, onResetPassword, onDelete, onOpenFiche, onCreerFiche, onSelectionner,
 }: {
   u: UtilisateurAdmin
   /** Métier de la personne (Sage-femme, Technicien…). Distinct du rôle d'accès. */
@@ -859,10 +878,13 @@ function UserRow({
   canUpdate: boolean
   canResetPassword: boolean
   canDelete: boolean
+  /** Droit de créer la fiche du personnel d'un compte qui n'en a pas. */
+  canCreerFiche: boolean
   onOpenDetail: (id: string) => void
   onResetPassword: (u: UtilisateurAdmin) => void
   onDelete: (u: UtilisateurAdmin) => void
   onOpenFiche: () => void
+  onCreerFiche: (u: UtilisateurAdmin) => void
   onSelectionner: () => void
 }) {
   const { t } = useTranslation()
@@ -973,6 +995,17 @@ function UserRow({
             tone="neutral"
             size="sm"
             onClick={onOpenFiche}
+          />
+        )}
+        {/* Un compte sans fiche (l'administrateur créé à l'installation) n'a ni nom ni
+            matricule : l'accueil ne peut pas le retrouver. On lui en crée une ici. */}
+        {canCreerFiche && !u.personnelMedical && (
+          <IconButton
+            aria-label={t('admin.creerFiche', { defaultValue: 'Créer sa fiche du personnel' })}
+            icon={<IdCard size={14} />}
+            tone="neutral"
+            size="sm"
+            onClick={() => onCreerFiche(u)}
           />
         )}
         {canResetPassword && (

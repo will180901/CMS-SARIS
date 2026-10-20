@@ -5,6 +5,7 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData, type QueryClient } from '@tanstack/react-query'
 import { toast } from '@workspace/ui/components/sonner'
 import { adminApi } from '../api/admin.api'
+import { personnelApi, type PersonnelPayload } from '@/modules/acteurs/api/personnel.api'
 import type {
   CreateUtilisateurPayload, UpdateUtilisateurPayload,
   SetRolesPayload, SetStatutPayload,
@@ -110,6 +111,36 @@ export function useUpdateUtilisateur(id: string) {
       qc.invalidateQueries({ queryKey: ADMIN_KEYS.utilisateurs })
       qc.invalidateQueries({ queryKey: ADMIN_KEYS.utilisateur(id) })
       toast.success(i18n.t('admin.toastAccountUpdated'))
+    },
+    onError: toastErr,
+  })
+}
+
+/**
+ * Donne une fiche du personnel à un compte qui n'en a pas (l'administrateur créé à l'installation,
+ * par exemple) : sans fiche, la personne n'a ni nom ni matricule, et l'accueil ne peut ni la
+ * retrouver ni lui ouvrir de dossier. La fiche est créée PUIS reliée ; si le lien échoue, la fiche
+ * qui vient d'être créée est retirée, pour qu'on puisse réessayer sans « matricule déjà utilisé ».
+ */
+export function useCreerFicheDuCompte() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ compteId, data }: { compteId: string; data: PersonnelPayload }) => {
+      const fiche = await personnelApi.create(data)
+      try {
+        await adminApi.utilisateurs.update(compteId, { personnelMedicalId: fiche.id })
+      } catch (e) {
+        await personnelApi.remove(fiche.id).catch(() => {})
+        throw e
+      }
+      return fiche
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ADMIN_KEYS.utilisateurs })
+      qc.invalidateQueries({ queryKey: ['personnel'] })
+      qc.invalidateQueries({ queryKey: ['soignants'] })
+      qc.invalidateQueries({ queryKey: ME_KEYS.profil })
+      toast.success(i18n.t('admin.toastFicheCreee', { defaultValue: 'Fiche du personnel créée et reliée au compte' }))
     },
     onError: toastErr,
   })

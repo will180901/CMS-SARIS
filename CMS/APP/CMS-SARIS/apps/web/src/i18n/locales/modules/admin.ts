@@ -752,6 +752,12 @@ export const admin = {
     accesAll: 'Accès : tous',
     filterByAcces: 'Filtrer par accès',
     modifierFiche: 'Modifier la fiche',
+    creerFiche: 'Créer sa fiche du personnel',
+    creerFicheTitre: 'Créer la fiche du personnel',
+    creerFicheSousTitre: 'Compte « {{login}} » : sans fiche, la personne reste introuvable à l’accueil',
+    creerFicheAction: 'Créer la fiche',
+    creerFicheHint: 'Ce qui manque (naissance, sexe, section de paie, département) sera demandé à l’accueil au premier passage.',
+    toastFicheCreee: 'Fiche du personnel créée et reliée au compte',
   },
   en: {
     // ── Common ───────────────────────────────────────────────────────────────
@@ -1501,5 +1507,11 @@ export const admin = {
     accesAll: 'Access: all',
     filterByAcces: 'Filter by access',
     modifierFiche: 'Edit record',
+    creerFiche: 'Create their staff record',
+    creerFicheTitre: 'Create the staff record',
+    creerFicheSousTitre: 'Account “{{login}}”: without a record, this person cannot be found at reception',
+    creerFicheAction: 'Create the record',
+    creerFicheHint: 'Anything missing (birth date, sex, pay section, department) will be asked at reception on the first visit.',
+    toastFicheCreee: 'Staff record created and linked to the account',
   },
 }
