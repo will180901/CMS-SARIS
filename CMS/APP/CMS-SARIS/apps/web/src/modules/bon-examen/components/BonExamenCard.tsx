@@ -144,7 +144,7 @@ function BonExamenItem({
         }}>
           {t('bonExamen.bonNumber', { numero: bon.id.slice(0, 8).toUpperCase() })}
         </p>
-        <StatusPill tone={tone as any}>
+        <StatusPill tone={tone}>
           {bon.statut === 'EN_ATTENTE'
             ? t('bonExamen.statusPending')
             : bon.statut === 'VALIDE'

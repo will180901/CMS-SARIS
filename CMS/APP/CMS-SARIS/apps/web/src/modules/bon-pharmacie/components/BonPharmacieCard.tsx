@@ -106,7 +106,7 @@ function BonPharmacieItem({ bon, consultationId, readonly, soignant, categorieLi
         <p style={{ margin: 0, fontSize: 'var(--font-size-body-sm)', fontWeight: 600, color: 'var(--texte-primaire)', flex: 1 }}>
           {t('bonPharmacie.bonNumber', { numero: bon.id.slice(0, 8).toUpperCase(), defaultValue: `Bon ${bon.id.slice(0, 8).toUpperCase()}` })}
         </p>
-        <StatusPill tone={tone as any}>
+        <StatusPill tone={tone}>
           {bon.statut === 'EN_ATTENTE' ? t('bonPharmacie.statusPending', { defaultValue: 'En attente' })
             : bon.statut === 'DELIVRE' ? t('bonPharmacie.statusDelivered', { defaultValue: 'Délivré' })
             : t('bonPharmacie.statusCancelled', { defaultValue: 'Annulé' })}

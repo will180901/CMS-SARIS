@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 /**
  * useColumnResize — redimensionnement des colonnes par glissement, réutilisable
@@ -12,9 +12,9 @@ import { useCallback, useLayoutEffect, useRef, useState } from 'react'
  *    horizontal qui apparaît.
  *  - Largeur minimale par colonne, persistance localStorage, double-clic = reset.
  *
- * Intégration vraie table : `containerRef` sur le `<table>`, `cellsSelector: 'thead th'`,
+ * Intégration vraie table : `attacher` sur le `<table>`, `cellsSelector: 'thead th'`,
  *   appliquer `tableLayout` au `<table>` et `widths` aux `<th>`.
- * Intégration grid : `containerRef` sur la ligne d'en-tête, appliquer `gridTemplate`
+ * Intégration grid : `attacher` sur la ligne d'en-tête, appliquer `gridTemplate`
  *   à l'en-tête et à toutes les lignes.
  */
 
@@ -24,8 +24,6 @@ const BASE_MIN = 60 // px — plancher de largeur pour une colonne « normale »
 const minFloor = (w: number) => Math.min(BASE_MIN, w)
 
 export interface ColumnResize {
-  /** À poser sur l'élément dont on mesure les cellules (table ou ligne d'en-tête). */
-  containerRef: (el: HTMLElement | null) => void
   /** Largeurs px par colonne, ou null tant que non mesuré (rendu auto d'origine). */
   widths: number[] | null
   /** `'fixed'` une fois les largeurs fixées (pour `<table>`), sinon `'auto'`. */
@@ -49,8 +47,16 @@ interface Options {
   cellsSelector?: string
 }
 
-export function useColumnResize({ storageKey, ready = true, cellsSelector = ':scope > *' }: Options): ColumnResize {
-  const elRef = useRef<HTMLElement | null>(null)
+/**
+ * Rend `[réglages, attacher]` : `attacher` se pose sur l'élément dont on mesure les cellules
+ * (`ref={attacher}`), les réglages (`widths`, `startDrag`…) vont aux cellules d'en-tête.
+ * Les deux sont rendus SÉPARÉMENT à dessein : une valeur passée à un attribut `ref` est tenue pour une ref
+ * par la règle `react-hooks/refs`, qui signalerait alors chaque lecture de `widths` ou de `tableLayout`.
+ */
+export function useColumnResize({ storageKey, ready = true, cellsSelector = ':scope > *' }: Options): [ColumnResize, (el: HTMLElement | null) => void] {
+  // L'élément mesuré est tenu en ÉTAT (et non dans une ref lue plus loin) : `attacher` est alors un simple
+  // « callback ref », et rien dans ce que le hook rend ne lit une ref pendant le rendu.
+  const [el, setEl] = useState<HTMLElement | null>(null)
   const [widths, setWidths] = useState<number[] | null>(() => {
     try {
       const raw = localStorage.getItem(`coltbl:${storageKey}`)
@@ -63,12 +69,10 @@ export function useColumnResize({ storageKey, ready = true, cellsSelector = ':sc
   const [resizing, setResizing] = useState(false)
   const drag = useRef<{ b: number; x: number; l: number; r: number; minL: number; minR: number } | null>(null)
 
-  const containerRef = useCallback((el: HTMLElement | null) => { elRef.current = el }, [])
-
   const cells = useCallback((): HTMLElement[] => {
-    if (!elRef.current) return []
-    return Array.from(elRef.current.querySelectorAll(cellsSelector)) as HTMLElement[]
-  }, [cellsSelector])
+    if (!el) return []
+    return Array.from(el.querySelectorAll(cellsSelector)) as HTMLElement[]
+  }, [el, cellsSelector])
 
   // Mesure initiale (sous layout auto) → fige les largeurs, puis passe en fixed.
   useLayoutEffect(() => {
@@ -87,29 +91,36 @@ export function useColumnResize({ storageKey, ready = true, cellsSelector = ':sc
     try { localStorage.setItem(`coltbl:${storageKey}`, JSON.stringify(w)) } catch { /* quota / privé */ }
   }, [storageKey])
 
-  const onMove = useCallback((e: PointerEvent) => {
-    const d = drag.current
-    if (!d) return
-    let delta = e.clientX - d.x
-    delta = Math.max(d.minL - d.l, Math.min(d.r - d.minR, delta))
-    setWidths(prev => {
-      if (!prev) return prev
-      const next = [...prev]
-      next[d.b] = d.l + delta
-      next[d.b + 1] = d.r - delta
-      return next
-    })
-  }, [])
-
-  const onUp = useCallback(() => {
-    drag.current = null
-    setResizing(false)
-    window.removeEventListener('pointermove', onMove)
-    window.removeEventListener('pointerup', onUp)
-    document.body.style.userSelect = ''
-    document.body.style.cursor = ''
-    setWidths(prev => { if (prev) persist(prev); return prev })
-  }, [onMove, persist])
+  // Le glissement : tant qu'il dure (`resizing`), la fenêtre écoute le pointeur ; à la fin les largeurs sont retenues.
+  useEffect(() => {
+    if (!resizing) return
+    const onMove = (e: PointerEvent) => {
+      const d = drag.current
+      if (!d) return
+      let delta = e.clientX - d.x
+      delta = Math.max(d.minL - d.l, Math.min(d.r - d.minR, delta))
+      setWidths(prev => {
+        if (!prev) return prev
+        const next = [...prev]
+        next[d.b] = d.l + delta
+        next[d.b + 1] = d.r - delta
+        return next
+      })
+    }
+    const onUp = () => {
+      drag.current = null
+      setResizing(false)
+      document.body.style.userSelect = ''
+      document.body.style.cursor = ''
+      setWidths(prev => { if (prev) persist(prev); return prev })
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+    return () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+    }
+  }, [resizing, persist])
 
   const startDrag = useCallback((boundary: number, e: React.PointerEvent) => {
     const cs = cells()
@@ -126,22 +137,22 @@ export function useColumnResize({ storageKey, ready = true, cellsSelector = ':sc
     setResizing(true)
     document.body.style.userSelect = 'none'
     document.body.style.cursor = 'col-resize'
-    window.addEventListener('pointermove', onMove)
-    window.addEventListener('pointerup', onUp)
-  }, [cells, widths, onMove, onUp])
+  }, [cells, widths])
 
   const reset = useCallback(() => {
     try { localStorage.removeItem(`coltbl:${storageKey}`) } catch { /* ignore */ }
     setWidths(null)
   }, [storageKey])
 
-  return {
-    containerRef,
-    widths,
-    tableLayout: widths ? 'fixed' : 'auto',
-    gridTemplate: widths ? widths.map(w => `${w}px`).join(' ') : null,
-    startDrag,
-    reset,
-    resizing,
-  }
+  return [
+    {
+      widths,
+      tableLayout: widths ? 'fixed' : 'auto',
+      gridTemplate: widths ? widths.map(w => `${w}px`).join(' ') : null,
+      startDrag,
+      reset,
+      resizing,
+    },
+    setEl,
+  ]
 }

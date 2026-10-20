@@ -17,13 +17,13 @@ import type { PaginationControls } from '../hooks/usePagination'
 
 const PAGE_SIZE_OPTIONS = [5, 10, 25, 50, 100]
 
-interface PaginationBarProps<T> extends Pick<
+type PaginationBarProps<T> = Pick<
   PaginationControls<T>,
   'page' | 'pageSize' | 'totalPages' | 'total' | 'start' | 'end'
   | 'setPage' | 'setPageSize'
   | 'goFirst' | 'goLast' | 'goPrev' | 'goNext'
   | 'canGoPrev' | 'canGoNext'
-> {}
+>
 
 export function PaginationBar<T>({
   page, pageSize, totalPages, total, start, end,

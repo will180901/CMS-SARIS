@@ -116,7 +116,7 @@ export function DatePicker({
     setOpen(false)
   }
 
-  function handleClear(e: React.MouseEvent) {
+  function handleClear(e: React.SyntheticEvent) {
     e.stopPropagation()
     onChange(null)
   }
@@ -169,7 +169,7 @@ export function DatePicker({
               aria-label={t('common.clear')}
               tabIndex={0}
               onClick={handleClear}
-              onKeyDown={e => { if (e.key === 'Enter') handleClear(e as any) }}
+              onKeyDown={e => { if (e.key === 'Enter') handleClear(e) }}
               style={{
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 width: 18, height: 18, borderRadius: 4,

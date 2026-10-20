@@ -332,7 +332,7 @@ export function UtilisateursPage({ embedded = false }: { embedded?: boolean } = 
                     <SelectBox
                       size="sm"
                       value={statutF}
-                      onChange={v => setStatutF(v as any)}
+                      onChange={v => setStatutF(v as typeof statutF)}
                       placeholder={t('admin.allStatusesFilter')}
                       aria-label={t('admin.filterByStatus')}
                       options={[
@@ -541,7 +541,7 @@ function UserTableSection({
   const isCompact = useIsCompact()
   const tableMinW = isCompact ? 720 : undefined
   const pagination = usePagination(personnes, useRowsPerPage())
-  const rz = useColumnResize({ storageKey: 'admin-utilisateurs', ready: !isLoading && personnes.length > 0, cellsSelector: ':scope > *' })
+  const [rz, attacher] = useColumnResize({ storageKey: 'admin-utilisateurs', ready: !isLoading && personnes.length > 0, cellsSelector: ':scope > *' })
   const poserCartes = useCartesMobile()
 
   // Sélection en lot : seuls les comptes SONT supprimables. Une personne sans accès
@@ -590,7 +590,7 @@ function UserTableSection({
 
         {/* Header tableau — STICKY */}
         {!isLoading && personnes.length > 0 && (
-          <div ref={rz.containerRef} role="row" style={{
+          <div ref={attacher} role="row" style={{
             display:      'grid',
             gridTemplateColumns: cols,
             minWidth:     tableMinW,

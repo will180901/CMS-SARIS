@@ -294,7 +294,7 @@ export function DelegationsTab({ canCreate, canUpdate, canRevoke, canDelete }: {
         : isExpired(d.dateFin)     ? t('acteurs.delegationExpiree')
         :                            t('acteurs.delegationActive') },
   ], [t])
-  const rz = useColumnResize({ storageKey: 'act-delegations', ready: !isLoading && filtered.length > 0, cellsSelector: 'thead th' })
+  const [rz, attacher] = useColumnResize({ storageKey: 'act-delegations', ready: !isLoading && filtered.length > 0, cellsSelector: 'thead th' })
 
   const sel = useSelectionLot<DelegationPrescription>({
     idDe: x => x.id,
@@ -399,7 +399,7 @@ export function DelegationsTab({ canCreate, canUpdate, canRevoke, canDelete }: {
       {/* ── Zone scrollable ───────────────────────────────────────────────── */}
       <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingBottom: '8px' }}>
         <div style={DATA_TABLE_CARD}>
-          <table ref={rz.containerRef} style={{ width: '100%', borderCollapse: 'collapse', tableLayout: rz.tableLayout }}>
+          <table ref={attacher} style={{ width: '100%', borderCollapse: 'collapse', tableLayout: rz.tableLayout }}>
             <DataTableHead resize={rz} columns={[
               { label: t('acteurs.colMedecinChef') },
               { label: t('acteurs.colInfirmier') },

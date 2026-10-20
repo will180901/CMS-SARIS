@@ -313,7 +313,7 @@ export function useUpdateRole(id: string) {
       // On lit `updatedRole.code` depuis la réponse de la mutation (pas le cache,
       // qui vient d'être invalidé).
       const meRoles = useSessionStore.getState().user?.roles ?? []
-      const concernedByMe = meRoles.includes(updatedRole.code as any)
+      const concernedByMe = (meRoles as string[]).includes(updatedRole.code)
       await refreshCurrentSessionIfNeeded(concernedByMe, qc)
 
       toast.success(i18n.t('admin.toastRoleUpdated'))

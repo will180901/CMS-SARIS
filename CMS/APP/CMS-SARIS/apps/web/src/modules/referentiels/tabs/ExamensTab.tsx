@@ -126,7 +126,7 @@ export function ExamensTab({ canCreate, canUpdate, canDelete }: { canCreate: boo
     { libelle: t('referentiels.fieldLabel'),       valeur: e => e.libelle },
     { libelle: t('referentiels.examColStatus'),    valeur: e => (isActif(e.statut) ? 'Actif' : 'Inactif') },
   ], [t])
-  const rz = useColumnResize({ storageKey: 'ref-examens', ready: !isLoading && filtered.length > 0, cellsSelector: 'thead th' })
+  const [rz, attacher] = useColumnResize({ storageKey: 'ref-examens', ready: !isLoading && filtered.length > 0, cellsSelector: 'thead th' })
 
   const sel = useSelectionLot<TypeExamen>({
     idDe: x => x.id,
@@ -155,7 +155,7 @@ export function ExamensTab({ canCreate, canUpdate, canDelete }: { canCreate: boo
       {canDelete && <BarreSelectionLot sel={sel} lignes={filtered} />}
       <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingBottom: '8px' }}>
         <div style={DATA_TABLE_CARD}>
-          <table ref={rz.containerRef} style={{ width: '100%', borderCollapse: 'collapse', tableLayout: rz.tableLayout }}>
+          <table ref={attacher} style={{ width: '100%', borderCollapse: 'collapse', tableLayout: rz.tableLayout }}>
             <DataTableHead resize={rz} columns={[
               { label: t('referentiels.examColDomain') },
               { label: t('referentiels.fieldCode') },

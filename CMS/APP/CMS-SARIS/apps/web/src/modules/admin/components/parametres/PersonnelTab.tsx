@@ -280,7 +280,7 @@ function PreferencesCard() {
 
   // Suit les dernières valeurs (serveur + brouillon) pour le nettoyage au démontage.
   const latest = useRef<{ pref?: Preferences | null; draft: Preferences | null }>({ pref, draft })
-  latest.current = { pref, draft }
+  useEffect(() => { latest.current = { pref, draft } })
 
   useEffect(() => { if (pref) setDraft(pref) }, [pref])
 

@@ -155,7 +155,7 @@ export function DossierPrintModal({ dossier, onClose }: { dossier: PatientDossie
               <th style={{ ...TH, width: '22%' }}>{t('patients.printColStatus')}</th>
             </tr></thead>
             <tbody>
-              {(consultations as any[]).map(c => (
+              {consultations.map(c => (
                 <tr key={c.id}>
                   <td style={TD}>{fmt(c.createdAt)}</td>
                   <td style={TD}>{c.visite?.motifPrincipal?.libelle ?? '—'}</td>

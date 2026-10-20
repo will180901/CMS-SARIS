@@ -19,7 +19,7 @@ const SPRITE_URL = new URL(`${import.meta.env.BASE_URL}emoji/apple-64.png`, wind
 export function EmojiPicker({ onPick }: { onPick: (native: string) => void }) {
   const ref   = useRef<HTMLDivElement>(null)
   const cbRef = useRef(onPick)
-  cbRef.current = onPick
+  useEffect(() => { cbRef.current = onPick }, [onPick])
 
   useEffect(() => {
     const el = ref.current

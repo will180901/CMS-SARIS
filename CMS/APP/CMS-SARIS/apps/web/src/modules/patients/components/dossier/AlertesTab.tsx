@@ -455,7 +455,7 @@ export function AlertesTab({ dossier, canWrite }: { dossier: PatientDossier; can
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <div style={fld}>
             <Label style={lbl}>{t('patients.fieldAlertType')}</Label>
-            <Select value={alerteType} onValueChange={v => alerteForm.setValue('type', v as any)}>
+            <Select value={alerteType} onValueChange={v => alerteForm.setValue('type', v as AlerteForm['type'])}>
               <SelectTrigger style={{ height: 36, fontSize: '13px', border: '1px solid var(--bordure-normale)' }}><SelectValue /></SelectTrigger>
               <SelectContent>
                 {/* « Allergie » n'est proposé que pour une ancienne alerte déjà de ce type. */}

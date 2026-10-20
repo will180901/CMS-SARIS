@@ -25,7 +25,7 @@ import {
   PageHeader, Card, Button, StatusPill, Skeleton, EmptyState, Tooltip, Modal, SegmentedTabs,
   Toolbar, DataTableHead, DATA_TABLE_CARD, DATA_TD_PADDING, dataRowStyle, PaginationBar, IconButton,
 } from '@/components/saris'
-import type { SegmentedTab } from '@/components/saris'
+import type { SegmentedTab, StatusTone } from '@/components/saris'
 import { toast } from '@workspace/ui/components/sonner'
 import { usePermissions } from '@/hooks/usePermissions'
 import { useSites } from '@/modules/referentiels/hooks/useReferentiels'
@@ -83,7 +83,7 @@ function moduleIcon(mod: string) { return MODULE_ICONS[mod] ?? <HardDrive size={
 
 type TFn = ReturnType<typeof useTranslation>['t']
 
-const MUTATION_STATUT_TONE: Record<string, string> = {
+const MUTATION_STATUT_TONE: Record<string, StatusTone> = {
   PENDING:  'warning',
   SENT:     'info',
   APPLIED:  'success',
@@ -1376,7 +1376,7 @@ function MutationRow({ m, striped }: { m: FileMutation; striped: boolean }) {
           {relative(m.createdLocalAt)}{m.errorMessage ? ` · ${m.errorMessage}` : ''}
         </p>
       </div>
-      <StatusPill tone={tone as any} size="sm">{label}</StatusPill>
+      <StatusPill tone={tone} size="sm">{label}</StatusPill>
     </div>
   )
 }
@@ -1586,7 +1586,7 @@ function SauvegardeRow({ s, striped, canRestore, onRestore, canDelete, onDelete,
         </p>
         <p style={{ margin: '1px 0 0', fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)' }}>{formatDate(s.createdAt)} · {relative(s.createdAt)}</p>
       </div>
-      <StatusPill tone={tone as any}>{labelStatut('synchronisation', s.statut)}</StatusPill>
+      <StatusPill tone={tone}>{labelStatut('synchronisation', s.statut)}</StatusPill>
       {canRestore ? (
         restaurable ? (
           <Button size="sm" variant="outline" leftIcon={<RotateCcw size={12} />} onClick={onRestore}>{t('admin.restore')}</Button>

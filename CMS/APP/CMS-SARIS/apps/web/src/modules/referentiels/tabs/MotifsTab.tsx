@@ -99,7 +99,7 @@ export function MotifsTab({ canCreate, canUpdate, canDelete }: { canCreate: bool
     { libelle: t('referentiels.fieldLabel'),       valeur: m => m.libelle },
     { libelle: t('referentiels.motifColStatus'),   valeur: m => (isActif(m.statut) ? 'Actif' : 'Inactif') },
   ], [t])
-  const rz = useColumnResize({ storageKey: 'ref-motifs', ready: !isLoading && filtered.length > 0, cellsSelector: 'thead th' })
+  const [rz, attacher] = useColumnResize({ storageKey: 'ref-motifs', ready: !isLoading && filtered.length > 0, cellsSelector: 'thead th' })
 
   const sel = useSelectionLot<MotifConsultation>({
     idDe: x => x.id,
@@ -131,7 +131,7 @@ export function MotifsTab({ canCreate, canUpdate, canDelete }: { canCreate: bool
       {canDelete && <BarreSelectionLot sel={sel} lignes={filtered} />}
       <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingBottom: '8px' }}>
         <div style={DATA_TABLE_CARD}>
-          <table ref={rz.containerRef} style={{ width: '100%', borderCollapse: 'collapse', tableLayout: rz.tableLayout }}>
+          <table ref={attacher} style={{ width: '100%', borderCollapse: 'collapse', tableLayout: rz.tableLayout }}>
             <DataTableHead resize={rz} columns={[
               { label: t('referentiels.fieldCode') },
               { label: t('referentiels.fieldLabel') },

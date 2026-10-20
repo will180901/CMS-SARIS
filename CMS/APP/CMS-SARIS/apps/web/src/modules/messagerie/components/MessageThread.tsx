@@ -23,6 +23,9 @@ import { Avatar, UserAvatar, CheckBox } from '@/components/saris'
 import { Popover, PopoverContent, PopoverTrigger } from '@workspace/ui/components/popover'
 import { toast } from '@workspace/ui/components/sonner'
 import { isOfflineQueued, isUploadTimeout } from '@/lib/api'
+
+/** Le message du serveur dans une erreur d'appel, s'il y en a un. */
+const messageServeur = (e: unknown): string | undefined => (e as { serverMessage?: string } | null)?.serverMessage
 import { isDesktop } from '@/lib/desktop'
 import { DESKTOP_TITLEBAR_H } from '@/components/layout/DesktopTitleBar'
 import {
@@ -146,6 +149,7 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
   const messages = flattenThread(data?.pages)
   const muteMut = useSetMuted(conversationId)
   const [threadMenuOpen, setThreadMenuOpen] = useState(false)
+  const [groupInfoOpen, setGroupInfoOpen]   = useState(false)
   const groupLeaveFlow = useLeaveGroupFlow(() => { setGroupInfoOpen(false); onLeft?.() })
 
   const sendMut   = useSendMessage(conversationId)
@@ -175,7 +179,6 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
   const [selectMode, setSelectMode]   = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [multiDel, setMultiDel]       = useState(false)
-  const [groupInfoOpen, setGroupInfoOpen]   = useState(false)
   const [forwardTarget, setForwardTarget]   = useState<MessageItem | null>(null)
   const [reactionDetailsId, setReactionDetailsId] = useState<string | null>(null)
   const [pinnedIdx, setPinnedIdx]           = useState(0)
@@ -460,15 +463,15 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
     const texte = editText.trim()
     if (!texte) return
     try { await updateMut.mutateAsync({ id: editId!, contenu: texte }); setEditId(null); setEditText('') }
-    catch (e: any) { toast.error(e?.serverMessage || t('messagerie.updateError')) }
+    catch (e: unknown) { toast.error(messageServeur(e) || t('messagerie.updateError')) }
   }
   async function deleteForMe(id: string) {
     setDelTarget(null)
-    try { await hideMut.mutateAsync(id) } catch (e: any) { if (!isOfflineQueued(e)) toast.error(e?.serverMessage || t('messagerie.deleteError')) }
+    try { await hideMut.mutateAsync(id) } catch (e: unknown) { if (!isOfflineQueued(e)) toast.error(messageServeur(e) || t('messagerie.deleteError')) }
   }
   async function deleteForEveryone(id: string) {
     setDelTarget(null)
-    try { await deleteMut.mutateAsync(id) } catch (e: any) { if (!isOfflineQueued(e)) toast.error(e?.serverMessage || t('messagerie.deleteError')) }
+    try { await deleteMut.mutateAsync(id) } catch (e: unknown) { if (!isOfflineQueued(e)) toast.error(messageServeur(e) || t('messagerie.deleteError')) }
   }
   function startReply(m: MessageItem) {
     setReplyTo({ id: m.id, auteur: m.deMoi ? t('messagerie.you') : m.expediteur, deMoi: m.deMoi, apercu: m.contenu || (m.piecesJointes.length ? t('messagerie.attachmentPreview') : '') })
@@ -477,7 +480,7 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
   async function copyMessage(m: MessageItem) { try { await navigator.clipboard.writeText(m.contenu); toast.success(t('messagerie.copied')) } catch { /* ignore */ } }
   function react(m: MessageItem, emoji: string) { reactMut.mutate({ messageId: m.id, emoji }) }
   async function togglePin(m: MessageItem) {
-    try { await pinMut.mutateAsync(m.id) } catch (e: any) { toast.error(e?.serverMessage || t('messagerie.pinError')) }
+    try { await pinMut.mutateAsync(m.id) } catch (e: unknown) { toast.error(messageServeur(e) || t('messagerie.pinError')) }
   }
 
   // ── Sélection multiple (suppression en lot) ─────────────────────────────────

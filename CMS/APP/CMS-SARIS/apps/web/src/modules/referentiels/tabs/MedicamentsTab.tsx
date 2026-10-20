@@ -100,7 +100,7 @@ export function MedicamentsTab({ canCreate, canUpdate, canDelete }: { canCreate:
     { libelle: t('referentiels.medColFamily'),     valeur: m => m.familleThera ?? '—' },
     { libelle: t('referentiels.medColStatus'),     valeur: m => (isActif(m.statut) ? 'Actif' : 'Inactif') },
   ], [t])
-  const rz = useColumnResize({ storageKey: 'ref-medicaments', ready: !isLoading && filtered.length > 0, cellsSelector: 'thead th' })
+  const [rz, attacher] = useColumnResize({ storageKey: 'ref-medicaments', ready: !isLoading && filtered.length > 0, cellsSelector: 'thead th' })
 
   const sel = useSelectionLot<MedicamentReference>({
     idDe: m => m.id,
@@ -130,7 +130,7 @@ export function MedicamentsTab({ canCreate, canUpdate, canDelete }: { canCreate:
       {canDelete && <BarreSelectionLot sel={sel} lignes={filtered} />}
       <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingBottom: '8px' }}>
         <div style={DATA_TABLE_CARD}>
-          <table ref={rz.containerRef} style={{ width: '100%', borderCollapse: 'collapse', tableLayout: rz.tableLayout }}>
+          <table ref={attacher} style={{ width: '100%', borderCollapse: 'collapse', tableLayout: rz.tableLayout }}>
             <DataTableHead resize={rz} columns={[
               { label: t('referentiels.medColGeneric') },
               { label: t('referentiels.medColCommercial') },

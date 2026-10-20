@@ -701,7 +701,7 @@ function ActionsTable({ entries, loading, pagination, onOpen }: {
 }) {
   const { t } = useTranslation()
   const isCompact = useIsCompact()
-  const rz = useColumnResize({ storageKey: 'audit-actions', ready: !loading && entries.length > 0, cellsSelector: ':scope > *' })
+  const [rz, attacher] = useColumnResize({ storageKey: 'audit-actions', ready: !loading && entries.length > 0, cellsSelector: ':scope > *' })
   const cols = rz.gridTemplate ?? ACTIONS_COLS
   // Sur téléphone, chaque entrée devient une carte (cartesMobile.ts).
   const poserCartes = useCartesMobile()
@@ -723,7 +723,7 @@ function ActionsTable({ entries, loading, pagination, onOpen }: {
         {!loading && entries.length > 0 && (
           <div style={{ overflowX: isCompact ? 'auto' : undefined, flexShrink: 0, scrollbarWidth: 'none' }}>
             <div style={{ minWidth: isCompact ? 'max-content' : undefined }}>
-              <Row header resize={rz} cols={cols} columns={[t('admin.colDate'), t('admin.colUser'), t('admin.colModule'), t('admin.colAction'), t('admin.colEntity'), t('admin.colStatus'), '']} />
+              <Row header resize={rz} attacher={attacher} cols={cols} columns={[t('admin.colDate'), t('admin.colUser'), t('admin.colModule'), t('admin.colAction'), t('admin.colEntity'), t('admin.colStatus'), '']} />
             </div>
           </div>
         )}
@@ -820,7 +820,7 @@ function AuthTable({ entries, loading, pagination }: {
 }) {
   const { t } = useTranslation()
   const isCompact = useIsCompact()
-  const rz = useColumnResize({ storageKey: 'audit-auth-v3', ready: !loading && entries.length > 0, cellsSelector: ':scope > *' })
+  const [rz, attacher] = useColumnResize({ storageKey: 'audit-auth-v3', ready: !loading && entries.length > 0, cellsSelector: ':scope > *' })
   const cols = rz.gridTemplate ?? AUTH_COLS
   const poserCartes = useCartesMobile()
 
@@ -841,7 +841,7 @@ function AuthTable({ entries, loading, pagination }: {
         {!loading && entries.length > 0 && (
           <div style={{ overflowX: isCompact ? 'auto' : undefined, flexShrink: 0, scrollbarWidth: 'none' }}>
             <div style={{ minWidth: isCompact ? 'max-content' : undefined }}>
-              <Row header resize={rz} cols={cols} columns={[t('admin.colDate'), t('admin.colLogin'), t('admin.colResult'), t('admin.colIpAddress'), t('position.colTable'), t('admin.colBrowser')]} />
+              <Row header resize={rz} attacher={attacher} cols={cols} columns={[t('admin.colDate'), t('admin.colLogin'), t('admin.colResult'), t('admin.colIpAddress'), t('position.colTable'), t('admin.colBrowser')]} />
             </div>
           </div>
         )}
@@ -874,7 +874,7 @@ function AuthTable({ entries, loading, pagination }: {
               </span>
             </Cell>
             <Cell>
-              <StatusPill tone={tone as any}>
+              <StatusPill tone={tone}>
                 {isSuccess
                   ? <CheckCircle2 size={11} style={{ marginRight: 2 }} />
                   : isWarn
@@ -1515,11 +1515,11 @@ function JsonBlock({ title, data, defaultOpen }: { title: string; data: unknown;
 
 // ── Helpers visuels ───────────────────────────────────────────────────────────
 
-function Row({ columns, header, cols, resize }: { columns: string[]; header?: boolean; cols: string; resize?: ColumnResize }) {
+function Row({ columns, header, cols, resize, attacher }: { columns: string[]; header?: boolean; cols: string; resize?: ColumnResize; attacher?: (el: HTMLElement | null) => void }) {
   const { t } = useTranslation()
   const last = columns.length - 1
   return (
-    <div ref={resize ? resize.containerRef : undefined} role={header ? 'row' : undefined} style={{
+    <div ref={attacher} role={header ? 'row' : undefined} style={{
       display: 'grid',
       gridTemplateColumns: cols,
       padding: 'var(--espace-2) var(--espace-4)',

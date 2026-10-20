@@ -124,7 +124,7 @@ export function CategoriesTab({ canCreate, canUpdate, canDelete }: { canCreate: 
     { libelle: t('referentiels.fieldLabel'),       valeur: c => c.libelle },
     { libelle: t('referentiels.catColStatus'),     valeur: c => (isActif(c.statut) ? 'Actif' : 'Inactif') },
   ], [t])
-  const rz = useColumnResize({ storageKey: 'ref-categories', ready: !isLoading && filtered.length > 0, cellsSelector: 'thead th' })
+  const [rz, attacher] = useColumnResize({ storageKey: 'ref-categories', ready: !isLoading && filtered.length > 0, cellsSelector: 'thead th' })
 
   const sel = useSelectionLot<CategoriePatient>({
     idDe: x => x.id,
@@ -169,7 +169,7 @@ export function CategoriesTab({ canCreate, canUpdate, canDelete }: { canCreate: 
       {canDelete && <BarreSelectionLot sel={sel} lignes={filtered} />}
       <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, paddingBottom: '8px' }}>
         <div style={DATA_TABLE_CARD}>
-          <table ref={rz.containerRef} style={{ width: '100%', borderCollapse: 'collapse', tableLayout: rz.tableLayout }}>
+          <table ref={attacher} style={{ width: '100%', borderCollapse: 'collapse', tableLayout: rz.tableLayout }}>
             <DataTableHead resize={rz} columns={[
               { label: t('referentiels.fieldCode') },
               { label: t('referentiels.fieldLabel') },

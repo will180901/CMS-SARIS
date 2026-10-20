@@ -109,7 +109,7 @@ function EvacuationDetail({ evacuation, canUpdate, canDelete, patient, soignant 
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--espace-3)' }}>
       {/* Header avec badges */}
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-        <StatusPill tone={toneByUrg[evacuation.niveauUrgence] as any}>
+        <StatusPill tone={toneByUrg[evacuation.niveauUrgence]}>
           <AlertTriangle size={11} style={{ marginRight: 3 }} /> {t('sorties.urgenceBadge', { niveau: labelUrgence(evacuation.niveauUrgence) })}
         </StatusPill>
         <StatusPill tone={evacuation.statut === 'EN_COURS' ? 'info' : evacuation.statut === 'CLOTURE' ? 'success' : 'neutral'}>
@@ -236,7 +236,7 @@ function EvacuationDetail({ evacuation, canUpdate, canDelete, patient, soignant 
                   <SelectBox
                     id={id} size="sm"
                     value={statut}
-                    onChange={(v) => setStatut(v as any)}
+                    onChange={(v) => setStatut(v as typeof statut)}
                     options={[
                       { value: 'EN_TRANSPORT', label: t('sorties.stepEnTransport') },
                       { value: 'ADMIS',        label: t('sorties.stepAdmis') },

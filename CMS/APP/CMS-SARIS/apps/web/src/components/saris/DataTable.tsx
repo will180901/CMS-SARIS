@@ -47,7 +47,7 @@ export interface DataColumn {
  *
  * Si `resize` est fourni (via `useColumnResize`), chaque frontière de colonne
  * reçoit une poignée de redimensionnement (glisser pour ajuster, double-clic pour
- * réinitialiser). Le `<table>` parent doit alors recevoir `tableLayout` et `containerRef`.
+ * réinitialiser). Le `<table>` parent doit alors recevoir `tableLayout` (du hook) et l'`attacher` (second élément rendu par `useColumnResize`) en `ref`.
  */
 export function DataTableHead({ columns, resize }: { columns: DataColumn[]; resize?: ColumnResize }) {
   const last = columns.length - 1
