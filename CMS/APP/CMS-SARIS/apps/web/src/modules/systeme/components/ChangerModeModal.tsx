@@ -91,7 +91,7 @@ function Contenu({ etat, onClose }: { etat: EtatModeSysteme; onClose: () => void
         <Field label={t('modeSysteme.motDePasse')} hint={t('modeSysteme.motDePasseAide')} error={erreur}>
           {(id) => (
             <TextInput
-              id={id} type="password" autoComplete="current-password" autoFocus
+              id={id} type="password" autoComplete="current-password" data-autofocus
               value={motDePasse} invalid={!!erreur}
               onChange={(e) => setMotDePasse(e.target.value)}
             />

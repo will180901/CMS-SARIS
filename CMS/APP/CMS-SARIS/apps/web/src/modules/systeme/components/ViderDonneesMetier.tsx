@@ -198,7 +198,7 @@ function Fenetre({ etat, onClose }: { etat: EtatVidage; onClose: () => void }) {
         <Field label={t('vidage.phraseLabel', { phrase: etat.phrase })} hint={t('vidage.phraseAide')}>
           {(id) => (
             <TextInput
-              id={id} autoComplete="off" autoFocus spellCheck={false}
+              id={id} autoComplete="off" data-autofocus spellCheck={false}
               value={phrase} placeholder={etat.phrase}
               onChange={(e) => setPhrase(e.target.value.toUpperCase())}
             />

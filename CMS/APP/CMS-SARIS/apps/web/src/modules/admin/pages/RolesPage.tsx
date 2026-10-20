@@ -892,7 +892,7 @@ function CreateRoleDialog({
             value={libelle}
             onChange={e => setLibelle(e.target.value)}
             placeholder={t('admin.roleNamePlaceholder')}
-            autoFocus
+            data-autofocus
           />
         )}
       </Field>

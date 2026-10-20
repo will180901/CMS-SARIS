@@ -196,7 +196,7 @@ export function ControleFluxPoste({ poste, peutAgir, onModale }: Props) {
             <Field label={t('admin.supSuspMotif')} hint={t('admin.supSuspMotifAide')}>
               {(id) => (
                 <Textarea
-                  id={id} rows={2} maxLength={200} value={motif} autoFocus
+                  id={id} rows={2} maxLength={200} value={motif} data-autofocus
                   placeholder={t('admin.supSuspMotifPlaceholder')}
                   onChange={(e) => setMotif(e.target.value)}
                 />

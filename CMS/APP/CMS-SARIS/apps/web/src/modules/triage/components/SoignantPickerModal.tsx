@@ -97,7 +97,7 @@ export function SoignantPickerModal({ open, onClose, currentId, onSelect, pendin
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder={t('triage.searchSoignantPlaceholder')}
-              autoFocus
+              data-autofocus
               style={{
                 width: '100%', height: 34,
                 paddingLeft: 32, paddingRight: 12,

@@ -282,7 +282,7 @@ function CorrectionModal({ bon, resultat, onClose }: { bon: BonExamen; resultat:
         <p style={{ margin: 0, fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)' }}>{t('bonExamen.correctionAide')}</p>
         <ChoixNormalite value={normalite} onChange={setNormalite} />
         <Field label={t('bonExamen.resultLabel')} required>
-          {(id) => <Textarea id={id} maxLength={5000} rows={4} value={contenu} onChange={e => setContenu(e.target.value)} autoFocus />}
+          {(id) => <Textarea id={id} maxLength={5000} rows={4} value={contenu} onChange={e => setContenu(e.target.value)} data-autofocus />}
         </Field>
         <Field label={t('bonExamen.motifCorrection')} required>
           {(id) => <Textarea id={id} maxLength={500} rows={2} value={motif} onChange={e => setMotif(e.target.value)} placeholder={t('bonExamen.motifCorrectionPlaceholder')} />}

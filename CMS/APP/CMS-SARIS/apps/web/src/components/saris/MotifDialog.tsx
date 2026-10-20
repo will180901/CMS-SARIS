@@ -68,7 +68,7 @@ export function MotifDialog({
             rows={3}
             maxLength={1000}
             placeholder={placeholder}
-            autoFocus
+            data-autofocus
           />
         )}
       </Field>
