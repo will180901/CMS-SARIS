@@ -72,7 +72,17 @@ export function Modal({ icon, title, subtitle, onClose, width = 560, footer, bod
         asChild
         trapped
         loop
-        onMountAutoFocus={e => { e.preventDefault(); carteRef.current?.focus() }}
+        // Le focus va à la carte, sauf si un champ a demandé à le prendre : `data-autofocus` (celui-ci
+        // gagne même quand le tiroir qui porte la fenêtre vient de reprendre le focus) ou un champ déjà
+        // actif (`autoFocus`). L'écraser obligeait à cliquer dans le champ avant de pouvoir écrire.
+        onMountAutoFocus={e => {
+          e.preventDefault()
+          const carte = carteRef.current
+          if (!carte) return
+          const voulu = carte.querySelector<HTMLElement>('[data-autofocus]')
+          if (voulu) voulu.focus()
+          else if (!carte.contains(document.activeElement)) carte.focus()
+        }}
       >
       <div
         ref={carteRef}

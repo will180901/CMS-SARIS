@@ -403,8 +403,10 @@ export function UtilisateurDrawer({ utilisateurId, onClose, initialTab }: Props)
         }}>
           <Button variant="secondary" onClick={onClose} fullWidth>{t('admin.close')}</Button>
         </div>
-      </SheetContent>
-
+      {/* Les fenêtres ci-dessous sont rendues DANS le contenu du tiroir : portées hors de lui, elles
+          n'en font plus partie pour Radix, qui prend alors chaque clic dans la fenêtre pour un clic à
+          l'extérieur et ferme le tiroir — avec la fenêtre. Impossible alors d'écrire dans un champ ou
+          de valider quoi que ce soit. */}
       {/* ── Correction de l'identifiant (l'administrateur ne connaît jamais le mot de passe) ── */}
       {changeIdentifiant && u && (
         <ChangerIdentifiantModal
@@ -529,6 +531,7 @@ export function UtilisateurDrawer({ utilisateurId, onClose, initialTab }: Props)
           onClose={() => setBackupCodes(null)}
         />
       )}
+      </SheetContent>
     </Sheet>
   )
 }

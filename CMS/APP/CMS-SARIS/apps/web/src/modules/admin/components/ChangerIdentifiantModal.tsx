@@ -104,7 +104,7 @@ export function ChangerIdentifiantModal({ actuel, mode, onValider, onClose }: Pr
         <Field label={t('admin.idChangeNouveau')} required hint={t('admin.idChangeAide')} error={erreurLogin ?? formeErreur}>
           {(id) => (
             <TextInput
-              id={id} value={login} autoFocus autoComplete="off" spellCheck={false}
+              id={id} value={login} data-autofocus autoComplete="off" spellCheck={false}
               invalid={!!(erreurLogin ?? formeErreur)} placeholder={actuel}
               onChange={(e) => { setLogin(e.target.value.toLowerCase().trim()); setErreurLogin(null) }}
             />
