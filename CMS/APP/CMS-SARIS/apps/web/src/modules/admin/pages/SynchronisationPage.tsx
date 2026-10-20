@@ -1,29 +1,25 @@
 /**
- * SynchronisationPage — centre de synchronisation & sauvegardes.
+ * SynchronisationPage — supervision de la synchronisation des postes.
  *
- * Trois zones distinctes :
- *   1. Synchronisation terrain (offline-first) : état réseau + file de rejeu
- *      des écritures faites hors-ligne (IndexedDB) + bouton « Synchroniser ».
- *   2. Sauvegardes système (serveur) : dernière sauvegarde + historique.
- *   3. Volumétrie & journaux : compteurs par module.
+ * Zones : ce poste et sa synchronisation (desktop), le parc (postes, activité, conflits),
+ * puis le terrain hors-ligne (file de rejeu IndexedDB, desktop).
  *
  * Réservé aux administrateurs (synchronisation.read/execute).
  */
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import i18n from '@/i18n/config'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
-  RefreshCw, Database, Save, ShieldCheck, FileText, KeyRound, Wifi, WifiOff,
+  RefreshCw, Database, FileText, KeyRound, Wifi, WifiOff,
   HardDrive, CheckCircle2, AlertTriangle, Loader2, CloudUpload, Trash2,
   RotateCcw, Users, Stethoscope, Pill, Ambulance, FlaskConical, HardHat, ClipboardList,
-  CalendarClock, MonitorSmartphone, Activity, GitMerge, Radio, LayoutGrid, List, Search,
+  MonitorSmartphone, Activity, GitMerge, Radio, LayoutGrid, List, Search,
   X, Clock, LogIn, Pencil, User, MessageSquare, Download, ChevronRight, ChevronDown, MapPin, Eye, Pause,
 } from 'lucide-react'
 import {
   PageHeader, Card, Button, StatusPill, Skeleton, EmptyState, Tooltip, Modal, SegmentedTabs,
-  Toolbar, DataTableHead, DATA_TABLE_CARD, DATA_TD_PADDING, dataRowStyle, PaginationBar, IconButton,
+  Toolbar, DataTableHead, DATA_TABLE_CARD, DATA_TD_PADDING, dataRowStyle, PaginationBar,
 } from '@/components/saris'
 import type { SegmentedTab, StatusTone } from '@/components/saris'
 import { toast } from '@workspace/ui/components/sonner'
@@ -34,7 +30,7 @@ import { useRowsPerPage } from '@/hooks/useRowsPerPage'
 import { formatDateTime, formatNumber } from '@/lib/intl'
 import { ListePrintSheet, type ColonneExport } from '@/components/print/ListePrintSheet'
 import { formatDuree } from '@/lib/duree'
-import { labelModule, labelStatut, labelAction, labelRole } from '@/config/labels'
+import { labelModule, labelAction, labelRole } from '@/config/labels'
 import { useConnectivityStore } from '@/stores/connectivity.store'
 import { isDesktop } from '@/lib/desktop'
 import { PosteActiviteDrawer } from '../components/PosteActiviteDrawer'
@@ -45,25 +41,14 @@ import { CePosteCard } from '../components/CePosteCard'
 import { useSyncStore } from '@/stores/sync.store'
 import { syncCycle, listMutations, purgeMutations, retryRejected } from '@/lib/sync'
 import {
-  useSyncStatus, useRestaurerSauvegarde, useSupprimerSauvegarde,
-} from '../hooks/useAdmin'
-import {
   useSyncStatus as useDataSyncStatus, useSyncRun, useSyncSupervision, useActiviteParPoste, usePosteDetail, useMasquerPoste, useRenamePoste,
 } from '../hooks/useSync'
-import type { SauvegardeSysteme } from '../api/admin.api'
 import type {
   SyncSupervisionPoste, SyncActivitePoste, SyncSupervisionConflit,
 } from '../api/sync.api'
 import type { FileMutation } from '@cms-saris/types'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-/** Date absolue (jour mois année + heure) suivant la langue active. */
-function formatDate(iso: string): string {
-  return formatDateTime(iso, {
-    day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
-  })
-}
 
 const MODULE_ICONS: Record<string, ReactNode> = {
   utilisateurs:     <KeyRound size={14} />,
@@ -119,8 +104,7 @@ export function SynchronisationPage() {
       {/* Écran UNIQUE, ordonné par urgence décroissante — plus d'onglets de premier
           niveau. Superviser, c'est répondre à « est-ce que tout va bien ? » : la réponse
           doit être lisible avant le premier clic, pas cachée derrière deux niveaux de
-          navigation. Sauvegardes et volumétrie sont partis vers « Base de données » :
-          ce sont des sujets de stockage, pas de synchronisation. */}
+          navigation. */}
       <div style={{ padding: 'var(--espace-4) var(--espace-6) var(--espace-6)', display: 'flex', flexDirection: 'column', gap: 'var(--espace-4)' }}>
 
         {/* 1. Ce poste-ci — DESKTOP uniquement : l'application y est elle-même une
@@ -135,11 +119,6 @@ export function SynchronisationPage() {
 
         {/* 3. Le terrain hors-ligne (file d'attente locale) */}
         {isDesktop && <SyncTerrainZone />}
-
-        {/* Sauvegardes et volumétrie sont parties vers « Base de données » : restaurer
-            une sauvegarde ou lire des compteurs de stockage n'a rien à voir avec
-            surveiller un parc de postes. Les mêler obligeait à traverser un tableau de
-            bord d'exploitation pour un geste d'administration de base. */}
       </div>
     </div>
   )
@@ -1354,301 +1333,5 @@ function MutationRow({ m, striped }: { m: FileMutation; striped: boolean }) {
       </div>
       <StatusPill tone={tone} size="sm">{label}</StatusPill>
     </div>
-  )
-}
-
-// ════════════════════════════════════════════════════════════════════════════════
-//  ZONE 2 — Sauvegardes serveur
-// ════════════════════════════════════════════════════════════════════════════════
-
-export function SauvegardesZone({ sauvegardes, loading, canRestore, canDelete, planification }: {
-  sauvegardes: SauvegardeSysteme[]
-  loading: boolean
-  canRestore: boolean
-  canDelete?: boolean
-  planification?: { actif: boolean; frequence?: string; heure?: string; expression?: string; retention: number }
-}) {
-  const { t } = useTranslation()
-  const derniere = sauvegardes[0]
-  const restaurer = useRestaurerSauvegarde()
-  const supprimer = useSupprimerSauvegarde()
-  const [restoreTarget, setRestoreTarget] = useState<SauvegardeSysteme | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<SauvegardeSysteme | null>(null)
-  // Le serveur refuse de supprimer la DERNIÈRE sauvegarde : le système resterait sans
-  // point de restauration. Le bouton reste néanmoins AFFICHÉ, désactivé, avec la raison
-  // en infobulle — le faire disparaître laissait chercher une action qu'on croyait
-  // absente, alors qu'elle n'était qu'indisponible pour un moment.
-  const suppressionPossible = !!canDelete && sauvegardes.length > 1
-  // La sauvegarde automatique tourne tous les jours : cette liste grossit toute seule,
-  // sans que personne ne l'alimente. Elle était rendue d'un bloc, jusqu'aux 50 entrées
-  // renvoyées par le serveur — sept semaines à faire défiler pour atteindre la dernière.
-  const pagination = usePagination(sauvegardes, useRowsPerPage())
-
-  return (
-    <Card padding="none">
-      <Card.Header
-        icon={<Save size={14} />}
-        title={t('admin.backupsTitle')}
-        subtitle={t('admin.backupsSubtitle', { count: sauvegardes.length })}
-      />
-      <Card.Body padding="md">
-        {/* Bandeau planification automatique */}
-        {planification?.actif && (
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 8,
-            padding: 'var(--espace-2) var(--espace-3)', borderRadius: 'var(--radius-md)',
-            background: 'var(--info-fond)', color: 'var(--info-texte)', fontSize: 12, marginBottom: 'var(--espace-3)',
-          }}>
-            <CalendarClock size={14} />
-            <span><strong>{t('admin.autoBackup')}</strong> — {planificationLabel(t, planification)} · {t('admin.retentionKept', { count: planification.retention })}</span>
-          </div>
-        )}
-        {/* Dernière sauvegarde mise en avant */}
-        {derniere && (
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 'var(--espace-3)',
-            padding: 'var(--espace-3) var(--espace-4)', borderRadius: 'var(--radius-lg)',
-            border: '1px solid var(--bordure-legere)', background: 'var(--fond-surface-2)',
-            marginBottom: 'var(--espace-3)',
-          }}>
-            <div style={{
-              width: 40, height: 40, borderRadius: 'var(--radius-lg)', flexShrink: 0,
-              background: derniere.statut === 'REUSSIE' ? 'var(--succes-fond)' : 'var(--avert-fond)',
-              color:      derniere.statut === 'REUSSIE' ? 'var(--succes-accent)' : 'var(--avert-accent)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              {derniere.statut === 'REUSSIE' ? <CheckCircle2 size={20} /> : <AlertTriangle size={20} />}
-            </div>
-            <div style={{ flex: 1 }}>
-              <p style={{ margin: 0, fontSize: 'var(--font-size-body)', fontWeight: 700, color: 'var(--texte-primaire)' }}>
-                {t('admin.lastBackup')} — {relative(derniere.createdAt)}
-              </p>
-              <p style={{ margin: '2px 0 0', fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)' }}>
-                {formatDate(derniere.createdAt)} · {t('admin.triggeredBy', { type: declTypeLabel(derniere.type) })}
-              </p>
-            </div>
-            <StatusPill tone={derniere.statut === 'REUSSIE' ? 'success' : derniere.statut === 'ECHEC' ? 'error' : 'warning'}>
-              {labelStatut('synchronisation', derniere.statut)}
-            </StatusPill>
-          </div>
-        )}
-
-        {loading ? (
-          <div>{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} height={44} style={{ marginBottom: 6 }} />)}</div>
-        ) : sauvegardes.length === 0 ? (
-          <EmptyState
-            icon={<Save size={20} />}
-            title={t('admin.noBackupTitle')}
-            description={t('admin.noBackupDesc')}
-            variant="subtle"
-          />
-        ) : (
-          <>
-            <div style={{ border: '1px solid var(--bordure-legere)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
-              {pagination.pageData.map((s, i) => (
-                <SauvegardeRow key={s.id} s={s} striped={i % 2 === 1}
-                  canRestore={canRestore} onRestore={() => setRestoreTarget(s)}
-                  canDelete={!!canDelete} derniereRestante={!suppressionPossible}
-                  onDelete={() => setDeleteTarget(s)} />
-              ))}
-            </div>
-            <div style={{ marginTop: 'var(--espace-3)' }}>
-              <PaginationBar {...pagination} />
-            </div>
-          </>
-        )}
-      </Card.Body>
-
-      {restoreTarget && (
-        <Modal
-          icon={<RotateCcw size={18} style={{ color: 'var(--avert-accent)' }} />}
-          title={t('admin.restoreTitle')}
-          subtitle={t('admin.restoreSubtitle', { date: formatDate(restoreTarget.createdAt) })}
-          width={460}
-          onClose={() => setRestoreTarget(null)}
-          footer={
-            <>
-              <Button variant="ghost" onClick={() => setRestoreTarget(null)}>{t('admin.cancel')}</Button>
-              <Button
-                variant="danger"
-                loading={restaurer.isPending}
-                onClick={() => restaurer.mutate(restoreTarget.id, { onSuccess: () => setRestoreTarget(null) })}
-              >
-                {t('admin.restore')}
-              </Button>
-            </>
-          }
-        >
-          <p style={{ fontSize: 13, color: 'var(--texte-secondaire)', margin: 0, lineHeight: 1.55 }}>
-            {t('admin.restoreBody1')}<strong>{t('admin.restoreBodyStrong1')}</strong>{t('admin.restoreBody2')}<strong>{t('admin.restoreBodyStrong2')}</strong>{t('admin.restoreBody3')}
-          </p>
-        </Modal>
-      )}
-
-      {/* Suppression : irréversible et sans effet sur la configuration en place. On
-          nomme la sauvegarde par sa date — « supprimer cet élément » ne dit pas lequel. */}
-      {deleteTarget && (
-        <Modal
-          icon={<Trash2 size={18} style={{ color: 'var(--erreur-accent)' }} />}
-          title={t('admin.backupDeleteTitle')}
-          subtitle={t('admin.backupDeleteSubtitle', { date: formatDate(deleteTarget.createdAt) })}
-          width={460}
-          onClose={() => setDeleteTarget(null)}
-          footer={
-            <>
-              <Button variant="ghost" onClick={() => setDeleteTarget(null)}>{t('admin.cancel')}</Button>
-              <Button
-                variant="danger"
-                loading={supprimer.isPending}
-                onClick={() => supprimer.mutate(deleteTarget.id, { onSuccess: () => setDeleteTarget(null) })}
-              >
-                {t('admin.backupDelete')}
-              </Button>
-            </>
-          }
-        >
-          <p style={{ fontSize: 13, color: 'var(--texte-secondaire)', margin: 0, lineHeight: 1.55 }}>
-            {t('admin.backupDeleteBody')}
-          </p>
-        </Modal>
-      )}
-    </Card>
-  )
-}
-
-/** Compose la phrase de planification via i18n à partir des données structurées. */
-function planificationLabel(t: TFn, p: { frequence?: string; heure?: string; expression?: string }): string {
-  if (p.frequence === 'DAILY' && p.heure) return t('admin.scheduleDaily', { heure: p.heure })
-  return p.expression ?? t('admin.scheduleUnknown')
-}
-
-function declTypeLabel(type: string): string {
-  const ty = (type || '').toUpperCase()
-  if (ty === 'AUTOMATIQUE' || ty === 'AUTO') return i18n.t('admin.triggerAuto')
-  if (ty === 'MANUELLE')                     return i18n.t('admin.triggerManual')
-  return type.toLowerCase()
-}
-
-function formatTaille(o?: number | null): string {
-  if (!o) return ''
-  if (o < 1024)        return `${o} ${i18n.t('admin.unitBytes')}`
-  if (o < 1024 * 1024) return `${formatNumber(o / 1024, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ${i18n.t('admin.unitKilobytes')}`
-  return `${formatNumber(o / 1024 / 1024, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ${i18n.t('admin.unitMegabytes')}`
-}
-
-function SauvegardeRow({ s, striped, canRestore, onRestore, canDelete, onDelete, derniereRestante }: {
-  s: SauvegardeSysteme; striped: boolean
-  canRestore: boolean; onRestore: () => void
-  canDelete?: boolean;  onDelete?: () => void
-  /** Seule sauvegarde du système : le serveur refuse de la supprimer. */
-  derniereRestante?: boolean
-}) {
-  const { t } = useTranslation()
-  const tone = s.statut === 'REUSSIE' ? 'success' : s.statut === 'ECHEC' ? 'error' : s.statut === 'EN_COURS' ? 'warning' : 'neutral'
-  const restaurable = s.statut === 'REUSSIE' && (s.taille ?? 0) > 0
-  return (
-    <div style={{
-      display: 'grid', gridTemplateColumns: '32px 1fr auto auto auto', gap: 'var(--espace-3)', alignItems: 'center',
-      padding: 'var(--espace-2) var(--espace-3)',
-      background: striped ? 'var(--fond-surface-2)' : 'transparent',
-      borderBottom: '1px solid var(--bordure-legere)',
-    }}>
-      <div style={{ width: 30, height: 30, borderRadius: 'var(--radius-md)', background: 'var(--ap-50)', color: 'var(--ap-600)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Save size={14} />
-      </div>
-      <div style={{ minWidth: 0 }}>
-        <p style={{ margin: 0, fontSize: 'var(--font-size-body-sm)', fontWeight: 600, color: 'var(--texte-primaire)' }}>
-          {t('admin.backupOfType', { type: declTypeLabel(s.type) })}{s.taille ? ` · ${formatTaille(s.taille)}` : ''}
-        </p>
-        <p style={{ margin: '1px 0 0', fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)' }}>{formatDate(s.createdAt)} · {relative(s.createdAt)}</p>
-      </div>
-      <StatusPill tone={tone}>{labelStatut('synchronisation', s.statut)}</StatusPill>
-      {canRestore ? (
-        restaurable ? (
-          <Button size="sm" variant="outline" leftIcon={<RotateCcw size={12} />} onClick={onRestore}>{t('admin.restore')}</Button>
-        ) : (
-          <Tooltip label={t('admin.notRestorable')}>
-            <span style={{ fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)' }}>—</span>
-          </Tooltip>
-        )
-      ) : <span />}
-
-      {/* Suppression : discrète, en icône seule. Restaurer est le geste courant ici ;
-          supprimer ne doit pas lui disputer l'attention, ni s'attraper au passage. */}
-      {canDelete && onDelete ? (
-        <Tooltip label={derniereRestante ? t('admin.backupDeleteLastHint') : t('admin.backupDelete')}>
-          <IconButton
-            aria-label={t('admin.backupDelete')}
-            icon={<Trash2 size={13} />}
-            tone="danger"
-            size="sm"
-            disabled={derniereRestante}
-            onClick={onDelete}
-          />
-        </Tooltip>
-      ) : <span />}
-    </div>
-  )
-}
-
-// ════════════════════════════════════════════════════════════════════════════════
-//  ZONE 3 — Volumétrie & journaux
-// ════════════════════════════════════════════════════════════════════════════════
-
-export function VolumetrieZone({ status, loading, total }: {
-  status: ReturnType<typeof useSyncStatus>['data']
-  loading: boolean
-  total: number
-}) {
-  const { t } = useTranslation()
-  return (
-    <Card padding="none">
-      <Card.Header
-        icon={<HardDrive size={14} />}
-        title={t('admin.volumetryTitle')}
-        subtitle={loading ? t('admin.loading') : t('admin.volumetrySubtitle', { count: total, value: formatNumber(total) })}
-      />
-      <Card.Body padding="md">
-        {loading || !status ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 'var(--espace-2)' }}>
-            {Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} height={58} />)}
-          </div>
-        ) : (
-          <>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 'var(--espace-2)' }}>
-              {status.modules.map(m => (
-                <VolChip key={m.module} icon={moduleIcon(m.module)} label={labelModule(m.module)} value={m.count} />
-              ))}
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 'var(--espace-2)', marginTop: 'var(--espace-3)' }}>
-              <VolChip icon={<ShieldCheck size={14} />} label={t('admin.auditLogsVol')} value={status.journaux.audit} tone="gold" />
-              <VolChip icon={<KeyRound size={14} />} label={t('admin.authenticationsVol')} value={status.journaux.authentifications} tone="neutral" />
-            </div>
-          </>
-        )}
-      </Card.Body>
-    </Card>
-  )
-}
-
-function VolChip({ icon, label, value, tone }: { icon: ReactNode; label: string; value: number; tone?: 'gold' | 'neutral' }) {
-  const accent = tone === 'gold' ? 'var(--as-700)' : 'var(--ap-700)'
-  const bg     = tone === 'gold' ? 'var(--as-50)'  : 'var(--ap-50)'
-  return (
-    <Tooltip label={`${formatNumber(value)} ${label.toLowerCase()}`}>
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 'var(--espace-2)',
-        padding: 'var(--espace-2) var(--espace-3)', borderRadius: 'var(--radius-lg)',
-        border: '1px solid var(--bordure-legere)', background: 'var(--fond-surface)',
-      }}>
-        <div style={{ width: 28, height: 28, borderRadius: 'var(--radius-md)', background: bg, color: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          {icon}
-        </div>
-        <div style={{ minWidth: 0 }}>
-          <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--texte-primaire)', lineHeight: 1.1 }}>{formatNumber(value)}</p>
-          <p style={{ margin: '1px 0 0', fontSize: 'var(--font-size-caption)', color: 'var(--texte-tertiaire)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</p>
-        </div>
-      </div>
-    </Tooltip>
   )
 }

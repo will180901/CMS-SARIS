@@ -101,7 +101,6 @@ export const fr = {
     parametresSysteme: 'Paramètres système',
     audit: 'Journaux d’audit',
     synchronisation: 'Synchronisation',
-    baseDonnees: 'Base de données',
     donneesTest: 'Données de test',
     parametres: 'Paramètres',
     menu: 'Menu',

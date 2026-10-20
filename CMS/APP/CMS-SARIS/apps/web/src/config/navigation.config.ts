@@ -30,7 +30,6 @@ import {
   SlidersHorizontal,
   History,
   RefreshCw,
-  Database,
   FlaskConical,
 } from 'lucide-react'
 import type { LucideIcon }     from 'lucide-react'
@@ -176,16 +175,6 @@ export const NAV_GROUPS: NavGroup[] = [
         href:        '/synchronisation',
         permissions: ['synchronisation.read'],
         description: 'État des postes du terrain, en temps réel',
-      },
-      {
-        // Séparé de la synchronisation : restaurer une sauvegarde ou lire des
-        // compteurs de stockage n'a rien à voir avec surveiller un parc de postes.
-        key:         'baseDonnees',
-        label:       'Base de données',
-        icon:        Database,
-        href:        '/base-donnees',
-        permissions: ['synchronisation.read'],
-        description: 'Sauvegardes de configuration et volumétrie',
       },
       {
         // Mode Test uniquement : fabriquer des mois d'activité fictive, puis les supprimer.

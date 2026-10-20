@@ -298,25 +298,6 @@ export interface AnnuaireEntry {
   photoUrl: string | null
 }
 
-export interface SyncStatus {
-  modules: { module: string; count: number }[]
-  journaux: { audit: number; authentifications: number }
-  derniereSauvegarde: SauvegardeSysteme | null
-  planification?: { actif: boolean; expression: string; retention: number }
-}
-
-export interface SauvegardeSysteme {
-  id:           string
-  type:         string
-  statut:       string
-  declenchePar: string | null
-  createdAt:    string
-  perimetre?:   string | null
-  taille?:      number | null
-  finishedAt?:  string | null
-  message?:     string | null
-}
-
 // ── API ───────────────────────────────────────────────────────────────────────
 
 export const adminApi = {
@@ -427,13 +408,5 @@ export const adminApi = {
     // Son identifiant de connexion : mot de passe redemandé, serveur central seulement.
     changerIdentifiant: (login: string, motDePasse: string) =>
       api.patch<{ login: string }>('/me/identifiant', { login, motDePasse }),
-  },
-
-  synchronisation: {
-    status:        () => api.get<SyncStatus>('/synchronisation/status'),
-    sauvegardes:   () => api.get<SauvegardeSysteme[]>('/synchronisation/sauvegardes'),
-    declencher:    () => api.post<SauvegardeSysteme>('/synchronisation/sauvegardes/manuelle', {}),
-    restaurer:     (id: string) => api.post<{ id: string; restored: true }>(`/synchronisation/sauvegardes/${id}/restaurer`, {}),
-    supprimer:     (id: string) => api.delete<{ id: string; deleted: true }>(`/synchronisation/sauvegardes/${id}`),
   },
 }

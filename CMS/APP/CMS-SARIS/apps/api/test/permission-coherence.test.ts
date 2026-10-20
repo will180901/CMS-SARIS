@@ -126,8 +126,8 @@ test('elles couvrent la gestion des rôles ET des comptes', () => {
 })
 
 console.log('\nle catalogue')
-test('133 permissions au moins, uniques, chacune dans un module égal à son préfixe', () => {
-  assert.ok(ALL_PERMISSIONS.length >= 133)
+test('132 permissions au moins, uniques, chacune dans un module égal à son préfixe', () => {
+  assert.ok(ALL_PERMISSIONS.length >= 132)
   assert.equal(new Set(ALL_PERMISSIONS).size, ALL_PERMISSIONS.length)
   for (const c of ALL_PERMISSIONS) assert.equal(PERMISSION_META[c].module, c.split('.')[0], c)
 })

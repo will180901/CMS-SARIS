@@ -42,6 +42,8 @@ interface Lot {
     consultations: number
     visitesAnnulees: number
     consultationsAnnulees: number
+    visitesEnAttente?: number
+    consultationsOuvertes?: number
     nonRecus: number
     lignes: Record<string, number>
   }

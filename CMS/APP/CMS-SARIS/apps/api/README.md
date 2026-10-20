@@ -26,7 +26,7 @@ comme processus serveur classique ou **embarqué dans le client de bureau Electr
 | Sécurité HTTP | **helmet**, **throttler** (rate limiting) |
 | Temps réel | **SSE** (Server-Sent Events) — notifications & invalidations LIVE |
 | Validation | `class-validator` / `class-transformer` (ValidationPipe global) |
-| Planification | `@nestjs/schedule` (sauvegardes & purges automatiques) |
+| Planification | `@nestjs/schedule` (purges automatiques) |
 | Médias | `sharp` (images), `multer` (téléversements) |
 | Géolocalisation | `geoip-lite` (hors ligne) pour l'audit de connexion |
 
@@ -56,7 +56,7 @@ Les modules NestJS exposés par l'API :
 | `notification` | Notifications temps réel (cloche + flux SSE) |
 | `messagerie` | Messagerie interne chiffrée entre agents (AES-256-GCM, pièces jointes, accusés) |
 | `admin` | Administration système : utilisateurs, rôles, permissions, journal d'audit |
-| `parametres` | Paramètres de configuration et sauvegarde / restauration |
+| `parametres` | Paramètres de configuration |
 | `sync` | Synchronisation offline-first (bootstrap, push/pull, résolution de conflits) |
 
 Composants transverses dans `src/common/` (chiffrement, décorateurs `@Audit` /

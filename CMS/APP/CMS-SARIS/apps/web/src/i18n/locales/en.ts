@@ -103,7 +103,6 @@ export const en: Resources = {
     parametresSysteme: 'System settings',
     audit: 'Audit logs',
     synchronisation: 'Synchronization',
-    baseDonnees: 'Database',
     donneesTest: 'Test data',
     parametres: 'Settings',
     menu: 'Menu',

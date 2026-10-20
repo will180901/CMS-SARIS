@@ -435,64 +435,6 @@ export function useResetParametre() {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-//  SYNCHRONISATION
-// ══════════════════════════════════════════════════════════════════════════════
-
-export const SYNC_KEY = ['admin', 'sync'] as const
-
-export function useSyncStatus() {
-  return useQuery({
-    queryKey: [...SYNC_KEY, 'status'],
-    queryFn:  () => adminApi.synchronisation.status(),
-    refetchInterval: 60_000,
-    staleTime: 30_000,
-  })
-}
-
-export function useSauvegardes() {
-  return useQuery({
-    queryKey: [...SYNC_KEY, 'sauvegardes'],
-    queryFn:  () => adminApi.synchronisation.sauvegardes(),
-    staleTime: 30_000,
-  })
-}
-
-// `useDeclencherSauvegarde` a été retiré : le déclenchement MANUEL d'une sauvegarde a
-// été supprimé de l'interface en juillet (la sauvegarde est planifiée), mais le hook
-// était resté — défini, appelé nulle part, et laissant croire que la fonction existait
-// encore quelque part. L'endpoint serveur, lui, reste en place
-// (POST /synchronisation/sauvegardes/manuelle) : rebrancher un bouton demanderait de
-// recréer ces dix lignes, rien de plus.
-
-/**
- * Supprime une sauvegarde. Contrairement à la restauration, la configuration en place
- * n'est pas touchée : on n'invalide donc que la liste des sauvegardes, pas tout le cache.
- */
-export function useSupprimerSauvegarde() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (id: string) => adminApi.synchronisation.supprimer(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin', 'sauvegardes'] })
-      toast.success(i18n.t('admin.toastBackupDeleted', { defaultValue: 'Sauvegarde supprimée' }))
-    },
-    onError: toastErr,
-  })
-}
-
-export function useRestaurerSauvegarde() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (id: string) => adminApi.synchronisation.restaurer(id),
-    onSuccess: () => {
-      qc.invalidateQueries()   // la config (référentiels, rôles, paramètres) a changé
-      toast.success(i18n.t('admin.toastConfigRestored'))
-    },
-    onError: toastErr,
-  })
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
 //  MON COMPTE (utilisateur connecté) — préférences, sessions, 2FA
 // ══════════════════════════════════════════════════════════════════════════════
 

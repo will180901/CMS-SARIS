@@ -87,7 +87,7 @@ Test-Status "GET /admin/utilisateurs" 200 (Call-Api GET /admin/utilisateurs $adm
 Test-Status "GET /admin/roles"        200 (Call-Api GET /admin/roles        $adminToken)
 Test-Status "GET /admin/audit/actions" 200 (Call-Api GET /admin/audit/actions $adminToken)
 Test-Status "GET /admin/parametres"   200 (Call-Api GET /admin/parametres   $adminToken)
-Test-Status "GET /synchronisation/status" 200 (Call-Api GET /synchronisation/status $adminToken)
+Test-Status "GET /sync/status" 200 (Call-Api GET /sync/status $adminToken)
 Test-Status "GET /dashboard/overview" 200 (Call-Api GET /dashboard/overview $adminToken)
 Test-Status "GET /referentiels/pathologies" 200 (Call-Api GET /referentiels/pathologies $adminToken)
 Test-Status "GET /personnel"          200 (Call-Api GET /personnel          $adminToken)
