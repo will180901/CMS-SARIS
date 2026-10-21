@@ -56,7 +56,9 @@ const PREF_DEFAULTS = {
 // texte des CGU (web/src/i18n/locales, `legal.cgu`) : à bumper à chaque changement de fond du texte.
 // v2-2026.10 : position de l'appareil, adresse IP et géolocalisation, durées de session, supervision des postes,
 // messagerie, mode Test.
-export const CGU_VERSION = 'v2-2026.10'
+// v3-2026.10 : réécriture complète — responsable du traitement, données traitées, droits, hébergement et
+// services tiers, responsabilités, incidents, droit applicable ; « médico-sanitaire ».
+export const CGU_VERSION = 'v3-2026.10'
 
 @Injectable()
 export class MeService {
