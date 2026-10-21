@@ -41,6 +41,12 @@ export class PresenceService {
     this.viewing.set(userId, { convId, at: Date.now() })
   }
 
+  /** L'utilisateur ne regarde plus cette conversation (il en est sorti, a changé d'onglet…). */
+  clearViewing(userId: string, convId: string): void {
+    const v = this.viewing.get(userId)
+    if (v && v.convId === convId) this.viewing.delete(userId)
+  }
+
   /** L'utilisateur regarde-t-il actuellement cette conversation ? (TTL court) */
   isViewing(userId: string, convId: string): boolean {
     const v = this.viewing.get(userId)

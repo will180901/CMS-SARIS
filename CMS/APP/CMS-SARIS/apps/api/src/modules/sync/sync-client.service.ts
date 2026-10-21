@@ -61,6 +61,7 @@ const MODELES_MESSAGERIE = new Set([
   'MessageReaction',
   'MessageMasque',
   'MessagePieceJointe',
+  'MessageLecture',
 ])
 
 @Injectable()

@@ -45,7 +45,7 @@ export const messagerie = {
 
     // ── Suppression / sortie d'une conversation ─────────────────────
     confirmLeaveGroup: 'Quitter le groupe « {{titre}} » ?',
-    confirmDeleteConversation: 'Supprimer la conversation avec {{titre}} ?',
+    confirmDeleteConversation: 'Supprimer la conversation avec {{titre}} de votre liste ? L’autre personne la conserve ; elle réapparaît, avec les seuls nouveaux messages, si elle vous écrit.',
     groupLeft: 'Groupe quitté',
     conversationDeleted: 'Conversation supprimée',
     deleteConversationTitle: 'Supprimer la conversation ?',
@@ -68,6 +68,29 @@ export const messagerie = {
     scrollDown: 'Descendre',
     newMessagesBelow_one: '{{count}} nouveau message',
     newMessagesBelow_other: '{{count}} nouveaux messages',
+    unreadMarker_one: '{{count}} message non lu',
+    unreadMarker_other: '{{count}} messages non lus',
+
+    // ── Recherche, archivage, favoris ───────────────────────────────
+    searchInConversation: 'Rechercher dans la conversation',
+    searchMessagesPlaceholder: 'Rechercher un mot…',
+    searchTooShort: 'Saisissez au moins 2 caractères',
+    searchNoResult: 'Aucun message trouvé',
+    searchIncomplete: 'Recherche limitée aux 5 000 messages les plus récents.',
+    searchClose: 'Fermer la recherche',
+    archiveConversation: 'Archiver la conversation',
+    unarchiveConversation: 'Désarchiver la conversation',
+    archivedChats: 'Archivées',
+    archivedBack: 'Retour aux conversations',
+    archivedEmpty: 'Aucune conversation archivée',
+    archivedHint: 'Une conversation archivée revient dans la liste dès qu’un nouveau message arrive.',
+    favorite: 'Mettre en favori',
+    unfavorite: 'Retirer des favoris',
+    favorites: 'Messages favoris',
+    favoritesEmpty: 'Aucun message en favori',
+    favoritesHint: 'Mettez un message en favori depuis son menu pour le retrouver ici.',
+    accountDisabled: 'Ce compte est désactivé : votre message ne serait lu par personne.',
+    draftPrefix: 'Brouillon :',
 
     // ── Barre de réponse ────────────────────────────────────────────
     replyTo: 'Réponse à {{auteur}}',
@@ -307,7 +330,7 @@ export const messagerie = {
 
     // ── Suppression / sortie d'une conversation ─────────────────────
     confirmLeaveGroup: 'Leave the group “{{titre}}”?',
-    confirmDeleteConversation: 'Delete the conversation with {{titre}}?',
+    confirmDeleteConversation: 'Delete the conversation with {{titre}} from your list? The other person keeps it; it comes back, with only the new messages, if they write to you.',
     groupLeft: 'Group left',
     conversationDeleted: 'Conversation deleted',
     deleteConversationTitle: 'Delete conversation?',
@@ -330,6 +353,29 @@ export const messagerie = {
     scrollDown: 'Scroll down',
     newMessagesBelow_one: '{{count}} new message',
     newMessagesBelow_other: '{{count}} new messages',
+    unreadMarker_one: '{{count}} unread message',
+    unreadMarker_other: '{{count}} unread messages',
+
+    // ── Search, archive, favourites ─────────────────────────────────
+    searchInConversation: 'Search in conversation',
+    searchMessagesPlaceholder: 'Search for a word…',
+    searchTooShort: 'Type at least 2 characters',
+    searchNoResult: 'No message found',
+    searchIncomplete: 'Search limited to the 5,000 most recent messages.',
+    searchClose: 'Close search',
+    archiveConversation: 'Archive conversation',
+    unarchiveConversation: 'Unarchive conversation',
+    archivedChats: 'Archived',
+    archivedBack: 'Back to conversations',
+    archivedEmpty: 'No archived conversation',
+    archivedHint: 'An archived conversation comes back to the list as soon as a new message arrives.',
+    favorite: 'Add to favourites',
+    unfavorite: 'Remove from favourites',
+    favorites: 'Favourite messages',
+    favoritesEmpty: 'No favourite message',
+    favoritesHint: 'Add a message to favourites from its menu to find it here.',
+    accountDisabled: 'This account is disabled: your message would be read by no one.',
+    draftPrefix: 'Draft:',
 
     // ── Barre de réponse ────────────────────────────────────────────
     replyTo: 'Reply to {{auteur}}',

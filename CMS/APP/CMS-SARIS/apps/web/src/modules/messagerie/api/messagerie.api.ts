@@ -23,7 +23,7 @@ export interface ConversationItem {
   titre: string
   /** Photo de groupe (DIRECT reste `null` — l'avatar utilise l'interlocuteur). */
   photoUrl: string | null
-  interlocuteur: { id: string; nom: string; role: string | null; enLigne?: boolean; vuLe?: string | null } | null
+  interlocuteur: { id: string; nom: string; role: string | null; enLigne?: boolean; vuLe?: string | null; actif?: boolean } | null
   participants:   string[]
   nbParticipants: number
   dernierMessage: {
@@ -33,10 +33,14 @@ export interface ConversationItem {
     auteur:    string
     createdAt: string
     deMoi:     boolean
+    /** Supprimé pour tout le monde : il ne reste que la trace. */
+    supprime?: boolean
   } | null
   nonLus:    number
   /** Notifications de CETTE conversation coupées pour l'utilisateur courant. */
   muted:     boolean
+  /** Archivée par l'utilisateur courant (un nouveau message la désarchive). */
+  archivee:  boolean
   updatedAt: string
 }
 
@@ -76,6 +80,10 @@ export interface MessageItem {
   supprime:      boolean
   epingle:       boolean
   transfere:     boolean
+  /** Mis en favori (étoile) par l'utilisateur courant. */
+  favori:        boolean
+  /** Reçu et pas encore lu par l'utilisateur courant — décidé par le serveur, message par message. */
+  nonLu:         boolean
   createdAt:     string
   piecesJointes: PieceJointeMeta[]
   reactions:     ReactionAgg[]
@@ -114,6 +122,24 @@ export interface MessageDetails {
 export interface MessagesPage {
   messages: MessageItem[]
   hasMore:  boolean
+}
+
+export interface ResultatRecherche {
+  id:         string
+  createdAt:  string
+  expediteur: string
+  deMoi:      boolean
+  extrait:    string
+}
+
+export interface FavoriItem {
+  id:             string
+  conversationId: string
+  conversation:   string
+  expediteur:     string
+  deMoi:          boolean
+  apercu:         string
+  createdAt:      string
 }
 
 export interface PieceJointeContenu {
@@ -168,17 +194,33 @@ export const messagerieApi = {
                    api.post<{ id: string; created: boolean }>('/messagerie/groupes', { titre, participantIds }),
   leave:         (conversationId: string, newPrincipalId?: string) =>
                     api.post<{ left: boolean }>(`/messagerie/conversations/${conversationId}/quitter`, { newPrincipalId }),
+  /** L'écran déclare les messages qu'il a réellement sous les yeux (vide = « je regarde »). */
+  markRead:      (conversationId: string, messageIds: string[]) =>
+                   api.post<{ lus: number; nonLus: number }>(`/messagerie/conversations/${conversationId}/lire`, { messageIds }),
+  /** Je ne regarde plus cette conversation : la cloche reprend. */
+  endView:       (conversationId: string) =>
+                   api.delete<{ ok: boolean }>(`/messagerie/conversations/${conversationId}/vue`),
+  archive:       (conversationId: string, archivee: boolean) =>
+                   api.patch<{ archivee: boolean }>(`/messagerie/conversations/${conversationId}/archiver`, { archivee }),
+  search:        (conversationId: string, q: string) =>
+                   api.get<{ resultats: ResultatRecherche[]; incomplet: boolean }>(`/messagerie/conversations/${conversationId}/recherche`, { q }),
+  toggleFavori:  (messageId: string) => api.post<{ favori: boolean }>(`/messagerie/messages/${messageId}/favori`, {}),
+  favoris:       ()                  => api.get<FavoriItem[]>('/messagerie/favoris'),
   typing:        (conversationId: string, kind?: 'audio') =>
                    api.post<void>(`/messagerie/conversations/${conversationId}/typing${kind === 'audio' ? '?kind=audio' : ''}`, {}),
 
   messages:      (conversationId: string, before?: string) =>
                    api.get<MessagesPage>(`/messagerie/conversations/${conversationId}/messages`, before ? { before } : undefined),
 
-  /** Envoi multipart (texte et/ou pièces jointes, réponse optionnelle). */
-  send:          (conversationId: string, contenu: string, fichiers: File[] = [], replyToId?: string, onProgress?: (pct: number) => void) => {
+  /**
+   * Envoi multipart (texte et/ou pièces jointes, réponse optionnelle). `clientId` identifie CE
+   * message : le même à chaque nouvel essai, pour qu'un renvoi après coupure ne fasse pas de doublon.
+   */
+  send:          (conversationId: string, contenu: string, fichiers: File[] = [], replyToId?: string, onProgress?: (pct: number) => void, clientId?: string) => {
     const fd = new FormData()
     if (contenu) fd.append('contenu', contenu)
     if (replyToId) fd.append('replyToId', replyToId)
+    if (clientId) fd.append('clientId', clientId)
     for (const f of fichiers) fd.append('fichiers', f)
     return api.upload<MessageItem>(`/messagerie/conversations/${conversationId}/messages`, fd, { onProgress })
   },

@@ -45,6 +45,26 @@ export class SendMessageDto {
   @IsOptional()
   @IsUUID()
   replyToId?: string
+
+  // Optionnel : identifiant d'envoi choisi par le client (un UUID par message écrit, réutilisé à
+  // chaque nouvel essai). Un renvoi après coupure ne crée alors pas de doublon.
+  @IsOptional()
+  @IsUUID()
+  clientId?: string
+}
+
+/** Messages que l'écran vient de montrer comme « non lus » et que la personne a réellement vus. */
+export class MarquerLuDto {
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(200)
+  @IsUUID('all', { each: true })
+  messageIds?: string[]
+}
+
+export class ArchiverDto {
+  @IsBoolean()
+  archivee!: boolean
 }
 
 export class UpdateMessageDto {

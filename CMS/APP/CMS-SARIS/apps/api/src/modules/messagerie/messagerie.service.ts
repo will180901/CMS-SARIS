@@ -2,21 +2,28 @@
  * MessagerieService — messagerie interne chiffrée entre agents.
  *
  * - Contenu des messages ET pièces jointes chiffrés AES-256-GCM en base.
- * - Conversations DIRECT (1↔1) et GROUPE (n participants) du même site.
+ * - Conversations DIRECT (1↔1, UNE SEULE par paire) et GROUPE (n participants), tous sites.
  * - Chaque message émet une notification ciblée (sans le contenu).
- * - État « lu » par participant (lastReadAt) → non-lus + accusés de lecture.
- * - Messages paginés (curseur), pièces jointes servies à la demande.
+ * - Lecture MESSAGE PAR MESSAGE (MessageLecture) → non-lus + accusés de lecture : jamais
+ *   déduits d'une heure de dernière lecture, qui se trompait pour un message arrivé en retard.
+ * - Messages paginés (curseur createdAt + id), pièces jointes servies à la demande.
  */
 import {
   Injectable,
   NotFoundException,
   ForbiddenException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common'
 import sharp from 'sharp'
 import { PrismaService } from '../../prisma/prisma.service'
 import { NotificationService } from '../notification/notification.service'
 import { PresenceService } from '../notification/presence.service'
+import {
+  idConversationDirecte,
+  idLecture,
+  idParticipationDirecte,
+} from '../../common/id-deterministe'
 import {
   encryptMessage,
   decryptMessage,
@@ -27,6 +34,7 @@ import {
 const USER_SELECT = {
   id: true,
   login: true,
+  statut: true,
   lastSeenAt: true,
   personnelMedical: { select: { nom: true, prenom: true, role: true } },
 } as const
@@ -40,12 +48,53 @@ const PJ_META_SELECT = {
 
 const MESSAGE_PAGE_SIZE = 50
 
+/** Taille maximale d'une recherche dans une conversation (messages examinés). */
+const RECHERCHE_MAX_MESSAGES = 5000
+const RECHERCHE_MAX_RESULTATS = 50
+
+/** Ce que renvoie un message qu'on vient d'envoyer (et que le client affiche tout de suite). */
+const MESSAGE_INCLUDE = {
+  expediteur: { select: USER_SELECT },
+  piecesJointes: { select: PJ_META_SELECT },
+  replyTo: {
+    select: {
+      id: true,
+      expediteurId: true,
+      contenuChiffre: true,
+      deletedAt: true,
+      expediteur: { select: USER_SELECT },
+      piecesJointes: { select: { id: true } },
+    },
+  },
+} as const
+
+/**
+ * Curseur de pagination « avant » : `ISO~id`. L'identifiant départage deux messages de la
+ * même milliseconde — sans lui, une page se terminant au milieu d'une égalité en perdait un.
+ * L'ancien format (l'heure seule) reste accepté.
+ */
+function analyserCurseur(
+  before?: string,
+): { createdAt: Date; id?: string } | null {
+  if (!before) return null
+  const [t, id] = before.split('~')
+  const d = new Date(t ?? '')
+  if (isNaN(d.getTime())) return null
+  return { createdAt: d, ...(id ? { id } : {}) }
+}
+
+/** Minuscules et sans accents : « Réunion » se trouve en tapant « reunion ». */
+function sansAccents(texte: string): string {
+  return texte.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+}
+
 /** Fenêtre pendant laquelle un message reste modifiable / supprimable (15 min). */
 export const EDIT_DELETE_WINDOW_MS = 15 * 60 * 1000
 
 type UserLite = {
   id: string
   login: string
+  statut?: string
   lastSeenAt?: Date | null
   personnelMedical: { nom: string; prenom: string; role: string } | null
 }
@@ -260,7 +309,15 @@ export class MessagerieService {
       this.notif.pushLive(p.utilisateurId, 'MESSAGE_NEW', conversationId)
   }
 
-  /** Non-lus par conversation pour un utilisateur, en UNE requête (pas de N+1). */
+  /**
+   * Non-lus par conversation pour un utilisateur, en UNE requête (pas de N+1).
+   *
+   * Un message est « non lu » tant que son lecteur n'a pas d'accusé (MessageLecture). Le
+   * calcul ne dépend plus d'une HEURE de dernière lecture, qui prenait pour lu tout message
+   * arrivé en retard (écrit hors ligne, donc daté d'avant). Ne comptent pas : les événements
+   * de groupe, ses propres messages, les messages supprimés ou masqués pour soi, et tout ce
+   * qui précède son arrivée dans le groupe ou la suppression de la conversation.
+   */
   private async unreadByConversation(
     userId: string,
   ): Promise<Map<string, number>> {
@@ -271,9 +328,18 @@ export class MessagerieService {
       FROM "Message" m
       JOIN "ConversationParticipant" cp
         ON cp."conversationId" = m."conversationId" AND cp."utilisateurId" = ${userId}
+       AND cp."deletedAt" IS NULL
       WHERE m."deletedAt" IS NULL
+        AND m."type" <> 'SYSTEME'
         AND m."expediteurId" <> ${userId}
-        AND (cp."lastReadAt" IS NULL OR m."createdAt" > cp."lastReadAt")
+        AND m."createdAt" >= cp."joinedAt"
+        AND (cp."viderLe" IS NULL OR m."createdAt" > cp."viderLe")
+        AND NOT EXISTS (
+          SELECT 1 FROM "MessageLecture" l
+          WHERE l."messageId" = m."id" AND l."utilisateurId" = ${userId})
+        AND NOT EXISTS (
+          SELECT 1 FROM "MessageMasque" mm
+          WHERE mm."messageId" = m."id" AND mm."utilisateurId" = ${userId})
       GROUP BY m."conversationId"
     `
     return new Map(rows.map((r) => [r.conversationId, Number(r.unread)]))
@@ -281,20 +347,16 @@ export class MessagerieService {
 
   async listConversations(userId: string) {
     this.touchPresence(userId)
+    // `deletedAt: null` sur les participants INCLUS : l'extension de suppression logique ne couvre
+    // pas les relations incluses (une personne qui a quitté le groupe y figurerait encore).
     const parts = await this.prisma.conversationParticipant.findMany({
-      where: { utilisateurId: userId },
+      where: { utilisateurId: userId, conversation: { deletedAt: null } },
       include: {
         conversation: {
           include: {
-            participants: { include: { utilisateur: { select: USER_SELECT } } },
-            messages: {
+            participants: {
               where: { deletedAt: null },
-              orderBy: { createdAt: 'desc' },
-              take: 1,
-              include: {
-                expediteur: { select: USER_SELECT },
-                piecesJointes: { select: PJ_META_SELECT },
-              },
+              include: { utilisateur: { select: USER_SELECT } },
             },
           },
         },
@@ -303,15 +365,27 @@ export class MessagerieService {
 
     const unread = await this.unreadByConversation(userId)
 
-    // LIEN ROMPU À RATTRAPER. Supprimer une conversation directe DÉTRUIT la ligne de
-    // participation de celui qui supprime — `ConversationParticipant` n'est pas en
-    // soft-delete, la ligne part pour de bon. Chez l'autre, il ne reste alors plus
-    // personne « en face » : le nom retombait sur « Utilisateur » et la conversation
-    // perdait son identité, alors qu'elle est toujours bien vivante de son côté.
-    //
-    // L'interlocuteur reste pourtant identifiable : ses MESSAGES sont là, et ils portent
-    // son auteur. On le retrouve par là, en une seule requête pour toutes les
-    // conversations concernées.
+    // Dernier message VISIBLE POUR MOI : ni masqué pour moi (« supprimer pour moi » doit aussi
+    // vider l'aperçu), ni d'avant mon arrivée dans le groupe, ni d'avant que je supprime la
+    // conversation. La TRACE d'un message supprimé pour tous compte : la conversation reste
+    // dans la liste, comme dans WhatsApp, au lieu de disparaître chez les deux.
+    // Client brut : l'extension de suppression logique cacherait cette trace.
+    const derniers = new Map<
+      string,
+      Awaited<ReturnType<typeof this.dernierMessageVisible>>
+    >()
+    await Promise.all(
+      parts.map(async (p) => {
+        const m = await this.dernierMessageVisible(p, userId)
+        if (m) derniers.set(p.conversationId, m)
+      }),
+    )
+
+    // LIEN ROMPU À RATTRAPER (anciennes suppressions). Supprimer une conversation directe
+    // retirait autrefois la ligne de participation de celui qui supprime : chez l'autre, il ne
+    // restait plus personne « en face » et la conversation perdait son identité. L'interlocuteur
+    // reste pourtant identifiable par ses MESSAGES, en une requête pour toutes les conversations
+    // concernées. (Les suppressions d'aujourd'hui ne retirent plus rien : elles masquent.)
     const orphelines = parts
       .filter(
         (p) =>
@@ -322,8 +396,6 @@ export class MessagerieService {
 
     const rattrapes = new Map<string, UserLite>()
     if (orphelines.length) {
-      // Client BRUT : un message supprimé porte encore l'identité de son auteur, et c'est
-      // la seule chose dont on ait besoin ici.
       const traces = await this.prisma.raw.message.findMany({
         where: {
           conversationId: { in: orphelines },
@@ -347,11 +419,13 @@ export class MessagerieService {
       const interlocuteur =
         (autres[0]?.utilisateur as UserLite | undefined) ??
         (isGroupe ? undefined : rattrapes.get(conv.id))
-      const dernier = conv.messages[0]
+      const dernier = derniers.get(conv.id)
 
       let apercu: string | null = null
       if (dernier) {
-        if (dernier.type === 'SYSTEME') {
+        if (dernier.deletedAt) {
+          apercu = 'Message supprimé'
+        } else if (dernier.type === 'SYSTEME') {
           apercu = dernier.contenuChiffre
             ? decryptMessage(dernier.contenuChiffre)
             : ''
@@ -378,6 +452,8 @@ export class MessagerieService {
                 role: interlocuteur.personnelMedical?.role ?? null,
                 enLigne: this.presence.isOnline(interlocuteur.id),
                 vuLe: interlocuteur.lastSeenAt ?? null,
+                // Compte désactivé : écrire n'atteindrait personne (le serveur le refuse).
+                actif: interlocuteur.statut === undefined || interlocuteur.statut === 'ACTIF',
               }
             : null,
         participants: autres.map((cp) =>
@@ -391,17 +467,20 @@ export class MessagerieService {
               auteur: displayName(dernier.expediteur as UserLite),
               createdAt: dernier.createdAt,
               deMoi: dernier.expediteurId === userId,
+              supprime: !!dernier.deletedAt,
             }
           : null,
         nonLus: unread.get(conv.id) ?? 0,
         muted: p.muted,
+        archivee: p.archivee,
         updatedAt: conv.updatedAt,
       }
     })
 
     // Une conversation DIRECTE n'apparaît dans la liste (des DEUX côtés) qu'à partir du
-    // PREMIER message : ouvrir une conversation sans rien envoyer ne la fait pas apparaître
-    // chez le destinataire. Les groupes, créés délibérément, restent visibles dès le départ.
+    // PREMIER message visible : ouvrir une conversation sans rien envoyer ne la fait pas
+    // apparaître chez le destinataire, et une conversation SUPPRIMÉE chez soi n'y revient
+    // qu'avec un nouveau message. Les groupes, créés délibérément, restent visibles dès le départ.
     return result
       .filter((r) => r.type === 'GROUPE' || r.dernierMessage !== null)
       .sort(
@@ -410,7 +489,38 @@ export class MessagerieService {
       )
   }
 
-  /** Récupère (ou crée) la conversation directe entre l'utilisateur et un autre. */
+  /** Dernier message d'une conversation que CETTE personne a le droit de voir (cf. listConversations). */
+  private async dernierMessageVisible(
+    p: { conversationId: string; joinedAt: Date; viderLe: Date | null },
+    userId: string,
+  ) {
+    return this.prisma.raw.message.findFirst({
+      where: {
+        conversationId: p.conversationId,
+        createdAt: {
+          gte: p.joinedAt,
+          ...(p.viderLe ? { gt: p.viderLe } : {}),
+        },
+        masques: { none: { utilisateurId: userId } },
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      include: {
+        expediteur: { select: USER_SELECT },
+        piecesJointes: { select: PJ_META_SELECT },
+      },
+    })
+  }
+
+  /**
+   * Récupère (ou crée) LA conversation directe entre l'utilisateur et un autre.
+   *
+   * Une seule par paire, quoi qu'il arrive :
+   *  - son identifiant est DÉTERMINISTE (le même pour les deux personnes) : deux ouvertures
+   *    simultanées — ou deux postes hors ligne — créent la même ligne au lieu de deux ;
+   *  - une conversation plus ancienne (identifiant aléatoire) entre les deux est reprise telle quelle ;
+   *  - une conversation « abandonnée » par l'un des deux (ancienne suppression qui retirait sa
+   *    ligne de participation) est rattachée de nouveau — sans lui rendre l'historique.
+   */
   async getOrCreateDirect(
     userId: string,
     destinataireId: string,
@@ -429,36 +539,135 @@ export class MessagerieService {
     if (!dest || dest.statut !== 'ACTIF')
       throw new NotFoundException('Destinataire introuvable')
 
-    const mesConv = await this.prisma.conversationParticipant.findMany({
-      where: { utilisateurId: userId, conversation: { type: 'DIRECT' } },
-      select: { conversationId: true },
-    })
-    for (const c of mesConv) {
-      const participants = await this.prisma.conversationParticipant.findMany({
-        where: { conversationId: c.conversationId },
-      })
-      if (
-        participants.length === 2 &&
-        participants.some((p) => p.utilisateurId === destinataireId)
-      ) {
-        return { id: c.conversationId, created: false }
-      }
-    }
+    const existante = await this.trouverDirecte(userId, destinataireId)
+    if (existante) return { id: existante, created: false }
 
-    const conv = await this.prisma.conversation.create({
-      data: {
+    const id = idConversationDirecte(userId, destinataireId)
+    try {
+      await this.prisma.conversation.create({
+        data: {
+          id,
+          type: 'DIRECT',
+          siteId,
+          createdById: userId,
+          participants: {
+            create: [userId, destinataireId].map((u) => ({
+              id: idParticipationDirecte(id, u),
+              utilisateurId: u,
+            })),
+          },
+        },
+      })
+      return { id, created: true }
+    } catch (e) {
+      // Une autre ouverture (ou l'autre personne) l'a créée entre-temps : c'est la même.
+      if ((e as { code?: string }).code === 'P2002') {
+        const deja = await this.trouverDirecte(userId, destinataireId)
+        if (deja) return { id: deja, created: false }
+      }
+      throw e
+    }
+  }
+
+  /** La conversation directe entre deux personnes, si elle existe (cf. getOrCreateDirect). */
+  private async trouverDirecte(a: string, b: string): Promise<string | null> {
+    const det = await this.prisma.conversation.findUnique({
+      where: { id: idConversationDirecte(a, b) },
+      select: { id: true },
+    })
+    if (det) return det.id
+    const ancienne = await this.prisma.conversation.findFirst({
+      where: {
         type: 'DIRECT',
-        siteId,
-        createdById: userId,
-        participants: {
-          create: [
-            { utilisateurId: userId },
-            { utilisateurId: destinataireId },
+        AND: [
+          { participants: { some: { utilisateurId: a, deletedAt: null } } },
+          { participants: { some: { utilisateurId: b, deletedAt: null } } },
+        ],
+      },
+      orderBy: { createdAt: 'asc' },
+      select: { id: true },
+    })
+    if (ancienne) return ancienne.id
+    return this.reprendreOrpheline(a, b)
+  }
+
+  /**
+   * Conversation directe dont l'un des deux a perdu sa ligne de participation (ancienne
+   * suppression) : l'autre y écrivait dans le vide. On le rattache de nouveau, avec
+   * l'historique déjà masqué pour lui, de sorte que seuls les nouveaux messages lui arrivent.
+   * Il est retrouvé par ses MESSAGES : ils portent leur auteur.
+   */
+  private async reprendreOrpheline(
+    a: string,
+    b: string,
+  ): Promise<string | null> {
+    for (const [present, absent] of [
+      [b, a],
+      [a, b],
+    ] as const) {
+      const [orpheline] = await this.prisma.conversation.findMany({
+        where: {
+          type: 'DIRECT',
+          messages: { some: { expediteurId: absent } },
+          AND: [
+            { participants: { some: { utilisateurId: present, deletedAt: null } } },
+            { participants: { none: { utilisateurId: absent, deletedAt: null } } },
           ],
         },
+        orderBy: { createdAt: 'asc' },
+        take: 1,
+        select: { id: true },
+      })
+      if (orpheline) {
+        const dernier = await this.prisma.raw.message.findFirst({
+          where: { conversationId: orpheline.id },
+          orderBy: { createdAt: 'desc' },
+          select: { createdAt: true },
+        })
+        await this.rattacherDirecte(orpheline.id, absent, dernier?.createdAt ?? null)
+        return orpheline.id
+      }
+    }
+    return null
+  }
+
+  /** Rattache (ou rattache de nouveau) une personne à une conversation directe, sans lui rendre l'historique. */
+  private async rattacherDirecte(
+    conversationId: string,
+    utilisateurId: string,
+    viderLe: Date | null,
+  ) {
+    // Client brut : une ligne supprimée logiquement doit être RESSUSCITÉE, pas dupliquée.
+    await this.prisma.raw.conversationParticipant.upsert({
+      where: {
+        conversationId_utilisateurId: { conversationId, utilisateurId },
       },
+      create: {
+        id: idParticipationDirecte(conversationId, utilisateurId),
+        conversationId,
+        utilisateurId,
+        viderLe,
+      },
+      update: { deletedAt: null, viderLe },
     })
-    return { id: conv.id, created: true }
+  }
+
+  /**
+   * (Rat)tache le correspondant d'une conversation directe ancienne dont il manque une ligne :
+   * il est identifié par ses messages. Sans cela on écrirait à personne.
+   */
+  private async completerDirecte(conversationId: string, moi: string) {
+    const autres = await this.prisma.raw.message.findFirst({
+      where: { conversationId, expediteurId: { not: moi } },
+      select: { expediteurId: true },
+    })
+    if (!autres) return
+    const dernier = await this.prisma.raw.message.findFirst({
+      where: { conversationId },
+      orderBy: { createdAt: 'desc' },
+      select: { createdAt: true },
+    })
+    await this.rattacherDirecte(conversationId, autres.expediteurId, dernier?.createdAt ?? null)
   }
 
   /** Crée une conversation de GROUPE (titre + participants, dont le créateur). */
@@ -521,11 +730,23 @@ export class MessagerieService {
     userId: string,
     newPrincipalId?: string,
   ) {
-    await this.assertParticipant(conversationId, userId)
+    const maPart = await this.assertParticipant(conversationId, userId)
     const conv = await this.prisma.conversation.findUnique({
       where: { id: conversationId },
     })
     if (!conv) throw new NotFoundException('Conversation introuvable')
+
+    // Conversation DIRECTE : « supprimer la conversation » la supprime POUR SOI, comme dans
+    // WhatsApp. Retirer la ligne de participation faisait perdre à l'autre son interlocuteur : il
+    // continuait d'écrire sans que personne ne reçoive rien, et rouvrir la discussion en créait une
+    // seconde. On masque donc tout ce qui précède ; un nouveau message la fait revenir, seul.
+    if (conv.type === 'DIRECT') {
+      await this.prisma.conversationParticipant.update({
+        where: { id: maPart.id },
+        data: { viderLe: new Date(), archivee: false },
+      })
+      return { left: true }
+    }
     const actorName = displayName(await this.getUserLite(userId))
 
     if (conv.type === 'GROUPE' && conv.createdById === userId) {
@@ -611,7 +832,10 @@ export class MessagerieService {
     const conv = await this.prisma.conversation.findUnique({
       where: { id: conversationId },
       include: {
-        participants: { include: { utilisateur: { select: USER_SELECT } } },
+        participants: {
+          where: { deletedAt: null },
+          include: { utilisateur: { select: USER_SELECT } },
+        },
       },
     })
     if (!conv || conv.type !== 'GROUPE')
@@ -684,9 +908,27 @@ export class MessagerieService {
         'Un ou plusieurs participants sont introuvables',
       )
 
-    await this.prisma.conversationParticipant.createMany({
-      data: aAjouter.map((id) => ({ conversationId, utilisateurId: id })),
-    })
+    // Client brut + upsert : une personne qui avait QUITTÉ le groupe y est rajoutée en
+    // ressuscitant sa ligne (unique conversation + utilisateur). `joinedAt` repart de maintenant :
+    // elle ne voit rien de ce qui s'est dit avant son arrivée (ni cette fois-ci, ni la précédente).
+    const arrivee = new Date()
+    for (const id of aAjouter) {
+      await this.prisma.raw.conversationParticipant.upsert({
+        where: {
+          conversationId_utilisateurId: { conversationId, utilisateurId: id },
+        },
+        create: { conversationId, utilisateurId: id, joinedAt: arrivee },
+        update: {
+          deletedAt: null,
+          joinedAt: arrivee,
+          estAdmin: false,
+          muted: false,
+          archivee: false,
+          lastReadAt: null,
+          viderLe: null,
+        },
+      })
+    }
 
     const actorName = displayName(await this.getUserLite(actorId))
     for (const m of membres) {
@@ -921,16 +1163,22 @@ export class MessagerieService {
   // ── Messages ────────────────────────────────────────────────────────────────
 
   /**
-   * Fil paginé (par curseur `before` = date du plus ancien message déjà chargé).
-   * Renvoie les messages en ordre chronologique + `hasMore`. Marque comme lu.
+   * Un fil de messages, par pages (les plus récents d'abord, rendus en ordre chronologique).
+   *
+   * LECTURE SEULE : consulter le fil ne marque RIEN comme lu et ne dit pas « je regarde cette
+   * conversation ». Avant, tout chargement — y compris l'actualisation automatique d'un onglet
+   * masqué — passait la conversation entière en « lu » (coches bleues chez l'expéditeur) et
+   * coupait la cloche. C'est maintenant l'écran qui le déclare, quand il est réellement sous les
+   * yeux (cf. marquerLu), en nommant les messages vus.
+   *
+   * Un membre ne voit que ce qui date de son arrivée (ou d'après la suppression de la conversation
+   * chez lui) : l'historique d'un groupe ne se transmet pas aux nouveaux venus.
    */
   async listMessages(conversationId: string, userId: string, before?: string) {
     const myPart = await this.assertParticipant(conversationId, userId)
-    const oldLastRead = myPart.lastReadAt
     this.touchPresence(userId)
-    this.presence.setViewing(userId, conversationId) // l'utilisateur regarde cette conversation
 
-    const beforeDate = before ? new Date(before) : null
+    const curseur = analyserCurseur(before)
     // CLIENT BRUT, volontairement. L'extension soft-delete masque partout les lignes
     // `deletedAt` — ici on a besoin de les VOIR : un message « supprimé pour tout le
     // monde » doit rester dans le fil sous forme de trace, comme dans WhatsApp. Sans
@@ -940,12 +1188,23 @@ export class MessagerieService {
     const rows = await this.prisma.raw.message.findMany({
       where: {
         conversationId,
+        createdAt: {
+          gte: myPart.joinedAt,
+          ...(myPart.viderLe ? { gt: myPart.viderLe } : {}),
+        },
         masques: { none: { utilisateurId: userId } }, // « supprimé pour moi »
-        ...(beforeDate && !isNaN(beforeDate.getTime())
-          ? { createdAt: { lt: beforeDate } }
+        ...(curseur
+          ? {
+              OR: [
+                { createdAt: { lt: curseur.createdAt } },
+                ...(curseur.id
+                  ? [{ createdAt: curseur.createdAt, id: { lt: curseur.id } }]
+                  : []),
+              ],
+            }
           : {}),
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: MESSAGE_PAGE_SIZE + 1,
       include: {
         expediteur: { select: USER_SELECT },
@@ -955,7 +1214,7 @@ export class MessagerieService {
         // — donc seulement marquée `deletedAt` — continuait d'être renvoyée, et la
         // pastille restait affichée alors que le serveur avait bien enregistré le retrait.
         reactions: {
-          where:  { deletedAt: null },
+          where: { deletedAt: null },
           select: { emoji: true, utilisateurId: true },
         },
         replyTo: {
@@ -974,53 +1233,66 @@ export class MessagerieService {
     const hasMore = rows.length > MESSAGE_PAGE_SIZE
     const page = (hasMore ? rows.slice(0, MESSAGE_PAGE_SIZE) : rows).reverse() // → ordre chronologique
 
-    // Accusés : lastReadAt (lu) + lastSeenAt/présence (remis) des AUTRES participants.
     const autres = await this.prisma.conversationParticipant.findMany({
       where: { conversationId, utilisateurId: { not: userId } },
       select: {
         utilisateurId: true,
-        lastReadAt: true,
         utilisateur: { select: { lastSeenAt: true } },
       },
     })
     const nbAutres = autres.length
 
-    // Marque la conversation comme lue jusqu'à maintenant.
-    await this.prisma.conversationParticipant.update({
-      where: {
-        conversationId_utilisateurId: { conversationId, utilisateurId: userId },
-      },
-      data: { lastReadAt: new Date() },
-    })
-
-    // La conversation est ouverte → marquer AUSSI lues ses notifications (nouveau
-    // message, réaction) pour que la cloche se décrémente sans décalage. Uniquement
-    // au chargement initial du fil (pas en pagination « plus anciens »).
-    if (!before) {
-      try {
-        await this.notif.markReadForEntite(
-          userId,
-          'conversation',
-          conversationId,
-        )
-      } catch {
-        /* best-effort : ne doit pas bloquer l'affichage des messages */
+    // Accusés : un par message et par lecteur (MessageLecture) — jamais une comparaison d'heures.
+    const vivants = page.filter((m) => !m.deletedAt)
+    const idsAutrui = vivants
+      .filter((m) => m.expediteurId !== userId && m.type === 'TEXTE')
+      .map((m) => m.id)
+    const idsMiens = vivants
+      .filter((m) => m.expediteurId === userId && m.type === 'TEXTE')
+      .map((m) => m.id)
+    const mesLectures = new Set(
+      idsAutrui.length
+        ? (
+            await this.prisma.messageLecture.findMany({
+              where: { utilisateurId: userId, messageId: { in: idsAutrui } },
+              select: { messageId: true },
+            })
+          ).map((l) => l.messageId)
+        : [],
+    )
+    const lecturesDesAutres = new Map<
+      string,
+      { utilisateurId: string; luLe: Date }[]
+    >()
+    if (idsMiens.length && nbAutres) {
+      for (const l of await this.prisma.messageLecture.findMany({
+        where: {
+          messageId: { in: idsMiens },
+          utilisateurId: { in: autres.map((a) => a.utilisateurId) },
+        },
+        select: { messageId: true, utilisateurId: true, luLe: true },
+      })) {
+        const liste = lecturesDesAutres.get(l.messageId) ?? []
+        liste.push({ utilisateurId: l.utilisateurId, luLe: l.luLe })
+        lecturesDesAutres.set(l.messageId, liste)
       }
     }
-
-    // Temps réel : prévenir les EXPÉDITEURS des messages qu'on vient de lire
-    // → leurs ✓✓ passent au bleu instantanément (pas d'attente du refetch).
-    const expediteursALu = new Set<string>()
-    for (const m of page) {
-      if (
-        m.expediteurId !== userId &&
-        (!oldLastRead || m.createdAt.getTime() > oldLastRead.getTime())
-      ) {
-        expediteursALu.add(m.expediteurId)
-      }
-    }
-    for (const sid of expediteursALu)
-      this.notif.pushLive(sid, 'MESSAGE_STATUS', conversationId)
+    const mesFavoris = new Set(
+      vivants.length
+        ? (
+            await this.prisma.messageFavori.findMany({
+              where: {
+                utilisateurId: userId,
+                messageId: { in: vivants.map((m) => m.id) },
+              },
+              select: { messageId: true },
+            })
+          ).map((f) => f.messageId)
+        : [],
+    )
+    // Poste de bureau : un message pas encore REMONTÉ au central n'est pas « remis », quoi
+    // qu'on sache du destinataire — sinon un message écrit hors ligne affichait « remis ».
+    const dernierEnvoi = await this.dernierEnvoiVersCentral()
 
     const messages = page.map((m) => {
       const deMoi = m.expediteurId === userId
@@ -1041,6 +1313,8 @@ export class MessagerieService {
           edite: false,
           epingle: false,
           transfere: false,
+          favori: false,
+          nonLu: false,
           createdAt: m.createdAt,
           piecesJointes: [],
           reactions: [],
@@ -1059,20 +1333,23 @@ export class MessagerieService {
         luPar = 0,
         remisPar = 0
       let vuAt: Date | null = null
-      if (deMoi && nbAutres > 0) {
+      if (deMoi && nbAutres > 0 && m.type === 'TEXTE') {
+        const lecs = lecturesDesAutres.get(m.id) ?? []
+        const parti =
+          dernierEnvoi === undefined ||
+          (dernierEnvoi !== null && m.updatedAt.getTime() <= dernierEnvoi.getTime())
         const t = m.createdAt.getTime()
+        luPar = lecs.length
+        for (const l of lecs) if (!vuAt || l.luLe < vuAt) vuAt = l.luLe
         for (const a of autres) {
           const seen = a.utilisateur?.lastSeenAt
-          const read = a.lastReadAt
+          const lu = lecs.some((l) => l.utilisateurId === a.utilisateurId)
           const livre =
-            this.presence.isOnline(a.utilisateurId) ||
-            (!!seen && seen.getTime() >= t) ||
-            (!!read && read.getTime() >= t)
+            lu ||
+            (parti &&
+              (this.presence.isOnline(a.utilisateurId) ||
+                (!!seen && seen.getTime() >= t)))
           if (livre) remisPar++
-          if (read && read.getTime() >= t) {
-            luPar++
-            if (!vuAt || read < vuAt) vuAt = read
-          }
         }
         vu = luPar > 0
       }
@@ -1090,6 +1367,8 @@ export class MessagerieService {
         edite: !!m.editedAt,
         epingle: m.epingle,
         transfere: m.transfere,
+        favori: mesFavoris.has(m.id),
+        nonLu: !deMoi && m.type === 'TEXTE' && !mesLectures.has(m.id),
         createdAt: m.createdAt,
         piecesJointes: m.piecesJointes,
         reactions: aggregateReactions(m.reactions, userId),
@@ -1106,6 +1385,118 @@ export class MessagerieService {
     })
 
     return { messages, hasMore }
+  }
+
+  /**
+   * Poste de bureau : date du dernier envoi réussi vers le central, pour savoir ce qui n'est PAS
+   * encore parti. `undefined` sur le serveur central : rien n'y attend.
+   */
+  private async dernierEnvoiVersCentral(): Promise<Date | null | undefined> {
+    if (process.env['DATABASE_PROVIDER'] !== 'sqlite') return undefined
+    const etat = await this.prisma.syncState.findFirst({
+      where: { posteLocalId: process.env['POSTE_LOCAL_ID'] ?? 'poste-local' },
+      select: { lastPushedAt: true },
+    })
+    return etat?.lastPushedAt ?? null
+  }
+
+  /**
+   * L'écran DÉCLARE ce qu'il a réellement sous les yeux : il nomme les messages vus (ceux qu'il
+   * a affichés comme « non lus »), et seulement quand l'onglet est visible et la fenêtre active.
+   * Chacun reçoit un accusé de lecture à son nom — un message arrivé plus tard, même daté d'avant,
+   * reste non lu. Sans message nommé, c'est un simple « je regarde cette conversation »
+   * (la cloche se tait pour elle, pendant 45 s au plus).
+   */
+  async marquerLu(
+    conversationId: string,
+    userId: string,
+    messageIds: string[] = [],
+  ) {
+    const myPart = await this.assertParticipant(conversationId, userId)
+    this.touchPresence(userId)
+    this.presence.setViewing(userId, conversationId)
+
+    const ids = [...new Set((messageIds ?? []).filter(Boolean))].slice(0, 200)
+    let lus = 0
+    if (ids.length) {
+      // Seuls comptent des messages de CETTE conversation, d'un autre, vivants et visibles pour moi.
+      const messages = await this.prisma.message.findMany({
+        where: {
+          id: { in: ids },
+          conversationId,
+          type: 'TEXTE',
+          expediteurId: { not: userId },
+          createdAt: { gte: myPart.joinedAt },
+        },
+        select: { id: true, expediteurId: true },
+      })
+      const deja = new Set(
+        (
+          await this.prisma.messageLecture.findMany({
+            where: {
+              utilisateurId: userId,
+              messageId: { in: messages.map((m) => m.id) },
+            },
+            select: { messageId: true },
+          })
+        ).map((l) => l.messageId),
+      )
+      const aMarquer = messages.filter((m) => !deja.has(m.id))
+      if (aMarquer.length) {
+        const donnees = aMarquer.map((m) => ({
+          id: idLecture(m.id, userId),
+          messageId: m.id,
+          utilisateurId: userId,
+        }))
+        try {
+          await this.prisma.messageLecture.createMany({ data: donnees })
+        } catch {
+          // Course avec un autre poste qui marque le même message : on retombe sur le détail,
+          // ligne à ligne (l'identifiant déterministe fait que c'est la même ligne).
+          for (const d of donnees)
+            await this.prisma.messageLecture
+              .upsert({ where: { id: d.id }, create: d, update: {} })
+              .catch(() => undefined)
+        }
+        lus = aMarquer.length
+        await this.prisma.conversationParticipant.update({
+          where: { id: myPart.id },
+          data: { lastReadAt: new Date() },
+        })
+        // Temps réel : les EXPÉDITEURS voient leurs coches passer au bleu tout de suite.
+        for (const sid of new Set(aMarquer.map((m) => m.expediteurId)))
+          this.notif.pushLive(sid, 'MESSAGE_STATUS', conversationId)
+      }
+    }
+
+    const restants = (await this.unreadByConversation(userId)).get(conversationId) ?? 0
+    if (restants === 0) {
+      // Plus rien à lire ici : les notifications (cloche) de cette conversation le sont aussi.
+      try {
+        await this.notif.markReadForEntite(userId, 'conversation', conversationId)
+      } catch {
+        /* best-effort : ne doit pas bloquer */
+      }
+    }
+    return { lus, nonLus: restants }
+  }
+
+  /** L'utilisateur ne regarde plus cette conversation (il en sort, change d'onglet…) : la cloche reprend. */
+  async quitterVue(conversationId: string, userId: string) {
+    await this.assertParticipant(conversationId, userId)
+    this.presence.clearViewing(userId, conversationId)
+    return { ok: true }
+  }
+
+  /** Archive / désarchive la conversation POUR CETTE PERSONNE (un nouveau message la désarchive). */
+  async setArchivee(conversationId: string, userId: string, archivee: boolean) {
+    const part = await this.assertParticipant(conversationId, userId)
+    if (part.archivee !== archivee)
+      await this.prisma.conversationParticipant.update({
+        where: { id: part.id },
+        data: { archivee },
+      })
+    return { archivee }
   }
 
   /**
@@ -1135,11 +1526,29 @@ export class MessagerieService {
     contenu: string,
     fichiers: UploadedPiece[] = [],
     replyToId?: string,
+    clientId?: string,
   ) {
     await this.assertParticipant(conversationId, expediteurId)
     const texte = (contenu ?? '').trim()
     if (!texte && fichiers.length === 0)
       throw new BadRequestException('Message vide')
+
+    // Renvoi du MÊME message (coupure après l'enregistrement, nouvel essai, rejeu hors ligne) :
+    // le client l'identifie par `clientId`, on rend celui qui existe au lieu d'en créer un second.
+    if (clientId) {
+      const deja = await this.prisma.message.findFirst({
+        where: { expediteurId, clientId },
+        include: MESSAGE_INCLUDE,
+      })
+      if (deja) return this.formaterEnvoye(deja, expediteurId, 0)
+    }
+
+    const conv = await this.prisma.conversation.findUnique({
+      where: { id: conversationId },
+    })
+    if (!conv) throw new NotFoundException('Conversation introuvable')
+    if (conv.type === 'DIRECT')
+      await this.verifierInterlocuteur(conversationId, expediteurId)
 
     // Le message cité doit appartenir à la même conversation.
     let replyTo: string | null = null
@@ -1152,52 +1561,59 @@ export class MessagerieService {
         replyTo = replyToId
     }
 
-    const msg = await this.prisma.message.create({
-      data: {
-        conversationId,
-        expediteurId,
-        contenuChiffre: texte ? encryptMessage(texte) : '',
-        ...(replyTo ? { replyToId: replyTo } : {}),
-        ...(fichiers.length
-          ? {
-              piecesJointes: {
-                create: fichiers.map((f) => ({
-                  nomFichier: f.nomFichier,
-                  mimeType: f.mimeType,
-                  taille: f.taille,
-                  contenuChiffre: encryptBytes(f.buffer),
-                })),
-              },
-            }
-          : {}),
-      },
-      include: {
-        expediteur: { select: USER_SELECT },
-        piecesJointes: { select: PJ_META_SELECT },
-        replyTo: {
-          select: {
-            id: true,
-            expediteurId: true,
-            contenuChiffre: true,
-            deletedAt: true,
-            expediteur: { select: USER_SELECT },
-            piecesJointes: { select: { id: true } },
+    let msg
+    try {
+      // Le message, la remontée de la conversation en tête de liste et son désarchivage chez
+      // tous : ensemble, ou pas du tout.
+      msg = await this.prisma.$transaction(async (tx) => {
+        const cree = await tx.message.create({
+          data: {
+            conversationId,
+            expediteurId,
+            contenuChiffre: texte ? encryptMessage(texte) : '',
+            ...(replyTo ? { replyToId: replyTo } : {}),
+            ...(clientId ? { clientId } : {}),
+            ...(fichiers.length
+              ? {
+                  piecesJointes: {
+                    create: fichiers.map((f) => ({
+                      nomFichier: f.nomFichier,
+                      mimeType: f.mimeType,
+                      taille: f.taille,
+                      contenuChiffre: encryptBytes(f.buffer),
+                    })),
+                  },
+                }
+              : {}),
           },
-        },
-      },
-    })
-    await this.prisma.conversation.update({
-      where: { id: conversationId },
-      data: { updatedAt: new Date() },
-    })
+          include: MESSAGE_INCLUDE,
+        })
+        await tx.conversation.update({
+          where: { id: conversationId },
+          data: { updatedAt: new Date() },
+        })
+        await tx.conversationParticipant.updateMany({
+          where: { conversationId, archivee: true },
+          data: { archivee: false },
+        })
+        return cree
+      })
+    } catch (e) {
+      // Deux envois simultanés du même `clientId` : la contrainte d'unicité tranche, on rend le premier.
+      if (clientId && (e as { code?: string }).code === 'P2002') {
+        const deja = await this.prisma.message.findFirst({
+          where: { expediteurId, clientId },
+          include: MESSAGE_INCLUDE,
+        })
+        if (deja) return this.formaterEnvoye(deja, expediteurId, 0)
+      }
+      throw e
+    }
 
     // Notifier les AUTRES participants (le contenu réel reste dans un APERÇU tronqué,
     // jamais recopié en entier — façon WhatsApp : "Jean : Salut !" / "Jean : 📷 Photo").
     const expName = displayName(msg.expediteur as UserLite)
-    const conv = await this.prisma.conversation.findUnique({
-      where: { id: conversationId },
-    })
-    const groupTitre = conv?.type === 'GROUPE' ? (conv.titre ?? 'Groupe') : null
+    const groupTitre = conv.type === 'GROUPE' ? (conv.titre ?? 'Groupe') : null
     const apercu = contentPreview(texte, fichiers)
     const autres = await this.prisma.conversationParticipant.findMany({
       where: { conversationId, utilisateurId: { not: expediteurId } },
@@ -1238,16 +1654,35 @@ export class MessagerieService {
       })
     }
 
+    return this.formaterEnvoye(msg, expediteurId, remisPar)
+  }
+
+  /** Ce que reçoit l'expéditeur pour un message qu'il vient d'envoyer. */
+  private formaterEnvoye(
+    msg: {
+      id: string
+      expediteurId: string
+      contenuChiffre: string
+      createdAt: Date
+      expediteur: unknown
+      piecesJointes: { id: string; nomFichier: string; mimeType: string; taille: number }[]
+      replyTo: unknown
+    },
+    expediteurId: string,
+    remisPar: number,
+  ) {
     return {
       id: msg.id,
       type: 'TEXTE' as const,
-      contenu: texte,
+      contenu: msg.contenuChiffre ? decryptMessage(msg.contenuChiffre) : '',
       expediteurId: msg.expediteurId,
-      expediteur: expName,
+      expediteur: displayName(msg.expediteur as UserLite),
       deMoi: true,
       edite: false,
       epingle: false,
       transfere: false,
+      favori: false,
+      nonLu: false,
       createdAt: msg.createdAt,
       piecesJointes: msg.piecesJointes,
       reactions: [] as { emoji: string; count: number; mine: boolean }[],
@@ -1263,38 +1698,86 @@ export class MessagerieService {
     }
   }
 
-  /** Détails d'un message (statut par destinataire) — pour la fiche « Détails ». */
+  /**
+   * Conversation directe : il faut un interlocuteur, et un interlocuteur dont le compte est
+   * ACTIF — un message adressé à un compte désactivé n'arriverait à personne, sans que
+   * l'expéditeur ne le sache.
+   */
+  private async verifierInterlocuteur(conversationId: string, moi: string) {
+    const lire = () =>
+      this.prisma.conversationParticipant.findMany({
+        where: { conversationId, utilisateurId: { not: moi } },
+        select: { utilisateur: { select: { statut: true } } },
+      })
+    let autres = await lire()
+    if (autres.length === 0) {
+      // Ancienne suppression qui avait retiré la ligne de l'autre : on le rattache.
+      await this.completerDirecte(conversationId, moi)
+      autres = await lire()
+    }
+    if (autres.length === 0)
+      throw new ConflictException({
+        code: 'INTERLOCUTEUR_INTROUVABLE',
+        message:
+          'Cette discussion n’a plus d’interlocuteur : rouvrez-la depuis les contacts.',
+      })
+    if (!autres.some((a) => a.utilisateur?.statut === 'ACTIF'))
+      throw new ForbiddenException({
+        code: 'COMPTE_DESACTIVE',
+        message:
+          'Ce compte est désactivé : votre message ne serait lu par personne.',
+      })
+  }
+
   async getMessageDetails(messageId: string, userId: string) {
     const m = await this.prisma.message.findUnique({
       where: { id: messageId },
       include: {
         conversation: {
           include: {
-            participants: { include: { utilisateur: { select: USER_SELECT } } },
+            participants: {
+              where: { deletedAt: null },
+              include: { utilisateur: { select: USER_SELECT } },
+            },
           },
         },
         piecesJointes: { select: { id: true } },
       },
     })
     if (!m || m.deletedAt) throw new NotFoundException('Message introuvable')
-    await this.assertParticipant(m.conversationId, userId)
+    const maPart = await this.assertParticipant(m.conversationId, userId)
+    if (m.createdAt < maPart.joinedAt)
+      throw new NotFoundException('Message introuvable')
 
+    const lectures = new Map(
+      (
+        await this.prisma.messageLecture.findMany({
+          where: { messageId },
+          select: { utilisateurId: true, luLe: true },
+        })
+      ).map((l) => [l.utilisateurId, l.luLe]),
+    )
+    const dernierEnvoi = await this.dernierEnvoiVersCentral()
+    const parti =
+      dernierEnvoi === undefined ||
+      (dernierEnvoi !== null && m.updatedAt.getTime() <= dernierEnvoi.getTime())
     const t = m.createdAt.getTime()
     const destinataires = m.conversation.participants
       .filter((p) => p.utilisateurId !== m.expediteurId)
       .map((p) => {
         const u = p.utilisateur as UserLite
         const seen = u.lastSeenAt
-        const read = p.lastReadAt
+        const luAt = lectures.get(p.utilisateurId) ?? null
         const remis =
-          this.presence.isOnline(p.utilisateurId) ||
-          (!!seen && seen.getTime() >= t) ||
-          (!!read && read.getTime() >= t)
+          !!luAt ||
+          (parti &&
+            (this.presence.isOnline(p.utilisateurId) ||
+              (!!seen && seen.getTime() >= t)))
         return {
           nom: displayName(u),
           remis,
-          lu: !!read && read.getTime() >= t,
-          luAt: read && read.getTime() >= t ? read : null,
+          lu: !!luAt,
+          luAt,
           enLigne: this.presence.isOnline(p.utilisateurId),
         }
       })
@@ -1323,6 +1806,8 @@ export class MessagerieService {
       throw new ForbiddenException(
         'Vous ne pouvez modifier que vos propres messages',
       )
+    // Sorti du groupe, on ne touche plus à ce qu'on y a écrit.
+    await this.assertParticipant(m.conversationId, userId)
     if (Date.now() - m.createdAt.getTime() > EDIT_DELETE_WINDOW_MS) {
       throw new ForbiddenException(
         'Le délai de modification (15 min) est dépassé',
@@ -1335,6 +1820,9 @@ export class MessagerieService {
       where: { id: messageId },
       data: { contenuChiffre: encryptMessage(texte), editedAt: new Date() },
     })
+    // TEMPS RÉEL, comme la suppression : sans ce signal les autres gardaient l'ancien texte
+    // jusqu'à leur prochain rafraîchissement.
+    void this.diffuserChangementMessagerie(m.conversationId, userId)
     return { id: messageId, contenu: texte, edite: true }
   }
 
@@ -1346,6 +1834,7 @@ export class MessagerieService {
       throw new ForbiddenException(
         'Vous ne pouvez supprimer que vos propres messages',
       )
+    await this.assertParticipant(m.conversationId, userId)
     if (Date.now() - m.createdAt.getTime() > EDIT_DELETE_WINDOW_MS) {
       throw new ForbiddenException(
         'Le délai de suppression (15 min) est dépassé',
@@ -1569,11 +2058,19 @@ export class MessagerieService {
     return { epingle: next }
   }
 
-  /** Liste les messages épinglés d'une conversation (bandeau en haut du fil). */
   async listPinned(conversationId: string, userId: string) {
-    await this.assertParticipant(conversationId, userId)
+    const myPart = await this.assertParticipant(conversationId, userId)
     const rows = await this.prisma.message.findMany({
-      where: { conversationId, epingle: true, deletedAt: null },
+      where: {
+        conversationId,
+        epingle: true,
+        deletedAt: null,
+        createdAt: {
+          gte: myPart.joinedAt,
+          ...(myPart.viderLe ? { gt: myPart.viderLe } : {}),
+        },
+        masques: { none: { utilisateurId: userId } },
+      },
       orderBy: { createdAt: 'desc' },
       include: {
         expediteur: { select: USER_SELECT },
@@ -1592,6 +2089,154 @@ export class MessagerieService {
     }))
   }
 
+  /**
+   * Cherche un mot dans une conversation (sans tenir compte des majuscules ni des accents),
+   * parmi les messages que cette personne a le droit de voir. Les contenus sont chiffrés en base :
+   * la recherche les déchiffre un à un, d'où une borne (les plus récents d'abord).
+   */
+  async rechercherMessages(conversationId: string, userId: string, q: string) {
+    const myPart = await this.assertParticipant(conversationId, userId)
+    const terme = sansAccents((q ?? '').trim())
+    if (terme.length < 2)
+      throw new BadRequestException('Saisissez au moins 2 caractères')
+    const rows = await this.prisma.message.findMany({
+      where: {
+        conversationId,
+        type: 'TEXTE',
+        createdAt: {
+          gte: myPart.joinedAt,
+          ...(myPart.viderLe ? { gt: myPart.viderLe } : {}),
+        },
+        masques: { none: { utilisateurId: userId } },
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: RECHERCHE_MAX_MESSAGES,
+      include: {
+        expediteur: { select: USER_SELECT },
+        piecesJointes: { select: PJ_META_SELECT },
+      },
+    })
+    const resultats: {
+      id: string
+      createdAt: Date
+      expediteur: string
+      deMoi: boolean
+      extrait: string
+    }[] = []
+    for (const m of rows) {
+      const texte = humanizeMentions(
+        m.contenuChiffre ? decryptMessage(m.contenuChiffre) : '',
+      )
+      const noms = m.piecesJointes.map((p) => p.nomFichier).join(' ')
+      const cible = texte || noms
+      const i = sansAccents(cible).indexOf(terme)
+      if (i === -1) continue
+      const debut = Math.max(0, i - 30)
+      const fin = Math.min(cible.length, i + terme.length + 60)
+      resultats.push({
+        id: m.id,
+        createdAt: m.createdAt,
+        expediteur: displayName(m.expediteur as UserLite),
+        deMoi: m.expediteurId === userId,
+        extrait:
+          (debut > 0 ? '…' : '') +
+          cible.slice(debut, fin) +
+          (fin < cible.length ? '…' : ''),
+      })
+      if (resultats.length >= RECHERCHE_MAX_RESULTATS) break
+    }
+    return {
+      resultats,
+      // Plus de messages que la borne : les plus anciens n'ont pas été examinés.
+      incomplet: rows.length >= RECHERCHE_MAX_MESSAGES,
+    }
+  }
+
+  /** Met / retire un message des favoris (étoile) — propre à cette personne. */
+  async toggleFavori(messageId: string, userId: string) {
+    const m = await this.prisma.message.findUnique({
+      where: { id: messageId },
+      select: { conversationId: true, deletedAt: true, createdAt: true },
+    })
+    if (!m || m.deletedAt) throw new NotFoundException('Message introuvable')
+    const part = await this.assertParticipant(m.conversationId, userId)
+    if (m.createdAt < part.joinedAt)
+      throw new NotFoundException('Message introuvable')
+    const cle = { messageId_utilisateurId: { messageId, utilisateurId: userId } }
+    const existant = await this.prisma.messageFavori.findUnique({ where: cle })
+    if (existant) {
+      await this.prisma.messageFavori.delete({ where: { id: existant.id } })
+      return { favori: false }
+    }
+    // `upsert` RESSUSCITE un éventuel favori retiré (suppression logique), sans quoi la
+    // contrainte d'unicité bloquerait de remettre le même message en favori.
+    await this.prisma.messageFavori.upsert({
+      where: cle,
+      create: { messageId, utilisateurId: userId },
+      update: { deletedAt: null },
+    })
+    return { favori: true }
+  }
+
+  /** Les favoris de cette personne, tous fils confondus (les plus récemment ajoutés d'abord). */
+  async listFavoris(userId: string) {
+    const rows = await this.prisma.messageFavori.findMany({
+      where: { utilisateurId: userId },
+      orderBy: { createdAt: 'desc' },
+      take: 200,
+      include: {
+        message: {
+          include: {
+            expediteur: { select: USER_SELECT },
+            piecesJointes: { select: PJ_META_SELECT },
+            conversation: {
+              include: {
+                participants: {
+                  where: { deletedAt: null },
+                  include: { utilisateur: { select: USER_SELECT } },
+                },
+              },
+            },
+          },
+        },
+      },
+    })
+    const favoris: {
+      id: string
+      conversationId: string
+      conversation: string
+      expediteur: string
+      deMoi: boolean
+      apercu: string
+      createdAt: Date
+    }[] = []
+    for (const f of rows) {
+      const m = f.message
+      // Relations incluses : l'extension de suppression logique ne les filtre pas.
+      if (!m || m.deletedAt || m.conversation.deletedAt) continue
+      const moi = m.conversation.participants.find((p) => p.utilisateurId === userId)
+      if (!moi || m.createdAt < moi.joinedAt) continue
+      if (moi.viderLe && m.createdAt <= moi.viderLe) continue
+      const autre = m.conversation.participants.find((p) => p.utilisateurId !== userId)
+      favoris.push({
+        id: m.id,
+        conversationId: m.conversationId,
+        conversation:
+          m.conversation.type === 'GROUPE'
+            ? (m.conversation.titre ?? 'Groupe')
+            : displayName((autre?.utilisateur as UserLite | undefined) ?? null),
+        expediteur: displayName(m.expediteur as UserLite),
+        deMoi: m.expediteurId === userId,
+        apercu: contentPreview(
+          m.contenuChiffre ? decryptMessage(m.contenuChiffre) : '',
+          m.piecesJointes,
+        ),
+        createdAt: m.createdAt,
+      })
+    }
+    return favoris
+  }
+
   /** Transfère un message existant vers d'autres conversations (le contenu chiffré est recopié tel quel). */
   async forwardMessage(
     messageId: string,
@@ -1603,7 +2248,12 @@ export class MessagerieService {
       include: { piecesJointes: true },
     })
     if (!m || m.deletedAt) throw new NotFoundException('Message introuvable')
-    await this.assertParticipant(m.conversationId, userId)
+    // Un événement de groupe (« X a quitté ») ne se transfère pas : il passerait pour un vrai message.
+    if (m.type === 'SYSTEME')
+      throw new BadRequestException('Un événement de groupe ne peut pas être transféré')
+    const source = await this.assertParticipant(m.conversationId, userId)
+    if (m.createdAt < source.joinedAt)
+      throw new NotFoundException('Message introuvable')
 
     const cibles = [...new Set(targetConversationIds.filter(Boolean))].slice(
       0,
@@ -1639,6 +2289,10 @@ export class MessagerieService {
       await this.prisma.conversation.update({
         where: { id: conversationId },
         data: { updatedAt: new Date() },
+      })
+      await this.prisma.conversationParticipant.updateMany({
+        where: { conversationId, archivee: true },
+        data: { archivee: false },
       })
       forwarded++
 
@@ -1702,16 +2356,25 @@ export class MessagerieService {
     }
   }
 
-  /** Nombre total de messages non lus (badge global), en une requête. */
+  /** Nombre total de messages non lus (badge global), en une requête — même règle que ci-dessus. */
   async totalUnread(userId: string): Promise<number> {
     const rows = await this.prisma.$queryRaw<{ total: bigint }[]>`
       SELECT COUNT(*) AS "total"
       FROM "Message" m
       JOIN "ConversationParticipant" cp
         ON cp."conversationId" = m."conversationId" AND cp."utilisateurId" = ${userId}
+       AND cp."deletedAt" IS NULL
       WHERE m."deletedAt" IS NULL
+        AND m."type" <> 'SYSTEME'
         AND m."expediteurId" <> ${userId}
-        AND (cp."lastReadAt" IS NULL OR m."createdAt" > cp."lastReadAt")
+        AND m."createdAt" >= cp."joinedAt"
+        AND (cp."viderLe" IS NULL OR m."createdAt" > cp."viderLe")
+        AND NOT EXISTS (
+          SELECT 1 FROM "MessageLecture" l
+          WHERE l."messageId" = m."id" AND l."utilisateurId" = ${userId})
+        AND NOT EXISTS (
+          SELECT 1 FROM "MessageMasque" mm
+          WHERE mm."messageId" = m."id" AND mm."utilisateurId" = ${userId})
     `
     return Number(rows[0]?.total ?? 0)
   }

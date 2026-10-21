@@ -6,7 +6,7 @@
  * à la réception d'une notification type MESSAGE, les queries ['messagerie']
  * sont invalidées → liste, fil et compteur se rafraîchissent instantanément.
  */
-import { useEffect } from 'react'
+import { useMemo } from 'react'
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { messagerieApi, type MessageItem, type MessagesPage } from '../api/messagerie.api'
 import { useUploadProgressStore } from '@/stores/uploadProgress.store'
@@ -45,32 +45,84 @@ export function useMessagerieUnread(enabled = true) {
 
 /** Fil paginé. Page 0 = messages les plus récents ; pages suivantes = plus anciens. */
 export function useMessagesThread(conversationId: string | null) {
-  const qc = useQueryClient()
   const q = useInfiniteQuery({
     queryKey:        threadKey(conversationId ?? '∅'),
     queryFn:         ({ pageParam }) => messagerieApi.messages(conversationId!, pageParam),
     initialPageParam: undefined as string | undefined,
-    getNextPageParam: (lastPage: MessagesPage) =>
-      lastPage.hasMore && lastPage.messages.length > 0 ? lastPage.messages[0]!.createdAt : undefined,
+    // Curseur `ISO~id` : l'identifiant départage deux messages de la même milliseconde.
+    getNextPageParam: (lastPage: MessagesPage) => {
+      const plusAncien = lastPage.messages[0]
+      return lastPage.hasMore && plusAncien ? `${plusAncien.createdAt}~${plusAncien.id}` : undefined
+    },
     enabled:   !!conversationId,
     staleTime: 5_000,
-    refetchInterval: 30_000,
+    // Actualisation périodique seulement onglet visible : un onglet masqué n'a pas à relire le fil.
+    refetchInterval: () => (typeof document === 'undefined' || document.visibilityState === 'visible' ? 30_000 : false),
   })
-  // Ouvrir/charger le fil marque la conversation LUE côté serveur (listMessages).
-  // On rafraîchit alors le compteur de non-lus + la liste → le badge se met à jour
-  // INSTANTANÉMENT (sans attendre le refetch périodique de 60 s).
-  useEffect(() => {
-    if (conversationId && q.isSuccess) {
+  // Charger le fil ne marque RIEN comme lu : c'est l'écran qui déclare ce qu'il montre
+  // (cf. useLectureConversation), quand l'onglet est visible et la fenêtre active.
+  return q
+}
+
+/**
+ * La lecture, déclarée par l'écran. `marquer` nomme les messages réellement vus ; `regarder`
+ * dit « cette conversation est sous mes yeux » (la cloche se tait pour elle) ; `fin` dit le contraire.
+ * Après une lecture, compteurs, liste, fil et cloche se rafraîchissent.
+ */
+export function useLectureConversation(conversationId: string) {
+  const qc = useQueryClient()
+  return useMemo(() => ({
+    marquer: async (messageIds: string[]) => {
+      await messagerieApi.markRead(conversationId, messageIds)
       qc.invalidateQueries({ queryKey: [...MSG_KEY, 'unread'] })
       qc.invalidateQueries({ queryKey: convKey })
-      // Le serveur a aussi marqué lues les notifications de cette conversation
-      // (nouveau message, réaction) → on rafraîchit la cloche pour qu'elle se
-      // décrémente immédiatement, sans décalage.
+      qc.invalidateQueries({ queryKey: threadKey(conversationId) })
       qc.invalidateQueries({ queryKey: ['notifications'] })
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conversationId, q.dataUpdatedAt, q.isSuccess])
-  return q
+    },
+    regarder: async () => { await messagerieApi.markRead(conversationId, []) },
+    fin:      async () => { await messagerieApi.endView(conversationId) },
+  }), [conversationId, qc])
+}
+
+/** Archive / désarchive une conversation pour soi. */
+export function useArchiver(conversationId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (archivee: boolean) => messagerieApi.archive(conversationId, archivee),
+    onSuccess:  () => { qc.invalidateQueries({ queryKey: convKey }) },
+  })
+}
+
+/** Met / retire un message des favoris. */
+export function useToggleFavori(conversationId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (messageId: string) => messagerieApi.toggleFavori(messageId),
+    onSuccess:  () => {
+      qc.invalidateQueries({ queryKey: threadKey(conversationId) })
+      qc.invalidateQueries({ queryKey: [...MSG_KEY, 'favoris'] })
+    },
+  })
+}
+
+export function useFavoris(enabled = true) {
+  return useQuery({
+    queryKey: [...MSG_KEY, 'favoris'],
+    queryFn:  () => messagerieApi.favoris(),
+    enabled,
+    staleTime: 5_000,
+  })
+}
+
+/** Recherche dans une conversation (au moins 2 caractères). */
+export function useRechercheMessages(conversationId: string, terme: string) {
+  const q = terme.trim()
+  return useQuery({
+    queryKey: [...MSG_KEY, 'recherche', conversationId, q],
+    queryFn:  () => messagerieApi.search(conversationId, q),
+    enabled:  q.length >= 2,
+    staleTime: 10_000,
+  })
 }
 
 /** Aplati les pages en ordre chronologique (ancien → récent). */
@@ -108,7 +160,8 @@ export function useLeaveConversation() {
 let tempCounter = 0
 
 type SendMessageVars = { contenu: string; fichiers: File[]; replyToId?: string; replyPreview?: MessageItem['replyTo'] }
-type SendMessageInternalVars = SendMessageVars & { tempId: string }
+/** `clientId` : identifie ce message pour le serveur (un renvoi après coupure ne crée pas de doublon). */
+type SendMessageInternalVars = SendMessageVars & { tempId: string; clientId: string }
 
 /**
  * `onMutate` (crée la bulle optimiste) et `mutationFn` (fait l'upload) ne partagent
@@ -120,9 +173,9 @@ type SendMessageInternalVars = SendMessageVars & { tempId: string }
 export function useSendMessage(conversationId: string) {
   const qc = useQueryClient()
   const mutation = useMutation({
-    mutationFn: ({ contenu, fichiers, replyToId, tempId }: SendMessageInternalVars) =>
+    mutationFn: ({ contenu, fichiers, replyToId, tempId, clientId }: SendMessageInternalVars) =>
       messagerieApi.send(conversationId, contenu, fichiers, replyToId,
-        fichiers.length ? (pct) => useUploadProgressStore.getState().setProgress(tempId, pct) : undefined),
+        fichiers.length ? (pct) => useUploadProgressStore.getState().setProgress(tempId, pct) : undefined, clientId),
 
     // Envoi optimiste : la bulle apparaît immédiatement (statut « en cours »).
     onMutate: async ({ contenu, fichiers, replyPreview, tempId }: SendMessageInternalVars) => {
@@ -140,6 +193,8 @@ export function useSendMessage(conversationId: string) {
         edite:        false,
         epingle:      false,
         transfere:    false,
+        favori:       false,
+        nonLu:        false,
         createdAt:    new Date().toISOString(),
         piecesJointes: fichiers.map((f, i) => ({ id: `temp-pj-${i}`, nomFichier: f.name, mimeType: f.type, taille: f.size })),
         reactions:    [],
@@ -168,7 +223,8 @@ export function useSendMessage(conversationId: string) {
     },
   })
 
-  const withTempId = (vars: SendMessageVars): SendMessageInternalVars => ({ ...vars, tempId: `temp-${++tempCounter}` })
+  const withTempId = (vars: SendMessageVars): SendMessageInternalVars =>
+    ({ ...vars, tempId: `temp-${++tempCounter}`, clientId: crypto.randomUUID() })
   return {
     ...mutation,
     mutate:      (vars: SendMessageVars) => mutation.mutate(withTempId(vars)),

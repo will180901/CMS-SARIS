@@ -5,14 +5,15 @@
  */
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Users, MoreVertical, Trash2, LogOut, BellOff, Bell } from 'lucide-react'
+import { Users, MoreVertical, Trash2, LogOut, BellOff, Bell, Archive, ArchiveRestore } from 'lucide-react'
 import { Avatar, UserAvatar } from '@/components/saris'
 import { Popover, PopoverContent, PopoverTrigger } from '@workspace/ui/components/popover'
 import { toast } from '@workspace/ui/components/sonner'
 import { useIsTouch } from '@/hooks/useMediaQuery'
+import { useBrouillonsMessagerie } from '@/stores/brouillonsMessagerie.store'
 import { formatTime, formatDate } from '@/lib/intl'
 import { renderRich } from './twemoji'
-import { useSetMuted } from '../hooks/useMessagerie'
+import { useSetMuted, useArchiver } from '../hooks/useMessagerie'
 import type { ConversationItem } from '../api/messagerie.api'
 
 function formatCardTime(iso: string, yesterdayLabel: string): string {
@@ -39,6 +40,9 @@ export function ConversationCard({
   const isGroupe = conv.type === 'GROUPE'
   const nom = conv.titre
   const muteMut = useSetMuted(conv.id)
+  const archiveMut = useArchiver(conv.id)
+  // Texte à moitié écrit dans cette conversation (affiché à la place du dernier message, comme WhatsApp).
+  const brouillon = useBrouillonsMessagerie(s => s.brouillons[conv.id])
 
   let apercu = t('messagerie.noMessage')
   if (conv.dernierMessage) {
@@ -51,6 +55,11 @@ export function ConversationCard({
   function toggleMuted() {
     setMenuOpen(false)
     muteMut.mutate(!conv.muted, { onError: () => toast.error(t('messagerie.groupUpdateError')) })
+  }
+
+  function toggleArchivee() {
+    setMenuOpen(false)
+    archiveMut.mutate(!conv.archivee, { onError: () => toast.error(t('messagerie.groupUpdateError')) })
   }
 
   const showMenu = hover || menuOpen || isTouch
@@ -87,7 +96,9 @@ export function ConversationCard({
         </div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 2 }}>
           <span style={{ fontSize: 12, color: conv.nonLus > 0 ? 'var(--texte-secondaire)' : 'var(--texte-tertiaire)', fontWeight: conv.nonLus > 0 ? 600 : 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {renderRich(apercu, 13)}
+            {brouillon && !selected
+              ? <><span style={{ color: 'var(--erreur-accent)', fontWeight: 600 }}>{t('messagerie.draftPrefix')}</span> {renderRich(brouillon.texte.replace(/\s+/g, ' '), 13)}</>
+              : renderRich(apercu, 13)}
           </span>
           {conv.nonLus > 0 && (
             <span style={{
@@ -118,6 +129,13 @@ export function ConversationCard({
                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                 {conv.muted ? <Bell size={14} /> : <BellOff size={14} />}
                 {conv.muted ? t('messagerie.unmuteConversation') : t('messagerie.muteConversation')}
+              </button>
+              <button onClick={toggleArchivee}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 7, fontSize: 13, color: 'var(--texte-secondaire)', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--fond-surface-2)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                {conv.archivee ? <ArchiveRestore size={14} /> : <Archive size={14} />}
+                {conv.archivee ? t('messagerie.unarchiveConversation') : t('messagerie.archiveConversation')}
               </button>
               <button onClick={() => { setMenuOpen(false); onDelete(conv) }}
                 style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 7, fontSize: 13, color: 'var(--erreur-accent)', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left' }}

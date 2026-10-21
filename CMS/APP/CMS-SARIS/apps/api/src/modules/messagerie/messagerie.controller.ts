@@ -42,6 +42,8 @@ import {
   SetAdminDto,
   UpdateGroupDto,
   MuteDto,
+  MarquerLuDto,
+  ArchiverDto,
   ForwardMessageDto,
   LeaveConversationDto,
 } from './dto/messagerie.dto'
@@ -162,6 +164,13 @@ export class MessagerieController {
   @RequirePermissions('messagerie.read')
   conversations(@Req() req: AuthedRequest) {
     return this.svc.listConversations(requireUser(req).userId)
+  }
+
+  /** Mes messages favoris (étoile), tous fils confondus. */
+  @Get('favoris')
+  @RequirePermissions('messagerie.read')
+  favoris(@Req() req: AuthedRequest) {
+    return this.svc.listFavoris(requireUser(req).userId)
   }
 
   /** Compteur global de messages non lus. */
@@ -321,7 +330,58 @@ export class MessagerieController {
     )
   }
 
-  /** Messages d'une conversation (déchiffrés, paginés) + marque comme lue. */
+  /**
+   * Archive / désarchive la conversation pour MOI (un nouveau message la désarchive).
+   */
+  @Patch('conversations/:id/archiver')
+  @RequirePermissions('messagerie.read')
+  archiver(
+    @Param('id') id: string,
+    @Body() dto: ArchiverDto,
+    @Req() req: AuthedRequest,
+  ) {
+    return this.svc.setArchivee(id, requireUser(req).userId, dto.archivee)
+  }
+
+  /**
+   * L'écran déclare ce qu'il a réellement sous les yeux : les messages « non lus » qu'il vient
+   * de montrer (onglet visible, fenêtre active). Sans `messageIds`, simple « je regarde ».
+   */
+  @Post('conversations/:id/lire')
+  @RequirePermissions('messagerie.read')
+  @Throttle({ default: { limit: 240, ttl: 60_000 } })
+  @HttpCode(HttpStatus.OK)
+  lire(
+    @Param('id') id: string,
+    @Body() dto: MarquerLuDto,
+    @Req() req: AuthedRequest,
+  ) {
+    return this.svc.marquerLu(id, requireUser(req).userId, dto.messageIds ?? [])
+  }
+
+  /** Je ne regarde plus cette conversation : la cloche reprend pour elle. */
+  @Delete('conversations/:id/vue')
+  @RequirePermissions('messagerie.read')
+  @HttpCode(HttpStatus.OK)
+  finDeVue(@Param('id') id: string, @Req() req: AuthedRequest) {
+    return this.svc.quitterVue(id, requireUser(req).userId)
+  }
+
+  /** Cherche un mot dans une conversation (insensible à la casse et aux accents). */
+  @Get('conversations/:id/recherche')
+  @RequirePermissions('messagerie.read')
+  rechercher(
+    @Param('id') id: string,
+    @Query('q') q: string | undefined,
+    @Req() req: AuthedRequest,
+  ) {
+    return this.svc.rechercherMessages(id, requireUser(req).userId, q ?? '')
+  }
+
+  /**
+   * Messages d'une conversation (déchiffrés, paginés). LECTURE SEULE : ne marque rien comme lu
+   * (cf. `lire`). `before` : curseur `ISO~id` renvoyé par le client à partir du plus ancien message affiché.
+   */
   @Get('conversations/:id/messages')
   @RequirePermissions('messagerie.read')
   messages(
@@ -360,6 +420,7 @@ export class MessagerieController {
       dto.contenu ?? '',
       pieces,
       dto.replyToId,
+      dto.clientId,
     )
   }
 
@@ -375,6 +436,14 @@ export class MessagerieController {
   @RequirePermissions('messagerie.read')
   details(@Param('id') id: string, @Req() req: AuthedRequest) {
     return this.svc.getMessageDetails(id, requireUser(req).userId)
+  }
+
+  /** Met / retire un message des favoris (étoile) — propre à moi. */
+  @Post('messages/:id/favori')
+  @RequirePermissions('messagerie.read')
+  @HttpCode(HttpStatus.OK)
+  favori(@Param('id') id: string, @Req() req: AuthedRequest) {
+    return this.svc.toggleFavori(id, requireUser(req).userId)
   }
 
   /** Ajoute/retire une réaction emoji sur un message. */

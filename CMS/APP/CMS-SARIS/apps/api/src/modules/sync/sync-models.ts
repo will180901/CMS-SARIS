@@ -40,7 +40,6 @@ export interface SyncModelDef {
 }
 
 const GLOBAL = (): Record<string, unknown> => ({})
-const BY_SITE = (siteId: string): Record<string, unknown> => ({ siteId })
 const VIA = (path: (siteId: string) => Record<string, unknown>) => path
 
 function def(
@@ -136,33 +135,19 @@ export const SYNC_MODELS: readonly SyncModelDef[] = [
   // Administrations d'un traitement (migration 20261004090000) — après LigneOrdonnance (FK).
   def('AdministrationTraitement', 'administrationTraitement', GLOBAL),
 
-  // ── Messagerie (scope site via conversation) ──────────────────────────────
-  def('Conversation', 'conversation', BY_SITE),
-  def(
-    'ConversationParticipant',
-    'conversationParticipant',
-    VIA((s) => ({ conversation: { siteId: s } })),
-  ),
-  def(
-    'Message',
-    'message',
-    VIA((s) => ({ conversation: { siteId: s } })),
-  ),
-  def(
-    'MessageReaction',
-    'messageReaction',
-    VIA((s) => ({ message: { conversation: { siteId: s } } })),
-  ),
-  def(
-    'MessageMasque',
-    'messageMasque',
-    VIA((s) => ({ message: { conversation: { siteId: s } } })),
-  ),
-  def(
-    'MessagePieceJointe',
-    'messagePieceJointe',
-    VIA((s) => ({ message: { conversation: { siteId: s } } })),
-  ),
+  // ── Messagerie : GLOBALE (cf. l'en-tête du fichier) ───────────────────────
+  // Une conversation réunit des agents des deux sites, et un agent peut se connecter sur
+  // N'IMPORTE QUEL poste : limiter ces tables au site du créateur de la conversation
+  // l'empêchait d'arriver sur les postes de l'autre site. La confidentialité tient à l'API
+  // (on ne lit que les conversations dont on est membre) et au chiffrement des contenus.
+  def('Conversation', 'conversation', GLOBAL),
+  def('ConversationParticipant', 'conversationParticipant', GLOBAL),
+  def('Message', 'message', GLOBAL),
+  def('MessageReaction', 'messageReaction', GLOBAL),
+  def('MessageMasque', 'messageMasque', GLOBAL),
+  def('MessagePieceJointe', 'messagePieceJointe', GLOBAL),
+  def('MessageLecture', 'messageLecture', GLOBAL),
+  def('MessageFavori', 'messageFavori', GLOBAL),
 ]
 
 export const SYNC_MODEL_BY_NAME: ReadonlyMap<string, SyncModelDef> = new Map(

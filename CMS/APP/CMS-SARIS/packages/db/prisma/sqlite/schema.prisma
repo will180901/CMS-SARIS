@@ -1346,13 +1346,18 @@ model Conversation {
 
 model ConversationParticipant {
   updatedAt      DateTime     @default(now()) @updatedAt
+  // A quitté le groupe / en a été retiré : suppression LOGIQUE (la synchro la propage aux postes).
+  // La ligne est RESSUSCITÉE si la personne est rajoutée (unique conversation + utilisateur).
+  deletedAt      DateTime?
   id             String       @id @default(uuid())
   conversationId String
   utilisateurId  String
   estAdmin       Boolean      @default(false) // admin de groupe (le créateur est identifié via Conversation.createdById, pas dupliqué ici)
   muted          Boolean      @default(false) // notifications de CETTE conversation désactivées pour cet utilisateur
-  lastReadAt     DateTime?
-  joinedAt       DateTime     @default(now())
+  lastReadAt     DateTime? // dernière ouverture du fil — informatif : le « non lu » se lit dans MessageLecture
+  joinedAt       DateTime     @default(now()) // les messages d'AVANT ne sont jamais montrés à ce membre
+  viderLe        DateTime? // « supprimer la conversation » pour soi (directe) : tout ce qui précède lui est masqué
+  archivee       Boolean      @default(false) // conversation archivée par CET utilisateur (se désarchive à un nouveau message)
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   utilisateur    Utilisateur  @relation(fields: [utilisateurId], references: [id])
 
@@ -1368,6 +1373,7 @@ model Message {
   type           String               @default("TEXTE") // TEXTE | SYSTEME (événement de groupe : ajout/retrait/promotion/renommage/départ)
   contenuChiffre String // contenu AES-256-GCM (jamais en clair)
   replyToId      String? // message cité (réponse)
+  clientId       String? // identifiant d'envoi choisi par l'expéditeur : un renvoi après coupure ne crée pas de doublon
   epingle        Boolean              @default(false)
   transfere      Boolean              @default(false) // transféré depuis une autre conversation
   createdAt      DateTime             @default(now())
@@ -1379,12 +1385,16 @@ model Message {
   piecesJointes  MessagePieceJointe[]
   reactions      MessageReaction[]
   masques        MessageMasque[]
+  lectures       MessageLecture[]
+  favoris        MessageFavori[]
   replyTo        Message?             @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
   replies        Message[]            @relation("MessageReplies")
 
+  @@unique([expediteurId, clientId])
   @@index([conversationId])
   @@index([conversationId, createdAt])
   @@index([replyToId])
+  @@index([updatedAt])
 }
 
 /**
@@ -1397,6 +1407,41 @@ model MessageMasque {
   utilisateurId String
   createdAt     DateTime @default(now())
   message       Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, utilisateurId])
+  @@index([updatedAt])
+  @@index([utilisateurId])
+}
+
+/**
+ * Accusé de lecture d'UN message par UN lecteur. Remplace la comparaison d'horodatages
+ * (« lu jusqu'à telle heure ») qui se trompait pour un message écrit hors ligne et arrivé
+ * après : daté d'avant la dernière lecture, il passait pour déjà lu — et pour lu aussi
+ * côté expéditeur. `id` est DÉTERMINISTE (md5 de message|lecteur) : deux postes qui
+ * marquent le même message fusionnent au lieu de se disputer la contrainte unique.
+ */
+model MessageLecture {
+  updatedAt     DateTime @default(now()) @updatedAt
+  id            String   @id
+  messageId     String
+  utilisateurId String
+  luLe          DateTime @default(now())
+  message       Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, utilisateurId])
+  @@index([updatedAt])
+  @@index([utilisateurId])
+}
+
+/// Message mis en favori (étoile) par un utilisateur — propre à lui, invisible des autres.
+model MessageFavori {
+  updatedAt     DateTime  @default(now()) @updatedAt
+  deletedAt     DateTime?
+  id            String    @id @default(uuid())
+  messageId     String
+  utilisateurId String
+  createdAt     DateTime  @default(now())
+  message       Message   @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
   @@unique([messageId, utilisateurId])
   @@index([updatedAt])

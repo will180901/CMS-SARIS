@@ -10,7 +10,7 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
-import { MessageSquare, Plus, Search, X, Lock, Send, Users, Check } from 'lucide-react'
+import { MessageSquare, Plus, Search, X, Lock, Send, Users, Check, Star, Archive, ArrowLeft } from 'lucide-react'
 import { Button } from '@workspace/ui/components/button'
 import { Input } from '@workspace/ui/components/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@workspace/ui/components/popover'
@@ -19,9 +19,9 @@ import { UserAvatar, TILE_TONE_MAP } from '@/components/saris'
 import { isOfflineQueued } from '@/lib/api'
 import { isDesktop } from '@/lib/desktop'
 import { DESKTOP_TITLEBAR_H } from '@/components/layout/DesktopTitleBar'
-import { formatTime } from '@/lib/intl'
+import { formatTime, formatDateTime } from '@/lib/intl'
 import { useIsCompact } from '@/hooks/useMediaQuery'
-import { useConversations, useContacts, useStartConversation, useCreateGroup, useLeaveConversation } from '../hooks/useMessagerie'
+import { useConversations, useContacts, useStartConversation, useCreateGroup, useLeaveConversation, useFavoris } from '../hooks/useMessagerie'
 import { useLeaveGroupFlow } from '../hooks/useLeaveGroupFlow'
 import { ConversationCard } from '../components/ConversationCard'
 import { MessageThread } from '../components/MessageThread'
@@ -47,6 +47,12 @@ export function MessageriePage() {
   const [deleteTarget, setDeleteTarget] = useState<ConversationItem | null>(null)
   const [search, setSearch] = useState('')
   const [newOpen, setNewOpen] = useState(false)
+  /** Liste des conversations ARCHIVÉES au lieu des actives. */
+  const [vueArchives, setVueArchives] = useState(false)
+  const [favorisOuverts, setFavorisOuverts] = useState(false)
+  const { data: favoris = [], isLoading: favorisChargent } = useFavoris(favorisOuverts)
+  /** Message à rejoindre à l'ouverture d'une conversation (depuis les favoris). */
+  const [cible, setCible] = useState<string | null>(null)
 
   useEffect(() => {
     const c = params.get('c')
@@ -56,15 +62,19 @@ export function MessageriePage() {
 
   useEffect(() => {
     // Sur mobile, on affiche d'abord la LISTE (un seul panneau) : pas d'auto-sélection.
-    if (!selectedId && !isCompact && conversations.length > 0) setSelectedId(conversations[0]!.id)
+    const premiere = conversations.find(c => !c.archivee)
+    if (!selectedId && !isCompact && premiere) setSelectedId(premiere.id)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversations.length])
 
+  const archivees = useMemo(() => conversations.filter(c => c.archivee), [conversations])
+  const nonLusArchivees = archivees.reduce((n, c) => n + c.nonLus, 0)
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
-    if (!q) return conversations
-    return conversations.filter(c => c.titre.toLowerCase().includes(q))
-  }, [conversations, search])
+    const base = conversations.filter(c => c.archivee === vueArchives)
+    if (!q) return base
+    return base.filter(c => c.titre.toLowerCase().includes(q))
+  }, [conversations, search, vueArchives])
 
   const selectedConv: ConversationItem | null =
     conversations.find(c => c.id === selectedId)
@@ -155,6 +165,39 @@ export function MessageriePage() {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Popover open={favorisOuverts} onOpenChange={setFavorisOuverts}>
+                <PopoverTrigger asChild>
+                  <Button size="sm" variant="outline" title={t('messagerie.favorites')} aria-label={t('messagerie.favorites')} style={{ fontSize: 13, height: 34, gap: 6 }}>
+                    <Star size={14} /> <span className="hidden sm:inline">{t('messagerie.favorites')}</span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" sideOffset={6} collisionPadding={12} style={{ width: 360, maxWidth: 'calc(100vw - 24px)', padding: 0, background: 'var(--fond-surface)', border: '1px solid var(--bordure-legere)', borderRadius: 10, boxShadow: '0 10px 30px rgba(0,0,0,0.12)' }}>
+                  <div style={{ maxHeight: 340, overflowY: 'auto' }}>
+                    {favorisChargent ? (
+                      <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--texte-tertiaire)', padding: 16 }}>{t('messagerie.loading')}</p>
+                    ) : favoris.length === 0 ? (
+                      <div style={{ padding: '24px 20px', textAlign: 'center' }}>
+                        <Star size={26} style={{ margin: '0 auto 10px', color: 'var(--texte-tertiaire)', opacity: 0.4, display: 'block' }} />
+                        <p style={{ margin: '0 0 4px', fontSize: 13, color: 'var(--texte-secondaire)' }}>{t('messagerie.favoritesEmpty')}</p>
+                        <p style={{ margin: 0, fontSize: 11, color: 'var(--texte-tertiaire)' }}>{t('messagerie.favoritesHint')}</p>
+                      </div>
+                    ) : (
+                      favoris.map(f => (
+                        <button key={f.id} onClick={() => { setFavorisOuverts(false); setVueArchives(false); handleSelect(f.conversationId); setCible(f.id) }}
+                          style={{ width: '100%', display: 'block', textAlign: 'left', padding: '9px 12px', background: 'transparent', border: 'none', borderBottom: '1px solid var(--bordure-legere)', cursor: 'pointer' }}
+                          onMouseEnter={e => (e.currentTarget.style.background = 'var(--fond-surface-2)')}
+                          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                          <span style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--ap-700)' }}>
+                            {/* Conversation directe : le nom de l'interlocuteur n'est écrit qu'une fois. */}
+                            {(f.deMoi ? t('messagerie.you') : f.expediteur) === f.conversation ? f.conversation : `${f.conversation} · ${f.deMoi ? t('messagerie.you') : f.expediteur}`} · {formatDateTime(f.createdAt)}
+                          </span>
+                          <span style={{ display: 'block', fontSize: 12.5, color: 'var(--texte-secondaire)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.apercu}</span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
               <Popover open={newOpen} onOpenChange={setNewOpen}>
                 <PopoverTrigger asChild>
                   <Button size="sm" style={{ background: 'var(--ap-400)', color: '#fff', fontSize: 13, height: 34, gap: 6 }}>
@@ -182,14 +225,24 @@ export function MessageriePage() {
                 {search && <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--texte-tertiaire)', display: 'flex', padding: 2 }}><X size={12} /></button>}
               </div>
             </div>
+            {(archivees.length > 0 || vueArchives) && (
+              <button onClick={() => setVueArchives(v => !v)}
+                style={{ flexShrink: 0, width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '9px 14px', background: 'var(--fond-surface-2)', border: 'none', borderBottom: '1px solid var(--bordure-legere)', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: 'var(--texte-secondaire)', textAlign: 'left' }}>
+                {vueArchives ? <ArrowLeft size={14} /> : <Archive size={14} />}
+                <span style={{ flex: 1 }}>{vueArchives ? t('messagerie.archivedBack') : `${t('messagerie.archivedChats')} (${archivees.length})`}</span>
+                {!vueArchives && nonLusArchivees > 0 && (
+                  <span style={{ minWidth: 18, height: 18, padding: '0 5px', borderRadius: 9999, background: 'var(--fond-surface)', border: '1px solid var(--bordure-normale)', color: 'var(--texte-tertiaire)', fontSize: 10, fontWeight: 700, lineHeight: '16px', textAlign: 'center' }}>{nonLusArchivees > 99 ? '99+' : nonLusArchivees}</span>
+                )}
+              </button>
+            )}
             <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
               {isLoading ? (
                 <p style={{ textAlign: 'center', color: 'var(--texte-tertiaire)', fontSize: 12, marginTop: 24 }}>{t('messagerie.loading')}</p>
               ) : filtered.length === 0 ? (
                 <div style={{ padding: '48px 24px', textAlign: 'center' }}>
                   <MessageSquare size={30} style={{ margin: '0 auto 12px', color: 'var(--texte-tertiaire)', opacity: 0.3, display: 'block' }} />
-                  <p style={{ fontSize: 13, color: 'var(--texte-secondaire)', margin: '0 0 4px' }}>{t('messagerie.noConversation')}</p>
-                  <p style={{ fontSize: 11, color: 'var(--texte-tertiaire)', margin: 0 }}>{search ? t('messagerie.tryAnotherName') : t('messagerie.startWithNew')}</p>
+                  <p style={{ fontSize: 13, color: 'var(--texte-secondaire)', margin: '0 0 4px' }}>{vueArchives ? t('messagerie.archivedEmpty') : t('messagerie.noConversation')}</p>
+                  <p style={{ fontSize: 11, color: 'var(--texte-tertiaire)', margin: 0 }}>{search ? t('messagerie.tryAnotherName') : vueArchives ? t('messagerie.archivedHint') : t('messagerie.startWithNew')}</p>
                 </div>
               ) : (
                 filtered.map(c => <ConversationCard key={c.id} conv={c} selected={c.id === selectedId} onClick={() => handleSelect(c.id)} onDelete={handleCardAction} />)
@@ -210,7 +263,7 @@ export function MessageriePage() {
           {(!isCompact || selectedConv) && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, background: 'var(--fond-page)' }}>
             {selectedConv
-              ? <PrivacyCurtain><MessageThread key={selectedConv.id} conv={selectedConv} onLeft={handleLeft} onBack={isCompact ? () => { setSelectedId(null); setPendingConv(null) } : undefined} /></PrivacyCurtain>
+              ? <PrivacyCurtain><MessageThread key={selectedConv.id} conv={selectedConv} onLeft={handleLeft} ciblerMessageId={cible} onCibleAtteinte={() => setCible(null)} onBack={isCompact ? () => { setSelectedId(null); setPendingConv(null) } : undefined} /></PrivacyCurtain>
               : <EmptyThread onNew={() => setNewOpen(true)} />}
           </div>
           )}
@@ -270,7 +323,7 @@ function NewConversationPanel({ onStarted }: { onStarted: (conv: ConversationIte
         id: res.id, type: 'DIRECT', titre: c.nom, photoUrl: null,
         interlocuteur: { id: c.id, nom: c.nom, role: c.role },
         participants: [c.nom], nbParticipants: 2,
-        dernierMessage: null, nonLus: 0, muted: false, updatedAt: new Date().toISOString(),
+        dernierMessage: null, nonLus: 0, muted: false, archivee: false, updatedAt: new Date().toISOString(),
       })
     } catch (e) { if (!isOfflineQueued(e)) toast.error(t('messagerie.startConversationError')) }
   }
@@ -288,7 +341,7 @@ function NewConversationPanel({ onStarted }: { onStarted: (conv: ConversationIte
       onStarted({
         id: res.id, type: 'GROUPE', titre: titre.trim(), photoUrl: null, interlocuteur: null,
         participants: noms, nbParticipants: ids.length + 1,
-        dernierMessage: null, nonLus: 0, muted: false, updatedAt: new Date().toISOString(),
+        dernierMessage: null, nonLus: 0, muted: false, archivee: false, updatedAt: new Date().toISOString(),
       })
     } catch (e) { if (!isOfflineQueued(e)) toast.error(t('messagerie.createGroupError')) }
   }

@@ -145,6 +145,9 @@ export const SOFT_DELETE_MODELS: ReadonlySet<string> = new Set<string>([
   'Utilisateur',
   'Patient',
   'Visite',
+  // Enfant AVANT son parent (purge des tombstones, clés étrangères). Quitter un groupe ou en être retiré
+  // est une suppression LOGIQUE : sans cela la synchro ne l'apprenait jamais aux postes.
+  'ConversationParticipant',
   'Conversation',
   'Site',
   'CategoriePatient',
@@ -181,6 +184,7 @@ export const SOFT_DELETE_MODELS: ReadonlySet<string> = new Set<string>([
   'AdministrationTraitement',
   'SuiviTraitement',
   'MessageReaction',
+  'MessageFavori',
   'MessagePieceJointe',
   'DelegationPrescription',
   'RattachementAyantDroitCdi',

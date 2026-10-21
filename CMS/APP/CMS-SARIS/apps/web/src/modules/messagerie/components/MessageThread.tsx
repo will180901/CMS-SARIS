@@ -8,7 +8,7 @@
  * stickers, menu de pièces jointes (Photos/Document) ; rendu géant des emojis seuls ;
  * liens cliquables ; envoi optimiste ; bouton « descendre ».
  */
-import { useState, useRef, useLayoutEffect, useCallback, useEffect, useMemo } from 'react'
+import { useState, useRef, useLayoutEffect, useCallback, useEffect, useMemo, Fragment } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
@@ -18,6 +18,7 @@ import {
   Reply, Copy, Image as ImageIcon, FileText, Smile, Info, Music, Mic, ListChecks, Plus, ChevronLeft,
   Pin, PinOff, Forward, MoreVertical, Bell, BellOff, LogOut,
   Bold, Italic, Strikethrough, Underline, Ban,
+  Search, Archive, ArchiveRestore, Star, StarOff,
 } from 'lucide-react'
 import { Avatar, UserAvatar, CheckBox } from '@/components/saris'
 import { Popover, PopoverContent, PopoverTrigger } from '@workspace/ui/components/popover'
@@ -32,7 +33,7 @@ import {
   useMessagesThread, flattenThread,
   useSendMessage, useUpdateMessage, useDeleteMessage, useHideMessage, useToggleReaction, useMessageDetails,
   useBatchDeleteMessages, useTogglePin, usePinnedMessages, useForwardMessage, useReactionDetails, useConversations,
-  useSetMuted,
+  useSetMuted, useArchiver, useToggleFavori, useRechercheMessages, useLectureConversation,
 } from '../hooks/useMessagerie'
 import { useLeaveGroupFlow } from '../hooks/useLeaveGroupFlow'
 import { messagerieApi, EDIT_DELETE_WINDOW_MS, type ConversationItem, type MessageItem, type ReplyPreview, type PieceJointeMeta } from '../api/messagerie.api'
@@ -45,6 +46,7 @@ import { playSound } from '@/lib/sounds'
 import { formatTime, formatDate, formatDateTime } from '@/lib/intl'
 import { useTypingStore } from '@/stores/typing.store'
 import { useAudioPlaybackStore } from '@/stores/audioPlayback.store'
+import { useBrouillonsMessagerie } from '@/stores/brouillonsMessagerie.store'
 import { EmojiPicker } from './EmojiPicker'
 import { Twemoji, renderRich } from './twemoji'
 import { isEmojiOnly, splitGraphemes } from './emojiData'
@@ -121,6 +123,11 @@ function formatDayLabel(iso: string, t: TFunction): string {
 }
 const withinWindow = (iso: string) => Date.now() - new Date(iso).getTime() <= EDIT_DELETE_WINDOW_MS
 
+/** La page est-elle réellement sous les yeux ? Onglet visible ET fenêtre active. */
+function pageActive(): boolean {
+  return typeof document !== 'undefined' && document.visibilityState === 'visible' && document.hasFocus()
+}
+
 /** « Vu » relatif pour le statut d'en-tête. */
 function formatLastSeen(iso: string, t: TFunction): string {
   const d = new Date(iso), now = new Date()
@@ -141,7 +148,11 @@ const FORMATS = [
   { marqueur: '+', Icone: Underline,     cle: 'messagerie.formatUnderline', raccourci: 'Ctrl+U' },
 ] as const
 
-export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem; onLeft?: () => void; onBack?: () => void }) {
+export function MessageThread({ conv, onLeft, onBack, ciblerMessageId, onCibleAtteinte }: {
+  conv: ConversationItem; onLeft?: () => void; onBack?: () => void
+  /** Message à rejoindre à l'ouverture (ex. depuis les favoris). */
+  ciblerMessageId?: string | null; onCibleAtteinte?: () => void
+}) {
   const { t } = useTranslation()
   const conversationId = conv.id
   const isGroupe = conv.type === 'GROUPE'
@@ -160,8 +171,18 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
   const batchMut  = useBatchDeleteMessages(conversationId)
   const pinMut    = useTogglePin(conversationId)
   const { data: pinned = [] } = usePinnedMessages(conversationId)
+  const archiverMut = useArchiver(conversationId)
+  const favoriMut   = useToggleFavori(conversationId)
+  const lecture     = useLectureConversation(conversationId)
+  // Compte désactivé : écrire n'atteindrait personne (le serveur le refuse aussi).
+  const interlocuteurInactif = !isGroupe && conv.interlocuteur?.actif === false
+  // Brouillon : le texte à moitié écrit survit au changement de conversation (en mémoire seulement).
+  const [brouillonInitial] = useState(() => useBrouillonsMessagerie.getState().brouillons[conversationId])
+  const [rechercheOuverte, setRechercheOuverte] = useState(false)
+  const [terme, setTerme] = useState('')
+  const recherche = useRechercheMessages(conversationId, terme)
 
-  const [draft, setDraft]       = useState('')
+  const [draft, setDraft]       = useState(brouillonInitial?.texte ?? '')
   /** Du texte est-il selectionne dans le composeur ? Pilote la barre de mise en forme. */
   const [selActive, setSelActive] = useState(false)
   const [mediaFiles, setMediaFiles] = useState<File[]>([])
@@ -242,7 +263,7 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
   // que le serveur parse (cf. parseMentionIds back) n'est reconstruit qu'à l'envoi,
   // à partir de `mentionSpans` (position, id, nom) tenue à jour à chaque frappe.
   const [mention, setMention] = useState<{ q: string; start: number } | null>(null)
-  const [mentionSpans, setMentionSpans] = useState<MentionSpan[]>([])
+  const [mentionSpans, setMentionSpans] = useState<MentionSpan[]>(brouillonInitial?.mentions ?? [])
   function updateDraft(next: string) {
     setMentionSpans(prev => adjustMentionSpans(draft, next, prev))
     setDraft(next)
@@ -296,6 +317,104 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
     })
   }
 
+  // Brouillon : mémorisé à chaque frappe (en mémoire), effacé à l'envoi (texte vide).
+  useEffect(() => {
+    useBrouillonsMessagerie.getState().ecrire(conversationId, draft, mentionSpans)
+  }, [conversationId, draft, mentionSpans])
+
+  // ── Lecture : l'écran DÉCLARE ce qu'il a réellement sous les yeux ───────────
+  // Avant, charger le fil — même celui d'un onglet masqué — passait tout en « lu » (coches
+  // bleues chez l'expéditeur) et coupait la cloche. Maintenant un message n'est déclaré lu que
+  // s'il est VISIBLE dans le fil, dans un onglet visible et une fenêtre active.
+  const [actif, setActif] = useState(pageActive)
+  useEffect(() => {
+    const maj = () => setActif(pageActive())
+    document.addEventListener('visibilitychange', maj)
+    window.addEventListener('focus', maj)
+    window.addEventListener('blur', maj)
+    return () => {
+      document.removeEventListener('visibilitychange', maj)
+      window.removeEventListener('focus', maj)
+      window.removeEventListener('blur', maj)
+    }
+  }, [])
+  const visiblesRef = useRef<Set<string>>(new Set()) // non lus actuellement à l'écran
+  const declaresRef = useRef<Set<string>>(new Set()) // déjà déclarés au serveur
+  const minuteurLectureRef = useRef<number | undefined>(undefined)
+  const actifRef = useRef(actif)
+  useEffect(() => { actifRef.current = actif }, [actif])
+  const nonLusKey = messages.filter(m => m.nonLu && !m.deMoi && !m.pending).map(m => m.id).join(',')
+
+  const declarerLecture = useCallback(() => {
+    if (!actifRef.current) return
+    const ids = [...visiblesRef.current].filter(id => !declaresRef.current.has(id))
+    if (!ids.length) return
+    ids.forEach(id => declaresRef.current.add(id))
+    lecture.marquer(ids).catch(() => ids.forEach(id => declaresRef.current.delete(id)))
+  }, [lecture])
+  const programmerLecture = useCallback(() => {
+    window.clearTimeout(minuteurLectureRef.current)
+    minuteurLectureRef.current = window.setTimeout(declarerLecture, 400)
+  }, [declarerLecture])
+  useEffect(() => () => window.clearTimeout(minuteurLectureRef.current), [])
+
+  // Observe les bulles « non lues » : vues quand 60 % de la bulle (ou 60 % de la zone, si elle est plus haute) est à l'écran.
+  useEffect(() => {
+    const racine = scrollRef.current
+    if (!racine || !nonLusKey) return
+    const observateur = new IntersectionObserver((entrees) => {
+      for (const e of entrees) {
+        const id = (e.target as HTMLElement).dataset['msgid']
+        if (!id) continue
+        const hauteurZone = e.rootBounds?.height ?? racine.clientHeight
+        const vu = e.isIntersecting && (e.intersectionRatio >= 0.6 || e.intersectionRect.height >= hauteurZone * 0.6)
+        if (vu) visiblesRef.current.add(id)
+        else visiblesRef.current.delete(id)
+      }
+      programmerLecture()
+    }, { root: racine, threshold: [0, 0.3, 0.6, 1] })
+    for (const id of nonLusKey.split(',')) {
+      const el = document.getElementById(`msg-${id}`)
+      if (el) { el.dataset['msgid'] = id; observateur.observe(el) }
+    }
+    return () => observateur.disconnect()
+  }, [nonLusKey, programmerLecture])
+
+  // La page redevient active : ce qui était déjà à l'écran se déclare.
+  useEffect(() => { if (actif) programmerLecture() }, [actif, programmerLecture])
+
+  // « Je regarde cette conversation » : la cloche se tait pour elle, tant que c'est vrai — et
+  // reprend dès qu'on la quitte, qu'on change d'onglet ou de fenêtre.
+  useEffect(() => {
+    if (!actif) return
+    void lecture.regarder().catch(() => undefined)
+    const id = window.setInterval(() => { void lecture.regarder().catch(() => undefined) }, 25_000)
+    return () => { window.clearInterval(id); void lecture.fin().catch(() => undefined) }
+  }, [actif, lecture])
+
+  // Repère « N messages non lus », figé à l'ouverture (il reste affiché quand on les a lus).
+  const [repere, setRepere] = useState<{ id: string; nb: number } | null>(null)
+  const repereFigeRef = useRef(false)
+  useEffect(() => {
+    if (repereFigeRef.current || !data) return
+    repereFigeRef.current = true
+    const nonLus = flattenThread(data.pages).filter(m => m.nonLu && !m.deMoi)
+    if (nonLus.length) setRepere({ id: nonLus[0]!.id, nb: nonLus.length })
+  }, [data])
+  // À l'ouverture : si les non-lus ne tiennent pas à l'écran, on se place sur le premier ; sinon on reste en bas.
+  useLayoutEffect(() => {
+    if (!repere) return
+    const el = document.getElementById('repere-non-lus')
+    const zone = scrollRef.current
+    if (!el || !zone) return
+    if (zone.scrollHeight - el.offsetTop > zone.clientHeight) {
+      // 48 px de marge : le repère se place SOUS la pastille de date collante, pas dessous.
+      zone.scrollTop = Math.max(0, el.offsetTop - 48)
+      nearBottomRef.current = false
+      setShowScrollDown(true)
+    }
+  }, [repere])
+
   useLayoutEffect(() => {
     const el = scrollRef.current
     if (!el) return
@@ -346,6 +465,26 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
     const el = document.getElementById(`msg-${id}`)
     if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.style.transition = 'background 0.2s'; el.style.background = 'var(--ap-50)'; setTimeout(() => { el.style.background = '' }, 900) }
   }
+  /** Va au message demandé, en chargeant les pages plus anciennes tant qu'il n'est pas affiché. */
+  async function allerAuMessage(id: string) {
+    let encore = !!hasNextPage
+    for (let essais = 0; !document.getElementById(`msg-${id}`) && encore && essais < 40; essais++) {
+      const zone = scrollRef.current
+      if (zone) distFromBottomRef.current = zone.scrollHeight - zone.scrollTop
+      loadingOlderRef.current = true
+      const r = await fetchNextPage()
+      encore = !!r.hasNextPage
+      await new Promise(res => setTimeout(res, 60)) // laisse le fil se mettre à jour
+    }
+    scrollToMessage(id)
+  }
+  const cibleTraiteeRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!ciblerMessageId || cibleTraiteeRef.current === ciblerMessageId || isLoading || !data) return
+    cibleTraiteeRef.current = ciblerMessageId
+    void allerAuMessage(ciblerMessageId).then(() => onCibleAtteinte?.())
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ciblerMessageId, isLoading, data])
 
   /**
    * Enchaînement audio façon WhatsApp : à la fin d'une note vocale / d'un audio,
@@ -543,38 +682,96 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
         </div>
 
         {/* ── Menu ⋮ du fil (façon WhatsApp) ─────────────────────────── */}
-        {isGroupe && (
-          <Popover open={threadMenuOpen} onOpenChange={setThreadMenuOpen}>
-            <PopoverTrigger asChild>
-              <button title={t('messagerie.threadMenu')} aria-label={t('messagerie.threadMenu')}
-                style={{ width: 34, height: 34, flexShrink: 0, borderRadius: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--texte-secondaire)' }}>
-                <MoreVertical size={19} />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent align="end" sideOffset={4} style={{ width: 230, padding: 4, background: 'var(--fond-surface)', border: '1px solid var(--bordure-legere)', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.14)' }}>
+        <Popover open={threadMenuOpen} onOpenChange={setThreadMenuOpen}>
+          <PopoverTrigger asChild>
+            <button title={t('messagerie.threadMenu')} aria-label={t('messagerie.threadMenu')}
+              style={{ width: 34, height: 34, flexShrink: 0, borderRadius: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--texte-secondaire)' }}>
+              <MoreVertical size={19} />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="end" sideOffset={4} style={{ width: 230, padding: 4, background: 'var(--fond-surface)', border: '1px solid var(--bordure-legere)', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.14)' }}>
+            {isGroupe && (
               <button onClick={() => { setThreadMenuOpen(false); setGroupInfoOpen(true) }}
                 style={menuItemStyle('var(--texte-secondaire)')}
                 onMouseEnter={e => (e.currentTarget.style.background = 'var(--fond-surface-2)')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                 <Info size={14} /> {t('messagerie.groupInfo')}
               </button>
-              <button onClick={() => { setThreadMenuOpen(false); muteMut.mutate(!conv.muted, { onError: () => toast.error(t('messagerie.groupUpdateError')) }) }}
-                style={menuItemStyle('var(--texte-secondaire)')}
-                onMouseEnter={e => (e.currentTarget.style.background = 'var(--fond-surface-2)')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                {conv.muted ? <Bell size={14} /> : <BellOff size={14} />}
-                {conv.muted ? t('messagerie.unmuteConversation') : t('messagerie.muteConversation')}
-              </button>
+            )}
+            <button onClick={() => { setThreadMenuOpen(false); setRechercheOuverte(true) }}
+              style={menuItemStyle('var(--texte-secondaire)')}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--fond-surface-2)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+              <Search size={14} /> {t('messagerie.searchInConversation')}
+            </button>
+            <button onClick={() => {
+              setThreadMenuOpen(false)
+              const archiver = !conv.archivee
+              // Comme WhatsApp : une conversation qu'on vient d'archiver se ferme.
+              archiverMut.mutate(archiver, { onSuccess: () => { if (archiver) onLeft?.() }, onError: () => toast.error(t('messagerie.groupUpdateError')) })
+            }}
+              style={menuItemStyle('var(--texte-secondaire)')}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--fond-surface-2)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+              {conv.archivee ? <ArchiveRestore size={14} /> : <Archive size={14} />}
+              {conv.archivee ? t('messagerie.unarchiveConversation') : t('messagerie.archiveConversation')}
+            </button>
+            <button onClick={() => { setThreadMenuOpen(false); muteMut.mutate(!conv.muted, { onError: () => toast.error(t('messagerie.groupUpdateError')) }) }}
+              style={menuItemStyle('var(--texte-secondaire)')}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--fond-surface-2)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+              {conv.muted ? <Bell size={14} /> : <BellOff size={14} />}
+              {conv.muted ? t('messagerie.unmuteConversation') : t('messagerie.muteConversation')}
+            </button>
+            {isGroupe && (
               <button onClick={() => { setThreadMenuOpen(false); void groupLeaveFlow.requestLeave({ id: conversationId, titre: conv.titre ?? nom }) }}
                 style={menuItemStyle('var(--erreur-accent)')}
                 onMouseEnter={e => (e.currentTarget.style.background = 'var(--erreur-fond)')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                 <LogOut size={14} /> {t('messagerie.leaveGroup')}
               </button>
-            </PopoverContent>
-          </Popover>
-        )}
+            )}
+          </PopoverContent>
+        </Popover>
       </div>
+
+      {/* ── Recherche dans la conversation ─────────────────────────────── */}
+      {rechercheOuverte && (
+        <div style={{ flexShrink: 0, borderBottom: '1px solid var(--bordure-legere)', background: 'var(--fond-surface)', padding: '8px 16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Search size={14} style={{ color: 'var(--texte-tertiaire)', flexShrink: 0 }} />
+            <input autoFocus value={terme} onChange={e => setTerme(e.target.value)} placeholder={t('messagerie.searchMessagesPlaceholder')}
+              onKeyDown={e => { if (e.key === 'Escape') { setRechercheOuverte(false); setTerme('') } }}
+              style={{ flex: 1, minWidth: 0, height: 32, padding: '0 10px', borderRadius: 6, fontSize: 13, border: '1px solid var(--bordure-normale)', background: 'var(--fond-surface)', color: 'var(--texte-primaire)', outline: 'none' }} />
+            <button onClick={() => { setRechercheOuverte(false); setTerme('') }} title={t('messagerie.searchClose')} aria-label={t('messagerie.searchClose')}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--texte-tertiaire)', display: 'flex', padding: 4 }}><X size={15} /></button>
+          </div>
+          {terme.trim().length > 0 && (
+            <div style={{ maxHeight: 220, overflowY: 'auto', marginTop: 8 }}>
+              {terme.trim().length < 2 ? (
+                <p style={{ margin: 0, fontSize: 12, color: 'var(--texte-tertiaire)' }}>{t('messagerie.searchTooShort')}</p>
+              ) : recherche.isLoading ? (
+                <Loader2 size={15} className="animate-spin" style={{ color: 'var(--texte-tertiaire)' }} />
+              ) : (recherche.data?.resultats.length ?? 0) === 0 ? (
+                <p style={{ margin: 0, fontSize: 12, color: 'var(--texte-tertiaire)' }}>{t('messagerie.searchNoResult')}</p>
+              ) : (
+                recherche.data!.resultats.map(r => (
+                  <button key={r.id} onClick={() => void allerAuMessage(r.id)}
+                    style={{ width: '100%', display: 'block', textAlign: 'left', padding: '7px 8px', borderRadius: 7, background: 'transparent', border: 'none', cursor: 'pointer' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--fond-surface-2)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                    <span style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--ap-700)' }}>
+                      {r.deMoi ? t('messagerie.you') : r.expediteur} · {formatDateTime(r.createdAt)}
+                    </span>
+                    <span style={{ display: 'block', fontSize: 12.5, color: 'var(--texte-secondaire)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.extrait}</span>
+                  </button>
+                ))
+              )}
+              {recherche.data?.incomplet && <p style={{ margin: '6px 0 0', fontSize: 11, color: 'var(--texte-tertiaire)' }}>{t('messagerie.searchIncomplete')}</p>}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── Bandeau messages épinglés ──────────────────────────────────── */}
       {pinned.length > 0 && (() => {
@@ -629,6 +826,7 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
               onReply={startReply} onCopy={copyMessage} onQuoteClick={scrollToMessage} onReact={react}
               onDetails={(m) => setDetailsId(m.id)} onOpenMedia={setViewerPj}
               onTogglePin={togglePin} onForward={(m) => setForwardTarget(m)} onShowReactionDetails={setReactionDetailsId}
+              onToggleFavori={(m) => favoriMut.mutate(m.id)} repere={repere}
               selectMode={selectMode} selectedIds={selectedIds} onToggleSelect={toggleSelect} onEnterSelect={enterSelect}
               onAudioEnded={handleAudioEnded}
             />
@@ -707,8 +905,14 @@ export function MessageThread({ conv, onLeft, onBack }: { conv: ConversationItem
         </div>
       )}
 
+      {interlocuteurInactif && !selectMode && (
+        <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px', borderTop: '1px solid var(--bordure-legere)', background: 'var(--avert-fond)', color: 'var(--avert-texte)', fontSize: 12.5 }}>
+          <Ban size={15} style={{ flexShrink: 0 }} /> {t('messagerie.accountDisabled')}
+        </div>
+      )}
+
       {/* ── Composeur ────────────────────────────────────────────────────── */}
-      <div style={{ flexShrink: 0, padding: '12px 16px', borderTop: replyTo ? 'none' : '1px solid var(--bordure-legere)', background: 'var(--fond-surface)', display: selectMode ? 'none' : 'flex', alignItems: 'flex-end', gap: 6 }}>
+      <div style={{ flexShrink: 0, padding: '12px 16px', borderTop: replyTo ? 'none' : '1px solid var(--bordure-legere)', background: 'var(--fond-surface)', display: selectMode || interlocuteurInactif ? 'none' : 'flex', alignItems: 'flex-end', gap: 6 }}>
         <input ref={imgInputRef}   type="file" multiple accept={ACCEPT_MEDIA} style={{ display: 'none' }} onChange={e => openPreview(e.target.files)} />
         <input ref={audioInputRef} type="file" multiple accept={ACCEPT_AUDIO} style={{ display: 'none' }} onChange={e => openPreview(e.target.files)} />
         <input ref={docInputRef}   type="file" multiple accept={ACCEPT_DOC}   style={{ display: 'none' }} onChange={e => openPreview(e.target.files)} />
@@ -886,6 +1090,9 @@ function MessageList(props: {
   onReact: (m: MessageItem, emoji: string) => void; onDetails: (m: MessageItem) => void
   onOpenMedia: (pj: PieceJointeMeta) => void
   onTogglePin: (m: MessageItem) => void; onForward: (m: MessageItem) => void; onShowReactionDetails: (id: string) => void
+  onToggleFavori: (m: MessageItem) => void
+  /** Premier message non lu à l'ouverture (repère « N messages non lus »). */
+  repere: { id: string; nb: number } | null
   selectMode: boolean; selectedIds: Set<string>; onToggleSelect: (id: string) => void; onEnterSelect: (id: string) => void
   onAudioEnded: (messageId: string) => void
 }) {
@@ -921,9 +1128,18 @@ function MessageList(props: {
             const grouped = !!prev && prev.type === 'TEXTE' && prev.expediteurId === m.expediteurId && prev.deMoi === m.deMoi &&
               (new Date(m.createdAt).getTime() - new Date(prev.createdAt).getTime() < 4 * 60 * 1000)
             return (
-              <div key={m.id} id={`msg-${m.id}`} style={{ marginTop: idx === 0 ? 0 : grouped ? 2 : 10, borderRadius: 6 }}>
-                <Bubble m={m} grouped={grouped} isLastOwn={m.id === lastOwnId} {...props} />
-              </div>
+              <Fragment key={m.id}>
+                {props.repere?.id === m.id && (
+                  <div id="repere-non-lus" style={{ display: 'flex', justifyContent: 'center', margin: '14px 0 10px' }}>
+                    <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ap-700)', background: 'var(--ap-50)', border: '1px solid var(--ap-200)', padding: '4px 14px', borderRadius: 9999 }}>
+                      {t('messagerie.unreadMarker', { count: props.repere.nb })}
+                    </span>
+                  </div>
+                )}
+                <div id={`msg-${m.id}`} style={{ marginTop: idx === 0 ? 0 : grouped ? 2 : 10, borderRadius: 6 }}>
+                  <Bubble m={m} grouped={grouped} isLastOwn={m.id === lastOwnId} {...props} />
+                </div>
+              </Fragment>
             )
           })}
         </div>
@@ -951,7 +1167,7 @@ function MediaGrid({ items, onOpen }: { items: PieceJointeMeta[]; onOpen: (pj: P
 function Bubble({
   t, m, isGroupe, grouped, isLastOwn, editId, editText, setEditText,
   onStartEdit, onCancelEdit, onSaveEdit, onDelete, onReply, onCopy, onQuoteClick, onReact, onDetails, onOpenMedia,
-  onTogglePin, onForward, onShowReactionDetails,
+  onTogglePin, onForward, onShowReactionDetails, onToggleFavori,
   selectMode, selectedIds, onToggleSelect, onEnterSelect, onAudioEnded,
 }: {
   t: TFunction
@@ -962,6 +1178,7 @@ function Bubble({
   onQuoteClick: (id: string) => void; onReact: (m: MessageItem, emoji: string) => void; onDetails: (m: MessageItem) => void
   onOpenMedia: (pj: PieceJointeMeta) => void
   onTogglePin: (m: MessageItem) => void; onForward: (m: MessageItem) => void; onShowReactionDetails: (id: string) => void
+  onToggleFavori: (m: MessageItem) => void
   selectMode: boolean; selectedIds: Set<string>; onToggleSelect: (id: string) => void; onEnterSelect: (id: string) => void
   onAudioEnded: (messageId: string) => void
 }) {
@@ -1002,7 +1219,7 @@ function Bubble({
         {giant ? (
           <div style={{ position: 'relative', display: 'flex', gap: 2, padding: '2px 6px' }}>
             {splitGraphemes(m.contenu).map((g, i) => <Twemoji key={i} emoji={g} size={46} />)}
-            <ChevronMenu {...{ t, m, mine, hover, menuOpen, setMenuOpen, canEdit, onStartEdit, onCopy, onReply, onDelete, onReact, onDetails, onEnterSelect, onTogglePin, onForward }} giant />
+            <ChevronMenu {...{ t, m, mine, hover, menuOpen, setMenuOpen, canEdit, onStartEdit, onCopy, onReply, onDelete, onReact, onDetails, onEnterSelect, onTogglePin, onForward, onToggleFavori }} giant />
           </div>
         ) : (() => {
           const isVisual = (pj: PieceJointeMeta) => pj.mimeType.startsWith('image/') || pj.mimeType.startsWith('video/')
@@ -1091,7 +1308,7 @@ function Bubble({
                 <div style={{ padding: hasMedia ? '5px 10px 7px' : '8px 12px', fontSize: 13, lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{renderRich(m.contenu)}</div>
               ) : null}
 
-              {!isEditing && !m.supprime && <ChevronMenu {...{ t, m, mine, hover, menuOpen, setMenuOpen, canEdit, onStartEdit, onCopy, onReply, onDelete, onReact, onDetails, onEnterSelect, onTogglePin, onForward }} />}
+              {!isEditing && !m.supprime && <ChevronMenu {...{ t, m, mine, hover, menuOpen, setMenuOpen, canEdit, onStartEdit, onCopy, onReply, onDelete, onReact, onDetails, onEnterSelect, onTogglePin, onForward, onToggleFavori }} />}
             </div>
           )
         })()}
@@ -1116,9 +1333,11 @@ function Bubble({
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, height: 15, paddingInline: 2 }}>
           <span style={{ fontSize: 10, color: 'var(--texte-tertiaire)' }}>{m.pending ? t('messagerie.sending') : formatHour(m.createdAt)}</span>
           {m.edite && <span style={{ fontSize: 10, color: 'var(--texte-tertiaire)', fontStyle: 'italic' }}>{t('messagerie.edited')}</span>}
+          {m.favori && <Star size={10} fill="currentColor" style={{ color: 'var(--avert-accent)' }} />}
           {mine && m.pending && <Clock size={11} style={{ color: 'var(--texte-tertiaire)' }} />}
           {mine && !m.pending && (
-            m.vu
+            // Dans un groupe, les coches ne passent au bleu que lorsque TOUT le monde a lu (WhatsApp).
+            (isGroupe ? m.luParTous : m.vu)
               ? <CheckCheck size={14} style={{ color: 'var(--accuse-lu)' }} />
               : m.remis
                 ? <CheckCheck size={14} style={{ color: 'var(--texte-tertiaire)' }} />
@@ -1142,7 +1361,7 @@ function Bubble({
 
 function ChevronMenu({
   t, m, mine, hover, menuOpen, setMenuOpen, canEdit, giant,
-  onStartEdit, onCopy, onReply, onDelete, onReact, onDetails, onEnterSelect, onTogglePin, onForward,
+  onStartEdit, onCopy, onReply, onDelete, onReact, onDetails, onEnterSelect, onTogglePin, onForward, onToggleFavori,
 }: {
   t: TFunction
   m: MessageItem; mine: boolean; hover: boolean; menuOpen: boolean; setMenuOpen: (b: boolean) => void
@@ -1150,6 +1369,7 @@ function ChevronMenu({
   onStartEdit: (m: MessageItem) => void; onCopy: (m: MessageItem) => void; onReply: (m: MessageItem) => void
   onDelete: (m: MessageItem) => void; onReact: (m: MessageItem, emoji: string) => void; onDetails: (m: MessageItem) => void
   onEnterSelect: (id: string) => void; onTogglePin: (m: MessageItem) => void; onForward: (m: MessageItem) => void
+  onToggleFavori: (m: MessageItem) => void
 }) {
   const [pickerOpen, setPickerOpen] = useState(false)
   const [custom, setCustom] = useState<string[]>(getCustomReactions)
@@ -1205,6 +1425,7 @@ function ChevronMenu({
                 {!!m.contenu && <MenuRow icon={<Copy size={14} />} label={t('messagerie.copy')} onClick={() => { onCopy(m); setMenuOpen(false) }} />}
                 <MenuRow icon={<Forward size={14} />} label={t('messagerie.forward')} onClick={() => { onForward(m); setMenuOpen(false) }} />
                 <MenuRow icon={m.epingle ? <PinOff size={14} /> : <Pin size={14} />} label={m.epingle ? t('messagerie.unpin') : t('messagerie.pin')} onClick={() => { onTogglePin(m); setMenuOpen(false) }} />
+                <MenuRow icon={m.favori ? <StarOff size={14} /> : <Star size={14} />} label={m.favori ? t('messagerie.unfavorite') : t('messagerie.favorite')} onClick={() => { onToggleFavori(m); setMenuOpen(false) }} />
                 <MenuRow icon={<Info size={14} />} label={t('messagerie.details')} onClick={() => { onDetails(m); setMenuOpen(false) }} />
                 <MenuRow icon={<ListChecks size={14} />} label={t('messagerie.select')} onClick={() => { setMenuOpen(false); onEnterSelect(m.id) }} />
                 {canEdit && <MenuRow icon={<Pencil size={14} />} label={t('messagerie.edit')} onClick={() => { onStartEdit(m); setMenuOpen(false) }} />}
