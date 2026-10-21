@@ -44,16 +44,16 @@ export function FondAnime() {
       {/* Rideau de verre dépoli — flou léger partout… */}
       <div style={{
         ...COUCHE,
-        WebkitBackdropFilter: 'blur(0.8px)', backdropFilter: 'blur(0.8px)',
+        WebkitBackdropFilter: 'blur(2.2px)', backdropFilter: 'blur(2.2px)',
         background: 'color-mix(in srgb, var(--fond-page) 3%, transparent)',
       }} />
       {/* …et flou fort au centre, autour de la carte (fondu radial vers les bords). */}
       <div style={{
         ...COUCHE,
-        WebkitBackdropFilter: 'blur(14px)', backdropFilter: 'blur(14px)',
+        WebkitBackdropFilter: 'blur(22px)', backdropFilter: 'blur(22px)',
         background: 'color-mix(in srgb, var(--fond-page) 20%, transparent)',
-        maskImage: 'radial-gradient(ellipse 40% 52% at 50% 50%, #000 0%, #000 30%, transparent 100%)',
-        WebkitMaskImage: 'radial-gradient(ellipse 40% 52% at 50% 50%, #000 0%, #000 30%, transparent 100%)',
+        maskImage: 'radial-gradient(ellipse 46% 58% at 50% 50%, #000 0%, #000 34%, transparent 100%)',
+        WebkitMaskImage: 'radial-gradient(ellipse 46% 58% at 50% 50%, #000 0%, #000 34%, transparent 100%)',
       }} />
 
       {/* Grain épais et couvrant. */}
