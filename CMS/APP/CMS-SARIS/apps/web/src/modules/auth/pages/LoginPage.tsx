@@ -17,6 +17,7 @@ import {
 } from '../hooks/useLogin'
 import type { SessionConcurrente } from '@cms-saris/types'
 import { SessionConcurrenteStep } from '../components/SessionConcurrenteStep'
+import { FondAnime } from '../components/FondAnime'
 import { useTranslation } from 'react-i18next'
 import { msgValidation } from '@/lib/validation'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
@@ -151,17 +152,17 @@ export function LoginPage() {
   return (
     <div
       className="min-h-screen flex items-center justify-center p-4"
-      style={{
-        backgroundColor:  'var(--fond-page)',
-        backgroundImage:  'radial-gradient(circle, rgba(78,139,164,0.12) 1px, transparent 1px)',
-        backgroundSize:   '28px 28px',
-      }}
+      style={{ backgroundColor: 'var(--fond-page)', position: 'relative', isolation: 'isolate' }}
     >
+      {/* Décor animé derrière la carte : mesh, nuages de pixels, réseau de neurones, puis
+          rideau de verre dépoli et grain épais (remplace l'ancienne trame de points). */}
+      <FondAnime />
+
       {/* Poignée de déplacement de la fenêtre (client de bureau uniquement) : cet écran
           vit hors du shell, donc hors de la barre de titre qui la porte ailleurs. */}
       <DesktopDragStrip />
 
-      <div className="w-full max-w-[400px]">
+      <div className="w-full max-w-[400px]" style={{ position: 'relative', zIndex: 1 }}>
 
         {/* ── Card ──────────────────────────────────────────────────────── */}
         <div
