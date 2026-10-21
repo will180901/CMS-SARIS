@@ -7,6 +7,7 @@ import { humanizeCode } from '@/config/labels'
 import { formatTime, formatDecimal } from '@/lib/intl'
 import type { VisiteDetail, ConstanteVitale } from '@cms-saris/types'
 import { calcAge as ageYears } from '@/lib/age'
+import { nomCourtSite } from '@/lib/site'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -200,7 +201,7 @@ export function VisiteSidebar({ visite, width = 268, compact }: { visite: Visite
           } />
         )}
         <SidebarRow label={t('triage.sidebarSite')} valueNode={
-          <SidebarBadge {...NEUTRE_TONE}><MapPin size={10} style={{ marginRight: 3, verticalAlign: -1 }} />{visite.site.libelle.replace('Centre Médico-Social ', '')}</SidebarBadge>
+          <SidebarBadge {...NEUTRE_TONE}><MapPin size={10} style={{ marginRight: 3, verticalAlign: -1 }} />{nomCourtSite(visite.site.libelle)}</SidebarBadge>
         } />
       </SidebarSection>
 

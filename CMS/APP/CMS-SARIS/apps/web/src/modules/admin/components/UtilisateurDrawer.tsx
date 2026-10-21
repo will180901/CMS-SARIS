@@ -558,7 +558,7 @@ function ProfilTab({ u, permsCumulees, lastLogin }: {
 
       {/* Site d'affectation */}
       <Panel icon={<Building2 size={14} />} title={t('admin.assignedSite')}>
-        <InfoRow icon={<Building2 size={15} />} label={t('admin.medicoSocialCenter')} value={u.site.libelle} />
+        <InfoRow icon={<Building2 size={15} />} label={t('admin.centreMedicoSanitaire')} value={u.site.libelle} />
       </Panel>
 
       {/* Personnel médical rattaché */}

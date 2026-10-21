@@ -75,7 +75,7 @@ async function composedSidebar(outFile, footer) {
     <rect x="0" y="${H - 56}" width="${W}" height="56" fill="${TEAL}"/>
     <rect x="0" y="${H - 56}" width="${W}" height="3" fill="${ACCENT}"/>
     <text x="${W / 2}" y="150" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="700" fill="#FFFFFF">CMS SARIS</text>
-    <text x="${W / 2}" y="172" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="10" fill="#BFD8E0">Centre Médico-Social</text>
+    <text x="${W / 2}" y="172" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="10" fill="#BFD8E0">Centre Médico-Sanitaire</text>
     <text x="${W / 2}" y="${H - 32}" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="10" font-weight="600" fill="#EAF3F6">${footer}</text>
     <text x="${W / 2}" y="${H - 16}" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="8" fill="#9FC0CA">SARIS-CONGO</text>
   </svg>`

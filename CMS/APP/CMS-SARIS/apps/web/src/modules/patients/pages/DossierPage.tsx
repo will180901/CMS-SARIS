@@ -35,6 +35,7 @@ import { SegmentedTabs, Modal, Textarea } from '@/components/saris'
 import type { PatientDossier } from '@cms-saris/types'
 import { calcAge } from '@/lib/age'
 import { formatDate } from '@/lib/intl'
+import { nomCourtSite } from '@/lib/site'
 
 // Les droits d'écriture sont désormais portés par les permissions granulaires.
 
@@ -245,7 +246,7 @@ function DossierSidebar({ dossier, onChangerCategorie, canChangerCategorie, onOu
 
       {/* Site + Statut */}
       <SidebarSection title={t('patients.sectionAssignment')}>
-        <SidebarRow label={t('patients.sidebarSite')} value={dossier.siteCreation.libelle.replace('Centre Médico-Social ', '')} />
+        <SidebarRow label={t('patients.sidebarSite')} value={nomCourtSite(dossier.siteCreation.libelle)} />
         <SidebarRow label={t('patients.sidebarStatus')} value={
           dossier.statut === 'ACTIF'   ? t('patients.statusActiveValue')    :
           dossier.statut === 'ARCHIVE' ? t('patients.statusArchivedValue')  :

@@ -44,8 +44,8 @@ const IS_SQLITE = process.env['DATABASE_PROVIDER'] === 'sqlite'
 // ── Données de référence ──────────────────────────────────────────────────────
 
 const SITES = [
-  { code: 'MOUTELA', libelle: 'Centre Médico-Social Moutela', localisation: 'Brazzaville, Congo' },
-  { code: 'NKAYI',   libelle: 'Centre Médico-Social Nkayi',   localisation: 'Nkayi, Congo' },
+  { code: 'MOUTELA', libelle: 'Centre Médico-Sanitaire Moutela', localisation: 'Brazzaville, Congo' },
+  { code: 'NKAYI',   libelle: 'Centre Médico-Sanitaire Nkayi',   localisation: 'Nkayi, Congo' },
 ]
 
 const ROLES = ROLE_CATALOG

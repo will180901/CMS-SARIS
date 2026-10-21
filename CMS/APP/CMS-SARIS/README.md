@@ -1,6 +1,6 @@
-# CMS SARIS — Centre Médico-Social (Congo)
+# CMS SARIS — Centre Médico-Sanitaire (Congo)
 
-**Plateforme interne de gestion médico-sociale**, bilingue (🇫🇷/🇬🇧), conçue pour les centres
+**Plateforme interne de gestion médico-sanitaire**, bilingue (🇫🇷/🇬🇧), conçue pour les centres
 de santé congolais (Moutela, Nkayi…). Elle fonctionne **en ligne et hors-ligne** : chaque poste
 peut travailler sans internet sur une base locale, puis se **synchronise automatiquement** avec
 un serveur central dès le retour de la connexion.

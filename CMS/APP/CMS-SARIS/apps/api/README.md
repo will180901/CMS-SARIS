@@ -1,7 +1,7 @@
 # API CMS SARIS
 
 Backend **REST + SSE** de la plateforme médicale **CMS SARIS**. Cette API expose
-les services métier du centre médico-social (dossier patient, triage, consultation,
+les services métier du centre médico-sanitaire (dossier patient, triage, consultation,
 suivis chroniques, sorties critiques, messagerie chiffrée, administration…) et
 diffuse en temps réel les notifications et invalidations de cache aux clients
 web et bureau.

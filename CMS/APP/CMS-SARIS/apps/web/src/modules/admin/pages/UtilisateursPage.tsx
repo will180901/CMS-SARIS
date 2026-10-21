@@ -48,6 +48,7 @@ import { ListePrintSheet, type ColonneExport } from '@/components/print/ListePri
 import { adminApi, type UtilisateurAdmin } from '../api/admin.api'
 import { ADMIN_KEYS } from '../hooks/useAdmin'
 import { labelStatut } from '@/config/labels'
+import { nomCourtSite } from '@/lib/site'
 
 /**
  * Une personne telle qu'affichée ici : son identité, et son accès s'il existe.
@@ -955,7 +956,7 @@ function UserRow({
 
       {/* Site */}
       <div role="cell" style={{ fontSize: 'var(--font-size-body-sm)', color: 'var(--texte-secondaire)' }}>
-        {u.site.libelle.replace('Centre Médico-Social ', '')}
+        {nomCourtSite(u.site.libelle)}
       </div>
 
       {/* Rôles */}

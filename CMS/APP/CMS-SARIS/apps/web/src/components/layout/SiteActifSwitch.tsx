@@ -19,6 +19,7 @@ import { Tooltip } from '@/components/saris'
 import { useSites } from '@/modules/referentiels/hooks/useReferentiels'
 import { useSessionStore } from '@/stores/session.store'
 import { desktopBridge } from '@/lib/desktop'
+import { nomCourtSite } from '@/lib/site'
 
 export function SiteActifSwitch() {
   const { t } = useTranslation()
@@ -41,7 +42,7 @@ export function SiteActifSwitch() {
         }}
       >
         <MapPin size={12} />
-        {current.libelle.replace('Centre Médico-Social ', '')}
+        {nomCourtSite(current.libelle)}
       </span>
     </Tooltip>
   )

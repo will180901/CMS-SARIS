@@ -22,6 +22,7 @@ import { formatDate } from '@/lib/intl'
 import { calcAge } from '@/lib/age'
 import { PrivacyCurtain } from '@/components/PrivacyCurtain'
 import { ListePrintSheet, type ColonneExport } from '@/components/print/ListePrintSheet'
+import { nomCourtSite } from '@/lib/site'
 
 // ── Panneau aperçu rapide ─────────────────────────────────────────────────────
 
@@ -71,7 +72,7 @@ function PreviewPanel({ patient, onOpen, onBack }: { patient: PatientListItem; o
           <div style={{ display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
             <CategorieBadge code={patient.categoriePatient.code} libelle={patient.categoriePatient.libelle} />
             <span style={{ fontSize: '11px', color: 'var(--texte-tertiaire)' }}>
-              {patient.siteCreation.libelle.replace('Centre Médico-Social ', '')}
+              {nomCourtSite(patient.siteCreation.libelle)}
             </span>
           </div>
         </div>
@@ -239,7 +240,7 @@ function PatientRow({
         <div style={{ fontSize: '11px', color: 'var(--texte-tertiaire)', marginTop: '2px' }}>
           {id?.dateNaissance ? t('patients.infoYears', { count: calcAge(id.dateNaissance) }) : '—'}
           {' · '}
-          {patient.siteCreation.libelle.replace('Centre Médico-Social ', '')}
+          {nomCourtSite(patient.siteCreation.libelle)}
         </div>
       </div>
 

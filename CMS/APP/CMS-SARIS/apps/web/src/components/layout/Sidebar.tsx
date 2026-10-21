@@ -38,6 +38,7 @@ import { useTheme } from '@/components/theme-provider'
 import { THEME_MAP } from '@/components/PreferencesSync'
 import { useUpdateMyPreferences } from '@/modules/admin/hooks/useAdmin'
 import type { Role } from '@cms-saris/types'
+import { nomCourtSite } from '@/lib/site'
 import { useTranslation } from 'react-i18next'
 
 const SIDEBAR_WIDTH = 264
@@ -96,7 +97,7 @@ export function Sidebar() {
 
   if (!user) return null
 
-  const siteName    = sites.find(s => s.id === user.siteId)?.libelle.replace('Centre Médico-Social ', '') ?? '—'
+  const siteName    = nomCourtSite(sites.find(s => s.id === user.siteId)?.libelle ?? '') || '—'
   const primaryRole = getPrimaryRole(user.roles as Role[])
   const roleMeta    = ROLE_META[primaryRole]
 
