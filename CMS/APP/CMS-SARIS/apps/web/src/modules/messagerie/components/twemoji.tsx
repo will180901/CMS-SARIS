@@ -9,6 +9,7 @@
  */
 import type { CSSProperties } from 'react'
 import rawData from '@emoji-mart/data/sets/15/apple.json'
+import { analyserBlocs, estAlphanumerique, estEspace, fermetureMonospace } from '../lib/formatage'
 
 interface Skin { native: string; x: number; y: number }
 interface EmojiDef { id: string; name: string; keywords?: string[]; skins: Skin[] }
@@ -76,7 +77,7 @@ const MENTION_ONE = /^@\[([^\]]+)\]\([0-9a-fA-F-]{36}\)$/
  * URLs → liens cliquables, le reste en texte. `size` = taille des emojis (px).
  */
 /**
- * MISE EN FORME façon WhatsApp : *gras*, _italique_, ~barré~, +souligné+.
+ * MISE EN FORME façon WhatsApp : *gras*, _italique_, ~barré~, +souligné+, `code`, ```monospace```.
  *
  * On encadre le texte de MARQUEURS au lieu de stocker du HTML. Ce choix n'est pas
  * cosmétique : le message reste du TEXTE, donc il se chiffre, se cite, se modifie, se
@@ -94,18 +95,6 @@ const MARQUEURS: Record<string, (contenu: React.ReactNode[], k: number) => React
   '+': (c, k) => <u key={k}>{c}</u>,
 }
 
-/** Vide, espace, tabulation ou saut de ligne — sans expression régulière. */
-function estEspace(c: string | undefined): boolean {
-  return !c || c.trim() === ''
-}
-
-/** Lettre ou chiffre — sans expression régulière, et valable au-delà de l'alphabet latin. */
-function estAlphanumerique(c: string | undefined): boolean {
-  if (!c) return false
-  if (c >= '0' && c <= '9') return true
-  return c.toLowerCase() !== c.toUpperCase()
-}
-
 /**
  * Cherche le prochain marqueur OUVRANT qui possède un fermant valide.
  *
@@ -115,11 +104,18 @@ function estAlphanumerique(c: string | undefined): boolean {
  *  - il ouvre un MOT — sinon « BON_EXAMEN_ACTION » ou « dossier_patient_2026 », qui
  *    parsèment cette application, partiraient en italique au milieu d'une phrase.
  *    WhatsApp accepte ce défaut ; ici les codes à souligné sont trop courants.
+ *
+ * Le code — `ainsi` ou ```ainsi``` — suit les mêmes règles, avec une différence : son contenu
+ * est du texte BRUT (rien n'y est mis en forme). `car` vaut « ` » ou « ``` ».
  */
 function prochainMarqueur(text: string, depuis: number): { debut: number; fin: number; car: string } | null {
   for (let i = depuis; i < text.length; i++) {
     const c = text[i]!
-    if (!MARQUEURS[c]) continue
+    if (c === '`' && text.startsWith('```', i)) {
+      const j = fermetureMonospace(text, i)
+      if (j !== -1) return { debut: i, fin: j, car: '```' }
+    }
+    if (c !== '`' && !MARQUEURS[c]) continue
     if (estEspace(text[i + 1])) continue
     if (estAlphanumerique(text[i - 1])) continue
     for (let j = i + 2; j < text.length; j++) {
@@ -128,6 +124,21 @@ function prochainMarqueur(text: string, depuis: number): { debut: number; fin: n
     }
   }
   return null
+}
+
+const POLICE_CODE = 'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace'
+
+/** Code et monospace : même contenu brut, la forme seule change (en ligne, ou en bloc s'il tient sur plusieurs lignes). */
+function elementCode(brut: string, k: number): React.ReactNode {
+  const bloc = brut.includes('\n')
+  const contenu = bloc ? brut.replace(/^\n/, '').replace(/\n$/, '') : brut
+  return (
+    <code key={k} style={{
+      fontFamily: POLICE_CODE, fontSize: '0.92em', background: 'rgba(0,0,0,0.08)', borderRadius: 4,
+      padding: bloc ? '5px 8px' : '1px 4px', whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+      ...(bloc ? { display: 'block', margin: '2px 0' } : {}),
+    }}>{contenu}</code>
+  )
 }
 
 export function renderRich(text: string, size = 19): React.ReactNode[] {
@@ -144,11 +155,52 @@ function renderFormate(text: string, size: number, out: React.ReactNode[], ref: 
     const trouve = prochainMarqueur(text, i)
     if (!trouve) { renderMentions(text.slice(i), size, out, ref); return }
     if (trouve.debut > i) renderMentions(text.slice(i, trouve.debut), size, out, ref)
-    const interne: React.ReactNode[] = []
-    renderFormate(text.slice(trouve.debut + 1, trouve.fin), size, interne, ref)
-    out.push(MARQUEURS[trouve.car]!(interne, ref.key++))
-    i = trouve.fin + 1
+    const longueur = trouve.car.length
+    const contenu = text.slice(trouve.debut + longueur, trouve.fin)
+    if (trouve.car === '`' || trouve.car === '```') {
+      out.push(elementCode(contenu, ref.key++))
+    } else {
+      const interne: React.ReactNode[] = []
+      renderFormate(contenu, size, interne, ref)
+      out.push(MARQUEURS[trouve.car]!(interne, ref.key++))
+    }
+    i = trouve.fin + longueur
   }
+}
+
+/**
+ * Rend un MESSAGE entier, avec ses blocs : paragraphes, listes à puces (« • », « - », « * »),
+ * listes numérotées (« 1. »), citations (« > »). Le texte de chaque bloc passe ensuite par
+ * `renderRich` — gras, italique, liens, emojis, mentions… — comme avant.
+ * (`renderRich` reste réservé aux aperçus d'une ligne : réponse citée, liste des conversations.)
+ */
+export function renderMessage(text: string, size = 19): React.ReactNode[] {
+  return analyserBlocs(text).map((b, i) => {
+    if (b.type === 'paragraphe') {
+      return <div key={i} style={{ whiteSpace: 'pre-wrap' }}>{renderRich(b.texte, size)}</div>
+    }
+    if (b.type === 'citation') {
+      return (
+        // La barre et le fond sont tirés de la couleur du texte : lisibles sur une bulle claire comme sur la bulle teintée de l'expéditeur.
+        <div key={i} style={{ margin: '3px 0', padding: '2px 0 2px 9px', borderLeft: '3px solid color-mix(in srgb, currentColor 60%, transparent)', background: 'color-mix(in srgb, currentColor 10%, transparent)', borderRadius: '0 6px 6px 0', whiteSpace: 'pre-wrap' }}>
+          {renderRich(b.texte, size)}
+        </div>
+      )
+    }
+    const items = b.type === 'puces'
+      ? b.items.map((texte, k) => ({ marque: '•', texte, k }))
+      : b.items.map(({ numero, texte }, k) => ({ marque: `${numero}.`, texte, k }))
+    return (
+      <div key={i} style={{ margin: '3px 0' }}>
+        {items.map(it => (
+          <div key={it.k} style={{ display: 'flex', gap: 7, paddingLeft: 3 }}>
+            <span aria-hidden style={{ flexShrink: 0, minWidth: b.type === 'numeros' ? '1.5em' : undefined, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{it.marque}</span>
+            <span style={{ minWidth: 0, whiteSpace: 'pre-wrap' }}>{renderRich(it.texte, size)}</span>
+          </div>
+        ))}
+      </div>
+    )
+  })
 }
 
 /** Mentions @quelqu'un, puis délègue le reste (URLs + emojis) à renderPlain. */

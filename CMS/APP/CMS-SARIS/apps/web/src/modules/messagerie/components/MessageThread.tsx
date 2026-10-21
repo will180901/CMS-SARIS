@@ -19,6 +19,7 @@ import {
   Pin, PinOff, Forward, MoreVertical, Bell, BellOff, LogOut,
   Bold, Italic, Strikethrough, Underline, Ban,
   Search, Archive, ArchiveRestore, Star, StarOff,
+  Code, SquareCode, List, ListOrdered, TextQuote, type LucideIcon,
 } from 'lucide-react'
 import { Avatar, UserAvatar, CheckBox } from '@/components/saris'
 import { Popover, PopoverContent, PopoverTrigger } from '@workspace/ui/components/popover'
@@ -48,8 +49,10 @@ import { useTypingStore } from '@/stores/typing.store'
 import { useAudioPlaybackStore } from '@/stores/audioPlayback.store'
 import { useBrouillonsMessagerie } from '@/stores/brouillonsMessagerie.store'
 import { EmojiPicker } from './EmojiPicker'
-import { Twemoji, renderRich } from './twemoji'
+import { Twemoji, renderRich, renderMessage } from './twemoji'
 import { isEmojiOnly, splitGraphemes } from './emojiData'
+import { basculerBloc, basculerMarqueur, declencherListe, retourALaLigne, retourArriere, type Resultat, type TypeBloc } from '../lib/formatage'
+import { appliquerResultat, coordonneesTexte } from '../lib/saisie'
 
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏']
 
@@ -137,16 +140,58 @@ function formatLastSeen(iso: string, t: TFunction): string {
   return t('messagerie.seenOn', { date: formatDate(iso, { day: '2-digit', month: '2-digit' }), heure: formatHour(iso) })
 }
 
+/** Une mise en forme : entourer le texte d'un marqueur, ou en faire une liste / une citation. */
+type ActionFormat =
+  | { genre: 'marqueur'; marqueur: string; parLigne: boolean }
+  | { genre: 'bloc'; type: TypeBloc }
+
 /**
- * Les quatre mises en forme proposées. Les raccourcis suivent WhatsApp Web (Ctrl+Maj+X
- * pour le barré) ; le souligné n'y existe pas, on prend Ctrl+U des traitements de texte.
+ * Les mises en forme proposées dans la barre qui surgit sur la sélection, par groupes. Les
+ * raccourcis suivent WhatsApp Web (Ctrl+Maj+X barré, Ctrl+E code, Ctrl+Maj+M monospace,
+ * Ctrl+Maj+7 / 8 / 9 listes et citation) ; le souligné n'y existe pas, on prend Ctrl+U des
+ * traitements de texte.
  */
-const FORMATS = [
-  { marqueur: '*', Icone: Bold,          cle: 'messagerie.formatBold',      raccourci: 'Ctrl+B' },
-  { marqueur: '_', Icone: Italic,        cle: 'messagerie.formatItalic',    raccourci: 'Ctrl+I' },
-  { marqueur: '~', Icone: Strikethrough, cle: 'messagerie.formatStrike',    raccourci: 'Ctrl+Maj+X' },
-  { marqueur: '+', Icone: Underline,     cle: 'messagerie.formatUnderline', raccourci: 'Ctrl+U' },
-] as const
+const GROUPES_FORMAT: { id: string; Icone: LucideIcon; cle: string; raccourci: string; action: ActionFormat }[][] = [
+  [
+    { id: 'gras',      Icone: Bold,          cle: 'messagerie.formatBold',      raccourci: 'Ctrl+B',     action: { genre: 'marqueur', marqueur: '*', parLigne: true } },
+    { id: 'italique',  Icone: Italic,        cle: 'messagerie.formatItalic',    raccourci: 'Ctrl+I',     action: { genre: 'marqueur', marqueur: '_', parLigne: true } },
+    { id: 'barre',     Icone: Strikethrough, cle: 'messagerie.formatStrike',    raccourci: 'Ctrl+Maj+X', action: { genre: 'marqueur', marqueur: '~', parLigne: true } },
+    { id: 'souligne',  Icone: Underline,     cle: 'messagerie.formatUnderline', raccourci: 'Ctrl+U',     action: { genre: 'marqueur', marqueur: '+', parLigne: true } },
+  ],
+  [
+    { id: 'code',      Icone: Code,          cle: 'messagerie.formatCode',      raccourci: 'Ctrl+E',     action: { genre: 'marqueur', marqueur: '`', parLigne: true } },
+    { id: 'mono',      Icone: SquareCode,    cle: 'messagerie.formatMono',      raccourci: 'Ctrl+Maj+M', action: { genre: 'marqueur', marqueur: '```', parLigne: false } },
+  ],
+  [
+    { id: 'puces',     Icone: List,          cle: 'messagerie.formatBullets',   raccourci: 'Ctrl+Maj+8', action: { genre: 'bloc', type: 'puce' } },
+    { id: 'numeros',   Icone: ListOrdered,   cle: 'messagerie.formatNumbers',   raccourci: 'Ctrl+Maj+7', action: { genre: 'bloc', type: 'numero' } },
+    { id: 'citation',  Icone: TextQuote,     cle: 'messagerie.formatQuote',     raccourci: 'Ctrl+Maj+9', action: { genre: 'bloc', type: 'citation' } },
+  ],
+]
+const ACTIONS_FORMAT = GROUPES_FORMAT.flat()
+/** Largeur fixe de la barre : 9 boutons de 30 px, 2 séparateurs, marges — connue d'avance pour la centrer sans la mesurer. */
+const BARRE_FORMAT_W = 322
+const BARRE_FORMAT_H = 38
+
+/** Quelle mise en forme ce raccourci clavier demande-t-il ? (`code` = position de la touche : « 7 » reste « 7 » sur AZERTY comme sur QWERTY avec Maj.) */
+function actionDuRaccourci(e: React.KeyboardEvent): ActionFormat | null {
+  if (!(e.ctrlKey || e.metaKey) || e.altKey) return null
+  const k = e.key.toLowerCase()
+  const trouver = (id: string) => ACTIONS_FORMAT.find(a => a.id === id)?.action ?? null
+  if (e.shiftKey) {
+    if (k === 'x') return trouver('barre')
+    if (k === 'm') return trouver('mono')
+    if (e.code === 'Digit8' || e.code === 'Numpad8') return trouver('puces')
+    if (e.code === 'Digit7' || e.code === 'Numpad7') return trouver('numeros')
+    if (e.code === 'Digit9' || e.code === 'Numpad9') return trouver('citation')
+    return null
+  }
+  if (k === 'b') return trouver('gras')
+  if (k === 'i') return trouver('italique')
+  if (k === 'u') return trouver('souligne')
+  if (k === 'e') return trouver('code')
+  return null
+}
 
 export function MessageThread({ conv, onLeft, onBack, ciblerMessageId, onCibleAtteinte }: {
   conv: ConversationItem; onLeft?: () => void; onBack?: () => void
@@ -183,8 +228,13 @@ export function MessageThread({ conv, onLeft, onBack, ciblerMessageId, onCibleAt
   const recherche = useRechercheMessages(conversationId, terme)
 
   const [draft, setDraft]       = useState(brouillonInitial?.texte ?? '')
-  /** Du texte est-il selectionne dans le composeur ? Pilote la barre de mise en forme. */
-  const [selActive, setSelActive] = useState(false)
+  /**
+   * La barre de mise en forme : `null` tant que rien n'est sélectionné ; sinon sa position
+   * (en pixels, dans la zone du champ), AU-DESSUS du début du texte sélectionné.
+   */
+  const [selBarre, setSelBarre] = useState<{ left: number; top: number; width: number } | null>(null)
+  /** Le texte du champ à l'instant même, y compris entre deux rendus (cf. updateDraft). */
+  const draftRef = useRef(brouillonInitial?.texte ?? '')
   const [mediaFiles, setMediaFiles] = useState<File[]>([])
   const [viewerPj, setViewerPj]     = useState<PieceJointeMeta | null>(null)
   const [recording, setRecording]   = useState(false)
@@ -264,8 +314,15 @@ export function MessageThread({ conv, onLeft, onBack, ciblerMessageId, onCibleAt
   // à partir de `mentionSpans` (position, id, nom) tenue à jour à chaque frappe.
   const [mention, setMention] = useState<{ q: string; start: number } | null>(null)
   const [mentionSpans, setMentionSpans] = useState<MentionSpan[]>(brouillonInitial?.mentions ?? [])
+  /**
+   * Toute modification du texte du champ passe par ici. L'ANCIEN texte vient de `draftRef` et non du
+   * rendu : une mise en forme joue plusieurs éditions d'affilée dans le même événement, avant
+   * que le composant ne se redessine — chacune doit se comparer à la précédente, pas à un texte périmé.
+   */
   function updateDraft(next: string) {
-    setMentionSpans(prev => adjustMentionSpans(draft, next, prev))
+    const ancien = draftRef.current
+    draftRef.current = next
+    setMentionSpans(prev => adjustMentionSpans(ancien, next, prev))
     setDraft(next)
   }
   const { data: contacts = [] } = useQuery({
@@ -293,10 +350,16 @@ export function MessageThread({ conv, onLeft, onBack, ciblerMessageId, onCibleAt
     else setMention(null)
   }
   function onComposerChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
-    const value = e.target.value
+    const el = e.target
+    const value = el.value
+    const avant = draftRef.current
     updateDraft(value)
     if (value) pingTyping()
-    detectMention(value, e.target.selectionStart ?? value.length)
+    const caret = el.selectionStart ?? value.length
+    detectMention(value, caret)
+    // « - », « * » ou « . » + espace en début de ligne : une liste à puces s'ouvre.
+    const liste = declencherListe(avant, value, caret)
+    if (liste) appliquerResultat(el, liste, updateDraft)
   }
   function pickMention(c: { id: string; nom: string }) {
     const ta = composerRef.current
@@ -321,6 +384,19 @@ export function MessageThread({ conv, onLeft, onBack, ciblerMessageId, onCibleAt
   useEffect(() => {
     useBrouillonsMessagerie.getState().ecrire(conversationId, draft, mentionSpans)
   }, [conversationId, draft, mentionSpans])
+  useEffect(() => { draftRef.current = draft }, [draft])
+
+  // Le champ grandit avec le texte (jusqu'à six lignes environ, puis il défile) : sans cela, la
+  // seconde ligne écrite avec Ctrl+Entrée passerait sous la première, invisible.
+  useLayoutEffect(() => {
+    const el = composerRef.current
+    if (!el) return
+    // Vide, le champ reprend sa hauteur d'une ligne : sinon c'est le TEXTE D'INDICATION, plus long
+    // que la largeur d'un petit écran, qui le ferait grandir.
+    if (!draft) { el.style.height = ''; return }
+    el.style.height = 'auto'
+    el.style.height = `${Math.min(el.scrollHeight + 2, 140)}px`
+  }, [draft])
 
   // ── Lecture : l'écran DÉCLARE ce qu'il a réellement sous les yeux ───────────
   // Avant, charger le fil — même celui d'un onglet masqué — passait tout en « lu » (coches
@@ -521,42 +597,83 @@ export function MessageThread({ conv, onLeft, onBack, ciblerMessageId, onCibleAt
   }
 
   /**
-   * Encadre la sélection avec un marqueur de mise en forme (*gras*, _italique_, ~barré~,
-   * +souligné+). Rappuyer sur le même bouton RETIRE la mise en forme : un seul bouton met
-   * et enlève, comme dans n'importe quel éditeur — sinon on ne sait plus comment défaire.
-   *
-   * Sans sélection, on pose la paire et on place le curseur au milieu : on peut donc
-   * activer le gras AVANT d'écrire, et pas seulement après.
-   */
-  /**
    * Suit la sélection du composeur. La barre de mise en forme n'apparaît QUE lorsqu'un
-   * texte est sélectionné — comme dans WhatsApp. Un bouton permanent de plus dans une
-   * barre déjà chargée se serait fait oublier ; une barre qui surgit sur la sélection
-   * arrive au moment précis où l'on en a besoin.
+   * texte est sélectionné — comme dans WhatsApp — et se pose juste AU-DESSUS du début du
+   * texte sélectionné, centrée sur lui (sur la première ligne, si la sélection en couvre
+   * plusieurs). Un bouton permanent de plus dans une barre déjà chargée se serait fait
+   * oublier ; une barre qui surgit sur la sélection arrive au moment précis où l'on en a besoin.
    */
   function majSelection() {
     const el = composerRef.current
-    setSelActive(!!el && (el.selectionEnd ?? 0) > (el.selectionStart ?? 0))
+    const debut = el?.selectionStart ?? 0
+    const fin = el?.selectionEnd ?? 0
+    if (!el || fin <= debut) { setSelBarre(null); return }
+    const a = coordonneesTexte(el, debut)
+    const b = coordonneesTexte(el, fin)
+    // Sélection d'une seule ligne : on centre sur elle ; sur plusieurs, sur ce qui reste de la première.
+    const memeLigne = Math.abs(b.y - a.y) < a.h / 2
+    const droite = el.clientWidth - 14
+    const centre = (a.x + (memeLigne ? b.x : droite)) / 2
+    // La barre peut dépasser du champ (sur un petit écran il est étroit, elle non) mais jamais de l'écran.
+    const rect = el.getBoundingClientRect()
+    const width = Math.min(BARRE_FORMAT_W, window.innerWidth - 16)
+    const gauche = Math.min(Math.max(8, rect.left + centre - width / 2), window.innerWidth - 8 - width)
+    // Sur la première ligne, la barre se pose AU-DESSUS du champ plutôt que sur son bord.
+    const premiereLigne = a.y < a.h + 12
+    setSelBarre({ left: gauche - rect.left, top: premiereLigne ? -BARRE_FORMAT_H - 4 : a.y - BARRE_FORMAT_H - 6, width })
   }
 
-  function appliquerFormat(marqueur: string) {
+  /** Joue un résultat de mise en forme dans le champ, puis replace la barre sur la nouvelle sélection. */
+  function jouer(res: Resultat) {
     const el = composerRef.current
     if (!el) return
-    const debut = el.selectionStart ?? draft.length
-    const fin   = el.selectionEnd ?? debut
-    const choisi = draft.slice(debut, fin)
+    appliquerResultat(el, res, updateDraft)
+    requestAnimationFrame(majSelection)
+  }
 
-    const deja = choisi.length > 1 && choisi.startsWith(marqueur) && choisi.endsWith(marqueur)
-    const remplace = deja ? choisi.slice(1, -1) : marqueur + choisi + marqueur
-    setDraft(draft.slice(0, debut) + remplace + draft.slice(fin))
+  /**
+   * Applique une mise en forme à la sélection du champ : entoure le texte d'un marqueur (*gras*,
+   * _italique_, ~barré~, +souligné+, `code`, ```monospace```) ou en fait une liste / une citation.
+   * Rappuyer sur le même bouton RETIRE la mise en forme : un seul bouton met et enlève, comme dans
+   * n'importe quel éditeur — sinon on ne sait plus comment défaire.
+   *
+   * Sans sélection, un marqueur pose la paire et place le curseur au milieu (on peut donc activer
+   * le gras AVANT d'écrire), et une liste ou une citation s'applique à la ligne du curseur.
+   * Le champ garde la main, sélection replacée : sans cela il faut re-cliquer dedans pour
+   * continuer à écrire, et on perd le fil de sa phrase.
+   */
+  function appliquerFormat(action: ActionFormat) {
+    const el = composerRef.current
+    if (!el) return
+    const debut = el.selectionStart ?? el.value.length
+    const fin = el.selectionEnd ?? debut
+    jouer(action.genre === 'marqueur'
+      ? basculerMarqueur(el.value, debut, fin, action.marqueur, action.parLigne)
+      : basculerBloc(el.value, debut, fin, action.type))
+  }
 
-    // On rend la main au composeur, sélection replacée : sans cela il faut re-cliquer
-    // dans le champ pour continuer à écrire, et on perd le fil de sa phrase.
-    const decalage = deja ? -1 : 1
-    requestAnimationFrame(() => {
-      el.focus()
-      el.setSelectionRange(debut + decalage, fin + decalage)
-    })
+  /** Touches du champ de saisie : mise en forme, Entrée (envoi), Ctrl+Entrée (nouvelle ligne), Retour arrière dans une liste. */
+  function onComposerKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    // Pendant la composition d'un caractère (accents morts, clavier asiatique), Entrée valide la saisie : ce n'est pas un envoi.
+    if (e.nativeEvent.isComposing || e.keyCode === 229) return
+    const el = e.currentTarget
+    const action = actionDuRaccourci(e)
+    if (action) { e.preventDefault(); appliquerFormat(action); return }
+
+    if (mention && mentionCandidates.length > 0 && (e.key === 'Enter' || e.key === 'Tab')) { e.preventDefault(); pickMention(mentionCandidates[0]!); return }
+    if (e.key === 'Escape' && mention) { setMention(null); return }
+
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      // Ctrl+Entrée (ou Maj+Entrée, comme WhatsApp Web) : on va à la ligne — et la liste continue.
+      if (e.ctrlKey || e.metaKey || e.shiftKey) { jouer(retourALaLigne(el.value, el.selectionStart ?? 0, el.selectionEnd ?? 0)); return }
+      void handleSend()
+      return
+    }
+    if (e.key === 'Backspace' && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
+      const res = retourArriere(el.value, el.selectionStart ?? 0, el.selectionEnd ?? 0)
+      if (res) { e.preventDefault(); jouer(res) }
+    }
   }
 
   async function sendMedia(processed: File[], caption: string) {
@@ -959,26 +1076,32 @@ export function MessageThread({ conv, onLeft, onBack, ciblerMessageId, onCibleAt
               ))}
             </div>
           )}
-          {/* Barre de mise en forme — surgit sur la sélection */}
-          {selActive && !(mention && mentionCandidates.length > 0) && (
-            <div style={{ position: 'absolute', bottom: 'calc(100% + 6px)', left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: 2, padding: 4, background: 'var(--fond-surface)', border: '1px solid var(--bordure-legere)', borderRadius: 9999, boxShadow: '0 8px 24px rgba(0,0,0,0.16)', zIndex: 30 }}>
-              {FORMATS.map(f => (
-                <button key={f.marqueur} type="button" title={`${t(f.cle)} (${f.raccourci})`}
-                  // `preventDefault` sur l'appui : sans lui, le composeur perd le focus AVANT
-                  // le clic, la sélection s'efface, et le bouton s'appliquerait sur du vide.
-                  onMouseDown={e => e.preventDefault()}
-                  onClick={() => appliquerFormat(f.marqueur)}
-                  style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 9999, background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--texte-secondaire)' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--fond-surface-2)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                  <f.Icone size={15} />
-                </button>
+          {/* Barre de mise en forme — surgit sur la sélection, juste au-dessus du texte sélectionné */}
+          {selBarre && !(mention && mentionCandidates.length > 0) && (
+            <div role="toolbar" aria-label={t('messagerie.formatBar')}
+              style={{ position: 'absolute', top: selBarre.top, left: selBarre.left, width: selBarre.width, height: BARRE_FORMAT_H, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, padding: 4, overflowX: 'auto', background: 'var(--fond-surface)', border: '1px solid var(--bordure-legere)', borderRadius: 9999, boxShadow: '0 8px 24px rgba(0,0,0,0.16)', zIndex: 30 }}>
+              {GROUPES_FORMAT.map((groupe, g) => (
+                <Fragment key={g}>
+                  {g > 0 && <span aria-hidden style={{ width: 1, height: 18, margin: '0 2px', flexShrink: 0, background: 'var(--bordure-normale)' }} />}
+                  {groupe.map(f => (
+                    <button key={f.id} type="button" title={`${t(f.cle)} (${f.raccourci})`} aria-label={t(f.cle)}
+                      // `preventDefault` sur l'appui : sans lui, le composeur perd le focus AVANT
+                      // le clic, la sélection s'efface, et le bouton s'appliquerait sur du vide.
+                      onMouseDown={e => e.preventDefault()}
+                      onClick={() => appliquerFormat(f.action)}
+                      style={{ width: 30, height: 30, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 9999, background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--texte-secondaire)' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--fond-surface-2)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                      <f.Icone size={15} />
+                    </button>
+                  ))}
+                </Fragment>
               ))}
             </div>
           )}
           <textarea
             ref={composerRef} value={draft} onChange={onComposerChange}
-            onSelect={majSelection} onKeyUp={majSelection} onMouseUp={majSelection}
+            onSelect={majSelection} onKeyUp={majSelection} onMouseUp={majSelection} onScroll={() => { if (selBarre) majSelection() }}
             onPaste={e => {
               // COLLER une image, un document, une capture d'écran : on ouvre le MÊME
               // aperçu que le trombone, plutôt que d'envoyer à l'aveugle. Coller du TEXTE
@@ -988,24 +1111,11 @@ export function MessageThread({ conv, onLeft, onBack, ciblerMessageId, onCibleAt
               e.preventDefault()
               openPreview(fichiers)
             }}
-            onKeyDown={e => {
-              // Raccourcis de mise en forme, alignés sur WhatsApp Web et sur les
-              // traitements de texte : la main ne quitte pas le clavier.
-              if (e.ctrlKey || e.metaKey) {
-                const k = e.key.toLowerCase()
-                if (e.shiftKey && k === 'x') { e.preventDefault(); appliquerFormat('~'); return }
-                if (!e.shiftKey && k === 'b') { e.preventDefault(); appliquerFormat('*'); return }
-                if (!e.shiftKey && k === 'i') { e.preventDefault(); appliquerFormat('_'); return }
-                if (!e.shiftKey && k === 'u') { e.preventDefault(); appliquerFormat('+'); return }
-              }
-              if (mention && mentionCandidates.length > 0 && (e.key === 'Enter' || e.key === 'Tab')) { e.preventDefault(); pickMention(mentionCandidates[0]!); return }
-              if (e.key === 'Escape' && mention) { setMention(null); return }
-              if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
-            }}
+            onKeyDown={onComposerKeyDown}
             onClick={e => detectMention(draft, (e.target as HTMLTextAreaElement).selectionStart ?? draft.length)}
-            onBlur={() => { setSelActive(false); setTimeout(() => setMention(null), 120) }}
-            placeholder={t('messagerie.composerPlaceholder')} rows={1}
-            style={{ width: '100%', boxSizing: 'border-box', resize: 'none', maxHeight: 120, minHeight: 38, padding: '9px 14px', borderRadius: 20, fontSize: 13, lineHeight: 1.4, border: '1px solid var(--bordure-normale)', background: 'var(--fond-surface)', color: 'var(--texte-primaire)', fontFamily: 'inherit', outline: 'none' }}
+            onBlur={() => { setSelBarre(null); setTimeout(() => setMention(null), 120) }}
+            placeholder={t('messagerie.composerPlaceholder')} title={t('messagerie.composerHint')} rows={1}
+            style={{ width: '100%', boxSizing: 'border-box', resize: 'none', maxHeight: 140, minHeight: 38, padding: '9px 14px', borderRadius: 20, fontSize: 13, lineHeight: 1.4, border: '1px solid var(--bordure-normale)', background: 'var(--fond-surface)', color: 'var(--texte-primaire)', fontFamily: 'inherit', outline: 'none' }}
           />
         </div>
         {draft.trim() ? (
@@ -1297,7 +1407,17 @@ function Bubble({
               ) : isEditing ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '8px 12px' }}>
                   <textarea value={editText} onChange={e => setEditText(e.target.value)} autoFocus rows={2}
-                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSaveEdit() } if (e.key === 'Escape') onCancelEdit() }}
+                    onKeyDown={e => {
+                      if (e.nativeEvent.isComposing || e.keyCode === 229) return
+                      if (e.key === 'Escape') { onCancelEdit(); return }
+                      if (e.key !== 'Enter') return
+                      e.preventDefault()
+                      // Comme dans le composeur : Entrée enregistre, Ctrl+Entrée (ou Maj+Entrée) va à la ligne.
+                      if (e.ctrlKey || e.metaKey || e.shiftKey) {
+                        const el = e.currentTarget
+                        appliquerResultat(el, retourALaLigne(el.value, el.selectionStart ?? 0, el.selectionEnd ?? 0), setEditText)
+                      } else onSaveEdit()
+                    }}
                     style={{ resize: 'vertical', minWidth: 220, padding: 6, borderRadius: 6, border: '1px solid var(--bordure-normale)', fontSize: 13, fontFamily: 'inherit', color: 'var(--texte-primaire)', background: '#fff' }} />
                   <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
                     <button onClick={onCancelEdit} title={t('messagerie.cancel')} style={iconBtn('var(--texte-tertiaire)')}><X size={14} /></button>
@@ -1305,7 +1425,7 @@ function Bubble({
                   </div>
                 </div>
               ) : hasText ? (
-                <div style={{ padding: hasMedia ? '5px 10px 7px' : '8px 12px', fontSize: 13, lineHeight: 1.45, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{renderRich(m.contenu)}</div>
+                <div style={{ padding: hasMedia ? '5px 10px 7px' : '8px 12px', fontSize: 13, lineHeight: 1.45, wordBreak: 'break-word' }}>{renderMessage(m.contenu)}</div>
               ) : null}
 
               {!isEditing && !m.supprime && <ChevronMenu {...{ t, m, mine, hover, menuOpen, setMenuOpen, canEdit, onStartEdit, onCopy, onReply, onDelete, onReact, onDetails, onEnterSelect, onTogglePin, onForward, onToggleFavori }} />}
