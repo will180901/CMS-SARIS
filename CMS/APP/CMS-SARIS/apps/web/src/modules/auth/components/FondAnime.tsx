@@ -44,8 +44,8 @@ export function FondAnime() {
       {/* Rideau de verre dépoli — flou léger partout… */}
       <div style={{
         ...COUCHE,
-        WebkitBackdropFilter: 'blur(1.2px)', backdropFilter: 'blur(1.2px)',
-        background: 'color-mix(in srgb, var(--fond-page) 6%, transparent)',
+        WebkitBackdropFilter: 'blur(0.8px)', backdropFilter: 'blur(0.8px)',
+        background: 'color-mix(in srgb, var(--fond-page) 3%, transparent)',
       }} />
       {/* …et flou fort au centre, autour de la carte (fondu radial vers les bords). */}
       <div style={{
@@ -58,7 +58,7 @@ export function FondAnime() {
 
       {/* Grain épais et couvrant. */}
       <div className="hidden dark:block"
-        style={{ ...COUCHE, backgroundImage: GRAIN_CLAIR_SUR_SOMBRE, backgroundSize: '240px 240px, 150px 150px', opacity: 0.5 }} />
+        style={{ ...COUCHE, backgroundImage: GRAIN_CLAIR_SUR_SOMBRE, backgroundSize: '240px 240px, 150px 150px', opacity: 0.42 }} />
       <div className="block dark:hidden"
         style={{ ...COUCHE, backgroundImage: GRAIN_SOMBRE_SUR_CLAIR, backgroundSize: '240px 240px, 150px 150px', opacity: 0.5 }} />
     </div>

@@ -6,10 +6,11 @@
  *      presque monochromes, avec une petite lueur des couleurs de l'application ;
  *   2. des nuages de carrés tramés (tramage de Bayer sur un bruit) : les petits pixels
  *      groupés en amas et en vides, qui dérivent à peine ;
- *   3. un réseau de neurones : des nœuds reliés par des fils fins ;
+ *   3. un réseau en GRILLE : lignes et colonnes ordonnées, une toute petite maille carrée
+ *      (12 px), un point à chaque intersection ;
  *   4. des flux de données : de très petits carrés qui circulent le long des fils, dans tous
- *      les sens, avec une lueur naturelle qui pulse. Chaque arrivée allume le nœud et
- *      réchauffe le fil, comme un neurone qui s'active.
+ *      les sens, et tournent aux intersections, avec une lueur naturelle qui pulse. Chaque
+ *      arrivée allume l'intersection et réchauffe le fil, comme un neurone qui s'active.
  *
  * Légèreté (les postes du centre ne sont pas des machines de jeu) :
  *   - le mesh est dessiné à petite échelle puis agrandi ; les nuages sont calculés UNE fois
@@ -134,12 +135,13 @@ function creerLueur(rgb: RGB, rayon: number): HTMLCanvasElement {
 
 // ── Le moteur ────────────────────────────────────────────────────────────────
 
-interface Noeud { bx: number; by: number; x: number; y: number; ph: number; amp: number; flash: number }
-interface Fil { a: number; b: number; len: number; e: number }
-interface Paquet { fil: number; sens: 1 | -1; t: number; v: number; taille: number; couleur: number; ph: number; hz: number }
+/** Un pixel qui voyage sur le fil allant de l'intersection (ci, ri) à (ci+dx, ri+dy), à la fraction `u` du trajet. */
+interface Paquet { ci: number; ri: number; dx: number; dy: number; u: number; v: number; taille: number; couleur: number; ph: number; hz: number }
 
-const TAILLE_MAX_FPS = 40
+const IMAGES_PAR_SECONDE_MAX = 40
 const PAS_NUAGE = 5
+/** Distance entre deux fils de la grille : très petite, des « trous » carrés de 12 px. */
+const PAS_GRILLE = 12
 
 /**
  * Lance l'animation dans `canvas` (qui doit occuper tout son parent). Rend la fonction qui
@@ -154,11 +156,14 @@ export function demarrerFondAnime(canvas: HTMLCanvasElement): () => void {
   let palette = document.documentElement.classList.contains('dark') ? PALETTE_SOMBRE : PALETTE_CLAIRE
 
   let W = 0, H = 0, dpr = 1
-  let noeuds: Noeud[] = []
-  let fils: Fil[] = []
-  let voisins: number[][] = []
+  /** La grille : `cols` fils verticaux et `lignes` fils horizontaux, centrés dans la fenêtre. */
+  let cols = 0, lignes = 0, ox = 0, oy = 0
+  let grille: HTMLCanvasElement | null = null
   let paquets: Paquet[] = []
   let nuages: HTMLCanvasElement | null = null
+  /** Fils réchauffés par un passage, et nœuds allumés à une arrivée — seulement ceux qui brillent encore. */
+  const chaleur = new Map<number, number>()
+  const eclats = new Map<number, number>()
   const marge = 48
   const mesh = document.createElement('canvas')
   const meshCtx = mesh.getContext('2d')!
@@ -175,7 +180,34 @@ export function demarrerFondAnime(canvas: HTMLCanvasElement): () => void {
   function preparerPalette() {
     let cumul = 0
     poids = palette.pixels.map(p => (cumul += p.poids))
-    lueurs = { sprites: palette.pixels.map(p => creerLueur(p.rgb, 16)), noeud: creerLueur(palette.pixels[1]!.rgb, 26) }
+    lueurs = { sprites: palette.pixels.map(p => creerLueur(p.rgb, 16)), noeud: creerLueur(palette.pixels[1]!.rgb, 22) }
+  }
+
+  // ── La grille ───────────────────────────────────────────────────────────────
+  const xFil = (c: number) => Math.round(ox + c * PAS_GRILLE)
+  const yFil = (r: number) => Math.round(oy + r * PAS_GRILLE)
+  /** Identifiant d'un fil : son intersection de départ (la plus haute / la plus à gauche) et son sens. */
+  const cleFil = (ci: number, ri: number, dx: number, dy: number) =>
+    (((dy < 0 ? ri + dy : ri) * cols + (dx < 0 ? ci + dx : ci)) * 2) + (dx !== 0 ? 0 : 1)
+
+  /** La grille au repos, dessinée UNE fois : des fils d'un pixel et un point à chaque intersection. */
+  function genererGrille() {
+    const c = document.createElement('canvas')
+    c.width = Math.round(W * dpr)
+    c.height = Math.round(H * dpr)
+    const g = c.getContext('2d')!
+    g.scale(dpr, dpr)
+    g.strokeStyle = rgba(palette.fil, palette.sombre ? 0.15 : 0.18)
+    g.lineWidth = 1
+    g.beginPath()
+    for (let i = 0; i < cols; i++) { g.moveTo(xFil(i) + 0.5, 0); g.lineTo(xFil(i) + 0.5, H) }
+    for (let j = 0; j < lignes; j++) { g.moveTo(0, yFil(j) + 0.5); g.lineTo(W, yFil(j) + 0.5) }
+    g.stroke()
+    g.fillStyle = rgba(palette.fil, palette.sombre ? 0.32 : 0.36)
+    g.beginPath()
+    for (let j = 0; j < lignes; j++) for (let i = 0; i < cols; i++) g.rect(xFil(i), yFil(j), 2, 2)
+    g.fill()
+    grille = c
   }
 
   // ── Construction (à chaque changement de taille) ────────────────────────────
@@ -189,52 +221,51 @@ export function demarrerFondAnime(canvas: HTMLCanvasElement): () => void {
     mesh.width = Math.max(8, Math.round(W / 8))
     mesh.height = Math.max(8, Math.round(H / 8))
 
-    // Nœuds : une grille irrégulière (une case, un nœud, un peu de hasard).
-    const aire = W * H
-    const nb = clamp(Math.round(aire / 26000), 26, 72)
-    const cote = Math.sqrt(aire / nb)
-    noeuds = []
-    for (let gy = 0; gy < Math.ceil(H / cote); gy++) {
-      for (let gx = 0; gx < Math.ceil(W / cote); gx++) {
-        const bx = (gx + 0.15 + Math.random() * 0.7) * cote
-        const by = (gy + 0.15 + Math.random() * 0.7) * cote
-        noeuds.push({ bx, by, x: bx, y: by, ph: Math.random() * 6.28, amp: 8 + Math.random() * 10, flash: 0 })
-      }
-    }
-    // Fils : chaque nœud est relié à ses trois plus proches voisins.
-    fils = []
-    voisins = noeuds.map(() => [])
-    const dejaVu = new Set<number>()
-    const longueurMax = Math.max(W, H) * 0.35
-    noeuds.forEach((n, i) => {
-      const proches = noeuds
-        .map((m, j) => ({ j, d: Math.hypot(m.bx - n.bx, m.by - n.by) }))
-        .filter(o => o.j !== i && o.d < longueurMax)
-        .sort((p, q) => p.d - q.d)
-        .slice(0, 3)
-      for (const { j, d } of proches) {
-        const cle = Math.min(i, j) * 10000 + Math.max(i, j)
-        if (dejaVu.has(cle)) continue
-        dejaVu.add(cle)
-        fils.push({ a: i, b: j, len: d, e: 0 })
-        voisins[i]!.push(fils.length - 1)
-        voisins[j]!.push(fils.length - 1)
-      }
-    })
+    cols = Math.floor(W / PAS_GRILLE) + 1
+    lignes = Math.floor(H / PAS_GRILLE) + 1
+    ox = (W - (cols - 1) * PAS_GRILLE) / 2
+    oy = (H - (lignes - 1) * PAS_GRILLE) / 2
+    chaleur.clear()
+    eclats.clear()
+    genererGrille()
     peuplerPaquets()
     genererNuages()
   }
 
+  /** Où repart un pixel arrivé à une intersection : tout droit le plus souvent, parfois à gauche ou à droite, demi-tour au bord. */
+  function orienter(p: Paquet) {
+    let dx = p.dx, dy = p.dy
+    if (Math.random() < 0.18) {
+      if (dx !== 0) { dy = Math.random() < 0.5 ? 1 : -1; dx = 0 } else { dx = Math.random() < 0.5 ? 1 : -1; dy = 0 }
+    }
+    const valide = (ax: number, ay: number) => {
+      const c = p.ci + ax, r = p.ri + ay
+      return c >= 0 && c < cols && r >= 0 && r < lignes
+    }
+    if (!valide(dx, dy)) {
+      const options: [number, number][] = dx !== 0
+        ? (Math.random() < 0.5 ? [[0, 1], [0, -1], [-dx, 0]] : [[0, -1], [0, 1], [-dx, 0]])
+        : (Math.random() < 0.5 ? [[1, 0], [-1, 0], [0, -dy]] : [[-1, 0], [1, 0], [0, -dy]])
+      const bon = options.find(([ax, ay]) => valide(ax, ay)) ?? [0, 0]
+      dx = bon[0]; dy = bon[1]
+    }
+    p.dx = dx; p.dy = dy
+  }
+
   function peuplerPaquets() {
-    if (fils.length === 0) { paquets = []; return }
-    const nb = Math.round(clamp(Math.round((W * H) / 5200), 110, 420) * qualite)
+    const nb = Math.round(clamp(Math.round((W * H) / 5000), 120, 460) * qualite)
     paquets = []
     for (let i = 0; i < nb; i++) {
-      paquets.push({
-        fil: Math.floor(Math.random() * fils.length), sens: Math.random() < 0.5 ? 1 : -1, t: Math.random(),
-        v: 28 + Math.random() * 82, taille: Math.random() < 0.7 ? 2 : 3, couleur: tirerCouleur(),
+      const horizontal = Math.random() < 0.5
+      const sens = Math.random() < 0.5 ? 1 : -1
+      const p: Paquet = {
+        ci: Math.floor(Math.random() * cols), ri: Math.floor(Math.random() * lignes),
+        dx: horizontal ? sens : 0, dy: horizontal ? 0 : sens, u: Math.random(),
+        v: 30 + Math.random() * 90, taille: Math.random() < 0.7 ? 2 : 3, couleur: tirerCouleur(),
         ph: Math.random() * 6.28, hz: 0.35 + Math.random() * 0.9,
-      })
+      }
+      orienter(p) // une direction qui ne sort pas de la grille
+      paquets.push(p)
     }
   }
 
@@ -245,9 +276,9 @@ export function demarrerFondAnime(canvas: HTMLCanvasElement): () => void {
     c.width = w; c.height = h
     const g = c.getContext('2d')!
     const seaux = new Map<string, number[]>()
-    const cols = Math.ceil(w / PAS_NUAGE), lignes = Math.ceil(h / PAS_NUAGE)
-    for (let cy = 0; cy < lignes; cy++) {
-      for (let cx = 0; cx < cols; cx++) {
+    const colonnes = Math.ceil(w / PAS_NUAGE), rangees = Math.ceil(h / PAS_NUAGE)
+    for (let cy = 0; cy < rangees; cy++) {
+      for (let cx = 0; cx < colonnes; cx++) {
         const n = relief(cx * 0.035, cy * 0.035, 11)
         const n2 = relief(cx * 0.035 + 3.7, cy * 0.035 + 1.3, 5)
         let d = lisse(0.40, 0.72, n) * (0.35 + 0.65 * lisse(0.25, 0.8, n2))
@@ -309,84 +340,75 @@ export function demarrerFondAnime(canvas: HTMLCanvasElement): () => void {
       ctx!.globalAlpha = 1
     }
 
-    ctx!.globalCompositeOperation = palette.sombre ? 'lighter' : 'source-over'
-
-    // 3. nœuds en dérive
-    for (const n of noeuds) {
-      n.x = n.bx + Math.sin(t * 0.23 + n.ph) * n.amp
-      n.y = n.by + Math.cos(t * 0.17 + n.ph * 1.3) * n.amp
-      n.flash *= Math.exp(-dt * 1.8)
+    // 3. la grille au repos, qui respire lentement
+    if (grille) {
+      ctx!.imageSmoothingEnabled = true
+      ctx!.globalAlpha = 0.82 + 0.18 * Math.sin(t * 0.5)
+      ctx!.drawImage(grille, 0, 0, W, H)
+      ctx!.globalAlpha = 1
     }
 
-    // 4. fils : très discrets, plus vifs là où un paquet vient de passer
+    ctx!.globalCompositeOperation = palette.sombre ? 'lighter' : 'source-over'
+
+    // 4. fils réchauffés par un passage : ils s'éteignent doucement
     ctx!.lineWidth = 1
-    for (const f of fils) {
-      const a = noeuds[f.a]!, b = noeuds[f.b]!
-      f.e *= Math.exp(-dt * 1.5)
-      ctx!.strokeStyle = rgba(palette.fil, (palette.sombre ? 0.1 : 0.12) + 0.34 * f.e)
+    for (const [cle, v] of chaleur) {
+      const e = v * Math.exp(-dt * 1.4)
+      if (e < 0.03) { chaleur.delete(cle); continue }
+      chaleur.set(cle, e)
+      const horizontal = cle % 2 === 0
+      const idx = (cle - (horizontal ? 0 : 1)) / 2
+      const c = idx % cols, r = Math.floor(idx / cols)
+      const x0 = xFil(c) + 0.5, y0 = yFil(r) + 0.5
+      ctx!.strokeStyle = rgba(palette.fil, 0.14 + 0.34 * e)
       ctx!.beginPath()
-      ctx!.moveTo(a.x, a.y)
-      ctx!.lineTo(b.x, b.y)
+      ctx!.moveTo(x0, y0)
+      if (horizontal) ctx!.lineTo(xFil(c + 1) + 0.5, y0)
+      else ctx!.lineTo(x0, yFil(r + 1) + 0.5)
       ctx!.stroke()
     }
 
-    // 5. paquets : avancent, changent de fil aux nœuds, brillent en pulsant
+    // 5. pixels : avancent le long des fils, tournent aux intersections, brillent en pulsant
     const onde = (x: number, y: number) => 0.5 + 0.5 * Math.sin((x * 0.004 + y * 0.003) - t * 0.9)
     for (const p of paquets) {
-      const f = fils[p.fil]!
-      p.t += (p.v * dt) / Math.max(f.len, 1)
-      if (p.t >= 1) {
-        const arrivee = p.sens === 1 ? f.b : f.a
-        noeuds[arrivee]!.flash = 1
-        f.e = Math.max(f.e, 0.7)
-        const choix = voisins[arrivee]!
-        let suivant = choix[Math.floor(Math.random() * choix.length)]!
-        // Le plus souvent on continue plutôt que de faire demi-tour.
-        if (suivant === p.fil && choix.length > 1 && Math.random() < 0.8) {
-          suivant = choix[(choix.indexOf(suivant) + 1) % choix.length]!
-        }
-        const nf = fils[suivant]!
-        p.fil = suivant
-        p.sens = nf.a === arrivee ? 1 : -1
-        p.t = 0
-        f.e = Math.max(f.e, 0.5)
+      p.u += (p.v * dt) / PAS_GRILLE
+      while (p.u >= 1) {
+        p.ci += p.dx; p.ri += p.dy; p.u -= 1
+        eclats.set(p.ri * cols + p.ci, 1)
+        orienter(p)
+        const k = cleFil(p.ci, p.ri, p.dx, p.dy)
+        chaleur.set(k, Math.max(chaleur.get(k) ?? 0, 0.7))
       }
-      const fl = fils[p.fil]!
-      const a = noeuds[fl.a]!, b = noeuds[fl.b]!
-      const u = p.sens === 1 ? p.t : 1 - p.t
-      const x = lerp(a.x, b.x, u), y = lerp(a.y, b.y, u)
+      const x = ox + (p.ci + p.dx * p.u) * PAS_GRILLE
+      const y = oy + (p.ri + p.dy * p.u) * PAS_GRILLE
       const pulse = 0.55 + 0.45 * Math.sin(t * p.hz * 6.28 + p.ph)
       const eclat = clamp(pulse * (0.55 + 0.6 * onde(x, y)), 0, 1)
       const col = palette.pixels[p.couleur]!.rgb
       // lueur
       ctx!.globalAlpha = (palette.sombre ? 0.38 : 0.3) * eclat
-      const l = lueurs.sprites[p.couleur]!
-      ctx!.drawImage(l, x - 16, y - 16)
-      // le pixel : un petit carré calé sur une grille de 2 px, plus sa courte traîne
+      ctx!.drawImage(lueurs.sprites[p.couleur]!, x - 16, y - 16)
+      // le pixel : un petit carré posé sur le fil, plus sa courte traîne
       const s = p.taille
-      const sx = Math.round(x / 2) * 2, sy = Math.round(y / 2) * 2
       ctx!.fillStyle = rgba(col, 1)
       ctx!.globalAlpha = (palette.sombre ? 1 : 0.9) * (0.6 + 0.4 * eclat)
-      ctx!.fillRect(sx, sy, s, s)
+      ctx!.fillRect(Math.round(x - s / 2) + 0.5, Math.round(y - s / 2) + 0.5, s, s)
       if (qualite > 0.5) {
-        const dir = p.sens === 1 ? -1 : 1
         for (let k = 1; k <= 2; k++) {
-          const uk = clamp(u + dir * (k * 5) / Math.max(fl.len, 1), 0, 1)
           ctx!.globalAlpha = (palette.sombre ? 0.34 : 0.26) / k * (0.5 + 0.5 * eclat)
-          ctx!.fillRect(Math.round(lerp(a.x, b.x, uk) / 2) * 2, Math.round(lerp(a.y, b.y, uk) / 2) * 2, s, s)
+          ctx!.fillRect(Math.round(x - p.dx * k * 4 - s / 2) + 0.5, Math.round(y - p.dy * k * 4 - s / 2) + 0.5, s, s)
         }
       }
     }
 
-    // 6. nœuds : une petite braise qui s'avive quand un paquet arrive
-    for (const n of noeuds) {
-      const vif = 0.22 + 0.15 * Math.sin(t * 0.8 + n.ph) + 0.85 * n.flash
-      ctx!.globalAlpha = clamp(vif, 0, 1) * (palette.sombre ? 0.7 : 0.45)
-      const taille = 26 * (0.8 + 0.5 * n.flash)
-      ctx!.drawImage(lueurs.noeud, n.x - taille, n.y - taille, taille * 2, taille * 2)
-      ctx!.globalAlpha = clamp(0.35 + 0.65 * n.flash, 0, 1)
-      ctx!.fillStyle = rgba(palette.pixels[0]!.rgb, 1)
-      ctx!.fillRect(Math.round(n.x / 2) * 2, Math.round(n.y / 2) * 2, 3, 3)
+    // 6. intersections qui viennent de recevoir un pixel : une braise qui s'avive puis s'éteint
+    for (const [cle, v] of eclats) {
+      const e = v * Math.exp(-dt * 2.2)
+      if (e < 0.04) { eclats.delete(cle); continue }
+      eclats.set(cle, e)
+      const x = xFil(cle % cols) + 1, y = yFil(Math.floor(cle / cols)) + 1
+      const taille = 14 * (0.8 + 0.6 * e)
+      ctx!.globalAlpha = clamp(e, 0, 1) * (palette.sombre ? 0.6 : 0.4)
+      ctx!.drawImage(lueurs.noeud, x - taille, y - taille, taille * 2, taille * 2)
     }
     ctx!.globalAlpha = 1
     ctx!.globalCompositeOperation = 'source-over'
@@ -409,7 +431,7 @@ export function demarrerFondAnime(canvas: HTMLCanvasElement): () => void {
     const boucle = (ms: number) => {
       raf = requestAnimationFrame(boucle)
       if (document.hidden) { dernier = ms; return }
-      if (ms - dernierDessin < 1000 / TAILLE_MAX_FPS - 1) return
+      if (ms - dernierDessin < 1000 / IMAGES_PAR_SECONDE_MAX - 1) return
       const dt = Math.min(0.05, Math.max(0.001, (ms - (dernier || ms)) / 1000))
       dernier = ms
       dernierDessin = ms
@@ -438,6 +460,7 @@ export function demarrerFondAnime(canvas: HTMLCanvasElement): () => void {
     if (sombre === palette.sombre) return
     palette = sombre ? PALETTE_SOMBRE : PALETTE_CLAIRE
     preparerPalette()
+    genererGrille()
     genererNuages()
     if (reduire) dessiner(temps, 0.016)
   })
