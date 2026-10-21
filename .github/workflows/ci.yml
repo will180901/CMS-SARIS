@@ -1,0 +1,140 @@
+name: CI
+
+# Contrôle automatique à chaque push sur main et à chaque pull request.
+# Même chose que ce qu'on lance en local, mais sur une copie neuve du dépôt :
+# un fichier oublié dans un commit, une dépendance mal figée ou un test qui ne passe que
+# sur la machine d'origine se voient ici.
+#
+# Deux jobs indépendants, en parallèle :
+#   web : typage, lint (0 erreur exigée), tests, build de production
+#   api : typage, tests unitaires, tests e2e sur un vrai PostgreSQL
+#
+# Volontairement ABSENT : le lint de l'API (687 erreurs historiques, dont 431 de simple mise en
+# forme — à traiter à part) ; le build du client de bureau (Electron) et de l'installateur.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Un nouveau push annule le contrôle en cours sur la même branche.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22'
+  # Le client de bureau n'est pas construit ici : inutile de télécharger le binaire d'Electron.
+  ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+  # Fuseau du produit (Congo, UTC+1, pas d'heure d'été) : les tests manipulent des dates et des
+  # heures d'ouverture du centre ; sans cela le runner (UTC) en décalerait certaines d'une heure.
+  TZ: Africa/Brazzaville
+
+# Le dépôt Git est deux niveaux au-dessus de la racine du workspace pnpm.
+# pnpm DOIT être lancé depuis cette racine (cf. pnpm-workspace.yaml).
+defaults:
+  run:
+    working-directory: CMS/APP/CMS-SARIS
+
+jobs:
+  web:
+    name: Web — typage, lint, tests, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: CMS/APP/CMS-SARIS/package.json # version lue dans « packageManager »
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: CMS/APP/CMS-SARIS/pnpm-lock.yaml
+
+      - name: Installer les dépendances (lockfile figé)
+        run: pnpm install --frozen-lockfile
+
+      - name: Générer le client Prisma (les types en dépendent)
+        run: pnpm --filter @cms-saris/db exec prisma generate
+
+      - name: Typage des types partagés
+        run: pnpm --filter @cms-saris/types typecheck
+
+      - name: Tests des types partagés
+        run: pnpm --filter @cms-saris/types test
+
+      - name: Typage du web
+        run: pnpm --filter web typecheck
+
+      # eslint sans --fix : on contrôle, on ne réécrit rien. Les avertissements sont tolérés,
+      # les erreurs font échouer.
+      - name: Lint du web
+        run: pnpm --filter web lint
+
+      - name: Tests du web
+        run: pnpm --filter web test
+
+      - name: Build du web
+        run: pnpm --filter web build
+
+  api:
+    name: API — typage, tests unitaires et e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # La suite crée et vide SA base (cms_saris_test) : jamais une autre. Hôte local obligatoire.
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cms_saris_test?schema=public
+      # Secrets FACTICES, propres aux tests (aucun vrai secret dans ce dépôt).
+      JWT_SECRET: ci-jwt-secret-pas-un-vrai-secret
+      TOTP_ENC_KEY: ci-totp-enc-key-pas-un-vrai-secret
+      MESSAGE_ENC_KEY: ci-message-enc-key-pas-un-vrai-secret
+      FRONTEND_URL: http://localhost:5180
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: CMS/APP/CMS-SARIS/package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: CMS/APP/CMS-SARIS/pnpm-lock.yaml
+
+      - name: Installer les dépendances (lockfile figé)
+        run: pnpm install --frozen-lockfile
+
+      - name: Générer le client Prisma
+        run: pnpm --filter @cms-saris/db exec prisma generate
+
+      # Le client SQLite (poste de bureau) est généré, donc absent du dépôt : certains tests e2e
+      # (mise à niveau des postes) en ont besoin.
+      - name: Générer le client Prisma SQLite
+        run: pnpm --filter @cms-saris/db db:sqlite:generate
+
+      # Compile aussi les fichiers de test : un type cassé dans un test est détecté ici.
+      - name: Typage de l'API
+        run: pnpm --filter api exec tsc --noEmit -p tsconfig.json
+
+      - name: Tests unitaires de l'API
+        run: pnpm --filter api test:unit
+
+      - name: Tests e2e de l'API (PostgreSQL)
+        run: pnpm --filter api test:e2e
