@@ -36,3 +36,7 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+
+# Word : fichiers de verrou et de reprise automatique (jamais a versionner)
+~$*
+~WRL*.tmp
