@@ -12,6 +12,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { Subject, type Observable } from 'rxjs'
 import { filter, map } from 'rxjs/operators'
 import type { MessageEvent } from '@nestjs/common'
+import type { Prisma } from '@prisma/client'
 import { PrismaService } from '../../prisma/prisma.service'
 import { ParametresService } from '../parametres/parametres.service'
 
@@ -118,6 +119,28 @@ export class NotificationService {
     }
   }
 
+  // ── La liste « personnes concernées », selon la base ───────────────────────────
+  // PostgreSQL (serveur) a une vraie colonne liste. La base d'un poste de bureau (SQLite) n'en a
+  // pas : la liste y est un TEXTE JSON (schéma SQLite généré). Sans cette conversion, créer une
+  // notification sur un poste échouait sur « Expected String, provided () » — l'erreur étant
+  // avalée (une notification ne fait jamais échouer l'action), la cloche du poste ne recevait
+  // plus rien de ce qui s'y passait.
+
+  private versBase(ids: string[]): string[] | string {
+    return process.env['DATABASE_PROVIDER'] === 'sqlite' ? JSON.stringify(ids) : ids
+  }
+
+  private depuisBase(valeur: unknown): string[] {
+    if (Array.isArray(valeur)) return valeur as string[]
+    if (typeof valeur !== 'string') return []
+    try {
+      const v: unknown = JSON.parse(valeur)
+      return Array.isArray(v) ? (v as string[]) : []
+    } catch {
+      return []
+    }
+  }
+
   // ── Émission ────────────────────────────────────────────────────────────────
 
   async emit(input: EmitInput): Promise<NotifRow | null> {
@@ -136,11 +159,15 @@ export class NotificationService {
           entiteId: input.entiteId ?? null,
           lien: input.lien ?? null,
           createdById: input.createdById ?? null,
-          concernedPersonnelIds: input.concernedPersonnelIds ?? [],
-        },
+          concernedPersonnelIds: this.versBase(input.concernedPersonnelIds ?? []),
+        } as Prisma.NotificationUncheckedCreateInput,
       })
-      this.stream$.next(n as NotifRow)
-      return n as NotifRow
+      const ligne = {
+        ...n,
+        concernedPersonnelIds: this.depuisBase(n.concernedPersonnelIds),
+      } as NotifRow
+      this.stream$.next(ligne)
+      return ligne
     } catch (e) {
       // Une notification ne doit jamais faire échouer l'action métier.
       this.logger.warn(`emit() a échoué (ignoré) : ${(e as Error).message}`)
@@ -201,7 +228,11 @@ export class NotificationService {
     // On masque du feed les notifications « supprimées pour moi ».
     return rows
       .filter((r) => !r.lectures.some((l) => l.masque))
-      .map(({ lectures, ...n }) => ({ ...n, lu: lectures.length > 0 }))
+      .map(({ lectures, ...n }) => ({
+        ...n,
+        concernedPersonnelIds: this.depuisBase(n.concernedPersonnelIds),
+        lu: lectures.length > 0,
+      }))
   }
 
   async unreadCount(a: NotifAudience): Promise<number> {
