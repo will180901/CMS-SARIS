@@ -44,10 +44,10 @@ pnpm --filter @cms-saris/desktop dist:unpacked   # dossier non empaqueté (debug
 pnpm --filter @cms-saris/desktop clean           # nettoie dist-electron/ app/ release/
 ```
 
-L'installeur est **assisté** (`oneClick: false`, NSIS 2-en-1 : détecte une install existante et
-propose Réinstaller/Désinstaller, sinon installe) : quelques clics → installation par
-utilisateur (sans admin) → raccourcis → lancement automatique. L'exécutable autonome est aussi
-disponible sans installation dans `release/win-unpacked/CMS SARIS.exe`.
+L'installeur est **sur-mesure** (NSIS, `installer/cms-saris.nsi`, voir « Installateur » plus bas) :
+installation par utilisateur (sans admin), raccourcis, et une page dédiée quand CMS SARIS est
+déjà installé. L'exécutable autonome est aussi disponible sans installation dans
+`release/win-unpacked/CMS SARIS.exe`.
 
 ### Dépannage build
 
@@ -175,26 +175,56 @@ EV / Azure. Décommentez l'option correspondant à votre certificat.
 | Raccourcis | Menu Démarrer + Bureau |
 | Désinstallation | « Applications et fonctionnalités » Windows |
 
-### Désinstallation propre
+### Installateur et désinstallation
 
-Le désinstalleur ([`build/installer.nsh`](./build/installer.nsh)) :
+L'installateur ([`installer/cms-saris.nsi`](./installer/cms-saris.nsi)) :
 
-- **refuse de s'exécuter si l'application tourne** (vérif. du mutex Electron
-  `cg.sariscongo.cms`) — évite de corrompre la base SQLite (verrous WAL) ou de laisser
-  des fichiers verrouillés ; l'installeur applique le même garde-fou ;
-- supprime, en plus de `deleteAppDataOnUninstall`, la **base SQLite locale et ses
-  annexes** (`cms-saris.db`, `-wal`, `-shm`, `-journal`), `backend.log`, le dossier
-  `logs\`, puis `%APPDATA%\CMS SARIS` et `%LOCALAPPDATA%\CMS SARIS` complets — **aucune
-  trace** après désinstallation.
+- **Déjà installé ?** Une page propose *Mettre à jour* (par défaut, données conservées), *Réinstaller à
+  neuf* ou *Désinstaller*, en montrant la version installée, la taille des données du poste et le
+  **travail pas encore envoyé au serveur**. Mise à jour automatique et installation silencieuse
+  mettent à jour sans rien demander et gardent toutes les données.
+- **Ne perd rien sans sauvegarde.** Avant toute suppression de la base locale, une sauvegarde datée
+  (`cms-saris-AAAAMMJJ-HHMMSS.db`, avec son journal) est rangée dans
+  `%LOCALAPPDATA%\CMS SARIS Sauvegardes` — volontairement hors de `Documents`, que OneDrive peut
+  synchroniser (ce sont des données de santé). Si la sauvegarde échoue, rien n'est supprimé. Une
+  installation neuve qui trouve une sauvegarde propose de la reprendre.
+- **Fermeture douce.** L'application ouverte est détectée par sa fenêtre interne `Chrome_MessageWindow`
+  (titre = `%APPDATA%\CMS SARIS`) : Electron ne crée **pas** de mutex `cg.sariscongo.cms`, une
+  détection par mutex ne se déclenche jamais. Le bouton « Fermer CMS SARIS pour moi » relance
+  `CMS SARIS.exe --quitter` : l'instance en cours envoie son travail restant au serveur (25 s au
+  plus) puis s'arrête (`quitterProprement`, `electron/main.ts`). Les versions d'avant la 1.11.0
+  ignorent l'argument : l'installateur attend puis demande de fermer à la main.
+- **Fichier d'état.** L'application écrit `%APPDATA%\CMS SARIS\etat-poste.ini` (travail non envoyé,
+  relevé chaque minute et à la fermeture) ; c'est ce que l'installateur et le désinstallateur lisent.
+  `GET /sync/en-attente` (loopback) le fournit à l'application.
+- **Mise à jour propre.** Les anciens `resources\` et `locales\` sont retirés avant la copie (les
+  fichiers disparus d'une version à l'autre ne traînent plus) ; `sqlite-migrations` est empaqueté (sans
+  lui, un poste mis à jour n'appliquait aucune migration — manquait jusqu'à la 1.10.0).
+  `build-installer.mjs` refuse de compiler si un élément de `resources\` n'est pas empaqueté.
+- **Désinstallation.** Les données du poste (base, configuration) sont **conservées par défaut** : une
+  case les supprime (avec sauvegarde d'abord). En silencieux : `/PURGE` les supprime,
+  `/SANSSAUVEGARDE` saute la sauvegarde (l'installateur l'a déjà faite).
+- **Dossier choisi.** Il finit toujours par `CMS SARIS` : le désinstallateur supprime ce dossier en
+  entier, il ne doit jamais pointer sur `Documents` ou la racine d'un disque. Sans le nom de
+  l'application (installation d'une ancienne version), seuls les fichiers de l'application sont retirés.
+- **Chemin trop long refusé.** NSIS 3.0.4.1 n'extrait pas, **sans le dire**, un fichier dont le chemin
+  complet dépasse ~230 caractères (constaté : 352 fichiers perdus, dont des `.js` de `@nestjs`, dans un
+  dossier d'essai profond — le service local ne démarrait plus). `build-installer.mjs` mesure le plus
+  long chemin relatif de l'application (`-DMAXREL`), le `.nsi` en déduit `LIMITE_CHEMIN` et refuse un
+  dossier trop profond (« Suivant » grisé ; en silencieux : code de sortie 7, rien d'installé). Le
+  dossier par défaut (`%LOCALAPPDATA%\Programs\CMS SARIS`) est très en dessous.
 
-> Note **multi-profils** : l'installeur est `perMachine: false` (par-utilisateur), donc
-> le nettoyage cible le profil courant, ce qui suffit. Si l'on bascule un jour sur
-> `perMachine: true`, le nettoyage des données par-utilisateur de **chaque** compte
-> Windows devra énumérer les profils (voir commentaire dans `installer.nsh`).
+Options de l'installateur en mode silencieux (`/S`) : `/ACTION=neuf` (sauvegarde, supprime l'ancienne
+installation et ses données, réinstalle), `/RESTAURER=1` (reprend la dernière sauvegarde si le poste n'a
+pas de base locale), `/D=<dossier>` (dernier argument). Compiler pour un essai : `makensis -DRAPIDE …`
+(zlib, une minute au lieu de six — jamais pour une version diffusée).
 
 ## Icône
 
-`build/icon.png` (512×512). Remplacer par le logo définitif si besoin (≥ 256×256).
+Le logo vient des symboles officiels du web (`apps/web/public/symbole_saris_*.png`) :
+`node scripts/gen-logo.mjs` produit `electron/setup-logo.png` (fonds clairs, aussi l'icône de l'application)
+et `electron/setup-logo-sombre.png` (colonne et animation de l'installateur). `build-local.mjs` recopie
+`build/icon.png` depuis `setup-logo.png` à **chaque** build.
 
 ## Stockage sécurisé des jetons (actif en desktop)
 

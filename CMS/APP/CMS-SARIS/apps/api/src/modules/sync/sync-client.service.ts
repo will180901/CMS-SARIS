@@ -702,6 +702,25 @@ export class SyncClientService implements OnApplicationBootstrap {
     }
   }
 
+  /**
+   * Combien d'écritures locales restent à envoyer ? Borné à `max` (`plusDe` dit alors qu'il y en a
+   * davantage) : on ne relit pas toute la base pour répondre.
+   *
+   * Sert à l'INSTALLATEUR et à la fermeture douce : avant de supprimer ou de remplacer quoi que ce
+   * soit, il faut pouvoir dire « il reste N éléments qui n'ont pas atteint le serveur ». Contrairement
+   * à `hasPendingPush`, une base illisible lève l'erreur : « je ne sais pas » ne doit pas passer pour « 0 ».
+   */
+  async compterEnAttente(max = 500): Promise<{ enAttente: number; plusDe: boolean }> {
+    if (!this.enabled) return { enAttente: 0, plusDe: false }
+    const { lastPushedAt } = await this.cursor()
+    const page = await this.sync.pull(
+      this.siteId,
+      debutAEnvoyer(lastPushedAt, Date.now()),
+      max,
+    )
+    return { enAttente: page.changes.length, plusDe: page.hasMore }
+  }
+
   /** Changements reçus du central mais inapplicables ici (journalisés), depuis le démarrage. */
   private rejetsPull = 0
 

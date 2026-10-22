@@ -93,6 +93,24 @@ if (!fs.existsSync(elevateExe)) {
   if (fs.existsSync(nsisElevate)) { fs.copyFileSync(nsisElevate, elevateExe); console.log('elevate.exe copié depuis NSIS') }
 }
 
+// Garde-fou : tout ce qu'electron-builder place dans resources/ doit etre empaquete par le .nsi. Un dossier
+// oublie donne un installateur qui compile sans rien dire et ne marche qu'a moitie : `sqlite-migrations` l'a
+// ete jusqu'a la 1.10.0 (un poste mis a jour n'appliquait alors aucune migration de sa base).
+const nsiTexte = fs.readFileSync(nsi, 'utf8')
+const oublies = fs.readdirSync(resDir).filter((nom) => !nsiTexte.includes(`resources\\${nom}`))
+if (oublies.length) {
+  console.error(`Le .nsi n'empaquette pas : ${oublies.map((n) => 'resources\\' + n).join(', ')} - ajoute-les avant de compiler.`)
+  process.exit(1)
+}
+
+// Longueur du plus long chemin RELATIF de l'application (avec son « \ » initial). NSIS 3.0.4.1 n'extrait pas, sans le dire,
+// un fichier dont le chemin complet dépasse ~230 caractères : l'installateur refuse donc un dossier d'installation
+// trop long (cf. LIMITE_CHEMIN dans le .nsi) au lieu de livrer une application amputée de fichiers.
+const plusLongChemin = fs
+  .readdirSync(srcdir, { recursive: true })
+  .reduce((max, rel) => Math.max(max, String(rel).length + 1), 0)
+console.log(`Plus long chemin relatif : ${plusLongChemin} caractères`)
+
 console.log(`Compilation de l'installateur CMS SARIS ${version}...\n`)
 // execFileSync (sans shell) → chaque /D reste UN seul argv : les espaces du chemin sont préservés.
 execFileSync(makensis, [
@@ -101,6 +119,7 @@ execFileSync(makensis, [
   `/DSRCDIR=${srcdir}`,
   `/DASSETS=${assets}`,
   `/DOUTFILE=${outfile}`,
+  `/DMAXREL=${plusLongChemin}`,
   nsi,
 ], { stdio: 'inherit' })
 

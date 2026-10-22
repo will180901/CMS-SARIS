@@ -74,15 +74,15 @@ describe('Envoi d’un poste vers le central', () => {
         depuis.push(since)
         const debut = new Date()
         const seuil = since ? new Date(since) : new Date(0)
-        const changes = lignes
-          .filter((l) => l.updatedAt > seuil)
+        const apres = lignes.filter((l) => l.updatedAt > seuil)
+        const changes = apres
           .slice(0, limite)
           .map((l) => ({
             model: 'Fake', id: l.id, op: 'upsert' as const, data: { id: l.id },
             updatedAt: l.updatedAt.toISOString(), deletedAt: null,
           }))
         return Promise.resolve({
-          changes, nextSince: debut.toISOString(), hasMore: false, serverTime: debut.toISOString(),
+          changes, nextSince: debut.toISOString(), hasMore: apres.length > limite, serverTime: debut.toISOString(),
         })
       },
     }
@@ -164,6 +164,38 @@ describe('Envoi d’un poste vers le central', () => {
     expect(envois[0]).toEqual(['recent'])
     // Et le curseur est revenu à l'horloge du poste.
     expect(await curseur()).toBeLessThanOrEqual(Date.now())
+  })
+
+  describe('Travail en attente (lu par l’installateur et la fermeture douce)', () => {
+    it('compte ce qui reste à envoyer, sans compter les lignes déjà parties', async () => {
+      await poserCurseur(new Date(Date.now() - 60_000))
+      lignes.push(
+        { id: 'deja', updatedAt: new Date(Date.now() - 120_000) },
+        { id: 'a', updatedAt: new Date(Date.now() - 10_000) },
+        { id: 'b', updatedAt: new Date(Date.now() - 5_000) },
+      )
+      expect(await client.compterEnAttente()).toEqual({ enAttente: 2, plusDe: false })
+    })
+
+    it('ne compte pas les lignes de la marge du curseur (déjà prises par le dernier envoi)', async () => {
+      await poserCurseur(new Date(Date.now() - 60_000))
+      lignes.push({ id: 'marge', updatedAt: new Date(Date.now() - 60_000 + 500) })
+      expect(await client.compterEnAttente()).toEqual({ enAttente: 0, plusDe: false })
+    })
+
+    it('est borné : au-delà du maximum, il dit « plus que ça » sans tout compter', async () => {
+      await poserCurseur(new Date(Date.now() - 60_000))
+      for (let i = 0; i < 7; i++) lignes.push({ id: `l${i}`, updatedAt: new Date(Date.now() - 10_000 + i) })
+      expect(await client.compterEnAttente(5)).toEqual({ enAttente: 5, plusDe: true })
+    })
+
+    it('un envoi réussi remet le compteur à zéro', async () => {
+      await poserCurseur(new Date(Date.now() - 60_000))
+      lignes.push({ id: 'x', updatedAt: new Date(Date.now() - 2_000) })
+      expect((await client.compterEnAttente()).enAttente).toBe(1)
+      await client.push()
+      expect(await client.compterEnAttente()).toEqual({ enAttente: 0, plusDe: false })
+    })
   })
 
   describe('Envoi automatique après une écriture', () => {

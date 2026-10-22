@@ -40,6 +40,28 @@ export class SyncReadyController {
     return { ok: true }
   }
 
+  /**
+   * Le travail de ce poste qui n'a pas encore atteint le serveur central.
+   *
+   * Lu par le processus Electron pour écrire `etat-poste.ini` — que l'INSTALLATEUR consulte avant de
+   * remplacer ou supprimer quoi que ce soit — et pour savoir quand la fermeture douce a tout envoyé.
+   * `enAttente: null` = on ne sait pas (base illisible) : jamais présenté comme « rien ».
+   * Loopback uniquement, comme `ready`. Sur le central (`enabled` faux), toujours 0.
+   */
+  @Get('en-attente')
+  async enAttente(): Promise<{
+    enabled: boolean
+    enAttente: number | null
+    plusDe: boolean
+  }> {
+    try {
+      const { enAttente, plusDe } = await this.client.compterEnAttente()
+      return { enabled: this.client.enabled, enAttente, plusDe }
+    } catch {
+      return { enabled: this.client.enabled, enAttente: null, plusDe: false }
+    }
+  }
+
   @Get('ready')
   async ready(): Promise<{
     ready: boolean

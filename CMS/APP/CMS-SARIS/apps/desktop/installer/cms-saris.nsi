@@ -1,4 +1,4 @@
-; ============================================================================
+﻿; ============================================================================
 ;  Installateur SUR-MESURE CMS SARIS (NSIS / MUI2)
 ;  Objectif : affichage TEMPS RÉEL des fichiers installés (un par un) dans la
 ;  zone de détails + DEUX barres de progression (globale + étape en cours),
@@ -15,6 +15,8 @@ ManifestDPIAware true
 !include "WinMessages.nsh"
 !include "FileFunc.nsh"
 !include "nsDialogs.nsh"
+!include "WordFunc.nsh"
+!insertmacro VersionCompare
 
 ; Constantes Win32 (certaines déjà fournies par WinMessages.nsh → guardées).
 !ifndef WS_CHILD_VISIBLE
@@ -49,6 +51,14 @@ ManifestDPIAware true
   !define OUTFILE "..\release\CMS SARIS-Setup-${VERSION}.exe"
 !endif
 
+; Longueur du plus long chemin relatif de l'application (calculée par build-installer.mjs). NSIS 3.0.4.1 n'extrait pas, sans
+; rien dire, un fichier dont le chemin complet dépasse ~230 caractères : une application installée dans un dossier trop
+; profond perdrait des fichiers (et son service local ne démarrerait plus). On refuse donc ce dossier, avec une marge.
+!ifndef MAXREL
+  !define MAXREL 150
+!endif
+!define /math LIMITE_CHEMIN 220 - ${MAXREL}
+
 !define APP_NAME    "CMS SARIS"
 !define PUBLISHER   "Deo Cherel BOUWAYI MIKOUYA & Oscarvie Verdi NZILA - SARIS-CONGO"
 !define EXE_NAME    "CMS SARIS.exe"
@@ -63,7 +73,12 @@ InstallDirRegKey HKCU "${INSTALL_KEY}" "InstallLocation"
 RequestExecutionLevel user
 ShowInstDetails show
 ShowUninstDetails show
-SetCompressor /SOLID lzma
+; /DRAPIDE : compilation d'ESSAI (zlib, quelques secondes au lieu de plusieurs minutes) — jamais pour une version diffusée.
+!ifdef RAPIDE
+  SetCompressor /SOLID zlib
+!else
+  SetCompressor /SOLID lzma
+!endif
 BrandingText "${APP_NAME} ${VERSION}"
 
 VIProductVersion "${VERSION}.0"
@@ -85,6 +100,30 @@ Var hWelcomeBmpImg  ; handle GDI du bitmap actuellement substitué (à libérer 
 Var WelcomeFrame    ; index de frame courant (0-47)
 Var WelcomeBmpW     ; largeur RÉELLE du contrôle bitmap (mesurée, peut différer de 164px selon le DPI)
 Var WelcomeBmpH     ; hauteur RÉELLE du contrôle bitmap (idem, 314px)
+
+; ── État de l'installation existante, des données du poste et des options (cf. .onInit) ──
+Var Existante             ; 1 si CMS SARIS est déjà installé sur ce poste
+Var AncienUninst          ; commande de désinstallation de l'installation trouvée
+Var AncienUninstSilencieux
+Var AncienVersion
+Var AncienDossier
+Var Action                ; "maj" (par défaut) | "neuf" | "desinstaller"
+Var AppOuverte            ; 1 si l'application tourne
+Var EnAttente             ; travail non envoyé au serveur : nombre, ou -1 = inconnu
+Var EnAttentePlusDe
+Var EtatReleve
+Var TexteEnAttente
+Var TailleDonnees
+Var SauvEtat              ; "ok" | "rien" | "erreur"
+Var SauvChemin
+Var SauvegardeTrouvee
+Var SauvegardeLibelle
+Var RestaurerSauvegarde
+Var PurgerDonnees         ; désinstallation : supprimer aussi les données du poste
+Var SansSauvegarde
+Var TexteMaj
+Var BoutonMaj
+Var TexteVersions
 
 ; ── Apparence MUI ──
 !define MUI_ICON "${ASSETS}\icon.ico"
@@ -110,16 +149,23 @@ Var WelcomeBmpH     ; hauteur RÉELLE du contrôle bitmap (idem, 314px)
 !define MUI_PAGE_CUSTOMFUNCTION_LEAVE WelcomeLeaveHook
 !insertmacro MUI_PAGE_WELCOME
 
-; Page d'installation : on accroche la création de la 2e barre à l'affichage.
-!define MUI_PAGE_CUSTOMFUNCTION_SHOW InstFilesPageShow
-
+; Page « déjà installé » (seulement si une installation existe), puis le dossier d'installation (pas redemandé
+; pour une mise à jour), puis la proposition de reprendre une sauvegarde (seulement pour une installation neuve).
+Page custom PageExistante PageExistanteLeave
+!define MUI_PAGE_CUSTOMFUNCTION_PRE DirPre
+!define MUI_DIRECTORYPAGE_TEXT_TOP "CMS SARIS sera installé dans un dossier « CMS SARIS », créé dans le dossier choisi ci-dessous (sauf s'il porte déjà ce nom). Le chemin complet ne doit pas dépasser ${LIMITE_CHEMIN} caractères. Cliquez sur Suivant pour continuer."
 !insertmacro MUI_PAGE_DIRECTORY
+Page custom PageSauvegarde PageSauvegardeLeave
+
+; Page d'installation : on accroche la création de la 2e barre à l'affichage de CETTE page.
+!define MUI_PAGE_CUSTOMFUNCTION_SHOW InstFilesPageShow
 !insertmacro MUI_PAGE_INSTFILES
 !define MUI_FINISHPAGE_RUN "$INSTDIR\${EXE_NAME}"
 !define MUI_FINISHPAGE_RUN_TEXT "Lancer CMS SARIS"
 !insertmacro MUI_PAGE_FINISH
 
 !insertmacro MUI_UNPAGE_CONFIRM
+UninstPage custom un.PageDonnees un.PageDonneesLeave
 !insertmacro MUI_UNPAGE_INSTFILES
 
 !insertmacro MUI_LANGUAGE "French"
@@ -241,72 +287,357 @@ FunctionEnd
 ; Frames de l'animation (page Bienvenue) — extraites tôt (ordre d'archive .onInit).
 ReserveFile "${ASSETS}\anim\*.bmp"
 
+; ============================================================================
+;  FONCTIONS COMMUNES à l'installateur ET au désinstallateur (macro : préfixe « un. » pour le second).
+; ============================================================================
+!macro FONCTIONS_COMMUNES un
+
+; $AppOuverte = 1 si CMS SARIS tourne.
+; On ne peut PAS se fier à un mutex : Electron n'en crée pas sous ce nom (vérifié). Ce qui existe, c'est
+; la fenêtre interne « Chrome_MessageWindow » dont le TITRE est le dossier de données de l'application.
+Function ${un}AppEnCours
+  Push $0
+  System::Call 'user32::FindWindowExW(i -3, i 0, w "Chrome_MessageWindow", w "$APPDATA\${APP_NAME}") i .r0'
+  ${If} $0 <> 0
+    StrCpy $AppOuverte 1
+  ${Else}
+    StrCpy $AppOuverte 0
+  ${EndIf}
+  Pop $0
+FunctionEnd
+
+; Demande à l'application de se fermer d'elle-même : on la relance avec --quitter, ce qui prévient l'instance
+; en cours. Elle envoie alors son travail restant au serveur, puis s'arrête. $R8 = dossier d'installation.
+; (Les versions antérieures à 1.11.0 ignorent l'argument : on attend, puis on demande à l'utilisateur.)
+Function ${un}LancerFermeture
+  ${If} ${FileExists} "$R8\${EXE_NAME}"
+    Exec '"$R8\${EXE_NAME}" --quitter'
+  ${EndIf}
+FunctionEnd
+
+; Attend la fermeture (au plus $R7 tours de 500 ms). Résultat : $AppOuverte.
+Function ${un}AttendreFermeture
+  attendre:
+    Call ${un}AppEnCours
+    ${If} $AppOuverte = 0
+      Return
+    ${EndIf}
+    ${If} $R7 <= 0
+      Return
+    ${EndIf}
+    Sleep 500
+    IntOp $R7 $R7 - 1
+    Goto attendre
+FunctionEnd
+
+; Lit l'état écrit par l'application (etat-poste.ini) : $EnAttente (-1 = inconnu), $EnAttentePlusDe, $EtatReleve.
+Function ${un}LireEtatPoste
+  Push $0
+  StrCpy $EnAttente "-1"
+  StrCpy $EnAttentePlusDe 0
+  StrCpy $EtatReleve ""
+  ClearErrors
+  ReadINIStr $0 "$APPDATA\${APP_NAME}\etat-poste.ini" "poste" "enAttente"
+  ${IfNot} ${Errors}
+  ${AndIf} $0 != ""
+    StrCpy $EnAttente $0
+    ReadINIStr $EnAttentePlusDe "$APPDATA\${APP_NAME}\etat-poste.ini" "poste" "plusDe"
+    ReadINIStr $EtatReleve "$APPDATA\${APP_NAME}\etat-poste.ini" "poste" "releve"
+  ${EndIf}
+  Pop $0
+FunctionEnd
+
+; Le travail non envoyé, en une phrase : $TexteEnAttente.
+Function ${un}FormulerEnAttente
+  Call ${un}LireEtatPoste
+  ${If} $EnAttente == "-1"
+    StrCpy $TexteEnAttente "inconnu (l'application n'a pas encore enregistré son état)"
+  ${ElseIf} $EnAttente == "0"
+    StrCpy $TexteEnAttente "aucun, tout est envoyé (relevé du $EtatReleve)"
+  ${Else}
+    ${If} $EnAttentePlusDe == "1"
+      StrCpy $TexteEnAttente "plus de $EnAttente éléments (relevé du $EtatReleve)"
+    ${ElseIf} $EnAttente == "1"
+      StrCpy $TexteEnAttente "1 élément (relevé du $EtatReleve)"
+    ${Else}
+      StrCpy $TexteEnAttente "$EnAttente éléments (relevé du $EtatReleve)"
+    ${EndIf}
+  ${EndIf}
+FunctionEnd
+
+; Redessine le fond sous un libellé dont on vient de changer le texte. Les libellés sont TRANSPARENTS (SetCtlColors lit ses
+; couleurs à la compilation : on ne peut pas lui donner la couleur de fond de Windows, qui est une variable) ; sans ce
+; repaint du parent, le nouveau texte se dessine par-dessus l'ancien. $R0 = handle du libellé.
+!if "${un}" == ""
+Function Rafraichir
+  Push $0
+  Push $1
+  System::Call 'user32::GetParent(p $R0) p .r1'
+  System::Call '*(i,i,i,i) p.r0'
+  System::Call 'user32::GetWindowRect(p $R0, p r0)'
+  System::Call 'user32::MapWindowPoints(p 0, p r1, p r0, i 2)'
+  System::Call 'user32::InvalidateRect(p r1, p r0, i 1)'
+  System::Call 'user32::UpdateWindow(p r1)'
+  System::Free $0
+  Pop $1
+  Pop $0
+FunctionEnd
+!endif
+
+; Taille de la base locale, en Mo : $TailleDonnees (vide s'il n'y en a pas).
+Function ${un}MesurerDonnees
+  Push $0
+  Push $1
+  Push $2
+  StrCpy $TailleDonnees ""
+  ${If} ${FileExists} "$APPDATA\${APP_NAME}\cms-saris.db"
+    ClearErrors
+    ${${un}GetSize} "$APPDATA\${APP_NAME}" "/M=cms-saris.db /S=0K /G=0" $0 $1 $2
+    ${IfNot} ${Errors}
+      IntOp $0 $0 / 1024
+      ${If} $0 < 1
+        StrCpy $TailleDonnees "moins de 1 Mo"
+      ${Else}
+        StrCpy $TailleDonnees "$0 Mo"
+      ${EndIf}
+    ${EndIf}
+  ${EndIf}
+  Pop $2
+  Pop $1
+  Pop $0
+FunctionEnd
+
+; Sauvegarde la base locale (et son journal) dans %LOCALAPPDATA%\CMS SARIS Sauvegardes — un dossier que
+; OneDrive ne synchronise pas : ce sont des données de santé, elles ne doivent pas partir dans un cloud.
+; Résultat : $SauvEtat = "ok" | "rien" (pas de base) | "erreur" ; $SauvChemin = chemin sans extension.
+Function ${un}SauvegarderBase
+  Push $0
+  Push $1
+  Push $2
+  Push $3
+  Push $4
+  Push $5
+  Push $6
+  StrCpy $SauvEtat "rien"
+  StrCpy $SauvChemin ""
+  ${If} ${FileExists} "$APPDATA\${APP_NAME}\cms-saris.db"
+    ${${un}GetTime} "" "L" $0 $1 $2 $3 $4 $5 $6
+    ; GetTime ne complète pas toujours à deux chiffres (l'heure « 8 » au lieu de « 08 ») : le tri par nom
+    ; (la plus récente d'abord) et la lecture par position en dépendent.
+    StrCpy $0 "0$0"
+    StrCpy $0 $0 2 -2
+    StrCpy $1 "0$1"
+    StrCpy $1 $1 2 -2
+    StrCpy $4 "0$4"
+    StrCpy $4 $4 2 -2
+    StrCpy $5 "0$5"
+    StrCpy $5 $5 2 -2
+    StrCpy $6 "0$6"
+    StrCpy $6 $6 2 -2
+    CreateDirectory "$LOCALAPPDATA\${APP_NAME} Sauvegardes"
+    StrCpy $SauvChemin "$LOCALAPPDATA\${APP_NAME} Sauvegardes\cms-saris-$2$1$0-$4$5$6"
+    StrCpy $SauvEtat "ok"
+    ClearErrors
+    CopyFiles /SILENT "$APPDATA\${APP_NAME}\cms-saris.db" "$SauvChemin.db"
+    ${If} ${Errors}
+      StrCpy $SauvEtat "erreur"
+    ${EndIf}
+    ; Le journal : sans lui, les dernières écritures (pas encore reportées dans le fichier principal) seraient perdues.
+    ${If} $SauvEtat == "ok"
+    ${AndIf} ${FileExists} "$APPDATA\${APP_NAME}\cms-saris.db-wal"
+      CopyFiles /SILENT "$APPDATA\${APP_NAME}\cms-saris.db-wal" "$SauvChemin.db-wal"
+      ${If} ${Errors}
+        StrCpy $SauvEtat "erreur"
+      ${EndIf}
+    ${EndIf}
+    ${If} $SauvEtat == "ok"
+    ${AndIf} ${FileExists} "$APPDATA\${APP_NAME}\cms-saris.db-shm"
+      CopyFiles /SILENT "$APPDATA\${APP_NAME}\cms-saris.db-shm" "$SauvChemin.db-shm"
+      ${If} ${Errors}
+        StrCpy $SauvEtat "erreur"
+      ${EndIf}
+    ${EndIf}
+    ${If} $SauvEtat == "ok"
+    ${AndIf} ${FileExists} "$APPDATA\${APP_NAME}\cms-saris.db-journal"
+      CopyFiles /SILENT "$APPDATA\${APP_NAME}\cms-saris.db-journal" "$SauvChemin.db-journal"
+      ${If} ${Errors}
+        StrCpy $SauvEtat "erreur"
+      ${EndIf}
+    ${EndIf}
+  ${EndIf}
+  Pop $6
+  Pop $5
+  Pop $4
+  Pop $3
+  Pop $2
+  Pop $1
+  Pop $0
+FunctionEnd
+
+!macroend
+!insertmacro FONCTIONS_COMMUNES ""
+!insertmacro FONCTIONS_COMMUNES "un."
+
+; ============================================================================
+;  INSTALLATION EXISTANTE
+; ============================================================================
+
 ; Repère une installation CMS SARIS existante, quel que soit l'installateur d'ORIGINE :
 ; notre identifiant fixe (${UNINST_KEY}, cet installateur "local") EST insuffisant seul,
 ; car l'installateur "remote" (electron-builder standard, electron-builder.yml) enregistre
 ; sous une clé GUID générée à la volée, différente à chaque build. On balaie donc aussi
 ; par DisplayName commençant par "CMS SARIS" pour couvrir ce cas.
-; Sortie : $R0 = UninstallString ("" si rien trouvé), $R1 = QuietUninstallString.
+; Résultat : $Existante (0/1), $AncienUninst, $AncienUninstSilencieux, $AncienVersion, $AncienDossier.
 Function FindExistingInstall
-  StrCpy $R0 ""
-  StrCpy $R1 ""
-  ReadRegStr $R0 HKCU "${UNINST_KEY}" "UninstallString"
-  ${If} $R0 != ""
-    ReadRegStr $R1 HKCU "${UNINST_KEY}" "QuietUninstallString"
-    Return
-  ${EndIf}
-
-  StrCpy $R2 0
-  loopFindExisting:
-    EnumRegKey $R3 HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall" $R2
-    ${If} $R3 == ""
-      Return
-    ${EndIf}
-    ClearErrors
-    ReadRegStr $R4 HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\$R3" "DisplayName"
-    ${IfNot} ${Errors}
-      StrLen $R5 "CMS SARIS"
-      StrCpy $R6 $R4 $R5
-      ${If} $R6 == "CMS SARIS"
-        ReadRegStr $R0 HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\$R3" "UninstallString"
-        ReadRegStr $R1 HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\$R3" "QuietUninstallString"
-        Return
+  StrCpy $Existante 0
+  StrCpy $AncienUninst ""
+  StrCpy $AncienUninstSilencieux ""
+  StrCpy $AncienVersion ""
+  StrCpy $AncienDossier ""
+  StrCpy $R0 "${UNINST_KEY}"
+  ReadRegStr $AncienUninst HKCU "$R0" "UninstallString"
+  ${If} $AncienUninst == ""
+    StrCpy $R2 0
+    boucleRecherche:
+      EnumRegKey $R3 HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall" $R2
+      ${If} $R3 == ""
+        Goto finRecherche
       ${EndIf}
+      ClearErrors
+      ReadRegStr $R4 HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\$R3" "DisplayName"
+      ${IfNot} ${Errors}
+        StrCpy $R6 $R4 9
+        ${If} $R6 == "CMS SARIS"
+          StrCpy $R0 "Software\Microsoft\Windows\CurrentVersion\Uninstall\$R3"
+          ReadRegStr $AncienUninst HKCU "$R0" "UninstallString"
+          ${If} $AncienUninst != ""
+            Goto finRecherche
+          ${EndIf}
+        ${EndIf}
+      ${EndIf}
+      IntOp $R2 $R2 + 1
+      Goto boucleRecherche
+    finRecherche:
+  ${EndIf}
+  ${If} $AncienUninst != ""
+    ReadRegStr $AncienUninstSilencieux HKCU "$R0" "QuietUninstallString"
+    ReadRegStr $AncienVersion HKCU "$R0" "DisplayVersion"
+    ReadRegStr $AncienDossier HKCU "$R0" "InstallLocation"
+    ; Une clé d'inscription dont le dossier n'existe plus est un reste, pas une installation.
+    ${If} $AncienDossier != ""
+    ${AndIfNot} ${FileExists} "$AncienDossier\${EXE_NAME}"
+      StrCpy $AncienUninst ""
     ${EndIf}
-    IntOp $R2 $R2 + 1
-    Goto loopFindExisting
+  ${EndIf}
+  ${If} $AncienUninst != ""
+    StrCpy $Existante 1
+  ${EndIf}
 FunctionEnd
 
-; ── .onInit : extrait les frames d'animation, refuse si l'app tourne, installateur 2-en-1 ──
+; Dernière sauvegarde de la base locale : $SauvegardeTrouvee (chemin sans extension, vide s'il n'y en a pas)
+; et $SauvegardeLibelle (« 22/10/2026 08:30 »). Les noms contiennent la date : le plus grand est le plus récent.
+Function TrouverSauvegarde
+  StrCpy $SauvegardeTrouvee ""
+  StrCpy $SauvegardeLibelle ""
+  StrCpy $R0 ""
+  FindFirst $R1 $R2 "$LOCALAPPDATA\${APP_NAME} Sauvegardes\cms-saris-*.db"
+  boucleSauv:
+    ${If} $R2 == ""
+      Goto finSauv
+    ${EndIf}
+    ${If} $R2 S> $R0
+      StrCpy $R0 $R2
+    ${EndIf}
+    FindNext $R1 $R2
+    Goto boucleSauv
+  finSauv:
+  FindClose $R1
+  ${If} $R0 != ""
+    StrCpy $R3 $R0 -3
+    StrCpy $SauvegardeTrouvee "$LOCALAPPDATA\${APP_NAME} Sauvegardes\$R3"
+    StrCpy $R4 $R0 2 16
+    StrCpy $R5 $R0 2 14
+    StrCpy $R6 $R0 4 10
+    StrCpy $R7 $R0 2 19
+    StrCpy $R8 $R0 2 21
+    StrCpy $SauvegardeLibelle "$R4/$R5/$R6 $R7:$R8"
+  ${EndIf}
+FunctionEnd
+
+; Remet une sauvegarde en place — seulement si ce poste n'a pas déjà une base locale.
+Function RestaurerBase
+  ${If} $SauvegardeTrouvee == ""
+    Return
+  ${EndIf}
+  ${If} ${FileExists} "$APPDATA\${APP_NAME}\cms-saris.db"
+    DetailPrint "Une base locale existe déjà : la sauvegarde n'est pas restaurée."
+    Return
+  ${EndIf}
+  CreateDirectory "$APPDATA\${APP_NAME}"
+  ClearErrors
+  CopyFiles /SILENT "$SauvegardeTrouvee.db" "$APPDATA\${APP_NAME}\cms-saris.db"
+  ${If} ${FileExists} "$SauvegardeTrouvee.db-wal"
+    CopyFiles /SILENT "$SauvegardeTrouvee.db-wal" "$APPDATA\${APP_NAME}\cms-saris.db-wal"
+  ${EndIf}
+  ${If} ${FileExists} "$SauvegardeTrouvee.db-shm"
+    CopyFiles /SILENT "$SauvegardeTrouvee.db-shm" "$APPDATA\${APP_NAME}\cms-saris.db-shm"
+  ${EndIf}
+  ${If} ${FileExists} "$SauvegardeTrouvee.db-journal"
+    CopyFiles /SILENT "$SauvegardeTrouvee.db-journal" "$APPDATA\${APP_NAME}\cms-saris.db-journal"
+  ${EndIf}
+  ${If} ${Errors}
+    DetailPrint "La sauvegarde du $SauvegardeLibelle n'a pas pu être restaurée."
+  ${Else}
+    DetailPrint "Sauvegarde du $SauvegardeLibelle restaurée : l'application retrouvera le travail de ce poste."
+  ${EndIf}
+FunctionEnd
+
+; ── .onInit : extrait les frames d'animation, repère l'installation existante, lit les options ──
+; Options (installation silencieuse, p. ex. mise à jour automatique ou déploiement) :
+;   /ACTION=neuf    réinstalle à neuf : sauvegarde la base locale, supprime l'ancienne installation et ses données
+;   /RESTAURER=1    reprend la dernière sauvegarde de ce poste (si aucune base locale n'existe)
+; Sans option, une installation silencieuse met à jour en gardant toutes les données.
 Function .onInit
   InitPluginsDir
   SetOutPath "$PLUGINSDIR\anim"
   File "${ASSETS}\anim\*.bmp"
 
   StrCpy $TotalSteps 4
-  ; App en cours d'exécution ? (mutex posé par Electron singleInstanceLock = appId)
-  System::Call 'kernel32::OpenMutexW(i 0x100000, b 0, w "${APP_ID}") i .R9'
-  ${If} $R9 <> 0
-    System::Call 'kernel32::CloseHandle(i $R9)'
-    ${IfNot} ${Silent}
-      MessageBox MB_OK|MB_ICONSTOP "CMS SARIS est en cours d'execution.$\n$\nFermez completement l'application (barre des taches comprise) puis relancez l'installateur."
-    ${EndIf}
-    Abort
-  ${EndIf}
-  ; Déjà installé ? (sauf en mode silencieux = mise à jour auto → on réinstalle)
-  ; Détecte AUSSI une installation faite par l'installateur "remote" (ID généré,
-  ; cf. FindExistingInstall) — pas seulement une installation par CET installateur.
+  StrCpy $Action "maj"
+  StrCpy $RestaurerSauvegarde 0
+  Call FindExistingInstall
   ${IfNot} ${Silent}
-    Call FindExistingInstall
-    ${If} $R0 != ""
-      MessageBox MB_YESNOCANCEL|MB_ICONQUESTION "CMS SARIS est deja installe.$\n$\nOui = Desinstaller (suppression complete)$\nNon = Reinstaller / Mettre a jour$\nAnnuler = Quitter" IDYES sarisUninst IDNO +2
-      Abort
-      sarisUninst:
-        ${If} $R1 == ""
-          StrCpy $R1 '"$R0" /S'
-        ${EndIf}
-        ExecWait '$R1'
+  ${AndIf} $Existante = 1
+  ${AndIf} $AncienDossier != ""
+    StrCpy $INSTDIR $AncienDossier
+  ${EndIf}
+
+  ${If} ${Silent}
+    ClearErrors
+    ${GetOptions} $CMDLINE "/ACTION=" $0
+    ${IfNot} ${Errors}
+    ${AndIf} $0 == "neuf"
+      StrCpy $Action "neuf"
+    ${EndIf}
+    ClearErrors
+    ${GetOptions} $CMDLINE "/RESTAURER=" $0
+    ${IfNot} ${Errors}
+    ${AndIf} $0 == "1"
+      StrCpy $RestaurerSauvegarde 1
+      Call TrouverSauvegarde
+    ${EndIf}
+    ; L'application est ouverte (c'est le cas d'une mise à jour automatique : elle est en train de se fermer) :
+    ; on lui demande de se fermer proprement et on attend, au plus 45 s.
+    Call AppEnCours
+    ${If} $AppOuverte = 1
+      StrCpy $R8 $INSTDIR
+      Call LancerFermeture
+      StrCpy $R7 90
+      Call AttendreFermeture
+      ${If} $AppOuverte = 1
+        SetErrorLevel 5
         Abort
+      ${EndIf}
     ${EndIf}
   ${EndIf}
 FunctionEnd
@@ -322,11 +653,385 @@ Function .onInstSuccess
   ${EndIf}
 FunctionEnd
 
+; ── Page « CMS SARIS est déjà installé » ────────────────────────────────────────
+Var hRadioMaj
+Var hRadioNeuf
+Var hRadioDesinst
+Var hLblAppOuverte
+Var hBtnFermer
+Var hLblEnAttente
+; 0 = pas demandée, 1 = en cours, 2 = n'a pas abouti, 3 = faite
+Var EtatFermeture
+Var EtatAffiche
+Var TicsFermeture
+
+Function PageExistante
+  ${If} ${Silent}
+  ${OrIf} $Existante = 0
+    Abort
+  ${EndIf}
+  !insertmacro MUI_HEADER_TEXT "CMS SARIS est déjà installé sur ce poste" "Choisissez ce que vous voulez faire. Rien n'est supprimé sans sauvegarde."
+  nsDialogs::Create 1018
+  Pop $0
+  ${If} $0 == error
+    Abort
+  ${EndIf}
+
+  Call MesurerDonnees
+  Call FormulerEnAttente
+
+  ${VersionCompare} "${VERSION}" "$AncienVersion" $R0
+  ${If} $AncienVersion == ""
+    StrCpy $TexteMaj "Mettre à jour vers la version ${VERSION} (vos données sont conservées)"
+    StrCpy $BoutonMaj "Mettre à jour"
+    StrCpy $TexteVersions "Version installée : inconnue    -    cet installateur : ${VERSION}"
+  ${ElseIf} $R0 = 1
+    StrCpy $TexteMaj "Mettre à jour vers la version ${VERSION} (vos données sont conservées)"
+    StrCpy $BoutonMaj "Mettre à jour"
+    StrCpy $TexteVersions "Version installée : $AncienVersion    -    cet installateur : ${VERSION}"
+  ${ElseIf} $R0 = 0
+    StrCpy $TexteMaj "Réparer l'installation, même version ${VERSION} (vos données sont conservées)"
+    StrCpy $BoutonMaj "Réparer"
+    StrCpy $TexteVersions "Version installée : $AncienVersion    -    cet installateur : ${VERSION} (identique)"
+  ${Else}
+    StrCpy $TexteMaj "Remplacer par la version ${VERSION}, plus ancienne que celle installée (déconseillé)"
+    StrCpy $BoutonMaj "Remplacer"
+    StrCpy $TexteVersions "Version installée : $AncienVersion    -    cet installateur : ${VERSION} (plus ancienne)"
+  ${EndIf}
+
+  ${NSD_CreateLabel} 0 0 100% 9u "$TexteVersions"
+  Pop $0
+  ${If} $TailleDonnees != ""
+    ${NSD_CreateLabel} 0 10u 100% 9u "Données de ce poste : $TailleDonnees"
+  ${Else}
+    ${NSD_CreateLabel} 0 10u 100% 9u "Données de ce poste : aucune base locale trouvée"
+  ${EndIf}
+  Pop $0
+  ${NSD_CreateLabel} 0 20u 100% 18u "Travail pas encore envoyé au serveur : $TexteEnAttente"
+  Pop $hLblEnAttente
+  ${If} $EnAttente != "0"
+    SetCtlColors $hLblEnAttente "B42318" "transparent"
+  ${EndIf}
+
+  ${NSD_CreateRadioButton} 0 41u 100% 10u "$TexteMaj"
+  Pop $hRadioMaj
+  ${NSD_AddStyle} $hRadioMaj ${WS_GROUP}
+  ${NSD_CreateRadioButton} 0 54u 100% 18u "Réinstaller à neuf : supprime l'application ET les données de ce poste (une sauvegarde est faite avant)"
+  Pop $hRadioNeuf
+  ${NSD_CreateRadioButton} 0 74u 100% 10u "Désinstaller CMS SARIS (vous choisirez quoi faire des données)"
+  Pop $hRadioDesinst
+  ${NSD_OnClick} $hRadioMaj PageExistanteChoix
+  ${NSD_OnClick} $hRadioNeuf PageExistanteChoix
+  ${NSD_OnClick} $hRadioDesinst PageExistanteChoix
+  ${NSD_Check} $hRadioMaj
+
+  ${NSD_CreateLabel} 0 91u 62% 18u ""
+  Pop $hLblAppOuverte
+  SetCtlColors $hLblAppOuverte "B42318" "transparent"
+  ${NSD_CreateButton} 64% 91u 36% 12u "Fermer CMS SARIS pour moi"
+  Pop $hBtnFermer
+  ${NSD_OnClick} $hBtnFermer PageExistanteFermer
+  ShowWindow $hBtnFermer ${SW_HIDE}
+
+  StrCpy $EtatFermeture 0
+  StrCpy $EtatAffiche -1
+  StrCpy $TicsFermeture 0
+  Call PageExistanteMinuteur
+  ${NSD_CreateTimer} PageExistanteMinuteur 500
+  GetDlgItem $0 $HWNDPARENT 1
+  SendMessage $0 ${WM_SETTEXT} 0 "STR:$BoutonMaj"
+  nsDialogs::Show
+FunctionEnd
+
+; Le bouton « Suivant » porte le nom de l'action choisie.
+Function PageExistanteChoix
+  GetDlgItem $0 $HWNDPARENT 1
+  ${NSD_GetState} $hRadioNeuf $1
+  ${NSD_GetState} $hRadioDesinst $2
+  ${If} $1 = 1
+    SendMessage $0 ${WM_SETTEXT} 0 "STR:Réinstaller à neuf"
+  ${ElseIf} $2 = 1
+    SendMessage $0 ${WM_SETTEXT} 0 "STR:Désinstaller"
+  ${Else}
+    SendMessage $0 ${WM_SETTEXT} 0 "STR:$BoutonMaj"
+  ${EndIf}
+FunctionEnd
+
+; Les libellés qui changent ont un fond blanc UNI (pas « transparent ») : sinon le nouveau texte se dessine par-dessus l'ancien.
+; Appelée toutes les 500 ms : l'application est-elle ouverte ? Tant qu'elle l'est, on ne peut pas continuer.
+; Le texte n'est réécrit que quand l'état change (sinon il clignote).
+Function PageExistanteMinuteur
+  Call AppEnCours
+  GetDlgItem $0 $HWNDPARENT 1
+  ${If} $AppOuverte = 1
+    EnableWindow $0 0
+    ${If} $EtatFermeture = 1
+      IntOp $TicsFermeture $TicsFermeture + 1
+      ${If} $TicsFermeture > 90
+        StrCpy $EtatFermeture 2
+      ${EndIf}
+    ${ElseIf} $EtatFermeture = 3
+      StrCpy $EtatFermeture 0
+    ${EndIf}
+    ${If} $EtatAffiche <> $EtatFermeture
+      StrCpy $EtatAffiche $EtatFermeture
+      SetCtlColors $hLblAppOuverte "B42318" "transparent"
+      ${If} $EtatFermeture = 1
+        ${NSD_SetText} $hLblAppOuverte "Fermeture en cours : le travail restant est envoyé au serveur..."
+        StrCpy $R0 $hLblAppOuverte
+        Call Rafraichir
+        EnableWindow $hBtnFermer 0
+      ${ElseIf} $EtatFermeture = 2
+        ${NSD_SetText} $hLblAppOuverte "CMS SARIS ne s'est pas fermé de lui-même. Fermez-le vous-même (barre des tâches comprise)."
+        StrCpy $R0 $hLblAppOuverte
+        Call Rafraichir
+        EnableWindow $hBtnFermer 1
+      ${Else}
+        ${NSD_SetText} $hLblAppOuverte "CMS SARIS est ouvert : il doit être fermé pour continuer."
+        StrCpy $R0 $hLblAppOuverte
+        Call Rafraichir
+        EnableWindow $hBtnFermer 1
+      ${EndIf}
+      ShowWindow $hLblAppOuverte ${SW_SHOW}
+      ShowWindow $hBtnFermer ${SW_SHOW}
+    ${EndIf}
+  ${Else}
+    EnableWindow $0 1
+    ShowWindow $hBtnFermer ${SW_HIDE}
+    ${If} $EtatFermeture = 1
+    ${OrIf} $EtatFermeture = 2
+      ; L'application vient de se fermer : on relit ce qu'elle a noté en partant.
+      StrCpy $EtatFermeture 3
+      StrCpy $EtatAffiche 3
+      Call FormulerEnAttente
+      ${NSD_SetText} $hLblEnAttente "Travail pas encore envoyé au serveur : $TexteEnAttente"
+      StrCpy $R0 $hLblEnAttente
+      Call Rafraichir
+      ${If} $EnAttente != "0"
+        SetCtlColors $hLblEnAttente "B42318" "transparent"
+      ${Else}
+        SetCtlColors $hLblEnAttente "027A48" "transparent"
+      ${EndIf}
+      SetCtlColors $hLblAppOuverte "027A48" "transparent"
+      ${NSD_SetText} $hLblAppOuverte "CMS SARIS est fermé."
+      StrCpy $R0 $hLblAppOuverte
+      Call Rafraichir
+    ${ElseIf} $EtatAffiche <> 3
+    ${AndIf} $EtatAffiche <> 0
+      StrCpy $EtatAffiche 0
+      ${NSD_SetText} $hLblAppOuverte ""
+      StrCpy $R0 $hLblAppOuverte
+      Call Rafraichir
+    ${ElseIf} $EtatAffiche = -1
+      StrCpy $EtatAffiche 0
+      ${NSD_SetText} $hLblAppOuverte ""
+      StrCpy $R0 $hLblAppOuverte
+      Call Rafraichir
+    ${EndIf}
+  ${EndIf}
+FunctionEnd
+
+Function PageExistanteFermer
+  StrCpy $R8 $AncienDossier
+  ${If} $R8 == ""
+    StrCpy $R8 $INSTDIR
+  ${EndIf}
+  Call LancerFermeture
+  StrCpy $EtatFermeture 1
+  StrCpy $TicsFermeture 0
+  StrCpy $EtatAffiche 1
+  EnableWindow $hBtnFermer 0
+  SetCtlColors $hLblAppOuverte "B42318" "transparent"
+  ${NSD_SetText} $hLblAppOuverte "Fermeture en cours : le travail restant est envoyé au serveur..."
+  StrCpy $R0 $hLblAppOuverte
+  Call Rafraichir
+FunctionEnd
+
+Function PageExistanteLeave
+  Call AppEnCours
+  ${If} $AppOuverte = 1
+    MessageBox MB_OK|MB_ICONSTOP "CMS SARIS est encore ouvert. Fermez-le (barre des tâches comprise), ou utilisez le bouton « Fermer CMS SARIS pour moi »."
+    Abort
+  ${EndIf}
+  ${NSD_GetState} $hRadioNeuf $1
+  ${NSD_GetState} $hRadioDesinst $2
+  ${If} $1 = 1
+    StrCpy $Action "neuf"
+  ${ElseIf} $2 = 1
+    StrCpy $Action "desinstaller"
+  ${Else}
+    StrCpy $Action "maj"
+  ${EndIf}
+
+  ${If} $Action != "maj"
+    Call LireEtatPoste
+    ${If} $EnAttente != "0"
+      ${If} $EnAttente == "-1"
+        MessageBox MB_YESNO|MB_ICONEXCLAMATION|MB_DEFBUTTON2 "On ne peut pas savoir si ce poste a du travail qui n'est pas encore parti vers le serveur.$\n$\nUne sauvegarde de la base de ce poste sera faite avant toute suppression, dans :$\n$LOCALAPPDATA\${APP_NAME} Sauvegardes$\n$\nContinuer ?" IDYES continuerChoix
+      ${Else}
+        MessageBox MB_YESNO|MB_ICONEXCLAMATION|MB_DEFBUTTON2 "Ce poste a du travail qui n'est pas encore parti vers le serveur : $TexteEnAttente.$\n$\nConseil : annulez, ouvrez CMS SARIS (connecté au réseau) et laissez-le tout envoyer.$\n$\nSi vous continuez, une sauvegarde de la base sera faite avant toute suppression, dans :$\n$LOCALAPPDATA\${APP_NAME} Sauvegardes$\n$\nContinuer quand même ?" IDYES continuerChoix
+      ${EndIf}
+      Abort
+      continuerChoix:
+    ${EndIf}
+  ${EndIf}
+
+  ${NSD_KillTimer} PageExistanteMinuteur
+  ${If} $Action == "desinstaller"
+    ; Les désinstalleurs d'avant la 1.11.0 suppriment tout sans rien demander : on sauvegarde d'abord.
+    ${VersionCompare} "$AncienVersion" "1.11.0" $R0
+    ${If} $AncienVersion == ""
+    ${OrIf} $R0 = 2
+      Call SauvegarderBase
+      ${If} $SauvEtat == "erreur"
+        MessageBox MB_OK|MB_ICONSTOP "La sauvegarde de la base de ce poste a échoué : rien n'est désinstallé."
+        ${NSD_CreateTimer} PageExistanteMinuteur 500
+        Abort
+      ${EndIf}
+    ${EndIf}
+    Exec '$AncienUninst'
+    Quit
+  ${EndIf}
+FunctionEnd
+
+; ── Dossier d'installation ───────────────────────────────────────────────────────
+; Déjà installé : on garde l'emplacement, on ne redemande rien.
+Function DirPre
+  ${If} $Existante = 1
+    Abort
+  ${EndIf}
+FunctionEnd
+
+; Dossier trop profond (cf. LIMITE_CHEMIN) : « Suivant » reste grisé tant que le chemin saisi est trop long.
+Function .onVerifyInstDir
+  Push $0
+  Push $1
+  StrLen $0 $INSTDIR
+  StrCpy $1 $INSTDIR 9 -9
+  ${If} $1 != "${APP_NAME}"
+    IntOp $0 $0 + 10
+  ${EndIf}
+  Pop $1
+  ${If} $0 > ${LIMITE_CHEMIN}
+    Pop $0
+    Abort
+  ${EndIf}
+  Pop $0
+FunctionEnd
+
+; Le dossier d'une installation NEUVE finit TOUJOURS par « CMS SARIS » : le désinstallateur supprime ce dossier en
+; entier, il ne doit jamais pouvoir pointer sur « Documents » ou sur la racine d'un disque. On ne peut pas le faire
+; dans la fonction de sortie de la page (NSIS n'y a pas encore mis à jour $INSTDIR avec ce que l'utilisateur a saisi) :
+; c'est donc la première section qui s'en charge (aussi pour /D= en silencieux).
+Function ForcerSuffixeDossier
+  Push $1
+  StrCpy $1 $INSTDIR 1 -1
+  ${If} $1 == "\"
+    StrCpy $INSTDIR $INSTDIR -1
+  ${EndIf}
+  StrCpy $1 $INSTDIR 9 -9
+  ${If} $1 != "${APP_NAME}"
+    StrCpy $INSTDIR "$INSTDIR\${APP_NAME}"
+  ${EndIf}
+  Pop $1
+FunctionEnd
+
+; ── Page « Une sauvegarde de ce poste existe » (installation neuve seulement) ───────
+Var hRadioRepartir
+Var hRadioReprendre
+
+Function PageSauvegarde
+  ${If} ${Silent}
+  ${OrIf} $Existante = 1
+    Abort
+  ${EndIf}
+  ${If} ${FileExists} "$APPDATA\${APP_NAME}\cms-saris.db"
+    Abort
+  ${EndIf}
+  Call TrouverSauvegarde
+  ${If} $SauvegardeTrouvee == ""
+    Abort
+  ${EndIf}
+  !insertmacro MUI_HEADER_TEXT "Une sauvegarde de ce poste a été trouvée" "Faite lors d'une désinstallation ou d'une réinstallation précédente."
+  nsDialogs::Create 1018
+  Pop $0
+  ${If} $0 == error
+    Abort
+  ${EndIf}
+  ${NSD_CreateLabel} 0 0 100% 24u "Le $SauvegardeLibelle, la base de ce poste a été sauvegardée. Vous pouvez la reprendre : l'application retrouvera ses données, y compris le travail qui n'avait pas encore été envoyé au serveur."
+  Pop $0
+  ${NSD_CreateRadioButton} 0 30u 100% 10u "Repartir de zéro (les données seront retéléchargées depuis le serveur)"
+  Pop $hRadioRepartir
+  ${NSD_AddStyle} $hRadioRepartir ${WS_GROUP}
+  ${NSD_CreateRadioButton} 0 44u 100% 10u "Reprendre la sauvegarde du $SauvegardeLibelle"
+  Pop $hRadioReprendre
+  ${NSD_Check} $hRadioReprendre
+  nsDialogs::Show
+FunctionEnd
+
+Function PageSauvegardeLeave
+  ${NSD_GetState} $hRadioReprendre $0
+  ${If} $0 = 1
+    StrCpy $RestaurerSauvegarde 1
+  ${Else}
+    StrCpy $RestaurerSauvegarde 0
+  ${EndIf}
+FunctionEnd
+
 ; ============================================================================
 ;  SECTIONS (les 4 « parties » → font avancer la 2e barre + le journal)
 ; ============================================================================
+
+; Préparation (cachée, ne compte pas parmi les 4 parties) : « Réinstaller à neuf ».
+; Toujours dans cet ordre : sauvegarde d'abord, suppression ensuite — si la sauvegarde échoue, rien n'est supprimé.
+Section "-Preparation" SEC_PREP
+  ${If} $Existante = 0
+    Call ForcerSuffixeDossier
+  ${EndIf}
+  StrLen $0 $INSTDIR
+  ${If} $0 > ${LIMITE_CHEMIN}
+    DetailPrint "Chemin d'installation trop long ($0 caractères, ${LIMITE_CHEMIN} au plus) : rien n'a été installé."
+    MessageBox MB_OK|MB_ICONSTOP "Le chemin d'installation est trop long ($0 caractères, ${LIMITE_CHEMIN} au plus) :$\n$INSTDIR$\n$\nL'installateur ne sait pas copier tous les fichiers de l'application dans un dossier aussi profond. Choisissez un dossier plus court." /SD IDOK
+    SetErrorLevel 7
+    Abort "Chemin d'installation trop long."
+  ${EndIf}
+  ${If} $Existante = 1
+  ${AndIf} $Action == "neuf"
+    DetailPrint "Réinstallation à neuf : sauvegarde de la base de ce poste..."
+    Call SauvegarderBase
+    ${If} $SauvEtat == "erreur"
+      DetailPrint "La sauvegarde a échoué : rien n'a été supprimé."
+      MessageBox MB_OK|MB_ICONSTOP "La sauvegarde de la base de ce poste a échoué : rien n'est supprimé, l'installation est interrompue." /SD IDOK
+      SetErrorLevel 6
+      Abort "Sauvegarde impossible : rien n'a été supprimé."
+    ${EndIf}
+    ${If} $SauvEtat == "ok"
+      DetailPrint "Sauvegarde faite : $SauvChemin.db"
+    ${Else}
+      DetailPrint "Aucune base locale à sauvegarder."
+    ${EndIf}
+    DetailPrint "Suppression de l'ancienne installation..."
+    StrCpy $R8 $AncienDossier
+    ${If} $R8 == ""
+      StrCpy $R8 $INSTDIR
+    ${EndIf}
+    ExecWait '$AncienUninst /S /PURGE /SANSSAUVEGARDE _?=$R8' $0
+    DetailPrint "Ancienne installation supprimée (code $0)."
+  ${EndIf}
+SectionEnd
+
 Section "Application & interface" SEC_APP
   !insertmacro STEP "Application & interface (Electron + React)"
+  ; Mise à jour par-dessus une installation : on retire d'abord l'ancien contenu de l'application. Sans cela,
+  ; les fichiers qui n'existent plus dans la nouvelle version restaient sur le disque. Les données de ce poste
+  ; (%APPDATA%\CMS SARIS) ne sont pas dans ce dossier : elles ne sont pas touchées.
+  ${If} ${FileExists} "$INSTDIR\${EXE_NAME}"
+    DetailPrint "Nettoyage de l'ancienne version (les données de ce poste sont conservées)..."
+    SetDetailsPrint none
+    RMDir /r "$INSTDIR\resources"
+    RMDir /r "$INSTDIR\locales"
+    SetDetailsPrint both
+  ${EndIf}
   SetOutPath "$INSTDIR"
   File /r /x resources "${SRCDIR}\*"
   SetOutPath "$INSTDIR\resources"
@@ -349,6 +1054,10 @@ Section "Moteur de base de donnees (Prisma SQLite)" SEC_DB_ENGINE
   !insertmacro STEP "Moteur Prisma + client SQLite"
   SetOutPath "$INSTDIR\resources\sqlite-client"
   File /r "${SRCDIR}\resources\sqlite-client\*"
+  ; Migrations de la base locale : sans elles, un poste MIS À JOUR ne met pas sa base à niveau (un poste neuf
+  ; n'en a pas besoin : il part de seed.db). Elles manquaient jusqu'à la 1.10.0.
+  SetOutPath "$INSTDIR\resources\sqlite-migrations"
+  File /r "${SRCDIR}\resources\sqlite-migrations\*"
   !insertmacro STEP_DONE
 SectionEnd
 
@@ -356,6 +1065,10 @@ Section "Base locale + raccourcis" SEC_FINAL
   !insertmacro STEP "Base de donnees locale + raccourcis"
   SetOutPath "$INSTDIR\resources"
   File "${SRCDIR}\resources\seed.db"
+
+  ${If} $RestaurerSauvegarde = 1
+    Call RestaurerBase
+  ${EndIf}
 
   ; Raccourcis
   DetailPrint "Creation des raccourcis (Bureau + menu Demarrer)..."
@@ -385,34 +1098,154 @@ Section "Base locale + raccourcis" SEC_FINAL
 SectionEnd
 
 ; ============================================================================
-;  DÉSINSTALLATION (nettoyage complet : fichiers + données locales)
+;  DÉSINSTALLATION
+;  Les données de ce poste (base locale, configuration) sont CONSERVÉES par défaut : elles peuvent contenir du
+;  travail pas encore envoyé au serveur. On ne les supprime que si on le demande (case à cocher, ou /PURGE en
+;  silencieux) — et alors une sauvegarde est faite avant (sauf /SANSSAUVEGARDE : l'installateur l'a déjà faite).
 ; ============================================================================
 Function un.onInit
-  System::Call 'kernel32::OpenMutexW(i 0x100000, b 0, w "${APP_ID}") i .R9'
-  ${If} $R9 <> 0
-    System::Call 'kernel32::CloseHandle(i $R9)'
-    ${IfNot} ${Silent}
-      MessageBox MB_OK|MB_ICONSTOP "Fermez CMS SARIS avant de desinstaller."
+  StrCpy $PurgerDonnees 0
+  StrCpy $SansSauvegarde 0
+  ClearErrors
+  ${un.GetOptions} $CMDLINE "/PURGE" $0
+  ${IfNot} ${Errors}
+    StrCpy $PurgerDonnees 1
+  ${EndIf}
+  ClearErrors
+  ${un.GetOptions} $CMDLINE "/SANSSAUVEGARDE" $0
+  ${IfNot} ${Errors}
+    StrCpy $SansSauvegarde 1
+  ${EndIf}
+
+  Call un.AppEnCours
+  ${If} $AppOuverte = 1
+    ${If} ${Silent}
+      StrCpy $R8 $INSTDIR
+      Call un.LancerFermeture
+      StrCpy $R7 90
+      Call un.AttendreFermeture
+      ${If} $AppOuverte = 1
+        SetErrorLevel 5
+        Abort
+      ${EndIf}
+    ${Else}
+      MessageBox MB_YESNOCANCEL|MB_ICONEXCLAMATION "CMS SARIS est ouvert.$\n$\nOui : le fermer pour moi (le travail restant est d'abord envoyé au serveur)$\nNon : je le ferme moi-même, puis je réessaie$\nAnnuler : quitter" IDYES uFermerPourMoi IDNO uReessayer
+      Abort
+      uFermerPourMoi:
+        StrCpy $R8 $INSTDIR
+        Call un.LancerFermeture
+        StrCpy $R7 90
+        Call un.AttendreFermeture
+        Goto uVerifier
+      uReessayer:
+        Call un.AppEnCours
+      uVerifier:
+        ${If} $AppOuverte = 1
+          MessageBox MB_OK|MB_ICONSTOP "CMS SARIS est toujours ouvert. Fermez-le (barre des tâches comprise) puis relancez la désinstallation."
+          Abort
+        ${EndIf}
     ${EndIf}
+  ${EndIf}
+FunctionEnd
+
+Var hCaseSupprimer
+
+Function un.PageDonnees
+  !insertmacro MUI_HEADER_TEXT "Données de ce poste" "Que faire de la base locale et de la configuration de ce poste ?"
+  nsDialogs::Create 1018
+  Pop $0
+  ${If} $0 == error
     Abort
+  ${EndIf}
+  Call un.MesurerDonnees
+  Call un.FormulerEnAttente
+  ${If} $TailleDonnees != ""
+    ${NSD_CreateLabel} 0 0 100% 9u "Données de ce poste : $TailleDonnees"
+  ${Else}
+    ${NSD_CreateLabel} 0 0 100% 9u "Données de ce poste : aucune base locale trouvée"
+  ${EndIf}
+  Pop $0
+  ${NSD_CreateLabel} 0 10u 100% 18u "Travail pas encore envoyé au serveur : $TexteEnAttente"
+  Pop $hLblEnAttente
+  ${If} $EnAttente != "0"
+    SetCtlColors $hLblEnAttente "B42318" "transparent"
+  ${EndIf}
+  ${NSD_CreateCheckBox} 0 36u 100% 18u "Supprimer aussi les données de ce poste (une sauvegarde est faite avant)"
+  Pop $hCaseSupprimer
+  ${NSD_CreateLabel} 0 58u 100% 28u "Si vous les conservez, une réinstallation de CMS SARIS retrouvera ce poste tel qu'il était, sans rien retélécharger. Si vous les supprimez, la sauvegarde est rangée dans :$\r$\n$LOCALAPPDATA\${APP_NAME} Sauvegardes"
+  Pop $0
+  nsDialogs::Show
+FunctionEnd
+
+Function un.PageDonneesLeave
+  ${NSD_GetState} $hCaseSupprimer $0
+  ${If} $0 = 1
+    StrCpy $PurgerDonnees 1
+    ${If} $EnAttente != "0"
+      MessageBox MB_YESNO|MB_ICONEXCLAMATION|MB_DEFBUTTON2 "Du travail n'est peut-être pas encore parti vers le serveur : $TexteEnAttente.$\n$\nUne sauvegarde de la base sera faite avant la suppression. Supprimer quand même les données de ce poste ?" IDYES uOui
+      StrCpy $PurgerDonnees 0
+      Abort
+      uOui:
+    ${EndIf}
+  ${Else}
+    StrCpy $PurgerDonnees 0
   ${EndIf}
 FunctionEnd
 
 Section "Uninstall"
+  ; Données de ce poste : sauvegarde AVANT toute suppression ; si elle échoue, on les garde.
+  ${If} $PurgerDonnees = 1
+  ${AndIf} $SansSauvegarde = 0
+    DetailPrint "Sauvegarde de la base de ce poste..."
+    Call un.SauvegarderBase
+    ${If} $SauvEtat == "erreur"
+      DetailPrint "La sauvegarde a échoué : les données de ce poste sont conservées."
+      StrCpy $PurgerDonnees 0
+    ${ElseIf} $SauvEtat == "ok"
+      DetailPrint "Sauvegarde faite : $SauvChemin.db"
+    ${EndIf}
+  ${EndIf}
+
   DetailPrint "Suppression des fichiers de l'application..."
-  RMDir /r "$INSTDIR"
+  ${If} ${FileExists} "$INSTDIR\${EXE_NAME}"
+    ; Un dossier qui porte le nom de l'application est supprimé en entier. Sinon (installation d'une version plus
+    ; ancienne dans un dossier au choix), on ne retire que ce qui appartient à l'application : jamais un dossier
+    ; qui pourrait contenir autre chose.
+    StrCpy $1 $INSTDIR 9 -9
+    SetDetailsPrint none
+    ${If} $1 == "${APP_NAME}"
+      RMDir /r "$INSTDIR"
+    ${Else}
+      RMDir /r "$INSTDIR\resources"
+      RMDir /r "$INSTDIR\locales"
+      Delete "$INSTDIR\${EXE_NAME}"
+      Delete "$INSTDIR\*.pak"
+      Delete "$INSTDIR\*.dll"
+      Delete "$INSTDIR\*.dat"
+      Delete "$INSTDIR\*.bin"
+      Delete "$INSTDIR\vk_swiftshader_icd.json"
+      Delete "$INSTDIR\LICENSE*"
+      Delete "$INSTDIR\Uninstall CMS SARIS.exe"
+      RMDir "$INSTDIR"
+    ${EndIf}
+    SetDetailsPrint both
+  ${EndIf}
 
   DetailPrint "Suppression des raccourcis..."
   Delete "$DESKTOP\CMS SARIS.lnk"
   RMDir /r "$SMPROGRAMS\CMS SARIS"
 
-  DetailPrint "Suppression des donnees locales (base synchronisee, config)..."
-  Delete "$APPDATA\CMS SARIS\cms-saris.db"
-  Delete "$APPDATA\CMS SARIS\cms-saris.db-wal"
-  Delete "$APPDATA\CMS SARIS\cms-saris.db-shm"
-  Delete "$APPDATA\CMS SARIS\cms-saris.db-journal"
-  RMDir /r "$APPDATA\CMS SARIS"
-  RMDir /r "$LOCALAPPDATA\CMS SARIS"
+  ${If} $PurgerDonnees = 1
+    DetailPrint "Suppression des donnees locales (base synchronisee, config)..."
+    Delete "$APPDATA\CMS SARIS\cms-saris.db"
+    Delete "$APPDATA\CMS SARIS\cms-saris.db-wal"
+    Delete "$APPDATA\CMS SARIS\cms-saris.db-shm"
+    Delete "$APPDATA\CMS SARIS\cms-saris.db-journal"
+    RMDir /r "$APPDATA\CMS SARIS"
+    RMDir /r "$LOCALAPPDATA\CMS SARIS"
+  ${Else}
+    DetailPrint "Donnees de ce poste conservees dans : $APPDATA\CMS SARIS"
+  ${EndIf}
 
   DetailPrint "Nettoyage du registre..."
   DeleteRegKey HKCU "${UNINST_KEY}"

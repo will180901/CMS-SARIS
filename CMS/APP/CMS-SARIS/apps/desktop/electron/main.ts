@@ -16,6 +16,7 @@ import { resolveApiUrl, resolveMode, resolveServerUrl, readConfig, writeConfig, 
 import { initAutoUpdater, checkForUpdates, downloadUpdate, quitAndInstall } from './updater'
 import { startBackend, findFreePort, stopBackend } from './backend'
 import { ensureDb } from './db-init'
+import { ecrireFichierEtat, lireEnAttente } from './etat-poste'
 import {
   isSyncConfigured, authenticateSync, listPendingSites, finalizeSyncSetup, discardPendingAuth,
   serveurRenseigne, enregistrerServeur, provisionnerPoste,
@@ -41,6 +42,8 @@ log.transports.file.level = 'info'
 let mainWindow: BrowserWindow | null = null
 /** URL d'API effective : serveur distant (mode remote) ou backend local 127.0.0.1 (mode local). */
 let effectiveApiUrl: string | null = null
+/** URL du service local embarqué (127.0.0.1), une fois démarré — `null` tant qu'il n'existe pas. */
+let urlServiceLocal: string | null = null
 /** Mode local non configuré (1er lancement / session expirée) → écran de configuration. */
 let needsLocalSetup = false
 // Bascule « online-first » (mode local) : le renderer parle au CENTRAL en ligne / au backend
@@ -665,8 +668,10 @@ async function startLocalBackend(): Promise<void> {
       logFile: path.join(userData, 'backend.log'),
     })
     effectiveApiUrl = `http://127.0.0.1:${port}`
+    urlServiceLocal = effectiveApiUrl
     needsLocalSetup = false
     startRefreshTimer()
+    demarrerReleveEtat()
     log.info('[backend] embarqué démarré sur ' + effectiveApiUrl)
     await startConnectivityWatch() // décide central(en ligne)/local(hors-ligne) AVANT le renderer
     // Le reseau a pu tomber PENDANT le demarrage (une vingtaine de secondes au premier
@@ -771,6 +776,65 @@ async function localBackendHasPendingPush(): Promise<boolean> {
   } catch {
     return true
   }
+}
+
+// ── État du poste (lu par l'installateur) + fermeture douce ──────────────────────
+// L'installateur et le désinstallateur ne peuvent pas interroger l'application : ils lisent ce que
+// l'application a écrit (cf. etat-poste.ts) pour dire « il reste N éléments non envoyés » AVANT de
+// remplacer ou de supprimer quoi que ce soit. Et quand l'installateur doit fermer l'application, il
+// la lance une seconde fois avec `--quitter` : elle envoie alors son travail restant, puis s'arrête.
+let releveEtatTimer: ReturnType<typeof setInterval> | null = null
+
+/** Relève le travail non envoyé et l'écrit pour l'installateur. Jamais bloquant, jamais fatal. */
+async function releverEtatPoste(): Promise<void> {
+  if (!urlServiceLocal) return
+  const compte = await lireEnAttente(urlServiceLocal)
+  try {
+    ecrireFichierEtat(app.getPath('userData'), {
+      version: app.getVersion(),
+      enAttente: compte?.enAttente ?? null,
+      plusDe: compte?.plusDe ?? false,
+      releve: new Date(),
+    })
+  } catch (e) {
+    log.warn('[état] écriture de etat-poste.ini impossible', e)
+  }
+}
+
+function demarrerReleveEtat(): void {
+  if (releveEtatTimer) clearInterval(releveEtatTimer)
+  setTimeout(() => { void releverEtatPoste() }, 15_000)
+  releveEtatTimer = setInterval(() => { void releverEtatPoste() }, 60_000)
+}
+
+let fermetureDouceEnCours = false
+
+/**
+ * Fermeture demandée par l'installateur (`CMS SARIS.exe --quitter`) : on demande une dernière synchro,
+ * on attend (au plus 25 s) que ce qui restait à envoyer parte, puis on s'arrête. Hors ligne, on ne
+ * peut rien envoyer : on s'arrête tout de suite, et le fichier d'état dit ce qui reste.
+ */
+async function quitterProprement(): Promise<void> {
+  if (fermetureDouceEnCours) return
+  fermetureDouceEnCours = true
+  log.info('[fermeture] demandée par l’installateur — envoi du travail restant avant l’arrêt')
+  try {
+    if (urlServiceLocal && (await probeCentralOnline())) {
+      const fin = Date.now() + 25_000
+      for (let tour = 0; Date.now() < fin; tour++) {
+        if (tour % 3 === 0) {
+          // Un cycle déjà en cours a pu collecter avant la dernière écriture : on redemande régulièrement.
+          await fetch(`${urlServiceLocal}/sync/now`, { method: 'POST' }).catch(() => undefined)
+        }
+        const compte = await lireEnAttente(urlServiceLocal)
+        if (compte && compte.enAttente === 0) break
+        await new Promise((r) => setTimeout(r, 1000))
+      }
+    }
+  } catch (e) {
+    log.warn('[fermeture] envoi final interrompu', e)
+  }
+  app.quit()
 }
 
 /** Pousse l'URL active au renderer (et la mémorise pour le prochain saris:config). */
@@ -906,7 +970,14 @@ async function waitForInitialSync(apiUrl: string, timeoutMs: number): Promise<vo
 if (!app.requestSingleInstanceLock()) {
   app.quit()
 } else {
-  app.on('second-instance', () => {
+  // Lancé par l'installateur pour fermer l'application sans rien perdre (cf. quitterProprement).
+  if (process.argv.includes('--quitter')) app.exit(0)
+
+  app.on('second-instance', (_event, argv) => {
+    if (argv.includes('--quitter')) {
+      void quitterProprement()
+      return
+    }
     if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore()
       mainWindow.focus()
@@ -931,7 +1002,23 @@ if (!app.requestSingleInstanceLock()) {
     })
   })
 
-  app.on('before-quit', () => { stopRefreshTimer(); stopBackend() })
+  // Avant de s'arrêter, on note ce qui reste à envoyer (l'installateur le lira) : au plus 2,5 s d'attente,
+  // puis on relance l'arrêt. Le service local n'est coupé qu'après — il répond à ce relevé.
+  let etatFinalEcrit = false
+  app.on('before-quit', (event) => {
+    stopRefreshTimer()
+    if (releveEtatTimer) { clearInterval(releveEtatTimer); releveEtatTimer = null }
+    if (!etatFinalEcrit && urlServiceLocal) {
+      etatFinalEcrit = true
+      event.preventDefault()
+      void Promise.race([
+        releverEtatPoste(),
+        new Promise<void>((r) => setTimeout(r, 2500)),
+      ]).finally(() => { stopBackend(); app.quit() })
+      return
+    }
+    stopBackend()
+  })
 
   app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit()
