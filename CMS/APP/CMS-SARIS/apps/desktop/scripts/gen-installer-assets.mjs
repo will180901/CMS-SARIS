@@ -23,7 +23,9 @@ try {
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const BUILD = path.resolve(here, '..', 'build')
-const LOGO = path.join(BUILD, 'icon.png')
+// Logo officiel (cf. gen-logo.mjs) : version « fond sombre » pour la colonne teal, « fond clair » pour l'en-tête.
+const LOGO_SOMBRE = path.resolve(here, '..', 'electron', 'setup-logo-sombre.png')
+const LOGO_CLAIR = path.resolve(here, '..', 'electron', 'setup-logo.png')
 
 // Charte SARIS (teal). 0 dégradé : couleurs unies.
 const TEAL_DEEP = '#0C3B47'
@@ -79,10 +81,10 @@ async function composedSidebar(outFile, footer) {
     <text x="${W / 2}" y="${H - 32}" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="10" font-weight="600" fill="#EAF3F6">${footer}</text>
     <text x="${W / 2}" y="${H - 16}" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="8" fill="#9FC0CA">SARIS-CONGO</text>
   </svg>`
-  // Logo (cercle blanc) centré en haut.
+  // Logo centré en haut.
   const W2 = W, H2 = H
   const base = sharp(Buffer.from(svg)).resize(W2, H2)
-  const logo = await sharp(LOGO).resize(72, 72, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } }).png().toBuffer()
+  const logo = await sharp(LOGO_SOMBRE).resize(72, 72, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } }).png().toBuffer()
   const { data } = await base.composite([{ input: logo, top: 56, left: Math.round((W2 - 72) / 2) }]).ensureAlpha().raw().toBuffer({ resolveWithObject: true })
   fs.writeFileSync(outFile, encodeBMP(data, W2, H2))
   console.log('écrit', path.basename(outFile))
@@ -95,7 +97,7 @@ async function composedHeader(outFile) {
     <rect x="0" y="${H - 3}" width="${W}" height="3" fill="${ACCENT}"/>
     <text x="46" y="33" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="700" fill="${TEAL_DEEP}">CMS SARIS</text>
   </svg>`
-  const logo = await sharp(LOGO).resize(34, 34, { fit: 'contain', background: { r: 244, g: 247, b: 248, alpha: 1 } }).png().toBuffer()
+  const logo = await sharp(LOGO_CLAIR).resize(34, 34, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } }).png().toBuffer()
   const { data } = await sharp(Buffer.from(svg)).resize(W, H).composite([{ input: logo, top: 11, left: 8 }]).ensureAlpha().raw().toBuffer({ resolveWithObject: true })
   fs.writeFileSync(outFile, encodeBMP(data, W, H))
   console.log('écrit', path.basename(outFile))

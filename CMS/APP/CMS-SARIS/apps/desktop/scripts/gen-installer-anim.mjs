@@ -7,9 +7,8 @@
  * dépendance GDI+ supplémentaire — cohérent avec la décision du 2026-07-20 de ne
  * pas embarquer de plugin NSIS tiers non vérifié (WebView2).
  *
- * Icône : vrai logo CMS SARIS (apps/web/public/icon-512.png), fond blanc détouré en
- * transparence réelle (le fichier source a un canal alpha mais opaque à 255 partout —
- * cf. scripts/strip-white-bg.mjs pour la même logique en autonome). Composé DIRECTEMENT
+ * Icône : symbole officiel CMS SARIS, version « fond sombre » (electron/setup-logo-sombre.png,
+ * produite par gen-logo.mjs : transparente, aucun détourage à faire). Composé DIRECTEMENT
  * sur le panneau (pas de cadre/avatar autour, demandé explicitement le 2026-07-20).
  *
  * Taille 164x314 = dimension standard du bitmap de bienvenue/fin NSIS ModernUI2.
@@ -30,7 +29,7 @@ for (const f of fs.readdirSync(outDir)) fs.rmSync(path.join(outDir, f))
 const W = 164
 const H = 314
 const FRAMES = 48 // boucle continue ; avancée toutes les ~150ms côté NSIS -> cycle ~7,2s
-const ICON_SRC = path.resolve(here, '..', '..', 'web', 'public', 'icon-512.png')
+const ICON_SRC = path.resolve(here, '..', 'electron', 'setup-logo-sombre.png')
 const ICON_SIZE = 46
 
 // Un blob = un cercle radial flou qui dérive en boucle fermée sur une ellipse.
@@ -42,18 +41,9 @@ const BLOBS = [
   { cx: 54,  cy: 262, r: 112, color: '255,255,255', ax: 24, ay: 36, phase: 0.62, opacity: 0.42 },
 ]
 
-/** Détoure le fond blanc opaque du logo source en transparence réelle (alpha proportionnel
- *  à la distance à blanc, préserve un bord anti-aliasé propre), puis le redimensionne. */
-async function loadTransparentIcon() {
-  const src = sharp(ICON_SRC).ensureAlpha()
-  const { data, info } = await src.raw().toBuffer({ resolveWithObject: true })
-  const out = Buffer.from(data)
-  for (let i = 0; i < data.length; i += info.channels) {
-    const r = data[i], g = data[i + 1], b = data[i + 2]
-    const distFromWhite = 255 - Math.min(r, g, b)
-    out[i + 3] = Math.min(255, Math.round(distFromWhite * 1.5))
-  }
-  return sharp(out, { raw: info }).resize(ICON_SIZE, ICON_SIZE, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } }).png().toBuffer()
+/** Le symbole, à la taille de l'animation (déjà transparent : rien à détourer). */
+function loadIcon() {
+  return sharp(ICON_SRC).resize(ICON_SIZE, ICON_SIZE, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } }).png().toBuffer()
 }
 
 function frameSvg(i) {
@@ -119,7 +109,7 @@ function rgbToBmp(rgb, width, height) {
 }
 
 const pad = (n) => String(n).padStart(2, '0')
-const iconPng = await loadTransparentIcon()
+const iconPng = await loadIcon()
 const iconTop = Math.round(H / 2 - 54 + 18) // dans le panneau "verre", au-dessus du texte
 const iconLeft = Math.round(W / 2 - ICON_SIZE / 2)
 
