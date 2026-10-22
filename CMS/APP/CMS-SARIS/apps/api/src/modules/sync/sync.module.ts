@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common'
+import { APP_INTERCEPTOR } from '@nestjs/core'
 import { SecurityModule } from '../security/security.module'
 import { SystemeModule } from '../systeme/systeme.module'
 import { NotificationModule } from '../notification/notification.module'
@@ -9,6 +10,7 @@ import { SyncClientService } from './sync-client.service'
 import { SyncSupervisionService } from './sync-supervision.service'
 import { TombstonePurgeCron } from './tombstone-purge.cron'
 import { PortierVidage } from './portier-vidage'
+import { EcritureLocaleInterceptor } from './ecriture-locale.interceptor'
 
 /**
  * SyncModule — moteur de synchronisation offline-first (serveur central).
@@ -24,6 +26,8 @@ import { PortierVidage } from './portier-vidage'
     SyncSupervisionService,
     TombstonePurgeCron,
     PortierVidage,
+    // Poste de bureau : le travail écrit ici part vers le central dans les secondes qui suivent.
+    { provide: APP_INTERCEPTOR, useClass: EcritureLocaleInterceptor },
   ],
   exports: [SyncService, SyncClientService, PortierVidage],
 })

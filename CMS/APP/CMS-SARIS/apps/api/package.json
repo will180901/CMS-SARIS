@@ -15,7 +15,7 @@
     "start:prod": "node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "pnpm test:unit && pnpm test:e2e",
-    "test:unit": "tsx test/soft-delete-core.test.ts && tsx test/message-crypto.test.ts && tsx test/totp-secret.test.ts && tsx test/sync-controle.test.ts && tsx test/mode-systeme.test.ts && tsx test/donnees-test.test.ts && tsx test/vidage-metier.test.ts && tsx test/mot-de-passe-temporaire.test.ts && tsx test/mot-de-passe-temporaire-cache.test.ts && tsx test/identifiant.test.ts && tsx test/permission-coherence.test.ts && tsx test/rapports-periode.test.ts && tsx test/nombre.test.ts",
+    "test:unit": "tsx test/soft-delete-core.test.ts && tsx test/message-crypto.test.ts && tsx test/totp-secret.test.ts && tsx test/sync-controle.test.ts && tsx test/ecriture-locale.test.ts && tsx test/mode-systeme.test.ts && tsx test/donnees-test.test.ts && tsx test/vidage-metier.test.ts && tsx test/mot-de-passe-temporaire.test.ts && tsx test/mot-de-passe-temporaire-cache.test.ts && tsx test/identifiant.test.ts && tsx test/permission-coherence.test.ts && tsx test/rapports-periode.test.ts && tsx test/nombre.test.ts",
     "test:e2e": "jest --config ./test/jest-e2e.json --runInBand"
   },
   "dependencies": {

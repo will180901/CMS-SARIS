@@ -30,6 +30,7 @@ import {
   encryptBytes,
   decryptBytes,
 } from '../../common/crypto/message-crypto'
+import { MARGE_CURSEUR_ENVOI_MS } from '../sync/sync-controle'
 
 const USER_SELECT = {
   id: true,
@@ -1337,7 +1338,8 @@ export class MessagerieService {
         const lecs = lecturesDesAutres.get(m.id) ?? []
         const parti =
           dernierEnvoi === undefined ||
-          (dernierEnvoi !== null && m.updatedAt.getTime() <= dernierEnvoi.getTime())
+          (dernierEnvoi !== null &&
+        m.updatedAt.getTime() <= dernierEnvoi.getTime() + MARGE_CURSEUR_ENVOI_MS)
         const t = m.createdAt.getTime()
         luPar = lecs.length
         for (const l of lecs) if (!vuAt || l.luLe < vuAt) vuAt = l.luLe
@@ -1760,7 +1762,8 @@ export class MessagerieService {
     const dernierEnvoi = await this.dernierEnvoiVersCentral()
     const parti =
       dernierEnvoi === undefined ||
-      (dernierEnvoi !== null && m.updatedAt.getTime() <= dernierEnvoi.getTime())
+      (dernierEnvoi !== null &&
+        m.updatedAt.getTime() <= dernierEnvoi.getTime() + MARGE_CURSEUR_ENVOI_MS)
     const t = m.createdAt.getTime()
     const destinataires = m.conversation.participants
       .filter((p) => p.utilisateurId !== m.expediteurId)

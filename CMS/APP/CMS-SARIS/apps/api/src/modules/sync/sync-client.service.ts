@@ -20,6 +20,7 @@ import { raisonRejet, estRejetDefinitif } from './conflict'
 import {
   CLE_VIDAGE_APPLIQUE,
   CURSEUR_ORIGINE,
+  DELAI_ENVOI_APRES_ECRITURE_MS,
   NIVEAU_CONTROLE,
   PosteSuspenduError,
   VidageEnAttenteError,
@@ -30,6 +31,9 @@ import {
   resyncAEngager,
   vidageAEngager,
   vidageDejaFait,
+  curseurApresEnvoi,
+  curseurEnvoiDepuis,
+  debutAEnvoyer,
   type OrdresServeur,
 } from './sync-controle'
 import { viderDonneesMetier } from './vidage-metier'
@@ -81,6 +85,11 @@ export class SyncClientService implements OnApplicationBootstrap {
   private verrou = false
   private wasOnline = false
   private backoffMs = 0
+  /** Une écriture a eu lieu sur ce poste depuis le dernier envoi : il faut l'envoyer bientôt. */
+  private ecritureLocaleEnAttente = false
+  private minuteurEcriture: ReturnType<typeof setTimeout> | null = null
+  /** Délai avant l'envoi d'une écriture locale (réglable : les tests le raccourcissent). */
+  private delaiEnvoiMs = DELAI_ENVOI_APRES_ECRITURE_MS
   /** Passe à true après le 1er PULL réussi → le desktop peut ouvrir l'app (données prêtes). */
   private initialSyncDone = false
 
@@ -678,7 +687,12 @@ export class SyncClientService implements OnApplicationBootstrap {
     if (!this.enabled) return false
     try {
       const { lastPushedAt } = await this.cursor()
-      const page = await this.sync.pull(this.siteId, lastPushedAt, 1)
+      // Les lignes de la marge du curseur sont déjà parties : elles ne sont pas du travail en attente.
+      const page = await this.sync.pull(
+        this.siteId,
+        debutAEnvoyer(lastPushedAt, Date.now()),
+        1,
+      )
       return page.changes.length > 0
     } catch {
       // Base locale illisible : on ne peut pas affirmer que tout est remonté.
@@ -691,13 +705,53 @@ export class SyncClientService implements OnApplicationBootstrap {
   /** Changements reçus du central mais inapplicables ici (journalisés), depuis le démarrage. */
   private rejetsPull = 0
 
+  /**
+   * Une écriture vient d'avoir lieu sur CE poste : on l'envoie dans les secondes qui suivent.
+   *
+   * Sans cela, un poste n'envoyait que sur le filet de sécurité (5 minutes), à la reconnexion ou
+   * quand le serveur le sonnait : un message écrit ici mettait jusqu'à cinq minutes à atteindre les
+   * autres. Les écritures rapprochées sont regroupées (un seul échange pour une rafale).
+   * Appelé après chaque requête qui modifie quelque chose (cf. ecriture-locale.interceptor.ts) ;
+   * sans effet hors d'un poste de bureau.
+   */
+  notifierEcritureLocale(): void {
+    if (!this.enabled) return
+    this.ecritureLocaleEnAttente = true
+    this.programmerEnvoiLocal(this.delaiEnvoiMs)
+  }
+
+  private programmerEnvoiLocal(delaiMs: number): void {
+    if (this.minuteurEcriture) return
+    this.minuteurEcriture = setTimeout(() => {
+      this.minuteurEcriture = null
+      void this.envoyerEcrituresLocales()
+    }, delaiMs)
+  }
+
+  private async envoyerEcrituresLocales(): Promise<void> {
+    if (!this.ecritureLocaleEnAttente) return
+    // Un cycle est en cours : il a peut-être déjà collecté avant cette écriture. On repasse juste après.
+    if (this.verrou || this.running) {
+      this.programmerEnvoiLocal(1000)
+      return
+    }
+    this.ecritureLocaleEnAttente = false
+    // Beaucoup de requêtes n'écrivent rien (battement de présence, « en train d'écrire »…) : on ne
+    // dérange le serveur que s'il y a vraiment quelque chose à lui envoyer — une lecture locale, bon marché.
+    if (!(await this.hasPendingPush())) return
+    await this.triggerSync('écriture locale')
+  }
+
   /** PUSH : envoie au serveur les changements locaux depuis le dernier push. */
   async push(): Promise<SyncPushResponseV2 | null> {
     const { lastPushedAt } = await this.cursor()
     const collected: SyncEntityEnvelope[] = []
-    let since = lastPushedAt
+    let since = curseurEnvoiDepuis(lastPushedAt, Date.now())
+    /** L'heure DU POSTE à laquelle la collecte commence : c'est elle, et non l'heure du serveur, qui borne ce qui est parti. */
+    let debutCollecte: string | undefined
     for (let guard = 0; guard < 1000; guard++) {
       const page = await this.sync.pull(this.siteId, since, 500) // base locale = un seul site
+      debutCollecte ??= page.serverTime
       collected.push(...page.changes)
       since = page.nextSince
       if (!page.hasMore) break
@@ -721,7 +775,12 @@ export class SyncClientService implements OnApplicationBootstrap {
           out.rejected.map((r) => `${r.model} ${r.id} (${r.raison})`).join(' ; '),
       )
     }
-    await this.saveCursor({ lastPushedAt: new Date(out.serverTime) })
+    // Le curseur d'envoi se compare à l'`updatedAt` des écritures LOCALES : il se pose sur l'horloge du
+    // poste, au DÉBUT de la collecte — pas à l'heure du serveur relevée en fin d'échange, qui rangeait
+    // parmi « les envoyées » toute écriture faite pendant l'envoi (cf. sync-controle.ts).
+    await this.saveCursor({
+      lastPushedAt: curseurApresEnvoi(debutCollecte ?? new Date().toISOString()),
+    })
     return out
   }
 

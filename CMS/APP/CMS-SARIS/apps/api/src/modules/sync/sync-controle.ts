@@ -41,6 +41,69 @@ export const CLE_VIDAGE_APPLIQUE = 'systeme.vidage_applique'
  */
 export const CURSEUR_ORIGINE = new Date(0)
 
+// ── Le curseur d'ENVOI (poste → central) ─────────────────────────────────────
+//
+// `SyncState.lastPushedAt` dit « tout ce que ce poste a écrit AVANT cet instant est parti ».
+// Il se COMPARE à l'`updatedAt` des lignes écrites sur le poste — donc à l'HORLOGE DU POSTE. Il
+// était placé à l'heure du SERVEUR, relevée à la FIN de l'échange : deux défauts.
+//  - une écriture faite pendant l'envoi (entre la collecte et la réponse) était datée AVANT ce
+//    curseur : jugée « déjà partie », elle ne repartait jamais ;
+//  - un poste dont l'horloge retarde sur celle du serveur de quelques minutes perdait, de la même
+//    façon, tout ce qu'il écrivait dans cet intervalle après chaque envoi.
+// Le curseur est maintenant le DÉBUT de la collecte, lu sur le poste lui-même.
+
+/**
+ * Marge de sécurité (ms) sous le début de la collecte. Une ligne datée juste avant ce début peut
+ * n'avoir été validée en base qu'un instant après la lecture ; la revoir au prochain envoi ne coûte
+ * rien (« le plus récent gagne » : une ligne identique ne change rien côté serveur).
+ */
+export const MARGE_CURSEUR_ENVOI_MS = 1000
+
+/**
+ * Délai (ms) entre une écriture sur le poste et son envoi : assez court pour que l'équipe voie
+ * le travail presque tout de suite, assez long pour regrouper une rafale d'écritures en un échange.
+ */
+export const DELAI_ENVOI_APRES_ECRITURE_MS = 1500
+
+/**
+ * D'où collecter ce qui reste à envoyer. `undefined` = depuis toujours (aucun envoi encore).
+ *
+ * Un curseur situé dans le FUTUR du poste (son horloge a été remise en arrière, ou le curseur
+ * date d'une version qui le plaçait à l'heure du serveur) ferait ignorer toute écriture à venir.
+ * On le recule alors de l'écart constaté, plus une minute : au pire des lignes déjà parties sont
+ * renvoyées (sans effet), jamais une ligne n'est oubliée.
+ */
+export function curseurEnvoiDepuis(
+  lastPushedAt: string | undefined,
+  maintenant: number,
+): string | undefined {
+  if (!lastPushedAt) return undefined
+  const t = Date.parse(lastPushedAt)
+  if (Number.isNaN(t)) return undefined
+  if (t <= maintenant) return lastPushedAt
+  return new Date(maintenant - (t - maintenant) - 60_000).toISOString()
+}
+
+/** Le curseur à enregistrer après un envoi réussi : le DÉBUT de la collecte (heure du poste), moins la marge. */
+export function curseurApresEnvoi(debutCollecte: string): Date {
+  return new Date(Date.parse(debutCollecte) - MARGE_CURSEUR_ENVOI_MS)
+}
+
+/**
+ * À partir de quand une écriture locale reste-t-elle « à envoyer » ? Les lignes de la marge ont
+ * déjà été prises par le dernier envoi (on ne les relit que par précaution) : elles ne comptent
+ * pas comme du travail en attente.
+ */
+export function debutAEnvoyer(
+  lastPushedAt: string | undefined,
+  maintenant: number,
+): string | undefined {
+  const depuis = curseurEnvoiDepuis(lastPushedAt, maintenant)
+  return depuis
+    ? new Date(Date.parse(depuis) + MARGE_CURSEUR_ENVOI_MS).toISOString()
+    : undefined
+}
+
 /** Ce que le serveur dit au poste, en réponse à un battement de vie. */
 export interface OrdresServeur {
   suspendu: boolean

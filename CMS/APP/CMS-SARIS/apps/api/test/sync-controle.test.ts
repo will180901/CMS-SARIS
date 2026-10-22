@@ -15,6 +15,10 @@ import {
   PosteSuspenduError,
   VidageEnAttenteError,
   NIVEAU_CONTROLE,
+  MARGE_CURSEUR_ENVOI_MS,
+  curseurApresEnvoi,
+  curseurEnvoiDepuis,
+  debutAEnvoyer,
   type OrdresServeur,
 } from '../src/modules/sync/sync-controle'
 
@@ -214,6 +218,39 @@ test('le niveau annoncé est un entier positif (0 = poste ancien)', () => {
 })
 test('le niveau 2 est celui du vidage : un poste qui l’annonce sait vider sa copie', () => {
   assert.ok(NIVEAU_CONTROLE >= 2)
+})
+
+console.log('curseur d’ENVOI — se mesure sur l’horloge du poste')
+const T = Date.parse('2026-10-22T10:00:00.000Z')
+test('le curseur d’après un envoi est le DÉBUT de la collecte, moins la marge', () => {
+  const c = curseurApresEnvoi('2026-10-22T10:00:05.000Z')
+  assert.equal(c.getTime(), Date.parse('2026-10-22T10:00:05.000Z') - MARGE_CURSEUR_ENVOI_MS)
+})
+test('une écriture faite PENDANT l’envoi reste après le curseur : elle repart au prochain cycle', () => {
+  // collecte au début 10:00:05 ; l’échange dure 3 s ; le serveur répond à 10:00:08 (heure du serveur).
+  const curseur = curseurApresEnvoi('2026-10-22T10:00:05.000Z').getTime()
+  const ecritureEnCours = Date.parse('2026-10-22T10:00:06.500Z')
+  assert.ok(ecritureEnCours > curseur)
+})
+test('un curseur ordinaire (dans le passé du poste) sert tel quel', () => {
+  assert.equal(curseurEnvoiDepuis('2026-10-22T09:59:00.000Z', T), '2026-10-22T09:59:00.000Z')
+})
+test('aucun curseur : on collecte depuis toujours', () => {
+  assert.equal(curseurEnvoiDepuis(undefined, T), undefined)
+})
+test('un curseur illisible est traité comme « aucun » (jamais comme une date valide)', () => {
+  assert.equal(curseurEnvoiDepuis('pas une date', T), undefined)
+})
+test('curseur dans le FUTUR du poste (horloge reculée, ou ancienne version) : reculé de l’écart + 1 min', () => {
+  // le curseur est 10 min devant l’horloge du poste → on collecte depuis 10 min + 1 min en arrière
+  const depuis = curseurEnvoiDepuis('2026-10-22T10:10:00.000Z', T)!
+  assert.equal(Date.parse(depuis), T - 10 * 60_000 - 60_000)
+  assert.ok(Date.parse(depuis) < T)
+})
+test('« à envoyer » commence APRÈS la marge : les lignes de la marge sont déjà parties', () => {
+  const lastPushed = '2026-10-22T09:59:59.000Z'
+  assert.equal(Date.parse(debutAEnvoyer(lastPushed, T)!), Date.parse(lastPushed) + MARGE_CURSEUR_ENVOI_MS)
+  assert.equal(debutAEnvoyer(undefined, T), undefined)
 })
 
 console.log('\n' + passed + ' reussis, ' + failed + ' echoues')
