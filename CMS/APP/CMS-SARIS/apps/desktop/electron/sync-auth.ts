@@ -17,9 +17,10 @@ import fs from 'node:fs'
 import crypto from 'node:crypto'
 import os from 'node:os'
 import { execSync } from 'node:child_process'
-import { readConfig, writeConfig, secureGet, secureSet, secureDel, lireDeploiementPoste } from './config'
+import { readConfig, writeConfig, secureGet, secureSet, secureDel, secureDisponible, retirerCodeDeploiement, lireDeploiementPoste } from './config'
 
 const REFRESH_KEY = 'cms-saris-sync-refresh' // clé DPAPI du refresh token
+const POSTE_SECRET_KEY = 'cms-saris-poste-secret' // clé DPAPI du secret d'un poste APPAIRÉ (sans compte)
 
 /** Fichier de l'access token courant — lu par le backend embarqué (SERVER_SYNC_TOKEN_FILE). */
 export function syncTokenFilePath(): string {
@@ -87,7 +88,7 @@ export function setPosteLibelle(libelle: string): void {
 /** Le poste est-il configuré (serveur central + site + refresh token présents) ? */
 export function isSyncConfigured(): boolean {
   const cfg = readConfig()
-  return !!(cfg.serverUrl && cfg.siteId) && !!secureGet(REFRESH_KEY)
+  return !!(cfg.serverUrl && cfg.siteId) && !!(secureGet(REFRESH_KEY) || secureGet(POSTE_SECRET_KEY))
 }
 
 /** L'adresse du serveur est-elle connue ? C'est la SEULE chose demandée à l'installation. */
@@ -151,6 +152,60 @@ export async function provisionnerPoste(
 }
 
 const trimUrl = (u: string): string => u.trim().replace(/\/+$/, '')
+
+/**
+ * APPAIRAGE — enregistre ce poste avec un CODE remis par un administrateur, à la place d'un identifiant et d'un mot de
+ * passe. Le serveur donne au poste son site, son nom et SON secret (montré une seule fois), que l'on range aussitôt dans
+ * le coffre chiffré de Windows ; il l'échangera ensuite contre un jeton limité à la synchronisation (cf.
+ * refreshAccessToken). Le code n'est plus jamais nécessaire.
+ *
+ * Le coffre est vérifié AVANT d'appeler le serveur : un code consommé pour un secret qu'on ne pourrait pas garder serait
+ * un code gaspillé.
+ */
+export async function appairerPoste(serverUrl: string, code: string, libelle?: string): Promise<SetupResult> {
+  const server = trimUrl(serverUrl)
+  if (!/^https?:\/\//i.test(server)) return { ok: false, error: 'L’adresse doit commencer par http:// ou https://' }
+  if (!code.trim()) return { ok: false, error: 'Saisissez le code d’appairage.' }
+  if (!secureDisponible())
+    return { ok: false, error: 'Le coffre sécurisé de Windows n’est pas disponible sur ce poste : l’appairage est impossible.' }
+  try {
+    const r = await fetch(server + '/sync/appairage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        code: code.trim(),
+        posteLocalId: getPosteLocalId(),
+        libelle: libelle?.trim() || getPosteLibelle(),
+        versionApp: app.getVersion(),
+      }),
+    })
+    if (r.status === 403) return { ok: false, error: 'Code invalide, expiré ou déjà utilisé.' }
+    if (r.status === 429) return { ok: false, error: 'Trop d’essais. Patientez quelques minutes avant de réessayer.' }
+    if (!r.ok) return { ok: false, error: `Erreur serveur (HTTP ${r.status}).` }
+    const corps = (await r.json()) as { posteSecret?: string; siteId?: string; libelle?: string }
+    if (!corps.posteSecret || !corps.siteId) return { ok: false, error: 'Réponse du serveur invalide.' }
+
+    secureSet(POSTE_SECRET_KEY, corps.posteSecret)
+    if (secureGet(POSTE_SECRET_KEY) !== corps.posteSecret)
+      return { ok: false, error: 'Le secret du poste n’a pas pu être gardé dans le coffre sécurisé de Windows.' }
+    secureDel(REFRESH_KEY) // plus de compte : un éventuel ancien refresh token n'a plus rien à faire ici
+    writeConfig({
+      mode: 'local',
+      serverUrl: server,
+      siteId: corps.siteId,
+      posteDeclare: true, // le serveur connaît déjà ce poste : l'appairage l'a créé
+      appaire: true,
+      ...(corps.libelle ? { posteLibelle: corps.libelle } : {}),
+    })
+    retirerCodeDeploiement() // le code vient de servir : il ne doit pas rester en clair dans deploiement.ini
+    // Un premier jeton tout de suite ; s'il échoue (réseau coupé juste après), le démarrage et le renouvellement
+    // périodique le retenteront : le secret est déjà gardé.
+    await refreshAccessToken()
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, error: 'Serveur injoignable : ' + (e as Error).message }
+  }
+}
 
 interface AuthResponse {
   accessToken?: string
@@ -352,6 +407,9 @@ let refreshing = false
 export async function refreshAccessToken(): Promise<'ok' | 'offline' | 'expired'> {
   if (refreshing) return 'ok'
   const cfg = readConfig()
+  // Poste APPAIRÉ : son secret s'échange contre un jeton limité à la synchronisation (pas de rotation, pas de compte).
+  const secretPoste = secureGet(POSTE_SECRET_KEY)
+  if (cfg.serverUrl && secretPoste) return jetonParSecret(cfg.serverUrl, secretPoste)
   const refresh = secureGet(REFRESH_KEY)
   if (!cfg.serverUrl || !refresh) return 'expired'
   refreshing = true
@@ -365,6 +423,30 @@ export async function refreshAccessToken(): Promise<'ok' | 'offline' | 'expired'
     const data = (await r.json()) as AuthResponse
     if (!data.accessToken) return 'offline'
     if (data.refreshToken) secureSet(REFRESH_KEY, data.refreshToken) // rotation : on garde le nouveau
+    fs.writeFileSync(syncTokenFilePath(), data.accessToken, 'utf8')
+    return 'ok'
+  } catch {
+    return 'offline'
+  } finally {
+    refreshing = false
+  }
+}
+
+/** Échange le secret d'un poste appairé contre un jeton d'accès (écrit pour le backend embarqué). */
+async function jetonParSecret(serverUrl: string, secret: string): Promise<'ok' | 'offline' | 'expired'> {
+  if (refreshing) return 'ok'
+  refreshing = true
+  try {
+    const r = await fetch(trimUrl(serverUrl) + '/sync/appairage/jeton', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ posteLocalId: getPosteLocalId(), secret }),
+    })
+    // 401 : accès coupé par un administrateur (ou secret remplacé) → il faut réappairer ce poste.
+    if (r.status === 401 || r.status === 403) return 'expired'
+    if (!r.ok) return 'offline'
+    const data = (await r.json()) as { accessToken?: string }
+    if (!data.accessToken) return 'offline'
     fs.writeFileSync(syncTokenFilePath(), data.accessToken, 'utf8')
     return 'ok'
   } catch {
@@ -390,6 +472,7 @@ export function stopRefreshTimer(): void {
 /** Déconnecte la synchro (re-configuration) — conserve serverUrl pour pré-remplir l'écran. */
 export function clearSync(): void {
   secureDel(REFRESH_KEY)
-  writeConfig({ siteId: undefined })
+  secureDel(POSTE_SECRET_KEY)
+  writeConfig({ siteId: undefined, appaire: undefined })
   try { fs.rmSync(syncTokenFilePath(), { force: true }) } catch { /* noop */ }
 }

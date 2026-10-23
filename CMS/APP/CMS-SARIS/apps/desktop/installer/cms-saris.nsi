@@ -1160,8 +1160,9 @@ FunctionEnd
 ; premier lancement pour pré-remplir son écran de configuration (cf. electron/deploiement.ts). Deux sources, cumulables :
 ;  - un fichier `deploiement.ini` posé À CÔTÉ de l'installateur (clé USB, dossier partagé) : une préparation, puis un
 ;    double-clic par poste ;
-;  - les options /SERVEUR=… /SITE=… /POSTE=… (elles l'emportent, clé par clé) — pour un déploiement par script.
-; Aucun identifiant ni mot de passe n'y figure, jamais.
+;  - les options /SERVEUR=… /SITE=… /POSTE=… /CODE=… (elles l'emportent, clé par clé) — pour un déploiement par script.
+; Aucun identifiant ni mot de passe n'y figure, jamais. Seul un code d'APPAIRAGE y est toléré : il expire, ne sert qu'un
+; nombre limité de fois, et l'application le retire du fichier dès que le poste est appairé.
 ; Lit l'option /NOM=valeur de la ligne de commande : $R0 = NOM (sans « / » ni « = »). Résultat : $R1 = valeur, $R2 = 1 si présente.
 ; ${GetOptions} ne convient pas : il coupe la valeur au premier « / », donc une adresse « https://… » devenait « https: ».
 ; Ici les options sont séparées par « espace + / » ; une valeur peut contenir des espaces et être entre guillemets.
@@ -1251,6 +1252,16 @@ Function AppliquerDeploiement
     CreateDirectory "$APPDATA\${APP_NAME}"
     WriteINIStr "$1" "deploiement" "poste" "$R1"
     DetailPrint "Deploiement : nom du poste = $R1"
+  ${EndIf}
+
+  ; Code d'appairage : la valeur n'est JAMAIS affichée dans le journal de l'installateur.
+  StrCpy $R0 "CODE"
+  Call LireOption
+  ${If} $R2 = 1
+  ${AndIf} $R1 != ""
+    CreateDirectory "$APPDATA\${APP_NAME}"
+    WriteINIStr "$1" "deploiement" "code" "$R1"
+    DetailPrint "Deploiement : code d'appairage prevu (valeur non affichee)"
   ${EndIf}
   Pop $3
   Pop $2

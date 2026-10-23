@@ -14,6 +14,12 @@ import {
   routePermiseAvecMotDePasseTemporaire,
 } from '../mot-de-passe-temporaire'
 import { PAS_ACTIVITE_MS } from '../connexions.util'
+import {
+  PERMISSIONS_POSTE,
+  PREFIXE_POSTE,
+  estJetonPoste,
+  generationSecret,
+} from '../poste-token'
 import type { Request } from 'express'
 import type { JwtPayload, UserSession } from '@cms-saris/types'
 
@@ -52,6 +58,42 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     })
   }
 
+  /**
+   * Jeton d'un POSTE appairé : l'identité vient de la base (le poste existe-t-il, son accès est-il encore valide, ce
+   * jeton date-t-il de son secret actuel ?), jamais du seul contenu du jeton. Le site est celui du POSTE tel que le
+   * serveur le connaît — déplacer un poste d'un site à l'autre s'applique au prochain appel.
+   */
+  private async validerPoste(
+    payload: JwtPayload,
+  ): Promise<Omit<UserSession, 'token'> & { sid: string | null }> {
+    const id = payload.posteLocalId
+    if (!id || payload.sub !== `${PREFIXE_POSTE}${id}`) {
+      throw new UnauthorizedException('Token invalide')
+    }
+    const poste = await this.prisma.posteLocal.findUnique({
+      where: { id },
+      select: { siteId: true, secretHash: true },
+    })
+    if (
+      !poste?.secretHash ||
+      payload.pe !== generationSecret(poste.secretHash)
+    ) {
+      throw new UnauthorizedException('Accès du poste révoqué ou remplacé')
+    }
+    return {
+      id: payload.sub,
+      login: payload.sub,
+      siteId: poste.siteId,
+      roles: [],
+      permissions: [...PERMISSIONS_POSTE],
+      personnelMedicalId: null,
+      photoUrl: null,
+      sid: null,
+      estPoste: true,
+      posteLocalId: id,
+    }
+  }
+
   async validate(
     req: Request,
     payload: JwtPayload,
@@ -59,6 +101,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (!payload.sub || !payload.siteId || !payload.roles) {
       throw new UnauthorizedException('Token invalide')
     }
+    if (estJetonPoste(payload)) return this.validerPoste(payload)
 
     // Révocation IMMÉDIATE : si le token porte un identifiant de session (sid),
     // on exige que la session soit toujours ACTIVE en base (non révoquée, non

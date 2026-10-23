@@ -60,6 +60,43 @@ export interface SyncSupervisionPoste {
    *  `null` = poste ancien : il ne sait ni afficher une suspension ni se resynchroniser. */
   versionApp: string | null
   niveauControle: number | null
+  /** Appairage : le poste s'est enregistré avec un code (pas avec un compte) — et son accès a-t-il été coupé ? */
+  appaireAt: string | null
+  accesRevoqueAt: string | null
+}
+
+// ── Appairage : un code remplace l'identifiant et le mot de passe pour installer un poste ──
+
+export type EtatCodeAppairage = 'ACTIF' | 'EPUISE' | 'EXPIRE' | 'ANNULE'
+export interface CodeAppairageVue {
+  id: string
+  siteId: string
+  siteLibelle: string | null
+  usagesMax: number
+  usagesFaits: number
+  etat: EtatCodeAppairage
+  expireAt: string
+  annuleAt: string | null
+  note: string | null
+  creeParNom: string | null
+  createdAt: string
+  postes: { id: string; libelle: string }[]
+}
+/** Réponse à la création : le seul moment où le code est visible, en clair. */
+export interface CodeAppairageCree {
+  id: string
+  code: string
+  siteId: string
+  siteLibelle: string
+  usagesMax: number
+  expireAt: string
+  note: string | null
+}
+export interface CreerCodeAppairageBody {
+  siteId: string
+  usagesMax?: number
+  validiteHeures?: number
+  note?: string
 }
 export interface SyncSupervisionPosteDetail extends SyncSupervisionPoste {
   /** Début de la dernière session connectée (suite contiguë de cycles de synchro). */
@@ -243,6 +280,14 @@ export const syncApi = {
     api.delete<EtatControlePoste>(`/sync/supervision/postes/${id}/resynchronisation`),
   posteDetail: (id: string) => api.get<SyncSupervisionPosteDetail>(`/sync/supervision/postes/${id}`),
   masquerPoste: (id: string) => api.delete<{ ok: boolean }>(`/sync/supervision/postes/${id}`),
+
+  /** Codes d'appairage (sans jamais le code lui-même) et leur état. */
+  codesAppairage: () => api.get<CodeAppairageVue[]>('/sync/appairage/codes'),
+  creerCodeAppairage: (body: CreerCodeAppairageBody) =>
+    api.post<CodeAppairageCree>('/sync/appairage/codes', body),
+  annulerCodeAppairage: (id: string) => api.delete<void>(`/sync/appairage/codes/${id}`),
+  /** Coupe l'accès d'un poste appairé (perte, vol, poste retiré) : son jeton cesse de valoir. */
+  revoquerAccesPoste: (id: string) => api.delete<void>(`/sync/appairage/postes/${id}`),
   renamePoste: (id: string, libelle: string) =>
     api.patch<{ libelle: string }>(`/sync/supervision/postes/${id}`, { libelle }),
 

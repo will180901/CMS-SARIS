@@ -13,6 +13,12 @@ export interface JwtPayload {
   personnelMedicalId: string | null
   /** Identifiant de la session (= SessionUtilisateur.id) — pour la gestion des sessions */
   sid?:              string
+  /** `'poste'` = jeton d'un POSTE DE BUREAU appairé (cf. CodeAppairage), pas d'une personne : il ne donne accès
+   *  qu'à la synchronisation. `sub` vaut alors `poste:<posteLocalId>`. */
+  typ?:              'poste'
+  posteLocalId?:     string
+  /** Génération du secret du poste (début de son empreinte) : un nouvel appairage invalide les anciens jetons. */
+  pe?:               string
   iat:               number
   exp:               number
 }
@@ -28,6 +34,9 @@ export interface UserSession {
   /** Le compte porte un mot de passe TEMPORAIRE (posé par l'administrateur) : l'écran impose
    *  d'abord d'en choisir un, et le serveur refuse tout le reste tant que ce n'est pas fait. */
   motDePasseTemp?:    boolean
+  /** La requête vient d'un poste appairé (jeton `typ: 'poste'`) : pas une personne. */
+  estPoste?:          boolean
+  posteLocalId?:      string
   token:              string
 }
 

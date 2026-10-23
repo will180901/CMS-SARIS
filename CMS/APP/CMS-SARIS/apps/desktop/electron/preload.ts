@@ -17,6 +17,8 @@ interface BootConfig {
   serverUrl: string
   /** Nom de poste par défaut (hostname) — pré-remplit le champ « Nom de ce poste ». */
   posteLibelleDefault: string
+  /** Code d'appairage prévu par le déploiement (vide sinon). */
+  codeDeploiement: string
   /** Identité de CETTE machine dans le parc (nom donné à la configuration, id stable,
    *  site de rattachement). Absente côté web : un navigateur n'est pas un poste. */
   posteLibelle: string
@@ -40,6 +42,7 @@ contextBridge.exposeInMainWorld('saris', {
   platform: boot.platform,
   serverUrl: boot.serverUrl,
   posteLibelleDefault: boot.posteLibelleDefault,
+  codeDeploiement: boot.codeDeploiement,
   posteLibelle: boot.posteLibelle,
   posteLocalId: boot.posteLocalId,
   posteSiteId: boot.posteSiteId,
@@ -66,6 +69,9 @@ contextBridge.exposeInMainWorld('saris', {
     ipcRenderer.invoke('saris:sync-list-sites'),
   syncFinalize: (params: { siteId: string; posteLibelle?: string }): Promise<{ ok: boolean; error?: string }> =>
     ipcRenderer.invoke('saris:sync-finalize', params),
+  /** Configuration par CODE D'APPAIRAGE : ni compte ni choix de site, tout vient du code. */
+  syncAppairer: (params: { serverUrl: string; code: string; posteLibelle?: string }): Promise<{ ok: boolean; error?: string }> =>
+    ipcRenderer.invoke('saris:sync-appairer', params),
   /** Abandonne l'authentification en attente (retour à l'étape 1 depuis l'étape 2). */
   syncDiscard: (): Promise<void> => ipcRenderer.invoke('saris:sync-discard'),
   /** Le navigateur signale la perte/retour du reseau (evenements offline/online). */

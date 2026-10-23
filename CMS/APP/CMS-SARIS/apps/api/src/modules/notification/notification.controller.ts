@@ -111,6 +111,9 @@ export class NotificationController {
     }
     if (!payload?.sub || !payload?.siteId)
       throw new UnauthorizedException('Token invalide')
+    // Le jeton d'un POSTE appairé ne vaut que pour la synchronisation, jamais pour un flux de personne.
+    if (payload.typ === 'poste')
+      throw new UnauthorizedException('Token invalide')
     const audience: NotifAudience = {
       userId: payload.sub,
       siteId: payload.siteId,

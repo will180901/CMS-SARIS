@@ -19,17 +19,17 @@
 
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Eraser, Pause, Play, RefreshCw } from 'lucide-react'
+import { Eraser, KeyRound, Pause, Play, RefreshCw, Unplug } from 'lucide-react'
 import { Button, Modal, Field, Textarea } from '@/components/saris'
 import { toast } from '@workspace/ui/components/sonner'
 import { formatDateTime } from '@/lib/intl'
 import {
-  useSuspendrePoste, useReprendrePoste, useDemanderResync, useAnnulerResync,
+  useSuspendrePoste, useReprendrePoste, useDemanderResync, useAnnulerResync, useRevoquerAccesPoste,
 } from '../hooks/useSync'
 import type { SyncSupervisionPosteDetail } from '../api/sync.api'
 import { relative } from './relatif'
 
-type Modale = null | 'suspendre' | 'resync'
+type Modale = null | 'suspendre' | 'resync' | 'couper'
 
 interface Props {
   poste: SyncSupervisionPosteDetail
@@ -56,6 +56,7 @@ export function ControleFluxPoste({ poste, peutAgir, onModale }: Props) {
   const reprendre = useReprendrePoste()
   const demander = useDemanderResync()
   const annuler = useAnnulerResync()
+  const revoquer = useRevoquerAccesPoste()
   const [modale, setModale] = useState<Modale>(null)
   const [motif, setMotif] = useState('')
 
@@ -75,6 +76,13 @@ export function ControleFluxPoste({ poste, peutAgir, onModale }: Props) {
   function confirmerResync() {
     demander.mutate(poste.id, {
       onSuccess: () => { ouvrir(null); toast.success(t('admin.supCtlResyncDemandee')) },
+      onError: echec,
+    })
+  }
+
+  function confirmerCoupure() {
+    revoquer.mutate(poste.id, {
+      onSuccess: () => { ouvrir(null); toast.success(t('admin.appAccesCoupeFait')) },
       onError: echec,
     })
   }
@@ -153,6 +161,32 @@ export function ControleFluxPoste({ poste, peutAgir, onModale }: Props) {
           ))}
         </div>
 
+        {/* ── L'appairage : ce poste s'est enregistré avec un code, sans compte ──── */}
+        {poste.appaireAt && (
+          <div style={{ ...rangee, borderTop: '1px solid var(--bordure-legere)' }}>
+            <KeyRound
+              size={14}
+              style={{ color: poste.accesRevoqueAt ? 'var(--erreur-accent)' : 'var(--texte-tertiaire)', flexShrink: 0 }}
+            />
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <p style={titre}>{t('admin.appAcces')}</p>
+              <p style={aide}>
+                {poste.accesRevoqueAt
+                  ? t('admin.appAccesCoupe', { date: formatDateTime(poste.accesRevoqueAt) })
+                  : <>{t('admin.appAccesActif', { date: formatDateTime(poste.appaireAt) })}<br />{t('admin.appAccesAide')}</>}
+              </p>
+            </div>
+            {peutAgir && !poste.accesRevoqueAt && (
+              <Button
+                size="sm" variant="outline" leftIcon={<Unplug size={13} />} onClick={() => ouvrir('couper')}
+                style={{ color: 'var(--erreur-texte)', borderColor: 'var(--erreur-accent)' }}
+              >
+                {t('admin.appCouper')}
+              </Button>
+            )}
+          </div>
+        )}
+
         {/* ── Le vidage des données du centre : où en est ce poste ───────── */}
         {(vidageEnAttente || poste.vidageFaitAt) && (
           <div style={{ ...rangee, borderTop: '1px solid var(--bordure-legere)' }}>
@@ -210,6 +244,26 @@ export function ControleFluxPoste({ poste, peutAgir, onModale }: Props) {
               {t('admin.supSuspAppareilVole')}
             </p>
           </div>
+        </Modal>
+      )}
+
+      {modale === 'couper' && (
+        <Modal
+          icon={<Unplug size={18} />} tone="error" width={500}
+          title={t('admin.appCouperTitre')} subtitle={poste.libelle}
+          onClose={() => ouvrir(null)}
+          footer={
+            <>
+              <Button variant="ghost" onClick={() => ouvrir(null)}>{t('common.cancel')}</Button>
+              <Button variant="danger" loading={revoquer.isPending} onClick={confirmerCoupure}>
+                {t('admin.appCouperConfirmer')}
+              </Button>
+            </>
+          }
+        >
+          <p style={{ margin: 0, fontSize: 13, color: 'var(--texte-secondaire)', lineHeight: 1.6 }}>
+            {t('admin.appCouperCorps')}
+          </p>
         </Modal>
       )}
 

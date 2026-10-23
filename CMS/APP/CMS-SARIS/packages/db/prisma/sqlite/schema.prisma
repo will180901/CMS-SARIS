@@ -115,6 +115,7 @@ model NotificationLecture {
 }
 
 
+
 model Role {
   updatedAt    DateTime          @default(now()) @updatedAt
   id           String            @id @default(uuid())
@@ -158,6 +159,7 @@ model UtilisateurPermission {
   @@unique([utilisateurId, permissionId])
   @@index([utilisateurId])
 }
+
 
 
 model UtilisateurRole {
@@ -629,6 +631,7 @@ model Patient {
 }
 
 
+
 model IdentitePatient {
   updatedAt     DateTime  @default(now()) @updatedAt
   deletedAt     DateTime?
@@ -808,6 +811,7 @@ model Visite {
 }
 
 
+
 // ── Audit trail des modifications de visite ──────────────────────────────────
 // Une ligne par changement de statut / priorité / soignant.
 
@@ -828,6 +832,7 @@ model VisiteEvenement {
   // updatedAt : curseur de synchronisation multi-postes (journal en ajout seul).
   @@index([updatedAt])
 }
+
 
 
 model ConstanteVitale {
@@ -912,6 +917,7 @@ model Consultation {
   @@index([updatedAt])
   @@index([episodeSuiviId])
 }
+
 
 
 model DiagnosticConsultation {
@@ -1290,8 +1296,44 @@ model PosteLocal {
    *  (renseignés par son battement de vie). Absent ou 0 = poste ancien : il les ignore. */
   versionApp           String?
   niveauControle       Int?
+  /**
+   * APPAIRAGE : le poste s'est enregistré avec un CODE (cf. CodeAppairage) au lieu d'un compte d'utilisateur.
+   * `secretHash` = empreinte SHA-256 du secret que seul ce poste détient (rangé chiffré par DPAPI sur sa machine) ;
+   * il l'échange contre un jeton d'accès limité à la synchronisation. `null` = jamais appairé, ou accès RÉVOQUÉ
+   * (`accesRevoqueAt` renseigné). Ce modèle n'est PAS synchronisé : un poste ne reçoit jamais celui d'un autre.
+   */
+  secretHash           String?
+  appaireAt            DateTime?
+  appaireCodeId        String?
+  accesRevoqueAt       DateTime?
   createdAt            DateTime                 @default(now())
   journauxSync         JournalSynchronisation[]
+}
+
+/**
+ * Code d'APPAIRAGE : ce qu'un administrateur remet à qui installe un poste, à la place d'un identifiant et d'un
+ * mot de passe. Le code ne sert qu'à enregistrer le poste (un site, une durée, un nombre de postes) : le poste
+ * reçoit ensuite son PROPRE secret, et n'a plus jamais besoin du code. Seule l'empreinte du code est conservée —
+ * il n'est montré qu'à sa création. Pas de relation FK (traçabilité seule, comme createdBy ailleurs au schéma).
+ */
+model CodeAppairage {
+  id          String    @id @default(uuid())
+  /// Empreinte HMAC du code (jamais le code lui-même).
+  codeHash    String    @unique
+  siteId      String
+  /// Nombre de postes que ce code peut appairer : 1 = usage unique, davantage = déploiement par lot.
+  usagesMax   Int       @default(1)
+  /// Postes déjà appairés avec ce code. Incrémenté de façon ATOMIQUE (jamais « compter puis écrire », qui laisserait
+  /// deux postes simultanés dépasser le maximum).
+  usagesFaits Int       @default(0)
+  expireAt    DateTime
+  annuleAt    DateTime?
+  /// Libellé libre (« lot du 24/10 », « Pointe-Noire »).
+  note        String?
+  creePar     String?
+  createdAt   DateTime  @default(now())
+
+  @@index([expireAt])
 }
 
 model JournalSynchronisation {

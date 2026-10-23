@@ -30,6 +30,7 @@ import type { Prisma } from '@prisma/client'
 import { PrismaService } from '../../prisma/prisma.service'
 import { CI, parMots } from '../../common/prisma/search'
 import { NotificationService } from '../notification/notification.service'
+import { PREFIXE_POSTE } from '../security/poste-token'
 
 export interface SyncConflictDetail {
   /** uuid de la mutation / id de l'entité en conflit */
@@ -162,6 +163,8 @@ export class SyncSupervisionService {
     if (this.isSqlite) return
     const { posteLocalId, siteId, userId, startedAt, applied, conflicts } =
       input
+    // Un poste appairé n'est pas une personne : son identité (`poste:<id>`) ne remplace pas « le dernier utilisateur ».
+    const auteur = userId.startsWith(PREFIXE_POSTE) ? null : userId
     const rejets = input.rejets ?? []
     const now = new Date()
 
@@ -177,7 +180,7 @@ export class SyncSupervisionService {
         where: { id: posteLocalId },
         update: {
           derniereSyncAt: now,
-          dernierUtilisateurId: userId,
+          ...(auteur ? { dernierUtilisateurId: auteur } : {}),
           masque: false,
         },
         create: {
@@ -185,7 +188,7 @@ export class SyncSupervisionService {
           siteId,
           libelle: this.defaultLibelle(posteLocalId),
           derniereSyncAt: now,
-          dernierUtilisateurId: userId,
+          dernierUtilisateurId: auteur,
         },
       })
 
@@ -1188,6 +1191,8 @@ export class SyncSupervisionService {
       vidageFaitAt: Date | null
       versionApp: string | null
       niveauControle: number | null
+      appaireAt: Date | null
+      accesRevoqueAt: Date | null
     },
   >(postes: T[]) {
     const now = Date.now()
@@ -1268,6 +1273,9 @@ export class SyncSupervisionService {
         vidageFaitAt: p.vidageFaitAt,
         versionApp: p.versionApp,
         niveauControle: p.niveauControle,
+        // Appairage : le poste s'est-il enregistré avec un code ? son accès a-t-il été coupé ?
+        appaireAt: p.appaireAt,
+        accesRevoqueAt: p.accesRevoqueAt,
       }
     })
   }

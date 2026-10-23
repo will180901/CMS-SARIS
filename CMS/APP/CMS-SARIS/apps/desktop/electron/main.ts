@@ -20,7 +20,7 @@ import { ensureDb } from './db-init'
 import { ecrireFichierEtat, lireEnAttente } from './etat-poste'
 import {
   isSyncConfigured, authenticateSync, listPendingSites, finalizeSyncSetup, discardPendingAuth,
-  serveurRenseigne, enregistrerServeur, provisionnerPoste,
+  serveurRenseigne, enregistrerServeur, provisionnerPoste, appairerPoste,
   declarerPosteAuServeur,
   refreshAccessToken, startRefreshTimer, stopRefreshTimer,
   clearSync, getPosteLocalId, getPosteLibelle, syncTokenFilePath,
@@ -375,6 +375,8 @@ function registerIpc(): void {
       serverUrl: resolveServerUrl(),
       // Nom de poste par défaut (hostname) — pré-remplit le champ de l'écran de configuration.
       posteLibelleDefault: getPosteLibelle(),
+      // Code d'appairage prévu par le déploiement (deploiement.ini) : l'écran le pré-remplit, sans le valider seul.
+      codeDeploiement: lireDeploiementPoste().code ?? '',
       // Identité de CETTE machine. Le desktop est lui-même un poste du parc : sa page
       // Synchronisation doit répondre à « où suis-je, où en suis-je ? » avant de montrer
       // les autres. Le web n'a pas ces valeurs — il n'est pas une machine du parc.
@@ -434,6 +436,17 @@ function registerIpc(): void {
   })
 
   ipcMain.handle('saris:sync-discard', () => { discardPendingAuth() })
+
+  /**
+   * Configuration par CODE D'APPAIRAGE : pas de compte, pas de mot de passe, pas de choix du site (il vient du code).
+   * Même suite que la configuration par compte : on répond tout de suite, puis le service local démarre et tire les
+   * données du site (l'écran suit la progression par `saris:setup-status`).
+   */
+  ipcMain.handle('saris:sync-appairer', async (_e, params: { serverUrl: string; code: string; posteLibelle?: string }) => {
+    const res = await appairerPoste(params.serverUrl, params.code, params.posteLibelle)
+    if (res.ok) setImmediate(() => { void completeLocalStartup() })
+    return res
+  })
 
   /**
    * Le SYSTEME signale la perte ou le retour du reseau (carte debranchee, Wi-Fi coupe).

@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   HttpException,
   Param,
@@ -19,6 +20,7 @@ import { Throttle } from '@nestjs/throttler'
 import { JwtAuthGuard } from '../security/guards/jwt-auth.guard'
 import { PermissionsGuard } from '../security/guards/permissions.guard'
 import { RequirePermissions } from '../../common/decorators/require-permissions.decorator'
+import { AutoriserPoste } from '../../common/decorators/autoriser-poste.decorator'
 import { SyncService } from './sync.service'
 import { SyncClientService } from './sync-client.service'
 import { SyncSupervisionService } from './sync-supervision.service'
@@ -40,8 +42,34 @@ import {
 import { PortierVidage } from './portier-vidage'
 
 interface AuthedRequest {
-  user?: { id?: string; siteId?: string }
+  user?: {
+    id?: string
+    siteId?: string
+    /** Jeton d'un poste appairé (pas d'une personne) — cf. appairage.service.ts. */
+    estPoste?: boolean
+    posteLocalId?: string
+  }
   ip?: string
+}
+
+/**
+ * Le poste dont parle la requête. Un jeton de POSTE ne vaut que pour son propre poste : il ne peut ni tirer, ni envoyer,
+ * ni battre au nom d'un autre. Avec un compte de personne (postes d'avant l'appairage), le poste annoncé fait foi.
+ */
+function posteDeLaRequete(
+  req: AuthedRequest,
+  annonce: string | null | undefined,
+): string | undefined {
+  if (!req.user?.estPoste) return annonce ?? undefined
+  const sien = req.user.posteLocalId
+  if (annonce && annonce !== sien)
+    throw new ForbiddenException('Ce jeton ne vaut que pour le poste qui l’a obtenu.')
+  return sien
+}
+
+/** L'auteur d'un geste tracé : une PERSONNE, jamais l'identité d'un poste appairé (qui n'est pas un compte). */
+function auteurDeLaRequete(req: AuthedRequest, userId: string): string | null {
+  return req.user?.estPoste ? null : userId
 }
 
 function requireUser(req: AuthedRequest): { userId: string; siteId: string } {
@@ -74,11 +102,12 @@ export class SyncController {
   ) {}
 
   @Get('pull')
+  @AutoriserPoste()
   @RequirePermissions('synchronisation.read')
   async pull(@Req() req: AuthedRequest, @Query() q: SyncPullQueryDto) {
     const { siteId } = requireUser(req)
     // Un poste suspendu ne reçoit plus rien — s'il dit qui il est (les postes à jour le font).
-    await this.supervision.assertPosteActif(q.posteLocalId)
+    await this.supervision.assertPosteActif(posteDeLaRequete(req, q.posteLocalId))
     return this.svc.pull(siteId, q.since, q.limit)
   }
 
@@ -98,17 +127,23 @@ export class SyncController {
    * jeton ne se retrouve jamais dans une URL.
    */
   @Sse('events')
+  @AutoriserPoste()
   @RequirePermissions('synchronisation.read')
-  events(@Query('posteLocalId') posteLocalId?: string): Observable<MessageEvent> {
+  events(
+    @Req() req: AuthedRequest,
+    @Query('posteLocalId') posteLocalId?: string,
+  ): Observable<MessageEvent> {
     // Le poste ne doit pas être réveillé par sa PROPRE écriture : il détient déjà la
     // donnée, et un aller-retour inutile toutes les frappes coûterait cher sur un parc.
-    return this.svc.clochePour(posteLocalId ?? null)
+    return this.svc.clochePour(posteDeLaRequete(req, posteLocalId) ?? null)
   }
 
   @Post('push')
+  @AutoriserPoste()
   @RequirePermissions('synchronisation.execute')
   async push(@Req() req: AuthedRequest, @Body() body: SyncPushDto) {
     const { userId, siteId } = requireUser(req)
+    posteDeLaRequete(req, body.posteLocalId)
     // Refus AVANT tout traitement : rien du lot d'un poste suspendu n'est appliqué.
     await this.supervision.assertPosteActif(body.posteLocalId)
     // Un vidage des données métier est-il en cours ? Alors ce lot, même d'un poste en règle, ne doit
@@ -136,9 +171,11 @@ export class SyncController {
    * apparaître le poste dès l'installation et rend le statut en ligne/hors ligne réellement vivant.
    */
   @Post('heartbeat')
+  @AutoriserPoste()
   @RequirePermissions('synchronisation.execute')
   async heartbeat(@Req() req: AuthedRequest, @Body() body: SyncHeartbeatDto) {
     const { siteId } = requireUser(req)
+    posteDeLaRequete(req, body.posteLocalId)
     // La réponse porte les ORDRES du serveur au poste (suspension, resynchronisation) : c'est
     // ainsi qu'un poste à jour les apprend. Absents si le serveur n'a pas pu les lire — le
     // poste garde alors son état plutôt que de croire qu'on l'a libéré.
@@ -268,6 +305,7 @@ export class SyncController {
    * pour pousser).
    */
   @Post('poste/:id/resync-terminee')
+  @AutoriserPoste()
   @RequirePermissions('synchronisation.execute')
   accuserResync(
     @Req() req: AuthedRequest,
@@ -275,7 +313,12 @@ export class SyncController {
     @Body() dto: ResyncTermineeDto,
   ) {
     const { userId } = requireUser(req)
-    return this.supervision.accuserResync(id, new Date(dto.demandeeAt), userId)
+    posteDeLaRequete(req, id)
+    return this.supervision.accuserResync(
+      id,
+      new Date(dto.demandeeAt),
+      auteurDeLaRequete(req, userId),
+    )
   }
 
   /**
@@ -284,6 +327,7 @@ export class SyncController {
    * à rester ouverte à un poste dont le vidage est en attente (avec le battement de vie).
    */
   @Post('poste/:id/vidage-termine')
+  @AutoriserPoste()
   @RequirePermissions('synchronisation.execute')
   accuserVidage(
     @Req() req: AuthedRequest,
@@ -291,7 +335,12 @@ export class SyncController {
     @Body() dto: VidageTermineDto,
   ) {
     const { userId } = requireUser(req)
-    return this.supervision.accuserVidage(id, new Date(dto.demandeeAt), userId)
+    posteDeLaRequete(req, id)
+    return this.supervision.accuserVidage(
+      id,
+      new Date(dto.demandeeAt),
+      auteurDeLaRequete(req, userId),
+    )
   }
 
   /** Activité regroupée par poste : UNE ligne par machine (cf. service). */

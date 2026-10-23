@@ -5,7 +5,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { syncApi } from '../api/sync.api'
 import type {
-  ActiviteParams, ActiviteParPosteParams, ConflitsPosteParams, PorteePurgeActivite,
+  ActiviteParams, ActiviteParPosteParams, ConflitsPosteParams, CreerCodeAppairageBody, PorteePurgeActivite,
 } from '../api/sync.api'
 
 export function useSyncStatus(enabled = true) {
@@ -132,6 +132,31 @@ export function useDemanderResync() {
 }
 export function useAnnulerResync() {
   return useControle((id: string) => syncApi.annulerResync(id))
+}
+
+/** Codes d'appairage : chargés à l'ouverture de l'onglet (jamais le code lui-même, seulement son état). */
+export function useCodesAppairage(enabled = true) {
+  return useQuery({
+    queryKey: ['admin', 'sync', 'appairage', 'codes'],
+    queryFn: () => syncApi.codesAppairage(),
+    enabled,
+    staleTime: 5_000,
+  })
+}
+/** Crée un code : la réponse (typée) porte le code EN CLAIR, que l'écran montre une seule fois. */
+export function useCreerCodeAppairage() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: CreerCodeAppairageBody) => syncApi.creerCodeAppairage(body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'sync'] }),
+  })
+}
+export function useAnnulerCodeAppairage() {
+  return useControle((id: string) => syncApi.annulerCodeAppairage(id))
+}
+/** Coupe l'accès d'un poste appairé ; la fiche et les cartes du parc se rafraîchissent. */
+export function useRevoquerAccesPoste() {
+  return useControle((id: string) => syncApi.revoquerAccesPoste(id))
 }
 
 /** Retire un poste de la liste de supervision (dismiss) — réapparaît à sa prochaine synchro. */

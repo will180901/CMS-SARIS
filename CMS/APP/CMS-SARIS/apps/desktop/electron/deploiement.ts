@@ -9,19 +9,25 @@
  *     serveur=https://cms-saris.example.org
  *     site=BZV-01
  *     poste=Accueil {MACHINE}
+ *     code=K7QM-4XPD
  *
  *  - serveur : adresse du serveur central — pré-remplit l'écran de configuration ;
+ *  - code    : code d'APPAIRAGE (facultatif) : le poste s'enregistre avec lui, sans compte ni mot de passe ;
  *  - site    : CODE (ou libellé) du site de rattachement — pré-sélectionné à l'étape 2 ;
  *  - poste   : nom du poste ; `{MACHINE}` est remplacé par le nom de l'ordinateur.
  *
- * Ce fichier ne contient JAMAIS d'identifiant ni de mot de passe. Il ne sert que de valeur par défaut : dès que le poste
- * est configuré, ce sont ses propres réglages (`config.json`) qui font foi. Module sans dépendance (testable seul).
+ * Ce fichier ne contient JAMAIS d'identifiant ni de mot de passe. Un code d'appairage y est toléré (il expire et ne
+ * s'utilise qu'un nombre limité de fois) ; l'application le retire dès que le poste est appairé. Il ne sert que de valeur
+ * par défaut : dès que le poste est configuré, ce sont ses propres réglages (`config.json`) qui font foi. Module sans
+ * dépendance (testable seul).
  */
 
 export interface Deploiement {
   serveur?: string
   site?: string
   poste?: string
+  /** Code d'APPAIRAGE (cf. le serveur) : pré-remplit l'écran de configuration, qui s'en sert à la place d'un compte. */
+  code?: string
 }
 
 const MAX_TEXTE = 80
@@ -76,12 +82,37 @@ export function analyserDeploiement(texte: string, nomMachine: string): Deploiem
       if (/^https?:\/\/[^\s/]+/i.test(url)) resultat.serveur = url
     } else if (cle === 'site') {
       resultat.site = valeur.slice(0, MAX_TEXTE)
+    } else if (cle === 'code') {
+      // Lettres, chiffres, espaces et tirets seulement, 40 caractères au plus : c'est une saisie, pas un texte libre.
+      if (/^[A-Za-z0-9 \-_]{1,40}$/.test(valeur)) resultat.code = valeur
     } else if (cle === 'poste') {
       const nom = valeur.replace(/\{machine\}/gi, nomMachine).trim().slice(0, MAX_TEXTE)
       if (nom) resultat.poste = nom
     }
   }
   return resultat
+}
+
+/**
+ * Le même texte SANS la ligne `code=` de la section [deploiement]. Un code d'appairage ne doit pas rester sur le poste une
+ * fois utilisé : on le retire dès l'appairage réussi (le reste du fichier — serveur, site, nom — est conservé tel quel).
+ */
+export function retirerCode(texte: string): string {
+  let section = ''
+  const lignes = texte.split(/\r?\n/)
+  const gardees = lignes.filter((brut) => {
+    const ligne = brut.trim()
+    const entete = /^\[(.+)\]$/.exec(ligne)
+    if (entete) {
+      section = entete[1]!.trim().toLowerCase()
+      return true
+    }
+    if (section && section !== 'deploiement') return true
+    const egal = ligne.indexOf('=')
+    if (egal < 1 || ligne.startsWith(';') || ligne.startsWith('#')) return true
+    return ligne.slice(0, egal).trim().toLowerCase() !== 'code'
+  })
+  return gardees.length === lignes.length ? texte : gardees.join('\r\n')
 }
 
 const sansCasse = (s: string): string => s.trim().toLowerCase()

@@ -15,7 +15,7 @@ import {
   HardDrive, CheckCircle2, AlertTriangle, Loader2, CloudUpload, Trash2,
   RotateCcw, Users, Stethoscope, Pill, Ambulance, FlaskConical, HardHat, ClipboardList,
   MonitorSmartphone, Activity, GitMerge, Radio, LayoutGrid, List, Search,
-  X, Clock, LogIn, Pencil, User, MessageSquare, Download, ChevronRight, ChevronDown, MapPin, Eye, Pause,
+  X, Clock, LogIn, Pencil, User, MessageSquare, Download, ChevronRight, ChevronDown, MapPin, Eye, Pause, Link2,
 } from 'lucide-react'
 import {
   PageHeader, Card, Button, StatusPill, Skeleton, EmptyState, Tooltip, Modal, SegmentedTabs,
@@ -34,6 +34,7 @@ import { labelModule, labelAction, labelRole } from '@/config/labels'
 import { useConnectivityStore } from '@/stores/connectivity.store'
 import { isDesktop } from '@/lib/desktop'
 import { PosteActiviteDrawer } from '../components/PosteActiviteDrawer'
+import { AppairageSection } from '../components/AppairageSection'
 import { ViderActiviteModal } from '../components/ViderActiviteModal'
 import { relative, etatDuPoste } from '../components/relatif'
 import { PastilleEtat } from '../components/PastilleEtat'
@@ -128,7 +129,7 @@ export function SynchronisationPage() {
 //  ZONE 0 — Supervision de la synchronisation (temps réel, serveur central)
 // ════════════════════════════════════════════════════════════════════════════════
 
-type SupTab = 'postes' | 'activite' | 'conflits'
+type SupTab = 'postes' | 'activite' | 'conflits' | 'appairage'
 type PosteFiltre = 'attention' | 'tous' | 'ligne' | 'horsligne'
 type PosteVue = 'grid' | 'list'
 
@@ -225,6 +226,7 @@ function SupervisionZone() {
     { key: 'postes',   label: t('admin.supPostesTitle'),   icon: <MonitorSmartphone size={13} />, badge: postes.length || undefined },
     { key: 'activite', label: t('admin.supActivityTitle'), icon: <Activity size={13} /> },
     { key: 'conflits', label: t('admin.supConflictsTitle'), icon: <GitMerge size={13} />, badge: conflits.length || undefined },
+    { key: 'appairage', label: t('admin.appTitre'), icon: <Link2 size={13} /> },
   ]
 
   return (
@@ -247,7 +249,7 @@ function SupervisionZone() {
       <Card.Body padding="md">
         <div style={{ marginBottom: 'var(--espace-4)', display: 'flex', alignItems: 'center', gap: 'var(--espace-3)', flexWrap: 'wrap' }}>
           <SegmentedTabs value={supTab} onChange={(k) => setSupTab(k as SupTab)} tabs={supTabs} size="sm" aria-label={t('admin.supTitle')} />
-          {supTab !== 'postes' && (
+          {supTab !== 'postes' && supTab !== 'appairage' && (
             <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 'var(--espace-2)' }}>
               <Button size="sm" variant="outline" onClick={() => setOpenExport(true)}>
                 <Download size={14} /> {t('common.exporter', { defaultValue: 'Exporter' })}
@@ -281,6 +283,7 @@ function SupervisionZone() {
           />
         )}
         {supTab === 'conflits' && <ConflitsTable conflits={conflits} loading={isLoading} />}
+        {supTab === 'appairage' && <AppairageSection canExecute={canExecute} />}
       </Card.Body>
 
       {openExport && (supTab === 'activite' ? (

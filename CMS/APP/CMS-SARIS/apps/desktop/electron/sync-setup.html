@@ -63,6 +63,22 @@
       }
       .eye:hover { background: #e7edf1; color: var(--ink-2); }
 
+      /* ── Étape 1 : deux façons d'enregistrer le poste (code d'appairage / compte) ── */
+      .modes { display: flex; gap: 4px; padding: 3px; margin-bottom: 14px; background: #e1e8ee; border-radius: 10px; }
+      .modes button {
+        flex: 1; height: 32px; border: 0; border-radius: 8px; background: transparent; cursor: pointer;
+        font-size: 12.5px; font-weight: 600; color: var(--ink-2); transition: background .15s, color .15s;
+      }
+      .modes button:hover { color: var(--ink); }
+      .modes button.on { background: var(--surface); color: var(--teal-600); box-shadow: 0 1px 3px rgba(28, 37, 48, 0.12); }
+      .modes button:disabled { cursor: default; opacity: .6; }
+      input.code {
+        font-family: Consolas, "Courier New", monospace; font-size: 17px; font-weight: 600;
+        letter-spacing: 3px; text-transform: uppercase; text-align: center;
+      }
+      input.code::placeholder { letter-spacing: 3px; font-weight: 400; }
+      .prevu { font-size: 11.5px; color: var(--ok); margin: -6px 0 12px; }
+
       .status { display: flex; align-items: center; gap: 8px; min-height: 20px; margin: 4px 0 2px; font-size: 12.5px; line-height: 1.45; }
       .status.err { color: var(--err); background: var(--err-bg); border-radius: 8px; padding: 9px 11px; align-items: flex-start; }
       .status.ok { color: var(--ok); }
@@ -141,7 +157,17 @@
 
         <!-- ── Étape 1 : connexion ── -->
         <div id="step1">
-          <p class="intro">
+          <div class="modes">
+            <button id="modeCode" type="button" class="on">Code d’appairage</button>
+            <button id="modeCompte" type="button">Avec un compte</button>
+          </div>
+
+          <p class="intro" id="introCode">
+            Saisissez le <b>code d’appairage</b> remis par votre administrateur. Aucun identifiant ni mot de
+            passe : ce poste reçoit <b>son propre accès</b>, limité à la synchronisation. Ses données sont
+            ensuite <b>synchronisées localement</b>, et l’application fonctionne même <b>hors‑ligne</b>.
+          </p>
+          <p class="intro hidden" id="introCompte">
             Connectez ce poste à votre serveur. À la première connexion, les données de votre
             site sont <b>synchronisées localement</b> — l’application fonctionne ensuite même
             <b>hors‑ligne</b> et se resynchronise dès que le serveur est joignable.
@@ -151,28 +177,49 @@
             <label for="url">Adresse du serveur</label>
             <input id="url" type="url" placeholder="http://192.168.1.10:3000" autocomplete="off" spellcheck="false" />
           </div>
-          <div class="field">
-            <label for="login">Identifiant</label>
-            <input id="login" type="text" autocomplete="username" spellcheck="false" placeholder="ex. admin" />
-          </div>
-          <div class="field">
-            <label for="password">Mot de passe</label>
-            <div class="inp">
-              <input id="password" type="password" autocomplete="current-password" placeholder="••••••••" />
-              <button class="eye" id="toggle" type="button" tabindex="-1" title="Afficher / masquer">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-              </button>
+
+          <!-- Code d'appairage : le site vient du code, le nom du poste est facultatif -->
+          <div id="blocCode">
+            <div class="field">
+              <label for="code">Code d’appairage</label>
+              <input id="code" class="code" type="text" maxlength="14" placeholder="XXXX-XXXX" autocomplete="off" spellcheck="false" />
+            </div>
+            <p class="prevu hidden" id="codePrevu">Code prévu par le déploiement de ce poste.</p>
+            <div class="field">
+              <label for="posteCode">Nom de ce poste</label>
+              <input id="posteCode" type="text" placeholder="ex. Bureau Accueil" autocomplete="off" spellcheck="false" maxlength="80" />
             </div>
           </div>
-          <div id="totpField" class="field hidden">
-            <label for="totp">Code de vérification (2FA)</label>
-            <input id="totp" type="text" inputmode="numeric" maxlength="6" placeholder="123456" autocomplete="one-time-code" />
+
+          <!-- Compte : identifiant + mot de passe (+ 2FA), puis choix du site à l'étape 2 -->
+          <div id="blocCompte" class="hidden">
+            <div class="field">
+              <label for="login">Identifiant</label>
+              <input id="login" type="text" autocomplete="username" spellcheck="false" placeholder="ex. admin" />
+            </div>
+            <div class="field">
+              <label for="password">Mot de passe</label>
+              <div class="inp">
+                <input id="password" type="password" autocomplete="current-password" placeholder="••••••••" />
+                <button class="eye" id="toggle" type="button" tabindex="-1" title="Afficher / masquer">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+              </div>
+            </div>
+            <div id="totpField" class="field hidden">
+              <label for="totp">Code de vérification (2FA)</label>
+              <input id="totp" type="text" inputmode="numeric" maxlength="6" placeholder="123456" autocomplete="one-time-code" />
+            </div>
           </div>
 
           <div id="status1" class="status"></div>
-          <button id="go1" class="go"><span>Continuer</span></button>
+          <button id="go1" class="go"><span>Enregistrer ce poste</span></button>
 
-          <p class="foot">
+          <p class="foot" id="footCode">
+            Le code ne sert <b>qu’à enregistrer ce poste</b> : il n’est pas conservé. Pas de code ?
+            Demandez-en un dans <b>Synchronisation › Appairage</b>, sur le site web.
+          </p>
+          <p class="foot hidden" id="footCompte">
             Utilisez vos <b>identifiants du serveur central</b> (les mêmes que sur le site web).
             L’adresse et la connexion sont mémorisées de façon sécurisée sur ce poste.
           </p>
@@ -218,6 +265,7 @@
       let busy = false
       let sites = []
       let selectedSite = null
+      let mode = 'code' // 'code' : appairage, sans compte — 'compte' : identifiant + mot de passe, puis choix du site
 
       function setStatus(id, text, kind, spin) {
         const el = $(id)
@@ -227,7 +275,25 @@
       function setBusy1(b) {
         busy = b
         $('go1').disabled = b
-        ;['url', 'login', 'password', 'totp'].forEach((id) => { const e = $(id); if (e) e.disabled = b })
+        ;['url', 'code', 'posteCode', 'login', 'password', 'totp', 'modeCode', 'modeCompte'].forEach((id) => { const e = $(id); if (e) e.disabled = b })
+      }
+
+      // Bascule entre « code d'appairage » et « compte » (étape 1 seulement).
+      function setMode(m) {
+        if (busy) return
+        mode = m
+        const code = m === 'code'
+        $('modeCode').classList.toggle('on', code)
+        $('modeCompte').classList.toggle('on', !code)
+        $('blocCode').classList.toggle('hidden', !code)
+        $('blocCompte').classList.toggle('hidden', code)
+        $('introCode').classList.toggle('hidden', !code)
+        $('introCompte').classList.toggle('hidden', code)
+        $('footCode').classList.toggle('hidden', !code)
+        $('footCompte').classList.toggle('hidden', code)
+        setBtn('go1', code ? 'Enregistrer ce poste' : 'Continuer')
+        setStatus('status1', '', '')
+        ;(code ? ($('code').value ? $('go1') : $('code')) : ($('login').value ? $('password') : $('login'))).focus()
       }
       function setBusy2(b) {
         busy = b
@@ -237,7 +303,13 @@
       function setBtn(id, t) { $(id).querySelector('span').textContent = t }
 
       $('url').value = (window.saris && window.saris.serverUrl) || ''
-      ;($('url').value ? $('login') : $('url')).focus()
+      $('posteCode').value = (window.saris && window.saris.posteLibelleDefault) || ''
+      // Code prévu par le déploiement (deploiement.ini) : pré-rempli, jamais validé tout seul.
+      const codePrevu = (window.saris && window.saris.codeDeploiement) || ''
+      if (codePrevu) { $('code').value = codePrevu; $('codePrevu').classList.remove('hidden') }
+      ;($('url').value ? ($('code').value ? $('go1') : $('code')) : $('url')).focus()
+      $('modeCode').onclick = () => setMode('code')
+      $('modeCompte').onclick = () => setMode('compte')
 
       $('toggle').onclick = () => {
         const p = $('password'); p.type = p.type === 'password' ? 'text' : 'password'
@@ -250,8 +322,30 @@
         $('dot2').classList.toggle('on', n === 2)
       }
 
-      // ── Étape 1 : authentification ──────────────────────────────────────────
+      // ── Étape 1 (code) : appairage — tout vient du code, il n'y a pas d'étape 2 ──
+      async function submitCode() {
+        if (busy) return
+        const serverUrl = clean($('url').value)
+        const code = clean($('code').value)
+        if (!serverUrl) return setStatus('status1', 'Saisissez l’adresse du serveur.', 'err')
+        if (!/^https?:[/][/]/i.test(serverUrl)) return setStatus('status1', 'L’adresse doit commencer par http:// ou https://', 'err')
+        if (!code) return setStatus('status1', 'Saisissez le code d’appairage.', 'err')
+
+        setBusy1(true)
+        setStatus('status1', 'Enregistrement du poste…', '', true)
+        try {
+          const res = await window.saris.syncAppairer({ serverUrl, code, posteLibelle: clean($('posteCode').value) })
+          // Réussi : le poste reste « occupé » ; la suite (démarrage, synchro) arrive par onSetupStatus.
+          if (res && res.ok) { setStatus('status1', 'Préparation du poste…', '', true); return }
+          setStatus('status1', (res && res.error) || 'Échec de l’appairage.', 'err'); setBusy1(false)
+        } catch (e) {
+          setStatus('status1', 'Erreur : ' + (e && e.message ? e.message : e), 'err'); setBusy1(false)
+        }
+      }
+
+      // ── Étape 1 (compte) : authentification ─────────────────────────────────
       async function submitStep1() {
+        if (mode === 'code') return submitCode()
         if (busy) return
         const serverUrl = clean($('url').value)
         const login = clean($('login').value)
@@ -386,20 +480,22 @@
       }
 
       // Progression poussée par le processus principal (démarrage backend / synchro / erreur).
+      // Par code, l'étape 2 n'existe pas : la progression s'affiche sous le bouton de l'étape 1.
       window.saris && window.saris.onSetupStatus && window.saris.onSetupStatus((s) => {
         if (!s) return
+        const par = mode === 'code' ? 'status1' : 'status2'
         if (s.step === 'error') {
-          setStatus('status2', s.message || 'Une erreur est survenue.', 'err', false)
-          setBusy2(false); setBtn('go2', 'Réessayer')
+          setStatus(par, s.message || 'Une erreur est survenue.', 'err', false)
+          if (mode === 'code') { setBusy1(false); setBtn('go1', 'Réessayer') } else { setBusy2(false); setBtn('go2', 'Réessayer') }
         } else if (s.step === 'done') {
-          setStatus('status2', s.message || 'Ouverture…', 'ok', true)
+          setStatus(par, s.message || 'Ouverture…', 'ok', true)
         } else {
-          setStatus('status2', s.message || 'Veuillez patienter…', '', true)
+          setStatus(par, s.message || 'Veuillez patienter…', '', true)
         }
       })
 
       $('go1').onclick = submitStep1
-      ;['url', 'login', 'password', 'totp'].forEach((id) =>
+      ;['url', 'code', 'posteCode', 'login', 'password', 'totp'].forEach((id) =>
         $(id).addEventListener('keydown', (e) => { if (e.key === 'Enter') submitStep1() }))
 
       $('go2').onclick = submitStep2

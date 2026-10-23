@@ -3,7 +3,7 @@
  *   pnpm --filter @cms-saris/desktop test
  */
 import assert from 'node:assert/strict'
-import { analyserDeploiement, decoderFichier, trouverSite } from '../electron/deploiement.ts'
+import { analyserDeploiement, decoderFichier, retirerCode, trouverSite } from '../electron/deploiement.ts'
 
 let reussis = 0
 let echoues = 0
@@ -41,6 +41,35 @@ test('un texte vide ou illisible donne un déploiement vide', () => {
 })
 test('un nom trop long est tronqué à 80 caractères', () => {
   assert.equal(analyserDeploiement('poste=' + 'a'.repeat(200), 'X').poste?.length, 80)
+})
+
+test('lit le code d’appairage (lettres, chiffres, tirets, espaces)', () => {
+  assert.deepEqual(analyserDeploiement('[deploiement]\ncode=K7QM-4XPD\n', 'X'), { code: 'K7QM-4XPD' })
+  assert.deepEqual(analyserDeploiement('code = "k7qm 4xpd"', 'X'), { code: 'k7qm 4xpd' })
+})
+test('un code avec des caractères étranges, ou trop long, est ignoré', () => {
+  assert.deepEqual(analyserDeploiement('code=K7QM;4XPD', 'X'), {})
+  assert.deepEqual(analyserDeploiement('code=<script>', 'X'), {})
+  assert.deepEqual(analyserDeploiement('code=' + 'A'.repeat(41), 'X'), {})
+})
+
+console.log('retirerCode')
+test('retire la ligne code= et garde tout le reste', () => {
+  const avant = '[deploiement]\r\nserveur=https://cms.exemple.org\r\ncode=K7QM-4XPD\r\nsite=BZV-01\r\n'
+  const apres = retirerCode(avant)
+  assert.equal(apres, '[deploiement]\r\nserveur=https://cms.exemple.org\r\nsite=BZV-01\r\n')
+  assert.deepEqual(analyserDeploiement(apres, 'X'), { serveur: 'https://cms.exemple.org', site: 'BZV-01' })
+})
+test('ignore la casse de la clé et les espaces autour du signe égal', () => {
+  assert.equal(retirerCode('[Deploiement]\nCODE = K7QM-4XPD\nposte=P1'), '[Deploiement]\r\nposte=P1')
+})
+test('ne touche ni aux commentaires, ni aux autres sections', () => {
+  const texte = '; code=ABC\n[autre]\ncode=NON\n[deploiement]\nposte=P1'
+  assert.equal(retirerCode(texte), texte)
+})
+test('sans ligne code=, le texte est rendu tel quel (octet pour octet)', () => {
+  const texte = '[deploiement]\nserveur=http://x\n'
+  assert.equal(retirerCode(texte), texte)
 })
 
 console.log('decoderFichier')

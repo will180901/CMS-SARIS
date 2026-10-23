@@ -15,7 +15,7 @@ import { app, safeStorage } from 'electron'
 import path from 'node:path'
 import fs from 'node:fs'
 import os from 'node:os'
-import { analyserDeploiement, decoderFichier, type Deploiement } from './deploiement'
+import { analyserDeploiement, decoderFichier, retirerCode, type Deploiement } from './deploiement'
 
 interface SarisConfig {
   apiUrl?: string
@@ -35,6 +35,8 @@ interface SarisConfig {
    *  modifiable à la configuration. Sert UNIQUEMENT à la création côté serveur (jamais
    *  d'écrasement d'un renommage fait depuis la supervision admin). */
   posteLibelle?: string
+  /** Le poste s'est enregistré avec un code d'appairage : il n'utilise aucun compte, seulement son secret. */
+  appaire?: boolean
 }
 
 function configPath(): string {
@@ -55,6 +57,18 @@ export function lireDeploiementPoste(): Deploiement {
     return analyserDeploiement(decoderFichier(octets), os.hostname().trim())
   } catch {
     return {}
+  }
+}
+
+/** Efface le code d'appairage du `deploiement.ini` du poste (il vient d'être utilisé). Sans effet s'il n'y en a pas. */
+export function retirerCodeDeploiement(): void {
+  try {
+    const fichier = path.join(app.getPath('userData'), 'deploiement.ini')
+    const avant = decoderFichier(fs.readFileSync(fichier))
+    const apres = retirerCode(avant)
+    if (apres !== avant) fs.writeFileSync(fichier, apres, 'utf8')
+  } catch {
+    // Pas de fichier, ou illisible : rien à retirer.
   }
 }
 
@@ -173,6 +187,15 @@ function writeSecureStore(data: Record<string, string>): void {
   if (!safeStorage.isEncryptionAvailable()) return
   fs.mkdirSync(path.dirname(securePath()), { recursive: true })
   fs.writeFileSync(securePath(), safeStorage.encryptString(JSON.stringify(data)))
+}
+
+/** Le coffre chiffré de Windows (DPAPI) est-il utilisable ? Sans lui, aucun secret ne survit à un redémarrage. */
+export function secureDisponible(): boolean {
+  try {
+    return safeStorage.isEncryptionAvailable()
+  } catch {
+    return false
+  }
 }
 
 export function secureGet(key: string): string | null {

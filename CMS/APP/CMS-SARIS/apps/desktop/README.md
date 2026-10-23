@@ -248,7 +248,7 @@ Pour installer une vingtaine de postes sans retaper l'adresse du serveur, le sit
 Ou par script (installation silencieuse), les options l'emportent sur le fichier, clé par clé :
 
 ```powershell
-& ".\CMS SARIS-Setup-1.11.2.exe" /S /SERVEUR=https://cms-saris.exemple.org /SITE=BZV-01 /POSTE=Accueil 1 /D=C:\CMS-SARIS
+& ".\CMS SARIS-Setup-1.12.0.exe" /S /SERVEUR=https://cms-saris.exemple.org /SITE=BZV-01 /POSTE=Accueil 1 /CODE=K7QM-4XPD /D=C:\CMS-SARIS
 ```
 
 Les options sont séparées par « espace + / » (donc `/D=` en dernier) ; une valeur peut contenir des espaces, avec ou sans
@@ -257,9 +257,24 @@ guillemets. Une adresse qui ne commence pas par `http://` ou `https://` est igno
 est configuré, `config.json` fait foi, et relancer l'installateur n'y change rien. Le site n'est jamais deviné : code
 ou libellé **exact**, sinon l'écran demande de choisir.
 
-⚠️ Ce qui reste à saisir sur CHAQUE poste : l'**identifiant et le mot de passe** d'un compte autorisé (et son code 2FA), car
-le poste s'authentifie au serveur avec un vrai compte. Un code d'appairage (le technicien ne connaîtrait plus aucun mot de
-passe) demande un nouveau point d'entrée sur le serveur : non fait.
+#### Appairage : un code à la place d'un identifiant et d'un mot de passe
+
+Un administrateur prépare un **code d'appairage** sur le site web (Synchronisation › Appairage) : un site, un nombre de
+postes (1 à 50), une durée (1 h à 7 jours). Le code s'affiche **une seule fois** (`XXXX-XXXX`) ; le serveur n'en garde
+que l'empreinte. Sur le poste, l'écran de configuration l'attend dans l'onglet « Code d'appairage » (pré-rempli si
+`deploiement.ini` contient `code=`, ou via l'option `/CODE=`) : **le site vient du code**, il n'y a plus d'étape 2.
+
+- Le poste reçoit **son propre secret** (256 bits, montré une fois, rangé dans le coffre DPAPI de Windows — l'appairage est
+  refusé si le coffre est indisponible, **avant** d'avoir consommé le code). Il l'échange contre un jeton de 8 h
+  (`POST /sync/appairage/jeton`) qui ne donne droit qu'à la **synchronisation de CE poste** : aucune autre route de
+  l'API ne l'accepte.
+- Le code n'est plus jamais nécessaire ; l'application le **retire de `deploiement.ini`** dès l'appairage réussi.
+  (Une copie posée à côté de l'installateur, sur la clé USB, reste : le code expire et a un nombre d'usages limité.)
+- Poste perdu ou retiré : l'administrateur **coupe l'accès** du poste (Synchronisation › Postes) ; le secret et tous les
+  jetons déjà émis cessent de fonctionner, et le poste ne peut revenir qu'avec un nouveau code.
+- Le compte reste possible (onglet « Avec un compte ») : identifiant, mot de passe, code 2FA, puis choix du site.
+
+Hors appairage, la personne qui configure un poste doit donc saisir un identifiant et un mot de passe d'un compte autorisé.
 
 🔒 L'adresse du serveur pré-remplie reste visible et modifiable à l'écran : la personne qui configure le poste doit la
 vérifier avant de saisir ses identifiants (un `deploiement.ini` altéré pourrait pointer vers un faux serveur — gardez la clé
