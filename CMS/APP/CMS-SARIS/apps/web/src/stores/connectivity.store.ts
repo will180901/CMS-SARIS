@@ -1,9 +1,10 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { create } from 'zustand'
 import { BASE_URL, setApiBaseUrl } from '@/lib/api'
 import { desktopBridge, isDesktop, urlDuServeur, type SarisDesktopBridge } from '@/lib/desktop'
 import { interlocuteurPossible } from '@/lib/interlocuteur'
-import { assurerJetons } from '@/lib/secondJeton'
+import { assurerJetons, synchroniserCgu } from '@/lib/secondJeton'
 import { useSessionStore } from '@/stores/session.store'
 
 type Mode = 'central' | 'local' | 'web'
@@ -99,6 +100,20 @@ export function useParleAuCentral(): boolean {
  */
 export function useApiEndpointSwitch(): void {
   const apply = useConnectivityStore((s) => s.apply)
+  const qc = useQueryClient()
+  const mode = useConnectivityStore((s) => s.mode)
+  const modePrecedent = useRef(mode)
+  // Changement de serveur (central ⇄ service local) : tout ce que l'écran a en mémoire vient de l'AUTRE serveur — le
+  // mode du système, les préférences, les listes. On le relit, sinon l'écran montre des réponses périmées jusqu'à
+  // une minute (interrupteur de mode absent, « Conditions d'utilisation » redemandées…).
+  useEffect(() => {
+    const avant = modePrecedent.current
+    modePrecedent.current = mode
+    if (avant !== mode && (avant === 'central' || avant === 'local') && (mode === 'central' || mode === 'local')) {
+      void qc.invalidateQueries()
+      void synchroniserCgu()
+    }
+  }, [mode, qc])
   useEffect(() => {
     const saris = (window as unknown as { saris?: SarisDesktopBridge }).saris
     if (!saris?.onApiUrl) return

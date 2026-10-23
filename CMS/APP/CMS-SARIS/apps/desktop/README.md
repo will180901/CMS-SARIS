@@ -248,7 +248,7 @@ Pour installer une vingtaine de postes sans retaper l'adresse du serveur, le sit
 Ou par script (installation silencieuse), les options l'emportent sur le fichier, clé par clé :
 
 ```powershell
-& ".\CMS SARIS-Setup-1.12.3.exe" /S /SERVEUR=https://cms-saris.exemple.org /SITE=BZV-01 /POSTE=Accueil 1 /CODE=K7QM-4XPD /D=C:\CMS-SARIS
+& ".\CMS SARIS-Setup-1.12.4.exe" /S /SERVEUR=https://cms-saris.exemple.org /SITE=BZV-01 /POSTE=Accueil 1 /CODE=K7QM-4XPD /D=C:\CMS-SARIS
 ```
 
 Les options sont séparées par « espace + / » (donc `/D=` en dernier) ; une valeur peut contenir des espaces, avec ou sans

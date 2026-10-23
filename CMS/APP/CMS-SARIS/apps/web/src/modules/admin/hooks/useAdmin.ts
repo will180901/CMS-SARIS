@@ -5,6 +5,7 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData, type QueryClient } from '@tanstack/react-query'
 import { toast } from '@workspace/ui/components/sonner'
 import { adminApi } from '../api/admin.api'
+import { synchroniserCgu } from '@/lib/secondJeton'
 import { personnelApi, type PersonnelPayload } from '@/modules/acteurs/api/personnel.api'
 import type {
   CreateUtilisateurPayload, UpdateUtilisateurPayload,
@@ -629,7 +630,10 @@ export function useAcceptCgu() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: () => adminApi.me.accepterCgu(),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ME_KEYS.preferences }) },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ME_KEYS.preferences })
+      void synchroniserCgu() // client de bureau : l'autre serveur (central / service local) l'apprend aussi
+    },
   })
 }
 

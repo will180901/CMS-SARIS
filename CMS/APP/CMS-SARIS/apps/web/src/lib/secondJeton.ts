@@ -83,6 +83,7 @@ export async function obtenirJetons(qui: Interlocuteur): Promise<boolean> {
   if (!data || data.sessionActive || data.requireTotp) return false
   if (!data.accessToken || !data.refreshToken) return false
   useSessionStore.getState().memoriserAutresJetons(qui, { token: data.accessToken, refreshToken: data.refreshToken })
+  void synchroniserCgu()
   return true
 }
 
@@ -91,6 +92,46 @@ export async function assurerJetons(qui: Interlocuteur): Promise<boolean> {
   const s = useSessionStore.getState()
   if (s.interlocuteur === qui || s.autresJetons[qui]) return true
   return obtenirJetons(qui)
+}
+
+/**
+ * Les conditions d'utilisation acceptées d'un côté le sont aussi de l'autre.
+ *
+ * Les préférences d'un compte — dont l'acceptation des conditions — ne sont PAS synchronisées entre le serveur
+ * central et la base de la machine : chacun tient la sienne. Sans cette recopie, la personne qui a accepté en
+ * ligne revoyait la fenêtre « Conditions d'utilisation » à chaque coupure (et inversement au retour). C'est la
+ * même personne, la même version du texte : on reporte son acceptation, on n'en invente aucune. Seule une
+ * acceptation de la version COURANTE (`cguAJour`) est recopiée, et dans un seul sens à la fois.
+ * Au mieux : une panne ici n'a aucune conséquence.
+ */
+export async function synchroniserCgu(): Promise<void> {
+  const s = useSessionStore.getState()
+  if (!s.interlocuteur) return
+  const jetonDe = (qui: Interlocuteur): string | null => (s.interlocuteur === qui ? s.token : s.autresJetons[qui]?.token ?? null)
+  const aJour = async (qui: Interlocuteur): Promise<boolean | null> => {
+    const base = urlDuServeur(qui)
+    const jeton = jetonDe(qui)
+    if (!base || !jeton) return null
+    try {
+      const r = await fetch(`${base}/me/preferences`, { headers: { Authorization: `Bearer ${jeton}` } })
+      return r.ok ? ((await r.json()) as { cguAJour?: boolean }).cguAJour === true : null
+    } catch {
+      return null
+    }
+  }
+  const accepter = async (qui: Interlocuteur): Promise<void> => {
+    const base = urlDuServeur(qui)
+    const jeton = jetonDe(qui)
+    if (!base || !jeton) return
+    try {
+      await fetch(`${base}/me/cgu/accepter`, { method: 'POST', headers: { Authorization: `Bearer ${jeton}`, 'Content-Type': 'application/json' }, body: '{}' })
+    } catch {
+      /* injoignable : on recopiera à la prochaine occasion */
+    }
+  }
+  const [central, local] = await Promise.all([aJour('central'), aJour('local')])
+  if (central === true && local === false) await accepter('local')
+  else if (local === true && central === false) await accepter('central')
 }
 
 /**
