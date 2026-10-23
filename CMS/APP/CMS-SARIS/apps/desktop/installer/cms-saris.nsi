@@ -16,6 +16,8 @@ ManifestDPIAware true
 !include "FileFunc.nsh"
 !include "nsDialogs.nsh"
 !include "WordFunc.nsh"
+!include "x64.nsh"
+!include "WinVer.nsh"
 !insertmacro VersionCompare
 
 ; Constantes Win32 (certaines déjà fournies par WinMessages.nsh → guardées).
@@ -58,6 +60,11 @@ ManifestDPIAware true
   !define MAXREL 150
 !endif
 !define /math LIMITE_CHEMIN 220 - ${MAXREL}
+
+; Taille de l'application installée, en Mo (calculée par build-installer.mjs) : sert aux contrôles de place disque.
+!ifndef TAILLE_MB
+  !define TAILLE_MB 1000
+!endif
 
 !define APP_NAME    "CMS SARIS"
 !define PUBLISHER   "Deo Cherel BOUWAYI MIKOUYA & Oscarvie Verdi NZILA - SARIS-CONGO"
@@ -124,6 +131,8 @@ Var SansSauvegarde
 Var TexteMaj
 Var BoutonMaj
 Var TexteVersions
+Var FiletActif            ; 1 = l'ancienne version est mise de côté (« .ancien ») : on peut revenir en arrière
+Var VerifOK
 
 ; ── Apparence MUI ──
 !define MUI_ICON "${ASSETS}\icon.ico"
@@ -158,6 +167,7 @@ Page custom PageExistante PageExistanteLeave
 Page custom PageSauvegarde PageSauvegardeLeave
 
 ; Page d'installation : on accroche la création de la 2e barre à l'affichage de CETTE page.
+!define MUI_FINISHPAGE_NOAUTOCLOSE
 !define MUI_PAGE_CUSTOMFUNCTION_SHOW InstFilesPageShow
 !insertmacro MUI_PAGE_INSTFILES
 !define MUI_FINISHPAGE_RUN "$INSTDIR\${EXE_NAME}"
@@ -603,6 +613,18 @@ Function .onInit
   File "${ASSETS}\anim\*.bmp"
 
   StrCpy $TotalSteps 4
+  StrCpy $FiletActif 0
+  ; Contrôles préalables : Electron 33 ne démarre pas avant Windows 10, ni en 32 bits.
+  ${IfNot} ${AtLeastWin10}
+    MessageBox MB_OK|MB_ICONSTOP "CMS SARIS nécessite Windows 10 ou plus récent. Cet ordinateur ne peut pas l'exécuter." /SD IDOK
+    SetErrorLevel 8
+    Abort
+  ${EndIf}
+  ${IfNot} ${RunningX64}
+    MessageBox MB_OK|MB_ICONSTOP "CMS SARIS nécessite un Windows 64 bits. Cet ordinateur ne peut pas l'exécuter." /SD IDOK
+    SetErrorLevel 8
+    Abort
+  ${EndIf}
   StrCpy $Action "maj"
   StrCpy $RestaurerSauvegarde 0
   Call FindExistingInstall
@@ -982,6 +1004,156 @@ FunctionEnd
 ;  SECTIONS (les 4 « parties » → font avancer la 2e barre + le journal)
 ; ============================================================================
 
+; ── Contrôles de place, filet de sécurité (retour arrière) et vérification ─────────────────────────────────────────
+;
+; Mise à jour : l'ancienne version n'est pas supprimée, elle est RENOMMÉE « CMS SARIS.ancien » (instantané, même disque),
+; la nouvelle s'installe à sa place, puis un contrôle (verifier-installation.cjs) la fait démarrer sur des COPIES des bases.
+; Réussi : l'ancienne version est supprimée. Raté, ou installation interrompue : la nouvelle est supprimée et l'ancienne
+; remise en place — le poste retrouve exactement la version qu'il avait. Les données du poste (%APPDATA%) ne sont jamais
+; touchées par la vérification, donc rien n'est à défaire de ce côté.
+
+Function PlaceInsuffisante   ; $0 = Mo nécessaires, $1 = Mo libres
+  DetailPrint "Pas assez de place sur le disque ($1 Mo libres, $0 Mo nécessaires) : rien n'a été installé."
+  MessageBox MB_OK|MB_ICONSTOP "Il n'y a pas assez de place sur le disque pour installer CMS SARIS ($1 Mo libres, $0 Mo nécessaires).$\n$\nLibérez de la place ou choisissez un autre disque." /SD IDOK
+  SetErrorLevel 8
+  Abort "Place insuffisante sur le disque."
+FunctionEnd
+
+Function ControlerPlace
+  Push $0
+  Push $1
+  Push $2
+  StrCpy $FiletActif 0
+  ClearErrors
+  StrCpy $0 $INSTDIR 3
+  ${DriveSpace} "$0" "/D=F /S=M" $1
+  ${If} ${Errors}
+    ; Dossier réseau ou lecteur illisible : on ne peut pas mesurer, on ne bloque pas.
+    DetailPrint "Place disponible non mesurable : contrôle ignoré."
+  ${ElseIf} $Existante = 0
+    IntOp $0 ${TAILLE_MB} + 100
+    ${If} $1 < $0
+      Call PlaceInsuffisante
+    ${EndIf}
+  ${ElseIf} $Action == "maj"
+    StrCpy $2 $INSTDIR 9 -9
+    IntOp $0 ${TAILLE_MB} + 300
+    ${If} $2 != "${APP_NAME}"
+      DetailPrint "Dossier d'installation personnalisé : mise à jour sans retour arrière automatique."
+    ${ElseIf} $1 >= $0
+      ; Assez de place pour garder l'ancienne version à côté : on la met de côté.
+      ${If} ${FileExists} "$INSTDIR.ancien"
+        SetDetailsPrint none
+        RMDir /r "$INSTDIR.ancien"
+        SetDetailsPrint both
+      ${EndIf}
+      SetOutPath "$TEMP"
+      ClearErrors
+      Rename "$INSTDIR" "$INSTDIR.ancien"
+      ${IfNot} ${Errors}
+        StrCpy $FiletActif 1
+        DetailPrint "Ancienne version mise de côté : retour arrière automatique si la nouvelle ne passe pas la vérification."
+      ${Else}
+        DetailPrint "Impossible de mettre l'ancienne version de côté (fichiers utilisés ?) : mise à jour sans retour arrière automatique."
+      ${EndIf}
+    ${Else}
+      ${If} $1 < 300
+        StrCpy $0 300
+        Call PlaceInsuffisante
+      ${EndIf}
+      DetailPrint "Pas assez de place pour garder l'ancienne version en secours ($1 Mo libres, $0 Mo nécessaires) : mise à jour sans retour arrière automatique."
+      ${IfNot} ${Silent}
+        MessageBox MB_YESNO|MB_ICONEXCLAMATION|MB_DEFBUTTON2 "Il n'y a pas assez de place pour garder l'ancienne version en secours ($1 Mo libres, $0 Mo nécessaires).$\n$\nVous pouvez continuer SANS retour arrière automatique : si la mise à jour échoue, il faudra réinstaller CMS SARIS (les données de ce poste ne sont pas touchées).$\n$\nContinuer sans filet de sécurité ?" IDYES continuerSansFilet
+        Abort "Mise à jour annulée : pas assez de place pour un retour arrière."
+        continuerSansFilet:
+      ${EndIf}
+    ${EndIf}
+  ${EndIf}
+  Pop $2
+  Pop $1
+  Pop $0
+FunctionEnd
+
+; Une mise à jour interrompue (coupure, arrêt brutal) laisse « CMS SARIS.ancien » : c'est la dernière version qui marchait.
+; On la remet en place AVANT de recommencer, pour ne jamais repartir d'un dossier à moitié copié.
+Function RecupererAncien
+  StrCpy $R9 $INSTDIR 9 -9
+  ${If} $R9 == "${APP_NAME}"
+  ${AndIf} ${FileExists} "$INSTDIR.ancien\${EXE_NAME}"
+    DetailPrint "Une mise à jour précédente a été interrompue : retour à la dernière version qui fonctionnait..."
+    SetOutPath "$TEMP"
+    SetDetailsPrint none
+    RMDir /r "$INSTDIR"
+    SetDetailsPrint both
+    ClearErrors
+    Rename "$INSTDIR.ancien" "$INSTDIR"
+    ${If} ${Errors}
+      DetailPrint "La dernière version qui fonctionnait n'a pas pu être remise en place : elle est dans $INSTDIR.ancien"
+    ${Else}
+      ; La clé d'inscription pouvait déjà ne plus être cohérente (installation interrompue) : ce dossier EST l'installation existante.
+      StrCpy $Existante 1
+      StrCpy $AncienDossier $INSTDIR
+    ${EndIf}
+  ${EndIf}
+FunctionEnd
+
+; Retour arrière : la version qui vient d'être copiée est supprimée, l'ancienne remise en place.
+Function Retablir
+  DetailPrint "Retour à l'ancienne version..."
+  ; Le répertoire courant de l'installateur est DANS le dossier à supprimer (SetOutPath) : tant qu'on y reste, Windows
+  ; refuse de le supprimer, et le renommage qui suit échoue. On en sort d'abord.
+  SetOutPath "$TEMP"
+  SetDetailsPrint none
+  RMDir /r "$INSTDIR"
+  ${If} ${FileExists} "$INSTDIR"
+    Sleep 1500
+    RMDir /r "$INSTDIR"
+  ${EndIf}
+  SetDetailsPrint both
+  ClearErrors
+  Rename "$INSTDIR.ancien" "$INSTDIR"
+  ${If} ${Errors}
+    DetailPrint "ÉCHEC du retour arrière : l'ancienne version est restée dans $INSTDIR.ancien"
+  ${Else}
+    ${If} $AncienVersion != ""
+      WriteRegStr HKCU "${UNINST_KEY}" "DisplayVersion" "$AncienVersion"
+    ${EndIf}
+    DetailPrint "L'ancienne version $AncienVersion est remise en place."
+  ${EndIf}
+  StrCpy $FiletActif 0
+FunctionEnd
+
+; Installation interrompue (erreur de copie, disque plein, annulation) : si l'ancienne version a été mise de côté, on la remet.
+Function .onInstFailed
+  ${If} $FiletActif = 1
+    Call Retablir
+    MessageBox MB_OK|MB_ICONEXCLAMATION "L'installation n'a pas abouti. L'ancienne version de CMS SARIS a été remise en place : le poste fonctionne comme avant." /SD IDOK
+  ${EndIf}
+FunctionEnd
+
+; Fait démarrer la version installée sur des COPIES des bases (cf. verifier-installation.cjs) : $VerifOK = 1 si tout va bien.
+; ELECTRON_RUN_AS_NODE n'est posé que le temps du contrôle : sinon l'application lancée ensuite (« Lancer CMS SARIS »,
+; relance d'une mise à jour automatique) hériterait de la variable et tournerait comme un simple programme Node.
+Function VerifierInstallation
+  Push $0
+  Push $1
+  StrCpy $1 ""
+  ${If} ${FileExists} "$APPDATA\${APP_NAME}\cms-saris.db"
+    StrCpy $1 "$APPDATA\${APP_NAME}\cms-saris.db"
+  ${EndIf}
+  System::Call 'kernel32::SetEnvironmentVariable(t "ELECTRON_RUN_AS_NODE", t "1")'
+  nsExec::ExecToLog '"$INSTDIR\${EXE_NAME}" "$INSTDIR\resources\verifier-installation.cjs" "$INSTDIR" "$1"'
+  Pop $0
+  System::Call 'kernel32::SetEnvironmentVariable(t "ELECTRON_RUN_AS_NODE", p 0)'
+  ${If} $0 == "0"
+    StrCpy $VerifOK 1
+  ${Else}
+    StrCpy $VerifOK 0
+  ${EndIf}
+  Pop $1
+  Pop $0
+FunctionEnd
+
 ; Préparation (cachée, ne compte pas parmi les 4 parties) : « Réinstaller à neuf ».
 ; Toujours dans cet ordre : sauvegarde d'abord, suppression ensuite — si la sauvegarde échoue, rien n'est supprimé.
 Section "-Preparation" SEC_PREP
@@ -995,6 +1167,8 @@ Section "-Preparation" SEC_PREP
     SetErrorLevel 7
     Abort "Chemin d'installation trop long."
   ${EndIf}
+  Call RecupererAncien
+  Call ControlerPlace
   ${If} $Existante = 1
   ${AndIf} $Action == "neuf"
     DetailPrint "Réinstallation à neuf : sauvegarde de la base de ce poste..."
@@ -1047,6 +1221,10 @@ Section "Service local (backend NestJS)" SEC_API
   !insertmacro STEP "Service local - backend NestJS embarque"
   SetOutPath "$INSTDIR\resources\api"
   File /r "${SRCDIR}\resources\api\*"
+  !ifdef ESSAI_ECHEC
+    ; Compilation d'ESSAI seulement (-DESSAI_ECHEC) : simule une installation qui échoue en cours de route.
+    Abort "Échec simulé (essai)."
+  !endif
   !insertmacro STEP_DONE
 SectionEnd
 
@@ -1065,6 +1243,7 @@ Section "Base locale + raccourcis" SEC_FINAL
   !insertmacro STEP "Base de donnees locale + raccourcis"
   SetOutPath "$INSTDIR\resources"
   File "${SRCDIR}\resources\seed.db"
+  File "verifier-installation.cjs"
 
   ${If} $RestaurerSauvegarde = 1
     Call RestaurerBase
@@ -1095,6 +1274,36 @@ Section "Base locale + raccourcis" SEC_FINAL
   !insertmacro STEP_DONE
   DetailPrint ""
   DetailPrint "Installation terminee dans : $INSTDIR"
+SectionEnd
+
+; Écran de santé : la version installée démarre-t-elle, ici, sur CE poste ? (cf. verifier-installation.cjs)
+; Réussi : l'ancienne version mise de côté est supprimée. Raté : retour arrière si l'ancienne version a été gardée.
+Section "-Verification" SEC_VERIF
+  DetailPrint ""
+  DetailPrint "================  Verification de l'installation (sur des copies)  ================"
+  Call VerifierInstallation
+  ${If} $VerifOK = 1
+    DetailPrint "Verification reussie : CMS SARIS est pret."
+    ${If} $FiletActif = 1
+      DetailPrint "Suppression de l'ancienne version mise de cote..."
+      SetDetailsPrint none
+      RMDir /r "$INSTDIR.ancien"
+      SetDetailsPrint both
+      StrCpy $FiletActif 0
+    ${EndIf}
+  ${Else}
+    ${If} $FiletActif = 1
+      DetailPrint "La verification a echoue : retour automatique a l'ancienne version."
+      Call Retablir
+      MessageBox MB_OK|MB_ICONEXCLAMATION "La nouvelle version ne démarre pas correctement sur ce poste (voir le détail de la vérification).$\n$\nL'ancienne version a été remise en place : le poste fonctionne comme avant. Ses données n'ont pas été touchées." /SD IDOK
+      SetErrorLevel 9
+      Abort "Mise à jour annulée : la nouvelle version ne passe pas la vérification."
+    ${Else}
+      DetailPrint "ATTENTION : la verification a signale un probleme (voir ci-dessus)."
+      MessageBox MB_OK|MB_ICONEXCLAMATION "L'installation est terminée, mais la vérification a signalé un problème (voir le détail ci-dessus).$\n$\nCMS SARIS risque de ne pas démarrer correctement sur ce poste." /SD IDOK
+      SetErrorLevel 9
+    ${EndIf}
+  ${EndIf}
 SectionEnd
 
 ; ============================================================================

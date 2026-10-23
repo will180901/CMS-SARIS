@@ -111,6 +111,14 @@ const plusLongChemin = fs
   .reduce((max, rel) => Math.max(max, String(rel).length + 1), 0)
 console.log(`Plus long chemin relatif : ${plusLongChemin} caractères`)
 
+// Taille de l'application installée (Mo, arrondie au-dessus) : l'installateur s'en sert pour vérifier la place disque.
+const tailleMo = Math.ceil(
+  fs.readdirSync(srcdir, { recursive: true, withFileTypes: true })
+    .filter((e) => e.isFile())
+    .reduce((total, e) => total + fs.statSync(path.join(e.parentPath, e.name)).size, 0) / 1048576,
+)
+console.log(`Taille de l'application installée : ${tailleMo} Mo`)
+
 console.log(`Compilation de l'installateur CMS SARIS ${version}...\n`)
 // execFileSync (sans shell) → chaque /D reste UN seul argv : les espaces du chemin sont préservés.
 execFileSync(makensis, [
@@ -120,6 +128,7 @@ execFileSync(makensis, [
   `/DASSETS=${assets}`,
   `/DOUTFILE=${outfile}`,
   `/DMAXREL=${plusLongChemin}`,
+  `/DTAILLE_MB=${tailleMo}`,
   nsi,
 ], { stdio: 'inherit' })
 

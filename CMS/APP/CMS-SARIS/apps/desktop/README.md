@@ -201,6 +201,26 @@ L'installateur ([`installer/cms-saris.nsi`](./installer/cms-saris.nsi)) :
   fichiers disparus d'une version à l'autre ne traînent plus) ; `sqlite-migrations` est empaqueté (sans
   lui, un poste mis à jour n'appliquait aucune migration — manquait jusqu'à la 1.10.0).
   `build-installer.mjs` refuse de compiler si un élément de `resources\` n'est pas empaqueté.
+- **Contrôles préalables.** Windows 10 ou plus et 64 bits (Electron 33 ne démarre pas autrement),
+  place disque (`TAILLE_MB` mesurée au build : neuf = taille + 100 Mo ; mise à jour avec filet =
+  taille + 300 Mo). Échec : code de sortie 8, rien d'installé.
+- **Retour arrière automatique.** Une mise à jour ne supprime pas l'ancienne version : elle est
+  **renommée** `CMS SARIS.ancien` (instantané), la nouvelle s'installe à sa place, puis la vérification
+  ci-dessous la fait démarrer. Réussie → l'ancienne est supprimée. Ratée, ou installation interrompue
+  (erreur de copie, annulation → `.onInstFailed`) → la nouvelle est supprimée et l'ancienne remise en
+  place, avec sa version dans le registre (code 9 si la vérification a échoué). Un `.ancien` laissé par
+  une coupure est remis en place au lancement suivant (`RecupererAncien`). Pas assez de place pour garder
+  les deux versions, ou dossier personnalisé : mise à jour sans filet (confirmation demandée en
+  interactif). ⚠️ NSIS garde son répertoire courant dans le dossier d'installation (`SetOutPath`) : il
+  faut en sortir (`SetOutPath "$TEMP"`) avant de le supprimer, sinon le renommage échoue.
+- **Écran de santé.** `installer/verifier-installation.cjs` (installé dans `resources\`) est lancé par
+  l'installateur avec le moteur d'Electron en mode Node (`ELECTRON_RUN_AS_NODE`, posé le temps du contrôle
+  seulement) : fichiers essentiels présents, service local démarré sur une copie de `seed.db`, puis sur une
+  COPIE de la base réelle du poste (la mise à niveau est essayée sans toucher à la vraie), serveur central
+  joignable (information seulement). Les lignes s'affichent dans le journal, la page attend un clic
+  (`MUI_FINISHPAGE_NOAUTOCLOSE`). Compter ≈ 20 s (45 s à froid). Rapport détaillé en cas d'échec :
+  `%TEMP%\cms-saris-verification.txt`. Codes de sortie : 5 application ouverte, 6 sauvegarde impossible,
+  7 chemin trop long, 8 Windows ou place disque, 9 vérification ratée.
 - **Désinstallation.** Les données du poste (base, configuration) sont **conservées par défaut** : une
   case les supprime (avec sauvegarde d'abord). En silencieux : `/PURGE` les supprime,
   `/SANSSAUVEGARDE` saute la sauvegarde (l'installateur l'a déjà faite).
