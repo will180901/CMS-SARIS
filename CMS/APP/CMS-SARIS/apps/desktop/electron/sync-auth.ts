@@ -17,7 +17,7 @@ import fs from 'node:fs'
 import crypto from 'node:crypto'
 import os from 'node:os'
 import { execSync } from 'node:child_process'
-import { readConfig, writeConfig, secureGet, secureSet, secureDel } from './config'
+import { readConfig, writeConfig, secureGet, secureSet, secureDel, lireDeploiementPoste } from './config'
 
 const REFRESH_KEY = 'cms-saris-sync-refresh' // clé DPAPI du refresh token
 
@@ -72,9 +72,10 @@ export function getPosteLocalId(): string {
 export function getPosteLibelle(): string {
   const cfg = readConfig()
   if (cfg.posteLibelle) return cfg.posteLibelle
-  const hostname = os.hostname().trim().slice(0, 80) || 'Poste'
-  writeConfig({ posteLibelle: hostname })
-  return hostname
+  // Au tout premier lancement : le nom prévu par le déploiement (deploiement.ini), sinon celui de l'ordinateur.
+  const nom = lireDeploiementPoste().poste || os.hostname().trim().slice(0, 80) || 'Poste'
+  writeConfig({ posteLibelle: nom })
+  return nom
 }
 
 /** Renomme le poste localement (ex. modifié à l'écran de configuration). */

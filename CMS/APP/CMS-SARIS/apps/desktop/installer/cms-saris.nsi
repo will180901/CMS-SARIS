@@ -19,6 +19,7 @@ ManifestDPIAware true
 !include "x64.nsh"
 !include "WinVer.nsh"
 !insertmacro VersionCompare
+!insertmacro WordFind
 
 ; Constantes Win32 (certaines déjà fournies par WinMessages.nsh → guardées).
 !ifndef WS_CHILD_VISIBLE
@@ -1154,6 +1155,109 @@ Function VerifierInstallation
   Pop $0
 FunctionEnd
 
+; ── Déploiement sur plusieurs postes ────────────────────────────────────────────────────────────────────────────
+; L'installateur laisse au poste un `deploiement.ini` (adresse du serveur, site, nom du poste) que l'application lit au
+; premier lancement pour pré-remplir son écran de configuration (cf. electron/deploiement.ts). Deux sources, cumulables :
+;  - un fichier `deploiement.ini` posé À CÔTÉ de l'installateur (clé USB, dossier partagé) : une préparation, puis un
+;    double-clic par poste ;
+;  - les options /SERVEUR=… /SITE=… /POSTE=… (elles l'emportent, clé par clé) — pour un déploiement par script.
+; Aucun identifiant ni mot de passe n'y figure, jamais.
+; Lit l'option /NOM=valeur de la ligne de commande : $R0 = NOM (sans « / » ni « = »). Résultat : $R1 = valeur, $R2 = 1 si présente.
+; ${GetOptions} ne convient pas : il coupe la valeur au premier « / », donc une adresse « https://… » devenait « https: ».
+; Ici les options sont séparées par « espace + / » ; une valeur peut contenir des espaces et être entre guillemets.
+Function LireOption
+  StrCpy $R1 ""
+  StrCpy $R2 0
+  StrCpy $R3 2
+  StrLen $R4 "$R0="
+  ; Nombre de morceaux : au-delà du dernier, ${WordFind} ne signale AUCUNE erreur et rend toute la ligne (boucle infinie).
+  ${WordFind} "$CMDLINE" " /" "#" $R7
+  boucleOption:
+    ${If} $R3 > $R7
+      Return
+    ${EndIf}
+    ClearErrors
+    ${WordFind} "$CMDLINE" " /" "+$R3" $R5
+    ${If} ${Errors}
+      Return
+    ${EndIf}
+    StrCpy $R6 $R5 $R4
+    ${If} $R6 == "$R0="
+      StrCpy $R1 $R5 "" $R4
+      StrCpy $R6 $R1 1
+      ${If} $R6 == '"'
+        StrCpy $R1 $R1 "" 1
+        StrCpy $R6 $R1 1 -1
+        ${If} $R6 == '"'
+          StrCpy $R1 $R1 -1
+        ${EndIf}
+      ${EndIf}
+      ; Le dernier morceau garde un espace final (la ligne de commande en laisse un) : on l'enlève.
+      boucleEspace:
+        StrCpy $R6 $R1 1 -1
+        ${If} $R6 == " "
+          StrCpy $R1 $R1 -1
+          Goto boucleEspace
+        ${EndIf}
+      StrCpy $R2 1
+      Return
+    ${EndIf}
+    IntOp $R3 $R3 + 1
+    Goto boucleOption
+FunctionEnd
+
+Function AppliquerDeploiement
+  Push $0
+  Push $1
+  Push $2
+  Push $3
+  StrCpy $1 "$APPDATA\${APP_NAME}\deploiement.ini"
+
+  ${If} ${FileExists} "$EXEDIR\deploiement.ini"
+    CreateDirectory "$APPDATA\${APP_NAME}"
+    CopyFiles /SILENT "$EXEDIR\deploiement.ini" "$1"
+    DetailPrint "Parametres de deploiement repris de : $EXEDIR\deploiement.ini"
+  ${EndIf}
+
+  StrCpy $R0 "SERVEUR"
+  Call LireOption
+  ${If} $R2 = 1
+    StrCpy $0 $R1
+    StrCpy $2 $0 7
+    StrCpy $3 $0 8
+    ${If} $2 == "http://"
+    ${OrIf} $3 == "https://"
+      CreateDirectory "$APPDATA\${APP_NAME}"
+      WriteINIStr "$1" "deploiement" "serveur" "$0"
+      DetailPrint "Deploiement : serveur = $0"
+    ${Else}
+      DetailPrint "Option /SERVEUR= ignoree : l'adresse doit commencer par http:// ou https://"
+    ${EndIf}
+  ${EndIf}
+
+  StrCpy $R0 "SITE"
+  Call LireOption
+  ${If} $R2 = 1
+  ${AndIf} $R1 != ""
+    CreateDirectory "$APPDATA\${APP_NAME}"
+    WriteINIStr "$1" "deploiement" "site" "$R1"
+    DetailPrint "Deploiement : site = $R1"
+  ${EndIf}
+
+  StrCpy $R0 "POSTE"
+  Call LireOption
+  ${If} $R2 = 1
+  ${AndIf} $R1 != ""
+    CreateDirectory "$APPDATA\${APP_NAME}"
+    WriteINIStr "$1" "deploiement" "poste" "$R1"
+    DetailPrint "Deploiement : nom du poste = $R1"
+  ${EndIf}
+  Pop $3
+  Pop $2
+  Pop $1
+  Pop $0
+FunctionEnd
+
 ; Préparation (cachée, ne compte pas parmi les 4 parties) : « Réinstaller à neuf ».
 ; Toujours dans cet ordre : sauvegarde d'abord, suppression ensuite — si la sauvegarde échoue, rien n'est supprimé.
 Section "-Preparation" SEC_PREP
@@ -1248,6 +1352,7 @@ Section "Base locale + raccourcis" SEC_FINAL
   ${If} $RestaurerSauvegarde = 1
     Call RestaurerBase
   ${EndIf}
+  Call AppliquerDeploiement
 
   ; Raccourcis
   DetailPrint "Creation des raccourcis (Bureau + menu Demarrer)..."

@@ -12,7 +12,8 @@ import path from 'node:path'
 import fs from 'node:fs'
 import { spawn } from 'node:child_process'
 import log from 'electron-log/main'
-import { resolveApiUrl, resolveMode, resolveServerUrl, readConfig, writeConfig, secureGet, secureSet, secureDel, bakedSecrets } from './config'
+import { resolveApiUrl, resolveMode, resolveServerUrl, readConfig, writeConfig, secureGet, secureSet, secureDel, bakedSecrets, lireDeploiementPoste } from './config'
+import { trouverSite } from './deploiement'
 import { initAutoUpdater, checkForUpdates, downloadUpdate, quitAndInstall } from './updater'
 import { startBackend, findFreePort, stopBackend } from './backend'
 import { ensureDb } from './db-init'
@@ -415,7 +416,10 @@ function registerIpc(): void {
 
   ipcMain.handle('saris:sync-list-sites', async () => {
     try {
-      return { ok: true as const, sites: await listPendingSites() }
+      const sites = await listPendingSites()
+      // Site prévu par le déploiement (deploiement.ini) : pré-sélectionné par l'écran, jamais deviné (cf. trouverSite).
+      const siteSouhaite = lireDeploiementPoste().site ?? null
+      return { ok: true as const, sites, siteSouhaite, siteSouhaiteId: trouverSite(sites, siteSouhaite ?? undefined)?.id ?? null }
     } catch (e) {
       return { ok: false as const, error: (e as Error).message }
     }

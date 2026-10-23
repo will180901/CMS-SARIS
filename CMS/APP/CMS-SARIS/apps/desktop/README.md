@@ -234,6 +234,39 @@ L'installateur ([`installer/cms-saris.nsi`](./installer/cms-saris.nsi)) :
   dossier trop profond (« Suivant » grisé ; en silencieux : code de sortie 7, rien d'installé). Le
   dossier par défaut (`%LOCALAPPDATA%\Programs\CMS SARIS`) est très en dessous.
 
+### Déployer sur plusieurs postes
+
+Pour installer une vingtaine de postes sans retaper l'adresse du serveur, le site et le nom de chacun :
+
+1. Copier [`installer/deploiement.exemple.ini`](./installer/deploiement.exemple.ini), nommer la copie
+   `deploiement.ini`, la remplir (`serveur=`, `site=` — le **code** du site —, `poste=`, où `{MACHINE}` devient
+   le nom de l'ordinateur).
+2. Poser `deploiement.ini` **à côté** de `CMS SARIS-Setup-x.y.z.exe` (clé USB, dossier partagé).
+3. Sur chaque poste, double-clic sur l'installateur : au premier lancement, l'écran de configuration est déjà
+   rempli (adresse du serveur, site pré-sélectionné « prévu par le déploiement », nom du poste).
+
+Ou par script (installation silencieuse), les options l'emportent sur le fichier, clé par clé :
+
+```powershell
+& ".\CMS SARIS-Setup-1.11.2.exe" /S /SERVEUR=https://cms-saris.exemple.org /SITE=BZV-01 /POSTE=Accueil 1 /D=C:\CMS-SARIS
+```
+
+Les options sont séparées par « espace + / » (donc `/D=` en dernier) ; une valeur peut contenir des espaces, avec ou sans
+guillemets. Une adresse qui ne commence pas par `http://` ou `https://` est ignorée (jamais devinée). Tout est écrit dans
+`%APPDATA%\CMS SARIS\deploiement.ini`, lu par `electron/deploiement.ts` : de simples **valeurs par défaut** — dès que le poste
+est configuré, `config.json` fait foi, et relancer l'installateur n'y change rien. Le site n'est jamais deviné : code
+ou libellé **exact**, sinon l'écran demande de choisir.
+
+⚠️ Ce qui reste à saisir sur CHAQUE poste : l'**identifiant et le mot de passe** d'un compte autorisé (et son code 2FA), car
+le poste s'authentifie au serveur avec un vrai compte. Un code d'appairage (le technicien ne connaîtrait plus aucun mot de
+passe) demande un nouveau point d'entrée sur le serveur : non fait.
+
+🔒 L'adresse du serveur pré-remplie reste visible et modifiable à l'écran : la personne qui configure le poste doit la
+vérifier avant de saisir ses identifiants (un `deploiement.ini` altéré pourrait pointer vers un faux serveur — gardez la clé
+USB et le dossier partagé en lecture seule).
+
+Tests : `pnpm --filter @cms-saris/desktop test` (lecture du fichier, recherche du site, décodage UTF-8 / Windows-1252 / UTF-16).
+
 Options de l'installateur en mode silencieux (`/S`) : `/ACTION=neuf` (sauvegarde, supprime l'ancienne
 installation et ses données, réinstalle), `/RESTAURER=1` (reprend la dernière sauvegarde si le poste n'a
 pas de base locale), `/D=<dossier>` (dernier argument). Compiler pour un essai : `makensis -DRAPIDE …`

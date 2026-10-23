@@ -58,7 +58,11 @@ contextBridge.exposeInMainWorld('saris', {
     serverUrl: string; login: string; password: string; totpCode?: string; tempToken?: string
   }): Promise<{ ok: boolean; error?: string; requireTotp?: boolean; tempToken?: string; defaultSiteId?: string }> =>
     ipcRenderer.invoke('saris:sync-authenticate', params),
-  syncListSites: (): Promise<{ ok: boolean; sites?: { id: string; code: string; libelle: string; localisation?: string | null }[]; error?: string }> =>
+  syncListSites: (): Promise<{
+    ok: boolean; sites?: { id: string; code: string; libelle: string; localisation?: string | null }[]; error?: string
+    /** Site prévu par le déploiement (texte du fichier) et, s'il existe sur le serveur, son id. */
+    siteSouhaite?: string | null; siteSouhaiteId?: string | null
+  }> =>
     ipcRenderer.invoke('saris:sync-list-sites'),
   syncFinalize: (params: { siteId: string; posteLibelle?: string }): Promise<{ ok: boolean; error?: string }> =>
     ipcRenderer.invoke('saris:sync-finalize', params),

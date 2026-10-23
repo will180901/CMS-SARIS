@@ -14,6 +14,8 @@
 import { app, safeStorage } from 'electron'
 import path from 'node:path'
 import fs from 'node:fs'
+import os from 'node:os'
+import { analyserDeploiement, decoderFichier, type Deploiement } from './deploiement'
 
 interface SarisConfig {
   apiUrl?: string
@@ -41,6 +43,19 @@ function configPath(): string {
 
 function trimUrl(url: string): string {
   return url.trim().replace(/\/+$/, '')
+}
+
+/**
+ * Ce que l'installateur a laissé pour ce poste (`deploiement.ini`, cf. deploiement.ts) : adresse du serveur, site prévu,
+ * nom du poste. Simples valeurs par défaut — dès que le poste est configuré, `config.json` fait foi.
+ */
+export function lireDeploiementPoste(): Deploiement {
+  try {
+    const octets = fs.readFileSync(path.join(app.getPath('userData'), 'deploiement.ini'))
+    return analyserDeploiement(decoderFichier(octets), os.hostname().trim())
+  } catch {
+    return {}
+  }
 }
 
 export function readConfig(): SarisConfig {
@@ -131,6 +146,8 @@ export function resolveServerUrl(): string {
   if (fromEnv) return trimUrl(fromEnv)
   const fromCfg = (readConfig().serverUrl ?? '').trim()
   if (fromCfg) return trimUrl(fromCfg)
+  const deploye = lireDeploiementPoste().serveur
+  if (deploye) return trimUrl(deploye)
   return trimUrl(bakedDefaults().serverUrl ?? '')
 }
 

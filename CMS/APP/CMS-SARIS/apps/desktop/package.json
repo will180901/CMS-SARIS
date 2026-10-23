@@ -1,6 +1,6 @@
 {
   "name": "@cms-saris/desktop",
-  "version": "1.11.1",
+  "version": "1.11.2",
   "private": true,
   "description": "CMS SARIS — client de bureau Windows (centre médical SARIS-CONGO).",
   "author": "Déo Cherel BOUWAYI MIKOUYA, Oscarvie Verdi NZILA",
@@ -10,6 +10,7 @@
     "build:main": "tsc -p tsconfig.json",
     "build": "pnpm run build:renderer && pnpm run build:main && node scripts/copy-renderer.mjs",
     "start": "electron .",
+    "test": "node --no-warnings test/deploiement.test.ts",
     "dist": "node scripts/build-local.mjs --dir && node installer/build-installer.mjs",
     "dist:unpacked": "node scripts/build-local.mjs --dir",
     "clean": "node -e \"for (const d of ['dist-electron','app','release']) require('fs').rmSync(d,{recursive:true,force:true})\""

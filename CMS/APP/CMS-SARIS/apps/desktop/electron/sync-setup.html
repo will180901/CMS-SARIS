@@ -213,6 +213,7 @@
     <script>
       const $ = (id) => document.getElementById(id)
       const clean = (v) => (v || '').trim()
+      const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
       let tempToken = null
       let busy = false
       let sites = []
@@ -297,6 +298,13 @@
         }
         sites = res.sites || []
         setStatus('status2', '', '')
+        // Déploiement préparé (deploiement.ini) : le site prévu est pré-sélectionné — jamais celui du compte à sa place.
+        if (res.siteSouhaite) {
+          const prevu = sites.find((s) => s.id === res.siteSouhaiteId)
+          if (prevu) { selectSite(prevu, true); return }
+          setStatus('status2', 'Le site « ' + esc(res.siteSouhaite) + ' » prévu pour ce déploiement est introuvable sur le serveur : choisissez-le dans la liste.', 'err')
+          return
+        }
         if (defaultSiteId) {
           const d = sites.find((s) => s.id === defaultSiteId)
           if (d) selectSite(d)
@@ -326,11 +334,11 @@
         box.classList.remove('hidden')
       }
 
-      function selectSite(s) {
+      function selectSite(s, prevu) {
         selectedSite = s
         $('siteSearch').value = s.libelle
         $('matches').classList.add('hidden')
-        $('siteConfirmText').textContent = 'Site trouvé — ' + (s.localisation || s.libelle)
+        $('siteConfirmText').textContent = 'Site trouvé — ' + (s.localisation || s.libelle) + (prevu ? ' (prévu par le déploiement)' : '')
         $('siteConfirm').classList.remove('hidden')
       }
 
