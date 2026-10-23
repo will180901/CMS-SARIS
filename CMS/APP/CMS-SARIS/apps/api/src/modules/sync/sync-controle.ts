@@ -65,6 +65,56 @@ export const MARGE_CURSEUR_ENVOI_MS = 1000
  */
 export const DELAI_ENVOI_APRES_ECRITURE_MS = 1500
 
+// ── L'envoi par PETITS COLIS ─────────────────────────────────────────────────
+//
+// Un poste qui a beaucoup à envoyer (premier envoi après une longue période hors ligne, ou reprise
+// après une panne) ne doit JAMAIS tout mettre dans une seule requête. Constaté sur un poste neuf relié
+// au central hébergé : 8 421 lignes en UN colis → le central met plus de temps à les traiter que le
+// relais réseau n'en accorde à une requête, la connexion est coupée (« fetch failed »), RIEN n'est
+// marqué comme envoyé, et le même colis repart à chaque cycle, indéfiniment. Le poste, qui croit
+// avoir du travail à remonter, restait en « hors ligne ». Des colis courts passent, et chacun fait
+// avancer le curseur d'envoi : une coupure ne fait plus repartir de zéro.
+
+/** Lignes lues PAR MODÈLE à chaque page de collecte d'envoi (le serveur de pull limite par modèle). */
+export const TAILLE_PAGE_ENVOI = 100
+
+/** Au-delà de ce délai (ms), un colis sans réponse est abandonné : le prochain cycle reprend au curseur. */
+export const DELAI_MAX_COLIS_MS = 120_000
+
+/** Un colis : au plus ce nombre de lignes… */
+export const LOT_ENVOI_MAX_LIGNES = 200
+
+/** … et au plus ce poids (octets de JSON) — des pièces jointes volumineuses ne doivent pas s'additionner. */
+export const LOT_ENVOI_MAX_OCTETS = 2 * 1024 * 1024
+
+/**
+ * Découpe une liste de changements en colis, EN CONSERVANT L'ORDRE (le serveur range les parents avant
+ * les enfants : un colis ne doit jamais précéder celui qui contient le parent de ses lignes).
+ * Un colis a au moins une ligne, même si elle seule dépasse le poids maximal.
+ */
+export function decouperEnLots<T>(
+  elements: readonly T[],
+  poids: (element: T) => number,
+  maxLignes = LOT_ENVOI_MAX_LIGNES,
+  maxOctets = LOT_ENVOI_MAX_OCTETS,
+): T[][] {
+  const lots: T[][] = []
+  let courant: T[] = []
+  let octets = 0
+  for (const element of elements) {
+    const p = poids(element)
+    if (courant.length > 0 && (courant.length >= maxLignes || octets + p > maxOctets)) {
+      lots.push(courant)
+      courant = []
+      octets = 0
+    }
+    courant.push(element)
+    octets += p
+  }
+  if (courant.length > 0) lots.push(courant)
+  return lots
+}
+
 /**
  * D'où collecter ce qui reste à envoyer. `undefined` = depuis toujours (aucun envoi encore).
  *

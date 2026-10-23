@@ -19,6 +19,9 @@ import {
   curseurApresEnvoi,
   curseurEnvoiDepuis,
   debutAEnvoyer,
+  decouperEnLots,
+  LOT_ENVOI_MAX_LIGNES,
+  LOT_ENVOI_MAX_OCTETS,
   type OrdresServeur,
 } from '../src/modules/sync/sync-controle'
 
@@ -251,6 +254,34 @@ test('« à envoyer » commence APRÈS la marge : les lignes de la marge sont d�
   const lastPushed = '2026-10-22T09:59:59.000Z'
   assert.equal(Date.parse(debutAEnvoyer(lastPushed, T)!), Date.parse(lastPushed) + MARGE_CURSEUR_ENVOI_MS)
   assert.equal(debutAEnvoyer(undefined, T), undefined)
+})
+
+
+// ── L'envoi par petits colis ────────────────────────────────────────────────────────────────────
+const un = () => 1
+test('colis : une liste courte tient dans un seul colis', () => {
+  assert.deepEqual(decouperEnLots([1, 2, 3], un), [[1, 2, 3]])
+})
+test('colis : une liste vide ne donne aucun colis', () => {
+  assert.deepEqual(decouperEnLots([], un), [])
+})
+test('colis : jamais plus que le nombre de lignes permis, et l’ORDRE est conservé (parents avant enfants)', () => {
+  const lignes = Array.from({ length: 8421 }, (_, i) => i)
+  const lots = decouperEnLots(lignes, un)
+  assert.ok(lots.every((l) => l.length <= LOT_ENVOI_MAX_LIGNES), 'un colis dépasse le maximum de lignes')
+  assert.equal(lots.length, Math.ceil(8421 / LOT_ENVOI_MAX_LIGNES))
+  assert.deepEqual(lots.flat(), lignes, 'l’ordre ou le contenu a changé')
+})
+test('colis : le poids total d’un colis ne dépasse pas le maximum (hors ligne unique trop lourde)', () => {
+  const lots = decouperEnLots([600, 600, 600, 600, 600], (x) => x, 200, 1000)
+  assert.deepEqual(lots, [[600], [600], [600], [600], [600]])
+  const lots2 = decouperEnLots([400, 400, 400, 400, 400], (x) => x, 200, 1000)
+  assert.deepEqual(lots2, [[400, 400], [400, 400], [400]])
+  assert.ok(lots2.every((l) => l.reduce((a, b) => a + b, 0) <= 1000))
+})
+test('colis : une ligne seule plus lourde que le maximum part quand même, seule (rien n’est perdu)', () => {
+  const lots = decouperEnLots([10, 5_000_000, 10], (x) => x, 200, LOT_ENVOI_MAX_OCTETS)
+  assert.deepEqual(lots, [[10], [5_000_000], [10]])
 })
 
 console.log('\n' + passed + ' reussis, ' + failed + ' echoues')

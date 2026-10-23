@@ -21,6 +21,9 @@ import {
   CLE_VIDAGE_APPLIQUE,
   CURSEUR_ORIGINE,
   DELAI_ENVOI_APRES_ECRITURE_MS,
+  DELAI_MAX_COLIS_MS,
+  TAILLE_PAGE_ENVOI,
+  decouperEnLots,
   NIVEAU_CONTROLE,
   PosteSuspenduError,
   VidageEnAttenteError,
@@ -471,6 +474,23 @@ export class SyncClientService implements OnApplicationBootstrap {
     }
   }
 
+  /**
+   * Ce poste n'a-t-il JAMAIS synchronisé ? Vrai seulement si la ligne d'état n'existe pas. Contrairement à
+   * `cursor()`, une erreur de lecture se PROPAGE : prendre une base momentanément illisible pour un poste
+   * neuf ferait écraser le curseur d'un poste qui a du travail en attente.
+   */
+  private async posteNeuf(): Promise<boolean> {
+    const ligne = await this.stateDelegate.findUnique({
+      where: {
+        posteLocalId_siteId: {
+          posteLocalId: this.posteLocalId,
+          siteId: this.siteId,
+        },
+      },
+    })
+    return !ligne
+  }
+
   private async saveCursor(patch: {
     lastPulledAt?: Date
     lastPushedAt?: Date
@@ -518,12 +538,26 @@ export class SyncClientService implements OnApplicationBootstrap {
    *  puis dossiers) → les FK sont satisfaites au fil de l'ingestion. */
   async pull(): Promise<number> {
     let since = (await this.cursor()).lastPulledAt
+    // POSTE NEUF (aucune trace de synchronisation) : ce qu'il va recevoir n'est PAS du travail à renvoyer.
+    // Sans cette précaution, la première réception rangeait des milliers de lignes — celles du central,
+    // reçues avec leurs dates d'origine — parmi « les écritures locales non envoyées », et le poste
+    // les renvoyait toutes au central (cf. sync-controle.ts, envoi par petits colis). On pose donc le
+    // curseur d'envoi AVANT de recevoir, à l'horloge du poste : tout ce qui s'écrit ici ensuite, lui,
+    // reste à envoyer. `lastPulledAt` n'est pas nullable (il vaut `now()` par défaut) : on le pose
+    // explicitement à l'origine des temps, sinon la première réception ne demanderait rien.
+    if (!since && (await this.posteNeuf())) {
+      await this.saveCursor({
+        lastPulledAt: CURSEUR_ORIGINE,
+        lastPushedAt: curseurApresEnvoi(new Date().toISOString()),
+      })
+      since = CURSEUR_ORIGINE.toISOString()
+    }
     let applied = 0
     // Premier chargement : le poste s'ouvre sur un écran d'attente pendant que les
     // données du site arrivent. Sans compteur, cet écran est un texte figé et l'on ne
     // sait pas si quelque chose se passe — on croit à un blocage et on ferme. On publie
     // donc l'avancement au fil de l'eau, pour que l'attente soit habitée.
-    const premierChargement = !since
+    const premierChargement = !since || Date.parse(since) === 0
     let serverTime: string | undefined
     for (let guard = 0; guard < 1000; guard++) {
       // Le site est résolu par le serveur depuis le JWT (jamais envoyé dans l'URL).
@@ -761,46 +795,87 @@ export class SyncClientService implements OnApplicationBootstrap {
     await this.triggerSync('écriture locale')
   }
 
-  /** PUSH : envoie au serveur les changements locaux depuis le dernier push. */
+  /**
+   * PUSH : envoie au serveur les changements locaux depuis le dernier push.
+   *
+   * Par PETITS COLIS (cf. sync-controle.ts) : la collecte avance page par page et chaque page part en
+   * colis courts. Le curseur d'envoi avance après CHAQUE page envoyée en entier, pas seulement à la fin :
+   * une coupure en plein envoi reprend là où elle s'est arrêtée au lieu de tout renvoyer.
+   */
   async push(): Promise<SyncPushResponseV2 | null> {
     const { lastPushedAt } = await this.cursor()
-    const collected: SyncEntityEnvelope[] = []
     let since = curseurEnvoiDepuis(lastPushedAt, Date.now())
     /** L'heure DU POSTE à laquelle la collecte commence : c'est elle, et non l'heure du serveur, qui borne ce qui est parti. */
     let debutCollecte: string | undefined
-    for (let guard = 0; guard < 1000; guard++) {
-      const page = await this.sync.pull(this.siteId, since, 500) // base locale = un seul site
+    /**
+     * Les lignes déjà parties pendant CET envoi : une ligne d'un modèle peu fourni revient dans chaque
+     * page tant que le curseur de collecte ne l'a pas dépassée — inutile de la renvoyer.
+     */
+    const parties = new Set<string>()
+    const bilan: SyncPushResponseV2 = {
+      applied: [],
+      skipped: [],
+      conflicts: [],
+      rejected: [],
+      serverTime: new Date().toISOString(),
+    }
+    let envoyees = 0
+    for (let garde = 0; garde < 10_000; garde++) {
+      const page = await this.sync.pull(this.siteId, since, TAILLE_PAGE_ENVOI) // base locale = un seul site
       debutCollecte ??= page.serverTime
-      collected.push(...page.changes)
-      since = page.nextSince
-      if (!page.hasMore) break
-    }
-    if (!collected.length) return null
-    const res = await fetch(`${this.serverUrl}/sync/push`, {
-      method: 'POST',
-      headers: this.headers(),
-      body: JSON.stringify({
-        posteLocalId: this.posteLocalId,
-        changes: collected,
-      }),
-    })
-    if (!res.ok) throw await this.erreurHttp('push', res)
-    const out = (await res.json()) as SyncPushResponseV2
-    // Les refus sont en QUARANTAINE au central (supervision, avec la donnée du poste) : le
-    // curseur peut avancer sans rien perdre, et le reste du lot n'attend plus.
-    if (out.rejected?.length) {
-      this.logger.warn(
-        `push: ${out.rejected.length} changement(s) refusé(s) par le central, en quarantaine — ` +
-          out.rejected.map((r) => `${r.model} ${r.id} (${r.raison})`).join(' ; '),
+      const nouvelles = page.changes.filter(
+        (c) => !parties.has(`${c.model}|${c.id}|${c.updatedAt}`),
       )
+      for (const lot of decouperEnLots(nouvelles, (c) => JSON.stringify(c).length)) {
+        const out = await this.envoyerLot(lot)
+        bilan.applied.push(...out.applied)
+        bilan.skipped.push(...out.skipped)
+        bilan.conflicts.push(...out.conflicts)
+        bilan.rejected?.push(...(out.rejected ?? []))
+        bilan.serverTime = out.serverTime
+        for (const c of lot) parties.add(`${c.model}|${c.id}|${c.updatedAt}`)
+        envoyees += lot.length
+        // Les refus sont en QUARANTAINE au central (supervision, avec la donnée du poste) : le
+        // curseur peut avancer sans rien perdre, et le reste du lot n'attend plus.
+        if (out.rejected?.length) {
+          this.logger.warn(
+            `push: ${out.rejected.length} changement(s) refusé(s) par le central, en quarantaine — ` +
+              out.rejected.map((r) => `${r.model} ${r.id} (${r.raison})`).join(' ; '),
+          )
+        }
+      }
+      if (!page.hasMore) break
+      // La page entière est partie : tout ce qui date d'AVANT sa borne l'est aussi. On le retient.
+      if (!(Date.parse(page.nextSince) > Date.parse(since ?? '1970-01-01T00:00:00.000Z'))) {
+        throw new Error('envoi : la collecte n’avance plus (curseur de pull inchangé)')
+      }
+      since = page.nextSince
+      await this.saveCursor({ lastPushedAt: curseurApresEnvoi(since) })
+      this.logger.log(`Envoi en cours : ${envoyees} ligne(s) parties, la suite arrive`)
     }
+    if (!envoyees) return null
     // Le curseur d'envoi se compare à l'`updatedAt` des écritures LOCALES : il se pose sur l'horloge du
     // poste, au DÉBUT de la collecte — pas à l'heure du serveur relevée en fin d'échange, qui rangeait
     // parmi « les envoyées » toute écriture faite pendant l'envoi (cf. sync-controle.ts).
     await this.saveCursor({
       lastPushedAt: curseurApresEnvoi(debutCollecte ?? new Date().toISOString()),
     })
-    return out
+    return bilan
+  }
+
+  /** Un colis vers le central. Une réponse trop longue à venir est abandonnée (le prochain cycle reprend au curseur). */
+  private async envoyerLot(changes: SyncEntityEnvelope[]): Promise<SyncPushResponseV2> {
+    const res = await fetch(`${this.serverUrl}/sync/push`, {
+      method: 'POST',
+      headers: this.headers(),
+      body: JSON.stringify({
+        posteLocalId: this.posteLocalId,
+        changes,
+      }),
+      signal: AbortSignal.timeout(DELAI_MAX_COLIS_MS),
+    })
+    if (!res.ok) throw await this.erreurHttp('push', res)
+    return (await res.json()) as SyncPushResponseV2
   }
 
   /** Données initiales prêtes ? true si la synchro n'est pas active (mode serveur) OU si le

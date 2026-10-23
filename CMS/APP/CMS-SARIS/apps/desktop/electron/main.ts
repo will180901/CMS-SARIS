@@ -771,30 +771,6 @@ function computeRendererUrl(): string {
   return effectiveApiUrl ?? centralUrl()
 }
 
-/**
- * Ce poste a-t-il encore des écritures hors-ligne à remonter ?
- *
- * Interroge le backend EMBARQUÉ (loopback) — lui seul connaît sa file. En cas de doute
- * (backend muet, réponse illisible) on répond OUI : mieux vaut rester une tournée de plus
- * sur le local que de montrer à l'utilisateur une vue où son travail manque.
- */
-async function localBackendHasPendingPush(): Promise<boolean> {
-  if (!effectiveApiUrl) return false
-  try {
-    const ctrl = new AbortController()
-    const timer = setTimeout(() => ctrl.abort(), 2500)
-    const res = await fetch(`${effectiveApiUrl}/sync/ready`, { signal: ctrl.signal })
-    clearTimeout(timer)
-    if (!res.ok) return true
-    const body = (await res.json()) as { pendingPush?: boolean; enabled?: boolean }
-    // `enabled: false` = pas de backend embarqué (mode distant) : rien à attendre.
-    if (body.enabled === false) return false
-    return body.pendingPush !== false
-  } catch {
-    return true
-  }
-}
-
 // ── État du poste (lu par l'installateur) + fermeture douce ──────────────────────
 // L'installateur et le désinstallateur ne peuvent pas interroger l'application : ils lisent ce que
 // l'application a écrit (cf. etat-poste.ts) pour dire « il reste N éléments non envoyés » AVANT de
@@ -875,7 +851,7 @@ function pushRendererUrl(): void {
     online: serverOnline,
     seq: connectivitySeq,
   })
-  log.info(`[connectivité] renderer → ${serverOnline ? 'CENTRAL (en ligne)' : 'LOCAL (hors-ligne)'} : ${rendererApiUrl}`)
+  log.info(`[connectivité] réseau : ${serverOnline ? 'en ligne' : 'hors ligne'} — l'application parle au service ${effectiveApiUrl ? 'local' : 'central'} : ${rendererApiUrl}`)
 }
 
 /** Sonde la connectivité en continu et bascule le renderer (central ⇄ local). */
@@ -892,32 +868,16 @@ async function startConnectivityWatch(): Promise<void> {
     void (async () => {
       const now = await probeCentralOnline()
 
-      // Déjà en ligne, mais le renderer est resté sur le backend local : c'est qu'on
-      // attend la fin de la remontée (cf. plus bas). On réessaie à chaque tour.
-      if (now && serverOnline && rendererApiUrl !== centralUrl()) {
-        if (!(await localBackendHasPendingPush())) pushRendererUrl()
-        return
-      }
-
       if (now === serverOnline) { flips = 0; return }
       if (++flips < 2) return
       flips = 0
       serverOnline = now
-      if (now) {
-        // RECONNEXION — on NE rend PAS la main au central tant que ce poste a du travail
-        // à remonter. Auparavant on attendait 3 secondes en espérant que ça suffise :
-        // une supposition, pas une garantie. Un soignant ayant travaillé deux heures
-        // hors-ligne peut avoir des centaines d'écritures à envoyer sur un réseau faible ;
-        // basculer avant la fin lui montrait une vue amputée de ce qu'il venait de saisir.
-        //
-        // On reste donc sur le backend local — qui contient TOUT son travail — et le tour
-        // suivant refera le test. S'il ne passe jamais (serveur qui refuse), il continue
-        // simplement de travailler en local : jamais de données invisibles.
-        if (!(await localBackendHasPendingPush())) pushRendererUrl()
-        else log.info('[connectivité] serveur revenu — on garde le local le temps de remonter les écritures')
-      } else {
-        pushRendererUrl() // HORS-LIGNE → bascule IMMÉDIATE sur le backend local
-      }
+      // Le réseau est une INFORMATION, jamais un choix d'interlocuteur : l'application parle toujours au service
+      // local. On l'annonce donc SANS attendre — en particulier au retour du réseau, même si le poste a encore du
+      // travail à remonter. Avant, la reconnexion n'était annoncée qu'une fois la file vidée : un poste qui avait
+      // beaucoup à envoyer (ou dont l'envoi échouait) restait affiché « Hors ligne » alors que le réseau marchait.
+      // La bulle de synchronisation, elle, dit déjà qu'il reste du travail à remonter.
+      pushRendererUrl()
     })()
   }, 5000)
 }
