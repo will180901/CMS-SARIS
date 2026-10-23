@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { create } from 'zustand'
 import { BASE_URL, setApiBaseUrl } from '@/lib/api'
-import { desktopBridge, urlDuServeur, type SarisDesktopBridge } from '@/lib/desktop'
+import { desktopBridge, isDesktop, urlDuServeur, type SarisDesktopBridge } from '@/lib/desktop'
 import { interlocuteurPossible } from '@/lib/interlocuteur'
 import { assurerJetons } from '@/lib/secondJeton'
 import { useSessionStore } from '@/stores/session.store'
@@ -80,6 +80,16 @@ export const useConnectivityStore = create<ConnectivityState>((set, get) => ({
     if (s) get().apply(s.apiUrl, s.mode, s.online)
   },
 }))
+
+/**
+ * Vrai si l'écran parle au serveur CENTRAL : toujours dans un navigateur, et dans le client de bureau tant qu'il
+ * est connecté. Sert aux fonctions qui n'ont de sens que sur le central (changer le mode du système, fabriquer
+ * des données de test) : hors ligne, l'écran parle au service local, qui ne peut pas les faire.
+ */
+export function useParleAuCentral(): boolean {
+  const mode = useConnectivityStore((s) => s.mode)
+  return !isDesktop || mode === 'central'
+}
 
 /**
  * Branche la bascule online-first : hydrate l'état RÉEL actuel au montage (pull, pour ne pas

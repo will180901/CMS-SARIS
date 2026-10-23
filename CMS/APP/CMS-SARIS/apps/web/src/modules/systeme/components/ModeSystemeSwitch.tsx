@@ -1,8 +1,9 @@
 /**
  * ModeSystemeSwitch — l'interrupteur Production / Test de l'en-tête.
  *
- * Réservé à l'administrateur système (droit `systeme.mode`) et à la VERSION WEB : un poste de
- * bureau reçoit le mode du serveur central et ne le change pas. Un clic n'inverse rien tout de
+ * Réservé à l'administrateur système (droit `systeme.mode`) et à un écran qui parle au serveur CENTRAL :
+ * la version web, ou le poste de bureau tant qu'il est connecté. Hors ligne, l'écran parle au service local, qui
+ * reçoit le mode du central et ne le change pas. Un clic n'inverse rien tout de
  * suite : il ouvre la fenêtre qui redemande le mot de passe (cf. ChangerModeModal).
  *
  * Absent si le serveur interdit le mode Test (verrou de mise en service) : une fois le centre en
@@ -14,7 +15,7 @@ import { FlaskConical } from 'lucide-react'
 import { Tooltip } from '@/components/saris'
 import { usePermissions } from '@/hooks/usePermissions'
 import { useIsMobile } from '@/hooks/useMediaQuery'
-import { isDesktop } from '@/lib/desktop'
+import { useParleAuCentral } from '@/stores/connectivity.store'
 import { useModeModalStore } from '@/stores/modeModal.store'
 import { useModeSysteme } from '../hooks/useModeSysteme'
 
@@ -24,8 +25,9 @@ export function ModeSystemeSwitch() {
   const { data } = useModeSysteme()
   const isMobile = useIsMobile()
   const ouvrir = useModeModalStore((s) => s.ouvrir)
+  const parleAuCentral = useParleAuCentral()
 
-  if (isDesktop || !has('systeme.mode') || !data || !data.modifiable || data.verrouille) return null
+  if (!parleAuCentral || !has('systeme.mode') || !data || !data.modifiable || data.verrouille) return null
   const test = data.mode === 'TEST'
 
   return (

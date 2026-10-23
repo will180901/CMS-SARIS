@@ -5,9 +5,10 @@
  * étaient à jour, en train de l'être, ou en attente d'un réseau. Sur un poste qui bascule
  * entre le serveur central et sa base locale, c'est précisément ce qu'on a besoin de voir.
  *
- * La bulle n'apparaît QUE lorsqu'il se passe quelque chose — un cycle en cours, ou des
- * écritures qui attendent le réseau. Le reste du temps elle disparaît : un indicateur
- * permanent cesse d'être lu au bout de deux jours.
+ * La bulle n'apparaît QUE lorsqu'il se passe quelque chose qui concerne la personne : des écritures qui
+ * attendent le réseau, un envoi en cours après une coupure, ou un ordre d'administrateur. Connecté au
+ * serveur central, la copie locale se tient à jour en silence : rien à montrer (cf. lib/bulleSynchro.ts).
+ * Le reste du temps elle disparaît : un indicateur permanent cesse d'être lu au bout de deux jours.
  *
  * Interroge le backend EMBARQUÉ en direct (loopback, 127.0.0.1) plutôt que de passer par
  * la couche API : celle-ci change d'adresse au gré de la connectivité, alors que la bulle
@@ -17,6 +18,8 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { RefreshCw, CloudUpload, Pause } from 'lucide-react'
 import { desktopBridge } from '@/lib/desktop'
+import { bulleVoulue, lisser, LISSAGE_INITIAL, type LissageEtat } from '@/lib/bulleSynchro'
+import { useParleAuCentral } from '@/stores/connectivity.store'
 import { DESKTOP_TITLEBAR_H } from './DesktopTitleBar'
 
 interface EtatSynchro {
@@ -37,6 +40,13 @@ export function BulleSynchro() {
   const { t } = useTranslation()
   const url = desktopBridge()?.localApiUrl
   const [etat, setEtat] = useState<EtatSynchro | null>(null)
+  const parleAuCentral = useParleAuCentral()
+  // Ce qui est AFFICHÉ suit ce que les lectures réclament, mais seulement quand elles le réclament plusieurs fois
+  // de suite : une bulle qui apparaît et disparaît à chaque cycle fatigue sans informer.
+  const [lissage, setLissage] = useState<LissageEtat>(LISSAGE_INITIAL)
+  useEffect(() => {
+    setLissage((prec) => lisser(prec, bulleVoulue(etat, parleAuCentral)))
+  }, [etat, parleAuCentral])
 
   useEffect(() => {
     if (!url) return
@@ -68,16 +78,13 @@ export function BulleSynchro() {
     return () => { vivant = false; clearInterval(id) }
   }, [url])
 
-  if (!url || !etat) return null
   // Une SUSPENSION reste affichée tant qu'elle dure : c'est elle qui explique pourquoi rien ne
   // part ni n'arrive — sans elle, on croirait à une panne, ou on s'inquiéterait de ses saisies.
-  const actif = etat.suspendu || etat.resync || etat.enCours || etat.pendingPush
-  if (!actif) return null
-
-  // Ordre de priorité : suspension, puis resynchronisation complète, puis cycle en cours,
-  // puis attente — de ce qui change le plus la situation à ce qui la décrit le moins.
-  const suspendu = etat.suspendu
-  const enCours = !suspendu && (etat.enCours || etat.resync)
+  // Ordre de priorité (cf. bulleVoulue) : suspension, resynchronisation complète, cycle en cours, attente.
+  const bulle = lissage.affichee
+  if (!url || !bulle) return null
+  const suspendu = bulle === 'suspendue'
+  const enCours = bulle === 'enCours' || bulle === 'resync'
 
   return (
     <div
@@ -114,7 +121,7 @@ export function BulleSynchro() {
       )}
       {suspendu
         ? t('shell.syncSuspendue')
-        : etat.resync
+        : bulle === 'resync'
           ? t('shell.syncResync')
           : enCours
             ? t('shell.syncEnCours')

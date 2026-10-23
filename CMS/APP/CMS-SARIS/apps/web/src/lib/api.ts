@@ -245,6 +245,11 @@ function canQueueOffline(method: string, path: string, isForm: boolean): boolean
   // local. L'utilisateur voyait son bouton tourner indefiniment — le hors-ligne, la
   // raison d'etre de ce client, ne pouvait pas fonctionner.
   if (modeCourant === 'local') return false
+  // Idem quand l'écran parle au CENTRAL depuis le poste de bureau : le travail hors ligne est gardé par le service
+  // local (on y bascule dès que le réseau tombe), pas par une file d'attente du navigateur. Une écriture qui
+  // échoue dans l'intervalle montre son erreur et se refait ; en file, elle serait rejouée plus tard à l'insu de
+  // la personne, en double de ce qu'elle aurait ressaisi.
+  if (serveurInterroge() !== null) return false
   if (!WRITE_METHODS.has(method)) return false
   if (isForm) return false
   if (path.startsWith('/auth')) return false

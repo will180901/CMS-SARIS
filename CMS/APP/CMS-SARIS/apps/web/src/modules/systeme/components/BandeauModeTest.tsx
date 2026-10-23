@@ -16,7 +16,7 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { FlaskConical } from 'lucide-react'
 import { usePermissions } from '@/hooks/usePermissions'
-import { isDesktop } from '@/lib/desktop'
+import { useParleAuCentral } from '@/stores/connectivity.store'
 import { useModeModalStore } from '@/stores/modeModal.store'
 import { useModeSysteme } from '../hooks/useModeSysteme'
 
@@ -25,11 +25,12 @@ export function BandeauModeTest() {
   const { has } = usePermissions()
   const { data } = useModeSysteme()
   const ouvrir = useModeModalStore((s) => s.ouvrir)
+  const parleAuCentral = useParleAuCentral()
 
   if (data?.mode !== 'TEST') return null
-  const peutRevenir = !isDesktop && data.modifiable && has('systeme.mode')
+  const peutRevenir = parleAuCentral && data.modifiable && has('systeme.mode')
   // Le serveur central seul fabrique des données de test (les postes les reçoivent par la synchronisation).
-  const peutGererDonnees = !isDesktop && has('systeme.donnees_test')
+  const peutGererDonnees = parleAuCentral && has('systeme.donnees_test')
 
   return (
     <div

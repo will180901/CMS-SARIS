@@ -98,8 +98,10 @@ export function TopHeader() {
           </Tooltip>
         )}
 
-        {/* File de synchronisation hors-ligne */}
-        {(pendingCount > 0 || syncing) && (
+        {/* File d'attente du NAVIGATEUR (mode hors ligne du web). Sur le poste de bureau, le travail en attente est
+            dans la base de la machine et c'est la bulle de synchronisation qui en parle : un second indicateur
+            ferait doublon. */}
+        {!isDesktop && (pendingCount > 0 || syncing) && (
           <Tooltip label={syncing
             ? t('header.syncingTooltip')
             : t('header.pendingTooltip', { count: pendingCount })}>
