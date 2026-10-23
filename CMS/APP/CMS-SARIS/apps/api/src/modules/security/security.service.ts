@@ -124,6 +124,12 @@ type LoginResult =
 
 // ── Service ───────────────────────────────────────────────────────────────────
 
+/**
+ * Combien de temps (ms) un jeton de renouvellement qui vient de servir reste-t-il accepté, quand la
+ * réponse du renouvellement a pu se perdre ? Voir `sessionIssueDuRenouvellementRecent`.
+ */
+const DELAI_GRACE_RENOUVELLEMENT_MS = 30_000
+
 @Injectable()
 export class SecurityService {
   private readonly logger = new Logger(SecurityService.name)
@@ -552,6 +558,45 @@ export class SecurityService {
   // ── POST /auth/refresh ────────────────────────────────────────────────────
 
   /**
+   * Le jeton de renouvellement présenté a-t-il été remplacé il y a quelques secondes, par un
+   * renouvellement dont la réponse a pu se PERDRE ?
+   *
+   * Le jeton est à usage unique : chaque renouvellement en crée un nouveau et révoque l'ancien. Si la
+   * page est rechargée avant d'avoir reçu la réponse (ou si deux rechargements se suivent), le nouveau
+   * jeton n'est jamais enregistré, l'ancien est refusé, et la personne est renvoyée à la connexion sans
+   * rien avoir fait de mal. On tolère donc l'ancien pendant `DELAI_GRACE_RENOUVELLEMENT_MS`, à deux
+   * conditions qui le distinguent d'une déconnexion :
+   *  - la révocation date de quelques secondes (pas d'une session fermée hier) ;
+   *  - elle est suivie d'une session NEUVE de la MÊME connexion, encore active. Une déconnexion, une
+   *    fermeture forcée par un administrateur ou un changement de mot de passe ne laissent rien de tel :
+   *    le jeton reste mort.
+   * Renvoie l'identifiant de cette session neuve (qui sera révoquée : nul n'en détient les jetons), ou
+   * `null` si le cas ne s'applique pas.
+   */
+  private async sessionIssueDuRenouvellementRecent(s: {
+    id: string
+    utilisateurId: string
+    revokedAt: Date | null
+    connexionId: string | null
+  }): Promise<string | null> {
+    if (!s.revokedAt) return null
+    if (Date.now() - s.revokedAt.getTime() > DELAI_GRACE_RENOUVELLEMENT_MS)
+      return null
+    const suivante = await this.prisma.sessionUtilisateur.findFirst({
+      where: {
+        utilisateurId: s.utilisateurId,
+        connexionId: s.connexionId ?? s.id,
+        id: { not: s.id },
+        revokedAt: null,
+        createdAt: { gte: new Date(s.revokedAt.getTime() - 5_000) },
+      },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true },
+    })
+    return suivante?.id ?? null
+  }
+
+  /**
    * Échange un refresh token valide contre un nouveau couple access/refresh token.
    * Rotation : l'ancienne session est révoquée, une nouvelle est créée.
    */
@@ -608,6 +653,11 @@ export class SecurityService {
       userAgent: string | null
     }
     let matchingSession: SessionLite | null = null
+    /**
+     * Renouvellement DÉJÀ fait il y a quelques secondes, dont la réponse n'est jamais arrivée (page
+     * rechargée en cours de route) : la session NEUVE qu'il a créée, que personne ne détient.
+     */
+    let sessionPerdue: string | null = null
     if (sid) {
       const s = await this.prisma.sessionUtilisateur.findUnique({
         where: { id: sid },
@@ -615,11 +665,15 @@ export class SecurityService {
       if (
         s &&
         s.utilisateurId === sub &&
-        !s.revokedAt &&
         s.expiresAt > new Date() &&
         (await bcrypt.compare(dto.refreshToken, s.refreshTokenHash))
       ) {
-        matchingSession = s
+        if (!s.revokedAt) {
+          matchingSession = s
+        } else {
+          sessionPerdue = await this.sessionIssueDuRenouvellementRecent(s)
+          if (sessionPerdue) matchingSession = s
+        }
       }
     } else {
       // Rétro-compat : anciens tokens SANS `sid` (boucle imparfaite mais inoffensive le temps
@@ -651,9 +705,10 @@ export class SecurityService {
       include: { roles: { include: { role: true } } },
     })
 
-    // 5. Révoquer l'ancienne session
+    // 5. Révoquer l'ancienne session — ou, si le jeton présenté avait déjà servi il y a quelques
+    // secondes, la session que ce renouvellement avait créée et dont personne n'a reçu les jetons.
     await this.prisma.sessionUtilisateur.update({
-      where: { id: matchingSession.id },
+      where: { id: sessionPerdue ?? matchingSession.id },
       data: { revokedAt: new Date() },
     })
 

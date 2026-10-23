@@ -14,7 +14,7 @@
 
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { toast } from '@workspace/ui/components/sonner'
-import { api, ApiError, tryRefreshToken } from '@/lib/api'
+import { api, ApiError, isTokenExpiringSoon, tryRefreshToken } from '@/lib/api'
 import { useSessionStore } from '@/stores/session.store'
 import { purgerCachePermissionsPerdues } from '@/lib/cache-permissions'
 import type { UserSession } from '@cms-saris/types'
@@ -49,18 +49,31 @@ export const ME_KEY = ['auth', 'me'] as const
  * Bénéfice secondaire : en passant par `fetch` direct plutôt que par `api.post`, on
  * évite qu'un 401 sur l'appel de renouvellement déclenche… un renouvellement imbriqué.
  */
-export function performTokenRefresh(queryClient?: QueryClient): Promise<Me> {
-  return executerRenouvellement(queryClient)
+export function performTokenRefresh(
+  queryClient?: QueryClient,
+  options: { sansRotation?: boolean } = {},
+): Promise<Me> {
+  return executerRenouvellement(queryClient, options.sansRotation === true)
 }
 
-async function executerRenouvellement(queryClient?: QueryClient): Promise<Me> {
+/** Marge (s) en dessous de laquelle le jeton d'accès est renouvelé même au simple rechargement d'une page. */
+const MARGE_RECHARGEMENT_S = 300
+
+async function executerRenouvellement(queryClient?: QueryClient, sansRotation = false): Promise<Me> {
   const state = useSessionStore.getState()
   // La re-sync bootstrap est consommée : ne pas la re-déclencher (un seul passage).
   state.setNeedsBootstrapRefresh(false)
   const prevPermissions = state.user?.permissions ?? []
 
   let result: Me
-  if (!state.refreshToken) {
+  if (sansRotation && state.token && !isTokenExpiringSoon(state.token, MARGE_RECHARGEMENT_S)) {
+    // RECHARGEMENT DE PAGE : le jeton d'accès est encore bon, on relit seulement le profil et les droits. Faire
+    // tourner le jeton de renouvellement à chaque actualisation le consommait : si la page était rechargée avant
+    // d'avoir reçu la réponse (plusieurs actualisations de suite), le nouveau jeton se perdait, l'ancien était
+    // refusé, et la personne était renvoyée à la connexion. (Un 401 ici déclenche le renouvellement habituel.)
+    result = await api.get<Me>('/auth/me')
+    state.setUser(result)
+  } else if (!state.refreshToken) {
     result = await api.get<Me>('/auth/me')
     state.setUser(result)
   } else {
@@ -104,7 +117,7 @@ export function useMe(enabled = true) {
 
   return useQuery({
     queryKey:  ME_KEY,
-    queryFn:   () => performTokenRefresh(qc),
+    queryFn:   () => performTokenRefresh(qc, { sansRotation: true }),
     // Uniquement au RECHARGEMENT de page (session hydratée). Après un login frais,
     // needsBootstrapRefresh=false → pas de /auth/refresh redondant (évite le flash).
     enabled:   enabled && !!sessionId && needsBootstrap,

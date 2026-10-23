@@ -146,6 +146,10 @@ export async function tryRefreshToken(): Promise<void> {
       throw new ApiError(401, {}, 'Session expirée')
     }
 
+    // Seul un REFUS du serveur (401/403 : jeton révoqué, expiré ou inconnu) met fin à la session. Une panne
+    // passagère — serveur qui se réveille, réseau coupé un instant, 429, 5xx — ne doit JAMAIS déconnecter
+    // quelqu'un : il garde sa session et le prochain appel réessaiera.
+    let refuse = false
     try {
       const res = await fetch(`${BASE_URL}/auth/refresh`, {
         method:  'POST',
@@ -153,7 +157,8 @@ export async function tryRefreshToken(): Promise<void> {
         body:    JSON.stringify({ refreshToken }),
       })
 
-      if (!res.ok) throw new Error('refresh failed')
+      if (res.status === 401 || res.status === 403) { refuse = true; throw new Error('refresh refusé') }
+      if (!res.ok) throw new Error(`refresh HTTP ${res.status}`)
 
       // CRITIQUE : /auth/refresh retourne aussi `user` avec les permissions à jour.
       // On utilise setSession() pour mettre à jour user + tokens atomiquement,
@@ -166,8 +171,12 @@ export async function tryRefreshToken(): Promise<void> {
       }
       setSession(data.user, data.accessToken, data.refreshToken)
     } catch {
-      clearSession()
-      throw new ApiError(401, {}, 'Session expirée, veuillez vous reconnecter')
+      if (refuse) {
+        clearSession()
+        throw new ApiError(401, {}, 'Session expirée, veuillez vous reconnecter')
+      }
+      // Panne passagère : la session est conservée telle quelle.
+      throw new ApiError(0, {}, 'Renouvellement de la session impossible pour le moment')
     }
   })()
 
