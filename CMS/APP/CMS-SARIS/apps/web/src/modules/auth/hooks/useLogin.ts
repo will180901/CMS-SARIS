@@ -1,10 +1,12 @@
 import { useMutation } from '@tanstack/react-query'
-import { api, ApiError } from '@/lib/api'
+import { api, ApiError, serveurInterroge } from '@/lib/api'
 import { useSessionStore } from '@/stores/session.store'
+import { memoriserCodeTotp, memoriserIdentifiants, obtenirJetons, oublierIdentifiants } from '@/lib/secondJeton'
 import type {
   LoginDto, TotpVerifyDto, UserSession, SessionConcurrente, ConfirmerSessionDto,
 } from '@cms-saris/types'
 import { getAppareilId } from '@/lib/appareil'
+import { desktopBridge } from '@/lib/desktop'
 
 // ── Types de réponse backend ──────────────────────────────────────────────────
 
@@ -37,14 +39,26 @@ export function estSessionActive(
 
 // ── Hook : mutation login ─────────────────────────────────────────────────────
 
-export function useLoginMutation() {
-  const setSession = useSessionStore(s => s.setSession)
+/**
+ * Une connexion vient d'aboutir. Client de bureau : le jeu de jetons obtenu est celui du serveur qu'on vient
+ * d'interroger (central en ligne, service local sans réseau) ; on s'authentifie AUSSI auprès de l'autre, en
+ * silence, pour que la bascule ne déconnecte personne. Navigateur web : un seul serveur, rien de plus à faire.
+ */
+function ouvrirSession(data: SessionTokens): void {
+  const interroge = serveurInterroge()
+  useSessionStore.getState().setSession(data.user, data.accessToken, data.refreshToken, interroge ?? undefined)
+  if (interroge) void obtenirJetons(interroge === 'central' ? 'local' : 'central')
+}
 
+export function useLoginMutation() {
   return useMutation<LoginResponse, ApiError, LoginDto>({
     // `appareilId` ajouté ici et pas au niveau du formulaire : aucun appelant ne peut
     // l'oublier, et il n'a aucune raison d'être saisi ou vu par l'utilisateur.
-    mutationFn: (dto) =>
-      api.post<LoginResponse>('/auth/login', {
+    mutationFn: (dto) => {
+      // Client de bureau : gardés EN MÉMOIRE seulement, le temps de la session, pour s'authentifier aussi auprès
+      // de l'autre serveur (cf. lib/secondJeton.ts).
+      memoriserIdentifiants(dto.login, dto.password)
+      return api.post<LoginResponse>('/auth/login', {
         ...dto,
         // `appareilId` porte à lui seul la règle de session unique, y compris sur le
         // backend embarqué : la détection exclut les sessions du MÊME appareil, si bien
@@ -54,29 +68,38 @@ export function useLoginMutation() {
         // (le poste B voit, une fois la synchro passée, la session ouverte sur le poste A)
         // et l'exemption la ferait disparaître partout sur le client de bureau.
         appareilId: getAppareilId(),
-      }),
+        // Client de bureau : le site de travail est celui de la MACHINE, pas celui du compte (cf. LoginDto.machineId).
+        ...(desktopBridge()?.posteLocalId ? { machineId: desktopBridge()!.posteLocalId } : {}),
+      })
+    },
 
     onSuccess: (data) => {
       // Deux cas laissent la main au composant : TOTP à saisir, ou session concurrente
       // à trancher. Dans les deux, aucune session n'existe encore.
       if (estSessionActive(data) || data.requireTotp) return
-      setSession(data.user, data.accessToken, data.refreshToken)
+      ouvrirSession(data)
     },
+    // Identifiants refusés : on ne garde rien.
+    onError: () => oublierIdentifiants(),
   })
 }
 
 // ── Hook : mutation vérification TOTP ────────────────────────────────────────
 
 export function useTotpVerifyMutation() {
-  const setSession = useSessionStore(s => s.setSession)
-
   return useMutation<TotpVerifyResponse, ApiError, TotpVerifyDto>({
-    mutationFn: (dto) =>
-      api.post<TotpVerifyResponse>('/auth/totp/verify', { ...dto, appareilId: getAppareilId() }),
+    mutationFn: (dto) => {
+      memoriserCodeTotp(dto.code) // le même code servira, à l'autre serveur, dans les ~30 s qui suivent
+      return api.post<TotpVerifyResponse>('/auth/totp/verify', {
+        ...dto,
+        appareilId: getAppareilId(),
+        ...(desktopBridge()?.posteLocalId ? { machineId: desktopBridge()!.posteLocalId } : {}),
+      })
+    },
 
     onSuccess: (data) => {
       if (estSessionActive(data)) return
-      setSession(data.user, data.accessToken, data.refreshToken)
+      ouvrirSession(data)
     },
   })
 }
@@ -87,15 +110,13 @@ export function useTotpVerifyMutation() {
 export type ConfirmerSessionResponse = { signale: true } | SessionTokens
 
 export function useConfirmerSessionMutation() {
-  const setSession = useSessionStore(s => s.setSession)
-
   return useMutation<ConfirmerSessionResponse, ApiError, ConfirmerSessionDto>({
     mutationFn: (dto) =>
       api.post<ConfirmerSessionResponse>('/auth/session/confirmer', dto),
 
     onSuccess: (data) => {
       if ('signale' in data) return
-      setSession(data.user, data.accessToken, data.refreshToken)
+      ouvrirSession(data)
     },
   })
 }

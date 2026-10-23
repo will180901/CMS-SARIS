@@ -29,6 +29,8 @@ export interface SarisDesktopBridge {
   posteSiteId?: string | null
   /** URL du backend embarqué (mode local) — vide en mode distant. */
   localApiUrl?: string
+  /** URL du serveur central (mode local). */
+  serverUrl?: string
   /** Signale au processus principal la perte/retour du réseau (bascule immédiate). */
   notifyNetwork?: (online: boolean) => void
   /** Provisionne le poste à partir de la PREMIÈRE connexion (jetons + site du compte). */
@@ -91,6 +93,17 @@ export const isDesktop: boolean =
 /** Le pont Electron, ou null en navigateur web. */
 export function desktopBridge(): SarisDesktopBridge | null {
   return (typeof window !== 'undefined' && window.saris) || null
+}
+
+/**
+ * L'adresse de l'un des DEUX serveurs du client de bureau (le central, ou le service local de la machine).
+ * `null` s'il n'y en a pas deux : navigateur web, ou client de bureau en mode distant.
+ */
+export function urlDuServeur(qui: 'central' | 'local'): string | null {
+  const b = desktopBridge()
+  if (!b?.localApiUrl) return null
+  const url = qui === 'local' ? b.localApiUrl : b.serverUrl
+  return url ? url.replace(/\/+$/, '') : null
 }
 
 /** Version de l'application de bureau (null en web). */

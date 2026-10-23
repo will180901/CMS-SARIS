@@ -2,6 +2,8 @@ import { useSessionStore } from '@/stores/session.store'
 import { toast } from '@workspace/ui/components/sonner'
 import { enqueueMutation } from './sync'
 import i18n from '@/i18n/config'
+import { desktopBridge, urlDuServeur } from './desktop'
+import { interlocuteurDeLUrl, type Interlocuteur } from './interlocuteur'
 
 // L'URL de l'API est résolue à l'EXÉCUTION : en client de bureau (Electron), elle vient
 // de la configuration locale injectée par le preload (`__SARIS_CONFIG__`, modifiable dans
@@ -31,6 +33,38 @@ export function setApiBaseUrl(url: string, mode?: 'web' | 'central' | 'local'): 
   const clean = (url || '').replace(/\/+$/, '')
   if (clean) BASE_URL = clean
   if (mode) modeCourant = mode
+}
+
+/**
+ * Le serveur actuellement interrogé, quand le client de bureau en a DEUX (le central et le service local de la
+ * machine) ; `null` sinon (navigateur web, ou client de bureau en mode distant).
+ */
+export function serveurInterroge(): Interlocuteur | null {
+  const b = desktopBridge()
+  return b?.localApiUrl ? interlocuteurDeLUrl(BASE_URL, b.localApiUrl) : null
+}
+
+/**
+ * GARDE-FOU : un jeton n'est jamais présenté qu'au serveur qui l'a émis.
+ *
+ * L'adresse (choisie par le processus principal) et le jeu de jetons actif (celui de la session) changent
+ * ensemble à chaque bascule. Ils peuvent pourtant diverger : au démarrage, la session retrouvée date de la
+ * dernière fois — peut-être sur le service local — alors que le central est maintenant joignable. Un jeton du
+ * mauvais serveur est refusé (401), son renouvellement l'est aussi, et la personne serait DÉCONNECTÉE sans rien
+ * avoir fait. Avant chaque appel, on vérifie donc : on passe sur le jeu de l'adresse visée si on l'a, sinon on
+ * suit le serveur dont on a le jeton.
+ */
+function alignerSurLeServeur(): void {
+  const interroge = serveurInterroge()
+  if (!interroge) return
+  const s = useSessionStore.getState()
+  if (!s.isAuthenticated || !s.interlocuteur || s.interlocuteur === interroge) return
+  if (s.basculerVers(interroge)) return
+  const url = urlDuServeur(s.interlocuteur)
+  if (url) {
+    BASE_URL = url
+    modeCourant = s.interlocuteur
+  }
 }
 
 // ── Classe d'erreur enrichie ──────────────────────────────────────────────────
@@ -137,6 +171,7 @@ export function isTokenExpiringSoon(token: string | null | undefined, skewSecond
 
 export async function tryRefreshToken(): Promise<void> {
   if (refreshingPromise) return refreshingPromise
+  alignerSurLeServeur()
 
   refreshingPromise = (async () => {
     const { refreshToken, setSession, clearSession } = useSessionStore.getState()
@@ -222,6 +257,7 @@ function canQueueOffline(method: string, path: string, isForm: boolean): boolean
  * (utilisé par le moteur de synchronisation). Renvoie le statut HTTP.
  */
 export async function replayRequest(method: string, path: string, body: unknown): Promise<number> {
+  alignerSurLeServeur()
   const token = jetonCourant()
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (token) headers['Authorization'] = `Bearer ${token}`
@@ -237,14 +273,10 @@ export async function replayRequest(method: string, path: string, body: unknown)
 /**
  * Jeton à présenter au serveur actuellement interrogé.
  *
- * UN SEUL JETON. Le backend embarqué est construit avec le JWT_SECRET DU CENTRAL
- * (cf. apps/desktop/scripts/build-local.mjs) : les deux partagent la même autorité de
- * signature, donc le jeton de la session vaut des deux côtés.
- *
- * Un mécanisme de « second jeton local » a vécu ici, bâti sur la croyance inverse. Il
- * ouvrait une session de plus à chaque connexion, pour rien. Vérifié avant de le retirer :
- * le secret est bien commun, et depuis l'architecture locale d'abord la session est de
- * toute façon créée PAR le backend embarqué lui-même.
+ * Le jeu de jetons ACTIF de la session est toujours celui du serveur interrogé (cf. lib/interlocuteur.ts) : le
+ * central et le service local de la machine sont deux autorités distinctes, chacune refuse les jetons de l'autre.
+ * La bascule échange l'adresse ET le jeu de jetons dans le même mouvement ; `alignerSurLeServeur` rattrape tout
+ * écart avant chaque appel.
  */
 function jetonCourant(): string | null {
   return useSessionStore.getState().token
@@ -253,6 +285,7 @@ function jetonCourant(): string | null {
 
 
 async function request<T>(path: string, options: RequestInit = {}, isRetry = false): Promise<T> {
+  alignerSurLeServeur()
   const token = jetonCourant()
 
   // Pour un FormData (upload de fichier), on NE fixe PAS Content-Type : le
@@ -351,6 +384,7 @@ function requestUpload<T>(
     return Promise.reject(new ApiError(0, {}, `Hors ligne — ${path}`))
   }
   return new Promise<T>((resolve, reject) => {
+    alignerSurLeServeur()
     const token = useSessionStore.getState().token
     const xhr = new XMLHttpRequest()
     xhr.open('POST', `${BASE_URL}${path}`, true)

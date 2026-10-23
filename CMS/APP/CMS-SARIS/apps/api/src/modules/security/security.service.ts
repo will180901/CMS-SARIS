@@ -311,7 +311,7 @@ export class SecurityService {
     // Sans poste déclaré (navigateur), on retombe sur le site du compte.
     const siteId = await this.resoudreSiteDeTravail(
       user.siteId,
-      dto.posteLocalId,
+      dto.posteLocalId ?? dto.machineId,
     )
     const permissions = await chargerPermissions(this.prisma, user.id)
     const personnelMedicalId = user.personnelMedicalId
@@ -492,7 +492,7 @@ export class SecurityService {
     // Même règle qu'à la connexion simple : le site de travail vient du poste.
     const siteId = await this.resoudreSiteDeTravail(
       user.siteId,
-      dto.posteLocalId,
+      dto.posteLocalId ?? dto.machineId,
     )
     // Même contrôle qu'à la connexion simple, mais APRÈS le second facteur : c'est
     // seulement ici que l'identité est pleinement établie.

@@ -32,4 +32,17 @@ export class LoginDto {
   @IsString()
   @MaxLength(100)
   appareilId?: string
+
+  /**
+   * Identifiant de la MACHINE où la personne est assise (client de bureau) — pour que le site de travail soit
+   * celui de la machine et non celui de son compte, comme pour toute session faite depuis ce poste.
+   *
+   * À ne pas confondre avec `posteLocalId` : celui-ci MARQUE la session comme une session de synchronisation
+   * (exemptée de la session unique et du mot de passe temporaire). Celui-là ne sert qu'à choisir le site : la
+   * session reste une session de PERSONNE, avec toutes ses règles.
+   */
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  machineId?: string
 }

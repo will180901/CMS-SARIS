@@ -25,6 +25,7 @@ import {
   refreshAccessToken, startRefreshTimer, stopRefreshTimer,
   clearSync, getPosteLocalId, getPosteLibelle, syncTokenFilePath,
 } from './sync-auth'
+import { choisirInterlocuteur, type Interlocuteur } from './interlocuteur'
 
 const APP_SCHEME = 'app'
 const APP_HOST = 'cms-saris' // origine : app://cms-saris
@@ -50,6 +51,8 @@ let needsLocalSetup = false
 // Bascule « online-first » (mode local) : le renderer parle au CENTRAL en ligne / au backend
 // LOCAL hors-ligne. `rendererApiUrl` = URL active poussée au renderer (≠ effectiveApiUrl = local).
 let serverOnline = false
+/** Avec qui l'ÉCRAN parle : le central quand on est en ligne (et rien à remonter), sinon le service local. */
+let interlocuteur: Interlocuteur = 'local'
 let rendererApiUrl: string | null = null
 let connectivityTimer: ReturnType<typeof setInterval> | null = null
 /** Incrémenté à chaque push (pushRendererUrl) — anti-régression entre le pull à la
@@ -399,7 +402,7 @@ function registerIpc(): void {
    */
   ipcMain.handle('saris:get-connectivity', () => {
     if (rendererApiUrl === null) return null
-    return { url: rendererApiUrl, mode: serverOnline ? 'central' : 'local', online: serverOnline, seq: connectivitySeq }
+    return { url: rendererApiUrl, mode: interlocuteur, online: serverOnline, seq: connectivitySeq }
   })
   ipcMain.handle('saris:set-api-url', (_e, url: string) => {
     writeConfig({ apiUrl: String(url ?? '') })
@@ -467,6 +470,7 @@ function registerIpc(): void {
     if (!online) {
       if (!serverOnline) return
       serverOnline = false
+      interlocuteur = 'local'
       log.info('[connectivité] le système signale la perte du réseau → bascule immédiate sur le local')
       pushRendererUrl()
     }
@@ -738,36 +742,15 @@ function centralUrl(): string {
 }
 
 /**
- * URL d'API que le renderer doit utiliser : central en ligne, backend local hors-ligne.
+ * URL d'API que l'écran doit utiliser : le CENTRAL quand on est en ligne (et que tout ce qui était en attente
+ * est remonté), le service LOCAL de la machine sinon (cf. interlocuteur.ts).
  *
- * Renvoie une chaine VIDE si l'on est hors-ligne et que le backend local n'a pas encore
- * fini de demarrer. C'est le correctif d'un defaut grave : le repli retombait alors sur
- * le CENTRAL — c'est-a-dire sur un serveur injoignable, justement parce qu'on est
- * hors-ligne. Le badge affichait « Hors ligne » pendant que chaque requete partait vers
- * Render et echouait. L'utilisateur voyait un mode hors-ligne qui ne marchait pas.
- *
- * Mieux vaut ne rien pousser et attendre le backend (une vingtaine de secondes au
- * premier demarrage) que de pointer vers une adresse dont on SAIT qu'elle ne repond pas.
+ * Renvoie le central si le service local n'existe pas (mode distant, ou tout premier instant du démarrage) :
+ * c'est le seul interlocuteur possible. Jamais l'inverse — pointer vers un serveur qu'on SAIT injoignable
+ * faisait afficher « Hors ligne » pendant que chaque requête partait dans le vide.
  */
 function computeRendererUrl(): string {
-  // ARCHITECTURE « LOCAL D'ABORD ». En mode local, l'application ne parle QU'AU BACKEND
-  // EMBARQUE — en ligne comme hors-ligne. Le serveur central n'est plus jamais son
-  // interlocuteur : c'est le moteur de synchronisation, seul, qui lui parle.
-  //
-  // POURQUOI. Faire changer d'interlocuteur a l'application au gre du reseau a produit
-  // quatre pannes, toutes de la meme racine : deux autorites d'authentification donc deux
-  // jetons ; une file d'attente concue pour le navigateur qui detournait les ecritures ;
-  // une URL de repli qui pointait sur un serveur injoignable ; une session locale prise
-  // pour concurrente parce que les sessions sont synchronisees. Chaque difference entre
-  // les deux serveurs devenait un bug.
-  //
-  // Avec un seul interlocuteur, ces classes de bugs n'existent plus : un jeton, une
-  // adresse, aucune bascule. La coupure reseau devient un NON-EVENEMENT pour
-  // l'application — elle parlait deja au local.
-  //
-  // `serverOnline` n'est plus une decision, seulement une INFORMATION : le badge et la
-  // bulle de synchronisation. Repli sur le central uniquement si le backend embarque
-  // n'existe pas encore (mode distant, ou tout premier instant du demarrage).
+  if (interlocuteur === 'central' && centralUrl()) return centralUrl()
   return effectiveApiUrl ?? centralUrl()
 }
 
@@ -843,41 +826,80 @@ function pushRendererUrl(): void {
   connectivitySeq++
   mainWindow?.webContents.send('saris:api-url', {
     url: rendererApiUrl,
-    // `mode` decrit l'INTERLOCUTEUR, pas l'etat du reseau : en architecture locale
-    // d'abord, c'est toujours le backend embarque des lors qu'il tourne.
-    mode: effectiveApiUrl ? 'local' : 'central',
-    // `online` reste l'etat du RESEAU — il n'a plus d'effet sur l'adresse, il informe
-    // seulement l'utilisateur (badge, bulle de synchronisation).
+    // `mode` = l'INTERLOCUTEUR de l'écran (central ou service local). `online` = l'état du RÉSEAU : il peut
+    // être vrai alors que l'écran parle encore au local (retour d'Internet, envoi en cours) — c'est ce
+    // qu'affichent le badge et la bulle de synchronisation.
+    mode: interlocuteur,
     online: serverOnline,
     seq: connectivitySeq,
   })
-  log.info(`[connectivité] réseau : ${serverOnline ? 'en ligne' : 'hors ligne'} — l'application parle au service ${effectiveApiUrl ? 'local' : 'central'} : ${rendererApiUrl}`)
+  log.info(`[connectivité] réseau : ${serverOnline ? 'en ligne' : 'hors ligne'} — l'écran parle au ${interlocuteur === 'central' ? 'serveur CENTRAL' : 'service LOCAL'} : ${rendererApiUrl}`)
 }
 
-/** Sonde la connectivité en continu et bascule le renderer (central ⇄ local). */
+/**
+ * Ce poste a-t-il encore des écritures hors-ligne à remonter ?
+ *
+ * Interroge le backend EMBARQUÉ (loopback) — lui seul connaît sa file. En cas de doute (backend muet,
+ * réponse illisible) on répond OUI : mieux vaut rester un tour de plus sur le local que de montrer à
+ * l'utilisateur une vue où son travail manque.
+ */
+async function localBackendHasPendingPush(): Promise<boolean> {
+  if (!effectiveApiUrl) return false
+  try {
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), 2500)
+    const res = await fetch(`${effectiveApiUrl}/sync/ready`, { signal: ctrl.signal })
+    clearTimeout(timer)
+    if (!res.ok) return true
+    const body = (await res.json()) as { pendingPush?: boolean; enabled?: boolean }
+    // `enabled: false` = pas de backend embarqué (mode distant) : rien à attendre.
+    if (body.enabled === false) return false
+    return body.pendingPush !== false
+  } catch {
+    return true
+  }
+}
+
+/** Sonde la connectivité en continu et décide avec qui l'écran parle (central ⇄ service local). */
 async function startConnectivityWatch(): Promise<void> {
-  // Sonde INITIALE → l'URL est correcte AVANT le chargement du renderer (login direct au central).
+  // Sonde INITIALE → l'adresse est correcte AVANT le chargement de l'écran.
   serverOnline = await probeCentralOnline()
+  interlocuteur = choisirInterlocuteur({
+    actuel: 'local',
+    enLigne: serverOnline,
+    travailEnAttente: serverOnline ? await localBackendHasPendingPush() : true,
+  })
   rendererApiUrl = computeRendererUrl()
   if (connectivityTimer) clearInterval(connectivityTimer)
-  // Hystérésis : on n'agit qu'après 2 sondes consécutives indiquant le MÊME nouvel état
-  // (≈10 s) → évite le « flickering » (une sonde lente isolée) qui ferait basculer le backend
-  // pour rien et provoquerait des reconnexions SSE / 401 intempestifs.
+  // Hystérésis : on n'annonce un changement de réseau qu'après 2 sondes consécutives indiquant le MÊME
+  // nouvel état (≈10 s) → évite le « flickering » d'une sonde lente isolée, qui ferait basculer l'écran pour
+  // rien. (La perte du réseau signalée par Windows lui-même, elle, est immédiate : cf. 'saris:network'.)
   let flips = 0
   connectivityTimer = setInterval(() => {
     void (async () => {
       const now = await probeCentralOnline()
-
-      if (now === serverOnline) { flips = 0; return }
-      if (++flips < 2) return
-      flips = 0
-      serverOnline = now
-      // Le réseau est une INFORMATION, jamais un choix d'interlocuteur : l'application parle toujours au service
-      // local. On l'annonce donc SANS attendre — en particulier au retour du réseau, même si le poste a encore du
-      // travail à remonter. Avant, la reconnexion n'était annoncée qu'une fois la file vidée : un poste qui avait
-      // beaucoup à envoyer (ou dont l'envoi échouait) restait affiché « Hors ligne » alors que le réseau marchait.
-      // La bulle de synchronisation, elle, dit déjà qu'il reste du travail à remonter.
-      pushRendererUrl()
+      let changementReseau = false
+      if (now !== serverOnline) {
+        if (++flips < 2) return
+        flips = 0
+        serverOnline = now
+        changementReseau = true
+      } else {
+        flips = 0
+      }
+      // Le travail en attente ne se lit que s'il peut décider de quelque chose : en ligne, sur le local.
+      const enAttente = serverOnline && interlocuteur === 'local' ? await localBackendHasPendingPush() : false
+      const cible = choisirInterlocuteur({ actuel: interlocuteur, enLigne: serverOnline, travailEnAttente: enAttente })
+      if (cible !== interlocuteur) {
+        log.info(`[connectivité] ${cible === 'central' ? 'tout est remonté : retour sur le serveur central' : 'réseau perdu : bascule sur le service local'}`)
+        interlocuteur = cible
+        pushRendererUrl()
+      } else if (changementReseau) {
+        // Réseau revenu, mais le travail en attente n'est pas encore remonté : l'écran reste sur le local, et
+        // on l'ANNONCE quand même « en ligne » (badge exact, bulle de synchronisation).
+        if (serverOnline) log.info('[connectivité] serveur revenu — l’écran reste sur le service local le temps de remonter les écritures')
+        pushRendererUrl()
+      }
     })()
   }, 5000)
 }
@@ -896,9 +918,16 @@ async function completeLocalStartup(): Promise<void> {
     sendSetupStatus('error', 'Le service local n’a pas pu démarrer. Réessayez ; si le problème persiste, consultez les journaux.')
     return
   }
-  // L'application travaille sur la base LOCALE : on ne l'ouvre donc qu'une fois cette base
-  // remplie, en ligne comme hors-ligne. Ouvrir avant afficherait une application vide en
-  // attendant que les données arrivent — l'utilisateur croirait à une panne.
+  if (interlocuteur === 'central') {
+    // EN LIGNE : on ouvre TOUT DE SUITE sur le serveur central (données déjà là, messagerie instantanée). La
+    // première synchronisation de la base locale — qui servira le jour où le réseau tombe — se poursuit en
+    // arrière-plan.
+    sendSetupStatus('done', 'Connecté — ouverture de l’application.')
+    loadApplication()
+    return
+  }
+  // PAS DE RÉSEAU (ou travail en attente) : l'écran travaille sur la base LOCALE, on ne l'ouvre donc qu'une
+  // fois cette base remplie. Ouvrir avant afficherait une application vide — l'utilisateur croirait à une panne.
   //
   // Le compteur de la 1re synchronisation avance pendant l'attente (cf. waitForInitialSync).
   // Passé le délai, on ouvre quand même : la synchro continue en arrière-plan, mieux vaut
